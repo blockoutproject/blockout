@@ -1,0 +1,18 @@
+server:
+  port: 8081 
+
+spring:
+  application:
+    name: pools
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/blockout_pools
+    username: blockout_pools
+    password: blockout_pools
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update  
+    show-sql: true  
+    database-platform: org.hibernate.dialect.PostgreSQLDialect 
