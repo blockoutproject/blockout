@@ -14,22 +14,18 @@ public class PoolService {
     @Autowired
     private PoolRepository poolRepository;
 
-    // Créer une nouvelle pool
     public Pool createPool(Pool pool) {
         return poolRepository.save(pool);
     }
 
-    // Récupérer toutes les pools
     public List<Pool> getAllPools() {
         return poolRepository.findAll();
     }
 
-    // Récupérer une pool par ID
     public Optional<Pool> getPoolById(Long id) {
         return poolRepository.findById(id);
     }
 
-    // Mettre à jour une pool
     public Pool updatePool(Long id, Pool updatedPool) {
         return poolRepository.findById(id).map(pool -> {
             pool.setPoolCode(updatedPool.getPoolCode());
@@ -46,8 +42,15 @@ public class PoolService {
         }).orElseThrow(() -> new RuntimeException("Pool not found with id " + id));
     }
 
-    // Supprimer une pool
     public void deletePool(Long id) {
         poolRepository.deleteById(id);
+    }
+
+    public Optional<Pool> getPoolByCodeAndLeagueAndSeason(String poolCode, String leagueCode, Integer season) {
+        return poolRepository.findByPoolCodeAndLeagueCodeAndSeason(poolCode, leagueCode, season);
+    }
+
+    public List<Pool> getActivePoolsByLeagueCode(String leagueCode) {
+        return poolRepository.findByLeagueCodeAndActive(leagueCode, true);
     }
 }

@@ -37,8 +37,9 @@ public class Pool {
     @Column(name = "pool_name")
     private String poolName;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "division_code", nullable = false)
-    private String divisionCode;
+    private PoolDivisionCode divisionCode;
 
     @Column(name = "division_name")
     private String divisionName;
