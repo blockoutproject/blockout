@@ -5,6 +5,7 @@ import com.blockout.matches.repositories.MatchRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -14,29 +15,25 @@ public class MatchService {
     @Autowired
     private MatchRepository matchRepository;
 
-    // Créer un nouveau match
     public Match createMatch(Match match) {
         return matchRepository.save(match);
     }
 
-    // Récupérer tous les matchs
     public List<Match> getAllMatches() {
         return matchRepository.findAll();
     }
 
-    // Récupérer un match par ID
     public Optional<Match> getMatchById(Long id) {
         return matchRepository.findById(id);
     }
 
-    // Mettre à jour un match
     public Match updateMatch(Long id, Match updatedMatch) {
         return matchRepository.findById(id).map(match -> {
             match.setMatchCode(updatedMatch.getMatchCode());
             match.setLeagueCode(updatedMatch.getLeagueCode());
             match.setMatchDate(updatedMatch.getMatchDate());
-            match.setTeamAId(updatedMatch.getTeamAId());
-            match.setTeamBId(updatedMatch.getTeamBId());
+            match.setTeamIdA(updatedMatch.getTeamIdA());
+            match.setTeamIdB(updatedMatch.getTeamIdB());
             match.setPoolId(updatedMatch.getPoolId());
             match.setScore(updatedMatch.getScore());
             match.setSet(updatedMatch.getSet());
@@ -49,8 +46,19 @@ public class MatchService {
         }).orElseThrow(() -> new RuntimeException("Match not found with id " + id));
     }
 
-    // Supprimer un match
     public void deleteMatch(Long id) {
         matchRepository.deleteById(id);
+    }
+
+    public Optional<Match> getMatchByLeagueCodeAndMatchCode(String leagueCode, String matchCode) {
+        return matchRepository.findByLeagueCodeAndMatchCode(leagueCode, matchCode);
+    }
+
+    public List<Match> getActiveMatchesByPoolId(Long poolId) {
+        return matchRepository.findByPoolIdAndActive(poolId, true);
+    }
+
+    public List<Match> getStartedMatches(String status, boolean active, LocalDateTime currentTime) {
+        return matchRepository.findByStatusAndActiveAndMatchDateLessThanEqual(status, active, currentTime);
     }
 }

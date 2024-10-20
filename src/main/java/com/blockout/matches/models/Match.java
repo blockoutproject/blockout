@@ -31,11 +31,11 @@ public class Match {
     @Column(name = "pool_id", nullable = false)
     private Long poolId; // Référence à la Pool par son ID (microservice Pool)
 
-    @Column(name = "team_a_id", nullable = false)
-    private Long teamAId; // Référence à l'équipe A (microservice Team)
+    @Column(name = "team_id_a", nullable = false)
+    private Long teamIdA; // Référence à l'équipe A (microservice Team)
 
-    @Column(name = "team_b_id", nullable = false)
-    private Long teamBId; // Référence à l'équipe B (microservice Team)
+    @Column(name = "team_id_b", nullable = false)
+    private Long teamIdB; // Référence à l'équipe B (microservice Team)
 
     @Column(name = "match_date", nullable = false)
     private LocalDateTime matchDate;

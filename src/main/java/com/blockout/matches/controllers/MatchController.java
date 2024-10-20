@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 import com.blockout.matches.models.Match;
 import com.blockout.matches.services.MatchService;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -25,8 +26,8 @@ public class MatchController {
 
     @Operation(summary = "Créer un nouveau match", description = "Crée un nouveau match avec les informations fournies")
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "201", description = "Match créé avec succès"),
-        @ApiResponse(responseCode = "400", description = "Requête invalide")
+            @ApiResponse(responseCode = "201", description = "Match créé avec succès"),
+            @ApiResponse(responseCode = "400", description = "Requête invalide")
     })
     @PostMapping
     public ResponseEntity<Match> createMatch(@RequestBody Match match) {
@@ -36,7 +37,7 @@ public class MatchController {
 
     @Operation(summary = "Récupérer tous les matchs", description = "Retourne une liste de tous les matchs")
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Liste des matchs renvoyée avec succès")
+            @ApiResponse(responseCode = "200", description = "Liste des matchs renvoyée avec succès")
     })
     @GetMapping
     public ResponseEntity<List<Match>> getAllMatches() {
@@ -44,27 +45,42 @@ public class MatchController {
         return new ResponseEntity<>(matches, HttpStatus.OK);
     }
 
+    @Operation(summary = "Récupérer un match par league_code et match_code", description = "Retourne un match spécifique basé sur le league_code et le match_code")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Match renvoyé avec succès"),
+            @ApiResponse(responseCode = "404", description = "Match non trouvé")
+    })
+    @GetMapping("/{league_code}/{match_code}")
+    public ResponseEntity<Match> getMatchByLeagueCodeAndMatchCode(
+            @Parameter(description = "Code de la ligue") @PathVariable String league_code,
+            @Parameter(description = "Code du match") @PathVariable String match_code) {
+
+        Optional<Match> match = matchService.getMatchByLeagueCodeAndMatchCode(league_code, match_code);
+        return match.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
     @Operation(summary = "Récupérer un match par ID", description = "Retourne un match spécifique en fonction de l'ID fourni")
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Match trouvé"),
-        @ApiResponse(responseCode = "404", description = "Match non trouvé")
+            @ApiResponse(responseCode = "200", description = "Match trouvé"),
+            @ApiResponse(responseCode = "404", description = "Match non trouvé")
     })
     @GetMapping("/{id}")
     public ResponseEntity<Optional<Match>> getMatchById(
-        @Parameter(description = "ID du match à récupérer") @PathVariable Long id) {
+            @Parameter(description = "ID du match à récupérer") @PathVariable Long id) {
         Optional<Match> match = matchService.getMatchById(id);
-        return match.isPresent() ? new ResponseEntity<>(match, HttpStatus.OK) : new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        return match.isPresent() ? new ResponseEntity<>(match, HttpStatus.OK)
+                : new ResponseEntity<>(HttpStatus.NOT_FOUND);
     }
 
     @Operation(summary = "Mettre à jour un match", description = "Met à jour un match avec les informations fournies")
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Match mis à jour avec succès"),
-        @ApiResponse(responseCode = "404", description = "Match non trouvé")
+            @ApiResponse(responseCode = "200", description = "Match mis à jour avec succès"),
+            @ApiResponse(responseCode = "404", description = "Match non trouvé")
     })
     @PutMapping("/{id}")
     public ResponseEntity<Match> updateMatch(
-        @Parameter(description = "ID du match à mettre à jour") @PathVariable Long id,
-        @RequestBody Match updatedMatch) {
+            @Parameter(description = "ID du match à mettre à jour") @PathVariable Long id,
+            @RequestBody Match updatedMatch) {
         try {
             Match updated = matchService.updateMatch(id, updatedMatch);
             return new ResponseEntity<>(updated, HttpStatus.OK);
@@ -75,13 +91,51 @@ public class MatchController {
 
     @Operation(summary = "Supprimer un match", description = "Supprime un match en fonction de l'ID fourni")
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "204", description = "Match supprimé avec succès"),
-        @ApiResponse(responseCode = "404", description = "Match non trouvé")
+            @ApiResponse(responseCode = "204", description = "Match supprimé avec succès"),
+            @ApiResponse(responseCode = "404", description = "Match non trouvé")
     })
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteMatch(
-        @Parameter(description = "ID du match à supprimer") @PathVariable Long id) {
+            @Parameter(description = "ID du match à supprimer") @PathVariable Long id) {
         matchService.deleteMatch(id);
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+    }
+
+    @Operation(summary = "Récupérer les matchs actifs par pool_id", description = "Retourne une liste des matchs actifs pour une pool donnée.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Liste des matchs actifs renvoyée avec succès"),
+            @ApiResponse(responseCode = "204", description = "Aucun match actif trouvé pour cette pool"),
+    })
+    @GetMapping("/active")
+    public ResponseEntity<List<Match>> getActiveMatchesByPoolId(
+            @RequestParam Long pool_id) {
+
+        List<Match> activeMatches = matchService.getActiveMatchesByPoolId(pool_id);
+
+        if (activeMatches.isEmpty()) {
+            return ResponseEntity.noContent().build();
+        }
+        return ResponseEntity.ok(activeMatches);
+    }
+
+    @Operation(summary = "Récupérer les matchs qui ont commencé", description = "Retourne les matchs dont l'état est 'UPCOMING', mais dont la date est inférieure ou égale à l'heure actuelle.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Liste des matchs en cours renvoyée avec succès"),
+            @ApiResponse(responseCode = "204", description = "Aucun match trouvé"),
+    })
+    @GetMapping("/started")
+    public ResponseEntity<List<Match>> getStartedMatches(
+            @RequestParam String status,
+            @RequestParam boolean active,
+            @RequestParam String current_time) {
+
+        LocalDateTime currentTime = LocalDateTime.parse(current_time);
+        List<Match> startedMatches = matchService.getStartedMatches(status, active, currentTime);
+
+        if (startedMatches.isEmpty()) {
+            return ResponseEntity.noContent().build();
+        }
+
+        return ResponseEntity.ok(startedMatches);
     }
 }

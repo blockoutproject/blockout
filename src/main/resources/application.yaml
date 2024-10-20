@@ -4,6 +4,8 @@ server:
 spring:
   application:
     name: matches
+  jackson:
+    property-naming-strategy: SNAKE_CASE
 
   datasource:
     url: jdbc:postgresql://localhost:5434/blockout_matches
