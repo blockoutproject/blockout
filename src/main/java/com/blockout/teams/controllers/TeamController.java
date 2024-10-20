@@ -24,8 +24,8 @@ public class TeamController {
 
     @Operation(summary = "Créer une équipe", description = "Crée une nouvelle équipe avec les informations fournies.")
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "201", description = "Équipe créée avec succès"),
-        @ApiResponse(responseCode = "400", description = "Requête invalide")
+            @ApiResponse(responseCode = "201", description = "Équipe créée avec succès"),
+            @ApiResponse(responseCode = "400", description = "Requête invalide")
     })
     @PostMapping
     public ResponseEntity<Team> createTeam(@RequestBody Team team) {
@@ -35,7 +35,7 @@ public class TeamController {
 
     @Operation(summary = "Récupérer toutes les équipes", description = "Retourne une liste de toutes les équipes disponibles.")
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Liste des équipes renvoyée avec succès")
+            @ApiResponse(responseCode = "200", description = "Liste des équipes renvoyée avec succès")
     })
     @GetMapping
     public ResponseEntity<List<Team>> getAllTeams() {
@@ -43,27 +43,42 @@ public class TeamController {
         return new ResponseEntity<>(teams, HttpStatus.OK);
     }
 
+    @Operation(summary = "Récupérer les équipes par pool_id et team_name", description = "Retourne une équipe spécifique filtrée par pool_id et team_name.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Équipe trouvée avec succès"),
+            @ApiResponse(responseCode = "404", description = "Aucune équipe trouvée avec les critères fournis")
+    })
+    @GetMapping("/search")
+    public ResponseEntity<Team> getTeamByPoolIdAndTeamName(
+            @Parameter(description = "ID de la pool") @RequestParam Long pool_id,
+            @Parameter(description = "Nom de l'équipe") @RequestParam String team_name) {
+    
+        Optional<Team> team = teamService.getTeamsByPoolIdAndTeamName(pool_id, team_name);
+        return team.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
     @Operation(summary = "Récupérer une équipe par ID", description = "Retourne une équipe spécifique en fonction de l'ID fourni.")
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Équipe trouvée"),
-        @ApiResponse(responseCode = "404", description = "Équipe non trouvée")
+            @ApiResponse(responseCode = "200", description = "Équipe trouvée"),
+            @ApiResponse(responseCode = "404", description = "Équipe non trouvée")
     })
     @GetMapping("/{id}")
     public ResponseEntity<Optional<Team>> getTeamById(
-        @Parameter(description = "ID de l'équipe à récupérer") @PathVariable Long id) {
+            @Parameter(description = "ID de l'équipe à récupérer") @PathVariable Long id) {
         Optional<Team> team = teamService.getTeamById(id);
-        return team.isPresent() ? new ResponseEntity<>(team, HttpStatus.OK) : new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        return team.isPresent() ? new ResponseEntity<>(team, HttpStatus.OK)
+                : new ResponseEntity<>(HttpStatus.NOT_FOUND);
     }
 
     @Operation(summary = "Mettre à jour une équipe", description = "Met à jour une équipe avec les informations fournies.")
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Équipe mise à jour avec succès"),
-        @ApiResponse(responseCode = "404", description = "Équipe non trouvée")
+            @ApiResponse(responseCode = "200", description = "Équipe mise à jour avec succès"),
+            @ApiResponse(responseCode = "404", description = "Équipe non trouvée")
     })
     @PutMapping("/{id}")
     public ResponseEntity<Team> updateTeam(
-        @Parameter(description = "ID de l'équipe à mettre à jour") @PathVariable Long id,
-        @RequestBody Team updatedTeam) {
+            @Parameter(description = "ID de l'équipe à mettre à jour") @PathVariable Long id,
+            @RequestBody Team updatedTeam) {
         try {
             Team updated = teamService.updateTeam(id, updatedTeam);
             return new ResponseEntity<>(updated, HttpStatus.OK);
@@ -74,13 +89,29 @@ public class TeamController {
 
     @Operation(summary = "Supprimer une équipe", description = "Supprime une équipe en fonction de l'ID fourni.")
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "204", description = "Équipe supprimée avec succès"),
-        @ApiResponse(responseCode = "404", description = "Équipe non trouvée")
+            @ApiResponse(responseCode = "204", description = "Équipe supprimée avec succès"),
+            @ApiResponse(responseCode = "404", description = "Équipe non trouvée")
     })
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteTeam(
-        @Parameter(description = "ID de l'équipe à supprimer") @PathVariable Long id) {
+            @Parameter(description = "ID de l'équipe à supprimer") @PathVariable Long id) {
         teamService.deleteTeam(id);
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+    }
+    @Operation(summary = "Récupérer les équipes actives par pool_id", description = "Retourne une liste des équipes actives pour une pool donnée.")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Liste des équipes actives renvoyée avec succès"),
+        @ApiResponse(responseCode = "204", description = "Aucune équipe active trouvée pour cette pool")
+    })
+    @GetMapping("/active")
+    public ResponseEntity<List<Team>> getActiveTeamsByPoolId(
+            @RequestParam Long pool_id) {
+    
+        List<Team> activeTeams = teamService.getActiveTeamsByPoolId(pool_id);
+        
+        if (activeTeams.isEmpty()) {
+            return ResponseEntity.noContent().build();  // 204 No Content
+        } 
+        return ResponseEntity.ok(activeTeams);  // 200 OK
     }
 }

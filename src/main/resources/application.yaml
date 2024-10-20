@@ -4,6 +4,8 @@ server:
 spring:
   application:
     name: teams
+  jackson:
+    property-naming-strategy: SNAKE_CASE
 
   datasource:
     url: jdbc:postgresql://localhost:5433/blockout_teams
