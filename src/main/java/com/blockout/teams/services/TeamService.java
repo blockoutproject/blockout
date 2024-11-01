@@ -41,10 +41,24 @@ public class TeamService {
     }
 
     public Optional<Team> getTeamsByPoolIdAndTeamName(Long pool_id, String team_name) {
-        return teamRepository.findByPoolIdAndTeamName(pool_id, team_name);
+        Optional<Team> team = teamRepository.findByPoolIdAndTeamNameIgnoreCase(pool_id, team_name);
+        System.out.println("pool_id: " + pool_id + " team_name: " + team_name);
+        System.out.println(team);
+        return team;
     }
 
     public List<Team> getActiveTeamsByPoolId(Long poolId) {
         return teamRepository.findByPoolIdAndActive(poolId, true);
+    }
+
+    public boolean deactivateTeam(Long teamId) {
+        Optional<Team> teamOpt = teamRepository.findById(teamId);
+        if (teamOpt.isPresent()) {
+            Team team = teamOpt.get();
+            team.setActive(false);
+            teamRepository.save(team);
+            return true;
+        }
+        return false;
     }
 }

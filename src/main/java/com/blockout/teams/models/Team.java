@@ -31,6 +31,9 @@ public class Team {
     @Column(name = "team_name", nullable = false)
     private String teamName;
 
+    @Column(name = "team_alias", nullable = true)
+    private String teamAlias;
+
     @Builder.Default
     @Column(name = "active", nullable = false)
     private Boolean active = true;
