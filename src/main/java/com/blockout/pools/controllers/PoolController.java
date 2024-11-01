@@ -5,7 +5,6 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -29,9 +28,8 @@ public class PoolController {
     })
     @PostMapping
     public ResponseEntity<Pool> createPool(@RequestBody Pool pool) {
-        System.out.println("Creating pool with name: " + pool.getDivisionCode());
         Pool createdPool = poolService.createPool(pool);
-        return new ResponseEntity<>(createdPool, HttpStatus.CREATED);
+        return ResponseEntity.created(null).body(createdPool);
     }
 
     @Operation(summary = "Récupérer toutes les pools", description = "Retourne une liste de toutes les pools disponibles.")
@@ -47,7 +45,7 @@ public class PoolController {
     @Operation(summary = "Récupérer une pool par code, ligue et saison", description = "Retourne une pool spécifique en fonction du code de la pool, du code de la ligue et de la saison.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Pool trouvée avec succès"),
-            @ApiResponse(responseCode = "404", description = "Pool non trouvée")
+            @ApiResponse(responseCode = "204", description = "Aucune pool trouvée")
     })
     @GetMapping("/{pool_code}/{league_code}/{season}")
     public ResponseEntity<Pool> getPoolByCodeLeagueSeason(
@@ -56,7 +54,7 @@ public class PoolController {
             @Parameter(description = "Saison de la pool") @PathVariable Integer season) {
 
         Optional<Pool> pool = poolService.getPoolByCodeAndLeagueAndSeason(pool_code, league_code, season);
-        return pool.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
+        return pool.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.noContent().build());
     }
 
     @Operation(summary = "Récupérer une pool par ID", description = "Retourne une pool spécifique en fonction de l'ID fourni.")
@@ -68,8 +66,8 @@ public class PoolController {
     public ResponseEntity<Optional<Pool>> getPoolById(
             @Parameter(description = "ID de la pool à récupérer") @PathVariable Long id) {
         Optional<Pool> pool = poolService.getPoolById(id);
-        return pool.isPresent() ? new ResponseEntity<>(pool, HttpStatus.OK)
-                : new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        return pool.isPresent() ? ResponseEntity.ok().build()
+                : ResponseEntity.notFound().build();
     }
 
     @Operation(summary = "Mettre à jour une pool", description = "Met à jour une pool avec les informations fournies.")
@@ -83,9 +81,9 @@ public class PoolController {
             @RequestBody Pool updatedPool) {
         try {
             Pool updated = poolService.updatePool(id, updatedPool);
-            return new ResponseEntity<>(updated, HttpStatus.OK);
+            return ResponseEntity.ok(updated);
         } catch (RuntimeException e) {
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+            return ResponseEntity.notFound().build();
         }
     }
     @Operation(summary = "Supprimer une pool", description = "Supprime une pool en fonction de l'ID fourni.")
@@ -97,7 +95,7 @@ public class PoolController {
     public ResponseEntity<Void> deletePool(
             @Parameter(description = "ID de la pool à supprimer") @PathVariable Long id) {
         poolService.deletePool(id);
-        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+        return ResponseEntity.noContent().build();
     }
 
     @Operation(summary = "Récupérer les pools actives par league_code", description = "Retourne une liste des pools actives pour un code de ligue donné.")
@@ -115,5 +113,21 @@ public class PoolController {
             return ResponseEntity.noContent().build();
         }
         return ResponseEntity.ok(activePools);
+    }
+
+    @Operation(summary = "Désactiver une poule", description = "Désactive une poule en fonction de l'ID fourni")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Poule désactivée avec succès"),
+            @ApiResponse(responseCode = "404", description = "Poule non trouvée")
+    })
+    @PutMapping("/{id}/deactivate")
+    public ResponseEntity<Void> deactivatePool(
+            @Parameter(description = "ID de la poule à désactiver") @PathVariable Long id) {
+        boolean success = poolService.deactivatePool(id);
+        if (success) {
+            return ResponseEntity.ok().build();
+        } else {
+            return ResponseEntity.notFound().build();
+        }
     }
 }

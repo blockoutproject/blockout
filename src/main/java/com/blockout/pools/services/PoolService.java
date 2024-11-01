@@ -53,4 +53,15 @@ public class PoolService {
     public List<Pool> getActivePoolsByLeagueCode(String leagueCode) {
         return poolRepository.findByLeagueCodeAndActive(leagueCode, true);
     }
+
+    public boolean deactivatePool(Long poolId) {
+        Optional<Pool> poolOpt = poolRepository.findById(poolId);
+        if (poolOpt.isPresent()) {
+            Pool pool = poolOpt.get();
+            pool.setActive(false);
+            poolRepository.save(pool);
+            return true;
+        }
+        return false;
+    }
 }
