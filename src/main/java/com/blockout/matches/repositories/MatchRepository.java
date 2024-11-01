@@ -1,6 +1,7 @@
 package com.blockout.matches.repositories;
 
 import com.blockout.matches.models.Match;
+import com.blockout.matches.models.MatchStatus;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -13,5 +14,6 @@ import org.springframework.stereotype.Repository;
 public interface MatchRepository extends JpaRepository<Match, Long> {
     Optional<Match> findByLeagueCodeAndMatchCode(String leagueCode, String matchCode);
     List<Match> findByPoolIdAndActive(Long poolId, Boolean active);
-    List<Match> findByStatusAndActiveAndMatchDateLessThanEqual(String status, boolean active, LocalDateTime matchDate);
+    List<Match> findByStatusAndActiveAndMatchDateLessThanEqual(MatchStatus status, boolean active, LocalDateTime matchDate);
+    Optional<Match> findByPoolIdAndTeamIdAAndTeamIdBAndMatchDate(Long poolId, Long teamIdA, Long teamIdB, LocalDateTime matchDate);
 }

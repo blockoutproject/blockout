@@ -1,6 +1,7 @@
 package com.blockout.matches.services;
 
 import com.blockout.matches.models.Match;
+import com.blockout.matches.models.MatchStatus;
 import com.blockout.matches.repositories.MatchRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -38,12 +39,24 @@ public class MatchService {
             match.setScore(updatedMatch.getScore());
             match.setSet(updatedMatch.getSet());
             match.setStatus(updatedMatch.getStatus());
+            match.setLiveCode(updatedMatch.getLiveCode());
             match.setVenue(updatedMatch.getVenue());
             match.setReferee1(updatedMatch.getReferee1());
             match.setReferee2(updatedMatch.getReferee2());
-            match.setActive(updatedMatch.getActive());
+            match.setActive(true);
             return matchRepository.save(match);
         }).orElseThrow(() -> new RuntimeException("Match not found with id " + id));
+    }
+
+    public boolean deactivateMatch(Long matchId) {
+        Optional<Match> matchOpt = matchRepository.findById(matchId);
+        if (matchOpt.isPresent()) {
+            Match match = matchOpt.get();
+            match.setActive(false);
+            matchRepository.save(match);
+            return true;
+        }
+        return false;
     }
 
     public void deleteMatch(Long id) {
@@ -58,7 +71,11 @@ public class MatchService {
         return matchRepository.findByPoolIdAndActive(poolId, true);
     }
 
-    public List<Match> getStartedMatches(String status, boolean active, LocalDateTime currentTime) {
+    public List<Match> getStartedMatches(MatchStatus status, boolean active, LocalDateTime currentTime) {
         return matchRepository.findByStatusAndActiveAndMatchDateLessThanEqual(status, active, currentTime);
+    }
+
+    public Optional<Match> getMatchByPoolAndTeamsAndDate(Long poolId, Long teamIdA, Long teamIdB, LocalDateTime matchDate) {
+        return matchRepository.findByPoolIdAndTeamIdAAndTeamIdBAndMatchDate(poolId, teamIdA, teamIdB, matchDate);
     }
 }

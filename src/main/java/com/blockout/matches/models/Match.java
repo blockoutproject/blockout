@@ -31,6 +31,9 @@ public class Match {
     @Column(name = "pool_id", nullable = false)
     private Long poolId; // Référence à la Pool par son ID (microservice Pool)
 
+    @Column(name = "live_code", nullable = true)
+    private Long liveCode;
+
     @Column(name = "team_id_a", nullable = false)
     private Long teamIdA; // Référence à l'équipe A (microservice Team)
 
