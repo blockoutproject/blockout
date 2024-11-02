@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import com.blockout.teams.exceptions.TeamNotFoundException;
 import com.blockout.teams.models.Team;
 import com.blockout.teams.services.TeamService;
 
@@ -51,7 +52,7 @@ public class TeamController {
     public ResponseEntity<Team> getTeamByPoolIdAndTeamName(
             @Parameter(description = "ID de la pool") @RequestParam Long pool_id,
             @Parameter(description = "Nom de l'équipe") @RequestParam String team_name) {
-    
+
         Optional<Team> team = teamService.getTeamsByPoolIdAndTeamName(pool_id, team_name);
         return team.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.noContent().build());
     }
@@ -86,35 +87,6 @@ public class TeamController {
         }
     }
 
-    @Operation(summary = "Supprimer une équipe", description = "Supprime une équipe en fonction de l'ID fourni.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "204", description = "Équipe supprimée avec succès"),
-            @ApiResponse(responseCode = "404", description = "Équipe non trouvée")
-    })
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteTeam(
-            @Parameter(description = "ID de l'équipe à supprimer") @PathVariable Long id) {
-        teamService.deleteTeam(id);
-        return ResponseEntity.noContent().build();
-    }
-    @Operation(summary = "Récupérer les équipes actives par pool_id", description = "Retourne une liste des équipes actives pour une pool donnée.")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Liste des équipes actives renvoyée avec succès"),
-        @ApiResponse(responseCode = "204", description = "Aucune équipe active trouvée pour cette pool")
-    })
-    @GetMapping("/active")
-    public ResponseEntity<List<Team>> getActiveTeamsByPoolId(
-            @RequestParam Long pool_id) {
-    
-        List<Team> activeTeams = teamService.getActiveTeamsByPoolId(pool_id);
-        
-        if (activeTeams.isEmpty()) {
-            return ResponseEntity.noContent().build();
-        } 
-        return ResponseEntity.ok(activeTeams);
-    }
-
-
     @Operation(summary = "Désactiver une équipe", description = "Désactive une équipe en fonction de l'ID fourni")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Équipe désactivée avec succès"),
@@ -123,11 +95,28 @@ public class TeamController {
     @PutMapping("/{id}/deactivate")
     public ResponseEntity<Void> deactivateTeam(
             @Parameter(description = "ID de l'équipe à désactiver") @PathVariable Long id) {
-        boolean success = teamService.deactivateTeam(id);
-        if (success) {
+        try {
+            teamService.deactivateTeam(id);
             return ResponseEntity.ok().build();
-        } else {
+        } catch (TeamNotFoundException e) {
             return ResponseEntity.notFound().build();
         }
+    }
+
+    @Operation(summary = "Récupérer les équipes actives par pool_id", description = "Retourne une liste des équipes actives pour une pool donnée.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Liste des équipes actives renvoyée avec succès"),
+            @ApiResponse(responseCode = "204", description = "Aucune équipe active trouvée pour cette pool")
+    })
+    @GetMapping("/active")
+    public ResponseEntity<List<Team>> getActiveTeamsByPoolId(
+            @RequestParam Long pool_id) {
+
+        List<Team> activeTeams = teamService.getActiveTeamsByPoolId(pool_id);
+
+        if (activeTeams.isEmpty()) {
+            return ResponseEntity.noContent().build();
+        }
+        return ResponseEntity.ok(activeTeams);
     }
 }

@@ -1,5 +1,6 @@
 package com.blockout.teams.services;
 
+import com.blockout.teams.exceptions.TeamNotFoundException;
 import com.blockout.teams.models.Team;
 import com.blockout.teams.repositories.TeamRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,11 +34,14 @@ public class TeamService {
             team.setPoolId(updatedTeam.getPoolId());
             team.setActive(updatedTeam.getActive());
             return teamRepository.save(team);
-        }).orElseThrow(() -> new RuntimeException("Team not found with id " + id));
+        }).orElseThrow(() -> new TeamNotFoundException(id));
     }
 
-    public void deleteTeam(Long id) {
-        teamRepository.deleteById(id);
+    public Team deactivateTeam(Long teamId) {
+        return teamRepository.findById(teamId).map(team -> {
+            team.setActive(false);
+            return teamRepository.save(team);
+        }).orElseThrow(() -> new TeamNotFoundException(teamId));
     }
 
     public Optional<Team> getTeamsByPoolIdAndTeamName(Long pool_id, String team_name) {
@@ -51,14 +55,4 @@ public class TeamService {
         return teamRepository.findByPoolIdAndActive(poolId, true);
     }
 
-    public boolean deactivateTeam(Long teamId) {
-        Optional<Team> teamOpt = teamRepository.findById(teamId);
-        if (teamOpt.isPresent()) {
-            Team team = teamOpt.get();
-            team.setActive(false);
-            teamRepository.save(team);
-            return true;
-        }
-        return false;
-    }
 }
