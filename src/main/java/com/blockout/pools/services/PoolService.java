@@ -1,5 +1,6 @@
 package com.blockout.pools.services;
 
+import com.blockout.pools.exceptions.PoolNotFoundException;
 import com.blockout.pools.models.Pool;
 import com.blockout.pools.repositories.PoolRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,11 +40,14 @@ public class PoolService {
             pool.setRawDivisionName(updatedPool.getRawDivisionName());
             pool.setActive(updatedPool.getActive());
             return poolRepository.save(pool);
-        }).orElseThrow(() -> new RuntimeException("Pool not found with id " + id));
+        }).orElseThrow(() -> new PoolNotFoundException(id));
     }
 
-    public void deletePool(Long id) {
-        poolRepository.deleteById(id);
+    public Pool deactivatePool(Long poolId) {
+        return poolRepository.findById(poolId).map(pool -> {
+            pool.setActive(false);
+            return poolRepository.save(pool);
+        }).orElseThrow(() -> new PoolNotFoundException(poolId));
     }
 
     public Optional<Pool> getPoolByCodeAndLeagueAndSeason(String poolCode, String leagueCode, Integer season) {
@@ -52,16 +56,5 @@ public class PoolService {
 
     public List<Pool> getActivePoolsByLeagueCode(String leagueCode) {
         return poolRepository.findByLeagueCodeAndActive(leagueCode, true);
-    }
-
-    public boolean deactivatePool(Long poolId) {
-        Optional<Pool> poolOpt = poolRepository.findById(poolId);
-        if (poolOpt.isPresent()) {
-            Pool pool = poolOpt.get();
-            pool.setActive(false);
-            poolRepository.save(pool);
-            return true;
-        }
-        return false;
     }
 }

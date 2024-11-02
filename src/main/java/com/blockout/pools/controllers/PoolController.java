@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import com.blockout.pools.exceptions.PoolNotFoundException;
 import com.blockout.pools.models.Pool;
 import com.blockout.pools.services.PoolService;
 
@@ -86,22 +87,27 @@ public class PoolController {
             return ResponseEntity.notFound().build();
         }
     }
-    @Operation(summary = "Supprimer une pool", description = "Supprime une pool en fonction de l'ID fourni.")
+
+    @Operation(summary = "Désactiver une poule", description = "Désactive une poule en fonction de l'ID fourni")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "204", description = "Pool supprimée avec succès"),
-            @ApiResponse(responseCode = "404", description = "Pool non trouvée")
+            @ApiResponse(responseCode = "200", description = "Poule désactivée avec succès"),
+            @ApiResponse(responseCode = "404", description = "Poule non trouvée")
     })
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deletePool(
-            @Parameter(description = "ID de la pool à supprimer") @PathVariable Long id) {
-        poolService.deletePool(id);
-        return ResponseEntity.noContent().build();
+    @PutMapping("/{id}/deactivate")
+    public ResponseEntity<Void> deactivatePool(
+            @Parameter(description = "ID de la poule à désactiver") @PathVariable Long id) {
+        try {
+            poolService.deactivatePool(id);
+            return ResponseEntity.ok().build();
+        } catch (PoolNotFoundException e) {
+            return ResponseEntity.notFound().build();
+        }
     }
 
     @Operation(summary = "Récupérer les pools actives par league_code", description = "Retourne une liste des pools actives pour un code de ligue donné.")
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Liste des pools actives renvoyée avec succès"),
-        @ApiResponse(responseCode = "204", description = "Aucune pool active trouvée pour ce league_code")
+            @ApiResponse(responseCode = "200", description = "Liste des pools actives renvoyée avec succès"),
+            @ApiResponse(responseCode = "204", description = "Aucune pool active trouvée pour ce league_code")
     })
     @GetMapping("/active")
     public ResponseEntity<List<Pool>> getActivePoolsByLeagueCode(
@@ -113,21 +119,5 @@ public class PoolController {
             return ResponseEntity.noContent().build();
         }
         return ResponseEntity.ok(activePools);
-    }
-
-    @Operation(summary = "Désactiver une poule", description = "Désactive une poule en fonction de l'ID fourni")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Poule désactivée avec succès"),
-            @ApiResponse(responseCode = "404", description = "Poule non trouvée")
-    })
-    @PutMapping("/{id}/deactivate")
-    public ResponseEntity<Void> deactivatePool(
-            @Parameter(description = "ID de la poule à désactiver") @PathVariable Long id) {
-        boolean success = poolService.deactivatePool(id);
-        if (success) {
-            return ResponseEntity.ok().build();
-        } else {
-            return ResponseEntity.notFound().build();
-        }
     }
 }
