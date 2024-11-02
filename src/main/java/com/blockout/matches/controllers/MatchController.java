@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import com.blockout.matches.exceptions.MatchNotFoundException;
 import com.blockout.matches.models.Match;
 import com.blockout.matches.models.MatchStatus;
 import com.blockout.matches.services.MatchService;
@@ -84,21 +85,25 @@ public class MatchController {
         try {
             Match updated = matchService.updateMatch(id, updatedMatch);
             return ResponseEntity.ok(updated);
-        } catch (RuntimeException e) {
+        } catch (MatchNotFoundException e) {
             return ResponseEntity.notFound().build();
         }
     }
 
-    @Operation(summary = "Supprimer un match", description = "Supprime un match en fonction de l'ID fourni")
+    @Operation(summary = "Désactiver un match", description = "Désactive un match en fonction de l'ID fourni")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "204", description = "Match supprimé avec succès"),
+            @ApiResponse(responseCode = "200", description = "Match désactivé avec succès"),
             @ApiResponse(responseCode = "404", description = "Match non trouvé")
     })
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteMatch(
-            @Parameter(description = "ID du match à supprimer") @PathVariable Long id) {
-        matchService.deleteMatch(id);
-        return ResponseEntity.noContent().build();
+    @PutMapping("/{id}/deactivate")
+    public ResponseEntity<Void> deactivateMatch(
+            @Parameter(description = "ID du match à désactiver") @PathVariable Long id) {
+        try {
+            matchService.deactivateMatch(id);
+            return ResponseEntity.ok().build();
+        } catch (MatchNotFoundException e) {
+            return ResponseEntity.notFound().build();
+        }
     }
 
     @Operation(summary = "Récupérer les matchs actifs par pool_id", description = "Retourne une liste des matchs actifs pour une pool donnée.")
@@ -155,22 +160,5 @@ public class MatchController {
         Optional<Match> match = matchService.getMatchByPoolAndTeamsAndDate(pool_id, team_id_a, team_id_b, matchDate);
 
         return match.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
-    }
-
-    @Operation(summary = "Désactiver un match", description = "Désactive un match en fonction de l'ID fourni")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Match désactivé avec succès"),
-            @ApiResponse(responseCode = "404", description = "Match non trouvé")
-    })
-    @PutMapping("/{id}/deactivate")
-    public ResponseEntity<Void> deactivateMatch(
-            @Parameter(description = "ID du match à désactiver") @PathVariable Long id) {
-
-        boolean success = matchService.deactivateMatch(id);
-        if (success) {
-            return ResponseEntity.ok().build();
-        } else {
-            return ResponseEntity.notFound().build();
-        }
     }
 }

@@ -1,5 +1,6 @@
 package com.blockout.matches.services;
 
+import com.blockout.matches.exceptions.MatchNotFoundException;
 import com.blockout.matches.models.Match;
 import com.blockout.matches.models.MatchStatus;
 import com.blockout.matches.repositories.MatchRepository;
@@ -45,22 +46,14 @@ public class MatchService {
             match.setReferee2(updatedMatch.getReferee2());
             match.setActive(true);
             return matchRepository.save(match);
-        }).orElseThrow(() -> new RuntimeException("Match not found with id " + id));
+        }).orElseThrow(() -> new MatchNotFoundException(id));
     }
 
-    public boolean deactivateMatch(Long matchId) {
-        Optional<Match> matchOpt = matchRepository.findById(matchId);
-        if (matchOpt.isPresent()) {
-            Match match = matchOpt.get();
+    public Match deactivateMatch(Long matchId) {
+        return matchRepository.findById(matchId).map(match -> {
             match.setActive(false);
-            matchRepository.save(match);
-            return true;
-        }
-        return false;
-    }
-
-    public void deleteMatch(Long id) {
-        matchRepository.deleteById(id);
+            return matchRepository.save(match);
+        }).orElseThrow(() -> new MatchNotFoundException(matchId));
     }
 
     public Optional<Match> getMatchByLeagueCodeAndMatchCode(String leagueCode, String matchCode) {
