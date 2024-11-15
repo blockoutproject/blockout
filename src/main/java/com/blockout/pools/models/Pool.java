@@ -44,8 +44,9 @@ public class Pool {
     @Column(name = "division_name")
     private String divisionName;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "gender")
-    private String gender;
+    private PoolGender gender;
 
     @Column(name = "raw_division_name")
     private String rawDivisionName;

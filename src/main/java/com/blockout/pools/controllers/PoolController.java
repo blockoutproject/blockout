@@ -43,6 +43,24 @@ public class PoolController {
         return ResponseEntity.ok(pools);
     }
 
+    @Operation(summary = "Récupérer les pools par ligue et saison", description = "Retourne une liste des pools pour un code de ligue et une saison donnés.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Liste des pools renvoyée avec succès"),
+            @ApiResponse(responseCode = "204", description = "Aucune pool trouvée pour ce league_code et saison")
+    })
+    @GetMapping("/league/{league_code}/season/{season}")
+    public ResponseEntity<List<Pool>> getPoolsByLeagueAndSeason(
+            @Parameter(description = "Code de la ligue") @PathVariable String league_code,
+            @Parameter(description = "Saison de la pool") @PathVariable Integer season) {
+    
+        List<Pool> pools = poolService.getPoolsByLeagueAndSeason(league_code, season);
+    
+        if (pools.isEmpty()) {
+            return ResponseEntity.noContent().build();
+        }
+        return ResponseEntity.ok(pools);
+    }
+
     @Operation(summary = "Récupérer une pool par code, ligue et saison", description = "Retourne une pool spécifique en fonction du code de la pool, du code de la ligue et de la saison.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Pool trouvée avec succès"),
