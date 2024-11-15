@@ -1,46 +1,61 @@
-// Package: com.blockout.teams.config
-
 package com.blockout.teams.config;
 
-import org.springframework.amqp.core.*;
+import java.util.List;
+import org.springframework.amqp.core.Binding;
+import org.springframework.amqp.core.BindingBuilder;
+import org.springframework.amqp.core.FanoutExchange;
+import org.springframework.amqp.core.Queue;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.amqp.support.converter.SimpleMessageConverter;
+import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class RabbitMQConfig {
 
-    // Exchange pour les événements Team
-    public static final String TEAM_EXCHANGE = "team.exchange";
+    public static final String POOL_DEACTIVATED_QUEUE_TEAM = "pool.deactivated.queue.team";
+    public static final String POOL_DEACTIVATED_EXCHANGE = "pool.deactivated.exchange";
 
-    // Queue pour consommer les événements de désactivation d'équipe
-    public static final String TEAM_DEACTIVATION_QUEUE = "team.deactivation.queue";
-
-    // Exchange pour les événements Pool (doit correspondre à celui défini dans le microservice Pool)
-    public static final String POOL_EXCHANGE = "pool.exchange";
-
-    // Queue pour consommer les événements Pool
-    public static final String POOL_EVENT_QUEUE = "team.pool.queue";
+    public static final String TEAM_DEACTIVATED_QUEUE = "team.deactivated.queue";
+    public static final String TEAM_DEACTIVATED_EXCHANGE = "team.deactivated.exchange";
 
     @Bean
-    public TopicExchange teamExchange() {
-        return new TopicExchange(TEAM_EXCHANGE);
+    public Queue poolDeactivatedQueueTeam() {
+        return new Queue(POOL_DEACTIVATED_QUEUE_TEAM, true);
     }
 
     @Bean
-    public TopicExchange poolExchange() {
-        return new TopicExchange(POOL_EXCHANGE);
+    public FanoutExchange poolDeactivatedExchange() {
+        return new FanoutExchange(POOL_DEACTIVATED_EXCHANGE);
     }
 
     @Bean
-    public Queue poolEventQueue() {
-        return new Queue(POOL_EVENT_QUEUE);
+    public Binding poolBindingTeam(FanoutExchange poolDeactivatedExchange, Queue poolDeactivatedQueueTeam) {
+        return BindingBuilder.bind(poolDeactivatedQueueTeam).to(poolDeactivatedExchange);
     }
 
     @Bean
-    public Binding poolEventBinding() {
-        // Lie la queue des événements Pool à l'exchange Pool pour les événements de désactivation
-        return BindingBuilder.bind(poolEventQueue())
-                .to(poolExchange())
-                .with("pool.pooldeactivated");
+    public Queue teamDeactivatedQueue() {
+        return new Queue(TEAM_DEACTIVATED_QUEUE, true);
+    }
+
+    @Bean
+    public FanoutExchange teamDeactivatedExchange() {
+        return new FanoutExchange(TEAM_DEACTIVATED_EXCHANGE);
+    }
+
+    @Bean
+    public SimpleMessageConverter messageConverter() {
+        SimpleMessageConverter converter = new SimpleMessageConverter();
+        converter.setAllowedListPatterns(List.of("com.blockout.shared.events.PoolDeactivatedEvent", "java.lang.*"));
+        return converter;
+    }
+
+    @Bean
+    public RabbitTemplate rabbitTemplate(ConnectionFactory connectionFactory) {
+        RabbitTemplate rabbitTemplate = new RabbitTemplate(connectionFactory);
+        rabbitTemplate.setMessageConverter(messageConverter());
+        return rabbitTemplate;
     }
 }
