@@ -22,7 +22,6 @@ public class UserController {
     // 1. Endpoint to create a user
     @PostMapping
     public ResponseEntity<User> createUser(@RequestParam String email, @RequestParam String password) throws Auth0Exception {
-        System.out.println("Creating user with email: " + email);
         User user = userService.createUser(email, password);
         return ResponseEntity.ok(user);
     }
