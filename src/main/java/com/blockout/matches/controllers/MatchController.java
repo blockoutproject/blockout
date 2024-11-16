@@ -46,6 +46,24 @@ public class MatchController {
         return ResponseEntity.ok(matches);
     }
 
+
+    @Operation(summary = "Récupérer les matchs par poule", 
+               description = "Retourne une liste de tous les matchs associés à une poule spécifique.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Liste des matchs renvoyée avec succès"),
+            @ApiResponse(responseCode = "204", description = "Aucun match trouvé pour cette poule"),
+    })
+    @GetMapping("/pool/{poolId}")
+    public ResponseEntity<List<Match>> getMatchesByPool(
+            @PathVariable Long poolId) {
+
+        List<Match> matches = matchService.getMatchesByPool(poolId);
+        if (matches.isEmpty()) {
+            return ResponseEntity.noContent().build();
+        }
+        return ResponseEntity.ok(matches);
+    }
+
     @Operation(summary = "Récupérer un match par league_code et match_code", description = "Retourne un match spécifique basé sur le league_code et le match_code")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Match renvoyé avec succès"),

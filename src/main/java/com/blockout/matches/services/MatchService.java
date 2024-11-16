@@ -34,6 +34,10 @@ public class MatchService {
         return matchRepository.findById(id);
     }
 
+    public List<Match> getMatchesByPool(Long poolId) {
+        return matchRepository.findByPoolId(poolId);
+    }
+
     public Match updateMatch(Long id, Match updatedMatch) {
         return matchRepository.findById(id).map(match -> {
             match.setMatchCode(updatedMatch.getMatchCode());
