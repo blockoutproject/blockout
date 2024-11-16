@@ -57,6 +57,26 @@ public class TeamController {
         return team.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.noContent().build());
     }
 
+
+    @Operation(summary = "Récupérer les équipes d'une poule", 
+               description = "Retourne une liste de toutes les équipes associées à une poule spécifique.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Liste des équipes renvoyée avec succès"),
+            @ApiResponse(responseCode = "204", description = "Aucune équipe trouvée pour cette poule"),
+    })
+    @GetMapping("/pool/{poolId}")
+    public ResponseEntity<List<Team>> getTeamsByPool(
+            @Parameter(description = "ID de la poule dont les équipes doivent être récupérées") 
+            @PathVariable Long poolId) {
+                
+        List<Team> teams = teamService.getTeamsByPool(poolId);
+        if (teams.isEmpty()) {
+            return ResponseEntity.noContent().build();
+        }
+        return ResponseEntity.ok(teams);
+
+    }
+
     @Operation(summary = "Récupérer une équipe par ID", description = "Retourne une équipe spécifique en fonction de l'ID fourni.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Équipe trouvée"),

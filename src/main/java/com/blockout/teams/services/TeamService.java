@@ -35,6 +35,10 @@ public class TeamService {
         return teamRepository.findById(id);
     }
 
+    public List<Team> getTeamsByPool(Long poolId) {
+        return teamRepository.findByPoolId(poolId);
+    }
+
     public Team updateTeam(Long id, Team updatedTeam) {
         return teamRepository.findById(id).map(team -> {
             team.setClubId(updatedTeam.getClubId());
