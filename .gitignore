@@ -26,3 +26,11 @@ replay_pid*
 .DS_Store
 .mvn/
 target/
+
+# postgres
+local/postgres-data
+
+# environment variables
+.env.dev
+.env.local
+.env

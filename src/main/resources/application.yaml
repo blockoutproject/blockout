@@ -3,24 +3,32 @@ server:
 
 spring:
   application:
-    name: teams
+    name: ${SPRING_APPLICATION_NAME:teams}
+
   jackson:
     property-naming-strategy: SNAKE_CASE
 
-  datasource:
-    url: jdbc:postgresql://localhost:5433/blockout_teams
-    username: blockout_teams
-    password: blockout_teams
-    driver-class-name: org.postgresql.Driver
+  config:
+    on-missing-location: fail
 
   jpa:
     hibernate:
-      ddl-auto: update  
-    show-sql: false  
-    database-platform: org.hibernate.dialect.PostgreSQLDialect 
+      ddl-auto: update
+    show-sql: ${SPRING_JPA_SHOW_SQL:false}
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+
+  datasource:
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+    driver-class-name: org.postgresql.Driver
 
   rabbitmq:
-    host: localhost
-    port: 5672
-    username: user
-    password: password
+    host: ${SPRING_RABBITMQ_HOST}
+    port: ${SPRING_RABBITMQ_PORT}
+    username: ${SPRING_RABBITMQ_USERNAME}
+    password: ${SPRING_RABBITMQ_PASSWORD}
+
+logging:
+  level:
+    root: ${LOGGING_LEVEL_ROOT:INFO}
