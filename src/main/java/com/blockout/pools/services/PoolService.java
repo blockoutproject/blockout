@@ -3,6 +3,9 @@ package com.blockout.pools.services;
 import com.blockout.pools.exceptions.PoolNotFoundException;
 import com.blockout.pools.models.Pool;
 import com.blockout.pools.repositories.PoolRepository;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -12,8 +15,13 @@ import java.util.Optional;
 @Service
 public class PoolService {
 
+    private static final Logger logger = LoggerFactory.getLogger(PoolService.class);
+
     @Autowired
     private PoolRepository poolRepository;
+
+    @Autowired
+    private EventPublisher eventPublisher;
 
     public Pool createPool(Pool pool) {
         return poolRepository.save(pool);
@@ -21,6 +29,10 @@ public class PoolService {
 
     public List<Pool> getAllPools() {
         return poolRepository.findAll();
+    }
+
+    public List<Pool> getPoolsByLeagueAndSeason(String leagueCode, Integer season) {
+        return poolRepository.findByLeagueCodeAndSeason(leagueCode, season);
     }
 
     public Optional<Pool> getPoolById(Long id) {
@@ -46,8 +58,17 @@ public class PoolService {
     public Pool deactivatePool(Long poolId) {
         return poolRepository.findById(poolId).map(pool -> {
             pool.setActive(false);
-            return poolRepository.save(pool);
-        }).orElseThrow(() -> new PoolNotFoundException(poolId));
+            Pool updatedPool = poolRepository.save(pool);
+            logger.info("Pool with ID: {} successfully deactivated", poolId);
+
+            // Publier l'événement de désactivation
+            eventPublisher.publishPoolDeactivationEvent(poolId);
+
+            return updatedPool;
+        }).orElseThrow(() -> {
+            logger.error("Pool with ID: {} not found. Cannot deactivate.", poolId);
+            return new PoolNotFoundException(poolId);
+        });
     }
 
     public Optional<Pool> getPoolByCodeAndLeagueAndSeason(String poolCode, String leagueCode, Integer season) {

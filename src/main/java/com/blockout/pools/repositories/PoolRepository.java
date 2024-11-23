@@ -12,4 +12,5 @@ import org.springframework.stereotype.Repository;
 public interface PoolRepository extends JpaRepository<Pool, Long> {
     Optional<Pool> findByPoolCodeAndLeagueCodeAndSeason(String poolCode, String leagueCode, Integer season);
     List<Pool> findByLeagueCodeAndActive(String leagueCode, Boolean active);
+    List<Pool> findByLeagueCodeAndSeason(String leagueCode, Integer season);
 }
