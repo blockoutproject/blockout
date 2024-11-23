@@ -1,8 +1,6 @@
 services:
-  blockout_teams:
-    build:
-      context: .
-      dockerfile: Dockerfile
+  blockout-api-teams:
+    build: .
     ports:
       - ${SERVER_PORT}:8082
     environment:
@@ -14,7 +12,8 @@ services:
       SPRING_RABBITMQ_USERNAME: ${SPRING_RABBITMQ_USERNAME}
       SPRING_RABBITMQ_PASSWORD: ${SPRING_RABBITMQ_PASSWORD}
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
       
   postgres:
     image: postgres:latest
@@ -22,9 +21,14 @@ services:
     environment:
       POSTGRES_USER: ${SPRING_DATASOURCE_USERNAME}
       POSTGRES_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
-      POSTGRES_DB: blockout_teams
+      POSTGRES_DB: ${SPRING_DATASOURCE_NAME}
     ports:
       - 5433:5432
     volumes:
       - ./local/postgres-data:/var/lib/postgresql/data
       - ./local/postgres-init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${SPRING_DATASOURCE_USERNAME} -d ${SPRING_DATASOURCE_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
