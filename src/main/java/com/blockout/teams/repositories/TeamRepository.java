@@ -12,4 +12,5 @@ import org.springframework.stereotype.Repository;
 public interface TeamRepository extends JpaRepository<Team, Long> {
     Optional<Team> findByPoolIdAndTeamNameIgnoreCase(Long poolId, String teamName);
     List<Team> findByPoolIdAndActive(Long poolId, Boolean active);
+    List<Team> findByPoolId(Long poolId);
 }
