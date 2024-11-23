@@ -16,4 +16,6 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
     List<Match> findByPoolIdAndActive(Long poolId, Boolean active);
     List<Match> findByStatusAndActiveAndMatchDateLessThanEqual(MatchStatus status, boolean active, LocalDateTime matchDate);
     Optional<Match> findByPoolIdAndTeamIdAAndTeamIdBAndMatchDate(Long poolId, Long teamIdA, Long teamIdB, LocalDateTime matchDate);
+    List<Match> findByTeamIdAOrTeamIdB(Long teamIdA, Long teamIdB);
+    List<Match> findByPoolId(Long poolId);
 }

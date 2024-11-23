@@ -4,6 +4,9 @@ import com.blockout.matches.exceptions.MatchNotFoundException;
 import com.blockout.matches.models.Match;
 import com.blockout.matches.models.MatchStatus;
 import com.blockout.matches.repositories.MatchRepository;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -13,6 +16,8 @@ import java.util.Optional;
 
 @Service
 public class MatchService {
+
+    private static final Logger logger = LoggerFactory.getLogger(MatchService.class);
 
     @Autowired
     private MatchRepository matchRepository;
@@ -27,6 +32,10 @@ public class MatchService {
 
     public Optional<Match> getMatchById(Long id) {
         return matchRepository.findById(id);
+    }
+
+    public List<Match> getMatchesByPool(Long poolId) {
+        return matchRepository.findByPoolId(poolId);
     }
 
     public Match updateMatch(Long id, Match updatedMatch) {
@@ -52,8 +61,39 @@ public class MatchService {
     public Match deactivateMatch(Long matchId) {
         return matchRepository.findById(matchId).map(match -> {
             match.setActive(false);
-            return matchRepository.save(match);
-        }).orElseThrow(() -> new MatchNotFoundException(matchId));
+            Match updatedMatch = matchRepository.save(match);
+            logger.info("Match with ID: {} successfully deactivated", matchId);
+            return updatedMatch;
+        }).orElseThrow(() -> {
+            logger.error("Match with ID: {} not found. Cannot deactivate.", matchId);
+            return new MatchNotFoundException(matchId);
+        });
+    }
+
+    public void deactivateMatchesByPoolId(Long poolId) {
+        List<Match> matches = matchRepository.findByPoolId(poolId);
+        if (matches.isEmpty()) {
+            logger.warn("No matches found for pool ID: {}. No deactivation performed.", poolId);
+        } else {
+            matches.forEach(match -> {
+                match.setActive(false);
+                matchRepository.save(match);
+                logger.info("Match with ID: {} deactivated as part of pool deactivation for pool ID: {}", match.getId(), poolId);
+            });
+        }
+    }
+
+    public void deactivateMatchesByTeamId(Long teamId) {
+        List<Match> matches = matchRepository.findByTeamIdAOrTeamIdB(teamId, teamId);
+        if (matches.isEmpty()) {
+            logger.warn("No matches found for team ID: {}. No deactivation performed.", teamId);
+        } else {
+            matches.forEach(match -> {
+                match.setActive(false);
+                matchRepository.save(match);
+                logger.info("Match with ID: {} deactivated as part of team deactivation for team ID: {}", match.getId(), teamId);
+            });
+        }
     }
 
     public Optional<Match> getMatchByLeagueCodeAndMatchCode(String leagueCode, String matchCode) {
