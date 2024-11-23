@@ -11,7 +11,7 @@ services:
       - pgadmin_data:/var/lib/pgadmin
   
   rabbitmq:
-    image: rabbitmq:4.0-management
+    image: rabbitmq:latest
     ports:
       - 5672:5672
       - 15672:15672
