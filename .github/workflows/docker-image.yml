@@ -2,7 +2,7 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: [main]  # Remplacez 'main' par la branche que vous utilisez
+    branches: [main]
 
 jobs:
   build_and_push:
