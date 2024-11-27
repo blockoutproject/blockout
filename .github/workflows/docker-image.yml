@@ -46,7 +46,7 @@ jobs:
         if: success()
         uses: Ilshidur/action-discord@master
         env:
-          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_SCRAPER }}
         with:
           args: |
             ✅ **Déploiement blockout-scraper réussi !**
@@ -56,7 +56,7 @@ jobs:
         if: failure()
         uses: Ilshidur/action-discord@master
         env:
-          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_SCRAPER }}
         with:
           args: |
             ❌ **Déploiement blockout-scraper échoué !**
