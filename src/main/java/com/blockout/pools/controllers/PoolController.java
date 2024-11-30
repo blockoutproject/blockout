@@ -52,9 +52,9 @@ public class PoolController {
     public ResponseEntity<List<Pool>> getPoolsByLeagueAndSeason(
             @Parameter(description = "Code de la ligue") @PathVariable String league_code,
             @Parameter(description = "Saison de la pool") @PathVariable Integer season) {
-    
+
         List<Pool> pools = poolService.getPoolsByLeagueAndSeason(league_code, season);
-    
+
         if (pools.isEmpty()) {
             return ResponseEntity.noContent().build();
         }
