@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, Button } from 'react-native';
+import MatchesService from '../api/services/matchesService';
 
 const HomeScreen = ({ navigation }: any) => {
   return (
@@ -7,7 +8,7 @@ const HomeScreen = ({ navigation }: any) => {
       <Text>Bienvenue sur l'écran d'accueil !</Text>
       <Button
         title="Aller aux détails"
-        onPress={() => navigation.navigate('Details')}
+        onPress={async () => console.log(await MatchesService.getAllMatches())}
       />
     </View>
   );
