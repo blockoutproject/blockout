@@ -56,16 +56,36 @@ def schedule_scraper():
     """
     Planifie l'exécution du scraping toutes les 10 minutes à l'aide d'APScheduler.
     """
-    scheduler = AsyncIOScheduler()
+    # Initialiser une boucle asyncio explicite
+    loop = asyncio.get_event_loop()
+
+    # Initialisez le scheduler avec la boucle
+    scheduler = AsyncIOScheduler(event_loop=loop)
+
+    # Ajouter une tâche exemple
     scheduler.add_job(main, 'interval', minutes=1, next_run_time=datetime.now(timezone.utc))
     scheduler.start()
+    logger.info("Scheduler démarré.")
+
+    # Garder la boucle active
+    try:
+        logger.info("Exécution de la boucle asyncio.")
+        loop.run_forever()
+    except (KeyboardInterrupt, SystemExit):
+        logger.info("Arrêt de la boucle asyncio.")
+        scheduler.shutdown()
 
 if __name__ == "__main__":
-    # Planifie le scraping avec APScheduler
+
+    # Initialiser explicitement la boucle asyncio
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+
+    # Planifier et exécuter
     schedule_scraper()
 
-    # Bloque le script pour éviter qu'il ne se termine
+    # Démarrer la boucle asyncio
     try:
-        asyncio.get_event_loop().run_forever()
+        loop.run_forever()
     except (KeyboardInterrupt, SystemExit):
         pass

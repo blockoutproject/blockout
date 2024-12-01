@@ -4,6 +4,8 @@ FROM python:3.12-alpine
 # Définir le répertoire de travail
 WORKDIR /app
 
+ENV TZ=UTC
+
 # Copier les dépendances
 COPY requirements.txt .
 
