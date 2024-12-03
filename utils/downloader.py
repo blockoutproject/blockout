@@ -42,7 +42,7 @@ async def download_csv(
             # Limiter les téléchargements simultanés avec le sémaphore
             async with SEM:
                 if attempt > 1:
-                    logger.info(f"Téléchargement démarré pour {name}")
+                    logger.warning(f"Téléchargement démarré pour {name}")
 
                 async with session.post(download_url, data=data, timeout=TIMEOUT) as response:
                     if response.status == 200:
