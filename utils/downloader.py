@@ -34,8 +34,11 @@ async def download_csv(
         'cal_codpoule': pool_code,
     }
     filename = f"{folder}/poule_{league_code}_{pool_code}.csv"
-
+    name = None
     for attempt in range(1, MAX_RETRIES + 1):
+        if name:
+            logger.warning(f"---- Nouvelle Tentative  pour {league_code}_{pool_code}")
+
         try:
             # Limiter les téléchargements simultanés avec le sémaphore
             async with SEM:
@@ -51,13 +54,15 @@ async def download_csv(
                         with open(filename, 'w', encoding='utf-8', errors='replace') as f:
                             f.write(content)
                         logger.debug(f"CSV téléchargé avec succès: {filename}")
-                        return filename  # Retourner le chemin du fichier après téléchargement réussi
+                        name = None
+                        return filename
                     else:
                         logger.warning(f"Tentative {attempt}/{MAX_RETRIES}: Échec du téléchargement pour {league_code}_{pool_code}, statut HTTP: {response.status}")
         except asyncio.TimeoutError:
             logger.error(f"Tentative {attempt}/{MAX_RETRIES}: Timeout lors du téléchargement pour {league_code}_{pool_code}")
         except aiohttp.ClientError as e:
             logger.error(f"Tentative {attempt}/{MAX_RETRIES}: Erreur réseau pour {league_code}_{pool_code} - {e}")
+            name = f"{league_code}_{pool_code}"
         except Exception as e:
             logger.error(f"Tentative {attempt}/{MAX_RETRIES}: Erreur inattendue pour {league_code}_{pool_code} - {e}")
 
