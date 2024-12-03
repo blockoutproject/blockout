@@ -1,11 +1,12 @@
-import aiohttp
 import asyncio
+import aiohttp
+import chardet
 from config.logger_config import logger
 
-MAX_RETRIES = 3       # Nombre maximum de tentatives de téléchargement
-RETRY_DELAY = 2       # Délai en secondes entre chaque tentative en cas d'échec
-TIMEOUT = aiohttp.ClientTimeout(total=30)  # Timeout de 30 secondes pour chaque requête
-SEM = asyncio.Semaphore(10)  # Limiter à 20 téléchargements simultanés
+MAX_RETRIES = 3
+RETRY_DELAY = 2  # En secondes
+TIMEOUT = 10  # Timeout pour les requêtes
+SEM = asyncio.Semaphore(5)  # Limite des téléchargements simultanés
 
 async def download_csv(
     session: aiohttp.ClientSession,
@@ -21,7 +22,7 @@ async def download_csv(
     - session (aiohttp.ClientSession): La session aiohttp active.
     - league_code (str): Le code de la ligue.
     - pool_code (str): Le code de la pool.
-    - season (str): La saison.
+    - raw_season (str): La saison.
     - folder (str): Le dossier où le fichier CSV sera sauvegardé.
 
     Returns:
@@ -34,42 +35,48 @@ async def download_csv(
         'cal_codpoule': pool_code,
     }
     filename = f"{folder}/poule_{league_code}_{pool_code}.csv"
-    name = None
-    for attempt in range(1, MAX_RETRIES + 1):
-        if name:
-            logger.warning(f"---- Nouvelle Tentative  pour {league_code}_{pool_code}")
+    name = f"{league_code}_{pool_code}"  # Identifiant unique pour les logs
 
+    for attempt in range(1, MAX_RETRIES + 1):
         try:
             # Limiter les téléchargements simultanés avec le sémaphore
             async with SEM:
+                if attempt > 1:
+                    logger.info(f"Téléchargement démarré pour {name}")
+
                 async with session.post(download_url, data=data, timeout=TIMEOUT) as response:
                     if response.status == 200:
                         content = await response.read()
-                        # Tenter de décoder le contenu
-                        try:
-                            content = content.decode('utf-8')
-                        except UnicodeDecodeError:
-                            content = content.decode('ISO-8859-1')
-                        # Écrire le contenu dans le fichier
-                        with open(filename, 'w', encoding='utf-8', errors='replace') as f:
-                            f.write(content)
-                        logger.debug(f"CSV téléchargé avec succès: {filename}")
-                        name = None
+
+                        # Détecter l'encodage
+                        detected = chardet.detect(content)
+                        encoding = detected.get('encoding', 'utf-8')
+                        content = content.decode(encoding, errors='replace')
+
+                        # Écriture dans un fichier de manière asynchrone
+                        async with open(filename, 'w', encoding='utf-8', errors='replace') as f:
+                            await f.write(content)
+                        if attempt > 1:
+                            logger.info(f"Succès : CSV téléchargé pour {name} dans {filename}")
                         return filename
                     else:
-                        logger.warning(f"Tentative {attempt}/{MAX_RETRIES}: Échec du téléchargement pour {league_code}_{pool_code}, statut HTTP: {response.status}")
-        except asyncio.TimeoutError:
-            logger.error(f"Tentative {attempt}/{MAX_RETRIES}: Timeout lors du téléchargement pour {league_code}_{pool_code}")
-        except aiohttp.ClientError as e:
-            logger.error(f"Tentative {attempt}/{MAX_RETRIES}: Erreur réseau pour {league_code}_{pool_code} - {e}")
-            name = f"{league_code}_{pool_code}"
-        except Exception as e:
-            logger.error(f"Tentative {attempt}/{MAX_RETRIES}: Erreur inattendue pour {league_code}_{pool_code} - {e}")
+                        logger.warning(f"Tentative {attempt}/{MAX_RETRIES}: Échec pour {name}, HTTP {response.status}")
 
+        except asyncio.TimeoutError:
+            logger.error(f"Tentative {attempt}/{MAX_RETRIES}: Timeout pour {name}")
+        except aiohttp.ClientError as e:
+            logger.error(f"Tentative {attempt}/{MAX_RETRIES}: Erreur réseau pour {name} - {e}")
+        except Exception as e:
+            logger.error(f"Tentative {attempt}/{MAX_RETRIES}: Erreur inattendue pour {name} - {e}")
+
+        # Si une tentative échoue
         if attempt < MAX_RETRIES:
-            logger.debug(f"Attente de {RETRY_DELAY} secondes avant la prochaine tentative...")
-            await asyncio.sleep(RETRY_DELAY)  # Attendre avant de réessayer
+            # Ajouter un log uniquement si l'on passe à une tentative suivante
+            logger.warning(f"Retrying ({attempt + 1}/{MAX_RETRIES}) pour {name}")
+            backoff = RETRY_DELAY * (2 ** (attempt - 1))  # Backoff exponentiel
+            logger.debug(f"Attente de {backoff} secondes avant la prochaine tentative pour {name}...")
+            await asyncio.sleep(backoff)
         else:
-            logger.error(f"Échec du téléchargement pour {league_code}_{pool_code} après {MAX_RETRIES} tentatives.")
+            logger.error(f"Échec complet : Impossible de télécharger {name} après {MAX_RETRIES} tentatives.")
 
     return None
