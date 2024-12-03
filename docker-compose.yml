@@ -64,7 +64,6 @@ services:
 
 volumes:
   pgadmin_data:
-    external: true
   rabbitmq_data:
   portainer_data:
   loki-data:
