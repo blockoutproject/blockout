@@ -3,10 +3,6 @@ auth_enabled: false
 server:
   http_listen_port: 3100
 
-compactor:
-  working_directory: /loki/compactor
-  object_store: filesystem
-
 ingester:
   wal:
     enabled: true
@@ -33,12 +29,8 @@ storage_config:
   boltdb_shipper:
     active_index_directory: /loki/boltdb-shipper-active
     cache_location: /loki/boltdb-shipper-cache
-    shared_store: filesystem
   filesystem:
     directory: /loki/chunks
-
-chunk_store_config:
-  lookback_delta: 2h
 
 table_manager:
   retention_deletes_enabled: false
