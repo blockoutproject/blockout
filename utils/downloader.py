@@ -41,7 +41,8 @@ async def download_csv(
 
     for attempt in range(1, MAX_RETRIES + 1):
         # Ajouter le log de début de téléchargement ici
-        logger.warning(f"Tentative {attempt}/{MAX_RETRIES} : Téléchargement démarré pour {name}")
+        if attempt > 1:
+            logger.warning(f"Tentative {attempt}/{MAX_RETRIES} : Téléchargement démarré pour {name}")
 
         try:
             # Limiter les téléchargements simultanés avec le sémaphore
