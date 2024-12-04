@@ -38,12 +38,12 @@ async def download_csv(
     name = f"{league_code}_{pool_code}"  # Identifiant unique pour les logs
 
     for attempt in range(1, MAX_RETRIES + 1):
+        # Ajouter le log de début de téléchargement ici
+        logger.warning(f"Tentative {attempt}/{MAX_RETRIES} : Téléchargement démarré pour {name}")
+
         try:
             # Limiter les téléchargements simultanés avec le sémaphore
             async with SEM:
-                if attempt > 1:
-                    logger.warning(f"Téléchargement démarré pour {name}")
-
                 async with session.post(download_url, data=data, timeout=TIMEOUT) as response:
                     if response.status == 200:
                         content = await response.read()
@@ -56,8 +56,8 @@ async def download_csv(
                         # Écriture dans un fichier de manière asynchrone
                         async with open(filename, 'w', encoding='utf-8', errors='replace') as f:
                             await f.write(content)
-                        if attempt > 1:
-                            logger.info(f"Succès : CSV téléchargé pour {name} dans {filename}")
+
+                        logger.info(f"Succès : CSV téléchargé pour {name} dans {filename}")
                         return filename
                     else:
                         logger.warning(f"Tentative {attempt}/{MAX_RETRIES}: Échec pour {name}, HTTP {response.status}")
@@ -71,7 +71,6 @@ async def download_csv(
 
         # Si une tentative échoue
         if attempt < MAX_RETRIES:
-            # Ajouter un log uniquement si l'on passe à une tentative suivante
             logger.warning(f"Retrying ({attempt + 1}/{MAX_RETRIES}) pour {name}")
             backoff = RETRY_DELAY * (2 ** (attempt - 1))  # Backoff exponentiel
             logger.debug(f"Attente de {backoff} secondes avant la prochaine tentative pour {name}...")
