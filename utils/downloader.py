@@ -59,8 +59,8 @@ async def download_csv(
                         # Écriture dans un fichier de manière asynchrone
                         with open(filename, 'w', encoding='utf-8', errors='replace') as f:
                             f.write(content)
-
-                        logger.info(f"Succès : CSV téléchargé pour {name} dans {filename}")
+                        if attempt > 1:
+                            logger.info(f"Succès : CSV téléchargé pour {name} dans {filename}")
                         return filename
                     else:
                         logger.warning(f"Tentative {attempt}/{MAX_RETRIES}: Échec pour {name}, HTTP {response.status}")
