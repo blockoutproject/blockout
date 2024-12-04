@@ -2,12 +2,14 @@ import asyncio
 import aiohttp
 import chardet
 from config.logger_config import logger
+from utils.handlers.error_handler import handle_errors
 
 MAX_RETRIES = 3
 RETRY_DELAY = 2  # En secondes
-TIMEOUT = 10  # Timeout pour les requêtes
+TIMEOUT = 30  # Timeout pour les requêtes
 SEM = asyncio.Semaphore(5)  # Limite des téléchargements simultanés
 
+@handle_errors
 async def download_csv(
     session: aiohttp.ClientSession,
     league_code: str,
@@ -54,8 +56,8 @@ async def download_csv(
                         content = content.decode(encoding, errors='replace')
 
                         # Écriture dans un fichier de manière asynchrone
-                        async with open(filename, 'w', encoding='utf-8', errors='replace') as f:
-                            await f.write(content)
+                        with open(filename, 'w', encoding='utf-8', errors='replace') as f:
+                            f.write(content)
 
                         logger.info(f"Succès : CSV téléchargé pour {name} dans {filename}")
                         return filename
