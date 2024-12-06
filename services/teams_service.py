@@ -37,9 +37,6 @@ async def deactivate_teams(session: aiohttp.ClientSession, pool_id: int, scraped
     """
     Désactive les équipes qui existent en base mais n'ont pas été scrapées pour une pool spécifique.
     """
-    if not isinstance(pool_id, int) or pool_id <= 0:
-        raise ValueError(f"pool_id invalide : {pool_id}")
-
     teams = await get_active_teams_by_pool_id(session, pool_id)
     if not teams:
         return

@@ -69,10 +69,8 @@ def schedule_scraper():
 
     # Garder la boucle active
     try:
-        logger.info("Exécution de la boucle asyncio.")
         loop.run_forever()
     except (KeyboardInterrupt, SystemExit):
-        logger.info("Arrêt de la boucle asyncio.")
         scheduler.shutdown()
 
 if __name__ == "__main__":

@@ -49,12 +49,12 @@
             "gender": "M"
         },
         {
-            "full": "Arago De Sete",
+            "full": "Arago De Sète",
             "short": "Sète",
             "aliases": [
                 "Arago Sète",
                 "Sète",
-                "Arago de Sete"
+                "Arago de Sète"
             ],
             "gender": "M"
         },
@@ -212,11 +212,11 @@
             "gender": "F"
         },
         {
-            "full": "Bordeaux Merignac Volley",
+            "full": "Bordeaux Mérignac Volley",
             "short": "Burdies",
             "aliases": [
-                "Bordeaux Merignac VB",
-                "Bordeaux Merignac Volley",
+                "Bordeaux Mérignac VB",
+                "Bordeaux Mérignac Volley",
                 "Bordeaux VB",
                 "Bordeaux Mérignac",
                 "Burdies"
@@ -224,11 +224,11 @@
             "gender": "F"
         },
         {
-            "full": "Beziers Volley",
+            "full": "Béziers Volley",
             "short": "Béziers",
             "aliases": [
-                "Beziers Volley-Ball",
-                "Beziers Volley",
+                "Béziers Volley-Ball",
+                "Béziers Volley",
                 "Béziers VB",
                 "Béziers"
             ],
@@ -257,12 +257,12 @@
             "gender": "F"
         },
         {
-            "full": "VBC Chamalieres",
-            "short": "Chamalieres",
+            "full": "VBC Chamalières",
+            "short": "Chamalières",
             "aliases": [
                 "Chamalières VB",
-                "VBC Chamalieres",
-                "Chamalieres"
+                "VBC Chamalières",
+                "Chamalières"
             ],
             "gender": "F"
         },
@@ -386,11 +386,11 @@
             "gender": "M"
         },
         {
-            "full": "Frejus Var Volley",
+            "full": "Fréjus Var Volley",
             "short": "Fréjus",
             "aliases": [
                 "Fréjus Var Volley",
-                "Frejus Var Volley",
+                "Fréjus Var Volley",
                 "Fréjus"
             ],
             "gender": "M"

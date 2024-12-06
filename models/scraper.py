@@ -4,6 +4,7 @@ import aiohttp
 from abc import ABC, abstractmethod
 import chardet
 from config.logger_config import logger
+from utils.file_utils import decode_content, detect_encoding
 from utils.handlers.error_handler import handle_errors
 
 class Scraper(ABC):
@@ -23,9 +24,8 @@ class Scraper(ABC):
             async with self.session.get(url, headers=headers, ssl=False) as response:
                 response.raise_for_status()
                 raw_content = await response.content.read()
-                detected_encoding = chardet.detect(raw_content)['encoding']
-                encoding = detected_encoding or 'utf-8'
-                decoded_content = raw_content.decode(encoding, errors='replace')
+                detected_encoding = detect_encoding(raw_content)
+                decoded_content = decode_content(raw_content, detected_encoding)
                 decoded_content = html.unescape(decoded_content)
 
                 return decoded_content

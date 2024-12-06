@@ -1,4 +1,6 @@
 import asyncio
+
+import aiohttp
 from api.matches_api import get_matches_by_pool
 from api.teams_api import get_teams_by_pool
 from utils.downloader import download_csv
@@ -13,7 +15,7 @@ from config.logger_config import logger
 
 @handle_errors
 async def handle_csv_download_and_parse(
-    http_session,
+    session: aiohttp.ClientSession,
     pool_id: int,
     league_code: str,
     pool_code: str,
@@ -23,29 +25,34 @@ async def handle_csv_download_and_parse(
     """
     Gère le téléchargement et le parsing du CSV de manière asynchrone.
     """
-    
-    logger.debug(f"Téléchargement du CSV pour Pool ID: {pool_id}, League Code: {league_code}, Pool Code: {pool_code}")
-    csv_path = await download_csv(http_session, league_code, pool_code, season, folder)
+    if session.closed:
+        logger.error("La session est fermée avant de commencer le téléchargement du CSV.")
+        return
 
-    if not csv_path:
-        raise Exception(f"Échec du téléchargement du CSV pour Pool Code: {pool_code}")
+    try:
+        csv_path = await download_csv(session, league_code, pool_code, season, folder)
+        if not csv_path:
+            raise RuntimeError(f"Échec du téléchargement du CSV pour la pool {pool_code}")
 
-    logger.debug(f"CSV téléchargé avec succès: {csv_path}")
-    await parse_and_add_matches_from_csv(http_session, pool_id, csv_path)
+        logger.debug(f"CSV téléchargé avec succès : {csv_path}")
+        await parse_and_add_matches_from_csv(session, pool_id, csv_path)
+    except Exception as e:
+        logger.error(f"Erreur lors du traitement du CSV pour la pool {pool_code} : {e}")
+        raise
 
 @handle_errors
-async def parse_and_add_matches_from_csv(http_session, pool_id: int, csv_path: str) -> None:
+async def parse_and_add_matches_from_csv(session: aiohttp.ClientSession, pool_id: int, csv_path: str) -> None:
     """
     Parse le fichier CSV et ajoute les matchs et les équipes via des appels API REST.
     """
     logger.debug(f"Parsing et ajout des matchs depuis le CSV: {csv_path}")
 
     # Récupérer tous les matchs existants pour la poule
-    existing_matches = await get_matches_by_pool(http_session, pool_id) or []
+    existing_matches = await get_matches_by_pool(session, pool_id) or []
     existing_matches_dict = {(match.league_code, match.match_code): match for match in existing_matches}
 
     # Récupération des équipes existantes
-    existing_teams = await get_teams_by_pool(http_session, pool_id) or []
+    existing_teams = await get_teams_by_pool(session, pool_id) or []
     existing_teams_dict = {(team.pool_id, team.team_name): team for team in existing_teams}
 
     scraped_team_names = set()
@@ -89,14 +96,14 @@ async def parse_and_add_matches_from_csv(http_session, pool_id: int, csv_path: s
         existing_team_a = existing_teams_dict.get(team_a_key)
         existing_team_b = existing_teams_dict.get(team_b_key)
 
-        new_team_a = await add_or_update_team(http_session, team_a, existing_team_a)
+        new_team_a = await add_or_update_team(session, team_a, existing_team_a)
         if team_a_key not in existing_teams_dict:
             existing_teams.append(new_team_a)
         existing_teams_dict[team_a_key] = new_team_a
         scraped_team_names.add(new_team_a.team_name)
 
         # Ajouter ou mettre à jour l'équipe B
-        new_team_b = await add_or_update_team(http_session, team_b, existing_team_b)
+        new_team_b = await add_or_update_team(session, team_b, existing_team_b)
         if team_b_key not in existing_teams_dict:
             existing_teams.append(new_team_b)
         existing_teams_dict[team_b_key] = new_team_b
@@ -126,14 +133,14 @@ async def parse_and_add_matches_from_csv(http_session, pool_id: int, csv_path: s
             match_key = (match.league_code, match.match_code)
             existing_match = existing_matches_dict.get(match_key)
 
-            new_match = await add_or_update_match(http_session, match, existing_match)
+            new_match = await add_or_update_match(session, match, existing_match)
             if match_key not in existing_matches_dict:
                 existing_matches.append(new_match)
             existing_matches_dict[match_key] = new_match
             scraped_match_codes.add(new_match.match_code)
 
     await asyncio.gather(
-        deactivate_teams(http_session, pool_id, scraped_team_names),
-        deactivate_matches(http_session, pool_id, scraped_match_codes)
+        deactivate_teams(session, pool_id, scraped_team_names),
+        deactivate_matches(session, pool_id, scraped_match_codes)
     )
     logger.debug(f"Terminé l'ajout des matchs depuis le CSV: {csv_path}")        

@@ -4,7 +4,7 @@ from typing import Optional
 from config.logger_config import logger
 
 try:
-    with open('config/mapping/standardized_divisions.json', 'r', encoding='utf-8') as f:
+    with open('config/mapping/standardized_divisions.json', 'r', encoding='windows-1252') as f:
         standardized_divisions = json.load(f)
 except Exception as e:
     logger.error(f"Erreur lors du chargement de 'standardized_divisions.json': {e}")
