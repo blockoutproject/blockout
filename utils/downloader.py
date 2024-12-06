@@ -6,7 +6,7 @@ from utils.file_utils import decode_content, detect_encoding, write_to_file
 from utils.handlers.error_handler import handle_errors
 
 MAX_RETRIES = 3
-RETRY_DELAY = 5  # En secondes
+RETRY_DELAY = 2  # En secondes
 TIMEOUT = 30  # Timeout pour les requêtes
 SEM = asyncio.Semaphore(5)  # Limite des téléchargements simultanés
 
@@ -68,12 +68,6 @@ async def download_csv(
     name = f"{league_code}_{pool_code}"  # Identifiant unique pour les logs
 
     for attempt in range(1, MAX_RETRIES + 1):
-        # Log supplémentaire uniquement lors des retries
-        if attempt > 1:
-            logger.warning(f"Retry {attempt}/{MAX_RETRIES} pour {name} - URL : {download_url}")
-            logger.debug(f"Données envoyées : {data}")
-            logger.debug(f"Chemin prévu pour le fichier CSV : {filename}")
-
         try:
             # Limiter les téléchargements simultanés avec le sémaphore
             async with SEM:
@@ -98,7 +92,7 @@ async def download_csv(
 
         # Si une tentative échoue
         if attempt < MAX_RETRIES:
-            backoff = RETRY_DELAY * (2 ** (attempt - 1))  # Backoff exponentiel
+            backoff = RETRY_DELAY * (2 ** (attempt - 1))
             logger.warning(f"Attente de {backoff} secondes avant la tentative suivante pour {name}...")
             await asyncio.sleep(RETRY_DELAY * (2 ** (attempt - 1)))
         else:
