@@ -1,8 +1,6 @@
-import html
-from typing import Optional
+import asyncio
 import aiohttp
 from abc import ABC, abstractmethod
-import chardet
 from config.logger_config import logger
 from utils.file_utils import decode_content, detect_encoding
 from utils.handlers.error_handler import handle_errors
@@ -12,26 +10,24 @@ class Scraper(ABC):
         self.session = session        
     
     @handle_errors
-    async def fetch(self, url: str) -> str:
+    async def fetch(self, url: str, retries: int = 3, delay: int = 5) -> str:
         """
-        Récupère le contenu d'une URL en gérant les problèmes d'encodage.
+        Récupère le contenu d'une URL avec gestion des retries en cas d'échec.
         """
-        try:
-            headers = {
-                "User-Agent": "Mozilla/5.0"
-            }
-
-            async with self.session.get(url, headers=headers, ssl=False) as response:
-                response.raise_for_status()
-                raw_content = await response.content.read()
-                detected_encoding = detect_encoding(raw_content)
-                decoded_content = decode_content(raw_content, detected_encoding)
-                decoded_content = html.unescape(decoded_content)
-
-                return decoded_content
-        except Exception as e:
-            logger.error(f"Erreur lors de la récupération de l'URL '{url}' : {e}")
-            raise
+        for attempt in range(retries):
+            try:
+                async with self.session.get(url, ssl=False, timeout=aiohttp.ClientTimeout(total=15)) as response:
+                    response.raise_for_status()
+                    raw_content = await response.content.read()
+                    detected_encoding = detect_encoding(raw_content)
+                    decoded_content = decode_content(raw_content, detected_encoding)
+                    return decoded_content
+            except Exception as e:
+                logger.error(f"Erreur lors de la récupération de l'URL '{url}', tentative {attempt + 1}/{retries} : {e}")
+                if attempt < retries - 1:
+                    await asyncio.sleep(delay)  # Attendre avant de réessayer
+                else:
+                    raise  # Lever l'exception après toutes les tentatives
 
     @abstractmethod
     @handle_errors
