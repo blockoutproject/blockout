@@ -21,6 +21,8 @@ class Scraper(ABC):
                     raw_content = await response.content.read()
                     detected_encoding = detect_encoding(raw_content)
                     decoded_content = decode_content(raw_content, detected_encoding)
+                    if attempt > 1:
+                        logger.info(f"Succès après retry {attempt}/{retries} pour l'URL '{url}'")
                     return decoded_content
             except Exception as e:
                 logger.error(f"Erreur lors de la récupération de l'URL '{url}', tentative {attempt + 1}/{retries} : {e}")
