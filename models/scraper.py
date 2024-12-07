@@ -10,7 +10,7 @@ class Scraper(ABC):
         self.session = session        
     
     @handle_errors
-    async def fetch(self, url: str, retries: int = 3, delay: int = 5) -> str:
+    async def fetch(self, url: str, retries: int = 3, delay: int = 2) -> str:
         """
         Récupère le contenu d'une URL avec gestion des retries en cas d'échec.
         """
@@ -25,9 +25,9 @@ class Scraper(ABC):
                         logger.info(f"Succès après retry {attempt}/{retries} pour l'URL '{url}'")
                     return decoded_content
             except Exception as e:
-                logger.error(f"Erreur lors de la récupération de l'URL '{url}', tentative {attempt + 1}/{retries} : {e}")
+                logger.warning(f"Erreur lors de la récupération de l'URL '{url}', tentative {attempt + 1}/{retries} : {e}")
                 if attempt < retries - 1:
-                    await asyncio.sleep(delay)  # Attendre avant de réessayer
+                    await asyncio.sleep(delay)
                 else:
                     raise  # Lever l'exception après toutes les tentatives
 
