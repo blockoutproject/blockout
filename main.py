@@ -8,10 +8,14 @@ from scrapers.scraper_factory import ScraperFactory
 from services.execution_logs_service import log_execution
 from session_manager import get_db_session
 from config.logger_config import logger
+from prometheus_client import Gauge, start_http_server
 
 lock = asyncio.Lock()
 accumulating_handler = AccumulatingHandler()
 logger.addHandler(accumulating_handler)
+
+# Définir une métrique Prometheus pour la durée d'exécution
+execution_duration_gauge = Gauge('scraper_execution_duration_seconds', 'Duration of the scraper execution in seconds')
 
 async def main():
     """
@@ -34,35 +38,32 @@ async def main():
 
                     await asyncio.gather(*tasks)
                 
-                # Capturer l'heure de fin et calculer la durée de l'exécution
                 end_time = datetime.now(timezone.utc)
                 duration = int((end_time - start_time).total_seconds())  # Calculer la durée en secondes
-                
-                # Enregistrer un log de succès dans la base de données
+
+                # Mettre à jour la métrique Prometheus
+                execution_duration_gauge.set(duration)
+
+                # Enregistrer un log de succès dans la base de données (optionnel, si vous voulez le garder)
                 log_execution(db_session, start_time, duration, "Success", accumulating_handler.get_logs())
                 
                 logger.debug(f"Scraping terminé. Durée de l'exécution: {duration} secondes.")
             
             except Exception as e:
                 logger.error(f"Erreur lors du scraping: {e}")
-                # Enregistrer un log d'échec dans la base de données
+                # Enregistrer un log d'échec dans la base de données (optionnel)
                 log_execution(db_session, start_time, 0, "Failed", accumulating_handler.get_logs())
             
             finally:
                 accumulating_handler.clear_logs()
-                #await log_started_matches()
+                # await log_started_matches() # si utilisé ailleurs
 
 def schedule_scraper():
     """
-    Planifie l'exécution du scraping toutes les 10 minutes à l'aide d'APScheduler.
+    Planifie l'exécution du scraping toutes les 1 minute à l'aide d'APScheduler.
     """
-    # Initialiser une boucle asyncio explicite
     loop = asyncio.get_event_loop()
-
-    # Initialisez le scheduler avec la boucle
     scheduler = AsyncIOScheduler(event_loop=loop)
-
-    # Ajouter une tâche exemple
     scheduler.add_job(main, 'interval', minutes=1, next_run_time=datetime.now(timezone.utc))
     scheduler.start()
     logger.info("Scheduler démarré.")
@@ -74,15 +75,16 @@ def schedule_scraper():
         scheduler.shutdown()
 
 if __name__ == "__main__":
+    # Démarrer le serveur Prometheus sur le port 8000
+    # Toutes les métriques sont désormais exposées sur http://localhost:8000/metrics
+    start_http_server(8000)
 
-    # Initialiser explicitement la boucle asyncio
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
 
-    # Planifier et exécuter
+    # Planifier et exécuter le scheduler
     schedule_scraper()
 
-    # Démarrer la boucle asyncio
     try:
         loop.run_forever()
     except (KeyboardInterrupt, SystemExit):
