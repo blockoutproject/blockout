@@ -1,7 +1,7 @@
 global:
   scrape_interval: 15s  # Intervalle par défaut entre les scrapes
 
-scraper_configs:
+scrape_configs:
   - job_name: 'scraper'
     static_configs:
       - targets: ['scraper:8000']  # Nom du service Docker + port exposé
