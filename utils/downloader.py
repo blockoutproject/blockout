@@ -11,7 +11,7 @@ TIMEOUT = 30  # Timeout pour les requêtes
 SEM = asyncio.Semaphore(5)  # Limite des téléchargements simultanés
 
 @handle_errors
-async def process_response_content(response: aiohttp.ClientResponse, filename: str) -> None:
+def process_response_content(raw_content: bytes, filename: str) -> None:
     """
     Lit le contenu de la réponse HTTP, détecte l'encodage, 
     décode le contenu, et écrit dans un fichier.
@@ -21,14 +21,8 @@ async def process_response_content(response: aiohttp.ClientResponse, filename: s
     - filename: Chemin du fichier où écrire.
     """
     try:
-        # Lire le contenu brut
-        content = await response.content.read()
-
-        # Détecter l'encodage
-        encoding = detect_encoding(content)
-
         # Décoder le contenu
-        content_decoded = decode_content(content)
+        content_decoded = decode_content(raw_content)
         logger.debug(f"Premier aperçu du contenu décodé : {content_decoded[:20]}")
 
         # Écrire le contenu décodé dans le fichier
@@ -72,17 +66,15 @@ async def download_csv(
             # Limiter les téléchargements simultanés avec le sémaphore
             async with SEM:
                 async with session.post(download_url, data=data, timeout=TIMEOUT) as response:
-                    if response.status == 200:
+                    response.raise_for_status()
+                    raw_content = await response.content.read()
                         
-                        await process_response_content(response, filename)
+                    process_response_content(raw_content, filename)
 
-                        if attempt > 1:
-                            logger.info(f"Succès après retry {attempt}/{MAX_RETRIES} : CSV téléchargé pour {name} dans {filename}")
-                        return filename
-                    else:
-                        if attempt > 1:
-                            logger.warning(f"Retry {attempt}/{MAX_RETRIES}: Échec pour {name}, HTTP {response.status}")
-
+                    if attempt > 1:
+                        logger.info(f"Succès après retry {attempt}/{MAX_RETRIES} : CSV téléchargé pour {name} dans {filename}")
+                    return filename
+                
         except asyncio.TimeoutError:
             logger.warning(f"Retry {attempt}/{MAX_RETRIES}: Timeout pour {name}")
         except aiohttp.ClientError as e:
