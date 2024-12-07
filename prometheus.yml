@@ -4,4 +4,4 @@ global:
 scrape_configs:
   - job_name: 'scraper'
     static_configs:
-      - targets: ['scraper:8000']  # Nom du service Docker + port exposé
+      - targets: ['host.docker.internal:8000']  # Nom du service Docker + port exposé
