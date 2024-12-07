@@ -75,14 +75,10 @@ def schedule_scraper():
         scheduler.shutdown()
 
 if __name__ == "__main__":
-    # Démarrer le serveur Prometheus sur le port 8000
-    # Toutes les métriques sont désormais exposées sur http://localhost:8000/metrics
-    start_http_server(8000)
 
+    start_http_server(8000)
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
-
-    # Planifier et exécuter le scheduler
     schedule_scraper()
 
     try:
