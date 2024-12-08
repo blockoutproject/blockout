@@ -16,7 +16,7 @@ async def get_pool_by_code_league_season(
     """
     log_event(
         action="get_pool_by_code_league_season",
-        level="info",
+        level="debug",
         pool_code=pool_code,
         league_code=league_code,
         season=season
@@ -32,7 +32,7 @@ async def get_pools_by_league_and_season(session: aiohttp.ClientSession, league_
     """
     log_event(
         action="get_pools_by_league_and_season",
-        level="info",
+        level="debug",
         league_code=league_code,
         season=season,
         message="Récupération des pools par ligue et saison."
@@ -97,7 +97,7 @@ async def get_active_pools_by_league_code(session: aiohttp.ClientSession, league
     """
     log_event(
         action="get_active_pools_by_league_code",
-        level="info",
+        level="debug",
         league_code=league_code,
         message="Récupération des pools actives par code de ligue."
     )

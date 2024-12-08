@@ -65,7 +65,7 @@ class ProScraper(Scraper):
                     if new_pool:
                         log_event(
                             action="pool_processed",
-                            level="info",
+                            level="debug",
                             pool_code=new_pool.pool_code,
                             pool_id=new_pool.id,
                             status="processed"

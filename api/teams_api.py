@@ -14,7 +14,7 @@ async def get_team_by_pool_and_name(session: aiohttp.ClientSession, pool_id: int
     """
     log_event(
         action="get_team_by_pool_and_name",
-        level="info",
+        level="debug",
         pool_id=pool_id,
         team_name=team_name,
         message="Recherche d'une équipe par pool et nom."
@@ -80,7 +80,7 @@ async def get_teams_by_pool(session: aiohttp.ClientSession, pool_id: int) -> lis
     """
     log_event(
         action="get_teams_by_pool",
-        level="info",
+        level="debug",
         pool_id=pool_id,
         message="Récupération des équipes par pool."
     )
@@ -95,7 +95,7 @@ async def get_active_teams_by_pool_id(session: aiohttp.ClientSession, pool_id: i
     """
     log_event(
         action="get_active_teams_by_pool_id",
-        level="info",
+        level="debug",
         pool_id=pool_id,
         message="Récupération des équipes actives par pool ID."
     )

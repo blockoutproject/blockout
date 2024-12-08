@@ -183,7 +183,7 @@ class RegionalScraper(Scraper):
                         if new_pool:
                             log_event(
                                 action="pool_processed",
-                                level="info",
+                                level="debug",
                                 pool_code=new_pool.pool_code,
                                 league_code=new_pool.league_code,
                                 pool_id=new_pool.id,

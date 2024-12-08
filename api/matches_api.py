@@ -10,7 +10,7 @@ from utils.handlers.api_handler import handle_api_response
 @handle_errors
 @handle_api_response(response_type=Match)
 async def get_match_by_league_and_code(session: aiohttp.ClientSession, league_code: str, match_code: str) -> Optional[Match]:
-    log_event(action="get_match_by_league_and_code", level="info", league_code=league_code, match_code=match_code)
+    log_event(action="get_match_by_league_and_code", level="debug", league_code=league_code, match_code=match_code)
     return await session.get(f"{MATCH_API_URL}/{league_code}/{match_code}")
 
 
@@ -20,7 +20,7 @@ async def get_active_matches_by_pool_id(session: aiohttp.ClientSession, pool_id:
     """
     Récupère les matchs actifs pour une pool donnée.
     """
-    log_event(action="get_active_matches_by_pool_id", level="info", pool_id=pool_id)
+    log_event(action="get_active_matches_by_pool_id", level="debug", pool_id=pool_id)
     return await session.get(f"{MATCH_API_URL}/active?pool_id={pool_id}")
 
 
@@ -30,7 +30,7 @@ async def get_matches_by_pool(session: aiohttp.ClientSession, pool_id: int) -> l
     """
     Récupère tous les matchs d'une poule via une seule requête.
     """
-    log_event(action="get_matches_by_pool", level="info", pool_id=pool_id)
+    log_event(action="get_matches_by_pool", level="debug", pool_id=pool_id)
     return await session.get(f"{MATCH_API_URL}/pool/{pool_id}")
 
 
@@ -97,7 +97,7 @@ async def get_started_matches(session: aiohttp.ClientSession, status: MatchStatu
     }
     log_event(
         action="get_started_matches",
-        level="info",
+        level="debug",
         status=status.name,
         active=active,
         current_time=current_time,
@@ -126,7 +126,7 @@ async def get_match_by_pool_teams_date(
     }
     log_event(
         action="get_match_by_pool_teams_date",
-        level="info",
+        level="debug",
         pool_id=pool_id,
         team_id_a=team_id_a,
         team_id_b=team_id_b,
