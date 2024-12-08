@@ -2,7 +2,6 @@ import asyncio
 import aiohttp
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from datetime import datetime, timezone
-from db import create_tables
 from scrapers.scraper_factory import ScraperFactory
 from config.logger_config import logger
 from prometheus_client import Gauge, start_http_server
@@ -20,7 +19,6 @@ async def main():
     async with lock:  
         try:
             logger.debug("Début du scraping...")
-            create_tables()  # Crée les tables dans la base si elles n'existent pas
 
             async with aiohttp.ClientSession() as session:
                 scraper_types = ['pro', 'national', 'regional']
