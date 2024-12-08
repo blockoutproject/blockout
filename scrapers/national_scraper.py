@@ -121,7 +121,6 @@ class NationalScraper(Scraper):
 
             # Exécution des tâches de téléchargement CSV
             await asyncio.gather(*tasks)
-            log_event(action="download_csv", level="info", task_count=len(tasks))
 
             # Désactivation des pools non scrapées
             await deactivate_pools(self.session, self.league_code, scraped_pool_codes)

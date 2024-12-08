@@ -32,7 +32,7 @@ class Scraper(ABC):
 
         for attempt in range(retries):
             try:
-                async with self.session.get(url, ssl=False, timeout=aiohttp.ClientTimeout(total=15)) as response:
+                async with self.session.get(url, ssl=False, timeout=aiohttp.ClientTimeout(total=5)) as response:
                     # Enregistrement d'un log de début
                     log_event(
                         action="http_request",

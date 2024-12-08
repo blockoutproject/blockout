@@ -3,10 +3,8 @@ pytest
 pytest-asyncio
 beautifulsoup4
 requests
-sqlalchemy
 pyyaml
 APScheduler
-psycopg2-binary
 sseclient
 chardet
 aioresponses
