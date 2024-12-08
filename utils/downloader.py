@@ -1,13 +1,13 @@
 import asyncio
 import aiohttp
-from config.logger_config import log_event, logger
+from config.logger_config import log_event
 from utils.file_utils import decode_content, write_to_file
 from utils.handlers.error_handler import handle_errors
 
 MAX_RETRIES = 3
-RETRY_DELAY = 2  # En secondes
-TIMEOUT = 30  # Timeout pour les requêtes
-SEM = asyncio.Semaphore(5)  # Limite des téléchargements simultanés
+RETRY_DELAY = 2
+TIMEOUT = 30
+SEM = asyncio.Semaphore(5)
 
 @handle_errors
 def process_response_content(raw_content: bytes, filename: str) -> None:
