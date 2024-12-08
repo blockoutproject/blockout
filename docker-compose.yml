@@ -46,9 +46,9 @@ services:
     container_name: promtail
     volumes:
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
-      - promtail-positions:/promtail
+      - promtail-positions:/etc/promtail
       - ./promtail-config.yaml:/etc/promtail/config.yaml
-    command: -config.file=/etc/promtail/config.yaml
+    command: -config.file=/etc/promtail/config.yaml 
     restart: always
     depends_on:
       - loki  
