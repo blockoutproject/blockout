@@ -127,24 +127,24 @@ async def download_csv(
                     message=f"Erreur inattendue lors du téléchargement pour {name}."
                 )
 
-        # Si une tentative échoue
-        if attempt < retries:
-            log_event(
-                action="download_retry",
-                level="warning",
-                delay=delay,
-                attempt=attempt + 1,
-                message=f"Nouvelle tentative de téléchargement pour '{name}' après un délai de {delay} secondes."
-            )
-            await asyncio.sleep(delay)
-        else:
-            log_event(
-                action="download_failed",
-                level="error",
-                attempts=retries,
-                league_code=league_code,
-                pool_code=pool_code,
-                message=f"Échec complet pour {name} après {retries} tentatives."
-            )
+            # Si une tentative échoue
+            if attempt < retries:
+                log_event(
+                    action="download_retry",
+                    level="warning",
+                    delay=delay,
+                    attempt=attempt + 1,
+                    message=f"Nouvelle tentative de téléchargement pour '{name}' après un délai de {delay} secondes."
+                )
+                await asyncio.sleep(delay)
+            else:
+                log_event(
+                    action="download_failed",
+                    level="error",
+                    attempts=retries,
+                    league_code=league_code,
+                    pool_code=pool_code,
+                    message=f"Échec complet pour {name} après {retries} tentatives."
+                )
 
     return None
