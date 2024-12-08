@@ -4,11 +4,6 @@ from config.logger_config import log_event
 from utils.file_utils import decode_content, write_to_file
 from utils.handlers.error_handler import handle_errors
 
-MAX_RETRIES = 3
-RETRY_DELAY = 2
-TIMEOUT = 30
-SEM = asyncio.Semaphore(5)
-
 @handle_errors
 def process_response_content(raw_content: bytes, filename: str) -> None:
     """
@@ -54,7 +49,11 @@ async def download_csv(
     league_code: str,
     pool_code: str,
     raw_season: str,
-    folder: str
+    folder: str,
+    retries: int = 3, 
+    delay: int = 2, 
+    sem: int = 10,
+    timeout: int = 20
 ) -> str:
     """
     Télécharge un fichier CSV contenant les données spécifiques d'une pool.
@@ -77,12 +76,12 @@ async def download_csv(
     }
     filename = f"{folder}/poule_{league_code}_{pool_code}.csv"
     name = f"{league_code}_{pool_code}"  # Identifiant unique pour les logs
-
-    for attempt in range(1, MAX_RETRIES + 1):
-        try:
-            # Limiter les téléchargements simultanés avec le sémaphore
-            async with SEM:
-                async with session.post(download_url, data=data, timeout=TIMEOUT) as response:
+    
+    async with asyncio.Semaphore(sem):
+        for attempt in range(1, retries + 1):
+            try:
+                # Limiter les téléchargements simultanés avec le sémaphore
+                async with session.post(download_url, data=data, timeout=timeout) as response:
                     response.raise_for_status()
                     raw_content = await response.content.read()
 
@@ -94,43 +93,43 @@ async def download_csv(
                             level="info",
                             attempt=attempt,
                             filename=filename,
-                            message=f"Succès après retry {attempt}/{MAX_RETRIES}: CSV téléchargé pour {name}."
+                            message=f"Succès après retry {attempt}/{retries}: CSV téléchargé pour {name}."
                         )
                     return filename
 
-        except asyncio.TimeoutError:
-            log_event(
-                action="download_timeout",
-                level="warning",
-                attempt=attempt,
-                league_code=league_code,
-                pool_code=pool_code,
-                message=f"Timeout lors du téléchargement pour {name}."
-            )
-        except aiohttp.ClientError as e:
-            log_event(
-                action="download_client_error",
-                level="warning",
-                attempt=attempt,
-                league_code=league_code,
-                pool_code=pool_code,
-                error=str(e),
-                message=f"Erreur réseau lors du téléchargement pour {name}."
-            )
-        except Exception as e:
-            log_event(
-                action="download_unexpected_error",
-                level="error",
-                attempt=attempt,
-                league_code=league_code,
-                pool_code=pool_code,
-                error=str(e),
-                message=f"Erreur inattendue lors du téléchargement pour {name}."
-            )
+            except asyncio.TimeoutError:
+                log_event(
+                    action="download_timeout",
+                    level="warning",
+                    attempt=attempt,
+                    league_code=league_code,
+                    pool_code=pool_code,
+                    message=f"Timeout lors du téléchargement pour {name}."
+                )
+            except aiohttp.ClientError as e:
+                log_event(
+                    action="download_client_error",
+                    level="warning",
+                    attempt=attempt,
+                    league_code=league_code,
+                    pool_code=pool_code,
+                    error=str(e),
+                    message=f"Erreur réseau lors du téléchargement pour {name}."
+                )
+            except Exception as e:
+                log_event(
+                    action="download_unexpected_error",
+                    level="error",
+                    attempt=attempt,
+                    league_code=league_code,
+                    pool_code=pool_code,
+                    error=str(e),
+                    message=f"Erreur inattendue lors du téléchargement pour {name}."
+                )
 
         # Si une tentative échoue
-        if attempt < MAX_RETRIES:
-            backoff = RETRY_DELAY * (2 ** (attempt - 1))
+        if attempt < retries:
+            backoff = retries * (2 ** (attempt - 1))
             log_event(
                 action="download_retry_backoff",
                 level="warning",
@@ -143,10 +142,10 @@ async def download_csv(
             log_event(
                 action="download_failed",
                 level="error",
-                attempts=MAX_RETRIES,
+                attempts=retries,
                 league_code=league_code,
                 pool_code=pool_code,
-                message=f"Échec complet pour {name} après {MAX_RETRIES} tentatives."
+                message=f"Échec complet pour {name} après {retries} tentatives."
             )
 
     return None
