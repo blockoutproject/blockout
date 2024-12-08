@@ -3,7 +3,7 @@ import aiohttp
 from api.teams_api import create_team, deactivate_team, get_active_teams_by_pool_id, update_team
 from models.team import Team
 from utils.handlers.error_handler import handle_errors
-from config.logger_config import logger
+from config.logger_config import log_event, logger
 
 @handle_errors
 async def add_or_update_team(session: aiohttp.ClientSession, team: Team, existing_team: Optional[Team]) -> Team:
@@ -24,13 +24,23 @@ async def add_or_update_team(session: aiohttp.ClientSession, team: Team, existin
             team.active = True
             changes.append("Équipe réactivée")
         if changes:
+            log_event(
+                action="update_team",
+                level="info",
+                team_name=team.team_name,
+                changes=changes
+            )
             return await update_team(session, team, changes)
         return existing_team
     else:
         new_team = await create_team(session, team)
-        logger.info(f"Équipe {team.team_name} créée avec succès.")
+        log_event(
+            action="create_team",
+            level="info",
+            team_name=team.team_name,
+            status="success"
+        )
         return new_team
-
 
 @handle_errors
 async def deactivate_teams(session: aiohttp.ClientSession, pool_id: int, scraped_team_names: set) -> None:
@@ -45,6 +55,18 @@ async def deactivate_teams(session: aiohttp.ClientSession, pool_id: int, scraped
     for team in teams_to_deactivate:
         try:
             await deactivate_team(session, team.id)
-            logger.info(f"Équipe {team.team_name} (ID: {team.id}) désactivée avec succès.")
+            log_event(
+                action="deactivate_team",
+                level="info",
+                team_name=team.team_name,
+                team_id=team.id,
+                status="success"
+            )
         except Exception as e:
-            logger.error(f"Erreur lors de la désactivation de l'équipe {team.team_name} (ID: {team.id}): {e}")
+            log_event(
+                action="deactivate_team",
+                level="error",
+                team_name=team.team_name,
+                team_id=team.id,
+                error=str(e)
+            )

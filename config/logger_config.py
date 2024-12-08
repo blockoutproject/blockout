@@ -11,3 +11,25 @@ logging.basicConfig(
 )
 
 logger = logging.getLogger(__name__)
+
+def log_event(action: str, level: str = "info", **kwargs):
+    """
+    Fonction générique pour générer des logs structurés.
+
+    Parameters:
+    - action (str): Type d'action ou événement (ex: "create_team", "deactivate_team", "error").
+    - level (str): Niveau de log (info, warning, error).
+    - kwargs: Métadonnées additionnelles pour enrichir les logs.
+    """
+    log_message = {
+        "action": action,
+        **kwargs
+    }
+    if level == "info":
+        logger.info(log_message)
+    elif level == "warning":
+        logger.warning(log_message)
+    elif level == "error":
+        logger.error(log_message)
+    elif level == "debug":
+        logger.debug(log_message)

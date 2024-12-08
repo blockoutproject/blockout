@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from api.matches_api import create_match, deactivate_match, get_active_matches_by_pool_id, get_match_by_league_and_code, get_started_matches, update_match
 from models.match import Match, MatchStatus
 from utils.handlers.error_handler import handle_errors
-from config.logger_config import logger
+from config.logger_config import log_event, logger
 
 @handle_errors
 async def add_or_update_match(session: aiohttp.ClientSession, match: Match, existing_match: Optional[Match]) -> Match:
@@ -41,15 +41,27 @@ async def add_or_update_match(session: aiohttp.ClientSession, match: Match, exis
                     changes.append(f"{field}: {getattr(existing_match, field)} -> {getattr(match, field)}")
 
             if changes:
+                log_event(
+                    action="update_match",
+                    level="info",
+                    match_code=match.match_code,
+                    pool_id=match.pool_id,
+                    changes=changes
+                )
                 return await update_match(session, match, changes)
             return existing_match
         return existing_match
 
     # Cas où le match n'existe pas
     new_match = await create_match(session, match)
-    logger.info(f"Match {match.match_code} (pool_id: {match.pool_id}) créé avec succès.")
+    log_event(
+        action="create_match",
+        level="info",
+        match_code=match.match_code,
+        pool_id=match.pool_id,
+        status="success"
+    )
     return new_match
-
 
 @handle_errors
 async def deactivate_matches(session: aiohttp.ClientSession, pool_id: int, scraped_match_codes: Set[str]) -> None:
@@ -68,11 +80,24 @@ async def deactivate_matches(session: aiohttp.ClientSession, pool_id: int, scrap
     for match in matches_to_deactivate:
         try:
             await deactivate_match(session, match.id)
-            logger.info(f"Match {match.match_code} (ID: {match.id}) désactivé avec succès.")
+            log_event(
+                action="deactivate_match",
+                level="info",
+                match_code=match.match_code,
+                match_id=match.id,
+                pool_id=pool_id,
+                status="success"
+            )
         except Exception as e:
-            logger.error(f"Erreur lors de la désactivation du match {match.match_code} (ID: {match.id}): {e}")
-
-
+            log_event(
+                action="deactivate_match",
+                level="error",
+                match_code=match.match_code,
+                match_id=match.id,
+                pool_id=pool_id,
+                error=str(e)
+            )
+            
 @handle_errors
 async def log_started_matches() -> None:
     """
