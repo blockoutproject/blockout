@@ -1,8 +1,7 @@
 import asyncio
 import aiohttp
-import chardet
-from config.logger_config import logger
-from utils.file_utils import decode_content, detect_encoding, write_to_file
+from config.logger_config import log_event, logger
+from utils.file_utils import decode_content, write_to_file
 from utils.handlers.error_handler import handle_errors
 
 MAX_RETRIES = 3
@@ -23,12 +22,30 @@ def process_response_content(raw_content: bytes, filename: str) -> None:
     try:
         # Décoder le contenu
         content_decoded = decode_content(raw_content)
-        logger.debug(f"Premier aperçu du contenu décodé : {content_decoded[:20]}")
+        log_event(
+            action="process_response_content",
+            level="debug",
+            filename=filename,
+            preview_content=content_decoded[:20],
+            message="Contenu décodé pour écriture dans le fichier."
+        )
 
         # Écrire le contenu décodé dans le fichier
         write_to_file(filename, content_decoded)
+        log_event(
+            action="write_to_file",
+            level="info",
+            filename=filename,
+            message="Contenu écrit dans le fichier avec succès."
+        )
     except Exception as e:
-        logger.error(f"Erreur lors du traitement du contenu de la réponse : {e}")
+        log_event(
+            action="process_response_content_error",
+            level="error",
+            filename=filename,
+            error=str(e),
+            message="Erreur lors du traitement du contenu de la réponse."
+        )
         raise
 
 @handle_errors
@@ -68,26 +85,68 @@ async def download_csv(
                 async with session.post(download_url, data=data, timeout=TIMEOUT) as response:
                     response.raise_for_status()
                     raw_content = await response.content.read()
-                        
+
                     process_response_content(raw_content, filename)
 
                     if attempt > 1:
-                        logger.info(f"Succès après retry {attempt}/{MAX_RETRIES} : CSV téléchargé pour {name} dans {filename}")
+                        log_event(
+                            action="download_retry_success",
+                            level="info",
+                            attempt=attempt,
+                            filename=filename,
+                            message=f"Succès après retry {attempt}/{MAX_RETRIES}: CSV téléchargé pour {name}."
+                        )
                     return filename
-                
+
         except asyncio.TimeoutError:
-            logger.warning(f"Retry {attempt}/{MAX_RETRIES}: Timeout pour {name}")
+            log_event(
+                action="download_timeout",
+                level="warning",
+                attempt=attempt,
+                league_code=league_code,
+                pool_code=pool_code,
+                message=f"Timeout lors du téléchargement pour {name}."
+            )
         except aiohttp.ClientError as e:
-            logger.warning(f"Retry {attempt}/{MAX_RETRIES}: Erreur réseau pour {name} - {e}")
+            log_event(
+                action="download_client_error",
+                level="warning",
+                attempt=attempt,
+                league_code=league_code,
+                pool_code=pool_code,
+                error=str(e),
+                message=f"Erreur réseau lors du téléchargement pour {name}."
+            )
         except Exception as e:
-            logger.warning(f"Retry {attempt}/{MAX_RETRIES}: Erreur inattendue pour {name} - {e}")
+            log_event(
+                action="download_unexpected_error",
+                level="error",
+                attempt=attempt,
+                league_code=league_code,
+                pool_code=pool_code,
+                error=str(e),
+                message=f"Erreur inattendue lors du téléchargement pour {name}."
+            )
 
         # Si une tentative échoue
         if attempt < MAX_RETRIES:
             backoff = RETRY_DELAY * (2 ** (attempt - 1))
-            logger.warning(f"Attente de {backoff} secondes avant la tentative suivante pour {name}...")
-            await asyncio.sleep(RETRY_DELAY * (2 ** (attempt - 1)))
+            log_event(
+                action="download_retry_backoff",
+                level="warning",
+                backoff=backoff,
+                attempt=attempt,
+                message=f"Attente de {backoff} secondes avant la tentative suivante pour {name}."
+            )
+            await asyncio.sleep(backoff)
         else:
-            logger.error(f"Retry {attempt}/{MAX_RETRIES}: Échec complet pour {name} après {MAX_RETRIES} tentatives.")
+            log_event(
+                action="download_failed",
+                level="error",
+                attempts=MAX_RETRIES,
+                league_code=league_code,
+                pool_code=pool_code,
+                message=f"Échec complet pour {name} après {MAX_RETRIES} tentatives."
+            )
 
     return None
