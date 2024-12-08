@@ -1,6 +1,6 @@
 import asyncio
 from bs4 import BeautifulSoup
-from config.logger_config import log_event, logger
+from config.logger_config import log_event
 from api.pools_api import get_pools_by_league_and_season
 from models.pool import Pool, PoolDivisionCode
 from models.scraper import Scraper
@@ -8,6 +8,7 @@ from services.pools_service import add_or_update_pool, deactivate_pools
 from utils.file_utils import create_output_directory, delete_output_directory
 from utils.scraper_logic import handle_csv_download_and_parse
 from utils.utils import extract_national_division, extract_season_from_url, parse_season, standardize_division_name
+
 
 class NationalScraper(Scraper):
     def __init__(self, session):
@@ -17,10 +18,15 @@ class NationalScraper(Scraper):
         self.league_code = "ABCCS"
         self.league_name = "NATIONAL"
 
-    async def scrape(self):
+    async def run_scraping(self):
+        """
+        Logique principale du scraping pour les pools nationales.
+        Cette méthode sera automatiquement chronométrée et loguée.
+        """
         log_event(action="start_scraping", level="debug", league_name=self.league_name)
 
         try:
+            # Fetch HTML content
             html_content = await self.fetch(self.national_url)
             if not html_content:
                 log_event(
@@ -37,6 +43,7 @@ class NationalScraper(Scraper):
             scraped_pool_codes = set()
             raw_season = None
 
+            # Extraction de la saison à partir du premier lien valide
             for a_tag in soup.find_all('a', href=lambda href: href and href.endswith('.htm')):
                 href = a_tag['href']
                 raw_season = extract_season_from_url(href)
@@ -55,9 +62,11 @@ class NationalScraper(Scraper):
             parsed_season = parse_season(raw_season)
             log_event(action="parse_season", level="debug", raw_season=raw_season, parsed_season=parsed_season)
 
+            # Récupération des pools existantes
             existing_pools = await get_pools_by_league_and_season(self.session, self.league_code, parsed_season)
             existing_pools_dict = {(pool.pool_code, pool.league_code, pool.season): pool for pool in existing_pools}
 
+            # Process each pool link
             for a_tag in soup.find_all('a', href=lambda href: href and href.endswith('.htm')):
                 try:
                     href = a_tag['href']

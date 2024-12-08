@@ -17,7 +17,11 @@ class RegionalScraper(Scraper):
         self.regional_url = "http://www.ffvb.org/120-37-1-Championnats-Regionaux"
         self.folder = create_output_directory("Regional")
 
-    async def scrape(self):
+    async def run_scraping(self):
+        """
+        Logique principale du scraping pour les pools régionales.
+        Cette méthode est automatiquement chronométrée et loguée.
+        """
         log_event(action="start_scraping", level="debug", scope="regional_pools")
 
         scraped_league_codes = set()
