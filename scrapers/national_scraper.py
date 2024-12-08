@@ -90,7 +90,7 @@ class NationalScraper(Scraper):
                     if new_pool:
                         log_event(
                             action="process_pool",
-                            level="info",
+                            level="debug",
                             pool_code=new_pool.pool_code,
                             pool_id=new_pool.id,
                             league_code=new_pool.league_code,
