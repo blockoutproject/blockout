@@ -23,103 +23,103 @@ class Scraper(ABC):
             )
         self.scraping_duration_gauge = Scraper._gauges[class_name]
         
-@handle_errors
-async def fetch(self, url: str, retries: int = 3, delay: int = 2) -> str:
-    """
-    Récupère le contenu d'une URL avec gestion des retries et enregistre des événements de log.
-    """
-    class_name = self.__class__.__name__.lower()
+    @handle_errors
+    async def fetch(self, url: str, retries: int = 3, delay: int = 2) -> str:
+        """
+        Récupère le contenu d'une URL avec gestion des retries et enregistre des événements de log.
+        """
+        class_name = self.__class__.__name__.lower()
 
-    for attempt in range(retries):
-        try:
-            async with self.session.get(url, ssl=False, timeout=aiohttp.ClientTimeout(total=15)) as response:
-                # Enregistrement d'un log de début
+        for attempt in range(retries):
+            try:
+                async with self.session.get(url, ssl=False, timeout=aiohttp.ClientTimeout(total=15)) as response:
+                    # Enregistrement d'un log de début
+                    log_event(
+                        action="http_request",
+                        level="debug",
+                        scraper=class_name,
+                        url=url,
+                        attempt=attempt + 1,
+                        status=response.status,
+                        message=f"Récupération du contenu de l'URL '{url}', tentative {attempt + 1}/{retries}."
+                    )
+
+                    # Vérification du statut HTTP
+                    response.raise_for_status()
+
+                    # Décodage du contenu
+                    raw_content = await response.content.read()
+                    detected_encoding = detect_encoding(raw_content)
+                    decoded_content = decode_content(raw_content, detected_encoding)
+
+                    log_event(
+                        action="http_request_success",
+                        level="debug",
+                        scraper=class_name,
+                        url=url,
+                        status=response.status,
+                        encoding=detected_encoding,
+                        message=f"Contenu récupéré avec succès pour '{url}' après {attempt + 1} tentative(s)."
+                    )
+                    return decoded_content
+
+            except aiohttp.ClientResponseError as e:
                 log_event(
-                    action="http_request",
+                    action="http_request_error",
+                    level="warning",
+                    scraper=class_name,
+                    url=url,
+                    attempt=attempt + 1,
+                    status=e.status,
+                    error=str(e),
+                    message=f"Erreur HTTP {e.status} lors de la récupération de l'URL '{url}' (tentative {attempt + 1}/{retries})."
+                )
+
+            except asyncio.TimeoutError as e:
+                log_event(
+                    action="http_request_timeout",
+                    level="warning",
+                    scraper=class_name,
+                    url=url,
+                    attempt=attempt + 1,
+                    error=str(e),
+                    message=f"Timeout lors de la récupération de l'URL '{url}' (tentative {attempt + 1}/{retries})."
+                )
+
+            except Exception as e:
+                log_event(
+                    action="http_request_failure",
+                    level="error",
+                    scraper=class_name,
+                    url=url,
+                    attempt=attempt + 1,
+                    error=str(e),
+                    message=f"Erreur inattendue lors de la récupération de l'URL '{url}' (tentative {attempt + 1}/{retries})."
+                )
+
+            # Gestion des retries
+            if attempt < retries - 1:
+                log_event(
+                    action="http_request_retry",
                     level="debug",
                     scraper=class_name,
                     url=url,
                     attempt=attempt + 1,
-                    status=response.status,
-                    message=f"Récupération du contenu de l'URL '{url}', tentative {attempt + 1}/{retries}."
+                    delay=delay,
+                    message=f"Nouvelle tentative pour l'URL '{url}' après un délai de {delay} secondes."
                 )
-
-                # Vérification du statut HTTP
-                response.raise_for_status()
-
-                # Décodage du contenu
-                raw_content = await response.content.read()
-                detected_encoding = detect_encoding(raw_content)
-                decoded_content = decode_content(raw_content, detected_encoding)
-
+                await asyncio.sleep(delay)
+            else:
                 log_event(
-                    action="http_request_success",
-                    level="debug",
+                    action="http_request_exhausted",
+                    level="error",
                     scraper=class_name,
                     url=url,
-                    status=response.status,
-                    encoding=detected_encoding,
-                    message=f"Contenu récupéré avec succès pour '{url}' après {attempt + 1} tentative(s)."
+                    attempt=attempt + 1,
+                    retries=retries,
+                    message=f"Échec complet après {retries} tentatives pour l'URL '{url}'."
                 )
-                return decoded_content
-
-        except aiohttp.ClientResponseError as e:
-            log_event(
-                action="http_request_error",
-                level="warning",
-                scraper=class_name,
-                url=url,
-                attempt=attempt + 1,
-                status=e.status,
-                error=str(e),
-                message=f"Erreur HTTP {e.status} lors de la récupération de l'URL '{url}' (tentative {attempt + 1}/{retries})."
-            )
-
-        except asyncio.TimeoutError as e:
-            log_event(
-                action="http_request_timeout",
-                level="warning",
-                scraper=class_name,
-                url=url,
-                attempt=attempt + 1,
-                error=str(e),
-                message=f"Timeout lors de la récupération de l'URL '{url}' (tentative {attempt + 1}/{retries})."
-            )
-
-        except Exception as e:
-            log_event(
-                action="http_request_failure",
-                level="error",
-                scraper=class_name,
-                url=url,
-                attempt=attempt + 1,
-                error=str(e),
-                message=f"Erreur inattendue lors de la récupération de l'URL '{url}' (tentative {attempt + 1}/{retries})."
-            )
-
-        # Gestion des retries
-        if attempt < retries - 1:
-            log_event(
-                action="http_request_retry",
-                level="debug",
-                scraper=class_name,
-                url=url,
-                attempt=attempt + 1,
-                delay=delay,
-                message=f"Nouvelle tentative pour l'URL '{url}' après un délai de {delay} secondes."
-            )
-            await asyncio.sleep(delay)
-        else:
-            log_event(
-                action="http_request_exhausted",
-                level="error",
-                scraper=class_name,
-                url=url,
-                attempt=attempt + 1,
-                retries=retries,
-                message=f"Échec complet après {retries} tentatives pour l'URL '{url}'."
-            )
-            raise 
+                raise 
 
     @abstractmethod
     async def run_scraping(self):
