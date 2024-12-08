@@ -34,7 +34,7 @@ def process_response_content(raw_content: bytes, filename: str) -> None:
         write_to_file(filename, content_decoded)
         log_event(
             action="write_to_file",
-            level="info",
+            level="debug",
             filename=filename,
             message="Contenu écrit dans le fichier avec succès."
         )
