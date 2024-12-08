@@ -47,17 +47,10 @@ async def create_pool(session: aiohttp.ClientSession, pool: Pool) -> Pool:
     Envoie une requête POST pour créer une nouvelle pool.
     """
     pool_dict = pool.to_dict()
-    log_event(
-        action="create_pool",
-        level="info",
-        pool_code=pool.pool_code,
-        division_name=pool.division_name,
-        message="Création d'une nouvelle pool."
-    )
     response = await session.post(POOL_API_URL, json=pool_dict)
     log_event(
         action="pool_created",
-        level="success",
+        level="info",
         pool_code=pool.pool_code,
         division_name=pool.division_name
     )
@@ -71,18 +64,10 @@ async def update_pool(session: aiohttp.ClientSession, pool: Pool, changes: list[
     Envoie une requête PUT pour mettre à jour une pool existante.
     """
     pool_dict = pool.to_dict()
-    log_event(
-        action="update_pool",
-        level="info",
-        pool_code=pool.pool_code,
-        pool_id=pool.id,
-        changes=changes,
-        message="Mise à jour d'une pool existante."
-    )
     response = await session.put(f"{POOL_API_URL}/{pool.id}", json=pool_dict)
     log_event(
         action="pool_updated",
-        level="success",
+        level="info",
         pool_code=pool.pool_code,
         changes=changes
     )
@@ -110,15 +95,9 @@ async def deactivate_pool(session: aiohttp.ClientSession, pool_id: int) -> None:
     """
     Désactive une pool en mettant à jour son statut 'active' à False.
     """
-    log_event(
-        action="deactivate_pool",
-        level="info",
-        pool_id=pool_id,
-        message="Désactivation d'une pool."
-    )
     await session.put(f"{POOL_API_URL}/{pool_id}/deactivate")
     log_event(
         action="pool_deactivated",
-        level="success",
+        level="info",
         pool_id=pool_id
     )

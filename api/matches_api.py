@@ -41,15 +41,8 @@ async def create_match(session: aiohttp.ClientSession, match: Match) -> Match:
     Envoie une requête POST pour créer un nouveau match.
     """
     match_dict = match.to_dict()
-    log_event(
-        action="create_match",
-        level="info",
-        match_code=match.match_code,
-        pool_id=match.pool_id,
-        message="Création d'un nouveau match."
-    )
     response = await session.post(MATCH_API_URL, json=match_dict)
-    log_event(action="match_created", level="success", match_code=match.match_code, pool_id=match.pool_id)
+    log_event(action="match_created", level="info", match_code=match.match_code, pool_id=match.pool_id)
     return response
 
 
@@ -60,16 +53,8 @@ async def update_match(session: aiohttp.ClientSession, match: Match, changes: li
     Envoie une requête PUT pour mettre à jour un match existant.
     """
     match_dict = match.to_dict()
-    log_event(
-        action="update_match",
-        level="info",
-        match_code=match.match_code,
-        match_id=match.id,
-        changes=changes,
-        message="Mise à jour d'un match existant."
-    )
     response = await session.put(f"{MATCH_API_URL}/{match.id}", json=match_dict)
-    log_event(action="match_updated", level="success", match_code=match.match_code, changes=changes)
+    log_event(action="match_updated", level="info", match_code=match.match_code, changes=changes)
     return response
 
 
@@ -79,9 +64,8 @@ async def deactivate_match(session: aiohttp.ClientSession, match_id: int) -> Non
     """
     Désactive un match en envoyant une requête PUT à une route dédiée.
     """
-    log_event(action="deactivate_match", level="info", match_id=match_id, message="Désactivation d'un match.")
     await session.put(f"{MATCH_API_URL}/{match_id}/deactivate")
-    log_event(action="match_deactivated", level="success", match_id=match_id)
+    log_event(action="match_deactivated", level="info", match_id=match_id)
 
 
 @handle_errors

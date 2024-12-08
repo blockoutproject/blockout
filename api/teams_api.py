@@ -30,17 +30,10 @@ async def create_team(session: aiohttp.ClientSession, team: Team) -> Team:
     Envoie une requête POST pour créer une nouvelle équipe.
     """
     team_dict = team.to_dict()
-    log_event(
-        action="create_team",
-        level="info",
-        team_name=team.team_name,
-        club_id=team.club_id,
-        message="Création d'une nouvelle équipe."
-    )
     response = await session.post(TEAM_API_URL, json=team_dict)
     log_event(
         action="team_created",
-        level="success",
+        level="info",
         team_name=team.team_name,
         club_id=team.club_id
     )
@@ -54,18 +47,10 @@ async def update_team(session: aiohttp.ClientSession, team: Team, changes: list[
     Envoie une requête PUT pour mettre à jour une équipe existante.
     """
     team_dict = team.to_dict()
-    log_event(
-        action="update_team",
-        level="info",
-        team_name=team.team_name,
-        team_id=team.id,
-        changes=changes,
-        message="Mise à jour d'une équipe existante."
-    )
     response = await session.put(f"{TEAM_API_URL}/{team.id}", json=team_dict)
     log_event(
         action="team_updated",
-        level="success",
+        level="info",
         team_name=team.team_name,
         changes=changes
     )
@@ -108,15 +93,9 @@ async def deactivate_team(session: aiohttp.ClientSession, team_id: int) -> None:
     """
     Désactive une équipe en mettant à jour son statut 'active' à False.
     """
-    log_event(
-        action="deactivate_team",
-        level="info",
-        team_id=team_id,
-        message="Désactivation d'une équipe."
-    )
     await session.put(f"{TEAM_API_URL}/{team_id}/deactivate")
     log_event(
         action="team_deactivated",
-        level="success",
+        level="info",
         team_id=team_id
     )
