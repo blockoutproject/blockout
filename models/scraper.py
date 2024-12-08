@@ -24,7 +24,7 @@ class Scraper(ABC):
         self.scraping_duration_gauge = Scraper._gauges[class_name]
         
     @handle_errors
-    async def fetch(self, url: str, retries: int = 3, delay: int = 2, sem: int = 10, timeout: int = 5) -> str:
+    async def fetch(self, url: str, retries: int = 3, delay: int = 2, sem: int = 15, timeout: int = 5) -> str:
         """
         Récupère le contenu d'une URL avec gestion des retries, timeout global et semaphore.
         """
@@ -63,7 +63,7 @@ class Scraper(ABC):
                         )
                         return decoded_content
 
-                except aiohttp.ClientResponseError as e:
+                except aiohttp.ClientError as e:
                     log_event(
                         action="http_request_error",
                         level="warning",
@@ -88,7 +88,7 @@ class Scraper(ABC):
 
                 except Exception as e:
                     log_event(
-                        action="http_request_failure",
+                        action="http_request_unexpected_error",
                         level="error",
                         scraper=class_name,
                         url=url,
@@ -98,7 +98,7 @@ class Scraper(ABC):
                     )
 
                 # Gestion des retries
-                if attempt < retries - 1:
+                if attempt < retries:
                     log_event(
                         action="http_request_retry",
                         level="debug",
@@ -111,7 +111,7 @@ class Scraper(ABC):
                     await asyncio.sleep(delay)
                 else:
                     log_event(
-                        action="http_request_exhausted",
+                        action="http_request_failed",
                         level="error",
                         scraper=class_name,
                         url=url,

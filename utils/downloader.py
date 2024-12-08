@@ -78,7 +78,7 @@ async def download_csv(
     name = f"{league_code}_{pool_code}"  # Identifiant unique pour les logs
     
     async with asyncio.Semaphore(sem):
-        for attempt in range(1, retries + 1):
+        for attempt in range(retries):
             try:
                 # Limiter les téléchargements simultanés avec le sémaphore
                 async with session.post(download_url, data=data, timeout=timeout) as response:
@@ -101,7 +101,7 @@ async def download_csv(
                 log_event(
                     action="download_timeout",
                     level="warning",
-                    attempt=attempt,
+                    attempt=attempt + 1,
                     league_code=league_code,
                     pool_code=pool_code,
                     message=f"Timeout lors du téléchargement pour {name}."
@@ -110,7 +110,7 @@ async def download_csv(
                 log_event(
                     action="download_client_error",
                     level="warning",
-                    attempt=attempt,
+                    attempt=attempt + 1,
                     league_code=league_code,
                     pool_code=pool_code,
                     error=str(e),
@@ -120,7 +120,7 @@ async def download_csv(
                 log_event(
                     action="download_unexpected_error",
                     level="error",
-                    attempt=attempt,
+                    attempt=attempt + 1,
                     league_code=league_code,
                     pool_code=pool_code,
                     error=str(e),
@@ -129,15 +129,14 @@ async def download_csv(
 
         # Si une tentative échoue
         if attempt < retries:
-            backoff = retries * (2 ** (attempt - 1))
             log_event(
-                action="download_retry_backoff",
+                action="download_retry",
                 level="warning",
-                backoff=backoff,
-                attempt=attempt,
-                message=f"Attente de {backoff} secondes avant la tentative suivante pour {name}."
+                delay=delay,
+                attempt=attempt + 1,
+                message=f"Nouvelle tentative de téléchargement pour '{name}' après un délai de {delay} secondes."
             )
-            await asyncio.sleep(backoff)
+            await asyncio.sleep(delay)
         else:
             log_event(
                 action="download_failed",
