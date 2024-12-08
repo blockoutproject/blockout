@@ -132,7 +132,7 @@ class RegionalScraper(Scraper):
                 parsed_season = parse_season(raw_season)
                 log_event(
                     action="parse_season",
-                    level="info",
+                    level="debug",
                     league_name=league_name,
                     league_code=league_code,
                     raw_season=raw_season,
