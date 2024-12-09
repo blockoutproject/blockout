@@ -52,8 +52,8 @@ async def download_csv(
     folder: str,
     retries: int = 3, 
     delay: int = 2, 
-    sem: int = 5,
-    timeout: int = 20
+    sem: int = 10,
+    timeout: int = 10
 ) -> str:
     """
     Télécharge un fichier CSV contenant les données spécifiques d'une pool.
