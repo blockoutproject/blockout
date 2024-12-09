@@ -34,16 +34,6 @@ class Scraper(ABC):
             for attempt in range(retries):
                 try:
                     async with self.session.get(url, ssl=False, timeout=aiohttp.ClientTimeout(total=timeout)) as response:
-                        log_event(
-                            action="http_request",
-                            level="debug",
-                            scraper=class_name,
-                            url=url,
-                            attempt=attempt + 1,
-                            status=response.status,
-                            message=f"Récupération du contenu de l'URL '{url}', tentative {attempt + 1}/{retries}."
-                        )
-
                         # Vérification du statut HTTP
                         response.raise_for_status()
 
@@ -52,15 +42,14 @@ class Scraper(ABC):
                         detected_encoding = detect_encoding(raw_content)
                         decoded_content = decode_content(raw_content, detected_encoding)
 
-                        log_event(
-                            action="http_request_success",
-                            level="debug",
-                            scraper=class_name,
-                            url=url,
-                            status=response.status,
-                            encoding=detected_encoding,
-                            message=f"Contenu récupéré avec succès pour '{url}' après {attempt + 1} tentative(s)."
-                        )
+                        if attempt > 1:
+                            log_event(
+                                action="http_request_retry_success",
+                                level="info",
+                                attempt=attempt,
+                                url=url,
+                                message=f"Succès après retry {attempt}/{retries}: Contenu récuperé pour l'URL {url}."
+                            )
                         return decoded_content
 
                 except aiohttp.ClientError as e:
@@ -85,7 +74,6 @@ class Scraper(ABC):
                         error=str(e),
                         message=f"Timeout lors de la récupération de l'URL '{url}' (tentative {attempt + 1}/{retries})."
                     )
-
                 except Exception as e:
                     log_event(
                         action="http_request_unexpected_error",
@@ -115,8 +103,7 @@ class Scraper(ABC):
                         level="error",
                         scraper=class_name,
                         url=url,
-                        attempt=attempt + 1,
-                        retries=retries,
+                        attempt=retries,
                         message=f"Échec complet après {retries} tentatives pour l'URL '{url}'."
                     )
                     raise Exception(f"Échec complet pour l'URL '{url}' après {retries} tentatives.")
@@ -135,7 +122,7 @@ class Scraper(ABC):
         Enregistre également une métrique Prometheus pour la durée.
         Appelle `run_scraping` implémentée par les sous-classes.
         """
-        start_time = datetime.now(timezone.utc)  # Début de la mesure
+        start_time = datetime.now(timezone.utc)
         class_name = self.__class__.__name__
 
         log_event(

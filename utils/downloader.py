@@ -80,8 +80,7 @@ async def download_csv(
     async with asyncio.Semaphore(sem):
         for attempt in range(retries):
             try:
-                # Limiter les téléchargements simultanés avec le sémaphore
-                async with session.post(download_url, data=data, timeout=timeout) as response:
+                async with session.post(download_url, data=data, timeout=aiohttp.ClientTimeout(total=timeout)) as response:
                     response.raise_for_status()
                     raw_content = await response.content.read()
 
@@ -97,15 +96,6 @@ async def download_csv(
                         )
                     return filename
 
-            except asyncio.TimeoutError:
-                log_event(
-                    action="download_timeout",
-                    level="warning",
-                    attempt=attempt + 1,
-                    league_code=league_code,
-                    pool_code=pool_code,
-                    message=f"Timeout lors du téléchargement pour {name}."
-                )
             except aiohttp.ClientError as e:
                 log_event(
                     action="download_client_error",
@@ -115,6 +105,15 @@ async def download_csv(
                     pool_code=pool_code,
                     error=str(e),
                     message=f"Erreur réseau lors du téléchargement pour {name}."
+                )
+            except asyncio.TimeoutError:
+                log_event(
+                    action="download_timeout",
+                    level="warning",
+                    attempt=attempt + 1,
+                    league_code=league_code,
+                    pool_code=pool_code,
+                    message=f"Timeout lors du téléchargement pour {name}."
                 )
             except Exception as e:
                 log_event(
