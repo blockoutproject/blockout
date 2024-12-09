@@ -45,7 +45,7 @@ async def download_csv(
     folder: str,
     retries: int = 3, 
     delay: int = 2, 
-    sem: int = 10,
+    sem: int = 5,
     timeout: int = 20
 ) -> str:
     """
