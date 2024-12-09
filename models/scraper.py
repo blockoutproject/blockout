@@ -86,7 +86,7 @@ class Scraper(ABC):
                 if attempt < retries:
                     log_event(
                         action="http_request_retry",
-                        level="debug",
+                        level="warning",
                         scraper=class_name,
                         url=url,
                         attempt=attempt,
