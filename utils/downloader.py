@@ -17,13 +17,6 @@ def process_response_content(raw_content: bytes, filename: str) -> None:
     try:
         # Décoder le contenu
         content_decoded = decode_content(raw_content)
-        log_event(
-            action="process_response_content",
-            level="debug",
-            filename=filename,
-            preview_content=content_decoded[:20],
-            message="Contenu décodé pour écriture dans le fichier."
-        )
 
         # Écrire le contenu décodé dans le fichier
         write_to_file(filename, content_decoded)
@@ -78,12 +71,11 @@ async def download_csv(
     name = f"{league_code}_{pool_code}"  # Identifiant unique pour les logs
     
     async with asyncio.Semaphore(sem):
-        for attempt in range(retries):
+        for attempt in range(1, retries + 1):
             try:
                 async with session.post(download_url, data=data, timeout=aiohttp.ClientTimeout(total=timeout)) as response:
                     response.raise_for_status()
                     raw_content = await response.content.read()
-
                     process_response_content(raw_content, filename)
 
                     if attempt > 1:
@@ -100,7 +92,7 @@ async def download_csv(
                 log_event(
                     action="download_client_error",
                     level="warning",
-                    attempt=attempt + 1,
+                    attempt=attempt,
                     league_code=league_code,
                     pool_code=pool_code,
                     error=str(e),
@@ -110,7 +102,7 @@ async def download_csv(
                 log_event(
                     action="download_timeout",
                     level="warning",
-                    attempt=attempt + 1,
+                    attempt=attempt,
                     league_code=league_code,
                     pool_code=pool_code,
                     message=f"Timeout lors du téléchargement pour {name}."
@@ -119,7 +111,7 @@ async def download_csv(
                 log_event(
                     action="download_unexpected_error",
                     level="error",
-                    attempt=attempt + 1,
+                    attempt=attempt,
                     league_code=league_code,
                     pool_code=pool_code,
                     error=str(e),
@@ -132,7 +124,7 @@ async def download_csv(
                     action="download_retry",
                     level="warning",
                     delay=delay,
-                    attempt=attempt + 1,
+                    attempt=attempt,
                     message=f"Nouvelle tentative de téléchargement pour '{name}' après un délai de {delay} secondes."
                 )
                 await asyncio.sleep(delay)

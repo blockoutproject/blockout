@@ -31,13 +31,10 @@ class Scraper(ABC):
         class_name = self.__class__.__name__.lower()
 
         async with asyncio.Semaphore(sem):  # Limiter les connexions simultanées
-            for attempt in range(retries):
+            for attempt in range(1, retries + 1):
                 try:
                     async with self.session.get(url, ssl=False, timeout=aiohttp.ClientTimeout(total=timeout)) as response:
-                        # Vérification du statut HTTP
                         response.raise_for_status()
-
-                        # Décodage du contenu
                         raw_content = await response.content.read()
                         detected_encoding = detect_encoding(raw_content)
                         decoded_content = decode_content(raw_content, detected_encoding)
@@ -58,7 +55,7 @@ class Scraper(ABC):
                         level="warning",
                         scraper=class_name,
                         url=url,
-                        attempt=attempt + 1,
+                        attempt=attempt,
                         status=e.status,
                         error=str(e),
                         message=f"Erreur HTTP {e.status} lors de la récupération de l'URL '{url}' (tentative {attempt + 1}/{retries})."
@@ -70,7 +67,7 @@ class Scraper(ABC):
                         level="warning",
                         scraper=class_name,
                         url=url,
-                        attempt=attempt + 1,
+                        attempt=attempt,
                         error=str(e),
                         message=f"Timeout lors de la récupération de l'URL '{url}' (tentative {attempt + 1}/{retries})."
                     )
@@ -80,7 +77,7 @@ class Scraper(ABC):
                         level="error",
                         scraper=class_name,
                         url=url,
-                        attempt=attempt + 1,
+                        attempt=attempt,
                         error=str(e),
                         message=f"Erreur inattendue lors de la récupération de l'URL '{url}' (tentative {attempt + 1}/{retries})."
                     )
@@ -92,7 +89,7 @@ class Scraper(ABC):
                         level="debug",
                         scraper=class_name,
                         url=url,
-                        attempt=attempt + 1,
+                        attempt=attempt,
                         delay=delay,
                         message=f"Nouvelle tentative pour l'URL '{url}' après un délai de {delay} secondes."
                     )
