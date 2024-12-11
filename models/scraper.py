@@ -141,7 +141,7 @@ class Scraper(ABC):
             )
             raise
         finally:
-            end_time = datetime.now(timezone.utc)  # Fin de la mesure
+            end_time = datetime.now(timezone.utc)
             duration = (end_time - start_time).total_seconds()
 
             # Enregistrement dans le Gauge Prometheus

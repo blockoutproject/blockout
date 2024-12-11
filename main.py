@@ -31,12 +31,12 @@ async def main():
                 await asyncio.gather(*tasks)
             
             end_time = datetime.now(timezone.utc)
-            duration = int((end_time - start_time).total_seconds())  # Calculer la durée en secondes
+            duration = (end_time - start_time).total_seconds()
 
             # Mettre à jour la métrique Prometheus
             execution_duration_gauge.set(duration)
             
-            logger.debug(f"Scraping terminé. Durée de l'exécution: {duration} secondes.")
+            logger.debug(f"Scraping global terminé. Durée de l'exécution: {duration:.2f} secondes.")
         
         except Exception as e:
             logger.error(f"Erreur lors du scraping: {e}")
