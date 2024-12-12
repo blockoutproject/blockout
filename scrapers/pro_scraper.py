@@ -137,12 +137,6 @@ class ProScraper(Scraper):
         if existing_match.set != updated_match.set:
             changes.append(f"set: {existing_match.set} -> {updated_match.set}")
         if changes:
-            log_event(
-                action="match_updated",
-                level="info",
-                match_code=existing_match.match_code,
-                changes=changes
-            )
             await update_match(self.session, updated_match, changes)
 
     def prepare_updated_match(self, existing_match: Match, match_datetime: datetime, set: str) -> Match:
