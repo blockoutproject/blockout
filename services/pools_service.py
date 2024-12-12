@@ -28,24 +28,10 @@ async def add_or_update_pool(session: aiohttp.ClientSession, pool: Pool, existin
             changes.append("Pool réactivée.")
 
         if changes:
-            log_event(
-                action="update_pool",
-                level="info",
-                pool_code=pool.pool_code,
-                league_code=pool.league_code,
-                changes=changes
-            )
             return await update_pool(session, pool, changes)
         return existing_pool
     else:
         new_pool = await create_pool(session, pool)
-        log_event(
-            action="create_pool",
-            level="info",
-            pool_code=pool.pool_code,
-            league_code=pool.league_code,
-            status="success"
-        )
         return new_pool
 
 
@@ -62,14 +48,6 @@ async def deactivate_pools(session: aiohttp.ClientSession, league_code: str, scr
     for pool in pools_to_deactivate:
         try:
             await deactivate_pool(session, pool.id)
-            log_event(
-                action="deactivate_pool",
-                level="info",
-                pool_code=pool.pool_code,
-                pool_id=pool.id,
-                league_code=league_code,
-                status="success"
-            )
         except Exception as e:
             log_event(
                 action="deactivate_pool",

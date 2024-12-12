@@ -21,7 +21,7 @@ from config.logger_config import log_event, logger
 
 class ProScraper(Scraper):
     def __init__(self, session):
-        super().__init__(session)
+        super().__init__(session, name="pro_scraper")
         self.folder = create_output_directory("Pro")
         self.raw_season = "2024/2025"
         self.parsed_season = parse_season(self.raw_season)

@@ -13,7 +13,7 @@ from config.logger_config import log_event, logger
 
 class RegionalScraper(Scraper):
     def __init__(self, session):
-        super().__init__(session)
+        super().__init__(session, name="regional_scraper")
         self.regional_url = "http://www.ffvb.org/120-37-1-Championnats-Regionaux"
         self.folder = create_output_directory("Regional")
 

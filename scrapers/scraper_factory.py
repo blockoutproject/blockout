@@ -13,6 +13,6 @@ class ScraperFactory:
         elif scraper_type == 'national':
             return NationalScraper(session)
         elif scraper_type == 'regional':
-            return RegionalScraper(session)
+            return RegionalScraper(session, )
         else:
             raise ValueError(f"Type de scraper inconnu: {scraper_type}")

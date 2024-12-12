@@ -12,7 +12,7 @@ from utils.utils import extract_national_division, extract_season_from_url, pars
 
 class NationalScraper(Scraper):
     def __init__(self, session):
-        super().__init__(session)
+        super().__init__(session, name="national_scraper")
         self.national_url = "http://www.ffvb.org/119-37-1-Championnats-Nationaux"
         self.folder = create_output_directory("National")
         self.league_code = "ABCCS"

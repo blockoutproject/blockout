@@ -1,3 +1,4 @@
+from contextvars import ContextVar
 import logging
 import json
 from config.env_config import LOG_LEVEL
@@ -13,6 +14,8 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
+current_scraper = ContextVar("current_scraper", default="unknown_scraper")
+
 def log_event(action: str, level: str = "info", **kwargs):
     """
     Fonction générique pour générer des logs structurés.
@@ -22,10 +25,14 @@ def log_event(action: str, level: str = "info", **kwargs):
     - level (str): Niveau de log (info, warning, error).
     - kwargs: Métadonnées additionnelles pour enrichir les logs.
     """
+    # Récupérer le nom du scraper actif depuis le contexte
+    scraper_name = current_scraper.get()
+
     # Construire le log en tant qu'objet JSON
     log_message = {
         "action": action,
         "level": level,
+        "scraper": scraper_name,  # Ajouter automatiquement le nom du scraper
         "timestamp": logging.Formatter().formatTime(logging.makeLogRecord({})),
         **kwargs
     }

@@ -6,13 +6,15 @@ from prometheus_client import Gauge
 from config.logger_config import log_event
 from utils.file_utils import decode_content, detect_encoding
 from utils.handlers.error_handler import handle_errors
+from config.logger_config import current_scraper
 
 class Scraper(ABC):
     # Stocker un Gauge unique par classe de scraper
     _gauges = {}
 
-    def __init__(self, session: aiohttp.ClientSession):
+    def __init__(self, session: aiohttp.ClientSession, name: str):
         self.session = session
+        self.name = name
 
         # Récupérer ou créer le Gauge pour la classe en cours
         class_name = self.__class__.__name__.lower()
@@ -24,11 +26,10 @@ class Scraper(ABC):
         self.scraping_duration_gauge = Scraper._gauges[class_name]
         
     @handle_errors
-    async def fetch(self, url: str, retries: int = 3, delay: int = 2, sem: int = 10, timeout: int = 5) -> str:
+    async def fetch(self, url: str, retries: int = 3, delay: int = 2, sem: int = 10, timeout: int = 10) -> str:
         """
         Récupère le contenu d'une URL avec gestion des retries, timeout global et semaphore.
         """
-        class_name = self.__class__.__name__.lower()
 
         async with asyncio.Semaphore(sem):  # Limiter les connexions simultanées
             for attempt in range(1, retries + 1):
@@ -53,7 +54,6 @@ class Scraper(ABC):
                     log_event(
                         action="http_request_error",
                         level="warning",
-                        scraper=class_name,
                         url=url,
                         attempt=attempt,
                         status=e.status,
@@ -65,7 +65,6 @@ class Scraper(ABC):
                     log_event(
                         action="http_request_timeout",
                         level="warning",
-                        scraper=class_name,
                         url=url,
                         attempt=attempt,
                         error=str(e),
@@ -75,7 +74,6 @@ class Scraper(ABC):
                     log_event(
                         action="http_request_unexpected_error",
                         level="error",
-                        scraper=class_name,
                         url=url,
                         attempt=attempt,
                         error=str(e),
@@ -87,7 +85,6 @@ class Scraper(ABC):
                     log_event(
                         action="http_request_retry",
                         level="warning",
-                        scraper=class_name,
                         url=url,
                         attempt=attempt,
                         delay=delay,
@@ -98,7 +95,6 @@ class Scraper(ABC):
                     log_event(
                         action="http_request_failed",
                         level="error",
-                        scraper=class_name,
                         url=url,
                         attempt=retries,
                         message=f"Échec complet après {retries} tentatives pour l'URL '{url}'."
@@ -119,14 +115,13 @@ class Scraper(ABC):
         Enregistre également une métrique Prometheus pour la durée.
         Appelle `run_scraping` implémentée par les sous-classes.
         """
-        start_time = datetime.now(timezone.utc)
-        class_name = self.__class__.__name__
+        current_scraper.set(self.name)
 
+        start_time = datetime.now(timezone.utc)
+        
         log_event(
             action="start_scraping",
             level="debug",
-            scraper=class_name,
-            message=f"Début du scraping pour {class_name}."
         )
 
         try:
@@ -135,9 +130,7 @@ class Scraper(ABC):
             log_event(
                 action="scraping_error",
                 level="error",
-                scraper=class_name,
                 error=str(e),
-                message=f"Erreur lors du scraping pour {class_name}."
             )
             raise
         finally:
@@ -150,7 +143,5 @@ class Scraper(ABC):
             log_event(
                 action="end_scraping",
                 level="info",
-                scraper=class_name,
                 duration=duration,
-                message=f"Scraping terminé pour {class_name} en {duration:.2f} secondes."
             )

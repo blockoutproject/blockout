@@ -24,22 +24,10 @@ async def add_or_update_team(session: aiohttp.ClientSession, team: Team, existin
             team.active = True
             changes.append("Équipe réactivée")
         if changes:
-            log_event(
-                action="update_team",
-                level="info",
-                team_name=team.team_name,
-                changes=changes
-            )
             return await update_team(session, team, changes)
         return existing_team
     else:
         new_team = await create_team(session, team)
-        log_event(
-            action="create_team",
-            level="info",
-            team_name=team.team_name,
-            status="success"
-        )
         return new_team
 
 @handle_errors
@@ -55,13 +43,6 @@ async def deactivate_teams(session: aiohttp.ClientSession, pool_id: int, scraped
     for team in teams_to_deactivate:
         try:
             await deactivate_team(session, team.id)
-            log_event(
-                action="deactivate_team",
-                level="info",
-                team_name=team.team_name,
-                team_id=team.id,
-                status="success"
-            )
         except Exception as e:
             log_event(
                 action="deactivate_team",

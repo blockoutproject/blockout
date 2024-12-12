@@ -41,26 +41,12 @@ async def add_or_update_match(session: aiohttp.ClientSession, match: Match, exis
                     changes.append(f"{field}: {getattr(existing_match, field)} -> {getattr(match, field)}")
 
             if changes:
-                log_event(
-                    action="update_match",
-                    level="info",
-                    match_code=match.match_code,
-                    pool_id=match.pool_id,
-                    changes=changes
-                )
                 return await update_match(session, match, changes)
             return existing_match
         return existing_match
 
     # Cas où le match n'existe pas
     new_match = await create_match(session, match)
-    log_event(
-        action="create_match",
-        level="info",
-        match_code=match.match_code,
-        pool_id=match.pool_id,
-        status="success"
-    )
     return new_match
 
 @handle_errors
@@ -80,14 +66,6 @@ async def deactivate_matches(session: aiohttp.ClientSession, pool_id: int, scrap
     for match in matches_to_deactivate:
         try:
             await deactivate_match(session, match.id)
-            log_event(
-                action="deactivate_match",
-                level="info",
-                match_code=match.match_code,
-                match_id=match.id,
-                pool_id=pool_id,
-                status="success"
-            )
         except Exception as e:
             log_event(
                 action="deactivate_match",
