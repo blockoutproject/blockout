@@ -38,7 +38,7 @@ def log_event(action: str, level: str = "info", **kwargs):
     }
 
     # Sérialiser en JSON
-    log_message_json = json.dumps(log_message)
+    log_message_json = json.dumps(log_message, ensure_ascii=False)
 
     # Log selon le niveau
     if level == "info":
