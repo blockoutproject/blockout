@@ -46,9 +46,7 @@ public class MatchController {
         return ResponseEntity.ok(matches);
     }
 
-
-    @Operation(summary = "Récupérer les matchs par poule", 
-               description = "Retourne une liste de tous les matchs associés à une poule spécifique.")
+    @Operation(summary = "Récupérer les matchs par poule", description = "Retourne une liste de tous les matchs associés à une poule spécifique.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Liste des matchs renvoyée avec succès"),
             @ApiResponse(responseCode = "204", description = "Aucun match trouvé pour cette poule"),

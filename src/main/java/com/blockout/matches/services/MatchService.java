@@ -10,6 +10,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import static net.logstash.logback.argument.StructuredArguments.keyValue;
+
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -23,19 +25,36 @@ public class MatchService {
     private MatchRepository matchRepository;
 
     public Match createMatch(Match match) {
-        return matchRepository.save(match);
+        Match createdMatch = matchRepository.save(match);
+        logger.info("Match created successfully",
+                keyValue("action", "create_match"),
+                keyValue("matchId", createdMatch.getId()));
+        return createdMatch;
     }
 
     public List<Match> getAllMatches() {
-        return matchRepository.findAll();
+        List<Match> matches = matchRepository.findAll();
+        return matches;
     }
 
     public Optional<Match> getMatchById(Long id) {
-        return matchRepository.findById(id);
+        Optional<Match> matchOpt = matchRepository.findById(id);
+        if (!matchOpt.isPresent()) {
+            logger.warn("No match found with given ID",
+                    keyValue("action", "get_match_by_id"),
+                    keyValue("matchId", id));
+        }
+        return matchOpt;
     }
 
     public List<Match> getMatchesByPool(Long poolId) {
-        return matchRepository.findByPoolId(poolId);
+        List<Match> matches = matchRepository.findByPoolId(poolId);
+        if (matches.isEmpty()) {
+            logger.warn("No matches found for pool ID",
+                    keyValue("action", "get_matches_by_pool"),
+                    keyValue("poolId", poolId));
+        }
+        return matches;
     }
 
     public Match updateMatch(Long id, Match updatedMatch) {
@@ -54,18 +73,34 @@ public class MatchService {
             match.setReferee1(updatedMatch.getReferee1());
             match.setReferee2(updatedMatch.getReferee2());
             match.setActive(true);
-            return matchRepository.save(match);
-        }).orElseThrow(() -> new MatchNotFoundException(id));
+            Match savedMatch = matchRepository.save(match);
+
+            logger.info("Match updated successfully",
+                    keyValue("action", "update_match"),
+                    keyValue("matchId", savedMatch.getId()));
+            return savedMatch;
+        }).orElseThrow(() -> {
+            logger.error("Match not found, cannot update",
+                    keyValue("action", "update_match"),
+                    keyValue("matchId", id));
+            return new MatchNotFoundException(id);
+        });
     }
 
     public Match deactivateMatch(Long matchId) {
         return matchRepository.findById(matchId).map(match -> {
             match.setActive(false);
             Match updatedMatch = matchRepository.save(match);
-            logger.info("Match with ID: {} successfully deactivated", matchId);
+
+            logger.info("Match successfully deactivated",
+                    keyValue("action", "deactivate_match"),
+                    keyValue("matchId", matchId));
+
             return updatedMatch;
         }).orElseThrow(() -> {
-            logger.error("Match with ID: {} not found. Cannot deactivate.", matchId);
+            logger.error("Match not found. Cannot deactivate.",
+                    keyValue("action", "deactivate_match"),
+                    keyValue("matchId", matchId));
             return new MatchNotFoundException(matchId);
         });
     }
@@ -73,12 +108,17 @@ public class MatchService {
     public void deactivateMatchesByPoolId(Long poolId) {
         List<Match> matches = matchRepository.findByPoolId(poolId);
         if (matches.isEmpty()) {
-            logger.warn("No matches found for pool ID: {}. No deactivation performed.", poolId);
+            logger.warn("No matches found for pool ID. No deactivation performed.",
+                    keyValue("action", "deactivate_matches_by_pool"),
+                    keyValue("poolId", poolId));
         } else {
             matches.forEach(match -> {
                 match.setActive(false);
                 matchRepository.save(match);
-                logger.info("Match with ID: {} deactivated as part of pool deactivation for pool ID: {}", match.getId(), poolId);
+                logger.info("Match deactivated as part of pool deactivation",
+                        keyValue("action", "deactivate_match"),
+                        keyValue("matchId", match.getId()),
+                        keyValue("poolId", poolId));
             });
         }
     }
@@ -86,29 +126,76 @@ public class MatchService {
     public void deactivateMatchesByTeamId(Long teamId) {
         List<Match> matches = matchRepository.findByTeamIdAOrTeamIdB(teamId, teamId);
         if (matches.isEmpty()) {
-            logger.warn("No matches found for team ID: {}. No deactivation performed.", teamId);
+            logger.warn("No matches found for team ID. No deactivation performed.",
+                    keyValue("action", "deactivate_matches_by_team"),
+                    keyValue("teamId", teamId));
         } else {
             matches.forEach(match -> {
                 match.setActive(false);
                 matchRepository.save(match);
-                logger.info("Match with ID: {} deactivated as part of team deactivation for team ID: {}", match.getId(), teamId);
+                logger.info("Match deactivated as part of team deactivation",
+                        keyValue("action", "deactivate_match"),
+                        keyValue("matchId", match.getId()),
+                        keyValue("teamId", teamId));
             });
         }
     }
 
     public Optional<Match> getMatchByLeagueCodeAndMatchCode(String leagueCode, String matchCode) {
-        return matchRepository.findByLeagueCodeAndMatchCode(leagueCode, matchCode);
+        Optional<Match> matchOpt = matchRepository.findByLeagueCodeAndMatchCode(leagueCode, matchCode);
+        if (matchOpt.isPresent()) {
+            logger.info("Match retrieved by leagueCode and matchCode",
+                    keyValue("action", "get_match_by_league_and_code"),
+                    keyValue("leagueCode", leagueCode),
+                    keyValue("matchCode", matchCode));
+        } else {
+            logger.warn("No match found for given leagueCode and matchCode",
+                    keyValue("action", "get_match_by_league_and_code"),
+                    keyValue("leagueCode", leagueCode),
+                    keyValue("matchCode", matchCode));
+        }
+        return matchOpt;
     }
 
     public List<Match> getActiveMatchesByPoolId(Long poolId) {
-        return matchRepository.findByPoolIdAndActive(poolId, true);
+        List<Match> matches = matchRepository.findByPoolIdAndActive(poolId, true);
+        logger.info("Active matches retrieved by pool ID",
+                keyValue("action", "get_active_matches_by_pool"),
+                keyValue("poolId", poolId),
+                keyValue("count", matches.size()));
+        return matches;
     }
 
     public List<Match> getStartedMatches(MatchStatus status, boolean active, LocalDateTime currentTime) {
-        return matchRepository.findByStatusAndActiveAndMatchDateLessThanEqual(status, active, currentTime);
+        List<Match> matches = matchRepository.findByStatusAndActiveAndMatchDateLessThanEqual(status, active,
+                currentTime);
+        logger.info("Started matches retrieved",
+                keyValue("action", "get_started_matches"),
+                keyValue("status", status),
+                keyValue("active", active),
+                keyValue("count", matches.size()));
+        return matches;
     }
 
-    public Optional<Match> getMatchByPoolAndTeamsAndDate(Long poolId, Long teamIdA, Long teamIdB, LocalDateTime matchDate) {
-        return matchRepository.findByPoolIdAndTeamIdAAndTeamIdBAndMatchDate(poolId, teamIdA, teamIdB, matchDate);
+    public Optional<Match> getMatchByPoolAndTeamsAndDate(Long poolId, Long teamIdA, Long teamIdB,
+            LocalDateTime matchDate) {
+        Optional<Match> matchOpt = matchRepository.findByPoolIdAndTeamIdAAndTeamIdBAndMatchDate(poolId, teamIdA,
+                teamIdB, matchDate);
+        if (matchOpt.isPresent()) {
+            logger.info("Match retrieved by pool, teams and date",
+                    keyValue("action", "get_match_by_pool_teams_date"),
+                    keyValue("poolId", poolId),
+                    keyValue("teamIdA", teamIdA),
+                    keyValue("teamIdB", teamIdB),
+                    keyValue("matchDate", matchDate.toString()));
+        } else {
+            logger.warn("No match found for given pool, teams and date",
+                    keyValue("action", "get_match_by_pool_teams_date"),
+                    keyValue("poolId", poolId),
+                    keyValue("teamIdA", teamIdA),
+                    keyValue("teamIdB", teamIdB),
+                    keyValue("matchDate", matchDate.toString()));
+        }
+        return matchOpt;
     }
 }
