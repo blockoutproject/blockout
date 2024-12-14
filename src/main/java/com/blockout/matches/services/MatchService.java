@@ -143,12 +143,7 @@ public class MatchService {
 
     public Optional<Match> getMatchByLeagueCodeAndMatchCode(String leagueCode, String matchCode) {
         Optional<Match> matchOpt = matchRepository.findByLeagueCodeAndMatchCode(leagueCode, matchCode);
-        if (matchOpt.isPresent()) {
-            logger.info("Match retrieved by leagueCode and matchCode",
-                    keyValue("action", "get_match_by_league_and_code"),
-                    keyValue("leagueCode", leagueCode),
-                    keyValue("matchCode", matchCode));
-        } else {
+        if (!matchOpt.isPresent()) {
             logger.warn("No match found for given leagueCode and matchCode",
                     keyValue("action", "get_match_by_league_and_code"),
                     keyValue("leagueCode", leagueCode),
@@ -159,10 +154,6 @@ public class MatchService {
 
     public List<Match> getActiveMatchesByPoolId(Long poolId) {
         List<Match> matches = matchRepository.findByPoolIdAndActive(poolId, true);
-        logger.info("Active matches retrieved by pool ID",
-                keyValue("action", "get_active_matches_by_pool"),
-                keyValue("poolId", poolId),
-                keyValue("count", matches.size()));
         return matches;
     }
 
@@ -181,14 +172,7 @@ public class MatchService {
             LocalDateTime matchDate) {
         Optional<Match> matchOpt = matchRepository.findByPoolIdAndTeamIdAAndTeamIdBAndMatchDate(poolId, teamIdA,
                 teamIdB, matchDate);
-        if (matchOpt.isPresent()) {
-            logger.info("Match retrieved by pool, teams and date",
-                    keyValue("action", "get_match_by_pool_teams_date"),
-                    keyValue("poolId", poolId),
-                    keyValue("teamIdA", teamIdA),
-                    keyValue("teamIdB", teamIdB),
-                    keyValue("matchDate", matchDate.toString()));
-        } else {
+        if (!matchOpt.isPresent()) {
             logger.warn("No match found for given pool, teams and date",
                     keyValue("action", "get_match_by_pool_teams_date"),
                     keyValue("poolId", poolId),
