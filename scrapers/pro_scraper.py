@@ -38,7 +38,6 @@ class ProScraper(Scraper):
             raise ValueError("La session aiohttp est non initialisée ou fermée.")
 
         tasks = []
-        log_event(action="start_scraping", level="debug", scope="professional_pools")
 
         try:
             existing_pools = await get_pools_by_league_and_season(self.session, self.league_code, self.parsed_season)
@@ -63,13 +62,6 @@ class ProScraper(Scraper):
 
                     new_pool = await add_or_update_pool(self.session, pool, existing_pool)
                     if new_pool:
-                        log_event(
-                            action="pool_processed",
-                            level="debug",
-                            pool_code=new_pool.pool_code,
-                            pool_id=new_pool.id,
-                            status="processed"
-                        )
                         tasks.append(self.execute_task_chain(
                             new_pool.id, new_pool.pool_code, self.raw_season,
                             new_pool.gender, self.folder, pool_json['lnv_url'], pool_json['lnv_xml_url']
@@ -88,13 +80,11 @@ class ProScraper(Scraper):
             log_event(
                 action="critical_error",
                 level="error",
-                scope="professional_pools",
                 error=str(e),
                 message="Erreur critique lors du scraping des poules professionnelles."
             )
         finally:
             delete_output_directory(self.folder)
-            log_event(action="end_scraping", level="debug", scope="professional_pools")
 
     async def execute_task_chain(self, pool_id, pool_code, season, gender, folder, lnv_url, lnv_xml_url):
         await handle_csv_download_and_parse(self.session, pool_id, self.league_code, pool_code, season, folder)
@@ -178,7 +168,6 @@ class ProScraper(Scraper):
             )
             return
 
-        log_event(action="main_id_found", level="debug", main_id=main_id)
         await self.process_all_days(soup, main_id, pool_id, gender)
 
     async def process_all_days(self, soup: BeautifulSoup, main_id: str, pool_id: int, gender: str):

@@ -4,7 +4,7 @@ from typing import Optional
 from config.logger_config import logger
 
 try:
-    with open('config/mapping/standardized_divisions.json', 'r', encoding='windows-1252') as f:
+    with open('config/mapping/standardized_divisions.json', 'r', encoding='utf-8') as f:
         standardized_divisions = json.load(f)
 except Exception as e:
     logger.error(f"Erreur lors du chargement de 'standardized_divisions.json': {e}")
@@ -18,7 +18,6 @@ def standardize_division_name(division_name: str) -> dict:
         for category, genders in standardized_divisions.items():
             for gender, variations in genders.items():
                 if division_name in variations:
-                    logger.debug(f"Division standardisée trouvée: {division_name} -> {category}, Genre: {gender}")
                     return {"division": category, "gender": gender}
         logger.debug(f"Division non standardisée: {division_name}")
         return {"division": division_name.strip(), "gender": None}
@@ -39,8 +38,6 @@ def parse_season(season_str: str) -> int:
 
         # Concaténer les deux derniers chiffres des deux années et convertir en entier
         combined_years = int(start_year_last_two + end_year_last_two)
-        
-        logger.debug(f"Saison parsée: {season_str} -> {combined_years}")
         return combined_years
     except Exception as e:
         logger.error(f"[parse_season] Erreur inattendue lors du parsing de la saison '{season_str}': {e}")
@@ -55,7 +52,6 @@ def extract_season_from_url(url: str) -> Optional[str]:
         if match:
             start_year, end_year = match.groups()
             season = f"{start_year}/{end_year}"
-            logger.debug(f"Saison extraite de l'URL '{url}': {season}")
             return season
         logger.warning(f"Aucune saison trouvée dans l'URL: {url}")
         return None
@@ -69,7 +65,6 @@ def extract_national_division(pool_name: str) -> str:
     """
     try:
         division_name = pool_name.split('Poule')[0].strip()
-        logger.debug(f"Division nationale extraite du nom de poule '{pool_name}': {division_name}")
         return division_name
     except Exception as e:
         logger.error(f"[extract_national_division] Erreur inattendue lors de l'extraction de la division pour '{pool_name}': {e}")

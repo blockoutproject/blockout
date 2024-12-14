@@ -4,7 +4,6 @@ from datetime import datetime, timezone
 import aiohttp
 from prometheus_client import Gauge
 from config.logger_config import log_event
-from utils.file_utils import decode_content, detect_encoding
 from utils.handlers.error_handler import handle_errors
 from config.logger_config import current_scraper
 
@@ -37,9 +36,12 @@ class Scraper(ABC):
                     async with self.session.get(url, ssl=False, timeout=aiohttp.ClientTimeout(total=timeout)) as response:
                         response.raise_for_status()
                         raw_content = await response.content.read()
-                        detected_encoding = detect_encoding(raw_content)
-                        decoded_content = decode_content(raw_content, detected_encoding)
-
+                        
+                        if url.startswith("http://www.ffvb.org/") or url.startswith("http://www.ffvbbeach.org/"):
+                            decoded_content = raw_content.decode("windows-1252", errors="replace")
+                        else:
+                            decoded_content = raw_content.decode("utf-8", errors="replace")
+                            
                         if attempt > 1:
                             log_event(
                                 action="http_request_retry_success",
@@ -118,11 +120,6 @@ class Scraper(ABC):
         current_scraper.set(self.name)
 
         start_time = datetime.now(timezone.utc)
-        
-        log_event(
-            action="start_scraping",
-            level="debug",
-        )
 
         try:
             await self.run_scraping()

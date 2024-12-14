@@ -14,13 +14,6 @@ async def get_pool_by_code_league_season(
     """
     Vérifie si une pool existe déjà via l'API en utilisant pool_code, league_code et season.
     """
-    log_event(
-        action="get_pool_by_code_league_season",
-        level="debug",
-        pool_code=pool_code,
-        league_code=league_code,
-        season=season
-    )
     return await session.get(f"{POOL_API_URL}/{pool_code}/{league_code}/{season}")
 
 
@@ -30,13 +23,6 @@ async def get_pools_by_league_and_season(session: aiohttp.ClientSession, league_
     """
     Récupère toutes les pools pour un code de ligue et une saison spécifiques.
     """
-    log_event(
-        action="get_pools_by_league_and_season",
-        level="debug",
-        league_code=league_code,
-        season=season,
-        message="Récupération des pools par ligue et saison."
-    )
     return await session.get(f"{POOL_API_URL}/league/{league_code}/season/{season}")
 
 
@@ -80,12 +66,6 @@ async def get_active_pools_by_league_code(session: aiohttp.ClientSession, league
     """
     Récupère les pools actives pour une ligue donnée.
     """
-    log_event(
-        action="get_active_pools_by_league_code",
-        level="debug",
-        league_code=league_code,
-        message="Récupération des pools actives par code de ligue."
-    )
     return await session.get(f"{POOL_API_URL}/active?league_code={league_code}")
 
 
@@ -95,9 +75,10 @@ async def deactivate_pool(session: aiohttp.ClientSession, pool_id: int) -> None:
     """
     Désactive une pool en mettant à jour son statut 'active' à False.
     """
-    await session.put(f"{POOL_API_URL}/{pool_id}/deactivate")
+    reponse = await session.put(f"{POOL_API_URL}/{pool_id}/deactivate")
     log_event(
         action="pool_deactivated",
         level="info",
         pool_id=pool_id
     )
+    return reponse

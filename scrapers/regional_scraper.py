@@ -22,8 +22,6 @@ class RegionalScraper(Scraper):
         Logique principale du scraping pour les pools régionales.
         Cette méthode est automatiquement chronométrée et loguée.
         """
-        log_event(action="start_scraping", level="debug", scope="regional_pools")
-
         scraped_league_codes = set()
         try:
             html_content = await self.fetch(self.regional_url)
@@ -87,18 +85,11 @@ class RegionalScraper(Scraper):
             )
         finally:
             delete_output_directory(self.folder)
-            log_event(action="end_scraping", level="debug", scope="regional_pools")
 
     async def scrape_pools_from_league(self, league_code, league_name, league_page_url):
         scraped_pool_codes = set()
         try:
             if league_code not in ['LIMY', 'LIGY', 'LIGU', 'LIMART', 'LIRE']:
-                log_event(
-                    action="start_league_scraping",
-                    level="debug",
-                    league_name=league_name,
-                    league_code=league_code
-                )
 
                 league_page_url = league_page_url.replace('https://', 'http://')
                 html_content = await self.fetch(league_page_url)
@@ -134,14 +125,6 @@ class RegionalScraper(Scraper):
                     raise ValueError("Saison non trouvée.")
 
                 parsed_season = parse_season(raw_season)
-                log_event(
-                    action="parse_season",
-                    level="debug",
-                    league_name=league_name,
-                    league_code=league_code,
-                    raw_season=raw_season,
-                    parsed_season=parsed_season
-                )
 
                 existing_pools = await get_pools_by_league_and_season(self.session, league_code, parsed_season)
                 existing_pools_dict = {(pool.pool_code, pool.league_code, pool.season): pool for pool in existing_pools}
@@ -185,14 +168,6 @@ class RegionalScraper(Scraper):
 
                         new_pool = await add_or_update_pool(self.session, pool, existing_pool)
                         if new_pool:
-                            log_event(
-                                action="pool_processed",
-                                level="debug",
-                                pool_code=new_pool.pool_code,
-                                league_code=new_pool.league_code,
-                                pool_id=new_pool.id,
-                                status="processed"
-                            )
                             task = handle_csv_download_and_parse(
                                 self.session, new_pool.id, new_pool.league_code, new_pool.pool_code, raw_season, self.folder
                             )
@@ -219,10 +194,3 @@ class RegionalScraper(Scraper):
                 league_code=league_code,
                 error=str(e)
             )
-
-        log_event(
-            action="end_league_scraping",
-            level="debug",
-            league_name=league_name,
-            league_code=league_code
-        )

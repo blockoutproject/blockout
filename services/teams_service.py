@@ -1,3 +1,4 @@
+import traceback
 from typing import Optional
 import aiohttp
 from api.teams_api import create_team, deactivate_team, get_active_teams_by_pool_id, update_team
@@ -49,5 +50,7 @@ async def deactivate_teams(session: aiohttp.ClientSession, pool_id: int, scraped
                 level="error",
                 team_name=team.team_name,
                 team_id=team.id,
-                error=str(e)
+                error=str(e),  # Message principal de l'exception
+                exception_type=type(e).__name__,  # Type de l'exception
+                traceback=traceback.format_exc()  # Traceback complet sous forme de chaîne
             )

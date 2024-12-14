@@ -10,7 +10,6 @@ from utils.handlers.api_handler import handle_api_response
 @handle_errors
 @handle_api_response(response_type=Match)
 async def get_match_by_league_and_code(session: aiohttp.ClientSession, league_code: str, match_code: str) -> Optional[Match]:
-    log_event(action="get_match_by_league_and_code", level="debug", league_code=league_code, match_code=match_code)
     return await session.get(f"{MATCH_API_URL}/{league_code}/{match_code}")
 
 
@@ -20,7 +19,6 @@ async def get_active_matches_by_pool_id(session: aiohttp.ClientSession, pool_id:
     """
     Récupère les matchs actifs pour une pool donnée.
     """
-    log_event(action="get_active_matches_by_pool_id", level="debug", pool_id=pool_id)
     return await session.get(f"{MATCH_API_URL}/active?pool_id={pool_id}")
 
 
@@ -30,7 +28,6 @@ async def get_matches_by_pool(session: aiohttp.ClientSession, pool_id: int) -> l
     """
     Récupère tous les matchs d'une poule via une seule requête.
     """
-    log_event(action="get_matches_by_pool", level="debug", pool_id=pool_id)
     return await session.get(f"{MATCH_API_URL}/pool/{pool_id}")
 
 
@@ -42,7 +39,12 @@ async def create_match(session: aiohttp.ClientSession, match: Match) -> Match:
     """
     match_dict = match.to_dict()
     response = await session.post(MATCH_API_URL, json=match_dict)
-    log_event(action="match_created", level="info", match_code=match.match_code, pool_id=match.pool_id)
+    log_event(
+        action="match_created", 
+        level="info", 
+        match_code=match.match_code, 
+        pool_id=match.pool_id
+    )
     return response
 
 
@@ -54,7 +56,12 @@ async def update_match(session: aiohttp.ClientSession, match: Match, changes: li
     """
     match_dict = match.to_dict()
     response = await session.put(f"{MATCH_API_URL}/{match.id}", json=match_dict)
-    log_event(action="match_updated", level="info", match_code=match.match_code, changes=changes)
+    log_event(
+        action="match_updated", 
+        level="info", 
+        match_code=match.match_code, 
+        changes=changes
+    )
     return response
 
 
@@ -64,8 +71,13 @@ async def deactivate_match(session: aiohttp.ClientSession, match_id: int) -> Non
     """
     Désactive un match en envoyant une requête PUT à une route dédiée.
     """
-    await session.put(f"{MATCH_API_URL}/{match_id}/deactivate")
-    log_event(action="match_deactivated", level="info", match_id=match_id)
+    response = await session.put(f"{MATCH_API_URL}/{match_id}/deactivate")
+    log_event(
+        action="match_deactivated", 
+        level="info", 
+        match_id=match_id
+    )
+    return response
 
 
 @handle_errors
@@ -79,14 +91,6 @@ async def get_started_matches(session: aiohttp.ClientSession, status: MatchStatu
         'active': str(active).lower(),
         'current_time': current_time
     }
-    log_event(
-        action="get_started_matches",
-        level="debug",
-        status=status.name,
-        active=active,
-        current_time=current_time,
-        message="Récupération des matchs qui ont commencé."
-    )
     return await session.get(f"{MATCH_API_URL}/started", params=params)
 
 
@@ -108,13 +112,4 @@ async def get_match_by_pool_teams_date(
         'team_id_b': team_id_b,
         'match_date': match_date.isoformat()
     }
-    log_event(
-        action="get_match_by_pool_teams_date",
-        level="debug",
-        pool_id=pool_id,
-        team_id_a=team_id_a,
-        team_id_b=team_id_b,
-        match_date=match_date.isoformat(),
-        message="Recherche d'un match par pool, équipes et date."
-    )
     return await session.get(f"{MATCH_API_URL}/search", params=params)

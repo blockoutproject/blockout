@@ -30,10 +30,10 @@ def log_event(action: str, level: str = "info", **kwargs):
 
     # Construire le log en tant qu'objet JSON
     log_message = {
+        "timestamp": logging.Formatter().formatTime(logging.makeLogRecord({})),
         "action": action,
         "level": level,
         "scraper": scraper_name,  # Ajouter automatiquement le nom du scraper
-        "timestamp": logging.Formatter().formatTime(logging.makeLogRecord({})),
         **kwargs
     }
 

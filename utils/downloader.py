@@ -1,7 +1,7 @@
 import asyncio
 import aiohttp
 from config.logger_config import log_event
-from utils.file_utils import decode_content, write_to_file
+from utils.file_utils import write_to_file
 from utils.handlers.error_handler import handle_errors
 
 @handle_errors
@@ -16,16 +16,10 @@ def process_response_content(raw_content: bytes, filename: str) -> None:
     """
     try:
         # Décoder le contenu
-        content_decoded = decode_content(raw_content)
+        content_decoded = raw_content.decode('windows-1252', errors='replace')
 
         # Écrire le contenu décodé dans le fichier
         write_to_file(filename, content_decoded)
-        log_event(
-            action="write_to_file",
-            level="debug",
-            filename=filename,
-            message="Contenu écrit dans le fichier avec succès."
-        )
     except Exception as e:
         log_event(
             action="process_response_content_error",

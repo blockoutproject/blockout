@@ -1,6 +1,5 @@
 from functools import wraps
 import inspect
-import traceback
 from config.logger_config import log_event
 
 
@@ -18,7 +17,6 @@ def handle_errors(func):
                 try:
                     return await func(*args, **kwargs)
                 except Exception as e:
-                    tb = traceback.format_exc()
                     log_event(
                         action="error",
                         level="error",
@@ -26,7 +24,6 @@ def handle_errors(func):
                         args=args,
                         kwargs=kwargs,
                         error=str(e),
-                        traceback=tb
                     )
                     raise
             return async_wrapper(*args, **kwargs)
@@ -35,7 +32,6 @@ def handle_errors(func):
             try:
                 return func(*args, **kwargs)
             except Exception as e:
-                tb = traceback.format_exc()
                 log_event(
                     action="error",
                     level="error",
@@ -43,7 +39,6 @@ def handle_errors(func):
                     args=args,
                     kwargs=kwargs,
                     error=str(e),
-                    traceback=tb
                 )
                 raise
     return wrapper

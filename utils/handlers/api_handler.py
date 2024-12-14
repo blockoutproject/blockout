@@ -4,7 +4,7 @@ from datetime import datetime
 from enum import Enum
 from dataclasses import fields
 import aiohttp
-from config.logger_config import logger
+from config.logger_config import log_event
 
 def handle_api_response(response_type: Optional[Type] = None):
     """
@@ -14,45 +14,60 @@ def handle_api_response(response_type: Optional[Type] = None):
     def decorator(func):
         @wraps(func)
         async def wrapper(*args, **kwargs) -> Optional[Union[dict, object]]:
-            response = await func(*args, **kwargs)
+            try:
+                response: aiohttp.ClientResponse = await func(*args, **kwargs)
+                # Vérifier les statuts HTTP
+                if response.status in {200, 201}:
+                    if response.content_type == "application/json":
+                        json_data = await response.json()
+                        if response_type:
+                            # Gérer les listes
+                            if get_origin(response_type) is list:
+                                item_type = get_args(response_type)[0]
+                                return [convert_to_dataclass(item, item_type) for item in json_data]
 
-            # Vérifier les statuts HTTP
-            if response.status in {200, 201}:
-                if response.content_type == "application/json":
-                    json_data = await response.json()
+                            # Gérer un seul objet
+                            return convert_to_dataclass(json_data, response_type)
+                        return json_data
+                    return None  # Pas de contenu JSON
 
-                    if response_type:
-                        # Gérer les listes
-                        if get_origin(response_type) is list:
-                            item_type = get_args(response_type)[0]
-                            return [convert_to_dataclass(item, item_type) for item in json_data]
+                elif response.status == 204:
+                    # Retourner une liste vide si le type attendu est une liste
+                    if get_origin(response_type) is list:
+                        return []
 
-                        # Gérer un seul objet
-                        return convert_to_dataclass(json_data, response_type)
+                    return None
 
-                    return json_data
-                return None  # Pas de contenu JSON
+                # Traiter les erreurs API
+                else:
+                    try:
+                        error_data = await response.json()
+                    except aiohttp.ContentTypeError:
+                        error_data = {"message": await response.text()}
+                    error_message = error_data.get("message", "Erreur non spécifiée par l'API")
 
-            elif response.status == 204:
-                # Retourner une liste vide si le type attendu est une liste
-                if get_origin(response_type) is list:
-                    return []
+                    log_event(
+                        action="api_error",
+                        level="error",
+                        status=response.status,
+                        endpoint=response.url,
+                        message=error_message
+                    )
+                    raise Exception(f"Erreur API {response.status}: {error_message}")
 
-                return None
-
-            # Traiter les erreurs API
-            else:
-                try:
-                    error_data = await response.json()
-                except aiohttp.ContentTypeError:
-                    error_data = {"message": await response.text()}
-                error_message = error_data.get("message", "Erreur non spécifiée par l'API")
-                logger.error(f"Erreur API {response.status}: {error_message}")
-                raise Exception(f"Erreur API {response.status}: {error_message}")
-
+            except Exception as e:
+                # Log de l'exception avec traceback si nécessaire
+                log_event(
+                    action="api_response_error",
+                    level="error",
+                    function=func.__name__,
+                    args=args,
+                    kwargs=kwargs,
+                    error=str(e)
+                )
+                raise
         return wrapper
     return decorator
-
 
 def convert_to_dataclass(data: dict, cls: Type) -> object:
     """
@@ -60,7 +75,15 @@ def convert_to_dataclass(data: dict, cls: Type) -> object:
     les champs Enum, datetime, et autres types complexes.
     """
     if not hasattr(cls, "__dataclass_fields__"):
-        raise ValueError(f"{cls} n'est pas une dataclass.")
+        error_message = f"{cls} n'est pas une dataclass."
+        log_event(
+            action="convert_to_dataclass_error",
+            level="error",
+            data=data,
+            target_class=cls.__name__,
+            message=error_message
+        )
+        raise ValueError(error_message)
 
     init_args = {}
     for field in fields(cls):
@@ -68,13 +91,25 @@ def convert_to_dataclass(data: dict, cls: Type) -> object:
         field_type = field.type
         value = data.get(field_name)
         if value is not None:
-            # Gérer les enums
-            if isinstance(field_type, type) and issubclass(field_type, Enum):
-                value = field_type(value)
+            try:
+                # Gérer les enums
+                if isinstance(field_type, type) and issubclass(field_type, Enum):
+                    value = field_type(value)
 
-            # Gérer datetime
-            elif (field_type == datetime or field_type == Optional[datetime] and isinstance(value, str)):
-                value = datetime.fromisoformat(value)
+                # Gérer datetime
+                elif (field_type == datetime or field_type == Optional[datetime] and isinstance(value, str)):
+                    value = datetime.fromisoformat(value)
+
+            except Exception as e:
+                log_event(
+                    action="field_conversion_error",
+                    level="error",
+                    field=field_name,
+                    value=value,
+                    target_class=cls.__name__,
+                    error=str(e)
+                )
+                raise
 
         init_args[field_name] = value
 

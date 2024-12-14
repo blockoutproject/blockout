@@ -18,8 +18,6 @@ async def main():
     start_time = datetime.now(timezone.utc)
     async with lock:  
         try:
-            logger.debug("Début du scraping...")
-
             async with aiohttp.ClientSession() as session:
                 scraper_types = ['pro', 'national', 'regional']
                 tasks = []
@@ -35,9 +33,7 @@ async def main():
 
             # Mettre à jour la métrique Prometheus
             execution_duration_gauge.set(duration)
-            
-            logger.debug(f"Scraping global terminé. Durée de l'exécution: {duration:.2f} secondes.")
-        
+                    
         except Exception as e:
             logger.error(f"Erreur lors du scraping: {e}")
 

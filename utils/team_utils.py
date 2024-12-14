@@ -19,22 +19,16 @@ def is_name_in_aliases(name: str) -> bool:
     for team in team_aliases.get('teams', []):  # Utilise `.get` pour éviter KeyError
         all_aliases = [team['full']] + team.get('aliases', [])  # Gère l'absence de 'aliases'
         if name in all_aliases:
-            logger.debug(f"Nom trouvé dans les alias: {name}")
             return True
-    logger.debug(f"Nom non trouvé dans les alias: {name}")
     return False
 
 def get_full_team_name(name: str, gender: str) -> Optional[str]:
     """
     Récupère le nom complet de l'équipe correspondant au nom donné en tenant compte du genre.
-    """
-
-    logger.debug(f"Recherche du nom complet pour '{name}' avec genre '{gender}'")
-    
+    """    
     for team in team_aliases.get('teams', []):
         if team.get('gender') == gender:
             if name in team.get('aliases', []):
-                logger.debug(f"Nom complet trouvé : {team['full']} pour {name}")
                 return team['full']
     
     logger.warning(f"Aucun alias trouvé pour '{name}' avec le genre '{gender}'")

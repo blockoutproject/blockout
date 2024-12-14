@@ -23,8 +23,6 @@ class NationalScraper(Scraper):
         Logique principale du scraping pour les pools nationales.
         Cette méthode sera automatiquement chronométrée et loguée.
         """
-        log_event(action="start_scraping", level="debug", league_name=self.league_name)
-
         try:
             # Fetch HTML content
             html_content = await self.fetch(self.national_url)
@@ -60,7 +58,6 @@ class NationalScraper(Scraper):
                 raise ValueError("Saison non trouvée.")
 
             parsed_season = parse_season(raw_season)
-            log_event(action="parse_season", level="debug", raw_season=raw_season, parsed_season=parsed_season)
 
             # Récupération des pools existantes
             existing_pools = await get_pools_by_league_and_season(self.session, self.league_code, parsed_season)
@@ -74,6 +71,7 @@ class NationalScraper(Scraper):
                     pool_code = href.split('_')[-1].replace('.htm', '').upper()
 
                     raw_division_name = extract_national_division(pool_name)
+                    
                     standardized = standardize_division_name(raw_division_name)
 
                     scraped_pool_codes.add(pool_code)
@@ -97,14 +95,6 @@ class NationalScraper(Scraper):
                     # Ajout ou mise à jour de la pool
                     new_pool = await add_or_update_pool(self.session, pool, existing_pool)
                     if new_pool:
-                        log_event(
-                            action="process_pool",
-                            level="debug",
-                            pool_code=new_pool.pool_code,
-                            pool_id=new_pool.id,
-                            league_code=new_pool.league_code,
-                            status="processed"
-                        )
                         task = handle_csv_download_and_parse(
                             self.session, new_pool.id, new_pool.league_code, new_pool.pool_code, raw_season, self.folder
                         )
@@ -135,4 +125,3 @@ class NationalScraper(Scraper):
             )
         finally:
             delete_output_directory(self.folder)
-            log_event(action="end_scraping", level="debug", league_name=self.league_name)
