@@ -9,6 +9,7 @@
                 <level/>
                 <mdc/>
                 <stackTrace/>
+                <arguments/>
             </providers>
         </encoder>
     </appender>
