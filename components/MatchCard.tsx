@@ -1,14 +1,13 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { Match, MatchStatus } from '../models/Match';
 
 type MatchCardProps = {
-    teams: string[];
-    date: string;
-    location: string;
+    match: Match;
 };
 
-export default function MatchCard({ teams, date, location }: MatchCardProps) {
-    const formattedDate = new Date(date).toLocaleString('fr-FR', {
+export default function MatchCard({ match }: MatchCardProps) {
+    const formattedDate = new Date(match.match_date).toLocaleString('fr-FR', {
         weekday: 'long',
         year: 'numeric',
         month: 'long',
@@ -19,9 +18,17 @@ export default function MatchCard({ teams, date, location }: MatchCardProps) {
 
     return (
         <View style={styles.card}>
-            <Text style={styles.teams}>{`${teams[0]} vs ${teams[1]}`}</Text>
+            <Text style={styles.teams}>
+                {`Team ${match.team_id_a} vs Team ${match.team_id_b}`}
+            </Text>
             <Text style={styles.date}>{formattedDate}</Text>
-            <Text style={styles.location}>{location}</Text>
+            <Text style={styles.location}>{match.venue || 'Lieu non spécifié'}</Text>
+            <Text style={styles.status}>
+                {match.status === MatchStatus.UPCOMING
+                    ? 'À venir'
+                    : 'Terminé'}
+            </Text>
+            {match.score && <Text style={styles.score}>{`Score: ${match.score}`}</Text>}
         </View>
     );
 }
@@ -51,5 +58,17 @@ const styles = StyleSheet.create({
     location: {
         fontSize: 14,
         color: '#777',
+        marginBottom: 4,
+    },
+    status: {
+        fontSize: 14,
+        color: '#007BFF',
+        fontWeight: 'bold',
+    },
+    score: {
+        fontSize: 16,
+        color: '#28a745',
+        fontWeight: 'bold',
+        marginTop: 4,
     },
 });
