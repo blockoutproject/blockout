@@ -25,7 +25,7 @@ async def create_team(session: aiohttp.ClientSession, team: Team) -> Team:
     team_dict = team.to_dict()
     response = await session.post(TEAM_API_URL, json=team_dict)
     log_event(
-        action="team_created",
+        action="create_team",
         level="info",
         team_name=team.team_name,
         club_id=team.club_id
@@ -42,7 +42,7 @@ async def update_team(session: aiohttp.ClientSession, team: Team, changes: list[
     team_dict = team.to_dict()
     response = await session.put(f"{TEAM_API_URL}/{team.id}", json=team_dict)
     log_event(
-        action="team_updated",
+        action="update_team",
         level="info",
         team_name=team.team_name,
         changes=changes
@@ -74,7 +74,7 @@ async def deactivate_team(session: aiohttp.ClientSession, team_id: int) -> None:
     """
     response = await session.put(f"{TEAM_API_URL}/{team_id}/deactivate")
     log_event(
-        action="team_deactivated",
+        action="deactivate_team",
         level="info",
         team_id=team_id
     )

@@ -40,7 +40,7 @@ async def create_match(session: aiohttp.ClientSession, match: Match) -> Match:
     match_dict = match.to_dict()
     response = await session.post(MATCH_API_URL, json=match_dict)
     log_event(
-        action="match_created", 
+        action="create_match", 
         level="info", 
         match_code=match.match_code, 
         pool_id=match.pool_id
@@ -57,7 +57,7 @@ async def update_match(session: aiohttp.ClientSession, match: Match, changes: li
     match_dict = match.to_dict()
     response = await session.put(f"{MATCH_API_URL}/{match.id}", json=match_dict)
     log_event(
-        action="match_updated", 
+        action="update_match", 
         level="info", 
         match_code=match.match_code, 
         changes=changes
@@ -73,7 +73,7 @@ async def deactivate_match(session: aiohttp.ClientSession, match_id: int) -> Non
     """
     response = await session.put(f"{MATCH_API_URL}/{match_id}/deactivate")
     log_event(
-        action="match_deactivated", 
+        action="deactivate_match", 
         level="info", 
         match_id=match_id
     )
