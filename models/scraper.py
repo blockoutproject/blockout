@@ -60,7 +60,7 @@ class Scraper(ABC):
                         attempt=attempt,
                         status=e.status,
                         error=str(e),
-                        message=f"Erreur HTTP {e.status} lors de la récupération de l'URL '{url}' (tentative {attempt + 1}/{retries})."
+                        message=f"Erreur HTTP {e.status} lors de la récupération de l'URL '{url}' (tentative {attempt}/{retries})."
                     )
 
                 except asyncio.TimeoutError as e:
@@ -70,7 +70,7 @@ class Scraper(ABC):
                         url=url,
                         attempt=attempt,
                         error=str(e),
-                        message=f"Timeout lors de la récupération de l'URL '{url}' (tentative {attempt + 1}/{retries})."
+                        message=f"Timeout lors de la récupération de l'URL '{url}' (tentative {attempt}/{retries})."
                     )
                 except Exception as e:
                     log_event(
@@ -79,7 +79,7 @@ class Scraper(ABC):
                         url=url,
                         attempt=attempt,
                         error=str(e),
-                        message=f"Erreur inattendue lors de la récupération de l'URL '{url}' (tentative {attempt + 1}/{retries})."
+                        message=f"Erreur inattendue lors de la récupération de l'URL '{url}' (tentative {attempt}/{retries})."
                     )
 
                 # Gestion des retries
