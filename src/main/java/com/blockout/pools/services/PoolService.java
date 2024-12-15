@@ -9,6 +9,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import static net.logstash.logback.argument.StructuredArguments.keyValue;
+
 import java.util.List;
 import java.util.Optional;
 
@@ -24,19 +26,37 @@ public class PoolService {
     private EventPublisher eventPublisher;
 
     public Pool createPool(Pool pool) {
-        return poolRepository.save(pool);
+        Pool createdPool = poolRepository.save(pool);
+        logger.info("Pool created successfully",
+                keyValue("action", "create_pool"),
+                keyValue("poolId", createdPool.getId()));
+        return createdPool;
     }
 
     public List<Pool> getAllPools() {
-        return poolRepository.findAll();
+        List<Pool> pools = poolRepository.findAll();
+        return pools;
     }
 
     public List<Pool> getPoolsByLeagueAndSeason(String leagueCode, Integer season) {
-        return poolRepository.findByLeagueCodeAndSeason(leagueCode, season);
+        List<Pool> pools = poolRepository.findByLeagueCodeAndSeason(leagueCode, season);
+        if (pools.isEmpty()) {
+            logger.warn("No pools found for leagueCode and season",
+                    keyValue("action", "get_pools_by_league_and_season"),
+                    keyValue("leagueCode", leagueCode),
+                    keyValue("season", season));
+        }
+        return pools;
     }
 
     public Optional<Pool> getPoolById(Long id) {
-        return poolRepository.findById(id);
+        Optional<Pool> poolOpt = poolRepository.findById(id);
+        if (!poolOpt.isPresent()) {
+            logger.warn("No pool found with given ID",
+                    keyValue("action", "get_pool_by_id"),
+                    keyValue("poolId", id));
+        }
+        return poolOpt;
     }
 
     public Pool updatePool(Long id, Pool updatedPool) {
@@ -51,31 +71,55 @@ public class PoolService {
             pool.setGender(updatedPool.getGender());
             pool.setRawDivisionName(updatedPool.getRawDivisionName());
             pool.setActive(updatedPool.getActive());
-            return poolRepository.save(pool);
-        }).orElseThrow(() -> new PoolNotFoundException(id));
+            Pool savedPool = poolRepository.save(pool);
+
+            logger.info("Pool updated successfully",
+                    keyValue("action", "update_pool"),
+                    keyValue("poolId", savedPool.getId()));
+            return savedPool;
+        }).orElseThrow(() -> {
+            logger.error("Pool not found, cannot update",
+                    keyValue("action", "update_pool"),
+                    keyValue("poolId", id));
+            return new PoolNotFoundException(id);
+        });
     }
 
     public Pool deactivatePool(Long poolId) {
         return poolRepository.findById(poolId).map(pool -> {
             pool.setActive(false);
             Pool updatedPool = poolRepository.save(pool);
-            logger.info("Pool with ID: {} successfully deactivated", poolId);
+
+            logger.info("Pool successfully deactivated",
+                    keyValue("action", "deactivate_pool"),
+                    keyValue("poolId", poolId));
 
             // Publier l'événement de désactivation
             eventPublisher.publishPoolDeactivationEvent(poolId);
 
             return updatedPool;
         }).orElseThrow(() -> {
-            logger.error("Pool with ID: {} not found. Cannot deactivate.", poolId);
+            logger.error("Pool not found. Cannot deactivate.",
+                    keyValue("action", "deactivate_pool"),
+                    keyValue("poolId", poolId));
             return new PoolNotFoundException(poolId);
         });
     }
 
     public Optional<Pool> getPoolByCodeAndLeagueAndSeason(String poolCode, String leagueCode, Integer season) {
-        return poolRepository.findByPoolCodeAndLeagueCodeAndSeason(poolCode, leagueCode, season);
+        Optional<Pool> poolOpt = poolRepository.findByPoolCodeAndLeagueCodeAndSeason(poolCode, leagueCode, season);
+        if (!poolOpt.isPresent()) {
+            logger.warn("No pool found for given code, league and season",
+                    keyValue("action", "get_pool_by_code_league_season"),
+                    keyValue("poolCode", poolCode),
+                    keyValue("leagueCode", leagueCode),
+                    keyValue("season", season));
+        }
+        return poolOpt;
     }
 
     public List<Pool> getActivePoolsByLeagueCode(String leagueCode) {
-        return poolRepository.findByLeagueCodeAndActive(leagueCode, true);
+        List<Pool> pools = poolRepository.findByLeagueCodeAndActive(leagueCode, true);
+        return pools;
     }
 }
