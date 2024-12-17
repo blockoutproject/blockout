@@ -7,7 +7,7 @@ from models.match import Match, MatchStatus
 from models.team import Team
 from services.matchs_service import add_or_update_match, deactivate_matches
 from services.teams_service import add_or_update_team, deactivate_teams
-from utils.date_utils import parse_date
+from utils.utils import parse_date
 from utils.file_utils import parse_csv
 from utils.handlers.error_handler import handle_errors
 from config.logger_config import log_event
@@ -97,12 +97,13 @@ async def parse_and_add_matches_from_csv(session: aiohttp.ClientSession, pool_id
 
             if not club_a_id or not club_b_id:
                 continue
-
+            
             match_datetime = parse_date(data.get('match_date'), data.get('match_time'))
+            
             if not match_datetime:
                 log_event(
                     action="invalid_match_date",
-                    level="warning",
+                    level="error",
                     match_code=data.get('match_code'),
                     message=f"Date invalide pour le match {data.get('match_code')}. Match ignoré."
                 )
