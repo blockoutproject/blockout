@@ -1,17 +1,34 @@
 import React from 'react';
-import { View, Text, StyleSheet, Button } from 'react-native';
+import { View, Text, StyleSheet, Button, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { matches } from '../../data/matches';
-import { Match } from '../../models/Match';
+import { Match } from '../../types/Match';
+import { useMatches } from '@/hooks/useMatches';
+import { useTeamsByIds } from '@/hooks/useTeamsByIds';
+import MainScore from '@/components/match/MainScore';
 
 export default function MatchDetailsModal() {
     const params = useLocalSearchParams();
     const router = useRouter();
+    const { matches, isLoading: matchesLoading, isError, error } = useMatches();
 
     // Recherche du match correspondant à l'ID dans les paramètres
-    const match: Match | undefined = matches.find(
+    const match: Match | undefined = matches?.find(
         (match) => match.id === Number(params.id)
     );
+
+    // Récupération des équipes A et B
+    const { teams, isLoading: teamsLoading, isError: teamsError } = useTeamsByIds(
+        match ? [match.team_id_a, match.team_id_b] : []
+    );
+
+    if (matchesLoading || teamsLoading) {
+        return (
+            <View style={styles.container}>
+                <ActivityIndicator size="large" color="#0000ff" />
+                <Text>Chargement en cours...</Text>
+            </View>
+        );
+    }
 
     if (!match) {
         return (
@@ -22,40 +39,30 @@ export default function MatchDetailsModal() {
         );
     }
 
+    if (teamsError || isError) {
+        return (
+            <View style={styles.container}>
+                <Text style={styles.errorText}>
+                    Une erreur est survenue lors du chargement des données.
+                </Text>
+                <Button title="Retour" onPress={() => router.back()} />
+            </View>
+        );
+    }
+
+    // Trouver les informations des équipes
+    const teamA = teams?.find((team) => team.id === match.team_id_a);
+    const teamB = teams?.find((team) => team.id === match.team_id_b);
+
     return (
         <View style={styles.container}>
-            <Text style={styles.title}>
-                {`Match : ${match.match_code}`}
-            </Text>
-            <Text style={styles.teams}>
-                {`Équipe A : Team ${match.team_id_a} vs Équipe B : Team ${match.team_id_b}`}
-            </Text>
-            <Text style={styles.text}>
-                Date : {match.match_date.toLocaleString('fr-FR', {
-                    weekday: 'long',
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                })}
-            </Text>
-            <Text style={styles.text}>{`Lieu : ${match.venue || 'Non spécifié'}`}</Text>
-            <Text style={styles.text}>
-                {`Statut : ${
-                    match.status === 'UPCOMING' ? 'À venir' : 'Terminé'
-                }`}
-            </Text>
-            {match.score && (
-                <Text style={styles.text}>{`Score : ${match.score}`}</Text>
-            )}
-            {match.referee1 && (
-                <Text style={styles.text}>{`Arbitre 1 : ${match.referee1}`}</Text>
-            )}
-            {match.referee2 && (
-                <Text style={styles.text}>{`Arbitre 2 : ${match.referee2}`}</Text>
-            )}
-            <Button title="Fermer" onPress={() => router.back()} />
+            <MainScore
+                teamAName="AS Cannes"
+                teamBName="Paris Volley"
+                teamALogo={require('../../assets/clubs/cannes.png')}
+                teamBLogo={require('../../assets/clubs/puc.png')}
+                score={[2, 0]}
+            />
         </View>
     );
 }
@@ -63,24 +70,7 @@ export default function MatchDetailsModal() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: '#fff',
         padding: 16,
-    },
-    title: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        marginBottom: 16,
-    },
-    teams: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        marginBottom: 8,
-    },
-    text: {
-        fontSize: 16,
-        marginBottom: 8,
     },
     errorText: {
         fontSize: 18,

@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { Match, MatchStatus } from '../models/Match';
+import { Match, MatchStatus } from '../../types/Match';
 
 type MatchCardProps = {
     match: Match;

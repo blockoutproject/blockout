@@ -32,6 +32,7 @@ export default function ProtectedLayout() {
         name="match"
         options={{
           presentation: 'modal',
+          headerTransparent: true,
           headerLeft: () => (
             <Button title="Fermer" onPress={() => router.back()} />
           ),
