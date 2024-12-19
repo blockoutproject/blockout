@@ -9,25 +9,26 @@ spring:
     property-naming-strategy: SNAKE_CASE
 
   config:
+    import: optional:file:.env.local[.properties]
     on-missing-location: fail
 
   jpa:
     hibernate:
       ddl-auto: update
-    show-sql: ${SPRING_JPA_SHOW_SQL:false}
+    show-sql: false
     database-platform: org.hibernate.dialect.PostgreSQLDialect
 
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5434/blockout_matches}
-    username: ${SPRING_DATASOURCE_USERNAME:blockout_matches}
-    password: ${SPRING_DATASOURCE_PASSWORD:blockout_matches}
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
     driver-class-name: org.postgresql.Driver
 
   rabbitmq:
-    host: ${SPRING_RABBITMQ_HOST:localhost}
-    port: ${SPRING_RABBITMQ_PORT:5672}
-    username: ${SPRING_RABBITMQ_USERNAME:user}
-    password: ${SPRING_RABBITMQ_PASSWORD:password}
+    host: ${SPRING_RABBITMQ_HOST}
+    port: ${SPRING_RABBITMQ_PORT}
+    username: ${SPRING_RABBITMQ_USERNAME}
+    password: ${SPRING_RABBITMQ_PASSWORD}
 
 logging:
   level:
@@ -35,5 +36,5 @@ logging:
 
 okta:
   oauth2:
-    issuer: ${AUTH0_ISSUER}
-    audience: ${AUTH0_AUDIENCE}
+    issuer: ${SPRING_AUTH0_ISSUER}
+    audience: ${SPRING_AUTH0_AUDIENCE}
