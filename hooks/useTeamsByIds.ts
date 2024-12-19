@@ -1,10 +1,10 @@
-import { teamsApi } from '@/api/teamsApi';
+import TeamsApi from '@/teams/v1Api';
 import { useQuery } from '@tanstack/react-query';
 
 export function useTeamsByIds(ids?: number[]) {
     const { data: teams, isLoading, isError, error, isFetching } = useQuery({
         queryKey: ['teams', ids?.sort() || 'all'],
-        queryFn: () => teamsApi.getTeamsByIds(ids),
+        queryFn: () => TeamsApi.getInstance().getTeamsByIds(ids),
         enabled: !!ids && ids.length > 0,
         staleTime: 1000 * 60 * 5, 
     });

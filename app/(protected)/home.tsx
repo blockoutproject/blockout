@@ -1,12 +1,14 @@
 import React from 'react';
-import { View, FlatList, StyleSheet, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, FlatList, StyleSheet, Text, TouchableOpacity, ActivityIndicator, Button } from 'react-native';
 import { useRouter } from 'expo-router';
 import MatchCard from '../../components/match/MatchCard';
 import { Match } from '../../types/Match';
 import { useMatches } from '@/hooks/useMatches';
+import { useAuth0 } from 'react-native-auth0';
 
 export default function HomeScreen() {
     const router = useRouter();
+    const { clearSession } = useAuth0();
     const { matches, isLoading, isError, error, fetchNextPage, hasNextPage, isFetching } = useMatches(10);
 
     const handleCardPress = (matchId: number) => {
@@ -18,9 +20,15 @@ export default function HomeScreen() {
 
     const loadMoreMatches = () => {
         if (hasNextPage) {
-            console.log("zzzzzz")
-
             fetchNextPage();
+        }
+    };
+
+    const handleLogin = async () => {
+        try {
+            await clearSession();
+        } catch (e) {
+            console.log('Erreur de connexion :', e);
         }
     };
 
@@ -46,6 +54,10 @@ export default function HomeScreen() {
                     isFetching ? <ActivityIndicator size="small" color="#0000ff" /> : null
                 }
             />
+
+
+        <Button title="Se déconnecter" onPress={handleLogin} />
+
         </View>
     );
 }

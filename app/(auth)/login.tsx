@@ -7,7 +7,10 @@ export default function LoginScreen() {
 
     const handleLogin = async () => {
         try {
-            await authorize();
+            const token = await authorize({
+                audience: 'https://api.blockoutproject.com/'
+            });
+            console.log('Token :', token);
         } catch (e) {
             console.log('Erreur de connexion :', e);
         }

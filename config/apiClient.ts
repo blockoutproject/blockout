@@ -1,19 +1,19 @@
-import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
+import axios from 'axios';
 
-// Fonction pour créer une instance Axios avec un `baseURL`
-export const createApiClient = (baseURL: string): AxiosInstance => {
+export const createApiClient = (baseURL: string, accessToken?: string) => {
     const api = axios.create({
         baseURL,
         timeout: 10000,
     });
 
-    // Intercepteurs pour gérer les erreurs globales ou autres configurations
-    api.interceptors.response.use(
-        (response) => response,
-        (error) => {
-            console.error('Erreur API :', error);
-            return Promise.reject(error);
-        }
+    api.interceptors.request.use(
+        (config) => {
+            if (accessToken) {
+                config.headers.Authorization = `Bearer ${accessToken}`;
+            }
+            return config;
+        },
+        (error) => Promise.reject(error)
     );
 
     return api;
