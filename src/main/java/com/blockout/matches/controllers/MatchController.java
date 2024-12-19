@@ -6,6 +6,8 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,7 +21,7 @@ import java.util.List;
 import java.util.Optional;
 
 @RestController
-@RequestMapping("/api/matches")
+@RequestMapping("/matches/v1")
 public class MatchController {
 
     @Autowired
@@ -36,13 +38,13 @@ public class MatchController {
         return ResponseEntity.created(null).body(createdMatch);
     }
 
-    @Operation(summary = "Récupérer tous les matchs", description = "Retourne une liste de tous les matchs")
+    @Operation(summary = "Récupérer les matchs avec pagination", description = "Retourne une liste paginée de matchs")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Liste des matchs renvoyée avec succès")
+            @ApiResponse(responseCode = "200", description = "Liste paginée des matchs renvoyée avec succès")
     })
     @GetMapping
-    public ResponseEntity<List<Match>> getAllMatches() {
-        List<Match> matches = matchService.getAllMatches();
+    public ResponseEntity<Page<Match>> getMatches(Pageable pageable) {
+        Page<Match> matches = matchService.getAllMatches(pageable);
         return ResponseEntity.ok(matches);
     }
 

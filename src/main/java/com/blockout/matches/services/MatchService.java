@@ -8,6 +8,8 @@ import com.blockout.matches.repositories.MatchRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
@@ -32,9 +34,8 @@ public class MatchService {
         return createdMatch;
     }
 
-    public List<Match> getAllMatches() {
-        List<Match> matches = matchRepository.findAll();
-        return matches;
+    public Page<Match> getAllMatches(Pageable pageable) {
+        return matchRepository.findAll(pageable);
     }
 
     public Optional<Match> getMatchById(Long id) {
