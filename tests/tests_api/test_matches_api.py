@@ -11,7 +11,7 @@ from api.matches_api import (
 from models.match import MatchStatus
 from tests.utils.fake_match_factory import FakeMatchFactory
 
-MATCH_API_URL = 'http://localhost:8083/api/matches'
+MATCH_API_URL = 'http://localhost:8083/matches/v1'
 
 @pytest.fixture
 async def session():

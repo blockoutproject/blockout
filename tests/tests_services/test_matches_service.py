@@ -5,7 +5,7 @@ from models.match import MatchStatus
 from services.matchs_service import add_or_update_match, deactivate_matches
 from tests.utils.fake_match_factory import FakeMatchFactory
 
-MATCH_API_URL = "http://localhost:8083/api/matches"
+MATCH_API_URL = "http://localhost:8083/matches/v1"
 
 @pytest.fixture
 async def session():

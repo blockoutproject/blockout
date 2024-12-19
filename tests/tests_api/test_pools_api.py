@@ -10,7 +10,7 @@ from api.pools_api import (
 )
 from tests.utils.fake_pool_factory import FakePoolFactory
 
-POOL_API_URL = "http://localhost:8081/api/pools"
+POOL_API_URL = "http://localhost:8081/pools/v1"
 
 
 @pytest.fixture

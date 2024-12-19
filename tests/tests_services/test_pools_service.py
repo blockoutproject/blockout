@@ -5,7 +5,7 @@ from services.pools_service import add_or_update_pool, deactivate_pools
 from tests.utils.fake_pool_factory import FakePoolFactory
 from urllib.parse import urlencode
 
-POOL_API_URL = "http://localhost:8081/api/pools"
+POOL_API_URL = "http://localhost:8081/pools/v1"
 
 @pytest.fixture
 async def session():
