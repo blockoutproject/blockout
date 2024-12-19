@@ -9,6 +9,7 @@ spring:
     property-naming-strategy: SNAKE_CASE
 
   config:
+    import: optional:file:.env.local[.properties]
     on-missing-location: fail
 
   jpa:
@@ -35,5 +36,5 @@ logging:
 
 okta:
   oauth2:
-    issuer: ${AUTH0_ISSUER}
-    audience: ${AUTH0_AUDIENCE}
+    issuer: ${SPRING_AUTH0_ISSUER}
+    audience: ${SPRING_AUTH0_AUDIENCE}
