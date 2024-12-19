@@ -11,6 +11,8 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
@@ -35,6 +37,26 @@ public class TeamService {
 
     public List<Team> getAllTeams() {
         List<Team> teams = teamRepository.findAll();
+        return teams;
+    }
+
+    public List<Team> getTeamsByIds(List<Long> ids) {
+        List<Team> teams = teamRepository.findAllById(ids);
+
+        Set<Long> foundIds = teams.stream()
+                .map(Team::getId)
+                .collect(Collectors.toSet());
+
+        List<Long> missingIds = ids.stream()
+                .filter(id -> !foundIds.contains(id))
+                .collect(Collectors.toList());
+
+        if (!missingIds.isEmpty()) {
+            logger.warn("Some teams not found for given IDs",
+                    keyValue("action", "get_teams_by_ids"),
+                    keyValue("missingIds", missingIds));
+        }
+
         return teams;
     }
 
