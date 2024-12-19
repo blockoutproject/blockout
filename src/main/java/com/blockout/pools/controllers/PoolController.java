@@ -16,7 +16,7 @@ import java.util.List;
 import java.util.Optional;
 
 @RestController
-@RequestMapping("/api/pools")
+@RequestMapping("/pools/v1")
 public class PoolController {
 
     @Autowired
