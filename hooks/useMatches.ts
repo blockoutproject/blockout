@@ -1,4 +1,4 @@
-import MatchesApi from '@/matches/v1Api';
+import MatchesApi from '@/api/MatchesApi';
 import { useInfiniteQuery } from '@tanstack/react-query';
 
 export function useMatches(pageSize: number = 10) {

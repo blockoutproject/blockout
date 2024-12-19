@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { useAuth0 } from 'react-native-auth0';
-import MatchesApi from '@/matches/v1Api';
-import TeamsApi from '@/teams/v1Api';
+import MatchesApi from '@/api/MatchesApi';
+import TeamsApi from '@/api/TeamsApi';
 
 // Un simple Provider
 export const ApiProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {

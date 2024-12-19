@@ -1,4 +1,4 @@
-import TeamsApi from '@/teams/v1Api';
+import TeamsApi from '@/api/TeamsApi';
 import { useQuery } from '@tanstack/react-query';
 
 export function useTeamsByIds(ids?: number[]) {
