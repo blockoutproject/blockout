@@ -9,6 +9,7 @@ spring:
     property-naming-strategy: SNAKE_CASE
 
   config:
+    import: optional:file:.env.local[.properties]
     on-missing-location: fail
 
   jpa:
