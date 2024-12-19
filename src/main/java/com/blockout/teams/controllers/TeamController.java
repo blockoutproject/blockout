@@ -33,16 +33,6 @@ public class TeamController {
         return ResponseEntity.created(null).body(createdTeam);
     }
 
-    @Operation(summary = "Récupérer toutes les équipes", description = "Retourne une liste de toutes les équipes disponibles.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Liste des équipes renvoyée avec succès")
-    })
-    @GetMapping
-    public ResponseEntity<List<Team>> getAllTeams() {
-        List<Team> teams = teamService.getAllTeams();
-        return ResponseEntity.ok(teams);
-    }
-
     @Operation(summary = "Récupérer les équipes par pool_id et team_name", description = "Retourne une équipe spécifique filtrée par pool_id et team_name.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Équipe trouvée avec succès"),
