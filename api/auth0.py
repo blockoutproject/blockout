@@ -1,6 +1,7 @@
 import asyncio
 from auth0.authentication import GetToken
 from config.env_config import AUTH0_DOMAIN, AUTH0_AUDIENCE, AUTH0_CLIENT_ID, AUTH0_CLIENT_SECRET
+from config.logger_config import log_event
 
 MIRROR_TOKEN = None
 
@@ -48,9 +49,18 @@ async def refresh_token_task():
     while True:
         try:
             token = await fetch_auth0_token()
-            set_token(token)  # Mettre à jour le token via le setter
-            print("Token JWT rafraîchi et stocké globalement.")
-            await asyncio.sleep(3600)  # Rafraîchir toutes les heures
+            set_token(token)
+            log_event(
+                action="token_refreshed",
+                level="info",
+                message="Le token a été mis à jour."
+            )
+            await asyncio.sleep(3600)
         except Exception as e:
-            print(f"Erreur lors du rafraîchissement du token : {e}")
+            log_event(
+                action="refresh_token_error",
+                level="error",
+                error=str(e),
+                message="Erreur lors de la mise à jour du token."
+            )
             await asyncio.sleep(60)
