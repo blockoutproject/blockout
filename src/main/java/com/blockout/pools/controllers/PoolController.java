@@ -27,7 +27,7 @@ public class PoolController {
             @ApiResponse(responseCode = "201", description = "Pool créée avec succès"),
             @ApiResponse(responseCode = "400", description = "Requête invalide")
     })
-    @PostMapping
+    @PostMapping("/pools")
     public ResponseEntity<Pool> createPool(@RequestBody Pool pool) {
         Pool createdPool = poolService.createPool(pool);
         return ResponseEntity.created(null).body(createdPool);
@@ -37,7 +37,7 @@ public class PoolController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Liste des pools renvoyée avec succès")
     })
-    @GetMapping
+    @GetMapping("/pools")
     public ResponseEntity<List<Pool>> getAllPools() {
         List<Pool> pools = poolService.getAllPools();
         return ResponseEntity.ok(pools);
@@ -48,7 +48,7 @@ public class PoolController {
             @ApiResponse(responseCode = "200", description = "Liste des pools renvoyée avec succès"),
             @ApiResponse(responseCode = "204", description = "Aucune pool trouvée pour ce league_code et saison")
     })
-    @GetMapping("/league/{league_code}/season/{season}")
+    @GetMapping("/pools/league/{league_code}/season/{season}")
     public ResponseEntity<List<Pool>> getPoolsByLeagueAndSeason(
             @Parameter(description = "Code de la ligue") @PathVariable String league_code,
             @Parameter(description = "Saison de la pool") @PathVariable Integer season) {
@@ -66,7 +66,7 @@ public class PoolController {
             @ApiResponse(responseCode = "200", description = "Pool trouvée avec succès"),
             @ApiResponse(responseCode = "204", description = "Aucune pool trouvée")
     })
-    @GetMapping("/{pool_code}/{league_code}/{season}")
+    @GetMapping("/pools/{pool_code}/{league_code}/{season}")
     public ResponseEntity<Pool> getPoolByCodeLeagueSeason(
             @Parameter(description = "Code de la pool") @PathVariable String pool_code,
             @Parameter(description = "Code de la ligue") @PathVariable String league_code,
@@ -81,7 +81,7 @@ public class PoolController {
             @ApiResponse(responseCode = "200", description = "Pool trouvée"),
             @ApiResponse(responseCode = "404", description = "Pool non trouvée")
     })
-    @GetMapping("/{id}")
+    @GetMapping("/pools/{id}")
     public ResponseEntity<Optional<Pool>> getPoolById(
             @Parameter(description = "ID de la pool à récupérer") @PathVariable Long id) {
         Optional<Pool> pool = poolService.getPoolById(id);
@@ -94,7 +94,7 @@ public class PoolController {
             @ApiResponse(responseCode = "200", description = "Pool mise à jour avec succès"),
             @ApiResponse(responseCode = "404", description = "Pool non trouvée")
     })
-    @PutMapping("/{id}")
+    @PutMapping("/pools/{id}")
     public ResponseEntity<Pool> updatePool(
             @Parameter(description = "ID de la pool à mettre à jour") @PathVariable Long id,
             @RequestBody Pool updatedPool) {
@@ -111,7 +111,7 @@ public class PoolController {
             @ApiResponse(responseCode = "200", description = "Poule désactivée avec succès"),
             @ApiResponse(responseCode = "404", description = "Poule non trouvée")
     })
-    @PutMapping("/{id}/deactivate")
+    @PutMapping("/pools/{id}/deactivate")
     public ResponseEntity<Void> deactivatePool(
             @Parameter(description = "ID de la poule à désactiver") @PathVariable Long id) {
         try {
@@ -127,7 +127,7 @@ public class PoolController {
             @ApiResponse(responseCode = "200", description = "Liste des pools actives renvoyée avec succès"),
             @ApiResponse(responseCode = "204", description = "Aucune pool active trouvée pour ce league_code")
     })
-    @GetMapping("/active")
+    @GetMapping("/pools/active")
     public ResponseEntity<List<Pool>> getActivePoolsByLeagueCode(
             @RequestParam String league_code) {
 
