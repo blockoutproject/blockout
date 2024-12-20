@@ -22,7 +22,6 @@ public class SecurityConfig {
         return http
                 .authorizeHttpRequests((authorize) -> authorize
                     .requestMatchers("/api/public").permitAll()
-                    .requestMatchers("/teams/v1/pools/32/teams/search").authenticated() // Ajoutez cette ligne
                     .requestMatchers("/teams/v1/**").authenticated()
                     .requestMatchers("/api/private-scoped").hasAuthority("SCOPE_read:messages")
                 )
