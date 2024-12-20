@@ -32,7 +32,7 @@ public class MatchController {
             @ApiResponse(responseCode = "201", description = "Match créé avec succès"),
             @ApiResponse(responseCode = "400", description = "Requête invalide")
     })
-    @PostMapping
+    @PostMapping("/matches")
     public ResponseEntity<Match> createMatch(@RequestBody Match match) {
         Match createdMatch = matchService.createMatch(match);
         return ResponseEntity.created(null).body(createdMatch);
@@ -42,7 +42,7 @@ public class MatchController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Liste paginée des matchs renvoyée avec succès")
     })
-    @GetMapping
+    @GetMapping("/matches")
     public ResponseEntity<Page<Match>> getMatches(Pageable pageable) {
         Page<Match> matches = matchService.getAllMatches(pageable);
         return ResponseEntity.ok(matches);
@@ -53,7 +53,7 @@ public class MatchController {
             @ApiResponse(responseCode = "200", description = "Liste des matchs renvoyée avec succès"),
             @ApiResponse(responseCode = "204", description = "Aucun match trouvé pour cette poule"),
     })
-    @GetMapping("/pool/{poolId}")
+    @GetMapping("/pools/{poolId}/matches")
     public ResponseEntity<List<Match>> getMatchesByPool(
             @PathVariable Long poolId) {
 
@@ -69,12 +69,12 @@ public class MatchController {
             @ApiResponse(responseCode = "200", description = "Match renvoyé avec succès"),
             @ApiResponse(responseCode = "204", description = "Aucun match trouvé")
     })
-    @GetMapping("/{league_code}/{match_code}")
+    @GetMapping("/leagues/{leagueCode}/matches/{matchCode}")
     public ResponseEntity<Match> getMatchByLeagueCodeAndMatchCode(
-            @Parameter(description = "Code de la ligue") @PathVariable String league_code,
-            @Parameter(description = "Code du match") @PathVariable String match_code) {
+            @Parameter(description = "Code de la ligue") @PathVariable String leagueCode,
+            @Parameter(description = "Code du match") @PathVariable String matchCode) {
 
-        Optional<Match> match = matchService.getMatchByLeagueCodeAndMatchCode(league_code, match_code);
+        Optional<Match> match = matchService.getMatchByLeagueCodeAndMatchCode(leagueCode, matchCode);
         return match.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.noContent().build());
     }
 
@@ -83,7 +83,7 @@ public class MatchController {
             @ApiResponse(responseCode = "200", description = "Match trouvé"),
             @ApiResponse(responseCode = "404", description = "Match non trouvé")
     })
-    @GetMapping("/{id}")
+    @GetMapping("/matches/{id}")
     public ResponseEntity<Optional<Match>> getMatchById(
             @Parameter(description = "ID du match à récupérer") @PathVariable Long id) {
         Optional<Match> match = matchService.getMatchById(id);
@@ -96,7 +96,7 @@ public class MatchController {
             @ApiResponse(responseCode = "200", description = "Match mis à jour avec succès"),
             @ApiResponse(responseCode = "404", description = "Match non trouvé")
     })
-    @PutMapping("/{id}")
+    @PutMapping("/matches/{id}")
     public ResponseEntity<Match> updateMatch(
             @Parameter(description = "ID du match à mettre à jour") @PathVariable Long id,
             @RequestBody Match updatedMatch) {
@@ -113,7 +113,7 @@ public class MatchController {
             @ApiResponse(responseCode = "200", description = "Match désactivé avec succès"),
             @ApiResponse(responseCode = "404", description = "Match non trouvé")
     })
-    @PutMapping("/{id}/deactivate")
+    @PutMapping("/matches/{id}/deactivate")
     public ResponseEntity<Void> deactivateMatch(
             @Parameter(description = "ID du match à désactiver") @PathVariable Long id) {
         try {
@@ -129,11 +129,11 @@ public class MatchController {
             @ApiResponse(responseCode = "200", description = "Liste des matchs actifs renvoyée avec succès"),
             @ApiResponse(responseCode = "204", description = "Aucun match actif trouvé pour cette pool"),
     })
-    @GetMapping("/active")
+    @GetMapping("/pools/{poolId}/matches/active")
     public ResponseEntity<List<Match>> getActiveMatchesByPoolId(
-            @RequestParam Long pool_id) {
+            @PathVariable Long poolId) {
 
-        List<Match> activeMatches = matchService.getActiveMatchesByPoolId(pool_id);
+        List<Match> activeMatches = matchService.getActiveMatchesByPoolId(poolId);
 
         if (activeMatches.isEmpty()) {
             return ResponseEntity.noContent().build();
@@ -146,7 +146,7 @@ public class MatchController {
             @ApiResponse(responseCode = "200", description = "Liste des matchs en cours renvoyée avec succès"),
             @ApiResponse(responseCode = "204", description = "Aucun match trouvé"),
     })
-    @GetMapping("/started")
+    @GetMapping("/matches/started")
     public ResponseEntity<List<Match>> getStartedMatches(
             @RequestParam MatchStatus status,
             @RequestParam boolean active,
@@ -167,15 +167,15 @@ public class MatchController {
             @ApiResponse(responseCode = "200", description = "Match trouvé avec succès"),
             @ApiResponse(responseCode = "404", description = "Aucun match trouvé avec les critères fournis")
     })
-    @GetMapping("/search")
+    @GetMapping("/pools/{poolId}/matches/search")
     public ResponseEntity<Match> getMatchByPoolAndTeamsAndDate(
-            @RequestParam Long pool_id,
+            @PathVariable Long poolId,
             @RequestParam Long team_id_a,
             @RequestParam Long team_id_b,
             @RequestParam String match_date) {
 
         LocalDateTime matchDate = LocalDateTime.parse(match_date);
-        Optional<Match> match = matchService.getMatchByPoolAndTeamsAndDate(pool_id, team_id_a, team_id_b, matchDate);
+        Optional<Match> match = matchService.getMatchByPoolAndTeamsAndDate(poolId, team_id_a, team_id_b, matchDate);
 
         return match.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
     }
