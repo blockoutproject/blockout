@@ -1,18 +1,11 @@
 import aiohttp
 from datetime import datetime
 from typing import Optional
-from api.auth0 import get_token
+from api.auth0 import _get_auth_headers
 from config.env_config import MATCH_API_URL
 from config.logger_config import log_event
 from models.match import Match, MatchStatus
 from utils.handlers.api_handler import handle_api_response
-
-def _get_auth_headers() -> dict:
-    """
-    Génère les headers d'authentification avec le token JWT.
-    """
-    token = get_token()
-    return {"Authorization": f"Bearer {token}"}
 
 
 @handle_api_response(response_type=Match)
@@ -103,13 +96,7 @@ async def get_started_matches(session: aiohttp.ClientSession, status: MatchStatu
 
 
 @handle_api_response(response_type=Match)
-async def get_match_by_pool_teams_date(
-    session: aiohttp.ClientSession,
-    pool_id: int,
-    team_id_a: int,
-    team_id_b: int,
-    match_date: datetime
-) -> Optional[Match]:
+async def get_match_by_pool_teams_date(session: aiohttp.ClientSession, pool_id: int, team_id_a: int, team_id_b: int, match_date: datetime) -> Optional[Match]:
     """
     Récupère un match spécifique basé sur pool_id, team_id_a, team_id_b et match_date.
     """

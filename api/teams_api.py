@@ -4,15 +4,7 @@ from config.env_config import TEAM_API_URL
 from config.logger_config import log_event
 from utils.handlers.api_handler import handle_api_response
 from models.team import Team
-from api.auth0 import get_token
-
-
-def _get_auth_headers() -> dict:
-    """
-    Génère les headers d'authentification avec le token JWT.
-    """
-    token = get_token()
-    return {"Authorization": f"Bearer {token}"}
+from api.auth0 import _get_auth_headers
 
 
 @handle_api_response(response_type=Team)

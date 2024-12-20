@@ -16,47 +16,8 @@ def handle_api_response(response_type: Optional[Type] = None):
         async def wrapper(*args, **kwargs) -> Optional[Union[dict, object]]:
             try:
                 response: aiohttp.ClientResponse = await func(*args, **kwargs)
-                
-                # Vérifier les statuts HTTP
-                if response.status in {200, 201}:
-                    if response.content_type == "application/json":
-                        json_data = await response.json()
-                        if response_type:
-                            # Gérer les listes
-                            if get_origin(response_type) is list:
-                                item_type = get_args(response_type)[0]
-                                return [convert_to_dataclass(item, item_type) for item in json_data]
-
-                            # Gérer un seul objet
-                            return convert_to_dataclass(json_data, response_type)
-                        return json_data
-                    return None  # Pas de contenu JSON
-
-                elif response.status == 204:
-                    # Retourner une liste vide si le type attendu est une liste
-                    if get_origin(response_type) is list:
-                        return []
-
-                    return None
-
-                # Traiter les erreurs API
-                else:
-                    try:
-                        error_data = await response.json()
-                    except aiohttp.ContentTypeError:
-                        error_data = {"message": await response.text()}
-                    error_message = error_data.get("message", "Erreur non spécifiée par l'API")
-
-                    log_event(
-                        action="api_error",
-                        level="error",
-                        status=response.status,
-                        message=error_message
-                    )
-                    raise Exception(f"Erreur API {response.status}: {error_message}")
-
+                return await process_response(response, response_type)
             except Exception as e:
-                # Log de l'exception avec traceback si nécessaire
                 log_event(
                     action="api_response_error",
                     level="error",
@@ -66,6 +27,46 @@ def handle_api_response(response_type: Optional[Type] = None):
                 raise
         return wrapper
     return decorator
+
+async def process_response(response: aiohttp.ClientResponse, response_type: Optional[Type]) -> Optional[Union[dict, object]]:
+    """
+    Traite la réponse de l'API et convertit en dataclass si nécessaire.
+    """
+    if response.status in {200, 201}:
+        if response.content_type == "application/json":
+            json_data = await response.json()
+            if response_type:
+                if get_origin(response_type) is list:
+                    item_type = get_args(response_type)[0]
+                    return [convert_to_dataclass(item, item_type) for item in json_data]
+                return convert_to_dataclass(json_data, response_type)
+            return json_data
+        return None
+
+    elif response.status == 204:
+        if get_origin(response_type) is list:
+            return []
+        return None
+
+    else:
+        error_data = await get_error_data(response)
+        error_message = error_data.get("message", "Erreur non spécifiée par l'API")
+        log_event(
+            action="api_error",
+            level="error",
+            status=response.status,
+            message=error_message
+        )
+        raise Exception(f"Erreur API {response.status}: {error_message}")
+
+async def get_error_data(response: aiohttp.ClientResponse) -> dict:
+    """
+    Récupère les données d'erreur de la réponse de l'API.
+    """
+    try:
+        return await response.json()
+    except aiohttp.ContentTypeError:
+        return {"message": await response.text()}
 
 def convert_to_dataclass(data: dict, cls: Type) -> object:
     """
@@ -90,14 +91,7 @@ def convert_to_dataclass(data: dict, cls: Type) -> object:
         value = data.get(field_name)
         if value is not None:
             try:
-                # Gérer les enums
-                if isinstance(field_type, type) and issubclass(field_type, Enum):
-                    value = field_type(value)
-
-                # Gérer datetime
-                elif (field_type == datetime or field_type == Optional[datetime] and isinstance(value, str)):
-                    value = datetime.fromisoformat(value)
-
+                value = convert_field_value(value, field_type)
             except Exception as e:
                 log_event(
                     action="field_conversion_error",
@@ -112,3 +106,13 @@ def convert_to_dataclass(data: dict, cls: Type) -> object:
         init_args[field_name] = value
 
     return cls(**init_args)
+
+def convert_field_value(value: any, field_type: Type) -> any:
+    """
+    Convertit la valeur d'un champ en fonction de son type.
+    """
+    if isinstance(field_type, type) and issubclass(field_type, Enum):
+        return field_type(value)
+    elif (field_type == datetime or field_type == Optional[datetime]) and isinstance(value, str):
+        return datetime.fromisoformat(value)
+    return value
