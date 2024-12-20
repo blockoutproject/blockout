@@ -3,10 +3,8 @@ from typing import Optional
 import aiohttp
 from api.teams_api import create_team, deactivate_team, get_active_teams_by_pool_id, update_team
 from models.team import Team
-from utils.handlers.error_handler import handle_errors
 from config.logger_config import log_event, logger
 
-@handle_errors
 async def add_or_update_team(session: aiohttp.ClientSession, team: Team, existing_team: Optional[Team]) -> Team:
     """
     Vérifie l'existence d'une équipe et la met à jour ou la crée selon les besoins.
@@ -31,7 +29,6 @@ async def add_or_update_team(session: aiohttp.ClientSession, team: Team, existin
         new_team = await create_team(session, team)
         return new_team
 
-@handle_errors
 async def deactivate_teams(session: aiohttp.ClientSession, pool_id: int, scraped_team_names: set) -> None:
     """
     Désactive les équipes qui existent en base mais n'ont pas été scrapées pour une pool spécifique.

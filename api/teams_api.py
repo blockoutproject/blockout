@@ -2,28 +2,37 @@ from typing import Optional
 import aiohttp
 from config.env_config import TEAM_API_URL
 from config.logger_config import log_event
-from utils.handlers.error_handler import handle_errors
 from utils.handlers.api_handler import handle_api_response
 from models.team import Team
+from api.auth0 import get_token
 
-@handle_errors
+
+def _get_auth_headers() -> dict:
+    """
+    Génère les headers d'authentification avec le token JWT.
+    """
+    token = get_token()
+    return {"Authorization": f"Bearer {token}"}
+
+
 @handle_api_response(response_type=Team)
 async def get_team_by_pool_and_name(session: aiohttp.ClientSession, pool_id: int, team_name: str) -> Optional[Team]:
     """
     Vérifie si une équipe existe déjà via l'API en utilisant pool_id et team_name.
     """
+    headers = _get_auth_headers()
     params = {'pool_id': pool_id, 'team_name': team_name}
-    return await session.get(f"{TEAM_API_URL}/search", params=params)
+    return await session.get(f"{TEAM_API_URL}/search", params=params, headers=headers)
 
 
-@handle_errors
 @handle_api_response(response_type=Team)
 async def create_team(session: aiohttp.ClientSession, team: Team) -> Team:
     """
     Envoie une requête POST pour créer une nouvelle équipe.
     """
+    headers = _get_auth_headers()
     team_dict = team.to_dict()
-    response = await session.post(TEAM_API_URL, json=team_dict)
+    response = await session.post(TEAM_API_URL, json=team_dict, headers=headers)
     log_event(
         action="create_team",
         level="info",
@@ -33,14 +42,14 @@ async def create_team(session: aiohttp.ClientSession, team: Team) -> Team:
     return response
 
 
-@handle_errors
 @handle_api_response(response_type=Team)
 async def update_team(session: aiohttp.ClientSession, team: Team, changes: list[str] = []) -> Team:
     """
     Envoie une requête PUT pour mettre à jour une équipe existante.
     """
+    headers = _get_auth_headers()
     team_dict = team.to_dict()
-    response = await session.put(f"{TEAM_API_URL}/{team.id}", json=team_dict)
+    response = await session.put(f"{TEAM_API_URL}/{team.id}", json=team_dict, headers=headers)
     log_event(
         action="update_team",
         level="info",
@@ -50,29 +59,31 @@ async def update_team(session: aiohttp.ClientSession, team: Team, changes: list[
     return response
 
 
-@handle_errors
 @handle_api_response(response_type=list[Team])
 async def get_teams_by_pool(session: aiohttp.ClientSession, pool_id: int) -> list[Team]:
     """
     Récupère toutes les équipes associées à une poule spécifique via une seule requête.
     """
-    return await session.get(f"{TEAM_API_URL}/pool/{pool_id}")
+    headers = _get_auth_headers()
+    return await session.get(f"{TEAM_API_URL}/pool/{pool_id}", headers=headers)
 
-@handle_errors
+
 @handle_api_response(response_type=list[Team])
 async def get_active_teams_by_pool_id(session: aiohttp.ClientSession, pool_id: int) -> Optional[list[Team]]:
     """
     Récupère les équipes actives pour une pool donnée.
     """
-    return await session.get(f"{TEAM_API_URL}/active?pool_id={pool_id}")
+    headers = _get_auth_headers()
+    return await session.get(f"{TEAM_API_URL}/active?pool_id={pool_id}", headers=headers)
 
-@handle_errors
+
 @handle_api_response(response_type=None)
 async def deactivate_team(session: aiohttp.ClientSession, team_id: int) -> None:
     """
     Désactive une équipe en mettant à jour son statut 'active' à False.
     """
-    response = await session.put(f"{TEAM_API_URL}/{team_id}/deactivate")
+    headers = _get_auth_headers()
+    response = await session.put(f"{TEAM_API_URL}/{team_id}/deactivate", headers=headers)
     log_event(
         action="deactivate_team",
         level="info",

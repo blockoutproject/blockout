@@ -2,9 +2,7 @@ import asyncio
 import aiohttp
 from config.logger_config import log_event
 from utils.file_utils import write_to_file
-from utils.handlers.error_handler import handle_errors
 
-@handle_errors
 def process_response_content(raw_content: bytes, filename: str) -> None:
     """
     Lit le contenu de la réponse HTTP, détecte l'encodage, 
@@ -30,7 +28,6 @@ def process_response_content(raw_content: bytes, filename: str) -> None:
         )
         raise
 
-@handle_errors
 async def download_csv(
     session: aiohttp.ClientSession,
     league_code: str,

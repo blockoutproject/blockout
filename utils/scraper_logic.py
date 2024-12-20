@@ -9,10 +9,8 @@ from services.matchs_service import add_or_update_match, deactivate_matches
 from services.teams_service import add_or_update_team, deactivate_teams
 from utils.utils import parse_date
 from utils.file_utils import parse_csv
-from utils.handlers.error_handler import handle_errors
 from config.logger_config import log_event
 
-@handle_errors
 async def handle_csv_download_and_parse(
     session: aiohttp.ClientSession,
     pool_id: int,
@@ -64,7 +62,6 @@ async def handle_csv_download_and_parse(
         )
         raise
 
-@handle_errors
 async def parse_and_add_matches_from_csv(session: aiohttp.ClientSession, pool_id: int, csv_path: str) -> None:
     """
     Parse le fichier CSV et ajoute les matchs et les équipes via des appels API REST.

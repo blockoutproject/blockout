@@ -16,6 +16,7 @@ def handle_api_response(response_type: Optional[Type] = None):
         async def wrapper(*args, **kwargs) -> Optional[Union[dict, object]]:
             try:
                 response: aiohttp.ClientResponse = await func(*args, **kwargs)
+                
                 # Vérifier les statuts HTTP
                 if response.status in {200, 201}:
                     if response.content_type == "application/json":
@@ -50,7 +51,6 @@ def handle_api_response(response_type: Optional[Type] = None):
                         action="api_error",
                         level="error",
                         status=response.status,
-                        endpoint=response.url,
                         message=error_message
                     )
                     raise Exception(f"Erreur API {response.status}: {error_message}")
@@ -61,8 +61,6 @@ def handle_api_response(response_type: Optional[Type] = None):
                     action="api_response_error",
                     level="error",
                     function=func.__name__,
-                    args=args,
-                    kwargs=kwargs,
                     error=str(e)
                 )
                 raise

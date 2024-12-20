@@ -2,10 +2,8 @@ from typing import Optional
 import aiohttp
 from api.pools_api import create_pool, deactivate_pool, get_active_pools_by_league_code, update_pool
 from models.pool import Pool
-from utils.handlers.error_handler import handle_errors
-from config.logger_config import log_event, logger
+from config.logger_config import log_event
 
-@handle_errors
 async def add_or_update_pool(session: aiohttp.ClientSession, pool: Pool, existing_pool: Optional[Pool]) -> Pool:
     """
     Vérifie si une pool existe et la met à jour ou la crée selon les besoins.
@@ -35,7 +33,6 @@ async def add_or_update_pool(session: aiohttp.ClientSession, pool: Pool, existin
         return new_pool
 
 
-@handle_errors
 async def deactivate_pools(session: aiohttp.ClientSession, league_code: str, scraped_pool_codes: set) -> None:
     """
     Désactive les pools qui n'ont pas été scrapées pour une ligue spécifique.

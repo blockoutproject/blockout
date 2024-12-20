@@ -3,10 +3,8 @@ import aiohttp
 from datetime import datetime, timezone
 from api.matches_api import create_match, deactivate_match, get_active_matches_by_pool_id, get_match_by_league_and_code, get_started_matches, update_match
 from models.match import Match, MatchStatus
-from utils.handlers.error_handler import handle_errors
 from config.logger_config import log_event, logger
 
-@handle_errors
 async def add_or_update_match(session: aiohttp.ClientSession, match: Match, existing_match: Optional[Match]) -> Match:
     """
     Vérifie l'existence d'un match et le met à jour ou le crée selon les besoins.
@@ -49,7 +47,6 @@ async def add_or_update_match(session: aiohttp.ClientSession, match: Match, exis
     new_match = await create_match(session, match)
     return new_match
 
-@handle_errors
 async def deactivate_matches(session: aiohttp.ClientSession, pool_id: int, scraped_match_codes: Set[str]) -> None:
     """
     Désactive les matchs qui existent en base mais n'ont pas été scrapés pour une pool spécifique.
@@ -76,7 +73,6 @@ async def deactivate_matches(session: aiohttp.ClientSession, pool_id: int, scrap
                 error=str(e)
             )
             
-@handle_errors
 async def log_started_matches() -> None:
     """
     Logue les matchs qui ont commencé.

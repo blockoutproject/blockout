@@ -12,3 +12,4 @@ faker
 pytest-timeout
 python-dotenv
 prometheus_client
+auth0-python

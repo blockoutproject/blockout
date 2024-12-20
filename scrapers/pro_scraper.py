@@ -59,8 +59,8 @@ class ProScraper(Scraper):
 
                     key = (pool.pool_code, pool.league_code, pool.season)
                     existing_pool = existing_pools_dict.get(key)
-
                     new_pool = await add_or_update_pool(self.session, pool, existing_pool)
+
                     if new_pool:
                         tasks.append(self.execute_task_chain(
                             new_pool.id, new_pool.pool_code, self.raw_season,

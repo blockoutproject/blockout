@@ -125,8 +125,8 @@ class RegionalScraper(Scraper):
                     raise ValueError("Saison non trouvée.")
 
                 parsed_season = parse_season(raw_season)
-
                 existing_pools = await get_pools_by_league_and_season(self.session, league_code, parsed_season)
+
                 existing_pools_dict = {(pool.pool_code, pool.league_code, pool.season): pool for pool in existing_pools}
 
                 for a_tag in pool_links:

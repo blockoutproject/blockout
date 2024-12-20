@@ -1,22 +1,4 @@
 services:
-  postgres:
-    image: postgres:latest
-    restart: always
-    environment:
-      POSTGRES_USER: ${PYTHON_DATASOURCE_USERNAME}
-      POSTGRES_PASSWORD: ${PYTHON_DATASOURCE_PASSWORD}
-      POSTGRES_DB: ${PYTHON_DATASOURCE_NAME}
-    ports:
-      - 5435:5432
-    volumes:
-      - ./local/postgres-data:/var/lib/postgresql/data
-      - ./local/postgres-init:/docker-entrypoint-initdb.d
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${PYTHON_DATASOURCE_USERNAME} -d ${PYTHON_DATASOURCE_NAME}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
   scraper:
     build: .
     restart: always
@@ -25,7 +7,10 @@ services:
       MATCH_API_URL: ${MATCH_API_URL}
       POOL_API_URL: ${POOL_API_URL}
       LOG_LEVEL: ${LOG_LEVEL}
-      PYTHON_DATASOURCE_URL: ${PYTHON_DATASOURCE_URL}    
+      AUTH0_DOMAIN: ${AUTH0_DOMAIN}
+      AUTH0_CLIENT_ID: ${AUTH0_CLIENT_ID}
+      AUTH0_CLIENT_SECRET: ${AUTH0_CLIENT_SECRET}
+      AUTH0_AUDIENCE: ${AUTH0_AUDIENCE}
     ports:
       - 8000:8000
     depends_on:

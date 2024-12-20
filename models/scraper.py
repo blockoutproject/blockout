@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 import aiohttp
 from prometheus_client import Gauge
 from config.logger_config import log_event
-from utils.handlers.error_handler import handle_errors
+from utils.handlers.api_handler import handle_api_response
 from config.logger_config import current_scraper
 
 class Scraper(ABC):
@@ -24,7 +24,6 @@ class Scraper(ABC):
             )
         self.scraping_duration_gauge = Scraper._gauges[class_name]
         
-    @handle_errors
     async def fetch(self, url: str, retries: int = 3, delay: int = 2, sem: int = 10, timeout: int = 20) -> str:
         """
         Récupère le contenu d'une URL avec gestion des retries, timeout global et semaphore.
