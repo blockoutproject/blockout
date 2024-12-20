@@ -23,7 +23,7 @@ async def get_pool_by_code_league_season(
     Vérifie si une pool existe déjà via l'API en utilisant pool_code, league_code et season.
     """
     headers = _get_auth_headers()
-    return await session.get(f"{POOL_API_URL}/{pool_code}/{league_code}/{season}", headers=headers)
+    return await session.get(f"{POOL_API_URL}/pools/{pool_code}/{league_code}/{season}", headers=headers)
 
 
 @handle_api_response(response_type=list[Pool])
@@ -32,7 +32,7 @@ async def get_pools_by_league_and_season(session: aiohttp.ClientSession, league_
     Récupère toutes les pools pour un code de ligue et une saison spécifiques.
     """
     headers = _get_auth_headers()
-    return await session.get(f"{POOL_API_URL}/league/{league_code}/season/{season}", headers=headers)
+    return await session.get(f"{POOL_API_URL}/pools/league/{league_code}/season/{season}", headers=headers)
 
 
 @handle_api_response(response_type=Pool)
@@ -42,7 +42,7 @@ async def create_pool(session: aiohttp.ClientSession, pool: Pool) -> Pool:
     """
     headers = _get_auth_headers()
     pool_dict = pool.to_dict()
-    response = await session.post(POOL_API_URL, json=pool_dict, headers=headers)
+    response = await session.post(f"{POOL_API_URL}/pools", json=pool_dict, headers=headers)
     log_event(
         action="create_pool",
         level="info",
@@ -59,7 +59,7 @@ async def update_pool(session: aiohttp.ClientSession, pool: Pool, changes: list[
     """
     headers = _get_auth_headers()
     pool_dict = pool.to_dict()
-    response = await session.put(f"{POOL_API_URL}/{pool.id}", json=pool_dict, headers=headers)
+    response = await session.put(f"{POOL_API_URL}/pools/{pool.id}", json=pool_dict, headers=headers)
     log_event(
         action="update_pool",
         level="info",
@@ -75,7 +75,7 @@ async def get_active_pools_by_league_code(session: aiohttp.ClientSession, league
     Récupère les pools actives pour une ligue donnée.
     """
     headers = _get_auth_headers()
-    return await session.get(f"{POOL_API_URL}/active?league_code={league_code}", headers=headers)
+    return await session.get(f"{POOL_API_URL}/pools/active?league_code={league_code}", headers=headers)
 
 
 @handle_api_response(response_type=None)
@@ -84,7 +84,7 @@ async def deactivate_pool(session: aiohttp.ClientSession, pool_id: int) -> None:
     Désactive une pool en mettant à jour son statut 'active' à False.
     """
     headers = _get_auth_headers()
-    response = await session.put(f"{POOL_API_URL}/{pool_id}/deactivate", headers=headers)
+    response = await session.put(f"{POOL_API_URL}/pools/{pool_id}/deactivate", headers=headers)
     log_event(
         action="deactivate_pool",
         level="info",
