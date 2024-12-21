@@ -40,6 +40,16 @@ public class Team {
     @Column(name = "last_update")
     private LocalDateTime lastUpdate;
 
+    @Column(name = "league_code", nullable = false)
+    private String leagueCode;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "gender", nullable = false)
+    private TeamGender gender;
+
+    @Column(name = "division_name", nullable = false)
+    private String divisionName;
+
     @PrePersist
     @PreUpdate
     public void preUpdate() {
