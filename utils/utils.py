@@ -3,6 +3,7 @@ import json
 import re
 from typing import Optional
 from config.logger_config import log_event
+from models.gender import Gender
 from models.pool import PoolDivisionCode
 from contextvars import ContextVar
 
@@ -29,7 +30,7 @@ def is_junior_pool(string):
             return PoolDivisionCode.JNR
     return PoolDivisionCode.REG
 
-def standardize_division_name(raw_division_name: str) -> dict:
+def standardize_division_name(raw_division_name: str, default_division_code: PoolDivisionCode) -> dict:
     """
     Standardise le nom d'une division en fonction des variations prédéfinies.
     """
@@ -37,14 +38,16 @@ def standardize_division_name(raw_division_name: str) -> dict:
         for division_name, genders in standardized_divisions.items():
             for gender, variations in genders.items():
                 if raw_division_name in variations:
-                    division_code = is_junior_pool(raw_division_name)
-                    return {"division_name": division_name, "division_code": division_code, "gender": gender}
+                    division_code = PoolDivisionCode.NAT
+                    if default_division_code == PoolDivisionCode.REG: # Seule les poule REG sont susceptibles d'être JNR
+                        division_code = is_junior_pool(raw_division_name)
+                    return {"division_name": division_name, "division_code": division_code.value, "gender": gender}
         log_event(
             action="standardize_division_name",
             level="warning",
             message=f"Division non standardisée: {raw_division_name}"
         )
-        return {"division_name": raw_division_name, "division_code": division_code, "gender": PoolDivisionCode.OTHER}
+        return {"division_name": raw_division_name, "division_code": PoolDivisionCode.OTHER.value, "gender": Gender.O.value}
     except Exception as e:
         log_event(
             action="standardize_division_name",

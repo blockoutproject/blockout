@@ -72,7 +72,7 @@ class NationalScraper(Scraper):
 
                     raw_division_name = extract_national_division(pool_name)
                     
-                    standardized = standardize_division_name(raw_division_name)
+                    standardized = standardize_division_name(raw_division_name, PoolDivisionCode.NAT)
 
                     scraped_pool_codes.add(pool_code)
 
