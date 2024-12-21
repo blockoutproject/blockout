@@ -2,6 +2,7 @@ import asyncio
 import aiohttp
 from api.matches_api import get_matches_by_pool
 from api.teams_api import get_teams_by_pool
+from models.pool import Pool
 from utils.downloader import download_csv
 from models.match import Match, MatchStatus
 from models.team import Team
@@ -13,9 +14,7 @@ from config.logger_config import log_event
 
 async def handle_csv_download_and_parse(
     session: aiohttp.ClientSession,
-    pool_id: int,
-    league_code: str,
-    pool_code: str,
+    pool: Pool,
     season: str,
     folder: str
 ) -> None:
@@ -26,53 +25,53 @@ async def handle_csv_download_and_parse(
         log_event(
             action="csv_download_session_closed",
             level="error",
-            pool_id=pool_id,
-            league_code=league_code,
-            pool_code=pool_code,
+            pool_id=pool.id,
+            league_code=pool.league_code,
+            pool_code=pool.pool_code,
             season=season,
             message="La session est fermée avant de commencer le téléchargement du CSV."
         )
         return
 
     try:
-        csv_path = await download_csv(session, league_code, pool_code, season, folder)
+        csv_path = await download_csv(session, pool.league_code, pool.pool_code, season, folder)
 
         if not csv_path:
             log_event(
                 action="download_csv_failed",
                 level="error",
-                league_code=league_code,
-                pool_code=pool_code,
+                league_code=pool.league_code,
+                pool_code=pool.pool_code,
                 season=season,
-                message=f"Échec du téléchargement du CSV pour la pool {pool_code}. Aucune donnée téléchargée."
+                message=f"Échec du téléchargement du CSV pour la pool {pool.pool_code}. Aucune donnée téléchargée."
             )
-            raise RuntimeError(f"Échec du téléchargement du CSV pour la pool {pool_code}")
+            raise RuntimeError(f"Échec du téléchargement du CSV pour la pool {pool.pool_code}")
 
-        await parse_and_add_matches_from_csv(session, pool_id, csv_path)
+        await parse_and_add_matches_from_csv(session, pool, csv_path)
 
     except Exception as e:
         log_event(
             action="process_csv_error",
             level="error",
-            league_code=league_code,
-            pool_code=pool_code,
+            league_code=pool.league_code,
+            pool_code=pool.pool_code,
             season=season,
             error=str(e),
-            message=f"Erreur lors du traitement du CSV pour la pool {pool_code} : {str(e)}"
+            message=f"Erreur lors du traitement du CSV pour la pool {pool.pool_code} : {str(e)}"
         )
         raise
 
-async def parse_and_add_matches_from_csv(session: aiohttp.ClientSession, pool_id: int, csv_path: str) -> None:
+async def parse_and_add_matches_from_csv(session: aiohttp.ClientSession, pool: Pool, csv_path: str) -> None:
     """
     Parse le fichier CSV et ajoute les matchs et les équipes via des appels API REST.
     """
     try:
         # Récupérer tous les matchs existants pour la poule
-        existing_matches = await get_matches_by_pool(session, pool_id) or []
+        existing_matches = await get_matches_by_pool(session, pool.id) or []
         existing_matches_dict = {(match.league_code, match.match_code): match for match in existing_matches}
 
         # Récupération des équipes existantes
-        existing_teams = await get_teams_by_pool(session, pool_id) or []
+        existing_teams = await get_teams_by_pool(session, pool.id) or []
         existing_teams_dict = {(team.pool_id, team.team_name): team for team in existing_teams}
 
         scraped_team_names = set()
@@ -110,12 +109,18 @@ async def parse_and_add_matches_from_csv(session: aiohttp.ClientSession, pool_id
             team_a_data = {
                 "team_name": data.get('team_a_name'),
                 "club_id": club_a_id,
-                "pool_id": pool_id
+                "pool_id": pool.id,
+                "league_code": pool.league_code,
+                "gender": pool.gender,
+                "division_name": pool.division_name
             }
             team_b_data = {
                 "team_name": data.get('team_b_name'),
                 "club_id": club_b_id,
-                "pool_id": pool_id
+                "pool_id": pool.id,
+                "league_code": pool.league_code,
+                "gender": pool.gender,
+                "division_name": pool.division_name
             }
 
             team_a = Team(**team_a_data)
@@ -144,7 +149,7 @@ async def parse_and_add_matches_from_csv(session: aiohttp.ClientSession, pool_id
                 match_data = {
                     "match_code": data.get('match_code'),
                     "league_code": data.get('league_code'),
-                    "pool_id": pool_id,
+                    "pool_id": pool.id,
                     "team_id_a": new_team_a.id,
                     "team_id_b": new_team_b.id,
                     "match_date": match_datetime,
@@ -167,8 +172,8 @@ async def parse_and_add_matches_from_csv(session: aiohttp.ClientSession, pool_id
                 scraped_match_codes.add(new_match.match_code)
 
         await asyncio.gather(
-            deactivate_teams(session, pool_id, scraped_team_names),
-            deactivate_matches(session, pool_id, scraped_match_codes)
+            deactivate_teams(session, pool.id, scraped_team_names),
+            deactivate_matches(session, pool.id, scraped_match_codes)
         )
 
     except Exception as e:

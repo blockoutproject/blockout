@@ -83,7 +83,7 @@ class NationalScraper(Scraper):
                         "league_name": self.league_name,
                         "pool_name": pool_name,
                         "division_code": PoolDivisionCode.NAT,
-                        "division_name": standardized["division"],
+                        "division_name": standardized["division_name"],
                         "gender": standardized["gender"],
                         "raw_division_name": raw_division_name,
                     }
@@ -96,7 +96,7 @@ class NationalScraper(Scraper):
                     new_pool = await add_or_update_pool(self.session, pool, existing_pool)
                     if new_pool:
                         task = handle_csv_download_and_parse(
-                            self.session, new_pool.id, new_pool.league_code, new_pool.pool_code, raw_season, self.folder
+                            self.session, new_pool, raw_season, self.folder
                         )
                         tasks.append(task)
 
