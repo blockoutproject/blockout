@@ -3,9 +3,13 @@ import aiohttp
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from datetime import datetime, timezone
 from api.auth0 import refresh_token_task
+from config.logger_config import log_event
 from scrapers.scraper_factory import ScraperFactory
-from config.logger_config import logger
 from prometheus_client import Gauge, start_http_server
+from contextvars import ContextVar
+
+# Définir une variable contextuelle pour le scraper actuel
+current_scraper = ContextVar("current_scraper", default="global_scraper")
 
 # Variable globale pour stocker le token JWT
 MIRROR_TOKEN = None
@@ -27,6 +31,9 @@ async def main():
                 tasks = []
 
                 for scraper_type in scraper_types:
+                    # Met à jour le contexte pour le scraper actuel
+                    current_scraper.set(scraper_type)
+                    
                     scraper = ScraperFactory.create_scraper(scraper_type, session)
                     tasks.append(scraper.scrape())
 
@@ -37,10 +44,21 @@ async def main():
 
             # Mettre à jour la métrique Prometheus
             execution_duration_gauge.set(duration)
-            logger.info(f"Scraping terminé en {duration} secondes.")
+
+            log_event(
+                action="scraping_completed",
+                level="info",
+                duration=duration,
+                message="Scraping terminé avec succès."
+            )
                     
         except Exception as e:
-            logger.error(f"Erreur lors du scraping: {e}")
+            log_event(
+                action="scraping_error",
+                level="error",
+                message="Erreur lors du scraping",
+                error=str(e)
+            )
 
 def schedule_scraper():
     """
@@ -50,12 +68,22 @@ def schedule_scraper():
     scheduler = AsyncIOScheduler(event_loop=loop)
     scheduler.add_job(main, 'interval', minutes=1, next_run_time=datetime.now(timezone.utc))
     scheduler.start()
-    logger.info("Scheduler démarré.")
+
+    log_event(
+        action="scheduler_started",
+        level="info",
+        message="Scheduler démarré avec succès."
+    )
 
     # Garder la boucle active
     try:
         loop.run_forever()
     except (KeyboardInterrupt, SystemExit):
+        log_event(
+            action="scheduler_shutdown",
+            level="info",
+            message="Scheduler arrêté par l'utilisateur."
+        )
         scheduler.shutdown()
 
 if __name__ == "__main__":
@@ -65,8 +93,18 @@ if __name__ == "__main__":
     try:
         # Démarre la tâche de rafraîchissement du token en arrière-plan
         loop.create_task(refresh_token_task())
+        log_event(
+            action="refresh_token_task_started",
+            level="info",
+            message="Tâche de rafraîchissement de token démarrée."
+        )
         schedule_scraper()
     except Exception as e:
-        logger.error(f"Erreur lors du démarrage : {e}")
+        log_event(
+            action="startup_error",
+            level="error",
+            message="Erreur lors du démarrage",
+            error=str(e)
+        )
     finally:
         loop.run_until_complete(asyncio.sleep(0))

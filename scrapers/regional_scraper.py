@@ -7,7 +7,7 @@ from models.scraper import Scraper
 from services.pools_service import add_or_update_pool, deactivate_pools
 from utils.file_utils import create_output_directory, delete_output_directory
 from utils.scraper_logic import handle_csv_download_and_parse
-from utils.utils import parse_season, standardize_division_name
+from utils.utils import is_junior_pool, parse_season, standardize_division_name
 from config.logger_config import log_event, logger
 
 
@@ -150,15 +150,16 @@ class RegionalScraper(Scraper):
                         standardized = standardize_division_name(raw_division_name)
 
                         scraped_pool_codes.add(pool_code)
-
+                        division_name = standardized["division_name"]
+                        division_code = standardized["division_code"]
                         pool_data = {
                             "pool_code": pool_code,
                             "league_code": league_code,
                             "season": parsed_season,
                             "league_name": league_name,
                             "pool_name": pool_name,
-                            "division_code": PoolDivisionCode.REG,
-                            "division_name": standardized["division"],
+                            "division_code": division_code,
+                            "division_name": division_name,
                             "gender": standardized["gender"],
                             "raw_division_name": raw_division_name
                         }
@@ -169,7 +170,7 @@ class RegionalScraper(Scraper):
                         new_pool = await add_or_update_pool(self.session, pool, existing_pool)
                         if new_pool:
                             task = handle_csv_download_and_parse(
-                                self.session, new_pool.id, new_pool.league_code, new_pool.pool_code, raw_season, self.folder
+                                self.session, new_pool, raw_season, self.folder
                             )
                             tasks.append(task)
 

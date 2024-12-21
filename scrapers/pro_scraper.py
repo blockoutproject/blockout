@@ -8,7 +8,7 @@ from api.matches_api import get_active_matches_by_pool_id, get_match_by_pool_tea
 from api.pools_api import get_pools_by_league_and_season
 from api.teams_api import get_team_by_pool_and_name
 from models.match import Match, MatchStatus
-from models.pool import Pool, PoolDivisionCode, PoolGender
+from models.pool import Pool, PoolDivisionCode
 from models.scraper import Scraper
 from services.pools_service import add_or_update_pool
 from utils.file_utils import create_output_directory, delete_output_directory
@@ -63,8 +63,7 @@ class ProScraper(Scraper):
 
                     if new_pool:
                         tasks.append(self.execute_task_chain(
-                            new_pool.id, new_pool.pool_code, self.raw_season,
-                            new_pool.gender, self.folder, pool_json['lnv_url'], pool_json['lnv_xml_url']
+                            new_pool, self.raw_season, self.folder, pool_json['lnv_url'], pool_json['lnv_xml_url']
                         ))
                 except Exception as e:
                     log_event(
@@ -86,10 +85,10 @@ class ProScraper(Scraper):
         finally:
             delete_output_directory(self.folder)
 
-    async def execute_task_chain(self, pool_id, pool_code, season, gender, folder, lnv_url, lnv_xml_url):
-        await handle_csv_download_and_parse(self.session, pool_id, self.league_code, pool_code, season, folder)
-        await self.parse_and_update_matches(lnv_xml_url, pool_id)
-        await self.add_match_live_code(lnv_url, pool_id, gender)
+    async def execute_task_chain(self, pool: Pool, season, folder, lnv_url, lnv_xml_url):
+        await handle_csv_download_and_parse(self.session, pool, season, folder)
+        await self.parse_and_update_matches(lnv_xml_url, pool.id)
+        await self.add_match_live_code(lnv_url, pool.id, pool.gender)
 
     async def parse_and_update_matches(self, xml_url, pool_id):
         xml_content = await self.fetch(xml_url)
