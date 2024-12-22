@@ -104,7 +104,9 @@
             "M18 EXCELLENCE FEMININ",
             "CHAMPIONNAT MOINS DE 18 ANS FÉMININES",
             "MOINS 18 ANS FÉMININES OCCITANIE EST",
-            "MOINS 18 ANS FÉMININES OCCITANIE OUEST"
+            "MOINS 18 ANS FÉMININES OCCITANIE OUEST",
+            "CHAMPIONNAT RÉGIONAL : M18 FÉMININ 6X6",
+            "M18 FEMININES 4X4 HDF NORD 1 ERE PHASE"
         ],
         "M": [
             "CHAMPIONNAT M18 6X6 MASCULIN",
@@ -120,7 +122,9 @@
             "CHAMPIONNAT MOINS DE 18 ANS MASCULINS",
             "MOINS 18 ANS MASCULINS OCCITANIE EST",
             "MOINS 18 ANS MASCULINS OCCITANIE OUEST",
-            "MOINS DE 18 ANS MASCULIN"
+            "MOINS DE 18 ANS MASCULIN",
+            "CHAMPIONNAT RÉGIONAL : M18 MASCULIN 6X6",
+            "M18 MASCULINS 4X4 HDF NORD 1ERE PHASE"
         ]
     },
     "M15": {
@@ -170,6 +174,17 @@
         "M": [
             "M21 MASCULINS 1ERE PHASE HDF NORD",
             "MOINS 21 ANS MASCULINS OCCITANIE OUEST"
+        ]
+    },
+    "Autre": {
+        "F": [
+
+        ],
+        "M": [
+
+        ],
+        "O": [
+            "LOISIR CORPO"
         ]
     }
 }
