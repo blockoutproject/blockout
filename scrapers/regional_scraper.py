@@ -150,16 +150,14 @@ class RegionalScraper(Scraper):
                         standardized = standardize_division_name(raw_division_name, PoolDivisionCode.REG)
 
                         scraped_pool_codes.add(pool_code)
-                        division_name = standardized["division_name"]
-                        division_code = standardized["division_code"]
                         pool_data = {
                             "pool_code": pool_code,
                             "league_code": league_code,
                             "season": parsed_season,
                             "league_name": league_name,
                             "pool_name": pool_name,
-                            "division_code": division_code,
-                            "division_name": division_name,
+                            "division_code": standardized["division_code"],
+                            "division_name": standardized["division_name"],
                             "gender": standardized["gender"],
                             "raw_division_name": raw_division_name
                         }

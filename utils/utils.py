@@ -41,13 +41,13 @@ def standardize_division_name(raw_division_name: str, default_division_code: Poo
                     division_code = PoolDivisionCode.NAT
                     if default_division_code == PoolDivisionCode.REG: # Seule les poule REG sont susceptibles d'être JNR
                         division_code = is_junior_pool(raw_division_name)
-                    return {"division_name": division_name, "division_code": division_code.value, "gender": gender}
+                    return {"division_name": division_name, "division_code": division_code, "gender": gender}
         log_event(
             action="standardize_division_name",
             level="warning",
             message=f"Division non standardisée: {raw_division_name}"
         )
-        return {"division_name": raw_division_name, "division_code": PoolDivisionCode.OTHER.value, "gender": Gender.O.value}
+        return {"division_name": raw_division_name, "division_code": PoolDivisionCode.OTHER, "gender": Gender.O.value}
     except Exception as e:
         log_event(
             action="standardize_division_name",
