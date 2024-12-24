@@ -183,13 +183,18 @@
     },
     "Autre": {
         "F": [
-
+            "M18 FEMININES 4X4 HDF NORD 2 EME PHASE"
         ],
         "M": [
 
         ],
         "O": [
-            "LOISIR CORPO"
+            "LOISIR CORPO",
+            "REGIONAL M15/M18 6X6",
+            "REGIONAL M13/M15 4X4",
+            "RÉGIONAL M11",
+            "REGIONAL MIXTE"
+
         ]
     }
 }

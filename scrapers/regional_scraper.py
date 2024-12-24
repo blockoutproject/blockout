@@ -147,7 +147,7 @@ class RegionalScraper(Scraper):
                         pool_name = a_tag.get_text(strip=True)
                         raw_division_tag = a_tag.find_parent('ul').find_previous_sibling('a')
                         raw_division_name = raw_division_tag.get_text(strip=True) if raw_division_tag else ""
-                        standardized = standardize_division_name(raw_division_name, PoolDivisionCode.REG)
+                        standardized = standardize_division_name(raw_division_name, PoolDivisionCode.REG, pool_code)
 
                         scraped_pool_codes.add(pool_code)
                         pool_data = {

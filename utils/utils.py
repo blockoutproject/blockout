@@ -30,7 +30,7 @@ def is_junior_pool(string):
             return PoolDivisionCode.JNR
     return PoolDivisionCode.REG
 
-def standardize_division_name(raw_division_name: str, default_division_code: PoolDivisionCode) -> dict:
+def standardize_division_name(raw_division_name: str, default_division_code: PoolDivisionCode, pool_code: str) -> dict:
     """
     Standardise le nom d'une division en fonction des variations prédéfinies.
     """
@@ -45,7 +45,7 @@ def standardize_division_name(raw_division_name: str, default_division_code: Poo
         log_event(
             action="standardize_division_name",
             level="warning",
-            message=f"Division non standardisée: {raw_division_name}"
+            message=f"Division non standardisée: {raw_division_name} from {pool_code}"
         )
         return {"division_name": raw_division_name, "division_code": PoolDivisionCode.OTHER, "gender": Gender.O.value}
     except Exception as e:
