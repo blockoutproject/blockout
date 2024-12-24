@@ -24,7 +24,7 @@ def is_junior_pool(string):
     """
     Vérifie si une chaîne contient une catégorie junior (M11, M13, M15, M18, M21).
     """
-    categories = ["M11", "M13", "M15", "M18", "M21"]
+    categories = ["11", "13", "15", "18", "21"]
     for category in categories:
         if category in string:
             return PoolDivisionCode.JNR
