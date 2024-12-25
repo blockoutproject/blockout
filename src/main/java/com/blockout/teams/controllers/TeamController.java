@@ -10,6 +10,8 @@ import org.springframework.web.bind.annotation.*;
 
 import com.blockout.teams.exceptions.TeamNotFoundException;
 import com.blockout.teams.models.Team;
+import com.blockout.teams.models.TeamFormat;
+import com.blockout.teams.models.TeamGender;
 import com.blockout.teams.services.TeamService;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -149,5 +151,23 @@ public class TeamController {
         } catch (TeamNotFoundException e) {
             return ResponseEntity.notFound().build();
         }
+    }
+
+    @Operation(summary = "Récupérer les équipes par division_name, format et gender", description = "Retourne une liste des équipes filtrées par division_name, format et gender.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Équipes trouvées avec succès"),
+            @ApiResponse(responseCode = "204", description = "Aucune équipe trouvée avec les critères fournis")
+    })
+    @GetMapping("/teams/search")
+    public ResponseEntity<List<Team>> getTeamsByDivisionFormatGender(
+            @Parameter(description = "Nom de la division") @RequestParam("division_name") @JsonProperty("division_name") String divisionName,
+            @Parameter(description = "Format de l'équipe") @RequestParam("format") @JsonProperty("format") TeamFormat format,
+            @Parameter(description = "Genre de l'équipe") @RequestParam("gender") @JsonProperty("gender") TeamGender gender) {
+
+        List<Team> teams = teamService.getTeamsByDivisionFormatGender(divisionName, format, gender);
+        if (teams.isEmpty()) {
+            return ResponseEntity.noContent().build();
+        }
+        return ResponseEntity.ok(teams);
     }
 }

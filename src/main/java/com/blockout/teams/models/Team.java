@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Entity
 @Table(name = "teams", uniqueConstraints = {
-        @UniqueConstraint(columnNames = {"pool_id", "team_name"}, name = "uix_team")
+        @UniqueConstraint(columnNames = {"club_id", "division_name", "format", "gender", "team_name"}, name = "uix_team")
 })
 public class Team {
 
@@ -30,9 +30,6 @@ public class Team {
     @Column(name = "team_name", nullable = false)
     private String teamName;
 
-    @Column(name = "team_alias", nullable = true)
-    private String teamAlias;
-
     @Builder.Default
     @Column(name = "active", nullable = false)
     private Boolean active = true;
@@ -43,12 +40,16 @@ public class Team {
     @Column(name = "league_code", nullable = false)
     private String leagueCode;
 
+    @Column(name = "division_name", nullable = false)
+    private String divisionName;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "format", nullable = false)
+    private TeamFormat format;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "gender", nullable = false)
     private TeamGender gender;
-
-    @Column(name = "division_name", nullable = false)
-    private String divisionName;
 
     @PrePersist
     @PreUpdate
