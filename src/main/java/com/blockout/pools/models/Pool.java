@@ -45,6 +45,10 @@ public class Pool {
     private String divisionName;
 
     @Enumerated(EnumType.STRING)
+    @Column(name = "format")
+    private PoolFormat format;
+
+    @Enumerated(EnumType.STRING)
     @Column(name = "gender")
     private PoolGender gender;
 
