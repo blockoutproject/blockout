@@ -44,13 +44,6 @@ async def main():
 
             # Mettre à jour la métrique Prometheus
             execution_duration_gauge.set(duration)
-
-            log_event(
-                action="scraping_completed",
-                level="info",
-                duration=duration,
-                message="Scraping terminé avec succès."
-            )
                     
         except Exception as e:
             log_event(

@@ -135,9 +135,3 @@ class Scraper(ABC):
 
             # Enregistrement dans le Gauge Prometheus
             self.scraping_duration_gauge.set(duration)
-
-            log_event(
-                action="end_scraping",
-                level="info",
-                duration=duration,
-            )
