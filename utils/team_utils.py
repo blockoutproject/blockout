@@ -10,17 +10,6 @@ except Exception as e:
     logger.error(f"Erreur lors du chargement de 'team_aliases': {e}")
     team_aliases = {}
 
-def is_name_in_aliases(name: str) -> bool:
-    """
-    Vérifie si un nom d'équipe est présent dans les alias définis pour les équipes.
-    """
-    
-    for team in team_aliases.get('teams', []):  # Utilise `.get` pour éviter KeyError
-        all_aliases = [team['full']] + team.get('aliases', [])  # Gère l'absence de 'aliases'
-        if name in all_aliases:
-            return True
-    return False
-
 def get_full_team_name(name: str, gender: str) -> Optional[str]:
     """
     Récupère le nom complet de l'équipe correspondant au nom donné en tenant compte du genre.

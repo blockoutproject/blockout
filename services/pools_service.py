@@ -17,7 +17,7 @@ async def add_or_update_pool(session: aiohttp.ClientSession, pool: Pool, existin
         changes = []
         pool.id = existing_pool.id
 
-        for field in ['pool_name', 'division_name', 'gender', 'division_code']:
+        for field in ['pool_name', 'division_code', 'division_name', 'format', 'gender']:
             if getattr(existing_pool, field, None) != getattr(pool, field, None):
                 changes.append(f"{field}: {getattr(existing_pool, field)} -> {getattr(pool, field)}")
 

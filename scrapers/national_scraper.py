@@ -84,6 +84,7 @@ class NationalScraper(Scraper):
                         "pool_name": pool_name,
                         "division_code": PoolDivisionCode.NAT,
                         "division_name": standardized["division_name"],
+                        "format": standardized["format"],
                         "gender": standardized["gender"],
                         "raw_division_name": raw_division_name,
                     }

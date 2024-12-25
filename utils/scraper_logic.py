@@ -1,7 +1,7 @@
 import asyncio
 import aiohttp
 from api.matches_api import get_matches_by_pool
-from api.teams_api import get_teams_by_pool
+from api.teams_api import get_teams_by_division_format_gender, get_teams_by_pool
 from models.pool import Pool
 from utils.downloader import download_csv
 from models.match import Match, MatchStatus
@@ -70,9 +70,9 @@ async def parse_and_add_matches_from_csv(session: aiohttp.ClientSession, pool: P
         existing_matches = await get_matches_by_pool(session, pool.id) or []
         existing_matches_dict = {(match.league_code, match.match_code): match for match in existing_matches}
 
-        # Récupération des équipes existantes
-        existing_teams = await get_teams_by_pool(session, pool.id) or []
-        existing_teams_dict = {(team.pool_id, team.team_name): team for team in existing_teams}
+        # Récupération des équipes existantes, on ne filtre pas sur la poule car une équipe peut être dans plusieurs poules
+        existing_teams = await get_teams_by_division_format_gender(session, pool.division_name, pool.format, pool.gender) or []
+        existing_teams_dict = {(team.division_name, team.format, team.gender, team.team_name): team for team in existing_teams}
 
         scraped_team_names = set()
         scraped_match_codes = set()
@@ -111,23 +111,25 @@ async def parse_and_add_matches_from_csv(session: aiohttp.ClientSession, pool: P
                 "club_id": club_a_id,
                 "pool_id": pool.id,
                 "league_code": pool.league_code,
-                "gender": pool.gender,
-                "division_name": pool.division_name
+                "division_name": pool.division_name,
+                "format": pool.format,
+                "gender": pool.gender
             }
             team_b_data = {
                 "team_name": data.get('team_b_name'),
                 "club_id": club_b_id,
                 "pool_id": pool.id,
                 "league_code": pool.league_code,
-                "gender": pool.gender,
-                "division_name": pool.division_name
+                "division_name": pool.division_name,
+                "format": pool.format,
+                "gender": pool.gender
             }
 
             team_a = Team(**team_a_data)
             team_b = Team(**team_b_data)
 
-            team_a_key = (team_a.pool_id, team_a.team_name)
-            team_b_key = (team_b.pool_id, team_b.team_name)
+            team_a_key = (team_a.division_name, team_a.format, team_a.gender, team_a.team_name)
+            team_b_key = (team_b.division_name, team_b.format, team_b.gender, team_b.team_name)
 
             existing_team_a = existing_teams_dict.get(team_a_key)
             existing_team_b = existing_teams_dict.get(team_b_key)
@@ -138,7 +140,6 @@ async def parse_and_add_matches_from_csv(session: aiohttp.ClientSession, pool: P
             existing_teams_dict[team_a_key] = new_team_a
             scraped_team_names.add(new_team_a.team_name)
 
-            # Ajouter ou mettre à jour l'équipe B
             new_team_b = await add_or_update_team(session, team_b, existing_team_b)
             if team_b_key not in existing_teams_dict:
                 existing_teams.append(new_team_b)

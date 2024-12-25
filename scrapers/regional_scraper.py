@@ -158,6 +158,7 @@ class RegionalScraper(Scraper):
                             "pool_name": pool_name,
                             "division_code": standardized["division_code"],
                             "division_name": standardized["division_name"],
+                            "format": standardized["format"],
                             "gender": standardized["gender"],
                             "raw_division_name": raw_division_name
                         }

@@ -7,6 +7,7 @@ from bs4 import BeautifulSoup
 from api.matches_api import get_active_matches_by_pool_id, get_match_by_pool_teams_date, update_match
 from api.pools_api import get_pools_by_league_and_season
 from api.teams_api import get_team_by_pool_and_name
+from models.format import Format
 from models.match import Match, MatchStatus
 from models.pool import Pool, PoolDivisionCode
 from models.scraper import Scraper
@@ -53,6 +54,7 @@ class ProScraper(Scraper):
                         "pool_name": pool_json['pool_name'],
                         "division_code": PoolDivisionCode.PRO,
                         "division_name": pool_json['division_name'],
+                        "format": Format.SIX.value,
                         "gender": pool_json['gender']
                     }
                     pool = Pool(**pool_data)

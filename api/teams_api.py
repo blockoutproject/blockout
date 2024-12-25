@@ -82,3 +82,17 @@ async def deactivate_team(session: aiohttp.ClientSession, team_id: int) -> None:
         team_id=team_id
     )
     return response
+
+
+@handle_api_response(response_type=list[Team])
+async def get_teams_by_division_format_gender(session: aiohttp.ClientSession, division_name: str, format: str, gender: str) -> list[Team]:
+    """
+    Récupère les équipes par division_name, format et gender.
+    """
+    headers = _get_auth_headers()
+    params = {
+        'division_name': division_name,
+        'format': format,
+        'gender': gender
+    }
+    return await session.get(f"{TEAM_API_URL}/teams/search", params=params, headers=headers)

@@ -2,6 +2,7 @@ from dataclasses import asdict, dataclass
 from datetime import datetime
 from enum import Enum
 from typing import Optional
+from models.format import Format
 from models.gender import Gender
 
 class PoolDivisionCode(Enum):
@@ -10,7 +11,6 @@ class PoolDivisionCode(Enum):
     PRO = "PRO"
     JNR = "JNR"
     OTHER = "OTHER"
-
 
 @dataclass
 class Pool:
@@ -23,6 +23,7 @@ class Pool:
     league_name: Optional[str] = None
     pool_name: Optional[str] = None
     division_name: Optional[str] = None
+    format: Optional[Format] = Format.SIX
     gender: Optional[Gender] = None
     raw_division_name: Optional[str] = None
     active: bool = True
