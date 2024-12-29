@@ -103,7 +103,7 @@ class NationalScraper(Scraper):
 
                 except Exception as e:
                     log_event(
-                        action="process_pool_error",
+                        action="pool_processing_error",
                         level="error",
                         pool_name=pool_name,
                         url=href,

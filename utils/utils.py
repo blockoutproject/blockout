@@ -3,6 +3,7 @@ import json
 import re
 from typing import Optional
 from config.logger_config import log_event
+from models.format import Format
 from models.gender import Gender
 from models.pool import PoolDivisionCode
 from contextvars import ContextVar
@@ -48,7 +49,7 @@ def standardize_division_name(raw_division_name: str, default_division_code: Poo
             level="warning",
             message=f"Division non standardisée: {raw_division_name} from {pool_code}"
         )
-        return {"division_name": raw_division_name, "division_code": PoolDivisionCode.OTHER, "gender": Gender.O.value}
+        return {"format": Format.SIX, "division_name": raw_division_name, "division_code": PoolDivisionCode.OTHER, "gender": Gender.O.value} # Format 6x6 par défaut
     except Exception as e:
         log_event(
             action="standardize_division_name",
