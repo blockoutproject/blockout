@@ -1,33 +1,63 @@
 import React from 'react';
-import { View, FlatList, StyleSheet, Text, TouchableOpacity } from 'react-native';
+import { View, FlatList, StyleSheet, Text, TouchableOpacity, ActivityIndicator, Button } from 'react-native';
 import { useRouter } from 'expo-router';
-import MatchCard from '../../components/MatchCard';
-import { matches } from '../../data/matches';
-import { Match } from '../../models/Match';
+import MatchCard from '../../components/match/MatchCard';
+import { Match } from '../../types/Match';
+import { useMatches } from '@/hooks/useMatches';
+import { useAuth0 } from 'react-native-auth0';
 
 export default function HomeScreen() {
     const router = useRouter();
+    const { clearSession } = useAuth0();
+    const { matches, isLoading, isError, error, fetchNextPage, hasNextPage, isFetching } = useMatches(10);
 
     const handleCardPress = (matchId: number) => {
-        // Naviguer vers la modal avec l'ID du match
         router.push({
-            pathname: '/match', // Route modale définie dans le layout
-            params: { id: matchId.toString() }, // Paramètres passés à la modal (en string)
+            pathname: '/match',
+            params: { id: matchId.toString() },
         });
+    };
+
+    const loadMoreMatches = () => {
+        if (hasNextPage) {
+            fetchNextPage();
+        }
+    };
+
+    const handleLogin = async () => {
+        try {
+            await clearSession();
+        } catch (e) {
+            console.log('Erreur de connexion :', e);
+        }
     };
 
     return (
         <View style={styles.container}>
             <Text style={styles.header}>Liste des matchs</Text>
+
+            {isLoading && <ActivityIndicator size="large" color="#0000ff" />}
+
+            {isError && <Text style={styles.errorText}>Erreur : {error?.message}</Text>}
+
             <FlatList
                 data={matches}
-                keyExtractor={(item: Match) => item.id.toString()} // id est un number, donc conversion en string
+                keyExtractor={(item: Match) => item.id.toString()}
                 renderItem={({ item }) => (
                     <TouchableOpacity onPress={() => handleCardPress(item.id)}>
-                        <MatchCard match={item} /> {/* Transmet tout l'objet Match à MatchCard */}
+                        <MatchCard match={item} />
                     </TouchableOpacity>
                 )}
+                onEndReached={loadMoreMatches}
+                onEndReachedThreshold={0.5} // Déclenche à mi-chemin du bas
+                ListFooterComponent={
+                    isFetching ? <ActivityIndicator size="small" color="#0000ff" /> : null
+                }
             />
+
+
+        <Button title="Se déconnecter" onPress={handleLogin} />
+
         </View>
     );
 }
@@ -43,5 +73,10 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         marginBottom: 16,
         color: '#333',
+    },
+    errorText: {
+        fontSize: 16,
+        color: 'red',
+        textAlign: 'center',
     },
 });
