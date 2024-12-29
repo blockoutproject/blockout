@@ -42,10 +42,10 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           port: ${{ secrets.VPS_PORT }}
           script: |
-            cd ~/blockout/blockout-scraper
-            docker-compose down
-            docker-compose pull
-            docker-compose up -d
+            cd ~/blockout/docker
+            docker-compose down blockout-scraper
+            docker-compose pull blockout-scraper
+            docker-compose up -d blockout-scraper
 
       - name: Discord Notification
         if: success()

@@ -103,6 +103,22 @@
                 "RÉGIONALE 2 MASCULINE 2024-2025",
                 "RÉGIONALE  MASCULINE",
                 "REGIONALE MASCULINE"
+            ],
+            "O": [
+                "REGIONAL MIXTE"
+            ]
+        },
+        "M21": {
+            "F": [
+                "M21 FEMININES 1ERE PHASE HDF NORD",
+                "MOINS 21 ANS FÉMININES OCCITANIE OUEST",
+                "M21 FEMININES 2EME PHASE HDF NORD"
+            ],
+            "M": [
+                "M21 MASCULINS 1ERE PHASE HDF NORD",
+                "MOINS 21 ANS MASCULINS OCCITANIE OUEST",
+                "CHAMPIONNAT RÉGIONAL : M21 MASCULIN 6X6",
+                "M21 MASCULINS 2EME PHASE HDF NORD"
             ]
         },
         "M18": {
@@ -140,6 +156,9 @@
                 "MOINS DE 18 ANS MASCULIN",
                 "CHAMPIONNAT RÉGIONAL : M18 MASCULIN 6X6",
                 "M18 MASCULINS 6X6 2EME PHASE HDF"
+            ],
+            "O": [
+                "M18 - ELITE"
             ]
         },
         "M15": {
@@ -163,6 +182,9 @@
                 "M15 EXCELLENCE MASCULIN",
                 "MOINS DE 15 MASCULINS",
                 "MOINS 15 ANS MASCULINS OCCITANIE OUEST"
+            ],
+            "O": [
+                "M15 - ELITE"
             ]
         },
         "M13": {
@@ -179,27 +201,21 @@
                 "MOINS DE 13 ANS MASCULIN",
                 "CHAMPIONNAT M13 MASCULIN",
                 "MOINS 13 ANS MASCULINS OCCITANIE EST"
+            ],
+            "O": [
+                "M13 - ELITE"
             ]
         },
-        "M21": {
-            "F": [
-                "M21 FEMININES 1ERE PHASE HDF NORD",
-                "MOINS 21 ANS FÉMININES OCCITANIE OUEST",
-                "M21 FEMININES 2EME PHASE HDF NORD"
-            ],
-            "M": [
-                "M21 MASCULINS 1ERE PHASE HDF NORD",
-                "MOINS 21 ANS MASCULINS OCCITANIE OUEST",
-                "CHAMPIONNAT RÉGIONAL : M21 MASCULIN 6X6",
-                "M21 MASCULINS 2EME PHASE HDF NORD"
+        "M11": {
+            "O": [
+                "M11 - ELITE",
+                "RÉGIONAL M11"
             ]
         },
         "Autre": {
             "O": [
                 "LOISIR CORPO",
-                "REGIONAL M15/M18 6X6",
-                "RÉGIONAL M11",
-                "REGIONAL MIXTE"
+                "REGIONAL M15/M18 6X6"
             ]
         }
     },
