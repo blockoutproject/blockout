@@ -43,9 +43,9 @@ jobs:
           port: ${{ secrets.VPS_PORT }}
           script: |
             cd ~/blockout/docker
-            docker compose down blockout-scraper
-            docker compose pull blockout-scraper
-            docker compose up -d blockout-scraper
+            sudo docker compose down blockout-scraper
+            sudo docker compose pull blockout-scraper
+            sudo docker compose up -d blockout-scraper
 
       - name: Discord Notification
         if: success()
