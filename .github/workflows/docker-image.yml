@@ -37,9 +37,9 @@ jobs:
           port: ${{ secrets.VPS_PORT }}
           script: |
             cd ~/blockout/docker
-            docker-compose down blockout-api-pools
-            docker-compose pull blockout-api-pools
-            docker-compose up -d blockout-api-pools
+            docker compose down blockout-api-pools
+            docker compose pull blockout-api-pools
+            docker compose up -d blockout-api-pools
 
       - name: Discord Notification
         if: success()
