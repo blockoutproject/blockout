@@ -113,31 +113,42 @@ class ProScraper(Scraper):
         code_match = match.find("CodeMatch").text
         match_date = match.find("Date").text + " " + match.find("Heure").text
         set = match.find("Score").text
-
+        score = []
+        
+        for i in range(1, 6):  
+            set_score = match.find(f"Set{i}").text
+            if set_score and set_score != "0-0":
+                score.append(set_score)
+        
+        score = ",".join(score)
+        
         match_datetime = datetime.strptime(match_date, "%d-%m-%Y %H:%M:%S")
         existing_match = next((m for m in existing_matches if m.match_code == code_match), None)
 
         if existing_match:
-            updated_match = self.prepare_updated_match(existing_match, match_datetime, set)
+            updated_match = self.prepare_updated_match(existing_match, match_datetime, set, score)
             await self.apply_match_updates(existing_match, updated_match)
 
-    async def apply_match_updates(self, existing_match: Match, updated_match: Match):
-        changes = []
-        if existing_match.match_date != updated_match.match_date:
-            changes.append(f"match_date: {existing_match.match_date} -> {updated_match.match_date}")
-        if existing_match.set != updated_match.set:
-            changes.append(f"set: {existing_match.set} -> {updated_match.set}")
-        if changes:
-            await update_match(self.session, updated_match, changes)
-
-    def prepare_updated_match(self, existing_match: Match, match_datetime: datetime, set: str) -> Match:
+    def prepare_updated_match(self, existing_match: Match, match_datetime: datetime, set: str, score: str) -> Match:
         updated_match = replace(existing_match)
         updated_match.match_date = match_datetime
         if set != "0-0":
             updated_match.set = set
             if '3' in set:
                 updated_match.status = MatchStatus.FINISHED
+        if score:
+            updated_match.score = score
+            
         return updated_match
+    
+    async def apply_match_updates(self, existing_match: Match, updated_match: Match):
+        changes = []
+        for field in ['match_date', 'set', 'score']:
+            if getattr(existing_match, field, None) != getattr(updated_match, field, None):
+                changes.append(f"{field}: {getattr(existing_match, field)} -> {getattr(updated_match, field)}")
+                
+        if changes:
+            return await update_match(self.session, updated_match, changes)
 
     async def extract_main_id(self, soup: BeautifulSoup) -> Optional[str]:
         span = soup.find("span", id=re.compile(r"Content_Main_(\d+)_userControl_lbl_title"))
