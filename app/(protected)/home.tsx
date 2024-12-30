@@ -10,7 +10,6 @@ export default function HomeScreen() {
     const router = useRouter();
     const { clearSession } = useAuth0();
     const { matches, isLoading, isError, error, fetchNextPage, hasNextPage, isFetching } = useMatches(10);
-
     const handleCardPress = (matchId: number) => {
         router.push({
             pathname: '/match',

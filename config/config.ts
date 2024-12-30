@@ -4,5 +4,4 @@ export const CONFIG = {
     API_MATCHES_BASE_URL: process.env.EXPO_PUBLIC_API_MATCHES_BASE_URL || '',
     API_POOLS_BASE_URL: process.env.EXPO_PUBLIC_API_POOLS_BASE_URL || '',
     API_TEAMS_BASE_URL: process.env.EXPO_PUBLIC_API_TEAMS_BASE_URL || '',
-
 };

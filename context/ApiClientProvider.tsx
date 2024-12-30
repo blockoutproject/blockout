@@ -2,10 +2,10 @@ import React, { useEffect } from 'react';
 import { useAuth0 } from 'react-native-auth0';
 import MatchesApi from '@/api/MatchesApi';
 import TeamsApi from '@/api/TeamsApi';
+import PoolsApi from '@/api/PoolsApi';
 
-// Un simple Provider
 export const ApiProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const { getCredentials, user } = useAuth0(); // Utiliser Auth0 pour récupérer les credentials
+    const { getCredentials, user } = useAuth0();
 
     useEffect(() => {
         const initializeApis = async () => {
@@ -15,9 +15,11 @@ export const ApiProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                     const token = credentials?.accessToken;
 
                     if (token) {
+                        console.info('Token récupéré avec succès :', token);
                         // Initialiser les APIs avec le token
                         MatchesApi.initInstance(token);
                         TeamsApi.initInstance(token);
+                        PoolsApi.initInstance(token);
 
                         console.info('APIs initialisées avec succès.');
                     }
@@ -28,7 +30,7 @@ export const ApiProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         };
 
         initializeApis();
-    }, [getCredentials, user]); // Se réexécute si `user` change
+    }, [getCredentials, user]);
 
-    return <>{children}</>; // N'affiche que les enfants
+    return <>{children}</>;
 };

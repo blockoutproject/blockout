@@ -40,8 +40,8 @@ class MatchesApi extends AbstractApi {
     public async getMatches({ page = 0, size = 10 }): Promise<PaginatedResponse<Match>> {
         const response = await this.service.get('/matches', {
             params: { page, size },
-        });
-
+        });        
+        
         const data = response.data;
 
         return {
