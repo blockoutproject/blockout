@@ -45,7 +45,7 @@ async def create_pool(session: aiohttp.ClientSession, pool: Pool) -> Pool:
 
 
 @handle_api_response(response_type=Pool)
-async def update_pool(session: aiohttp.ClientSession, pool: Pool, changes: list[str] = []) -> Pool:
+async def update_pool(session: aiohttp.ClientSession, pool: Pool, changes_list: list[str] = []) -> Pool:
     """
     Envoie une requête PUT pour mettre à jour une pool existante.
     """
@@ -56,7 +56,7 @@ async def update_pool(session: aiohttp.ClientSession, pool: Pool, changes: list[
         action="update_pool",
         level="info",
         pool_code=pool.pool_code,
-        changes=changes
+        changes_list=changes_list
     )
     return response
 

@@ -1,10 +1,11 @@
 import asyncio
+from dataclasses import replace
 from bs4 import BeautifulSoup
 from config.logger_config import log_event
 from api.pools_api import get_pools_by_league_and_season
+from services.pools_service import add_or_update_pool, deactivate_pools
 from models.pool import Pool, PoolDivisionCode
 from models.scraper import Scraper
-from services.pools_service import add_or_update_pool, deactivate_pools
 from utils.file_utils import create_output_directory, delete_output_directory
 from utils.scraper_logic import handle_csv_download_and_parse
 from utils.utils import extract_national_division, extract_season_from_url, parse_season, standardize_division_name
@@ -12,7 +13,7 @@ from utils.utils import extract_national_division, extract_season_from_url, pars
 
 class NationalScraper(Scraper):
     def __init__(self, session):
-        super().__init__(session, name="national_scraper")
+        super().__init__(session, name="national_scraper", priority_validation_enabled=False)
         self.national_url = "http://www.ffvb.org/119-37-1-Championnats-Nationaux"
         self.folder = create_output_directory("National")
         self.league_code = "ABCCS"
@@ -24,7 +25,7 @@ class NationalScraper(Scraper):
         Cette méthode sera automatiquement chronométrée et loguée.
         """
         try:
-            # Fetch HTML content
+            # 1) Récupération de la page HTML
             html_content = await self.fetch(self.national_url)
             if not html_content:
                 log_event(
@@ -41,7 +42,8 @@ class NationalScraper(Scraper):
             scraped_pool_codes = set()
             raw_season = None
 
-            # Extraction de la saison à partir du premier lien valide
+            # 2) Extraction de la saison à partir du premier lien valide
+            #    (par exemple .htm)
             for a_tag in soup.find_all('a', href=lambda href: href and href.endswith('.htm')):
                 href = a_tag['href']
                 raw_season = extract_season_from_url(href)
@@ -52,30 +54,37 @@ class NationalScraper(Scraper):
                     action="extract_season",
                     level="warning",
                     league_name=self.league_name,
-                    url=href,
                     message="Aucune saison trouvée pour l'URL."
                 )
                 raise ValueError("Saison non trouvée.")
 
             parsed_season = parse_season(raw_season)
 
-            # Récupération des pools existantes
-            existing_pools = await get_pools_by_league_and_season(self.session, self.league_code, parsed_season)
-            existing_pools_dict = {(pool.pool_code, pool.league_code, pool.season): pool for pool in existing_pools}
+            # 3) Récupération des pools existantes
+            existing_pools = await get_pools_by_league_and_season(
+                self.session, self.league_code, parsed_season
+            )
+            existing_pools_dict = {
+                (p.pool_code, p.league_code, p.season): p
+                for p in existing_pools
+            }
 
-            # Process each pool link
+            # 4) Parcours de chaque lien .htm (chaque poule)
             for a_tag in soup.find_all('a', href=lambda href: href and href.endswith('.htm')):
                 try:
                     href = a_tag['href']
                     pool_name = a_tag.get_text(strip=True)
                     pool_code = href.split('_')[-1].replace('.htm', '').upper()
 
+                    # Extraction de la division
                     raw_division_name = extract_national_division(pool_name)
-                    
+
+                    # Standardisation
                     standardized = standardize_division_name(raw_division_name, PoolDivisionCode.NAT, pool_code)
 
                     scraped_pool_codes.add(pool_code)
 
+                    # Construction de l'objet Pool
                     pool_data = {
                         "pool_code": pool_code,
                         "league_code": self.league_code,
@@ -88,16 +97,21 @@ class NationalScraper(Scraper):
                         "gender": standardized["gender"],
                         "raw_division_name": raw_division_name,
                     }
-                    pool = Pool(**pool_data)
-
-                    key = (pool.pool_code, pool.league_code, pool.season)
+                    pool_obj = Pool(**pool_data)
+                    key = (pool_obj.pool_code, pool_obj.league_code, pool_obj.season)
                     existing_pool = existing_pools_dict.get(key)
 
-                    # Ajout ou mise à jour de la pool
-                    new_pool = await add_or_update_pool(self.session, pool, existing_pool)
+                    # Ajout / Mise à jour de la Pool
+                    new_pool = await add_or_update_pool(self.session, pool_obj, existing_pool)
                     if new_pool:
+                        # 5) Appel de la logique CSV, on passe le scraper
+                        #    pour écrire les matches dans le cache
                         task = handle_csv_download_and_parse(
-                            self.session, new_pool, raw_season, self.folder
+                            self.session,   # session
+                            self,           # <-- on passe "self" (NationalScraper)
+                            new_pool,       # la pool
+                            raw_season,     # la saison
+                            self.folder
                         )
                         tasks.append(task)
 
@@ -110,11 +124,14 @@ class NationalScraper(Scraper):
                         error=str(e)
                     )
 
-            # Exécution des tâches de téléchargement CSV
+            # 6) Exécution parallèle du téléchargement CSV
             await asyncio.gather(*tasks)
 
-            # Désactivation des pools non scrapées
+            # 7) Désactivation des pools non scrapées
             await deactivate_pools(self.session, self.league_code, scraped_pool_codes)
+
+            # 8) Finalisation : on applique toutes les modifications
+            await self.finalize_updates()
 
         except Exception as e:
             log_event(

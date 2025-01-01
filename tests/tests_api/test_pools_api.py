@@ -70,7 +70,7 @@ async def test_update_pool(session, mocked_aioresponses):
     url = f"{POOL_API_URL}/{pool.id}"
     mocked_aioresponses.put(url, payload=pool.to_dict())
 
-    result = await update_pool(session, pool, changes=["division_name", "active"])
+    result = await update_pool(session, pool, changes_list=["division_name", "active"])
 
     assert result.division_name == "Updated Division"
     assert result.active is False

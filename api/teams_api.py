@@ -35,7 +35,7 @@ async def create_team(session: aiohttp.ClientSession, team: Team) -> Team:
 
 
 @handle_api_response(response_type=Team)
-async def update_team(session: aiohttp.ClientSession, team: Team, changes: list[str] = []) -> Team:
+async def update_team(session: aiohttp.ClientSession, team: Team, changes_list: list[str] = []) -> Team:
     """
     Envoie une requête PUT pour mettre à jour une équipe existante.
     """
@@ -46,7 +46,7 @@ async def update_team(session: aiohttp.ClientSession, team: Team, changes: list[
         action="update_team",
         level="info",
         team_name=team.team_name,
-        changes=changes
+        changes_list=changes_list
     )
     return response
 

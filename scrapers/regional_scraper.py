@@ -7,22 +7,20 @@ from models.scraper import Scraper
 from services.pools_service import add_or_update_pool, deactivate_pools
 from utils.file_utils import create_output_directory, delete_output_directory
 from utils.scraper_logic import handle_csv_download_and_parse
-from utils.utils import is_junior_pool, parse_season, standardize_division_name
-from config.logger_config import log_event, logger
+from utils.utils import parse_season, standardize_division_name
+from config.logger_config import log_event
 
 
 class RegionalScraper(Scraper):
     def __init__(self, session):
-        super().__init__(session, name="regional_scraper")
+        super().__init__(session, name="regional_scraper", priority_validation_enabled=False)
         self.regional_url = "http://www.ffvb.org/120-37-1-Championnats-Regionaux"
         self.folder = create_output_directory("Regional")
 
     async def run_scraping(self):
         """
         Logique principale du scraping pour les pools régionales.
-        Cette méthode est automatiquement chronométrée et loguée.
         """
-        scraped_league_codes = set()
         try:
             html_content = await self.fetch(self.regional_url)
             if not html_content:
@@ -44,7 +42,10 @@ class RegionalScraper(Scraper):
                     league_name_tag = table.find('td', style="text-align: center;")
                     if not league_name_tag:
                         continue
+
                     league_name = league_name_tag.get_text(strip=True)
+
+                    # On cherche un lien contenant 'codent='
                     a_tag = table.find('a', href=lambda href: href and 'codent=' in href)
                     if a_tag:
                         league_code_match = re.search(r'codent=([^&]+)', a_tag['href'])
@@ -56,14 +57,14 @@ class RegionalScraper(Scraper):
                                 url=a_tag['href']
                             )
                             continue
+
                         league_code = league_code_match.group(1)
                         league_page_url = a_tag['href']
-                        scraped_league_codes.add(league_code)
 
-                        task = self.scrape_pools_from_league(
-                            league_code, league_name, league_page_url
-                        )
+                        # On lance la tâche de scraping des poules pour cette ligue
+                        task = self.scrape_pools_from_league(league_code, league_name, league_page_url)
                         tasks.append(task)
+
                 except Exception as e:
                     log_event(
                         action="league_processing_error",
@@ -73,7 +74,12 @@ class RegionalScraper(Scraper):
                         message="Erreur lors du traitement d'une ligue régionale."
                     )
 
+            # On exécute toutes les tâches (une par ligue)
             await asyncio.gather(*tasks)
+
+            # Après avoir fini de collecter tous les matches, on applique 
+            # réellement les modifications en base (une seule fois par match)
+            await self.finalize_updates()
 
         except Exception as e:
             log_event(
@@ -84,13 +90,18 @@ class RegionalScraper(Scraper):
                 message="Erreur critique lors du scraping des poules régionales."
             )
         finally:
+            # Nettoyage du dossier
             delete_output_directory(self.folder)
 
     async def scrape_pools_from_league(self, league_code, league_name, league_page_url):
+        """
+        Récupère la liste des poules de la ligue, crée/MAJ chaque Pool,
+        et lance le parsing CSV pour chacune.
+        """
         scraped_pool_codes = set()
         try:
+            # On ignore certaines ligues...
             if league_code not in ['LIMY', 'LIGY', 'LIGU', 'LIMART', 'LIRE']:
-
                 league_page_url = league_page_url.replace('https://', 'http://')
                 html_content = await self.fetch(league_page_url)
                 if not html_content:
@@ -107,12 +118,14 @@ class RegionalScraper(Scraper):
                 pool_links = soup.select('ul#menu > li > ul > li > ul > li > a[href*="poule="]')
                 tasks = []
 
+                # On essaie de récupérer la saison depuis le premier lien
                 raw_season = None
                 for a_tag in pool_links:
                     href = a_tag['href']
                     season_match = re.search(r'saison=([^&]+)', href)
-                    raw_season = season_match.group(1)
-                    break
+                    if season_match:
+                        raw_season = season_match.group(1)
+                        break
 
                 if not raw_season:
                     log_event(
@@ -126,9 +139,12 @@ class RegionalScraper(Scraper):
 
                 parsed_season = parse_season(raw_season)
                 existing_pools = await get_pools_by_league_and_season(self.session, league_code, parsed_season)
+                existing_pools_dict = {
+                    (p.pool_code, p.league_code, p.season): p
+                    for p in existing_pools
+                }
 
-                existing_pools_dict = {(pool.pool_code, pool.league_code, pool.season): pool for pool in existing_pools}
-
+                # Parcours des poules
                 for a_tag in pool_links:
                     try:
                         href = a_tag['href']
@@ -145,8 +161,11 @@ class RegionalScraper(Scraper):
 
                         pool_code = pool_code_match.group(1)
                         pool_name = a_tag.get_text(strip=True)
+
+                        # On essaie de déterminer la division depuis les balises parents
                         raw_division_tag = a_tag.find_parent('ul').find_previous_sibling('a')
                         raw_division_name = raw_division_tag.get_text(strip=True) if raw_division_tag else ""
+
                         standardized = standardize_division_name(raw_division_name, PoolDivisionCode.REG, pool_code)
 
                         scraped_pool_codes.add(pool_code)
@@ -162,14 +181,20 @@ class RegionalScraper(Scraper):
                             "gender": standardized["gender"],
                             "raw_division_name": raw_division_name
                         }
-                        pool = Pool(**pool_data)
-                        key = (pool.pool_code, pool.league_code, pool.season)
+                        pool_obj = Pool(**pool_data)
+                        key = (pool_obj.pool_code, pool_obj.league_code, pool_obj.season)
                         existing_pool = existing_pools_dict.get(key)
 
-                        new_pool = await add_or_update_pool(self.session, pool, existing_pool)
+                        new_pool = await add_or_update_pool(self.session, pool_obj, existing_pool)
                         if new_pool:
+                            # Appel de handle_csv_download_and_parse en passant le scraper
+                            # pour alimenter le cache
                             task = handle_csv_download_and_parse(
-                                self.session, new_pool, raw_season, self.folder
+                                self.session,
+                                self,         # <--- on passe l'instance du RegionalScraper !
+                                new_pool,
+                                raw_season,
+                                self.folder
                             )
                             tasks.append(task)
 
@@ -182,8 +207,10 @@ class RegionalScraper(Scraper):
                             error=str(e)
                         )
 
+                # On attend que tous les CSV de toutes les poules soient gérés
                 await asyncio.gather(*tasks)
 
+            # Désactiver les poules non retrouvées
             await deactivate_pools(self.session, league_code, scraped_pool_codes)
 
         except Exception as e:

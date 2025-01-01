@@ -14,19 +14,19 @@ async def add_or_update_pool(session: aiohttp.ClientSession, pool: Pool, existin
         raise ValueError(f"Les champs obligatoires suivants sont manquants : {', '.join(missing_fields)}.")
 
     if existing_pool:
-        changes = []
+        changes_list = []
         pool.id = existing_pool.id
 
         for field in ['pool_name', 'division_code', 'division_name', 'format', 'gender']:
             if getattr(existing_pool, field, None) != getattr(pool, field, None):
-                changes.append(f"{field}: {getattr(existing_pool, field)} -> {getattr(pool, field)}")
+                changes_list.append(f"{field}: {getattr(existing_pool, field)} -> {getattr(pool, field)}")
 
         if not existing_pool.active:
             pool.active = True
-            changes.append("Pool réactivée.")
+            changes_list.append("Pool réactivée.")
 
-        if changes:
-            return await update_pool(session, pool, changes)
+        if changes_list:
+            return await update_pool(session, pool, changes_list)
         return existing_pool
     else:
         new_pool = await create_pool(session, pool)

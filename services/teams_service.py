@@ -15,18 +15,18 @@ async def add_or_update_team(session: aiohttp.ClientSession, team: Team, existin
         raise ValueError(f"Les champs obligatoires suivants sont manquants : {', '.join(missing_fields)}.")
 
     if existing_team:
-        changes = []
+        changes_list = []
         team.id = existing_team.id
         
         for field in ['club_id', 'division_name', 'format', 'gender']:
             if getattr(existing_team, field, None) != getattr(team, field, None):
-                changes.append(f"{field}: {getattr(existing_team, field)} -> {getattr(team, field)}")
+                changes_list.append(f"{field}: {getattr(existing_team, field)} -> {getattr(team, field)}")
 
         if not existing_team.active:
             team.active = True
-            changes.append("Équipe réactivée")
-        if changes:
-            return await update_team(session, team, changes)
+            changes_list.append("Équipe réactivée")
+        if changes_list:
+            return await update_team(session, team, changes_list)
         return existing_team
     else:
         new_team = await create_team(session, team)

@@ -16,22 +16,22 @@ async def add_or_update_match(session: aiohttp.ClientSession, match: Match, exis
         raise ValueError(f"Les champs obligatoires suivants sont manquants : {', '.join(missing_fields)}.")
     
     if existing_match:
-        changes = []
+        changes_list = []
         match.id = existing_match.id
 
         for field in ['team_id_a', 'team_id_b', 'match_date', 'set', 'score', 'status', 'venue', 'referee1', 'referee2']:
             if field == 'match_date' and match.league_code != 'AALNV':
                 if existing_match.match_date.isoformat() != match.match_date.isoformat():
-                    changes.append(f"{field}: {existing_match.match_date.isoformat()} -> {match.match_date.isoformat()}")
+                    changes_list.append(f"{field}: {existing_match.match_date.isoformat()} -> {match.match_date.isoformat()}")
             elif field != 'match_date' and getattr(existing_match, field, None) != getattr(match, field, None):
-                changes.append(f"{field}: {getattr(existing_match, field)} -> {getattr(match, field)}")
+                changes_list.append(f"{field}: {getattr(existing_match, field)} -> {getattr(match, field)}")
 
         if not existing_match.active:
             match.active = True
-            changes.append("Match réactivé.")
+            changes_list.append("Match réactivé.")
 
-        if changes:
-            return await update_match(session, match, changes)
+        if changes_list:
+            return await update_match(session, match, changes_list)
         return existing_match
 
     # Cas où le match n'existe pas

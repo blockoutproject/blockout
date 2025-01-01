@@ -50,7 +50,7 @@ async def create_match(session: aiohttp.ClientSession, match: Match) -> Match:
 
 
 @handle_api_response(response_type=Match)
-async def update_match(session: aiohttp.ClientSession, match: Match, changes: list[str] = []) -> Match:
+async def update_match(session: aiohttp.ClientSession, match: Match, changes_list: list[str] = []) -> Match:
     """
     Envoie une requête PUT pour mettre à jour un match existant.
     """
@@ -61,7 +61,7 @@ async def update_match(session: aiohttp.ClientSession, match: Match, changes: li
         action="update_match", 
         level="info", 
         match_code=match.match_code, 
-        changes=changes
+        changes_list=changes_list
     )
     return response
 
@@ -102,7 +102,6 @@ async def get_match_by_pool_teams_date(session: aiohttp.ClientSession, pool_id: 
     """
     headers = _get_auth_headers()
     params = {
-        'pool_id': pool_id,
         'team_id_a': team_id_a,
         'team_id_b': team_id_b,
         'match_date': match_date.isoformat()

@@ -69,7 +69,7 @@ async def test_update_team(session, mocked_aioresponses):
     url = f"{TEAM_API_URL}/{team.id}"
     mocked_aioresponses.put(url, payload=team.to_dict())
 
-    result = await update_team(session, team, changes=["team_name", "active"])
+    result = await update_team(session, team, changes_list=["team_name", "active"])
 
     assert result.team_name == "Updated Team Name"
     assert result.active is False

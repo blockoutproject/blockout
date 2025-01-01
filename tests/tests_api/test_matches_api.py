@@ -114,7 +114,7 @@ async def test_update_match(session, mocked_aioresponses):
     mocked_aioresponses.put(url, payload=mock_response)
 
     # Appeler la fonction à tester
-    result = await update_match(session, match, changes=["status"])
+    result = await update_match(session, match, changes_list=["status"])
 
     # Assertions
     assert result.id == match.id
