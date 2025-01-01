@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -169,8 +170,7 @@ public class MatchService {
         return matches;
     }
 
-    public Optional<Match> getMatchByPoolAndTeamsAndDate(Long poolId, Long teamIdA, Long teamIdB,
-            LocalDateTime matchDate) {
+    public Optional<Match> getMatchByPoolAndTeamsAndDate(Long poolId, Long teamIdA, Long teamIdB, LocalDate matchDate) {
         Optional<Match> matchOpt = matchRepository.findByPoolIdAndTeamIdAAndTeamIdBAndMatchDate(poolId, teamIdA,
                 teamIdB, matchDate);
         if (!matchOpt.isPresent()) {

@@ -16,6 +16,7 @@ import com.blockout.matches.models.Match;
 import com.blockout.matches.models.MatchStatus;
 import com.blockout.matches.services.MatchService;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -174,7 +175,7 @@ public class MatchController {
             @RequestParam Long team_id_b,
             @RequestParam String match_date) {
 
-        LocalDateTime matchDate = LocalDateTime.parse(match_date);
+        LocalDate matchDate = LocalDate.parse(match_date);
         Optional<Match> match = matchService.getMatchByPoolAndTeamsAndDate(poolId, team_id_a, team_id_b, matchDate);
 
         return match.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
