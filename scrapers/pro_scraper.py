@@ -277,7 +277,7 @@ class ProScraper(Scraper):
         await asyncio.gather(*tasks)
 
     async def process_matches_in_day(self, soup: BeautifulSoup, main_id: str, total_days: int, pool_id: int, gender: str):
-        async with asyncio.Semaphore(4):
+        async with asyncio.Semaphore(2):
             match_count = 0
             tasks = []  # Liste de tasks asynchrones
 
@@ -298,7 +298,7 @@ class ProScraper(Scraper):
             await asyncio.gather(*tasks)
 
     async def process_match_block(self, match_block, pool_id: int, gender: str):
-        async with asyncio.Semaphore(10):
+        async with asyncio.Semaphore(5):
             # Récupération du live code (mID=XXX)
             mID = self.extract_match_id(match_block)
 
