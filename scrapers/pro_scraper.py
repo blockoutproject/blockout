@@ -292,60 +292,59 @@ class ProScraper(Scraper):
         await asyncio.gather(*tasks)
 
     async def process_match_block(self, match_block, pool_id: int, gender: str):
-        async with asyncio.Semaphore(10):
-            # Récupération du live code (mID=XXX)
-            mID = self.extract_match_id(match_block)
+        # Récupération du live code (mID=XXX)
+        mID = self.extract_match_id(match_block)
 
-            # Équipes
-            home_team_name, guest_team_name = self.extract_teams(match_block)
-            home_team_full = get_full_team_name(home_team_name, gender)
-            guest_team_full = get_full_team_name(guest_team_name, gender)
+        # Équipes
+        home_team_name, guest_team_name = self.extract_teams(match_block)
+        home_team_full = get_full_team_name(home_team_name, gender)
+        guest_team_full = get_full_team_name(guest_team_name, gender)
 
-            # Log si alias non trouvé
-            if not home_team_full:
-                log_event(
-                    action="missing_team_name",
-                    level="error",
-                    pool_id=pool_id,
-                    team_name=home_team_name,
-                    message="Nom d'équipe domicile non trouvé dans les alias."
-                )
-            if not guest_team_full:
-                log_event(
-                    action="missing_team_name",
-                    level="error",
-                    pool_id=pool_id,
-                    team_name=guest_team_name,
-                    message="Nom d'équipe visiteur non trouvé dans les alias."
-                )
+        # Log si alias non trouvé
+        if not home_team_full:
+            log_event(
+                action="missing_team_name",
+                level="error",
+                pool_id=pool_id,
+                team_name=home_team_name,
+                message="Nom d'équipe domicile non trouvé dans les alias."
+            )
+        if not guest_team_full:
+            log_event(
+                action="missing_team_name",
+                level="error",
+                pool_id=pool_id,
+                team_name=guest_team_name,
+                message="Nom d'équipe visiteur non trouvé dans les alias."
+            )
 
-            # Date
-            date_time = match_block.find("span", id=re.compile("LB_DataOra"))
-            if date_time:
-                match_date_text = date_time.get_text(strip=True)
-                parsed_match_date = datetime.strptime(match_date_text, "%d/%m/%Y - %H:%M").date()
-                # Récupération en base des teams si possible
-                if home_team_full and guest_team_full:
-                    team_a = await get_team_by_pool_and_name(self.session, pool_id, home_team_full)
-                    team_b = await get_team_by_pool_and_name(self.session, pool_id, guest_team_full)
+        # Date
+        date_time = match_block.find("span", id=re.compile("LB_DataOra"))
+        if date_time:
+            match_date_text = date_time.get_text(strip=True)
+            parsed_match_date = datetime.strptime(match_date_text, "%d/%m/%Y - %H:%M").date()
+            # Récupération en base des teams si possible
+            if home_team_full and guest_team_full:
+                team_a = await get_team_by_pool_and_name(self.session, pool_id, home_team_full)
+                team_b = await get_team_by_pool_and_name(self.session, pool_id, guest_team_full)
 
-                    # Si on a bien nos deux équipes
-                    if team_a and team_b and mID:
-                        # On essaie de retrouver le match
-                        existing_match = await get_match_by_pool_teams_date(
-                            self.session, pool_id, team_a.id, team_b.id, parsed_match_date
+                # Si on a bien nos deux équipes
+                if team_a and team_b and mID:
+                    # On essaie de retrouver le match
+                    existing_match = await get_match_by_pool_teams_date(
+                        self.session, pool_id, team_a.id, team_b.id, parsed_match_date
+                    )
+
+                    if existing_match:
+                        # On prépare un clone pour le live_code
+                        updated_match = replace(existing_match)
+                        updated_match.live_code = int(mID)
+                        self.schedule_match_changes(
+                            existing_match=existing_match, 
+                            updated_match=updated_match, 
+                            prefix="LNV-Live", 
+                            priority=DataSourcePriority.LNV_HTML
                         )
-
-                        if existing_match:
-                            # On prépare un clone pour le live_code
-                            updated_match = replace(existing_match)
-                            updated_match.live_code = int(mID)
-                            self.schedule_match_changes(
-                                existing_match=existing_match, 
-                                updated_match=updated_match, 
-                                prefix="LNV-Live", 
-                                priority=DataSourcePriority.LNV_HTML
-                            )
 
     def extract_match_id(self, match_block) -> Optional[str]:
         onclick_attr = match_block.find("div", onclick=True)
