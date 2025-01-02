@@ -259,7 +259,6 @@ class ProScraper(Scraper):
 
     async def process_all_days(self, soup: BeautifulSoup, main_id: str, pool_id: int, gender: str):
         total_days = 0
-        tasks = []  # Liste de tasks asynchrones
         
         while True:
             day_block = soup.find(
@@ -269,29 +268,32 @@ class ProScraper(Scraper):
                 break
             
             # Au lieu d'appeler directement, on crée un task
-            task = asyncio.create_task(self.process_matches_in_day(soup, main_id, total_days, pool_id, gender))
-            tasks.append(task)
+            await self.process_matches_in_day(soup, main_id, total_days, pool_id, gender)
             total_days += 2
-        
-        # Une fois tous les match_block de cette journée récupérés, on exécute en parallèle
-        await asyncio.gather(*tasks)
 
     async def process_matches_in_day(self, soup: BeautifulSoup, main_id: str, total_days: int, pool_id: int, gender: str):
-        match_count = 0
+        async with asyncio.Semaphore(2):
+            match_count = 0
+            tasks = []  # Liste de tasks asynchrones
 
-        while True:
-            match_block = soup.find(
-                id=f"ctl00_Content_Main_{main_id}_userControl_RADLIST_Legs_ctrl{total_days}_RADLIST_Matches_ctrl{match_count}_RPL_Match"
-            )
-            if not match_block:
-                break
+            while True:
+                match_block = soup.find(
+                    id=f"ctl00_Content_Main_{main_id}_userControl_RADLIST_Legs_ctrl{total_days}_RADLIST_Matches_ctrl{match_count}_RPL_Match"
+                )
+                if not match_block:
+                    break
 
-            # Au lieu d'appeler directement, on crée un task
-            await self.process_match_block(match_block, pool_id, gender)
-            match_count += 2
+                # Au lieu d'appeler directement, on crée un task
+                task = asyncio.create_task(self.process_match_block(match_block, pool_id, gender))
+                tasks.append(task)
+
+                match_count += 2
+
+            # Une fois tous les match_block de cette journée récupérés, on exécute en parallèle
+            await asyncio.gather(*tasks)
 
     async def process_match_block(self, match_block, pool_id: int, gender: str):
-        async with asyncio.Semaphore(4):
+        async with asyncio.Semaphore(5):
             # Récupération du live code (mID=XXX)
             mID = self.extract_match_id(match_block)
 
