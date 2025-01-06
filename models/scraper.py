@@ -38,28 +38,54 @@ class Scraper(ABC):
         async with asyncio.Semaphore(sem):  # Limiter les connexions simultanées
             for attempt in range(1, retries + 1):
                 try:
+                    # Tentative de récupération
                     async with self.session.get(url, ssl=False, timeout=aiohttp.ClientTimeout(total=timeout)) as response:
                         response.raise_for_status()
                         raw_content = await response.content.read()
                         
+                        # Détection de l'encodage
                         if url.startswith("http://www.ffvb.org/") or url.startswith("http://www.ffvbbeach.org/"):
                             decoded_content = raw_content.decode("windows-1252", errors="replace")
                         else:
                             decoded_content = raw_content.decode("utf-8", errors="replace")
-                            
+
+                        # Log en cas de succès après un retry
                         if attempt > 1:
                             log_event(
                                 action="http_request_retry_success",
                                 level="info",
                                 attempt=attempt,
                                 url=url,
-                                message=f"Succès après retry {attempt}/{retries}: Contenu récuperé pour l'URL {url}."
+                                message=f"Succès après retry {attempt}/{retries}: Contenu récupéré pour l'URL {url}."
                             )
                         return decoded_content
 
-                except aiohttp.ClientError as e:
+                except aiohttp.ClientConnectorDNSError as e:
+                    # Problème spécifique à la résolution DNS
                     log_event(
-                        action="http_request_error",
+                        action="http_request_dns_error",
+                        level="error",
+                        url=url,
+                        attempt=attempt,
+                        error=str(e),
+                        message=f"Erreur DNS lors de la récupération de l'URL '{url}' (tentative {attempt}/{retries})."
+                    )
+
+                except aiohttp.ClientConnectorError as e:
+                    # Problème de connexion générale (autre que DNS)
+                    log_event(
+                        action="http_request_connector_error",
+                        level="error",
+                        url=url,
+                        attempt=attempt,
+                        error=str(e),
+                        message=f"Erreur de connexion réseau lors de la récupération de l'URL '{url}' (tentative {attempt}/{retries})."
+                    )
+
+                except aiohttp.ClientResponseError as e:
+                    # Erreurs HTTP spécifiques (codes 4xx, 5xx)
+                    log_event(
+                        action="http_request_http_error",
                         level="warning",
                         url=url,
                         attempt=attempt,
@@ -69,6 +95,7 @@ class Scraper(ABC):
                     )
 
                 except asyncio.TimeoutError as e:
+                    # Timeout
                     log_event(
                         action="http_request_timeout",
                         level="warning",
@@ -77,7 +104,9 @@ class Scraper(ABC):
                         error=str(e),
                         message=f"Timeout lors de la récupération de l'URL '{url}' (tentative {attempt}/{retries})."
                     )
+
                 except Exception as e:
+                    # Autres erreurs imprévues
                     log_event(
                         action="http_request_unexpected_error",
                         level="error",
@@ -99,6 +128,7 @@ class Scraper(ABC):
                     )
                     await asyncio.sleep(delay)
                 else:
+                    # Log en cas d'échec complet après toutes les tentatives
                     log_event(
                         action="http_request_failed",
                         level="error",
@@ -107,7 +137,6 @@ class Scraper(ABC):
                         message=f"Échec complet après {retries} tentatives pour l'URL '{url}'."
                     )
                     raise Exception(f"Échec complet pour l'URL '{url}' après {retries} tentatives.")
-
         
     @abstractmethod
     async def run_scraping(self):

@@ -79,16 +79,42 @@ async def download_csv(
                         )
                     return filename
 
-            except aiohttp.ClientError as e:
+            except aiohttp.ClientResponseError as e:
+                # Gestion des erreurs HTTP (codes 4xx, 5xx)
                 log_event(
-                    action="download_client_error",
+                    action="download_http_error",
                     level="warning",
                     attempt=attempt,
                     league_code=league_code,
                     pool_code=pool_code,
+                    status=e.status,
                     error=str(e),
-                    message=f"Erreur réseau lors du téléchargement pour {name}."
+                    message=f"Erreur HTTP {e.status} lors du téléchargement pour {name}."
                 )
+
+            except aiohttp.ClientConnectorDNSError as e:
+                # Erreur DNS spécifique
+                log_event(
+                    action="download_dns_error",
+                    level="error",
+                    attempt=attempt,
+                    league_code=league_code,
+                    pool_code=pool_code,
+                    error=str(e),
+                    message=f"Erreur DNS lors de la résolution du domaine pour {name}."
+                )
+
+            except aiohttp.ClientConnectorError as e:
+                log_event(
+                    action="download_client_connector_error",
+                    level="error",
+                    attempt=attempt,
+                    league_code=league_code,
+                    pool_code=pool_code,
+                    error=str(e),
+                    message=f"Erreur réseau/DNS générale lors du téléchargement pour {name}."
+                )
+                
             except asyncio.TimeoutError:
                 log_event(
                     action="download_timeout",
