@@ -1,5 +1,5 @@
-import MatchCard from "../../modules/home/components/MatchCard";
-import { Match } from "../../types/Match";
+import MatchCard from "../components/MatchCard";
+import { Match } from "@/types/Match";
 import { useMatches } from "@/hooks/useMatches";
 
 import React from "react";
@@ -14,9 +14,8 @@ import {
 
 import { useRouter } from "expo-router";
 
-export default function HomeScreen() {
+function MatchList() {
     const router = useRouter();
-
     const {
         matches,
         isLoading,
@@ -88,3 +87,5 @@ const styles = StyleSheet.create({
         textAlign: "center",
     },
 });
+
+export default MatchList;

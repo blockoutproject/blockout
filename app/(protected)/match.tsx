@@ -1,10 +1,18 @@
-import React from 'react';
-import { View, Text, StyleSheet, Button, ActivityIndicator } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Match } from '../../types/Match';
-import { useMatches } from '@/hooks/useMatches';
-import { useTeamsByIds } from '@/hooks/useTeamsByIds';
-import MainScore from '@/components/match/MainScore';
+import { Match } from "../../types/Match";
+import { useMatches } from "@/hooks/useMatches";
+import { useTeamsByIds } from "@/hooks/useTeamsByIds";
+import MainScore from "@/modules/match/components/MainScore";
+
+import React from "react";
+import {
+    View,
+    Text,
+    StyleSheet,
+    Button,
+    ActivityIndicator,
+} from "react-native";
+
+import { useLocalSearchParams, useRouter } from "expo-router";
 
 export default function MatchDetailsModal() {
     const params = useLocalSearchParams();
@@ -17,9 +25,11 @@ export default function MatchDetailsModal() {
     );
 
     // Récupération des équipes A et B
-    const { teams, isLoading: teamsLoading, isError: teamsError } = useTeamsByIds(
-        match ? [match.team_id_a, match.team_id_b] : []
-    );
+    const {
+        teams,
+        isLoading: teamsLoading,
+        isError: teamsError,
+    } = useTeamsByIds(match ? [match.team_id_a, match.team_id_b] : []);
 
     if (matchesLoading || teamsLoading) {
         return (
@@ -59,8 +69,8 @@ export default function MatchDetailsModal() {
             <MainScore
                 teamAName="AS Cannes"
                 teamBName="Paris Volley"
-                teamALogo={require('../../assets/clubs/cannes.png')}
-                teamBLogo={require('../../assets/clubs/puc.png')}
+                teamALogo={require("../../assets/clubs/cannes.png")}
+                teamBLogo={require("../../assets/clubs/puc.png")}
                 score={[2, 0]}
             />
         </View>
@@ -74,7 +84,7 @@ const styles = StyleSheet.create({
     },
     errorText: {
         fontSize: 18,
-        color: 'red',
+        color: "red",
         marginBottom: 16,
     },
 });

@@ -1,43 +1,66 @@
-import React, { useEffect } from 'react';
-import { router, Stack } from 'expo-router';
-import { useAuth0 } from 'react-native-auth0';
-import { View, ActivityIndicator, Button } from 'react-native';
+import HomeHeader from "@/modules/home/components/Header";
+
+import React, { useEffect } from "react";
+import { View, ActivityIndicator, Button } from "react-native";
+
+import { router, Stack } from "expo-router";
+import { useAuth0 } from "react-native-auth0";
 
 export default function ProtectedLayout() {
-  const { user, isLoading } = useAuth0();
+    const { user, isLoading } = useAuth0();
 
-  // Redirige vers la page de login si l'utilisateur n'est pas connecté
-  useEffect(() => {
-    if (!isLoading && !user) {
-      router.replace('/login');
+    // Redirects to login screen if user is not connected
+    useEffect(() => {
+        if (!isLoading && !user) {
+            router.replace("/login");
+        }
+    }, [isLoading, user]);
+
+    // Displays a loading screen during verification
+    if (isLoading || !user) {
+        return (
+            <View
+                style={{
+                    flex: 1,
+                    justifyContent: "center",
+                    alignItems: "center",
+                }}
+            >
+                <ActivityIndicator size="large" />
+            </View>
+        );
     }
-  }, [isLoading, user]);
 
-  // Affiche un écran de chargement pendant la vérification
-  if (isLoading || !user) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" />
-      </View>
+        <Stack>
+            {/* Main screen (home) */}
+            <Stack.Screen
+                name="home"
+                options={{
+                    headerShown: true,
+                    header: () => <HomeHeader />,
+                }}
+            />
+
+            {/* Modal screen to display match details */}
+            <Stack.Screen
+                name="match"
+                options={{
+                    presentation: "modal",
+                    headerTransparent: true,
+                    headerLeft: () => (
+                        <Button title="Fermer" onPress={() => router.back()} />
+                    ),
+                }}
+            />
+
+            {/* Profile screen */}
+            <Stack.Screen
+                name="profile"
+                options={{
+                    headerShown: true,
+                }}
+            />
+        </Stack>
     );
-  }
-
-  return (
-    <Stack>
-      {/* Écran principal (home) */}
-      <Stack.Screen name="home" options={{ headerShown: false }} />
-
-      {/* Écran modal pour afficher les détails */}
-      <Stack.Screen
-        name="match"
-        options={{
-          presentation: 'modal',
-          headerTransparent: true,
-          headerLeft: () => (
-            <Button title="Fermer" onPress={() => router.back()} />
-          ),
-        }}
-      />
-    </Stack>
-  );
 }
