@@ -1,1 +1,1 @@
-# blockout-api-competition
+# blockout-api-competitions

@@ -1,0 +1,230 @@
+package com.blockout.competitions.services;
+
+import com.blockout.competitions.models.Category;
+import com.blockout.competitions.models.CompetitionAssociation;
+import com.blockout.competitions.repositories.CompetitionAssociationRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.*;
+import java.util.stream.Collectors;
+
+import static net.logstash.logback.argument.StructuredArguments.keyValue;
+
+@Service
+public class CompetitionAssociationService {
+
+    private static final Logger logger = LoggerFactory.getLogger(CompetitionAssociationService.class);
+
+    @Autowired
+    private CompetitionAssociationRepository associationRepository;
+
+    @Autowired
+    private EventPublisher eventPublisher;
+
+    /**
+     * Crée ou réactive l'association entre une pool et une team.
+     */
+    public CompetitionAssociation addOrActivateAssociation(Long poolId, Long teamId, Category category) {
+        Optional<CompetitionAssociation> existingAssoc = associationRepository.findByPoolIdAndTeamId(poolId, teamId);
+
+        if (existingAssoc.isPresent()) {
+            CompetitionAssociation assoc = existingAssoc.get();
+            if (!Boolean.TRUE.equals(assoc.getActive())) {
+                assoc.setActive(true);
+
+                logger.info("Association reactivated",
+                        keyValue("action", "reactivate_association"),
+                        keyValue("poolId", poolId),
+                        keyValue("teamId", teamId));
+
+                return associationRepository.save(assoc);
+            }
+            return assoc;
+        } else {
+            CompetitionAssociation newAssoc = CompetitionAssociation.builder()
+                    .poolId(poolId)
+                    .teamId(teamId)
+                    .category(category)
+                    .active(true)
+                    .points(0)
+                    .build();
+
+            CompetitionAssociation saved = associationRepository.save(newAssoc);
+
+            logger.info("New association created",
+                    keyValue("action", "create_association"),
+                    keyValue("poolId", poolId),
+                    keyValue("teamId", teamId),
+                    keyValue("category", category));
+
+            return saved;
+        }
+    }
+
+    /**
+     * Désactive la relation entre une pool et une team précise.
+     */
+    public void deactivateAssociation(Long poolId, Long teamId) {
+        associationRepository.findByPoolIdAndTeamId(poolId, teamId)
+                .ifPresent(assoc -> {
+                    assoc.setActive(false);
+                    associationRepository.save(assoc);
+
+                    logger.info("Association deactivated",
+                            keyValue("action", "deactivate_association"),
+                            keyValue("poolId", poolId),
+                            keyValue("teamId", teamId));
+                });
+    }
+
+    /**
+     * Désactive toutes les associations d'une pool.
+     */
+    public void deactivateAssociationsByPool(Long poolId) {
+        List<CompetitionAssociation> associations = associationRepository.findByPoolIdAndActive(poolId, true);
+
+        for (CompetitionAssociation assoc : associations) {
+            assoc.setActive(false);
+            associationRepository.save(assoc);
+
+            logger.info("Association deactivated as part of pool deactivation",
+                    keyValue("action", "deactivate_association"),
+                    keyValue("poolId", poolId),
+                    keyValue("teamId", assoc.getTeamId()));
+        }
+
+        // Publier l'événement de désactivation de la poule
+        eventPublisher.publishPoolDeactivationEvent(poolId);
+
+        logger.info("Pool deactivation event published",
+                keyValue("action", "publish_pool_deactivation"),
+                keyValue("poolId", poolId));
+    }
+
+    /**
+     * Désactive toutes les associations d'une team.
+     */
+    public void deactivateAssociationsByTeam(Long teamId) {
+        List<CompetitionAssociation> associations = associationRepository.findByTeamIdAndActive(teamId, true);
+
+        for (CompetitionAssociation assoc : associations) {
+            assoc.setActive(false);
+            associationRepository.save(assoc);
+
+            logger.info("Association deactivated as part of team deactivation",
+                    keyValue("action", "deactivate_association"),
+                    keyValue("teamId", assoc.getTeamId()),
+                    keyValue("poolId", assoc.getPoolId()));
+        }
+
+        // Publier un événement de désactivation de l’équipe
+        eventPublisher.publishTeamDeactivationEvent(teamId);
+
+        logger.info("Team deactivation event published",
+                keyValue("action", "publish_team_deactivation"),
+                keyValue("teamId", teamId));
+    }
+
+    /**
+     * Récupère toutes les associations actives (team ↔ pool) pour une pool donnée.
+     */
+    public List<CompetitionAssociation> getActiveAssociationsByPool(Long poolId) {
+        return associationRepository.findByPoolIdAndActive(poolId, true);
+    }
+
+    /**
+     * Récupère toutes les associations actives (team ↔ pool) pour une team donnée.
+     */
+    public List<CompetitionAssociation> getActivePoolsByTeam(Long teamId) {
+        return associationRepository.findByTeamIdAndActive(teamId, true);
+    }
+
+    /**
+     * Désactive toutes les associations actives qui ne figurent plus
+     * dans la liste 'scrapedTeamIds' fournie.
+     */
+    public void bulkDeactivateTeamsForPool(Long poolId, List<Long> scrapedTeamIds) {
+        Set<Long> scrapedTeamIdsSet = new HashSet<>(scrapedTeamIds);
+
+        // Récupérer les associations à désactiver en bloc
+        List<CompetitionAssociation> toDeactivate = associationRepository.findByPoolIdAndActiveTrueAndTeamIdNotIn(poolId, scrapedTeamIdsSet);
+        
+        if (toDeactivate.isEmpty()) {
+            return;
+        }
+
+        for (CompetitionAssociation assoc : toDeactivate) {
+            assoc.setActive(false);
+        }
+        associationRepository.saveAll(toDeactivate);
+
+        logger.info("Associations deactivated in bulk for pool",
+                keyValue("action", "bulk_deactivate_associations"),
+                keyValue("poolId", poolId),
+                keyValue("deactivatedCount", toDeactivate.size()));
+
+        // Determiner les teams totalement inactives
+        Set<Long> deactivatedTeamIds = toDeactivate.stream()
+                .map(CompetitionAssociation::getTeamId)
+                .collect(Collectors.toSet());
+
+        // Savoir lesquelles restent actives
+        List<Long> stillActiveTeamIds = associationRepository.findDistinctTeamIdByTeamIdInAndActive(deactivatedTeamIds, true);
+
+        deactivatedTeamIds.removeAll(stillActiveTeamIds);
+
+        for (Long teamId : deactivatedTeamIds) {
+            eventPublisher.publishTeamDeactivationEvent(teamId);
+
+            logger.info("Team deactivation event published after bulk deactivate",
+                    keyValue("action", "publish_team_deactivation"),
+                    keyValue("teamId", teamId),
+                    keyValue("poolId", poolId));
+        }
+    }
+
+    /**
+     * Désactive toutes les associations dont le poolId
+     * ne figure pas dans 'scrapedPoolIds'.
+     */
+    public void bulkDeactivatePools(Category category, List<Long> scrapedPoolIds) {
+        Set<Long> validPoolIds = new HashSet<>(scrapedPoolIds);
+
+        List<CompetitionAssociation> toDeactivate = associationRepository.findByCategoryAndActiveTrueAndPoolIdNotIn(category, validPoolIds);
+        
+        if (toDeactivate.isEmpty()) {
+            return;
+        }
+
+        for (CompetitionAssociation assoc : toDeactivate) {
+            assoc.setActive(false);
+        }
+        associationRepository.saveAll(toDeactivate);
+
+        logger.info("Associations deactivated in bulk for pools",
+                keyValue("action", "bulk_deactivate_associations"),
+                keyValue("deactivatedCount", toDeactivate.size()));
+
+        // Récupérer la liste des poolIds désactivés
+        Set<Long> deactivatedPoolIds = toDeactivate.stream()
+                .map(CompetitionAssociation::getPoolId)
+                .collect(Collectors.toSet());
+
+        // Vérifier lesquelles restent actives
+        List<Long> stillActivePools = associationRepository.findDistinctPoolIdByPoolIdInAndActive(deactivatedPoolIds, true);
+
+        deactivatedPoolIds.removeAll(stillActivePools);
+
+        for (Long poolId : deactivatedPoolIds) {
+            eventPublisher.publishPoolDeactivationEvent(poolId);
+
+            logger.info("Pool deactivation event published after bulk deactivate",
+                    keyValue("action", "publish_pool_deactivation"),
+                    keyValue("poolId", poolId));
+        }
+    }
+}
