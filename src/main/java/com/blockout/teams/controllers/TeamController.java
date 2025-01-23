@@ -25,53 +25,6 @@ public class TeamController {
     @Autowired
     private TeamService teamService;
 
-    @Operation(summary = "Récupérer les équipes par pool_id et team_name", description = "Retourne une équipe spécifique filtrée par pool_id et team_name.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Équipe trouvée avec succès"),
-            @ApiResponse(responseCode = "204", description = "Aucune équipe trouvée avec les critères fournis")
-    })
-    @GetMapping("/pools/{poolId}/teams/search")
-    public ResponseEntity<Team> getTeamByPoolIdAndTeamName(
-            @Parameter(description = "ID de la pool") @PathVariable Long poolId,
-            @Parameter(description = "Nom de l'équipe") @RequestParam("team_name") @JsonProperty("team_name") String teamName) {
-
-        Optional<Team> team = teamService.getTeamsByPoolIdAndTeamName(poolId, teamName);
-        return team.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.noContent().build());
-    }
-
-    @Operation(summary = "Récupérer les équipes d'une poule", description = "Retourne une liste de toutes les équipes associées à une poule spécifique.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Liste des équipes renvoyée avec succès"),
-            @ApiResponse(responseCode = "204", description = "Aucune équipe trouvée pour cette poule"),
-    })
-    @GetMapping("/pools/{poolId}/teams")
-    public ResponseEntity<List<Team>> getTeamsByPool(
-            @Parameter(description = "ID de la poule dont les équipes doivent être récupérées") @PathVariable Long poolId) {
-
-        List<Team> teams = teamService.getTeamsByPool(poolId);
-        if (teams.isEmpty()) {
-            return ResponseEntity.noContent().build();
-        }
-        return ResponseEntity.ok(teams);
-    }
-
-    @Operation(summary = "Récupérer les équipes actives par pool_id", description = "Retourne une liste des équipes actives pour une pool donnée.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Liste des équipes actives renvoyée avec succès"),
-            @ApiResponse(responseCode = "204", description = "Aucune équipe active trouvée pour cette pool")
-    })
-    @GetMapping("/pools/{poolId}/teams/active")
-    public ResponseEntity<List<Team>> getActiveTeamsByPoolId(
-            @Parameter(description = "ID de la pool") @PathVariable Long poolId) {
-
-        List<Team> activeTeams = teamService.getActiveTeamsByPoolId(poolId);
-
-        if (activeTeams.isEmpty()) {
-            return ResponseEntity.noContent().build();
-        }
-        return ResponseEntity.ok(activeTeams);
-    }
-
     @Operation(summary = "Créer une équipe", description = "Crée une nouvelle équipe avec les informations fournies.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "Équipe créée avec succès"),

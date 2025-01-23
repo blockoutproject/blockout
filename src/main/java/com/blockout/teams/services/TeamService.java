@@ -26,9 +26,6 @@ public class TeamService {
     @Autowired
     private TeamRepository teamRepository;
 
-    @Autowired
-    private EventPublisher eventPublisher;
-
     public Team createTeam(Team team) {
         Team createdTeam = teamRepository.save(team);
         logger.info("Team created successfully",
@@ -72,26 +69,10 @@ public class TeamService {
         return teamOpt;
     }
 
-    public List<Team> getTeamsByPool(Long poolId) {
-        List<Team> teams = teamRepository.findByPoolId(poolId);
-        if (teams.isEmpty()) {
-            logger.warn("No teams found for pool ID",
-                    keyValue("action", "get_teams_by_pool"),
-                    keyValue("poolId", poolId));
-        } else {
-            logger.info("Teams retrieved by pool ID",
-                    keyValue("action", "get_teams_by_pool"),
-                    keyValue("poolId", poolId),
-                    keyValue("count", teams.size()));
-        }
-        return teams;
-    }
-
     public Team updateTeam(Long id, Team updatedTeam) {
         return teamRepository.findById(id).map(team -> {
             team.setClubId(updatedTeam.getClubId());
             team.setTeamName(updatedTeam.getTeamName());
-            team.setPoolId(updatedTeam.getPoolId());
             team.setDivisionName(updatedTeam.getDivisionName());
             team.setFormat(updatedTeam.getFormat());
             team.setGender(updatedTeam.getGender());
@@ -119,9 +100,6 @@ public class TeamService {
                     keyValue("action", "deactivate_team"),
                     keyValue("teamId", teamId));
 
-            // Publier un événement de désactivation de l’équipe
-            eventPublisher.publishTeamDeactivationEvent(teamId);
-
             return updatedTeam;
         }).orElseThrow(() -> {
             logger.error("Team not found. Cannot deactivate.",
@@ -129,40 +107,6 @@ public class TeamService {
                     keyValue("teamId", teamId));
             return new TeamNotFoundException(teamId);
         });
-    }
-
-    public void deactivateTeamsByPoolId(Long poolId) {
-        List<Team> teams = teamRepository.findByPoolId(poolId);
-        if (teams.isEmpty()) {
-            logger.warn("No teams found for pool ID. No deactivation performed.",
-                    keyValue("action", "deactivate_teams_by_pool"),
-                    keyValue("poolId", poolId));
-        } else {
-            teams.forEach(team -> {
-                team.setActive(false);
-                teamRepository.save(team);
-                logger.info("Team deactivated as part of pool deactivation",
-                        keyValue("action", "deactivate_team"),
-                        keyValue("teamId", team.getId()),
-                        keyValue("poolId", poolId));
-            });
-        }
-    }
-
-    public Optional<Team> getTeamsByPoolIdAndTeamName(Long pool_id, String team_name) {
-        Optional<Team> teamOpt = teamRepository.findByPoolIdAndTeamNameIgnoreCase(pool_id, team_name);
-        if (!teamOpt.isPresent()) {
-            logger.warn("No team found for given poolId and teamName",
-                    keyValue("action", "get_team_by_pool_and_name"),
-                    keyValue("poolId", pool_id),
-                    keyValue("teamName", team_name));
-        }
-        return teamOpt;
-    }
-
-    public List<Team> getActiveTeamsByPoolId(Long poolId) {
-        List<Team> teams = teamRepository.findByPoolIdAndActive(poolId, true);
-        return teams;
     }
 
     public List<Team> getTeamsByDivisionFormatGender(String divisionName, TeamFormat format, TeamGender gender) {

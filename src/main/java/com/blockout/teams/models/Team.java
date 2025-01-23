@@ -24,8 +24,6 @@ public class Team {
     @Column(name = "club_id", nullable = false)
     private String clubId;
 
-    @Column(name = "pool_id", nullable = false)
-    private Long poolId; 
 
     @Column(name = "team_name", nullable = false)
     private String teamName;
