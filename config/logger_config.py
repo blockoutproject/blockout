@@ -21,7 +21,7 @@ def log_event(action: str, level: str = "info", **kwargs):
     Fonction générique pour générer des logs structurés.
 
     Parameters:
-    - action (str): Type d'action ou événement (ex: "create_team", "deactivate_team", "error").
+    - action (str): Type d'action ou événement (ex: "create_team", "error").
     - level (str): Niveau de log (info, warning, error).
     - kwargs: Métadonnées additionnelles pour enrichir les logs.
     """

@@ -1,9 +1,10 @@
 from typing import Optional, Set, List
 import aiohttp
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from api.matches_api import create_match, deactivate_match, get_active_matches_by_pool_id, get_match_by_league_and_code, get_started_matches, update_match
 from models.match import Match, MatchStatus
 from config.logger_config import log_event, logger
+from models.scraper import Scraper
 
 async def add_or_update_match(session: aiohttp.ClientSession, match: Match, existing_match: Optional[Match]) -> Match:
     """
@@ -37,6 +38,17 @@ async def add_or_update_match(session: aiohttp.ClientSession, match: Match, exis
     # Cas où le match n'existe pas
     new_match = await create_match(session, match)
     return new_match
+
+def find_match_in_cache(scraper: Scraper, pool_id: int, team_id_a: int, team_id_b: int, match_date: date) -> Optional[Match]:
+    # On parcourt le cache: key => (league_code, match_code), value => (existing_match, updated_match, changes_list, priority)
+    for (league_code, match_code), (original, updated, _, _) in scraper._matches_cache.items():
+        # On vérifie si updated (ou original) matche nos critères
+        if updated.pool_id == pool_id \
+            and updated.team_id_a == team_id_a \
+            and updated.team_id_b == team_id_b \
+            and updated.match_date and updated.match_date.date() == match_date:
+            return updated
+    return None
 
 async def deactivate_matches(session: aiohttp.ClientSession, pool_id: int, scraped_match_codes: Set[str]) -> None:
     """

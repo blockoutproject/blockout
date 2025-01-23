@@ -68,18 +68,3 @@ async def get_active_pools_by_league_code(session: aiohttp.ClientSession, league
     """
     headers = _get_auth_headers()
     return await session.get(f"{POOL_API_URL}/pools/active?league_code={league_code}", headers=headers)
-
-
-@handle_api_response(response_type=None)
-async def deactivate_pool(session: aiohttp.ClientSession, pool_id: int) -> None:
-    """
-    Désactive une pool en mettant à jour son statut 'active' à False.
-    """
-    headers = _get_auth_headers()
-    response = await session.put(f"{POOL_API_URL}/pools/{pool_id}/deactivate", headers=headers)
-    log_event(
-        action="deactivate_pool",
-        level="info",
-        pool_id=pool_id
-    )
-    return response

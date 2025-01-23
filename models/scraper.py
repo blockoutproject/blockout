@@ -4,24 +4,38 @@ from datetime import datetime, timezone
 from typing import Optional
 import aiohttp
 from prometheus_client import Gauge
-from api.matches_api import create_match, update_match
-from config.logger_config import log_event
+from api.matches_api import create_match, update_match, get_matches_by_pool
+from config.logger_config import log_event, current_scraper
+from models.category import Category
 from models.datasource_priority import DataSourcePriority
 from models.match import Match
-from config.logger_config import current_scraper
 from dataclasses import replace
 
 class Scraper(ABC):
-    # Stocker un Gauge unique par classe de scraper
     _gauges = {}
 
-    def __init__(self, session: aiohttp.ClientSession, name: str, priority_validation_enabled=False):
+    def __init__(
+        self, 
+        session: aiohttp.ClientSession, 
+        name: str, 
+        category: Category, 
+        folder: str, 
+        url: str = None, 
+        priority_validation_enabled: bool = False
+    ):
         self.session = session
         self.name = name
-        self._matches_cache: dict[tuple[str, str], tuple[Optional[Match], Match, list[str], DataSourcePriority]]  = {}
+        self.category = category
+        self.folder = folder
+        self.url = url
         self.priority_validation_enabled = priority_validation_enabled
 
-        # Récupérer ou créer le Gauge pour la classe en cours
+        # Cache local : dict[(league_code, match_code), (existing_match, updated_match, changes_list, priority)]
+        self._matches_cache = {}
+        # Optionnel : Pour tracer quels pools ont été scrappés
+        self.scraped_pool_ids = set()
+
+        # Prometheus gauge
         class_name = self.__class__.__name__.lower()
         if class_name not in Scraper._gauges:
             Scraper._gauges[class_name] = Gauge(
@@ -29,7 +43,30 @@ class Scraper(ABC):
                 f"Durée du scraping pour le scraper {class_name}"
             )
         self.scraping_duration_gauge = Scraper._gauges[class_name]
-        
+
+    @abstractmethod
+    async def run_scraping(self):
+        pass
+
+    async def scrape(self):
+        current_scraper.set(self.name)
+
+        start_time = datetime.now(timezone.utc)
+        try:
+            await self.run_scraping()
+        except Exception as e:
+            log_event(
+                action="scraping_error",
+                level="error",
+                error=str(e),
+                message=f"Erreur dans le scraper {self.name}"
+            )
+            raise
+        finally:
+            end_time = datetime.now(timezone.utc)
+            duration = (end_time - start_time).total_seconds()
+            self.scraping_duration_gauge.set(duration)
+            
     async def fetch(self, url: str, retries: int = 3, delay: int = 2, sem: int = 5, timeout: int = 20) -> str:
         """
         Récupère le contenu d'une URL avec gestion des retries, timeout global et semaphore.
@@ -137,118 +174,102 @@ class Scraper(ABC):
                         message=f"Échec complet après {retries} tentatives pour l'URL '{url}'."
                     )
                     raise Exception(f"Échec complet pour l'URL '{url}' après {retries} tentatives.")
-        
-    @abstractmethod
-    async def run_scraping(self):
-        """
-        Méthode principale de scraping à implémenter par les sous-classes.
-        """
-        pass
 
-    async def scrape(self):
-        """
-        Mesure le temps d'exécution de la méthode de scraping et enregistre les logs.
-        Enregistre également une métrique Prometheus pour la durée.
-        Appelle `run_scraping` implémentée par les sous-classes.
-        """
-        current_scraper.set(self.name)
 
-        start_time = datetime.now(timezone.utc)
-
+    async def init_matches_cache(self, pool_id: int):
+        """
+        Charge tous les matchs existants en base (DB) pour la poule 'pool_id'
+        et les place dans le cache local (_matches_cache) avec priority=DB.
+        """
         try:
-            await self.run_scraping()
+            existing_matches = await get_matches_by_pool(self.session, pool_id) or []
+            for m in existing_matches:
+                match_key = (m.league_code, m.match_code)
+                
+                # (existing_match, cloneMutable, changes_list, sourcePriority)
+                if match_key not in self._matches_cache:
+                    self._matches_cache[match_key] = (
+                        m,           # existing_match
+                        replace(m),  # updated_match (copie mutable)
+                        [],
+                        DataSourcePriority.DB
+                    )
+
         except Exception as e:
             log_event(
-                action="scraping_error",
+                action="init_matches_cache_error",
                 level="error",
+                pool_id=pool_id,
                 error=str(e),
+                message="Erreur lors du chargement des matchs existants"
             )
-            raise
-        finally:
-            end_time = datetime.now(timezone.utc)
-            duration = (end_time - start_time).total_seconds()
 
-            # Enregistrement dans le Gauge Prometheus
-            self.scraping_duration_gauge.set(duration)
-            
-    def schedule_match_changes(self, existing_match: Match, updated_match: Match, prefix: str = "CSV", priority: DataSourcePriority = DataSourcePriority.FFVB):
+    def schedule_match_changes(
+        self,
+        updated_match: Match, 
+        prefix: str, 
+        priority: DataSourcePriority
+    ):
         """
-        Stocke/fusionne un match dans le cache du scraper, avec ou sans priorités,
-        en fonction du contexte du scraper.
+        Fusionne le match dans le cache, avec logique de priorité (DB, FFVB, LNV-XML, LNV-HTML).
         """
         try:
             match_key = (updated_match.league_code, updated_match.match_code)
 
-            # Initialisation dans le cache si nécessaire
+            # Si pas encore dans le cache, on l'ajoute
             if match_key not in self._matches_cache:
-                if existing_match:
-                    # (matchEnBase, cloneMutable, listeDeModifs, sourcePrioritaire)
-                    self._matches_cache[match_key] = (
-                        existing_match,
-                        replace(existing_match),
-                        [],
-                        DataSourcePriority.DB  # La base de données est la source initiale
-                    )
-                else:
-                    # Nouveau match
-                    self._matches_cache[match_key] = (None, updated_match, [], priority)
+                self._matches_cache[match_key] = (None, updated_match, [], priority)
 
-            # Chargement des données existantes
             existing_obj, updated_obj, changes_list, current_priority = self._matches_cache[match_key]
 
-            # Liste des champs selon leur priorité
-            lnv_priority_fields = ["match_date", "score", "set"]  # Champs prioritaires pour LNV-XML
-            live_code_field = "live_code"  # Champ prioritaire pour LNV-HTML
+            # Champs
+            lnv_priority_fields = ["match_date", "score", "set"]
+            live_code_field = "live_code"
             general_fields = [
                 "pool_id", "team_id_a", "team_id_b",
                 "venue", "referee1", "referee2", "status"
-            ]  # Champs généraux (FFVB ou LNV si non défini)
+            ]
 
-            # Priorité activée : respect des règles de priorité
             if self.priority_validation_enabled:
-                # Synchroniser les champs prioritaires pour LNV-XML
+                # LNV-XML
                 if priority == DataSourcePriority.LNV_XML:
                     for field_name in lnv_priority_fields:
-                        new_val = getattr(updated_match, field_name, None)
                         old_val = getattr(updated_obj, field_name, None)
+                        new_val = getattr(updated_match, field_name, None)
                         if new_val != old_val:
                             setattr(updated_obj, field_name, new_val)
                             changes_list.append(f"[{prefix}] {field_name}: {old_val} -> {new_val}")
-                    # Mise à jour de la priorité de la source pour ces champs
                     self._matches_cache[match_key] = (existing_obj, updated_obj, changes_list, priority)
 
-                # Synchroniser le champ prioritaire pour LNV-HTML
+                # LNV-HTML
                 elif priority == DataSourcePriority.LNV_HTML:
-                    new_val = getattr(updated_match, live_code_field, None)
                     old_val = getattr(updated_obj, live_code_field, None)
+                    new_val = getattr(updated_match, live_code_field, None)
                     if new_val != old_val:
                         setattr(updated_obj, live_code_field, new_val)
                         changes_list.append(f"[{prefix}] {live_code_field}: {old_val} -> {new_val}")
-                    # Mise à jour de la priorité de la source pour ce champ
                     self._matches_cache[match_key] = (existing_obj, updated_obj, changes_list, priority)
 
-                # Synchroniser les champs généraux pour FFVB
+                # FFVB
                 elif priority == DataSourcePriority.FFVB:
                     for field_name in general_fields:
-                        new_val = getattr(updated_match, field_name, None)
                         old_val = getattr(updated_obj, field_name, None)
-                        # Mise à jour uniquement si aucune valeur existante (ou valeur identique)
+                        new_val = getattr(updated_match, field_name, None)
                         if new_val != old_val and (old_val is None or priority >= current_priority):
                             setattr(updated_obj, field_name, new_val)
                             changes_list.append(f"[{prefix}] {field_name}: {old_val} -> {new_val}")
-                    # Mise à jour de la priorité de la source pour ces champs
                     self._matches_cache[match_key] = (existing_obj, updated_obj, changes_list, current_priority)
 
-            # Priorité désactivée : synchronisation directe
             else:
+                # Priorité désactivée : on écrase tout
                 all_fields = lnv_priority_fields + [live_code_field] + general_fields
                 for field_name in all_fields:
-                    new_val = getattr(updated_match, field_name, None)
                     old_val = getattr(updated_obj, field_name, None)
+                    new_val = getattr(updated_match, field_name, None)
                     if new_val != old_val:
                         setattr(updated_obj, field_name, new_val)
                         changes_list.append(f"[{prefix}] {field_name}: {old_val} -> {new_val}")
-                # Mise à jour de la source sans gérer la priorité
+
                 self._matches_cache[match_key] = (existing_obj, updated_obj, changes_list, priority)
 
         except Exception as e:
@@ -258,34 +279,37 @@ class Scraper(ABC):
                 match_code=updated_match.match_code,
                 league_code=updated_match.league_code,
                 error=str(e),
-                message=f"Erreur lors de la fusion des changements pour le match {updated_match.match_code}."
+                message=f"Erreur lors de la fusion de match {updated_match.match_code}"
             )
 
     async def finalize_updates(self):
         """
-        Parcourt tous les matchs du cache et applique effectivement
-        les modifications (create ou update) en base.
+        Parcourt tous les matchs du cache et crée ou met à jour en base.
         """
-        for (league_code, match_code), (existing_match, updated_match, changes_list, priority) in self._matches_cache.items():
-            if not changes_list:
-                continue  # Pas de changement, on ignore
-
+        for (league_code, match_code), (existing_obj, updated_obj, changes_list, priority) in self._matches_cache.items():
             try:
-                if existing_match is None:
+                if existing_obj is None:
                     # Nouveau match
-                    await create_match(self.session, updated_match, changes_list)
+                    await create_match(self.session, updated_obj)
+                elif changes_list:
+                    # Update
+                    await update_match(self.session, updated_obj, changes_list)
                 else:
-                    # Match existant => update
-                    await update_match(self.session, updated_match, changes_list)
+                    continue
+                
             except Exception as e:
                 log_event(
                     action="finalize_update_error",
                     level="error",
-                    match_code=updated_match.match_code,
-                    league_code=updated_match.league_code,
+                    match_code=updated_obj.match_code,
+                    league_code=updated_obj.league_code,
                     error=str(e),
-                    message=f"Erreur lors de l'application des changements pour le match {updated_match.match_code}."
+                    message=f"Erreur finalize match {updated_obj.match_code}"
                 )
 
-        # On vide le cache pour la suite
         self._matches_cache.clear()
+        log_event(
+            action="finalize_updates",
+            level="info",
+            message="Tous les matchs du cache ont été finalisés (create/update)."
+        )

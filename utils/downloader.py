@@ -1,6 +1,8 @@
 import asyncio
 import aiohttp
 from config.logger_config import log_event
+from models.pool import Pool
+from models.scraper import Scraper
 from utils.file_utils import write_to_file
 
 def process_response_content(raw_content: bytes, filename: str) -> None:
@@ -29,11 +31,9 @@ def process_response_content(raw_content: bytes, filename: str) -> None:
         raise
 
 async def download_csv(
-    session: aiohttp.ClientSession,
-    league_code: str,
-    pool_code: str,
+    scraper: Scraper,
+    pool: Pool,
     raw_season: str,
-    folder: str,
     retries: int = 3, 
     delay: int = 2, 
     sem: int = 5,
@@ -55,16 +55,16 @@ async def download_csv(
     download_url = "http://www.ffvbbeach.org/ffvbapp/resu/vbspo_calendrier_export.php"
     data = {
         'cal_saison': raw_season,
-        'cal_codent': league_code,
-        'cal_codpoule': pool_code,
+        'cal_codent': pool.league_code,
+        'cal_codpoule': pool.pool_code,
     }
-    filename = f"{folder}/poule_{league_code}_{pool_code}.csv"
-    name = f"{league_code}_{pool_code}"  # Identifiant unique pour les logs
+    filename = f"{scraper.folder}/poule_{pool.league_code}_{pool.pool_code}.csv"
+    name = f"{pool.league_code}_{pool.pool_code}"  # Identifiant unique pour les logs
     
     async with asyncio.Semaphore(sem):
         for attempt in range(1, retries + 1):
             try:
-                async with session.post(download_url, data=data, timeout=aiohttp.ClientTimeout(total=timeout)) as response:
+                async with scraper.session.post(download_url, data=data, timeout=aiohttp.ClientTimeout(total=timeout)) as response:
                     response.raise_for_status()
                     raw_content = await response.content.read()
                     process_response_content(raw_content, filename)
@@ -85,8 +85,8 @@ async def download_csv(
                     action="download_http_error",
                     level="warning",
                     attempt=attempt,
-                    league_code=league_code,
-                    pool_code=pool_code,
+                    league_code=pool.league_code,
+                    pool_code=pool.pool_code,
                     status=e.status,
                     error=str(e),
                     message=f"Erreur HTTP {e.status} lors du téléchargement pour {name}."
@@ -98,8 +98,8 @@ async def download_csv(
                     action="download_dns_error",
                     level="error",
                     attempt=attempt,
-                    league_code=league_code,
-                    pool_code=pool_code,
+                    league_code=pool.league_code,
+                    pool_code=pool.pool_code,
                     error=str(e),
                     message=f"Erreur DNS lors de la résolution du domaine pour {name}."
                 )
@@ -109,8 +109,8 @@ async def download_csv(
                     action="download_client_connector_error",
                     level="error",
                     attempt=attempt,
-                    league_code=league_code,
-                    pool_code=pool_code,
+                    league_code=pool.league_code,
+                    pool_code=pool.pool_code,
                     error=str(e),
                     message=f"Erreur réseau/DNS générale lors du téléchargement pour {name}."
                 )
@@ -120,8 +120,8 @@ async def download_csv(
                     action="download_timeout",
                     level="warning",
                     attempt=attempt,
-                    league_code=league_code,
-                    pool_code=pool_code,
+                    league_code=pool.league_code,
+                    pool_code=pool.pool_code,
                     message=f"Timeout lors du téléchargement pour {name}."
                 )
             except Exception as e:
@@ -129,8 +129,8 @@ async def download_csv(
                     action="download_unexpected_error",
                     level="error",
                     attempt=attempt,
-                    league_code=league_code,
-                    pool_code=pool_code,
+                    league_code=pool.league_code,
+                    pool_code=pool.pool_code,
                     error=str(e),
                     message=f"Erreur inattendue lors du téléchargement pour {name}."
                 )
@@ -150,8 +150,8 @@ async def download_csv(
                     action="download_failed",
                     level="error",
                     attempts=retries,
-                    league_code=league_code,
-                    pool_code=pool_code,
+                    league_code=pool.league_code,
+                    pool_code=pool.pool_code,
                     message=f"Échec complet pour {name} après {retries} tentatives."
                 )
 

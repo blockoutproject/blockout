@@ -5,8 +5,7 @@ from api.pools_api import (
     get_pool_by_code_league_season,
     create_pool,
     update_pool,
-    get_active_pools_by_league_code,
-    deactivate_pool,
+    get_active_pools_by_league_code
 )
 from tests.utils.fake_pool_factory import FakePoolFactory
 

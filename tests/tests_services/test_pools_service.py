@@ -1,7 +1,7 @@
 import aiohttp
 import pytest
 from aioresponses import aioresponses
-from services.pools_service import add_or_update_pool, deactivate_pools
+from services.pools_service import add_or_update_pool
 from tests.utils.fake_pool_factory import FakePoolFactory
 from urllib.parse import urlencode
 

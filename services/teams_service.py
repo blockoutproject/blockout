@@ -1,15 +1,13 @@
-import traceback
 from typing import Optional
 import aiohttp
-from api.teams_api import create_team, deactivate_team, get_active_teams_by_pool_id, update_team
+from api.teams_api import create_team, get_teams_by_division_format_gender, update_team
 from models.team import Team
-from config.logger_config import log_event, logger
 
 async def add_or_update_team(session: aiohttp.ClientSession, team: Team, existing_team: Optional[Team]) -> Team:
     """
     Vérifie l'existence d'une équipe et la met à jour ou la crée selon les besoins.
     """
-    required_fields = ['pool_id', 'team_name']
+    required_fields = ['league_code', 'division_name', 'team_name']
     missing_fields = [field for field in required_fields if not getattr(team, field, None)]
     if missing_fields:
         raise ValueError(f"Les champs obligatoires suivants sont manquants : {', '.join(missing_fields)}.")
@@ -31,26 +29,28 @@ async def add_or_update_team(session: aiohttp.ClientSession, team: Team, existin
     else:
         new_team = await create_team(session, team)
         return new_team
-
-async def deactivate_teams(session: aiohttp.ClientSession, pool_id: int, scraped_team_names: set) -> None:
+    
+async def find_team_by_name_in_division_format_gender(
+    session,
+    division_name: str,
+    format: str,
+    gender: str,
+    searched_team_name: str
+) -> Optional[Team]:
     """
-    Désactive les équipes qui existent en base mais n'ont pas été scrapées pour une pool spécifique.
+    1) Récupère toutes les équipes correspondant à (division_name, format, gender).
+    2) Filtre pour trouver celle dont team_name correspond à 'searched_team_name' (insensible à la casse).
+    3) Retourne la première correspondante ou None si introuvable.
     """
-    teams = await get_active_teams_by_pool_id(session, pool_id)
+    teams = await get_teams_by_division_format_gender(session, division_name, format, gender)
     if not teams:
-        return
+        return None
+    
+    # On peut standardiser les noms (lowercase, trim, etc.) selon ta logique
+    searched_lower = searched_team_name.strip().lower()
 
-    teams_to_deactivate = [team for team in teams if team.team_name not in scraped_team_names]
-    for team in teams_to_deactivate:
-        try:
-            await deactivate_team(session, team.id)
-        except Exception as e:
-            log_event(
-                action="deactivate_team",
-                level="error",
-                team_name=team.team_name,
-                team_id=team.id,
-                error=str(e),  # Message principal de l'exception
-                exception_type=type(e).__name__,  # Type de l'exception
-                traceback=traceback.format_exc()  # Traceback complet sous forme de chaîne
-            )
+    for t in teams:
+        if t.team_name.strip().lower() == searched_lower:
+            return t
+    
+    return None

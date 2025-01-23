@@ -1,14 +1,13 @@
 from dataclasses import asdict, dataclass
 from datetime import datetime
 from enum import Enum
-from typing import Any, Optional
+from typing import Optional
 from models.format import Format
 from models.gender import Gender
 
 @dataclass
 class Team:
     club_id: str
-    pool_id: int
     team_name: str
     league_code: str
     division_name: str

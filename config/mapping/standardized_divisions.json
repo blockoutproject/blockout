@@ -81,7 +81,9 @@
                 "RÉGIONALE FÉMININE",
                 "RÉGIONALE 1 FEMININE",
                 "RÉGIONALE  FÉMININE",
-                "REGIONAL 1 FEMININE"
+                "REGIONAL 1 FEMININE",
+                "PLAY-DOWN FEMININ",
+                ""
             ],
             "M": [
                 "REGIONAL MASCULINS",
@@ -102,7 +104,9 @@
                 "RÉGIONALE 1 MASCULINE 2024-2025",
                 "RÉGIONALE 2 MASCULINE 2024-2025",
                 "RÉGIONALE  MASCULINE",
-                "REGIONALE MASCULINE"
+                "REGIONALE MASCULINE",
+                "PLAY-DOWN MASCULIN",
+                "PLAY-OFF MASCULIN"
             ],
             "O": [
                 "REGIONAL MIXTE"
@@ -137,7 +141,8 @@
                 "MOINS 18 ANS FÉMININES OCCITANIE EST",
                 "MOINS 18 ANS FÉMININES OCCITANIE OUEST",
                 "CHAMPIONNAT RÉGIONAL : M18 FÉMININ 6X6",
-                "M18 FEMININES 6X6 2EME PHASE HDF"
+                "M18 FEMININES 6X6 2EME PHASE HDF",
+                "M18F PERFORMANCE"
             ],
             "M": [
                 "CHAMPIONNAT M18 6X6 MASCULIN",
@@ -155,7 +160,8 @@
                 "MOINS 18 ANS MASCULINS OCCITANIE OUEST",
                 "MOINS DE 18 ANS MASCULIN",
                 "CHAMPIONNAT RÉGIONAL : M18 MASCULIN 6X6",
-                "M18 MASCULINS 6X6 2EME PHASE HDF"
+                "M18 MASCULINS 6X6 2EME PHASE HDF",
+                "M18M PERFORMANCE"
             ],
             "O": [
                 "M18 - ELITE"
@@ -171,7 +177,10 @@
                 "M15 EXCELLENCE FEMININ",
                 "MOINS 15 ANS FÉMININES OCCITANIE EST",
                 "MOINS DE 15 FEMININES",
-                "MOINS 15 ANS FÉMININES OCCITANIE OUEST"
+                "MOINS 15 ANS FÉMININES OCCITANIE OUEST",
+                "M15 HONNEUR FEMININ",
+                "CHAMPIONNAT REGIONAL ELITE M15 FEMININES",
+                "PLAY-OFF FEMININ"
             ],
             "M": [
                 "M15M EXCELLENCE",
@@ -181,7 +190,8 @@
                 "CHAMPIONNAT REGIONAL MASCULIN M15",
                 "M15 EXCELLENCE MASCULIN",
                 "MOINS DE 15 MASCULINS",
-                "MOINS 15 ANS MASCULINS OCCITANIE OUEST"
+                "MOINS 15 ANS MASCULINS OCCITANIE OUEST",
+                "CHAMPIONNAT REGIONAL ELITE M15 MASCULINS"
             ],
             "O": [
                 "M15 - ELITE"

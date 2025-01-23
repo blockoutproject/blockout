@@ -22,6 +22,8 @@ def handle_api_response(response_type: Optional[Type] = None):
                     action="api_response_error",
                     level="error",
                     function=func.__name__,
+                    args=args,
+                    kwargs=kwargs,
                     error=str(e)
                 )
                 raise

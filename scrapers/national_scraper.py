@@ -1,9 +1,10 @@
 import asyncio
-from dataclasses import replace
 from bs4 import BeautifulSoup
+from api.competitions_api import bulk_deactivate_pools
 from config.logger_config import log_event
 from api.pools_api import get_pools_by_league_and_season
-from services.pools_service import add_or_update_pool, deactivate_pools
+from models.category import Category
+from services.pools_service import add_or_update_pool
 from models.pool import Pool, PoolDivisionCode
 from models.scraper import Scraper
 from utils.file_utils import create_output_directory, delete_output_directory
@@ -13,9 +14,13 @@ from utils.utils import extract_national_division, extract_season_from_url, pars
 
 class NationalScraper(Scraper):
     def __init__(self, session):
-        super().__init__(session, name="national_scraper", priority_validation_enabled=False)
-        self.national_url = "http://www.ffvb.org/119-37-1-Championnats-Nationaux"
-        self.folder = create_output_directory("National")
+        super().__init__(
+            session, name="national_scraper", 
+            category=Category.NAT, 
+            folder=create_output_directory("National"), 
+            url="http://www.ffvb.org/119-37-1-Championnats-Nationaux", 
+            priority_validation_enabled=False
+        )
         self.league_code = "ABCCS"
         self.league_name = "NATIONAL"
 
@@ -26,20 +31,19 @@ class NationalScraper(Scraper):
         """
         try:
             # 1) Récupération de la page HTML
-            html_content = await self.fetch(self.national_url)
+            html_content = await self.fetch(self.url)
             if not html_content:
                 log_event(
                     action="fetch_html",
                     level="error",
                     league_name=self.league_name,
-                    url=self.national_url,
+                    url=self.url,
                     message="Échec de la récupération du contenu HTML pour les pools nationales."
                 )
                 return
 
             soup = BeautifulSoup(html_content, 'html.parser')
             tasks = []
-            scraped_pool_codes = set()
             raw_season = None
 
             # 2) Extraction de la saison à partir du premier lien valide
@@ -82,8 +86,6 @@ class NationalScraper(Scraper):
                     # Standardisation
                     standardized = standardize_division_name(raw_division_name, PoolDivisionCode.NAT, pool_code)
 
-                    scraped_pool_codes.add(pool_code)
-
                     # Construction de l'objet Pool
                     pool_data = {
                         "pool_code": pool_code,
@@ -103,17 +105,17 @@ class NationalScraper(Scraper):
 
                     # Ajout / Mise à jour de la Pool
                     new_pool = await add_or_update_pool(self.session, pool_obj, existing_pool)
-                    if new_pool:
-                        # 5) Appel de la logique CSV, on passe le scraper
-                        #    pour écrire les matches dans le cache
-                        task = handle_csv_download_and_parse(
-                            self.session,   # session
-                            self,           # <-- on passe "self" (NationalScraper)
-                            new_pool,       # la pool
-                            raw_season,     # la saison
-                            self.folder
-                        )
-                        tasks.append(task)
+                    
+                    # 5) Appel de la logique CSV, on passe le scraper
+                    #    pour écrire les matches dans le cache
+                    task = handle_csv_download_and_parse(
+                        self,
+                        new_pool,
+                        raw_season
+                    )
+                    tasks.append(task)
+                        
+                    self.scraped_pool_ids.add(new_pool.id)
 
                 except Exception as e:
                     log_event(
@@ -128,7 +130,7 @@ class NationalScraper(Scraper):
             await asyncio.gather(*tasks)
 
             # 7) Désactivation des pools non scrapées
-            await deactivate_pools(self.session, self.league_code, scraped_pool_codes)
+            await bulk_deactivate_pools(self.session, self.scraped_pool_ids)
 
             # 8) Finalisation : on applique toutes les modifications
             await self.finalize_updates()

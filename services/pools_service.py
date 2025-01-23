@@ -1,6 +1,6 @@
 from typing import Optional
 import aiohttp
-from api.pools_api import create_pool, deactivate_pool, get_active_pools_by_league_code, update_pool
+from api.pools_api import create_pool, update_pool
 from models.pool import Pool
 from config.logger_config import log_event
 
@@ -31,26 +31,3 @@ async def add_or_update_pool(session: aiohttp.ClientSession, pool: Pool, existin
     else:
         new_pool = await create_pool(session, pool)
         return new_pool
-
-
-async def deactivate_pools(session: aiohttp.ClientSession, league_code: str, scraped_pool_codes: set) -> None:
-    """
-    Désactive les pools qui n'ont pas été scrapées pour une ligue spécifique.
-    """
-    pools = await get_active_pools_by_league_code(session, league_code)
-    if not pools:
-        return
-
-    pools_to_deactivate = [pool for pool in pools if pool.pool_code not in scraped_pool_codes]
-    for pool in pools_to_deactivate:
-        try:
-            await deactivate_pool(session, pool.id)
-        except Exception as e:
-            log_event(
-                action="deactivate_pool",
-                level="error",
-                pool_code=pool.pool_code,
-                pool_id=pool.id,
-                league_code=league_code,
-                error=str(e)
-            )
