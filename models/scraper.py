@@ -308,8 +308,3 @@ class Scraper(ABC):
                 )
 
         self._matches_cache.clear()
-        log_event(
-            action="finalize_updates",
-            level="info",
-            message="Tous les matchs du cache ont été finalisés (create/update)."
-        )
