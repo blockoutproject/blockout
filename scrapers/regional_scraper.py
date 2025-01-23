@@ -18,7 +18,7 @@ class RegionalScraper(Scraper):
         super().__init__(
             session, 
             name="regional_scraper", 
-            category=Category.PRO, 
+            category=Category.REG, 
             folder=create_output_directory("Regional"), 
             url="http://www.ffvb.org/120-37-1-Championnats-Regionaux", 
             priority_validation_enabled=False
