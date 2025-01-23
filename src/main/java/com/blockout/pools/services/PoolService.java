@@ -22,9 +22,6 @@ public class PoolService {
     @Autowired
     private PoolRepository poolRepository;
 
-    @Autowired
-    private EventPublisher eventPublisher;
-
     public Pool createPool(Pool pool) {
         Pool createdPool = poolRepository.save(pool);
         logger.info("Pool created successfully",
@@ -94,9 +91,6 @@ public class PoolService {
             logger.info("Pool successfully deactivated",
                     keyValue("action", "deactivate_pool"),
                     keyValue("poolId", poolId));
-
-            // Publier l'événement de désactivation
-            eventPublisher.publishPoolDeactivationEvent(poolId);
 
             return updatedPool;
         }).orElseThrow(() -> {
