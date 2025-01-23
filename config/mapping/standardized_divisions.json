@@ -142,7 +142,8 @@
                 "MOINS 18 ANS FÉMININES OCCITANIE OUEST",
                 "CHAMPIONNAT RÉGIONAL : M18 FÉMININ 6X6",
                 "M18 FEMININES 6X6 2EME PHASE HDF",
-                "M18F PERFORMANCE"
+                "M18F PERFORMANCE",
+                "CHAMPIONNAT REGIONAL ELITE M18 FEMININS"
             ],
             "M": [
                 "CHAMPIONNAT M18 6X6 MASCULIN",
@@ -161,7 +162,8 @@
                 "MOINS DE 18 ANS MASCULIN",
                 "CHAMPIONNAT RÉGIONAL : M18 MASCULIN 6X6",
                 "M18 MASCULINS 6X6 2EME PHASE HDF",
-                "M18M PERFORMANCE"
+                "M18M PERFORMANCE",
+                "CHAMPIONNAT REGIONAL ELITE M18 MASCULINS"
             ],
             "O": [
                 "M18 - ELITE"
@@ -180,7 +182,8 @@
                 "MOINS 15 ANS FÉMININES OCCITANIE OUEST",
                 "M15 HONNEUR FEMININ",
                 "CHAMPIONNAT REGIONAL ELITE M15 FEMININES",
-                "PLAY-OFF FEMININ"
+                "PLAY-OFF FEMININ",
+                "M15F PERFORMANCE"
             ],
             "M": [
                 "M15M EXCELLENCE",
@@ -191,7 +194,8 @@
                 "M15 EXCELLENCE MASCULIN",
                 "MOINS DE 15 MASCULINS",
                 "MOINS 15 ANS MASCULINS OCCITANIE OUEST",
-                "CHAMPIONNAT REGIONAL ELITE M15 MASCULINS"
+                "CHAMPIONNAT REGIONAL ELITE M15 MASCULINS",
+                "M15M PERFORMANCE"
             ],
             "O": [
                 "M15 - ELITE"
@@ -202,7 +206,8 @@
                 "M 13 FILLES",
                 "MOINS DE 13 ANS FÉMININES OCCITANIE EST",
                 "MOINS DE 13 ANS FÉMININES OCCITANIE OUEST",
-                "MOINS 13 ANS FÉMININES OCCITANIE EST"
+                "MOINS 13 ANS FÉMININES OCCITANIE EST",
+                "CHAMPIONNAT REGIONAL ELITE M13 FEMININS"
             ],
             "M": [
                 "M 13 GARÇONS",
@@ -210,7 +215,8 @@
                 "MOINS DE 13 ANS MASCULINS OCCITANIE OUEST",
                 "MOINS DE 13 ANS MASCULIN",
                 "CHAMPIONNAT M13 MASCULIN",
-                "MOINS 13 ANS MASCULINS OCCITANIE EST"
+                "MOINS 13 ANS MASCULINS OCCITANIE EST",
+                "CHAMPIONNAT  REGIONAL ELITE M13 MASCULINS"
             ],
             "O": [
                 "M13 - ELITE"
