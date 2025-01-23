@@ -171,8 +171,7 @@ public class MatchService {
     }
 
     public Optional<Match> getMatchByPoolAndTeamsAndDate(Long poolId, Long teamIdA, Long teamIdB, LocalDate matchDate) {
-        Optional<Match> matchOpt = matchRepository.findByPoolIdAndTeamIdAAndTeamIdBAndMatchDate(poolId, teamIdA,
-                teamIdB, matchDate);
+        Optional<Match> matchOpt = matchRepository.findByPoolIdAndTeamIdAAndTeamIdBAndMatchDate(poolId, teamIdA, teamIdB, matchDate);
         if (!matchOpt.isPresent()) {
             logger.warn("No match found for given pool, teams and date",
                     keyValue("action", "get_match_by_pool_teams_date"),
