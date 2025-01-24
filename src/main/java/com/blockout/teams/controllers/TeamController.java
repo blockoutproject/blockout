@@ -8,7 +8,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import com.blockout.teams.exceptions.TeamNotFoundException;
 import com.blockout.teams.models.Team;
 import com.blockout.teams.models.TeamFormat;
 import com.blockout.teams.models.TeamGender;
@@ -86,22 +85,6 @@ public class TeamController {
             Team updated = teamService.updateTeam(id, updatedTeam);
             return ResponseEntity.ok(updated);
         } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
-        }
-    }
-
-    @Operation(summary = "Désactiver une équipe", description = "Désactive une équipe en fonction de l'ID fourni")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Équipe désactivée avec succès"),
-            @ApiResponse(responseCode = "404", description = "Équipe non trouvée")
-    })
-    @PutMapping("/teams/{id}/deactivate")
-    public ResponseEntity<Void> deactivateTeam(
-            @Parameter(description = "ID de l'équipe à désactiver") @PathVariable Long id) {
-        try {
-            teamService.deactivateTeam(id);
-            return ResponseEntity.ok().build();
-        } catch (TeamNotFoundException e) {
             return ResponseEntity.notFound().build();
         }
     }
