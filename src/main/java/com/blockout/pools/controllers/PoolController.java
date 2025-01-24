@@ -8,7 +8,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import com.blockout.pools.exceptions.PoolNotFoundException;
 import com.blockout.pools.models.Pool;
 import com.blockout.pools.services.PoolService;
 
@@ -102,22 +101,6 @@ public class PoolController {
             Pool updated = poolService.updatePool(id, updatedPool);
             return ResponseEntity.ok(updated);
         } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
-        }
-    }
-
-    @Operation(summary = "Désactiver une poule", description = "Désactive une poule en fonction de l'ID fourni")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Poule désactivée avec succès"),
-            @ApiResponse(responseCode = "404", description = "Poule non trouvée")
-    })
-    @PutMapping("/pools/{id}/deactivate")
-    public ResponseEntity<Void> deactivatePool(
-            @Parameter(description = "ID de la poule à désactiver") @PathVariable Long id) {
-        try {
-            poolService.deactivatePool(id);
-            return ResponseEntity.ok().build();
-        } catch (PoolNotFoundException e) {
             return ResponseEntity.notFound().build();
         }
     }
