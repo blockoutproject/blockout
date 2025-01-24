@@ -52,19 +52,6 @@ public class CompetitionAssociationController {
         return ResponseEntity.ok(assoc);
     }
 
-    @Operation(summary = "Désactiver la relation entre une poule et une équipe")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Association désactivée avec succès"),
-        @ApiResponse(responseCode = "404", description = "Aucune association (Pool–Team) trouvée pour les IDs fournis")
-    })
-    @PutMapping("/pools/{poolId}/teams/{teamId}/deactivate")
-    public ResponseEntity<Void> deactivateTeamFromPool(
-            @PathVariable Long poolId,
-            @PathVariable Long teamId) {
-        associationService.deactivateAssociation(poolId, teamId);
-        return ResponseEntity.ok().build();
-    }
-
     @Operation(summary = "Récupérer les associations actives pour une poule")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Liste des associations actives renvoyée avec succès"),
@@ -110,7 +97,8 @@ public class CompetitionAssociationController {
         @ApiResponse(responseCode = "200", description = "Pools désactivées en masse avec succès"),
     })
     @PutMapping("/pools/bulk-deactivate")
-    public ResponseEntity<Void> bulkDeactivatePools(@RequestBody BulkPoolsDeactivateRequest request) {
+    public ResponseEntity<Void> bulkDeactivatePools(
+            @RequestBody BulkPoolsDeactivateRequest request) {
         associationService.bulkDeactivatePools(request.getCategory(), request.getScrapedPoolIds());
         return ResponseEntity.ok().build();
     }
