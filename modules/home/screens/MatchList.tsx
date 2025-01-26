@@ -1,18 +1,20 @@
-import MatchCard from "../components/MatchCard";
-import { Match } from "@/types/Match";
 import { useMatches } from "@/hooks/useMatches";
+import { Match } from "@/types/Match";
+import MatchCard from "../components/MatchCard";
 
 import React from "react";
 import {
-    View,
+    ActivityIndicator,
     FlatList,
     StyleSheet,
     Text,
     TouchableOpacity,
-    ActivityIndicator,
+    View,
 } from "react-native";
 
+import { colors } from "@/constants/colors";
 import { useRouter } from "expo-router";
+import Filters from "../components/Filters";
 
 function MatchList() {
     const router = useRouter();
@@ -41,30 +43,42 @@ function MatchList() {
 
     return (
         <View style={styles.container}>
-            <Text style={styles.header}>Liste des matchs</Text>
+            <View style={{ paddingLeft: 16 }}>
+                <Filters />
+            </View>
+            <View style={{ ...styles.container, padding: 16 }}>
+                <Text style={styles.header}>Aujourd'hui</Text>
 
-            {isLoading && <ActivityIndicator size="large" color="#0000ff" />}
-
-            {isError && (
-                <Text style={styles.errorText}>Erreur : {error?.message}</Text>
-            )}
-
-            <FlatList
-                data={matches}
-                keyExtractor={(item: Match) => item.id.toString()}
-                renderItem={({ item }) => (
-                    <TouchableOpacity onPress={() => handleCardPress(item.id)}>
-                        <MatchCard match={item} />
-                    </TouchableOpacity>
+                {isLoading && (
+                    <ActivityIndicator size="large" color="#0000ff" />
                 )}
-                onEndReached={loadMoreMatches}
-                onEndReachedThreshold={0.5} // Triggers halfway down
-                ListFooterComponent={
-                    isFetching ? (
-                        <ActivityIndicator size="small" color="#0000ff" />
-                    ) : null
-                }
-            />
+
+                {isError && (
+                    <Text style={styles.errorText}>
+                        Erreur : {error?.message}
+                    </Text>
+                )}
+
+                <FlatList
+                    data={matches}
+                    keyExtractor={(item: Match) => item.id.toString()}
+                    renderItem={({ item }) => (
+                        <TouchableOpacity
+                            onPress={() => handleCardPress(item.id)}
+                        >
+                            <MatchCard match={item} />
+                        </TouchableOpacity>
+                    )}
+                    onEndReached={loadMoreMatches}
+                    onEndReachedThreshold={0.5} // Triggers halfway down
+                    ListFooterComponent={
+                        isFetching ? (
+                            <ActivityIndicator size="small" color="#0000ff" />
+                        ) : null
+                    }
+                    contentContainerStyle={{ gap: 10 }}
+                />
+            </View>
         </View>
     );
 }
@@ -72,14 +86,13 @@ function MatchList() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: "#f5f5f5",
-        padding: 16,
+        backgroundColor: colors.dark,
     },
     header: {
-        fontSize: 24,
-        fontWeight: "bold",
-        marginBottom: 16,
-        color: "#333",
+        fontSize: 16,
+        fontWeight: "600",
+        marginBottom: 10,
+        color: colors.inactive,
     },
     errorText: {
         fontSize: 16,

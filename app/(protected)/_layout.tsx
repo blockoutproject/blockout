@@ -1,7 +1,7 @@
 import HomeHeader from "@/modules/home/components/Header";
 
 import React, { useEffect } from "react";
-import { View, ActivityIndicator, Button } from "react-native";
+import { ActivityIndicator, Button, View } from "react-native";
 
 import { router, Stack } from "expo-router";
 import { useAuth0 } from "react-native-auth0";

@@ -1,15 +1,22 @@
-import { colors } from "@/assets/constants";
+import { colors } from "@/constants/colors";
 
 import React from "react";
-import { View, Text, Image, TouchableOpacity } from "react-native";
+import {
+    Image,
+    SafeAreaView,
+    Text,
+    TouchableOpacity,
+    View,
+} from "react-native";
 
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useRouter } from "expo-router";
 
 const HomeHeader = () => {
     const router = useRouter();
 
     return (
-        <View
+        <SafeAreaView
             style={{
                 backgroundColor: colors.dark,
                 height: 60,
@@ -38,15 +45,10 @@ const HomeHeader = () => {
                 }}
             >
                 <TouchableOpacity>
-                    <Image
-                        style={{
-                            height: 25,
-                            width: 25,
-                            borderRadius: 100,
-                        }}
-                        source={{
-                            uri: "https://cdn-icons-png.freepik.com/512/1865/1865293.png",
-                        }}
+                    <MaterialCommunityIcons
+                        name={"whistle"}
+                        size={25}
+                        color={colors.light}
                     />
                 </TouchableOpacity>
 
@@ -63,7 +65,7 @@ const HomeHeader = () => {
                     />
                 </TouchableOpacity>
             </View>
-        </View>
+        </SafeAreaView>
     );
 };
 

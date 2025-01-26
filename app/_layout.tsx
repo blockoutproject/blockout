@@ -1,20 +1,20 @@
 // app/_layout.tsx
-import { colors } from "@/assets/constants";
+import { colors } from "@/constants/colors";
 
-import React from "react";
-import { StatusBar } from "react-native";
 import {
     DarkTheme,
     DefaultTheme,
     ThemeProvider,
 } from "@react-navigation/native";
+import React from "react";
+import { StatusBar } from "react-native";
 
+import { ApiProvider } from "@/context/ApiClientProvider";
+import { useColorScheme } from "@/hooks/useColorScheme";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
 import { Auth0Provider } from "react-native-auth0";
 import { auth0Config } from "../config/auth-config";
-import { useColorScheme } from "@/hooks/useColorScheme";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ApiProvider } from "@/context/ApiClientProvider";
 
 const queryClient = new QueryClient();
 

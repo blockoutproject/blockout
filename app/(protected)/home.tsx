@@ -1,90 +1,95 @@
-import MatchCard from "../../modules/home/components/MatchCard";
-import { Match } from "../../types/Match";
-import { useMatches } from "@/hooks/useMatches";
+import { colors } from "@/constants/colors";
+import MatchList from "@/modules/home/screens/MatchList";
+import Placeholder from "@/modules/home/screens/Placeholder";
 
 import React from "react";
 import {
-    View,
-    FlatList,
+    Pressable,
     StyleSheet,
     Text,
-    TouchableOpacity,
-    ActivityIndicator,
+    View,
+    useWindowDimensions,
 } from "react-native";
+import {
+    NavigationState,
+    Route,
+    SceneMap,
+    SceneRendererProps,
+    TabView,
+} from "react-native-tab-view";
 
-import { useRouter } from "expo-router";
+const renderScene = SceneMap({
+    results: MatchList,
+    to_come: Placeholder.PlaceholderScreen1,
+    discover: Placeholder.PlaceholderScreen2,
+});
+
+const renderTabBar = (
+    props: SceneRendererProps & {
+        navigationState: NavigationState<Route>;
+    }
+) => {
+    return (
+        <View style={styles.tabBar}>
+            {props.navigationState.routes.map((route: Route, index: number) => (
+                <Pressable
+                    key={route.key}
+                    onPress={() => props.jumpTo(route.key)}
+                >
+                    <Text
+                        style={{
+                            color:
+                                props.navigationState.index === index
+                                    ? colors.active
+                                    : colors.inactive,
+                            ...styles.tabItem,
+                        }}
+                    >
+                        {route.title}
+                    </Text>
+                </Pressable>
+            ))}
+        </View>
+    );
+};
 
 export default function HomeScreen() {
-    const router = useRouter();
+    const layout = useWindowDimensions();
+    const [index, setIndex] = React.useState(0);
 
-    const {
-        matches,
-        isLoading,
-        isError,
-        error,
-        fetchNextPage,
-        hasNextPage,
-        isFetching,
-    } = useMatches(10);
-
-    const handleCardPress = (matchId: number) => {
-        router.push({
-            pathname: "/match",
-            params: { id: matchId.toString() },
-        });
-    };
-
-    const loadMoreMatches = () => {
-        if (hasNextPage) {
-            fetchNextPage();
-        }
-    };
+    const routes = [
+        { key: "results", title: "Résultat" },
+        { key: "to_come", title: "A Venir" },
+        { key: "discover", title: "Découvrir" },
+    ];
 
     return (
-        <View style={styles.container}>
-            <Text style={styles.header}>Liste des matchs</Text>
-
-            {isLoading && <ActivityIndicator size="large" color="#0000ff" />}
-
-            {isError && (
-                <Text style={styles.errorText}>Erreur : {error?.message}</Text>
-            )}
-
-            <FlatList
-                data={matches}
-                keyExtractor={(item: Match) => item.id.toString()}
-                renderItem={({ item }) => (
-                    <TouchableOpacity onPress={() => handleCardPress(item.id)}>
-                        <MatchCard match={item} />
-                    </TouchableOpacity>
-                )}
-                onEndReached={loadMoreMatches}
-                onEndReachedThreshold={0.5} // Triggers halfway down
-                ListFooterComponent={
-                    isFetching ? (
-                        <ActivityIndicator size="small" color="#0000ff" />
-                    ) : null
-                }
-            />
-        </View>
+        <TabView
+            initialLayout={{ height: layout.height, width: layout.width }} // is this necessary? good precaution?
+            navigationState={{ index, routes }}
+            onIndexChange={setIndex}
+            renderScene={renderScene}
+            renderTabBar={renderTabBar}
+        />
     );
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: "#f5f5f5",
-        padding: 16,
+    tabBar: {
+        flexDirection: "row",
+        gap: 15,
+        justifyContent: "center",
+        paddingBottom: 15,
+        backgroundColor: colors.dark,
     },
-    header: {
-        fontSize: 24,
-        fontWeight: "bold",
-        marginBottom: 16,
-        color: "#333",
+    tabItem: {
+        fontSize: 18,
+        fontWeight: "800",
     },
-    errorText: {
-        fontSize: 16,
-        color: "red",
-        textAlign: "center",
+    activeTabItem: {
+        color: colors.active,
+    },
+    inactiveTabItem: {
+        color: colors.inactive,
     },
 });

@@ -1,7 +1,5 @@
-import TabViewExample from "@/modules/TabViewExample";
-
 import React from "react";
-import { View, StyleSheet, Button } from "react-native";
+import { Button, StyleSheet, View } from "react-native";
 
 import { useAuth0 } from "react-native-auth0";
 
@@ -19,8 +17,6 @@ export default function Profile() {
     return (
         <View style={styles.container}>
             <Button title="Se déconnecter" onPress={handleLogin} />
-
-            <TabViewExample />
         </View>
     );
 }

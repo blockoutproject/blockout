@@ -1,15 +1,15 @@
-import { Match } from "../../types/Match";
 import { useMatches } from "@/hooks/useMatches";
 import { useTeamsByIds } from "@/hooks/useTeamsByIds";
 import MainScore from "@/modules/match/components/MainScore";
+import { Match } from "../../types/Match";
 
 import React from "react";
 import {
-    View,
-    Text,
-    StyleSheet,
-    Button,
     ActivityIndicator,
+    Button,
+    StyleSheet,
+    Text,
+    View,
 } from "react-native";
 
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -69,8 +69,8 @@ export default function MatchDetailsModal() {
             <MainScore
                 teamAName="AS Cannes"
                 teamBName="Paris Volley"
-                teamALogo={require("../../assets/clubs/cannes.png")}
-                teamBLogo={require("../../assets/clubs/puc.png")}
+                teamALogo={require("@/assets/clubs/as_cannes.png")}
+                teamBLogo={require("@/assets/clubs/paris_volley.png")}
                 score={[2, 0]}
             />
         </View>
