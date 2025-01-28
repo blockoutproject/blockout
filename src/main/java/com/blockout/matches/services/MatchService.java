@@ -9,7 +9,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
@@ -36,8 +38,27 @@ public class MatchService {
     }
 
     public Page<Match> getAllMatches(Pageable pageable) {
-        LocalDateTime today = LocalDateTime.now(); // Récupère la date actuelle
-        return matchRepository.findAllByMatchDateLessThanEqualOrderByMatchDateGreaterThanEqualDescPoolIdAscMatchDateAsc(today, pageable);
+        LocalDateTime today = LocalDateTime.now();
+
+        // Construction d’un Sort multiple (jour -> pool -> date/time exact)
+        Sort sort = Sort.by(
+                // 1. On trie par la date/time ascendante
+                Sort.Order.asc("matchDate"),
+                // 2. On trie ensuite par pool.id (assure-toi que ta propriété s’appelle “pool”
+                // et non “poolId” si c’est un objet)
+                Sort.Order.asc("pool.id"),
+                // 3. Pour forcer l’ordre chronologique, on reste sur la date/time ascendante
+                // (souvent redondant, car le tri par date/time est déjà fait, mais tu peux le
+                // conserver)
+                Sort.Order.asc("matchDate"));
+
+        // On "fusionne" ce sort avec le pageable d’entrée.
+        Pageable pageableWithSort = PageRequest.of(
+                pageable.getPageNumber(),
+                pageable.getPageSize(),
+                sort);
+
+        return matchRepository.findAllByMatchDateLessThanEqual(today, pageableWithSort);
     }
 
     public Optional<Match> getMatchById(Long id) {
@@ -172,7 +193,8 @@ public class MatchService {
     }
 
     public Optional<Match> getMatchByPoolAndTeamsAndDate(Long poolId, Long teamIdA, Long teamIdB, LocalDate matchDate) {
-        Optional<Match> matchOpt = matchRepository.findByPoolIdAndTeamIdAAndTeamIdBAndMatchDate(poolId, teamIdA, teamIdB, matchDate);
+        Optional<Match> matchOpt = matchRepository.findByPoolIdAndTeamIdAAndTeamIdBAndMatchDate(poolId, teamIdA,
+                teamIdB, matchDate);
         if (!matchOpt.isPresent()) {
             logger.warn("No match found for given pool, teams and date",
                     keyValue("action", "get_match_by_pool_teams_date"),

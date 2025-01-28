@@ -35,5 +35,5 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
 
         List<Match> findByPoolId(Long poolId);
 
-        Page<Match> findAllByMatchDateLessThanEqualOrderByMatchDateGreaterThanEqualDescPoolIdAscMatchDateAsc(LocalDateTime now, Pageable pageable);
+        Page<Match> findAllByMatchDateLessThanEqual(LocalDateTime today, Pageable pageable);
 }
