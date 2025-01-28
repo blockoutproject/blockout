@@ -36,7 +36,8 @@ public class MatchService {
     }
 
     public Page<Match> getAllMatches(Pageable pageable) {
-        return matchRepository.findAllByOrderByMatchDateDescPoolIdAsc(pageable);
+        LocalDateTime today = LocalDateTime.now(); // Récupère la date actuelle
+        return matchRepository.findAllByMatchDateLessThanEqualOrderByMatchDateDescPoolIdAsc(today, pageable);
     }
 
     public Optional<Match> getMatchById(Long id) {
