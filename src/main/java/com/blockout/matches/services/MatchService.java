@@ -36,7 +36,7 @@ public class MatchService {
     }
 
     public Page<Match> getAllMatches(Pageable pageable) {
-        return matchRepository.findAll(pageable);
+        return matchRepository.findAllByOrderByMatchDateDescPoolIdAsc(pageable);
     }
 
     public Optional<Match> getMatchById(Long id) {
