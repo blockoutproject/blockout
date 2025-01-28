@@ -46,7 +46,7 @@ public class MatchService {
                 Sort.Order.asc("matchDate"),
                 // 2. On trie ensuite par pool.id (assure-toi que ta propriété s’appelle “pool”
                 // et non “poolId” si c’est un objet)
-                Sort.Order.asc("pool.id"),
+                Sort.Order.asc("poolId"),
                 // 3. Pour forcer l’ordre chronologique, on reste sur la date/time ascendante
                 // (souvent redondant, car le tri par date/time est déjà fait, mais tu peux le
                 // conserver)
