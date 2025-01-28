@@ -43,7 +43,7 @@ public class MatchService {
         // Construction d’un Sort multiple (jour -> pool -> date/time exact)
         Sort sort = Sort.by(
                 // 1. On trie par la date/time ascendante
-                Sort.Order.asc("matchDate"),
+                Sort.Order.desc("matchDate"),
                 // 2. On trie ensuite par pool.id (assure-toi que ta propriété s’appelle “pool”
                 // et non “poolId” si c’est un objet)
                 Sort.Order.asc("poolId"),
