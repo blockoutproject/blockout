@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import com.blockout.matches.exceptions.MatchNotFoundException;
 import com.blockout.matches.models.Match;
 import com.blockout.matches.models.MatchStatus;
+import com.blockout.matches.models.dto.DayPageDTO;
 import com.blockout.matches.services.MatchService;
 
 import java.time.LocalDate;
@@ -63,6 +64,23 @@ public class MatchController {
             return ResponseEntity.noContent().build();
         }
         return ResponseEntity.ok(matches);
+    }
+
+    @Operation(summary = "Récupérer les matchs groupés par jour avec pagination", description = "Retourne une liste paginée de groupes de matchs par jour")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Liste paginée des groupes de matchs par jour renvoyée avec succès"),
+            @ApiResponse(responseCode = "204", description = "Aucun match trouvé"),
+    })
+    @GetMapping("/matches/day-based")
+    public ResponseEntity<DayPageDTO> getMatchesByDay(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "3") int size) {
+
+        DayPageDTO dayPage = matchService.getMatchesByDay(page, size);
+        if (dayPage.getDayMatches().isEmpty()) {
+            return ResponseEntity.noContent().build();
+        }
+        return ResponseEntity.ok(dayPage);
     }
 
     @Operation(summary = "Récupérer un match par league_code et match_code", description = "Retourne un match spécifique basé sur le league_code et le match_code")

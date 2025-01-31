@@ -36,4 +36,29 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
         List<Match> findByPoolId(Long poolId);
 
         Page<Match> findAllByMatchDateLessThanEqual(LocalDateTime today, Pageable pageable);
+
+        /**
+         * Récupère toutes les dates distinctes jusqu'à aujourd'hui, triées par ordre
+         * décroissant.
+         *
+         * @param today La date limite (inclus).
+         * @return Liste des dates distinctes.
+         */
+        @Query("SELECT DISTINCT CAST(m.matchDate AS LocalDate) FROM Match m " +
+                        "WHERE m.matchDate <= :today " +
+                        "ORDER BY CAST(m.matchDate AS LocalDate) DESC")
+        List<LocalDate> findDistinctDatesUntil(@Param("today") LocalDateTime today);
+
+        /**
+         * Récupère tous les matchs d'une journée spécifique, indépendamment de l'heure.
+         *
+         * @param startOfDay     Début de la journée (00:00:00).
+         * @param startOfNextDay Début de la journée suivante (00:00:00 du lendemain).
+         * @return Liste des matchs de la journée.
+         */
+        @Query("SELECT m FROM Match m " +
+                        "WHERE m.matchDate >= :startOfDay AND m.matchDate < :startOfNextDay " +
+                        "ORDER BY m.poolId ASC, m.matchDate ASC")
+        List<Match> findAllByDay(@Param("startOfDay") LocalDateTime startOfDay,
+                        @Param("startOfNextDay") LocalDateTime startOfNextDay);
 }

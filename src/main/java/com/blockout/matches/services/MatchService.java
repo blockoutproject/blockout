@@ -3,6 +3,9 @@ package com.blockout.matches.services;
 import com.blockout.matches.exceptions.MatchNotFoundException;
 import com.blockout.matches.models.Match;
 import com.blockout.matches.models.MatchStatus;
+import com.blockout.matches.models.dto.DayMatchesDTO;
+import com.blockout.matches.models.dto.DayPageDTO;
+import com.blockout.matches.models.dto.PoolMatchesDTO;
 import com.blockout.matches.repositories.MatchRepository;
 
 import org.slf4j.Logger;
@@ -18,8 +21,12 @@ import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class MatchService {
@@ -35,6 +42,53 @@ public class MatchService {
                 keyValue("action", "create_match"),
                 keyValue("matchId", createdMatch.getId()));
         return createdMatch;
+    }
+
+    public DayPageDTO getMatchesByDay(int page, int size) {
+        LocalDateTime today = LocalDateTime.now();
+
+        // 1. Récupérer la liste de toutes les dates distinctes jusqu'à aujourd'hui
+        List<LocalDate> allDays = matchRepository.findDistinctDatesUntil(today);
+
+        // 2. Vérifier si la page demandée est valide
+        int fromIndex = page * size;
+        if (fromIndex >= allDays.size()) {
+            return new DayPageDTO(Collections.emptyList(), false, null);
+        }
+
+        int toIndex = Math.min(fromIndex + size, allDays.size());
+        List<LocalDate> subDays = allDays.subList(fromIndex, toIndex);
+
+        // 3. Récupérer les matchs pour chaque jour sélectionné
+        List<DayMatchesDTO> dayMatchesList = new ArrayList<>();
+        for (LocalDate day : subDays) {
+            LocalDateTime startOfDay = day.atStartOfDay();
+            LocalDateTime startOfNextDay = day.plusDays(1).atStartOfDay();
+
+            List<Match> matches = matchRepository.findAllByDay(startOfDay, startOfNextDay);
+
+            Map<Long, List<Match>> matchesByPool = matches.stream()
+                    .collect(Collectors.groupingBy(Match::getPoolId));
+
+            // Construire la liste des pools
+            List<PoolMatchesDTO> poolMatchesList = matchesByPool.entrySet().stream()
+                    .map(entry -> new PoolMatchesDTO(entry.getKey(), entry.getValue()))
+                    .collect(Collectors.toList());
+
+            // Construire le DTO final pour la journée
+            DayMatchesDTO dayMatchesDTO = new DayMatchesDTO();
+            dayMatchesDTO.setDate(day);
+            dayMatchesDTO.setPools(poolMatchesList);
+
+            dayMatchesList.add(dayMatchesDTO);
+        }
+
+        // 4. Déterminer s'il y a une page suivante
+        boolean hasNext = (toIndex < allDays.size());
+        Integer nextPage = hasNext ? (page + 1) : null;
+
+        // 5. Retourner le DTO final
+        return new DayPageDTO(dayMatchesList, hasNext, nextPage);
     }
 
     public Page<Match> getAllMatches(Pageable pageable) {
