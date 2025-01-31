@@ -1,6 +1,6 @@
 import { colors } from "@/constants/colors";
 import { useTeamsByIds } from "@/hooks/useTeamsByIds";
-import { Match } from "../../../types/Match";
+import { Match } from "@/types/Match";
 
 import React from "react";
 import { ActivityIndicator, Image, StyleSheet, Text, View } from "react-native";
@@ -10,7 +10,6 @@ type MatchCardProps = {
 };
 
 export default function MatchCard({ match }: MatchCardProps) {
-    // TODO remove this when properly handling league colors
     const index = Math.floor(Math.random() * 3);
 
     const mainLeagueColors = ["#5a8d36", "#007d89", "#bf447d"];
@@ -19,8 +18,6 @@ export default function MatchCard({ match }: MatchCardProps) {
     const secondLeagueColors = ["#2f362b", "#243335", "#3d3136"];
     const secondLeagueColor = secondLeagueColors[index];
 
-    // Retrieve teams data
-    // TODO remove this when using new endpoint
     const {
         teams,
         isLoading: teamsLoading,
@@ -32,25 +29,11 @@ export default function MatchCard({ match }: MatchCardProps) {
     }
 
     return (
-        <View
-            style={{
-                ...styles.card,
-                backgroundColor: secondLeagueColor,
-            }}
-        >
-            {/* Team 1 */}
-            <View
-                style={{
-                    ...styles.teamContainer,
-                    justifyContent: "flex-end",
-                }}
-            >
-                <Text
-                    style={styles.teamName}
-                    numberOfLines={1}
-                    ellipsizeMode="tail"
-                >
-                    {teams[0].team_name}
+        <View style={{ ...styles.card, backgroundColor: secondLeagueColor }}>
+            {/* Équipe 1 */}
+            <View style={{ ...styles.teamContainer, justifyContent: "flex-end" }}>
+                <Text style={styles.teamName} numberOfLines={1} ellipsizeMode="tail">
+                    {teams[0]?.team_name || "Équipe inconnue"}
                 </Text>
                 <Image
                     source={require("@/assets/clubs/paris_volley.png")}
@@ -60,33 +43,19 @@ export default function MatchCard({ match }: MatchCardProps) {
             </View>
 
             {/* Score */}
-            <View
-                style={{
-                    ...styles.scoreBox,
-                    borderColor: mainLeagueColor,
-                }}
-            >
-                <Text style={styles.scoreText}>{match.set}</Text>
+            <View style={{ ...styles.scoreBox, borderColor: mainLeagueColor }}>
+                <Text style={styles.scoreText}>{match.set || "-"}</Text>
             </View>
 
-            {/* Team 2 */}
-            <View
-                style={{
-                    ...styles.teamContainer,
-                    justifyContent: "flex-start",
-                }}
-            >
+            {/* Équipe 2 */}
+            <View style={{ ...styles.teamContainer, justifyContent: "flex-start" }}>
                 <Image
                     source={require("@/assets/clubs/as_cannes.png")}
                     style={styles.teamLogo}
                     resizeMode="contain"
                 />
-                <Text
-                    style={styles.teamName}
-                    numberOfLines={1}
-                    ellipsizeMode="tail"
-                >
-                    {teams[1].team_name}
+                <Text style={styles.teamName} numberOfLines={1} ellipsizeMode="tail">
+                    {teams[1]?.team_name || "Équipe inconnue"}
                 </Text>
             </View>
         </View>

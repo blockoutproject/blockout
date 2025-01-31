@@ -1,7 +1,6 @@
 import { CONFIG } from '@/config/config';
 import AbstractApi from './AbstractApi';
-import { PaginatedResponse } from '@/types/Pagination';
-import { Match } from '@/types/Match';
+import { DayPageDTO } from '@/types/Match';
 
 class MatchesApi extends AbstractApi {
     private static instance: MatchesApi | null = null;
@@ -23,8 +22,7 @@ class MatchesApi extends AbstractApi {
     /**
      * Retourne l'instance de l'API.
      * @throws Une erreur si l'instance n'a pas été initialisée.
-     */
-    public static getInstance(): MatchesApi {
+     */    public static getInstance(): MatchesApi {
         if (!MatchesApi.instance) {
             throw new Error('Initialize instance before calling getInstance().');
         }
@@ -32,25 +30,17 @@ class MatchesApi extends AbstractApi {
     }
 
     /**
-     * Récupère les matchs avec pagination.
+     * Récupère les matchs par jour avec pagination.
      * @param page - La page demandée.
      * @param size - Le nombre d'éléments par page.
-     * @returns Les données paginées des matchs.
+     * @returns La liste des matchs groupés par date et pool.
      */
-    public async getMatches({ page = 0, size = 10 }): Promise<PaginatedResponse<Match>> {
-        const response = await this.service.get('/matches', {
+    public async getMatches({ page = 0, size = 10 }): Promise<DayPageDTO> {
+        const response = await this.service.get('/matches/day-based', {
             params: { page, size },
-        });        
-        
-        const data = response.data;
+        });
 
-        return {
-            content: data.content,
-            totalElements: data.total_elements,
-            totalPages: data.total_pages,
-            number: data.number,
-            size: data.size,
-        };
+        return response.data as DayPageDTO;
     }
 }
 

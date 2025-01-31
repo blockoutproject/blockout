@@ -1,5 +1,5 @@
 import { useMatches } from "@/hooks/useMatches";
-import { Match } from "@/types/Match";
+import { DayMatchesDTO, PoolMatchesDTO, Match } from "@/types/Match";
 import MatchCard from "../components/MatchCard";
 
 import React from "react";
@@ -19,14 +19,14 @@ import Filters from "../components/Filters";
 function MatchList() {
     const router = useRouter();
     const {
-        matches,
+        dayMatches,
         isLoading,
         isError,
         error,
         fetchNextPage,
         hasNextPage,
         isFetching,
-    } = useMatches(10);
+    } = useMatches(1);
 
     const handleCardPress = (matchId: number) => {
         router.push({
@@ -47,7 +47,7 @@ function MatchList() {
                 <Filters />
             </View>
             <View style={{ ...styles.container, padding: 16 }}>
-                <Text style={styles.header}>Aujourd'hui</Text>
+                <Text style={styles.header}>Matchs par jour et pool</Text>
 
                 {isLoading && (
                     <ActivityIndicator size="large" color="#0000ff" />
@@ -60,17 +60,28 @@ function MatchList() {
                 )}
 
                 <FlatList
-                    data={matches}
-                    keyExtractor={(item: Match) => item.id.toString()}
-                    renderItem={({ item }) => (
-                        <TouchableOpacity
-                            onPress={() => handleCardPress(item.id)}
-                        >
-                            <MatchCard match={item} />
-                        </TouchableOpacity>
+                    data={dayMatches}
+                    keyExtractor={(item: DayMatchesDTO) => item.date}
+                    renderItem={({ item: day }) => (
+                        <View>
+                            <Text style={styles.dateHeader}>{day.date}</Text>
+                            {day.pools.map((pool: PoolMatchesDTO) => (
+                                <View key={pool.poolId} style={styles.poolContainer}>
+                                    <Text style={styles.poolHeader}>Pool {pool.poolId}</Text>
+                                    {pool.matches.map((match: Match) => (
+                                        <TouchableOpacity
+                                            key={match.id}
+                                            onPress={() => handleCardPress(match.id)}
+                                        >
+                                            <MatchCard match={match} />
+                                        </TouchableOpacity>
+                                    ))}
+                                </View>
+                            ))}
+                        </View>
                     )}
                     onEndReached={loadMoreMatches}
-                    onEndReachedThreshold={0.5} // Triggers halfway down
+                    onEndReachedThreshold={0.5}
                     ListFooterComponent={
                         isFetching ? (
                             <ActivityIndicator size="small" color="#0000ff" />
@@ -89,15 +100,33 @@ const styles = StyleSheet.create({
         backgroundColor: colors.dark,
     },
     header: {
-        fontSize: 16,
+        fontSize: 18,
         fontWeight: "600",
         marginBottom: 10,
-        color: colors.inactive,
+        color: colors.light,
     },
     errorText: {
         fontSize: 16,
         color: "red",
         textAlign: "center",
+    },
+    dateHeader: {
+        fontSize: 16,
+        fontWeight: "700",
+        color: colors.light,
+        marginBottom: 5,
+    },
+    poolContainer: {
+        marginBottom: 10,
+        padding: 10,
+        borderRadius: 8,
+        backgroundColor: colors.dark,
+    },
+    poolHeader: {
+        fontSize: 14,
+        fontWeight: "600",
+        color: colors.inactive,
+        marginBottom: 5,
     },
 });
 

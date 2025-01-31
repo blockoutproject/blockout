@@ -10,7 +10,7 @@ export interface Match {
     pool_id: number;
     team_id_a: number;
     team_id_b: number;
-    match_date: Date;
+    match_date: string;
     status: MatchStatus;
     set?: string;
     score?: string;
@@ -20,4 +20,20 @@ export interface Match {
     live_code?: number;
     last_update?: Date;
     active: boolean;
+}
+
+export interface PoolMatchesDTO {
+    poolId: number;
+    matches: Match[];
+}
+
+export interface DayMatchesDTO {
+    date: string;
+    pools: PoolMatchesDTO[];
+}
+
+export interface DayPageDTO {
+    day_matches: DayMatchesDTO[];
+    has_next: boolean;
+    next_page: number | null;
 }
