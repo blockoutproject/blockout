@@ -40,7 +40,7 @@ public class TeamController {
             @ApiResponse(responseCode = "200", description = "Équipes trouvées"),
             @ApiResponse(responseCode = "404", description = "Aucune équipe trouvée")
     })
-    @GetMapping("/teams")
+    @PostMapping("/teams")
     public ResponseEntity<List<Team>> getTeamsByIds(
             @Parameter(description = "Liste des IDs des équipes à récupérer (séparés par des virgules)") @RequestParam(required = false) List<Long> ids) {
 
