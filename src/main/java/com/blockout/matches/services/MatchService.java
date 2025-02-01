@@ -21,11 +21,11 @@ import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.TreeMap;
 import java.util.stream.Collectors;
 
 @Service
@@ -59,35 +59,46 @@ public class MatchService {
         int toIndex = Math.min(fromIndex + size, allDays.size());
         List<LocalDate> subDays = allDays.subList(fromIndex, toIndex);
 
-        // 3. Récupérer les matchs pour chaque jour sélectionné
-        List<DayMatchesDTO> dayMatchesList = new ArrayList<>();
-        for (LocalDate day : subDays) {
-            LocalDateTime startOfDay = day.atStartOfDay();
-            LocalDateTime startOfNextDay = day.plusDays(1).atStartOfDay();
+        // 3. Pour optimiser : récupérer en une seule requête les matchs sur la plage de
+        // dates
+        // Déterminer la plage des dates à traiter
+        LocalDate minDay = subDays.get(subDays.size() - 1); // le plus ancien dans la sous-liste
+        LocalDate maxDay = subDays.get(0); // le plus récent
+        LocalDateTime startOfMinDay = minDay.atStartOfDay();
+        LocalDateTime startOfDayAfterMax = maxDay.plusDays(1).atStartOfDay();
 
-            List<Match> matches = matchRepository.findAllByDay(startOfDay, startOfNextDay);
+        // Récupérer tous les matchs pour la plage de dates en une seule requête
+        List<Match> allMatches = matchRepository.findAllByDay(startOfMinDay, startOfDayAfterMax);
 
-            Map<Long, List<Match>> matchesByPool = matches.stream()
-                    .collect(Collectors.groupingBy(Match::getPoolId));
+        // 4. Regrouper les matchs par date
+        Map<LocalDate, List<Match>> matchesByDate = allMatches.stream()
+                .collect(Collectors.groupingBy(m -> m.getMatchDate().toLocalDate()));
 
-            // Construire la liste des pools
+        // 5. Construire la liste finale des DTO pour les dates présentes dans subDays
+        List<DayMatchesDTO> dayMatchesList = subDays.stream().map(day -> {
+            List<Match> matchesForDay = matchesByDate.getOrDefault(day, Collections.emptyList());
+
+            // Regrouper par pool en utilisant un TreeMap pour avoir un ordre (ici par
+            // poolId croissant)
+            Map<Long, List<Match>> matchesByPool = matchesForDay.stream()
+                    .collect(Collectors.groupingBy(Match::getPoolId, TreeMap::new, Collectors.toList()));
+
+            // Limiter à 3 poules maximum par date
             List<PoolMatchesDTO> poolMatchesList = matchesByPool.entrySet().stream()
                     .map(entry -> new PoolMatchesDTO(entry.getKey(), entry.getValue()))
+                    .limit(3) // ne garder que les 3 premiers groupes
                     .collect(Collectors.toList());
 
-            // Construire le DTO final pour la journée
             DayMatchesDTO dayMatchesDTO = new DayMatchesDTO();
             dayMatchesDTO.setDate(day);
             dayMatchesDTO.setPools(poolMatchesList);
+            return dayMatchesDTO;
+        }).collect(Collectors.toList());
 
-            dayMatchesList.add(dayMatchesDTO);
-        }
-
-        // 4. Déterminer s'il y a une page suivante
+        // 6. Déterminer s'il y a une page suivante
         boolean hasNext = (toIndex < allDays.size());
         Integer nextPage = hasNext ? (page + 1) : null;
 
-        // 5. Retourner le DTO final
         return new DayPageDTO(dayMatchesList, hasNext, nextPage);
     }
 
