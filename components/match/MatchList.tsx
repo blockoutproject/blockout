@@ -1,6 +1,6 @@
-import { useMatches } from "@/hooks/useMatches";
+import { useMatchesWithTeams } from "@/hooks/useMatchesWithTeams";
 import { DayMatchesDTO, PoolMatchesDTO, Match } from "@/types/Match";
-import MatchCard from "../components/MatchCard";
+import MatchCard from "./MatchCard";
 
 import React from "react";
 import {
@@ -14,19 +14,20 @@ import {
 
 import { colors } from "@/constants/colors";
 import { useRouter } from "expo-router";
-import Filters from "../components/Filters";
+import Filters from "../Filters";
 
 function MatchList() {
     const router = useRouter();
     const {
         dayMatches,
+        teams,
         isLoading,
         isError,
         error,
         fetchNextPage,
         hasNextPage,
         isFetching,
-    } = useMatches(1);
+    } = useMatchesWithTeams();
 
     const handleCardPress = (matchId: number) => {
         router.push({
@@ -66,16 +67,21 @@ function MatchList() {
                         <View>
                             <Text style={styles.dateHeader}>{day.date}</Text>
                             {day.pools.map((pool: PoolMatchesDTO) => (
-                                <View key={pool.poolId} style={styles.poolContainer}>
-                                    <Text style={styles.poolHeader}>Pool {pool.poolId}</Text>
-                                    {pool.matches.map((match: Match) => (
-                                        <TouchableOpacity
-                                            key={match.id}
-                                            onPress={() => handleCardPress(match.id)}
-                                        >
-                                            <MatchCard match={match} />
-                                        </TouchableOpacity>
-                                    ))}
+                                <View key={`${day.date}#${pool.pool_id}`} style={styles.poolContainer}>
+                                    <Text style={styles.poolHeader}>Pool {pool.pool_id}</Text>
+                                    {pool.matches.map((match: Match) => {
+                                        const teamA = teams?.find((team) => team.id === match.team_id_a);
+                                        const teamB = teams?.find((team) => team.id === match.team_id_b);
+                                        return (
+                                            <TouchableOpacity
+                                                key={match.id}
+                                                onPress={() => handleCardPress(match.id)}
+                                            >
+                                                <MatchCard match={match} teamA={teamA} teamB={teamB} />
+                                            </TouchableOpacity>
+                                        )
+                                    }
+                                    )}
                                 </View>
                             ))}
                         </View>
@@ -113,7 +119,7 @@ const styles = StyleSheet.create({
     dateHeader: {
         fontSize: 16,
         fontWeight: "700",
-        color: colors.light,
+        color: colors.active,
         marginBottom: 5,
     },
     poolContainer: {

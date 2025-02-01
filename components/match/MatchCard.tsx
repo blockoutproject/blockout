@@ -1,15 +1,18 @@
 import { colors } from "@/constants/colors";
 import { useTeamsByIds } from "@/hooks/useTeamsByIds";
 import { Match } from "@/types/Match";
+import { Team } from "@/types/Team";
 
 import React from "react";
 import { ActivityIndicator, Image, StyleSheet, Text, View } from "react-native";
 
 type MatchCardProps = {
     match: Match;
+    teamA?: Team;
+    teamB?: Team;
 };
 
-export default function MatchCard({ match }: MatchCardProps) {
+export default function MatchCard({ match, teamA, teamB }: MatchCardProps) {
     const index = Math.floor(Math.random() * 3);
 
     const mainLeagueColors = ["#5a8d36", "#007d89", "#bf447d"];
@@ -33,7 +36,7 @@ export default function MatchCard({ match }: MatchCardProps) {
             {/* Équipe 1 */}
             <View style={{ ...styles.teamContainer, justifyContent: "flex-end" }}>
                 <Text style={styles.teamName} numberOfLines={1} ellipsizeMode="tail">
-                    {teams[0]?.team_name || "Équipe inconnue"}
+                    {teamA?.team_name || "Équipe inconnue"}
                 </Text>
                 <Image
                     source={require("@/assets/clubs/paris_volley.png")}
@@ -55,7 +58,7 @@ export default function MatchCard({ match }: MatchCardProps) {
                     resizeMode="contain"
                 />
                 <Text style={styles.teamName} numberOfLines={1} ellipsizeMode="tail">
-                    {teams[1]?.team_name || "Équipe inconnue"}
+                    {teamB?.team_name || "Équipe inconnue"}
                 </Text>
             </View>
         </View>

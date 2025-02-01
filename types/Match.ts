@@ -23,7 +23,7 @@ export interface Match {
 }
 
 export interface PoolMatchesDTO {
-    poolId: number;
+    pool_id: number;
     matches: Match[];
 }
 

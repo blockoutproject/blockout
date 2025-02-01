@@ -37,7 +37,7 @@ class TeamsApi extends AbstractApi {
      */
     public async getTeamsByIds(ids?: number[]): Promise<Team[]> {
         const params = ids && ids.length > 0 ? { ids: ids.join(',') } : {};
-        const response = await this.service.get<Team[]>('/teams', { params });
+        const response = await this.service.post<Team[]>('/teams/by-ids', { params });
         return response.data;
     }
 }

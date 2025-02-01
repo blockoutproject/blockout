@@ -1,6 +1,6 @@
 import { colors } from "@/constants/colors";
-import MatchList from "@/modules/home/screens/MatchList";
-import Placeholder from "@/modules/home/screens/Placeholder";
+import MatchList from "@/components/match/MatchList";
+import Placeholder from "../../components/Placeholder";
 
 import React from "react";
 import {
