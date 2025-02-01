@@ -38,24 +38,23 @@ public class TeamController {
     @Operation(summary = "Récupérer des équipes", description = "Retourne toutes les équipes ou celles correspondant aux IDs fournis.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Équipes trouvées"),
+            @ApiResponse(responseCode = "400", description = "Liste d'IDs vide ou absente"),
             @ApiResponse(responseCode = "404", description = "Aucune équipe trouvée")
     })
     @PostMapping("/teams/by-ids")
     public ResponseEntity<List<Team>> getTeamsByIds(
-            @Parameter(description = "Liste des IDs des équipes à récupérer (séparés par des virgules)") @RequestParam(required = false) List<Long> ids) {
+            @Parameter(description = "Liste des IDs des équipes à récupérer (séparés par des virgules)", required = true) @RequestParam List<Long> ids) {
 
-        List<Team> teams;
-
-        if (ids == null || ids.isEmpty()) {
-            teams = teamService.getAllTeams();
-        } else {
-            teams = teamService.getTeamsByIds(ids);
+        if (ids.isEmpty()) {
+            return ResponseEntity.badRequest().build();
         }
-
+    
+        List<Team> teams = teamService.getTeamsByIds(ids);
+    
         if (teams.isEmpty()) {
             return ResponseEntity.notFound().build();
         }
-
+    
         return ResponseEntity.ok(teams);
     }
 
