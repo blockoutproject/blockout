@@ -1,74 +1,105 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { Match, MatchStatus } from '../../types/Match';
+import { colors } from "@/constants/colors";
+import { useTeamsByIds } from "@/hooks/useTeamsByIds";
+import { Match } from "@/types/Match";
+import { Team } from "@/types/Team";
+
+import React from "react";
+import { ActivityIndicator, Image, StyleSheet, Text, View } from "react-native";
 
 type MatchCardProps = {
     match: Match;
+    teamA?: Team;
+    teamB?: Team;
 };
 
-export default function MatchCard({ match }: MatchCardProps) {
-    const formattedDate = new Date(match.match_date).toLocaleString('fr-FR', {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-    });
+export default function MatchCard({ match, teamA, teamB }: MatchCardProps) {
+    const index = Math.floor(Math.random() * 3);
+
+    const mainLeagueColors = ["#5a8d36", "#007d89", "#bf447d"];
+    const mainLeagueColor = mainLeagueColors[index];
+
+    const secondLeagueColors = ["#2f362b", "#243335", "#3d3136"];
+    const secondLeagueColor = secondLeagueColors[index];
+
+    const {
+        teams,
+        isLoading: teamsLoading,
+        isError: teamsError,
+    } = useTeamsByIds([match.team_id_a, match.team_id_b]);
+
+    if (teamsLoading || !teams) {
+        return <ActivityIndicator size="large" color="#0000ff" />;
+    }
 
     return (
-        <View style={styles.card}>
-            <Text style={styles.teams}>
-                {`Team ${match.team_id_a} vs Team ${match.team_id_b}`}
-            </Text>
-            <Text style={styles.date}>{formattedDate}</Text>
-            <Text style={styles.location}>{match.venue || 'Lieu non spécifié'}</Text>
-            <Text style={styles.status}>
-                {match.status === MatchStatus.UPCOMING
-                    ? 'À venir'
-                    : 'Terminé'}
-            </Text>
-            {match.score && <Text style={styles.score}>{`Score: ${match.score}`}</Text>}
+        <View style={{ ...styles.card, backgroundColor: secondLeagueColor }}>
+            {/* Équipe 1 */}
+            <View style={{ ...styles.teamContainer, justifyContent: "flex-end" }}>
+                <Text style={styles.teamName} numberOfLines={1} ellipsizeMode="tail">
+                    {teamA?.team_name || "Équipe inconnue"}
+                </Text>
+                <Image
+                    source={require("@/assets/clubs/paris_volley.png")}
+                    style={styles.teamLogo}
+                    resizeMode="contain"
+                />
+            </View>
+
+            {/* Score */}
+            <View style={{ ...styles.scoreBox, borderColor: mainLeagueColor }}>
+                <Text style={styles.scoreText}>{match.set || "-"}</Text>
+            </View>
+
+            {/* Équipe 2 */}
+            <View style={{ ...styles.teamContainer, justifyContent: "flex-start" }}>
+                <Image
+                    source={require("@/assets/clubs/as_cannes.png")}
+                    style={styles.teamLogo}
+                    resizeMode="contain"
+                />
+                <Text style={styles.teamName} numberOfLines={1} ellipsizeMode="tail">
+                    {teamB?.team_name || "Équipe inconnue"}
+                </Text>
+            </View>
         </View>
     );
 }
 
 const styles = StyleSheet.create({
     card: {
-        backgroundColor: '#fff',
-        padding: 16,
-        marginVertical: 8,
+        padding: 12,
+        borderRadius: 10,
+        flexDirection: "row",
+        gap: 5,
+    },
+    teamContainer: {
+        alignItems: "center",
+        flex: 3,
+        flexDirection: "row",
+    },
+    teamName: {
+        color: colors.light,
+        fontSize: 14,
+        fontWeight: "800",
+        maxWidth: 80,
+        minWidth: 80,
+    },
+    teamLogo: {
+        height: 35,
+        width: 35,
+    },
+    scoreBox: {
+        alignItems: "center",
+        backgroundColor: colors.dark,
+        borderWidth: 2,
         borderRadius: 8,
-        shadowColor: '#000',
-        shadowOpacity: 0.1,
-        shadowOffset: { width: 0, height: 1 },
-        shadowRadius: 4,
-        elevation: 3,
+        flex: 1,
+        justifyContent: "center",
+        paddingHorizontal: 8,
     },
-    teams: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        marginBottom: 8,
-    },
-    date: {
-        fontSize: 14,
-        color: '#555',
-        marginBottom: 4,
-    },
-    location: {
-        fontSize: 14,
-        color: '#777',
-        marginBottom: 4,
-    },
-    status: {
-        fontSize: 14,
-        color: '#007BFF',
-        fontWeight: 'bold',
-    },
-    score: {
-        fontSize: 16,
-        color: '#28a745',
-        fontWeight: 'bold',
-        marginTop: 4,
+    scoreText: {
+        color: colors.light,
+        fontSize: 22,
+        fontWeight: "800",
     },
 });
