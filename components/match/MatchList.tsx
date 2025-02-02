@@ -93,7 +93,6 @@ function MatchList() {
                             <ActivityIndicator size="small" color="#0000ff" />
                         ) : null
                     }
-                    contentContainerStyle={{ gap: 10 }}
                 />
             </View>
         </View>

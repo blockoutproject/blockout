@@ -6,20 +6,16 @@ import { useTeamsByIds } from '@/hooks/useTeamsByIds';
 import MatchScoreCard from '@/components/match/MatchScoreCard';
 import MatchScoreDetailsCard from '@/components/match/MatchScoreDetailsCard';
 import MatchInfoCard from '@/components/match/MatchInfoCard';
+import { useTeamById } from '@/hooks/useTeamById';
 
 export default function MatchModalScreen() {
     const params = useLocalSearchParams();
     const matchId = Number(params.id);
 
     // Récupération du match à partir du cache grâce à notre hook
-    const match = useMatchById(matchId);
+    const { match, teamA, teamB, isLoading, isError, error } = useMatchById(matchId);
 
-    // Récupération des équipes associées si le match existe
-    const { teams, isLoading: teamsLoading } = useTeamsByIds(
-        match ? [match.team_id_a, match.team_id_b] : []
-    );
-
-    if (!match || teamsLoading) {
+    if (isLoading) {
         return (
             <View style={styles.container}>
                 <ActivityIndicator size="large" color="#0000ff" />
@@ -30,19 +26,19 @@ export default function MatchModalScreen() {
 
     return (
         <ScrollView contentContainerStyle={styles.container}>
-            {teams && teams[0] && teams[1] && (
+            {teamA && teamB && match && (
                 <>
                     <MatchScoreCard
-                        homeTeamName={teams[0].team_name}
+                        homeTeamName={teamA.team_name}
                         homeTeamLogo="https://exemple.com/logo-ascannes.png"
-                        awayTeamName={teams[1].team_name}
+                        awayTeamName={teamB.team_name}
                         awayTeamLogo="https://exemple.com/logo-recvolley.png"
                         finalScore={match.set || '0 : 0'}
                     />
                     <MatchScoreDetailsCard
                         title="Score"
-                        homeTeam={teams[0]}
-                        awayTeam={teams[1]}
+                        homeTeam={teamA}
+                        awayTeam={teamB}
                         match={match}
                     />
                     <MatchInfoCard

@@ -1,6 +1,6 @@
 import { CONFIG } from '@/config/config';
 import AbstractApi from './AbstractApi';
-import { DayPageDTO } from '@/types/Match';
+import { DayPageDTO, Match } from '@/types/Match';
 
 class MatchesApi extends AbstractApi {
     private static instance: MatchesApi | null = null;
@@ -41,6 +41,16 @@ class MatchesApi extends AbstractApi {
         });
 
         return response.data as DayPageDTO;
+    }
+
+    /**
+     * Récupère un match spécifique par son ID.
+     * @param matchId - L'ID du match à récupérer.
+     * @returns Le match correspondant à l'ID donné.
+     */
+    public async getMatchById(matchId: number): Promise<Match> {
+        const response = await this.service.get(`/matches/${matchId}`);
+        return response.data as Match;
     }
 }
 

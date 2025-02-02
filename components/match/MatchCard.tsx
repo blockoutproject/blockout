@@ -4,7 +4,7 @@ import { Match } from "@/types/Match";
 import { Team } from "@/types/Team";
 
 import React from "react";
-import { ActivityIndicator, Image, StyleSheet, Text, View } from "react-native";
+import { Image, StyleSheet, Text, View } from "react-native";
 
 type MatchCardProps = {
     match: Match;
@@ -20,16 +20,6 @@ export default function MatchCard({ match, teamA, teamB }: MatchCardProps) {
 
     const secondLeagueColors = ["#2f362b", "#243335", "#3d3136"];
     const secondLeagueColor = secondLeagueColors[index];
-
-    const {
-        teams,
-        isLoading: teamsLoading,
-        isError: teamsError,
-    } = useTeamsByIds([match.team_id_a, match.team_id_b]);
-
-    if (teamsLoading || !teams) {
-        return <ActivityIndicator size="large" color="#0000ff" />;
-    }
 
     return (
         <View style={{ ...styles.card, backgroundColor: secondLeagueColor }}>

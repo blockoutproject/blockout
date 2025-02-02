@@ -31,13 +31,25 @@ class TeamsApi extends AbstractApi {
     }
 
     /**
-     * Récupère les équipes par leurs identifiants.
-     * @param ids - Un tableau d'identifiants d'équipes.
+     * Récupère les équipes par leurs identifiants (liste non vide).
+     * @param ids - Tableau d'identifiants d'équipes (doit être non vide).
      * @returns Un tableau d'équipes correspondant aux identifiants donnés.
+     * @throws Erreur si `ids` est vide.
      */
-    public async getTeamsByIds(ids?: number[]): Promise<Team[]> {
-        const params = ids && ids.length > 0 ? { ids: ids.join(',') } : {};
-        const response = await this.service.post<Team[]>('/teams/by-ids', { params });
+    public async getTeamsByIds(ids: number[]): Promise<Team[]> {
+        const params = { ids: ids.join(',') };
+
+        const response = await this.service.post<Team[]>('/teams/by-ids', null, { params });
+        return response.data;
+    }
+
+    /**
+     * Récupère une équipe par son identifiant.
+     * @param id - L'identifiant de l'équipe.
+     * @returns Une promesse renvoyant l'équipe correspondante.
+     */
+    public async getTeamById(id: number): Promise<Team> {
+        const response = await this.service.get<Team>(`/teams/${id}`);
         return response.data;
     }
 }

@@ -1,13 +1,25 @@
+// useTeamsByIds.ts
+import { useQueries } from '@tanstack/react-query';
 import TeamsApi from '@/api/TeamsApi';
-import { useQuery } from '@tanstack/react-query';
+import { Team } from '@/types/Team';
 
-export function useTeamsByIds(ids?: number[]) {
-    const { data: teams, isLoading, isError, error, isFetching } = useQuery({
-        queryKey: ['teams', ids?.sort() || 'all'],
-        queryFn: () => TeamsApi.getInstance().getTeamsByIds(ids),
-        enabled: !!ids && ids.length > 0,
-        staleTime: 1000 * 60 * 5, 
+export function useTeamsByIds(ids: number[]) {
+    // Pour chaque ID, on lance une requête individuelle
+    const teamQueries = useQueries({
+        queries: ids.map(id => ({
+            queryKey: ['team', id],
+            queryFn: async (): Promise<Team> => {
+                return TeamsApi.getInstance().getTeamById(id);
+            },
+            staleTime: 1000 * 60 * 5,
+        })),
     });
 
-    return { teams, isLoading, isError, error, isFetching };
+    // Rassembler les équipes chargées
+    const teams = teamQueries.map(query => query.data).filter(Boolean) as Team[];
+    const isLoading = teamQueries.some(query => query.isLoading);
+    const isError = teamQueries.some(query => query.isError);
+    const error = teamQueries.find(query => query.error)?.error;
+
+    return { teams, isLoading, isError, error };
 }

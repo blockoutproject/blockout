@@ -15,6 +15,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
 import { Auth0Provider } from "react-native-auth0";
 import { auth0Config } from "../config/auth-config";
+import { DevToolsBubble } from "react-native-react-query-devtools";
+import * as Clipboard from 'expo-clipboard';
 
 const queryClient = new QueryClient();
 
@@ -28,11 +30,20 @@ export default function RootLayout() {
         colorScheme == "dark" ? "light-content" : "dark-content"
     );
 
+    const onCopy = async (text: string) => {
+        try {
+            await Clipboard.setStringAsync(text);
+            return true;
+        } catch {
+            return false;
+        }
+    };
+
     return (
-        <ThemeProvider
-            value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
-        >
-            <QueryClientProvider client={queryClient}>
+        <QueryClientProvider client={queryClient}>
+            <ThemeProvider
+                value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
+            >
                 <Auth0Provider
                     domain={auth0Config.domain}
                     clientId={auth0Config.clientId}
@@ -45,7 +56,8 @@ export default function RootLayout() {
                         </Stack>
                     </ApiProvider>
                 </Auth0Provider>
-            </QueryClientProvider>
-        </ThemeProvider>
+            </ThemeProvider>
+            <DevToolsBubble onCopy={onCopy} />
+        </QueryClientProvider >
     );
 }
