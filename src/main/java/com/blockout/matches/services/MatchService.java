@@ -85,7 +85,7 @@ public class MatchService {
 
             // Limiter à 3 poules maximum par date
             List<PoolMatchesDTO> poolMatchesList = matchesByPool.entrySet().stream()
-                    .filter(entry -> entry.getKey() == 1 || entry.getKey() == 2 || entry.getKey() == 3) // Filtrer les pools 1, 2 et 3
+                    .filter(entry -> entry.getKey() == 1 || entry.getKey() == 2 || entry.getKey() == 3 || entry.getKey() == 282)
                     .map(entry -> new PoolMatchesDTO(entry.getKey(), entry.getValue()))
                     .collect(Collectors.toList());
 
