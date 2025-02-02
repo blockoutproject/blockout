@@ -1,5 +1,4 @@
 import { colors } from "@/constants/colors";
-import { useTeamsByIds } from "@/hooks/useTeamsByIds";
 import { Match } from "@/types/Match";
 import { Team } from "@/types/Team";
 

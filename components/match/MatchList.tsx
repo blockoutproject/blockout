@@ -1,4 +1,3 @@
-import { useMatchesWithTeams } from "@/hooks/useMatchesWithTeams";
 import { DayMatchesDTO, PoolMatchesDTO, Match } from "@/types/Match";
 import MatchCard from "./MatchCard";
 
@@ -15,19 +14,21 @@ import {
 import { colors } from "@/constants/colors";
 import { useRouter } from "expo-router";
 import Filters from "../Filters";
+import { useMatchesWithTeamsAndPools } from "@/hooks/useMatchesWithTeamsAndPools";
 
 function MatchList() {
     const router = useRouter();
     const {
         dayMatches,
         teams,
+        pools,
         isLoading,
         isError,
         error,
         fetchNextPage,
         hasNextPage,
         isFetching,
-    } = useMatchesWithTeams();
+    } = useMatchesWithTeamsAndPools();
 
     const handleCardPress = (matchId: number) => {
         router.push({

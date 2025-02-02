@@ -2,8 +2,9 @@
 import { useMemo } from "react";
 import { useMatches } from "./useMatches";
 import { useTeamsByIds } from "./useTeamsByIds";
+import { usePoolsByIds } from "./usePoolsByIds";
 
-export function useMatchesWithTeams() {
+export function useMatchesWithTeamsAndPools() {
     const {
         data,           // Données brutes de l'infinite query
         dayMatches,     // Liste groupée (ou aplatie) de matchs
@@ -32,7 +33,20 @@ export function useMatchesWithTeams() {
         return Array.from(ids);
     }, [data]);
 
-    // Appeler useTeamsByIds avec l'ensemble complet des IDs (donc toutes les équipes restent observées)
+    // Calculer l'union de tous les team IDs depuis toutes les pages fetchées
+    const allPoolIds = useMemo(() => {
+        if (!data || !data.pages) return [];
+        const ids = new Set<number>();
+        data.pages.forEach(page => {
+            page.day_matches.forEach(day => {
+                day.pools.forEach(pool => {
+                    if (pool.pool_id) ids.add(pool.pool_id);
+                });
+            });
+        });
+        return Array.from(ids);
+    }, [data]);
+
     const {
         teams,
         isLoading: isLoadingTeams,
@@ -40,15 +54,22 @@ export function useMatchesWithTeams() {
         error: errorTeams
     } = useTeamsByIds(allTeamIds);
 
-    // Combiner les états de chargement et d'erreur
-    const isLoading = isLoadingMatches || (isLoadingTeams && allTeamIds.length === 0);
-    const isFetching = isFetchingNextPage || (isLoadingTeams && allTeamIds.length > 0);
-    const isError = isErrorMatches || isErrorTeams;
-    const error = errorMatches || errorTeams;
+    const {
+        pools,
+        isLoading: isLoadingPools,
+        isError: isErrorPools,
+        error: errorPools
+    } = usePoolsByIds(allPoolIds);
+
+    const isLoading = isLoadingMatches || (isLoadingTeams && allTeamIds.length === 0) || (isLoadingPools && allPoolIds.length > 0);
+    const isFetching = isFetchingNextPage || (isLoadingTeams && allTeamIds.length > 0) || (isLoadingPools && allPoolIds.length > 0);
+    const isError = isErrorMatches || isErrorTeams || isErrorPools;
+    const error = errorMatches || errorTeams || errorPools;
 
     return {
-        dayMatches,         // Tous les matchs (toutes pages)
-        teams,              // Toutes les équipes récupérées (de toutes les pages)
+        dayMatches,
+        teams,
+        pools,
         isLoading,
         isFetching,
         isError,

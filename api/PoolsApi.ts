@@ -35,7 +35,7 @@ class PoolsApi extends AbstractApi {
      * @returns Un tableau de toutes les poules.
      */
     public async getAllPools(): Promise<Pool[]> {
-        const response = await this.service.get<Pool[]>('/');
+        const response = await this.service.get<Pool[]>('/pools');
         return response.data;
     }
 
@@ -45,7 +45,7 @@ class PoolsApi extends AbstractApi {
      * @returns La poule correspondant à l'identifiant donné.
      */
     public async getPoolById(id: number): Promise<Pool> {
-        const response = await this.service.get<Pool>(`/${id}`);
+        const response = await this.service.get<Pool>(`/pools/${id}`);
         return response.data;
     }
 }
