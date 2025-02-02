@@ -46,6 +46,7 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
          */
         @Query("SELECT DISTINCT CAST(m.matchDate AS LocalDate) FROM Match m " +
                         "WHERE m.matchDate <= :today " +
+                        "AND m.poolId IN (1, 2, 3) " +
                         "ORDER BY CAST(m.matchDate AS LocalDate) DESC")
         List<LocalDate> findDistinctDatesUntil(@Param("today") LocalDateTime today);
 
