@@ -84,7 +84,7 @@ public class PoolController {
     public ResponseEntity<Optional<Pool>> getPoolById(
             @Parameter(description = "ID de la pool à récupérer") @PathVariable Long id) {
         Optional<Pool> pool = poolService.getPoolById(id);
-        return pool.isPresent() ? ResponseEntity.ok().build()
+        return pool.isPresent() ? ResponseEntity.ok(pool)
                 : ResponseEntity.notFound().build();
     }
 
