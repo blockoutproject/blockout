@@ -13,7 +13,7 @@ export default function MatchModalScreen() {
     const matchId = Number(params.id);
 
     // Récupération du match à partir du cache grâce à notre hook
-    const { match, teamA, teamB, isLoading, isError, error } = useMatchById(matchId);
+    const { match, teamA, teamB, isLoading } = useMatchById(matchId);
 
     if (isLoading) {
         return (

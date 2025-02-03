@@ -1,8 +1,9 @@
 import React, { useEffect } from 'react';
 import { router, Stack } from 'expo-router';
 import { useAuth0 } from 'react-native-auth0';
-import { View, ActivityIndicator, TouchableOpacity, Text, Image } from 'react-native';
+import { View, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { MatchHeader } from '@/components/match/MatchHeader';
 
 export default function ProtectedLayout() {
     const { user, isLoading } = useAuth0();
@@ -38,51 +39,7 @@ export default function ProtectedLayout() {
                 name="match"
                 options={{
                     presentation: 'modal',
-                    header: () => (
-                        <View
-                            style={{
-                                flexDirection: 'row',
-                                alignItems: 'center',
-                                justifyContent: 'space-between',
-                                backgroundColor: '#111',
-                                paddingHorizontal: 12,
-                                paddingVertical: 15
-                            }}
-                        >
-                            {/* Bouton back */}
-                            <TouchableOpacity
-                                onPress={() => router.back()}              >
-                                <Ionicons name="arrow-back" size={30} color="#fff" />
-                            </TouchableOpacity>
-
-                            <View
-                                style={{
-                                    flexDirection: 'row',
-                                    alignItems: 'center',
-                                }}
-                            >
-                                {/* Logo + Titre */}
-                                <Image
-                                    source={require('../../assets/leagues/msl.png')} // Remplacez par votre logo
-                                    style={{ width: 28, height: 28, marginRight: 8, borderRadius: 5 }}
-                                    resizeMode="contain"
-                                />
-                                <Text style={{ color: '#fff', fontSize: 18, fontWeight: '600' }}>
-                                    N2F Poule C
-                                </Text>
-                            </View>
-
-                            {/* Bouton partage */}
-                            <TouchableOpacity
-                                onPress={() => {
-                                    // Votre logique de partage ici
-                                    console.log('Share pressed !');
-                                }}
-                            >
-                                <Ionicons name="share-outline" size={30} color="#fff" />
-                            </TouchableOpacity>
-                        </View>
-                    ),
+                    header: () => <MatchHeader />
                 }}
             />
         </Stack>

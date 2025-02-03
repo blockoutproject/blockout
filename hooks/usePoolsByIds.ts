@@ -14,8 +14,14 @@ export function usePoolsByIds(ids: number[]) {
         })),
     });
 
+    const pools: Record<number, Pool> = poolQueries.reduce((acc, query) => {
+        if (query.data) {
+            acc[query.data.id] = query.data;
+        }
+        return acc;
+    }, {} as Record<number, Pool>);
+
     // Rassembler les poules chargées
-    const pools = poolQueries.map(query => query.data).filter(Boolean) as Pool[];
     const isLoading = poolQueries.some(query => query.isLoading);
     const isError = poolQueries.some(query => query.isError);
     const error = poolQueries.find(query => query.error)?.error;

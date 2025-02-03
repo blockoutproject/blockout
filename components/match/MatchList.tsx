@@ -69,10 +69,10 @@ function MatchList() {
                             <Text style={styles.dateHeader}>{day.date}</Text>
                             {day.pools.map((pool: PoolMatchesDTO) => (
                                 <View key={`${day.date}#${pool.pool_id}`} style={styles.poolContainer}>
-                                    <Text style={styles.poolHeader}>Pool {pool.pool_id}</Text>
+                                    <Text style={styles.poolHeader}>{pools[pool.pool_id] ? pools[pool.pool_id].pool_name : "chargement"}</Text>
                                     {pool.matches.map((match: Match) => {
-                                        const teamA = teams?.find((team) => team.id === match.team_id_a);
-                                        const teamB = teams?.find((team) => team.id === match.team_id_b);
+                                        const teamA = teams[match.team_id_a];
+                                        const teamB = teams[match.team_id_b];
                                         return (
                                             <TouchableOpacity
                                                 key={match.id}
