@@ -1,9 +1,10 @@
 package com.blockout.competitions.controllers;
 
-import com.blockout.competitions.dto.BulkPoolsDeactivateRequest;
-import com.blockout.competitions.dto.BulkTeamsDeactivateRequest;
 import com.blockout.competitions.models.Category;
 import com.blockout.competitions.models.CompetitionAssociation;
+import com.blockout.competitions.models.dto.BulkPoolsDeactivateRequest;
+import com.blockout.competitions.models.dto.BulkTeamsDeactivateRequest;
+import com.blockout.competitions.models.dto.TeamAssociationStatsRequest;
 import com.blockout.competitions.services.CompetitionAssociationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -101,5 +102,19 @@ public class CompetitionAssociationController {
             @RequestBody BulkPoolsDeactivateRequest request) {
         associationService.bulkDeactivatePools(request.getCategory(), request.getScrapedPoolIds());
         return ResponseEntity.ok().build();
+    }
+    @Operation(summary = "Mettre à jour les statistiques de l'association (pool–team)")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Statistiques mises à jour avec succès"),
+        @ApiResponse(responseCode = "404", description = "Association non trouvée")
+    })
+    @PutMapping("/pools/{poolId}/teams/{teamId}/stats")
+    public ResponseEntity<CompetitionAssociation> updateTeamAssociationStats(
+            @PathVariable Long poolId,
+            @PathVariable Long teamId,
+            @RequestBody TeamAssociationStatsRequest statsRequest
+    ) {
+        CompetitionAssociation updatedAssoc = associationService.updateTeamAssociationStats(poolId, teamId, statsRequest);
+        return ResponseEntity.ok(updatedAssoc);
     }
 }

@@ -6,7 +6,7 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "competition_association", uniqueConstraints = {
-        @UniqueConstraint(columnNames = { "pool_id", "team_id" }, name = "uix_pool_team")
+        @UniqueConstraint(columnNames = { "pool_id", "team_id", "category" }, name = "uix_pool_team_category")
 })
 @Data
 @Builder
@@ -32,9 +32,21 @@ public class CompetitionAssociation {
     @Column(name = "active", nullable = false)
     private Boolean active = true;
 
-    @Column(name = "points", nullable = false)
     @Builder.Default
+    @Column(name = "points", nullable = false)
     private Integer points = 0;
+    
+    @Builder.Default
+    @Column(name = "played", nullable = false)
+    private Integer played = 0;
+
+    @Builder.Default
+    @Column(name = "wins", nullable = false)
+    private Integer wins = 0;
+
+    @Builder.Default
+    @Column(name = "losses", nullable = false)
+    private Integer losses = 0;
 
     @Column(name = "last_update")
     private LocalDateTime lastUpdate;

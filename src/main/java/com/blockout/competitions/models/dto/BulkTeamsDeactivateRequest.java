@@ -1,4 +1,4 @@
-package com.blockout.competitions.dto;
+package com.blockout.competitions.models.dto;
 
 import lombok.Data;
 import java.util.List;

@@ -2,7 +2,11 @@ package com.blockout.competitions.services;
 
 import com.blockout.competitions.models.Category;
 import com.blockout.competitions.models.CompetitionAssociation;
+import com.blockout.competitions.models.dto.TeamAssociationStatsRequest;
 import com.blockout.competitions.repositories.CompetitionAssociationRepository;
+
+import jakarta.persistence.EntityNotFoundException;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -162,5 +166,31 @@ public class CompetitionAssociationService {
                     keyValue("action", "publish_pool_deactivation"),
                     keyValue("poolId", poolId));
         }
+    }
+
+    /**
+     * Met à jour les statistiques de l'association (pool–team).
+     */
+    public CompetitionAssociation updateTeamAssociationStats(Long poolId, Long teamId, TeamAssociationStatsRequest request) {
+        CompetitionAssociation assoc = associationRepository.findByPoolIdAndTeamId(poolId, teamId)
+                .orElseThrow(() -> new EntityNotFoundException("Association not found for poolId " + poolId + " and teamId " + teamId));
+
+        assoc.setPlayed(request.getPlayed());
+        assoc.setWins(request.getWins());
+        assoc.setLosses(request.getLosses());
+        assoc.setPoints(request.getPoints());
+
+        CompetitionAssociation updatedAssoc = associationRepository.save(assoc);
+
+        logger.info("Updated team association stats",
+                keyValue("action", "update_association_stats"),
+                keyValue("poolId", poolId),
+                keyValue("teamId", teamId),
+                keyValue("played", request.getPlayed()),
+                keyValue("wins", request.getWins()),
+                keyValue("losses", request.getLosses()),
+                keyValue("points", request.getPoints()));
+
+        return updatedAssoc;
     }
 }
