@@ -1,6 +1,6 @@
 // useMatchById.ts
 import { useQuery } from '@tanstack/react-query';
-import { useTeamById } from './useTeamById';
+import { useTeamById } from '../team/useTeamById';
 import { Match } from '@/types/Match';
 import MatchesApi from '@/api/MatchesApi';
 

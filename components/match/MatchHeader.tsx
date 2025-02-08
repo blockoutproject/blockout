@@ -1,6 +1,6 @@
-import { useMatchById } from "@/hooks/useMatchById";
-import { usePoolById } from "@/hooks/usePoolById";
-import { usePoolsByIds } from "@/hooks/usePoolsByIds";
+import { useMatchById } from "@/hooks/match/useMatchById";
+import { usePoolById } from "@/hooks/pool/usePoolById";
+import { usePoolsByIds } from "@/hooks/pool/usePoolsByIds";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useGlobalSearchParams } from "expo-router";
 import { TouchableOpacity, View, Image, Text } from "react-native";
@@ -9,10 +9,8 @@ export function MatchHeader() {
     const route = useGlobalSearchParams();
     const matchId = Number(route.id);
 
-    // 🔥 Charger les infos du match
     const { match } = useMatchById(matchId);
     const { data: pool } = usePoolById(match?.pool_id);
-    console.log("Pool", pool);  
 
     return (
         <View
@@ -30,7 +28,6 @@ export function MatchHeader() {
                 <Ionicons name="arrow-back" size={30} color="#fff" />
             </TouchableOpacity>
 
-            {/* 🔥 Affichage du nom de la Pool */}
             <View
                 style={{
                     flexDirection: "row",

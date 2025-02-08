@@ -1,18 +1,15 @@
 import React from 'react';
 import { ScrollView, View, Text, ActivityIndicator, StyleSheet } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useMatchById } from '@/hooks/useMatchById';
-import { useTeamsByIds } from '@/hooks/useTeamsByIds';
+import { useLocalSearchParams } from 'expo-router';
+import { useMatchById } from '@/hooks/match/useMatchById';
 import MatchScoreCard from '@/components/match/MatchScoreCard';
 import MatchScoreDetailsCard from '@/components/match/MatchScoreDetailsCard';
 import MatchInfoCard from '@/components/match/MatchInfoCard';
-import { useTeamById } from '@/hooks/useTeamById';
+import RankingCard from '@/components/pool/RankingCard';
 
 export default function MatchModalScreen() {
     const params = useLocalSearchParams();
     const matchId = Number(params.id);
-
-    // Récupération du match à partir du cache grâce à notre hook
     const { match, teamA, teamB, isLoading } = useMatchById(matchId);
 
     if (isLoading) {
@@ -25,40 +22,51 @@ export default function MatchModalScreen() {
     }
 
     return (
-        <ScrollView contentContainerStyle={styles.container}>
+        <View style={styles.container}>
             {teamA && teamB && match && (
                 <>
-                    <MatchScoreCard
-                        homeTeamName={teamA.team_name}
-                        homeTeamLogo="https://exemple.com/logo-ascannes.png"
-                        awayTeamName={teamB.team_name}
-                        awayTeamLogo="https://exemple.com/logo-recvolley.png"
-                        finalScore={match.set || '0 : 0'}
-                    />
-                    <MatchScoreDetailsCard
-                        title="Score"
-                        homeTeam={teamA}
-                        awayTeam={teamB}
-                        match={match}
-                    />
-                    <MatchInfoCard
-                        date={match.match_date}
-                        duration="1h30"
-                        league={match.league_code}
-                        venue={match.venue}
-                        referee1={match.referee1}
-                        referee2={match.referee2}
-                    />
+                    <ScrollView contentContainerStyle={styles.scrollContent}>
+                        <MatchScoreCard
+                            homeTeamName={teamA.team_name}
+                            homeTeamLogo="https://exemple.com/logo-ascannes.png"
+                            awayTeamName={teamB.team_name}
+                            awayTeamLogo="https://exemple.com/logo-recvolley.png"
+                            finalScore={match.set || '0 : 0'}
+                        />
+
+                        {/* 📌 ScrollView pour tout le reste */}
+                        <MatchScoreDetailsCard title="Score" homeTeam={teamA} awayTeam={teamB} match={match} />
+                        <MatchInfoCard
+                            date={match.match_date}
+                            duration="1h30"
+                            league={match.league_code}
+                            venue={match.venue}
+                            referee1={match.referee1}
+                            referee2={match.referee2}
+                        />
+                        <RankingCard poolId={match.pool_id} />
+                    </ScrollView>
                 </>
             )}
-        </ScrollView>
+        </View>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        padding: 16,
         backgroundColor: '#111',
+    },
+    fixedHeader: {
+        position: 'absolute',  // 📌 Fixe en haut
+        top: 0,
+        left: 0,
+        right: 0,
+        zIndex: 10,
+        backgroundColor: '#111', // Même couleur pour éviter effet visuel bizarre
+        paddingVertical: 10,
+    },
+    scrollContent: {
+        paddingHorizontal: 16,
     },
 });

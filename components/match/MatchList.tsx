@@ -14,7 +14,7 @@ import {
 import { colors } from "@/constants/colors";
 import { useRouter } from "expo-router";
 import Filters from "../Filters";
-import { useMatchesWithTeamsAndPools } from "@/hooks/useMatchesWithTeamsAndPools";
+import { useMatchesWithTeamsAndPools } from "@/hooks/match/useMatchesWithTeamsAndPools";
 
 function MatchList() {
     const router = useRouter();

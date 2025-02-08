@@ -3,6 +3,7 @@ import { useAuth0 } from 'react-native-auth0';
 import MatchesApi from '@/api/MatchesApi';
 import TeamsApi from '@/api/TeamsApi';
 import PoolsApi from '@/api/PoolsApi';
+import CompetitionsApi from '@/api/CompetitionsApi';
 
 export const ApiProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const { getCredentials, user } = useAuth0();
@@ -20,6 +21,7 @@ export const ApiProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                         MatchesApi.initInstance(token);
                         TeamsApi.initInstance(token);
                         PoolsApi.initInstance(token);
+                        CompetitionsApi.initInstance(token);
 
                         console.info('APIs initialisées avec succès.');
                     }

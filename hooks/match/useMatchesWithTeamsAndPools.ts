@@ -1,8 +1,8 @@
 // useMatchesWithTeams.ts
 import { useMemo } from "react";
 import { useMatches } from "./useMatches";
-import { useTeamsByIds } from "./useTeamsByIds";
-import { usePoolsByIds } from "./usePoolsByIds";
+import { useTeamsByIds } from "../team/useTeamsByIds";
+import { usePoolsByIds } from "../pool/usePoolsByIds";
 
 export function useMatchesWithTeamsAndPools() {
     const {
