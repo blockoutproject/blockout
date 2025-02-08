@@ -65,10 +65,18 @@ public class MatchService {
         LocalDate minDay = subDays.get(subDays.size() - 1); // le plus ancien dans la sous-liste
         LocalDate maxDay = subDays.get(0); // le plus récent
         LocalDateTime startOfMinDay = minDay.atStartOfDay();
-        LocalDateTime startOfDayAfterMax = maxDay.plusDays(1).atStartOfDay();
+        LocalDateTime endDateTime;
 
+        // Vérifier si maxDay == le jour d'aujourd'hui
+        if (maxDay.equals(LocalDate.now())) {
+            // Alors on s'arrête à l'heure courante
+            endDateTime = today;
+        } else {
+            // Sinon, on va jusqu'à minuit du lendemain
+            endDateTime = maxDay.plusDays(1).atStartOfDay();
+        }
         // Récupérer tous les matchs pour la plage de dates en une seule requête
-        List<Match> allMatches = matchRepository.findAllByDay(startOfMinDay, startOfDayAfterMax);
+        List<Match> allMatches = matchRepository.findAllByDay(startOfMinDay, endDateTime);
 
         // 4. Regrouper les matchs par date
         Map<LocalDate, List<Match>> matchesByDate = allMatches.stream()
