@@ -195,7 +195,7 @@ const styles = StyleSheet.create({
     teamName: {
         color: '#fff',
         marginLeft: 8,
-        marginRight: 16,
+        marginRight: 24,
         fontSize: 14,
     },
     logo: {
