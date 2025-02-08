@@ -2,10 +2,12 @@ from typing import Optional
 import aiohttp
 from config.env_config import COMPETITION_API_URL
 from config.logger_config import log_event
+from models.association_stats import AssociationStats
 from models.category import Category
 from models.competition_association import CompetitionAssociation
 from utils.handlers.api_handler import handle_api_response
 from api.auth0 import _get_auth_headers
+from utils.utils import to_dict
 
 
 @handle_api_response(response_type=list[CompetitionAssociation])
@@ -25,9 +27,7 @@ async def add_team_to_pool(session: aiohttp.ClientSession, category: Category, p
     """
     headers = _get_auth_headers()
     url = f"{COMPETITION_API_URL}/pools/{pool_id}/teams/{team_id}?category={category.value}"
-
     response = await session.post(url, headers=headers)
-    
     log_event(
         action="add_team_to_pool",
         level="info",
@@ -44,11 +44,12 @@ async def bulk_deactivate_teams_by_pool(session: aiohttp.ClientSession, pool_id:
     Désactive en masse les associations Pool–Team qui ne figurent plus dans la liste 'scraped_team_ids'.
     """
     headers = _get_auth_headers()
+    url = f"{COMPETITION_API_URL}/pools/{pool_id}/teams/bulk-deactivate"
     payload = {
         "scraped_team_ids": list(scraped_team_ids)
     }
 
-    response = await session.put(f"{COMPETITION_API_URL}/pools/{pool_id}/teams/bulk-deactivate", json=payload, headers=headers)
+    response = await session.put(url, json=payload, headers=headers)
     return response
 
 @handle_api_response(response_type=None)
@@ -57,9 +58,35 @@ async def bulk_deactivate_pools(session: aiohttp.ClientSession, scraped_pool_ids
     Désactive en masse les associations pool_id qui ne figurent plus dans la liste 'scraped_pool_ids'.
     """
     headers = _get_auth_headers()
+    url = f"{COMPETITION_API_URL}/pools/bulk-deactivate"
     payload = {
         "scraped_pool_ids": list(scraped_pool_ids)
     }
 
-    response = await session.put(f"{COMPETITION_API_URL}/pools/bulk-deactivate", json=payload, headers=headers)
+    response = await session.put(url, json=payload, headers=headers)
+    return response
+
+@handle_api_response(response_type=CompetitionAssociation)
+async def update_team_association_stats(
+    session: aiohttp.ClientSession, 
+    pool_id: int, 
+    team_id: int, 
+    stats: AssociationStats
+) -> None:
+    """
+    Met à jour en base (via l'API Competition) les statistiques de l'association (pool_id, team_id).
+    """
+    headers = _get_auth_headers()
+    url = f"{COMPETITION_API_URL}/pools/{pool_id}/teams/{team_id}/stats"
+    stats_dict = to_dict(stats)
+
+    response = await session.put(url, json=stats_dict, headers=headers)
+    
+    log_event(
+        action="update_team_association_stats",
+        level="info",
+        pool_id=pool_id,
+        team_id=team_id,
+        message=f"PUT {url} - Update team association stats."
+    )
     return response

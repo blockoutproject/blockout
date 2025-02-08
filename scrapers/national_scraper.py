@@ -30,7 +30,7 @@ class NationalScraper(Scraper):
         Cette méthode sera automatiquement chronométrée et loguée.
         """
         try:
-            # 1) Récupération de la page HTML
+            # Récupération de la page HTML
             html_content = await self.fetch(self.url)
             if not html_content:
                 log_event(
@@ -46,8 +46,7 @@ class NationalScraper(Scraper):
             tasks = []
             raw_season = None
 
-            # 2) Extraction de la saison à partir du premier lien valide
-            #    (par exemple .htm)
+            # Extraction de la saison à partir du premier lien valide (par exemple .htm)
             for a_tag in soup.find_all('a', href=lambda href: href and href.endswith('.htm')):
                 href = a_tag['href']
                 raw_season = extract_season_from_url(href)
@@ -64,7 +63,7 @@ class NationalScraper(Scraper):
 
             parsed_season = parse_season(raw_season)
 
-            # 3) Récupération des pools existantes
+            # Récupération des pools existantes
             existing_pools = await get_pools_by_league_and_season(
                 self.session, self.league_code, parsed_season
             )
@@ -73,7 +72,7 @@ class NationalScraper(Scraper):
                 for p in existing_pools
             }
 
-            # 4) Parcours de chaque lien .htm (chaque poule)
+            # Parcours de chaque lien .htm (chaque poule)
             for a_tag in soup.find_all('a', href=lambda href: href and href.endswith('.htm')):
                 try:
                     href = a_tag['href']
@@ -126,14 +125,19 @@ class NationalScraper(Scraper):
                         error=str(e)
                     )
 
-            # 6) Exécution parallèle du téléchargement CSV
+            # Exécution parallèle du téléchargement CSV
             await asyncio.gather(*tasks)
 
-            # 7) Désactivation des pools non scrapées
+            # Désactivation des pools non scrapées
             await bulk_deactivate_pools(self.session, self.scraped_pool_ids)
 
-            # 8) Finalisation : on applique toutes les modifications
-            await self.finalize_updates()
+            # Finalisation : on applique toutes les modifications pour les matchs
+            await self.finalize_matches_updates()
+            
+            # Finalisation : on applique toutes les modifications pour les associations
+            await self.finalize_association_updates()
+            
+            
 
         except Exception as e:
             log_event(

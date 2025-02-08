@@ -87,9 +87,11 @@ class RegionalScraper(Scraper):
             # Désactiver les poules non retrouvées
             await bulk_deactivate_pools(self.session, self.scraped_pool_ids)
             
-            # Après avoir fini de collecter tous les matches, on applique 
-            # réellement les modifications en base (une seule fois par match)
-            await self.finalize_updates()
+            # Finalisation : on applique toutes les modifications pour les matchs
+            await self.finalize_matches_updates()
+            
+            # Finalisation : on applique toutes les modifications pour les associations
+            await self.finalize_association_updates()
 
         except Exception as e:
             log_event(

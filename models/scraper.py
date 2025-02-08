@@ -4,8 +4,10 @@ from datetime import datetime, timezone
 from typing import Optional
 import aiohttp
 from prometheus_client import Gauge
+from api.competitions_api import get_active_team_associations_by_pool, update_team_association_stats
 from api.matches_api import create_match, update_match, get_matches_by_pool
 from config.logger_config import log_event, current_scraper
+from models.association_stats import AssociationStats
 from models.category import Category
 from models.datasource_priority import DataSourcePriority
 from models.match import Match
@@ -31,8 +33,15 @@ class Scraper(ABC):
         self.priority_validation_enabled = priority_validation_enabled
 
         # Cache local : dict[(league_code, match_code), (existing_match, updated_match, changes_list, priority)]
-        self._matches_cache = {}
-        # Optionnel : Pour tracer quels pools ont été scrappés
+        self._matches_cache: dict[
+            tuple[str, str],
+            tuple[Optional[Match], Match, list[str], DataSourcePriority]
+        ] = {}
+        # Cache pour gérer les points, matchs joués, matchs gagnés et perdus, etc ...
+        self._associations_cache: dict[
+            tuple[int, int], 
+            tuple[Optional[AssociationStats], AssociationStats]
+        ] = {}        
         self.scraped_pool_ids = set()
 
         # Prometheus gauge
@@ -203,6 +212,35 @@ class Scraper(ABC):
                 error=str(e),
                 message="Erreur lors du chargement des matchs existants"
             )
+    
+    async def init_associations_cache(self, pool_id: int):
+        """
+        Charge depuis la base les associations actives pour la poule `pool_id`
+        et les place dans le cache local (_associations_cache) sous la forme d'un tuple :
+        (original, updated), où:
+        - original : l'objet tel qu'il est en base
+        - updated  : une copie mutable servant à accumuler les mises à jour issues du CSV.
+        """
+        try:
+            active_assocs = await get_active_team_associations_by_pool(self.session, pool_id) or []
+            for assoc in active_assocs:
+                key = (assoc.pool_id, assoc.team_id)
+                # On stocke l'association originale et une copie mutable
+                assocDto = AssociationStats(
+                    played=assoc.played,
+                    wins=assoc.wins,
+                    losses=assoc.losses,
+                    points=assoc.points
+                )
+                self._associations_cache[key] = (assocDto, AssociationStats())
+        except Exception as e:
+            log_event(
+                action="init_associations_cache_error",
+                level="error",
+                pool_id=pool_id,
+                error=str(e),
+                message="Erreur lors du chargement des associations existantes"
+            )
 
     def schedule_match_changes(
         self,
@@ -281,8 +319,73 @@ class Scraper(ABC):
                 error=str(e),
                 message=f"Erreur lors de la fusion de match {updated_match.match_code}"
             )
+            
+    def schedule_association_update(
+        self, 
+        pool_id: int, 
+        team_id: int, 
+        wins: int = 0, 
+        losses: int = 0, 
+        points: int = 0
+    ):
+        """
+        Ajoute dans le cache les statistiques pour l'association identifiée par (pool_id, team_id).
+        Les valeurs sont cumulées sur tout le CSV.
+        """
+        key = (pool_id, team_id)
+        if key not in self._associations_cache:
+            # Nouvelle association : original est None, et on initialise updated avec zéro.
+            self._associations_cache[key] = (None, AssociationStats())
+            
+        original, updated = self._associations_cache[key]
 
-    async def finalize_updates(self):
+        try:
+            # Chaque match compte comme 1 match joué, et on cumule wins, losses et points.
+            updated.add(wins, losses, points)
+        except Exception as e:
+            log_event(
+                action="schedule_association_update_error",
+                level="error",
+                pool_id=pool_id,
+                team_id=team_id,
+                error=str(e),
+                message="Erreur lors de l'ajout des statistiques pour l'association."
+            )
+    
+    async def finalize_association_updates(self):
+        """
+        Parcourt toutes les associations du cache et, pour chacune,
+        si l'association est nouvelle (original is None) ou si les statistiques ont changé par rapport à l'original,
+        effectue la mise à jour en base.
+        Ensuite, le cache est vidé.
+        """
+        update_tasks = []
+        for (pool_id, team_id), (original, updated) in self._associations_cache.items():
+            # Si l'association est nouvelle ou modifiée (on peut comparer les attributs)
+            if original is None or (
+                updated.played != original.played or 
+                updated.wins != original.wins or 
+                updated.losses != original.losses or 
+                updated.points != original.points
+            ):
+                try:
+                    update_tasks.append(
+                        update_team_association_stats(self.session, pool_id, team_id, updated)
+                    )
+                except Exception as e:
+                    log_event(
+                        action="finalize_association_update_error",
+                        level="error",
+                        pool_id=pool_id,
+                        team_id=team_id,
+                        error=str(e),
+                        message=f"Erreur lors de la mise à jour des stats pour l'association (pool: {pool_id}, team: {team_id})."
+                    )
+        if update_tasks:
+            await asyncio.gather(*update_tasks)
+        self._associations_cache.clear()
+
+    async def finalize_matches_updates(self):
         """
         Parcourt tous les matchs du cache et crée ou met à jour en base.
         """

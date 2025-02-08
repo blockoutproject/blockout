@@ -6,6 +6,7 @@ from config.env_config import MATCH_API_URL
 from config.logger_config import log_event
 from models.match import Match, MatchStatus
 from utils.handlers.api_handler import handle_api_response
+from utils.utils import to_dict
 
 
 @handle_api_response(response_type=Match)
@@ -38,7 +39,7 @@ async def create_match(session: aiohttp.ClientSession, match: Match) -> Match:
     Envoie une requête POST pour créer un nouveau match.
     """
     headers = _get_auth_headers()
-    match_dict = match.to_dict()
+    match_dict = to_dict(match)
     response = await session.post(f"{MATCH_API_URL}/matches", json=match_dict, headers=headers)
     log_event(
         action="create_match", 
@@ -55,7 +56,7 @@ async def update_match(session: aiohttp.ClientSession, match: Match, changes_lis
     Envoie une requête PUT pour mettre à jour un match existant.
     """
     headers = _get_auth_headers()
-    match_dict = match.to_dict()
+    match_dict = to_dict(match)
     response = await session.put(f"{MATCH_API_URL}/matches/{match.id}", json=match_dict, headers=headers)
     log_event(
         action="update_match", 

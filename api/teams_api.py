@@ -5,6 +5,7 @@ from config.logger_config import log_event
 from utils.handlers.api_handler import handle_api_response
 from models.team import Team
 from api.auth0 import _get_auth_headers
+from utils.utils import to_dict
 
 @handle_api_response(response_type=Team)
 async def create_team(session: aiohttp.ClientSession, team: Team) -> Team:
@@ -12,7 +13,7 @@ async def create_team(session: aiohttp.ClientSession, team: Team) -> Team:
     Envoie une requête POST pour créer une nouvelle équipe.
     """
     headers = _get_auth_headers()
-    team_dict = team.to_dict()
+    team_dict = to_dict(team)
     response = await session.post(f"{TEAM_API_URL}/teams", json=team_dict, headers=headers)
     log_event(
         action="create_team",
@@ -29,7 +30,7 @@ async def update_team(session: aiohttp.ClientSession, team: Team, changes_list: 
     Envoie une requête PUT pour mettre à jour une équipe existante.
     """
     headers = _get_auth_headers()
-    team_dict = team.to_dict()
+    team_dict = to_dict(team)
     response = await session.put(f"{TEAM_API_URL}/teams/{team.id}", json=team_dict, headers=headers)
     log_event(
         action="update_team",

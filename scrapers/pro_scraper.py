@@ -65,7 +65,7 @@ class ProScraper(Scraper):
         tasks = []
 
         try:
-            # 1) Récupération des poules déjà existantes pour cette ligue/saison
+            # Récupération des poules déjà existantes pour cette ligue/saison
             existing_pools = await get_pools_by_league_and_season(
                 self.session, self.league_code, self.parsed_season
             )
@@ -74,7 +74,7 @@ class ProScraper(Scraper):
                 for pool in existing_pools
             }
 
-            # 2) Boucle de traitement de chaque poule configurée
+            # Boucle de traitement de chaque poule configurée
             for pool_json in self.pools_json:
                 try:
                     pool_data = {
@@ -113,11 +113,14 @@ class ProScraper(Scraper):
                         error=str(e)
                     )
 
-            # 3) Exécution en parallèle de toutes les tâches de scraping
+            # Exécution en parallèle de toutes les tâches de scraping
             await asyncio.gather(*tasks)
 
-            # 4) IMPORTANT : Après tout, on applique réellement les mises à jour / créations en base
-            await self.finalize_updates()
+            # Finalisation : on applique toutes les modifications pour les matchs
+            await self.finalize_matches_updates()
+            
+            # Finalisation : on applique toutes les modifications pour les associations
+            await self.finalize_association_updates()
 
         except Exception as e:
             log_event(

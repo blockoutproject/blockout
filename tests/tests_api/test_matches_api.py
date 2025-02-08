@@ -10,6 +10,7 @@ from api.matches_api import (
 )
 from models.match import MatchStatus
 from tests.utils.fake_match_factory import FakeMatchFactory
+from utils.utils import to_dict
 
 MATCH_API_URL = 'http://localhost:8083/matches/v1'
 
@@ -32,7 +33,7 @@ async def test_get_match_by_league_and_code(session, mocked_aioresponses):
 
     # Simuler la réponse de l'API
     url = f"{MATCH_API_URL}/{match.league_code}/{match.match_code}"
-    mock_response = match.to_dict()
+    mock_response = to_dict(match)
 
     # Utiliser le mock pour intercepter l'appel HTTP
     mocked_aioresponses.get(url, payload=mock_response)
@@ -59,7 +60,7 @@ async def test_get_active_matches_by_pool_id(session, mocked_aioresponses):
 
     # Simuler la réponse de l'API
     url = f"{MATCH_API_URL}/active?pool_id={pool_id}"
-    mock_response = [match.to_dict() for match in matches]
+    mock_response = [to_dict(match) for match in matches]
 
     # Utiliser le mock
     mocked_aioresponses.get(url, payload=mock_response)
@@ -82,7 +83,7 @@ async def test_create_match(session, mocked_aioresponses):
 
     # Simuler la réponse de l'API
     url = MATCH_API_URL
-    mock_response = match.to_dict()
+    mock_response = to_dict(match)
 
     # Utiliser le mock
     mocked_aioresponses.post(url, payload=mock_response)

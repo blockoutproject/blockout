@@ -1,7 +1,5 @@
 import asyncio
-from typing import Optional
 from config.logger_config import log_event
-from models.gender import Gender
 from models.match import Match, MatchStatus
 from models.pool import Pool
 from models.scraper import Scraper
@@ -12,6 +10,7 @@ from api.competitions_api import add_team_to_pool, bulk_deactivate_teams_by_pool
 from api.teams_api import get_teams_by_division_format_gender
 from utils.downloader import download_csv
 from utils.file_utils import parse_csv
+from utils.match_utils import compute_volleyball_match_stats
 from utils.utils import parse_date
 from models.datasource_priority import DataSourcePriority
 
@@ -23,8 +22,7 @@ async def handle_csv_download_and_parse(
     """
     1) init le cache (scraper.init_matches_cache)
     2) download CSV
-    3) parse CSV => schedule_match_changes
-    4) optional: finalize
+    3) parse CSV => schedule_match_changes & schedule_association_update
     """
     if scraper.session.closed:
         log_event(
@@ -36,8 +34,9 @@ async def handle_csv_download_and_parse(
         return
 
     try:
-        # 1) Init le cache => on charge les matchs existants pour pool.id
+        # 1) Init le cache => on charge les matchs et les associations existants pour pool.id
         await scraper.init_matches_cache(pool.id)
+        await scraper.init_associations_cache(pool.id)
 
         # 2) download le CSV
         csv_path = await download_csv(scraper, pool, season)
@@ -74,7 +73,7 @@ async def handle_csv_download_and_parse(
 
         # Associations actives
         active_assoc = await get_active_team_associations_by_pool(scraper.session, pool.id)
-        active_team_ids = {assoc.team_id for assoc in active_assoc}
+        active_team_ids = {assoc.team_id for assoc in active_assoc} #????
 
         scraped_team_ids = set()
         scraped_match_codes = set()
@@ -126,17 +125,9 @@ async def handle_csv_download_and_parse(
             existing_teams_dict[team_b_key] = new_team_b
             scraped_team_ids.add(new_team_b.id)
 
-            # Associations
-            if new_team_a.id not in active_team_ids:
-                await add_team_to_pool(scraper.session, scraper.category, pool.id, new_team_a.id)
-                active_team_ids.add(new_team_a.id)
-            if new_team_b.id not in active_team_ids:
-                await add_team_to_pool(scraper.session, scraper.category, pool.id, new_team_b.id)
-                active_team_ids.add(new_team_b.id)
-
             # Match
             match_code = row.get('match_code')
-            status = MatchStatus.FINISHED if row.get('set') and row.get('score') else MatchStatus.UPCOMING
+            status = MatchStatus.FINISHED if row.get('set') else MatchStatus.UPCOMING
 
             updated_match = Match(
                 match_code=match_code,
@@ -154,6 +145,50 @@ async def handle_csv_download_and_parse(
             )
             
             scraped_match_codes.add(match_code)
+            
+            # Gestion des associations (création si nécessaire)
+            if new_team_a.id not in active_team_ids:
+                await add_team_to_pool(scraper.session, scraper.category, pool.id, new_team_a.id)
+                active_team_ids.add(new_team_a.id)
+            if new_team_b.id not in active_team_ids:
+                await add_team_to_pool(scraper.session, scraper.category, pool.id, new_team_b.id)
+                active_team_ids.add(new_team_b.id)
+            
+            # Mise à jour des statistiques d'association en fonction du résultat
+            if updated_match.status == MatchStatus.FINISHED and updated_match.set:
+                try:
+                    parts = updated_match.set.split('-')
+                    if len(parts) == 2:
+                        set_a = parts[0]
+                        set_b = parts[1]
+
+                        # Calcul des statistiques du match pour chaque équipe
+                        team_a_stats, team_b_stats = compute_volleyball_match_stats(set_a, set_b, pool, new_team_a.id, new_team_b.id, match_code)
+                        
+                        # Mise à jour de l'association pour chaque équipe en cumulant ces stats
+                        scraper.schedule_association_update(
+                            pool.id,
+                            new_team_a.id,
+                            wins=team_a_stats.wins,
+                            losses=team_a_stats.losses,
+                            points=team_a_stats.points
+                        )
+                        scraper.schedule_association_update(
+                            pool.id,
+                            new_team_b.id,
+                            wins=team_b_stats.wins,
+                            losses=team_b_stats.losses,
+                            points=team_b_stats.points
+                        )
+                except Exception as e:
+                    log_event(
+                        action="score_parsing_exception",
+                        level="error",
+                        match_code=match_code,
+                        set=updated_match.set,
+                        error=str(e),
+                        message="Erreur lors du parsing du score pour le calcul des stats."
+                    )
 
             # Fusion
             scraper.schedule_match_changes(

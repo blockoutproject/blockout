@@ -5,6 +5,7 @@ from config.logger_config import log_event
 from utils.handlers.api_handler import handle_api_response
 from models.pool import Pool
 from api.auth0 import _get_auth_headers
+from utils.utils import to_dict
 
 
 @handle_api_response(response_type=Pool)
@@ -33,7 +34,7 @@ async def create_pool(session: aiohttp.ClientSession, pool: Pool) -> Pool:
     Envoie une requête POST pour créer une nouvelle pool.
     """
     headers = _get_auth_headers()
-    pool_dict = pool.to_dict()
+    pool_dict = to_dict(pool)
     response = await session.post(f"{POOL_API_URL}/pools", json=pool_dict, headers=headers)
     log_event(
         action="create_pool",
@@ -50,7 +51,7 @@ async def update_pool(session: aiohttp.ClientSession, pool: Pool, changes_list: 
     Envoie une requête PUT pour mettre à jour une pool existante.
     """
     headers = _get_auth_headers()
-    pool_dict = pool.to_dict()
+    pool_dict = to_dict(pool)
     response = await session.put(f"{POOL_API_URL}/pools/{pool.id}", json=pool_dict, headers=headers)
     log_event(
         action="update_pool",
