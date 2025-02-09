@@ -43,13 +43,14 @@
                 "AS Cannes",
                 "CAN",
                 "Cannes",
+                "Cannes ",
                 "As Cannes Volley",
                 "AS Cannes Volley-Ball"
             ],
             "gender": "M"
         },
         {
-            "full": "Arago De Sète",
+            "full": "Arago De Sete",
             "short": "Sète",
             "aliases": [
                 "Arago Sète",
@@ -213,7 +214,7 @@
             "gender": "F"
         },
         {
-            "full": "Bordeaux Mérignac Volley",
+            "full": "Bordeaux Merignac Volley",
             "short": "Burdies",
             "aliases": [
                 "Bordeaux Mérignac VB",
@@ -225,7 +226,7 @@
             "gender": "F"
         },
         {
-            "full": "Béziers Volley",
+            "full": "Beziers Volley",
             "short": "Béziers",
             "aliases": [
                 "Béziers Volley-Ball",
@@ -258,7 +259,7 @@
             "gender": "F"
         },
         {
-            "full": "VBC Chamalières",
+            "full": "VBC Chamalieres",
             "short": "Chamalières",
             "aliases": [
                 "Chamalières VB",
@@ -273,7 +274,8 @@
             "aliases": [
                 "Racing Club de Cannes",
                 "RC Cannes",
-                "Cannes"
+                "Cannes",
+                "Cannes "
             ],
             "gender": "F"
         },
@@ -287,7 +289,7 @@
             "gender": "F"
         },
         {
-            "full": "France Avenir 2024",
+            "full": "France Avenir",
             "short": "France Avenir",
             "aliases": [
                 "France Avenir 2024",
@@ -297,7 +299,7 @@
             "gender": "F"
         },
         {
-            "full": "France Avenir 2024",
+            "full": "France Avenir",
             "short": "France Avenir",
             "aliases": [
                 "France Avenir 2024",
@@ -387,10 +389,9 @@
             "gender": "M"
         },
         {
-            "full": "Fréjus Var Volley",
+            "full": "Frejus Var Volley",
             "short": "Fréjus",
             "aliases": [
-                "Fréjus Var Volley",
                 "Fréjus Var Volley",
                 "Fréjus"
             ],

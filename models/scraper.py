@@ -351,6 +351,32 @@ class Scraper(ABC):
                 error=str(e),
                 message="Erreur lors de l'ajout des statistiques pour l'association."
             )
+            
+    def schedule_association_replace(
+        self, 
+        pool_id: int, 
+        team_id: int, 
+        played: int, 
+        wins: int, 
+        losses: int, 
+        points: int
+    ):
+        """
+        Remplace directement les champs 'played', 'wins', 'losses', 'points'
+        dans l'association (pool_id, team_id) du _associations_cache.
+        """
+        key = (pool_id, team_id)
+        if key not in self._associations_cache:
+            # Nouvelle association : original est None, on initialise updated avec zéro
+            self._associations_cache[key] = (None, AssociationStats())
+        
+        original, updated = self._associations_cache[key]
+
+        # On fixe (au lieu d'additionner)
+        updated.played = played
+        updated.wins = wins
+        updated.losses = losses
+        updated.points = points
     
     async def finalize_association_updates(self):
         """
