@@ -135,7 +135,7 @@ class NationalScraper(Scraper):
             await self.finalize_matches_updates()
             
             # Finalisation : on applique toutes les modifications pour les associations
-            await self.finalize_association_updates()
+            await self.finalize_associations_updates()
             
             
 

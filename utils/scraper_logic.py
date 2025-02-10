@@ -163,22 +163,18 @@ async def handle_csv_download_and_parse(
                         set_b = parts[1]
 
                         # Calcul des statistiques du match pour chaque équipe
-                        team_a_stats, team_b_stats = compute_volleyball_match_stats(set_a, set_b, pool, new_team_a.id, new_team_b.id, match_code)
+                        team_a_stats, team_b_stats = compute_volleyball_match_stats(set_a, set_b, pool, updated_match.score)
                         
                         # Mise à jour de l'association pour chaque équipe en cumulant ces stats
                         scraper.schedule_association_update(
-                            pool.id,
-                            new_team_a.id,
-                            wins=team_a_stats.wins,
-                            losses=team_a_stats.losses,
-                            points=team_a_stats.points
+                            pool_id=pool.id,
+                            team_id=new_team_a.id,
+                            team_stats=team_a_stats
                         )
                         scraper.schedule_association_update(
                             pool.id,
                             new_team_b.id,
-                            wins=team_b_stats.wins,
-                            losses=team_b_stats.losses,
-                            points=team_b_stats.points
+                            team_stats=team_b_stats
                         )
                 except Exception as e:
                     log_event(

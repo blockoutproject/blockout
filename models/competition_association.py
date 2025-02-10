@@ -1,4 +1,4 @@
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional
 
@@ -6,11 +6,7 @@ from typing import Optional
 class CompetitionAssociation:
     """
     Représente l'association entre une Pool et une Team,
-    avec gestion du statut 'active' et des statistiques de compétition :
-        - points : total de points
-        - played : nombre de matchs joués
-        - wins : nombre de victoires
-        - losses : nombre de défaites
+    avec gestion du statut 'active' et des statistiques de compétition
     """
     id: Optional[int] = None
     pool_id: int = 0
@@ -20,6 +16,18 @@ class CompetitionAssociation:
     wins: int = 0
     losses: int = 0
     points: int = 0
+    wins_3_0: int = 0
+    wins_3_1: int = 0
+    wins_3_2: int = 0
+    losses_0_3: int = 0
+    losses_1_3: int = 0
+    losses_2_3: int = 0
+    won_sets: int = 0
+    lost_sets: int = 0
+    won_points: int = 0
+    lost_points: int = 0
+    coef_sets: float = 0.0
+    coef_points: float = 0.0
     last_update: Optional[datetime] = None
     
     

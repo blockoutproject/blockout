@@ -124,7 +124,7 @@ class ProScraper(Scraper):
             await self.finalize_matches_updates()
             
             # Finalisation : on applique toutes les modifications pour les associations
-            await self.finalize_association_updates()
+            await self.finalize_associations_updates()
 
         except Exception as e:
             log_event(
@@ -297,10 +297,7 @@ class ProScraper(Scraper):
                 self.schedule_association_replace(
                     pool_id=pool.id,
                     team_id=team.id,
-                    played=mj,    # Matchs joués
-                    wins=mg,      # Matchs gagnés
-                    losses=mp,    # Matchs perdus
-                    points=points # Points au classement
+                    points=points,
                 )
                     
     # --------------------------------------------------------------------------

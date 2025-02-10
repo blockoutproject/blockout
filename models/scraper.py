@@ -230,7 +230,19 @@ class Scraper(ABC):
                     played=assoc.played,
                     wins=assoc.wins,
                     losses=assoc.losses,
-                    points=assoc.points
+                    points=assoc.points,
+                    wins_3_0=assoc.wins_3_0,
+                    wins_3_1=assoc.wins_3_1,
+                    wins_3_2=assoc.wins_3_2,
+                    losses_0_3=assoc.losses_0_3,
+                    losses_1_3=assoc.losses_1_3,
+                    losses_2_3=assoc.losses_2_3,
+                    won_points=assoc.won_points,
+                    lost_points=assoc.lost_points,
+                    won_sets=assoc.won_sets,
+                    lost_sets=assoc.lost_sets,
+                    coef_sets=assoc.coef_sets,
+                    coef_points=assoc.coef_points
                 )
                 self._associations_cache[key] = (assocDto, AssociationStats())
         except Exception as e:
@@ -324,9 +336,7 @@ class Scraper(ABC):
         self, 
         pool_id: int, 
         team_id: int, 
-        wins: int = 0, 
-        losses: int = 0, 
-        points: int = 0
+        team_stats: AssociationStats
     ):
         """
         Ajoute dans le cache les statistiques pour l'association identifiée par (pool_id, team_id).
@@ -334,14 +344,26 @@ class Scraper(ABC):
         """
         key = (pool_id, team_id)
         if key not in self._associations_cache:
-            # Nouvelle association : original est None, et on initialise updated avec zéro.
             self._associations_cache[key] = (None, AssociationStats())
-            
+                
         original, updated = self._associations_cache[key]
 
         try:
-            # Chaque match compte comme 1 match joué, et on cumule wins, losses et points.
-            updated.add(wins, losses, points)
+            updated.add(
+                wins=team_stats.wins, 
+                losses=team_stats.losses, 
+                points=team_stats.points,
+                wins_3_0=team_stats.wins_3_0,
+                wins_3_1=team_stats.wins_3_1,
+                wins_3_2=team_stats.wins_3_2,
+                losses_0_3=team_stats.losses_0_3,
+                losses_1_3=team_stats.losses_1_3,
+                losses_2_3=team_stats.losses_2_3,
+                won_points=team_stats.won_points,
+                lost_points=team_stats.lost_points,
+                won_sets=team_stats.won_sets,
+                lost_sets=team_stats.lost_sets
+            )
         except Exception as e:
             log_event(
                 action="schedule_association_update_error",
@@ -356,9 +378,6 @@ class Scraper(ABC):
         self, 
         pool_id: int, 
         team_id: int, 
-        played: int, 
-        wins: int, 
-        losses: int, 
         points: int
     ):
         """
@@ -367,18 +386,13 @@ class Scraper(ABC):
         """
         key = (pool_id, team_id)
         if key not in self._associations_cache:
-            # Nouvelle association : original est None, on initialise updated avec zéro
             self._associations_cache[key] = (None, AssociationStats())
         
         original, updated = self._associations_cache[key]
 
-        # On fixe (au lieu d'additionner)
-        updated.played = played
-        updated.wins = wins
-        updated.losses = losses
         updated.points = points
     
-    async def finalize_association_updates(self):
+    async def finalize_associations_updates(self):
         """
         Parcourt toutes les associations du cache et, pour chacune,
         si l'association est nouvelle (original is None) ou si les statistiques ont changé par rapport à l'original,
@@ -387,20 +401,16 @@ class Scraper(ABC):
         """
         update_tasks = []
         for (pool_id, team_id), (original, updated) in self._associations_cache.items():
-            # Si l'association est nouvelle ou modifiée (on peut comparer les attributs)
-            if original is None or (
-                updated.played != original.played or 
-                updated.wins != original.wins or 
-                updated.losses != original.losses or 
-                updated.points != original.points
-            ):
+            updated.coef_sets = round(updated.won_sets / updated.lost_sets, 3) if updated.lost_sets > 0 else updated.won_sets
+            updated.coef_points = round(updated.won_points / updated.lost_points, 3) if updated.lost_points > 0 else updated.won_points
+            if original is None or original != updated:
                 try:
                     update_tasks.append(
                         update_team_association_stats(self.session, pool_id, team_id, updated)
                     )
                 except Exception as e:
                     log_event(
-                        action="finalize_association_update_error",
+                        action="finalize_associations_update_error",
                         level="error",
                         pool_id=pool_id,
                         team_id=team_id,
@@ -428,7 +438,7 @@ class Scraper(ABC):
                 
             except Exception as e:
                 log_event(
-                    action="finalize_update_error",
+                    action="finalize_matches_update_error",
                     level="error",
                     match_code=updated_obj.match_code,
                     league_code=updated_obj.league_code,
