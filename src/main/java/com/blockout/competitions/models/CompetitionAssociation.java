@@ -101,6 +101,11 @@ public class CompetitionAssociation {
     private Integer lostPoints = 0;
 
     @Builder.Default
+    @JsonProperty("points_penalty")
+    @Column(name = "points_penalty", nullable = false)
+    private Integer pointsPenalty = 0;
+
+    @Builder.Default
     @JsonProperty("coef_sets")
     @Column(name = "coef_sets", nullable = false)
     private Double coefSets = 0.0;

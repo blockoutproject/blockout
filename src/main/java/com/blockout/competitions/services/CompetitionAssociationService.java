@@ -189,6 +189,7 @@ public class CompetitionAssociationService {
         assoc.setLostSets(request.getLostSets());
         assoc.setWonPoints(request.getWonPoints());
         assoc.setLostPoints(request.getLostPoints());
+        assoc.setPointsPenalty(request.getPointsPenalty());
         assoc.setCoefSets(request.getCoefSets());
         assoc.setCoefPoints(request.getCoefPoints());
         if(!assoc.getActive()) {
@@ -209,7 +210,6 @@ public class CompetitionAssociationService {
                 keyValue("wins", request.getWins()),
                 keyValue("losses", request.getLosses()),
                 keyValue("points", request.getPoints()));
-
         return updatedAssoc;
     }
 }

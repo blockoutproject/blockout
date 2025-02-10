@@ -47,6 +47,9 @@ public class TeamAssociationStatsRequest {
     @JsonProperty("lost_points")
     private Integer lostPoints;
 
+    @JsonProperty("points_penalty")
+    private Integer pointsPenalty;
+
     @JsonProperty("coef_sets")
     private Double coefSets;
 
