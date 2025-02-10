@@ -179,6 +179,25 @@ public class CompetitionAssociationService {
         assoc.setWins(request.getWins());
         assoc.setLosses(request.getLosses());
         assoc.setPoints(request.getPoints());
+        assoc.setWins30(request.getWins30());
+        assoc.setLosses03(request.getLosses03());
+        assoc.setWins31(request.getWins31());
+        assoc.setLosses13(request.getLosses13());
+        assoc.setWins32(request.getWins32());
+        assoc.setLosses23(request.getLosses23());
+        assoc.setWonSets(request.getWonSets());
+        assoc.setLostSets(request.getLostSets());
+        assoc.setWonPoints(request.getWonPoints());
+        assoc.setLostPoints(request.getLostPoints());
+        assoc.setCoefSets(request.getCoefSets());
+        assoc.setCoefPoints(request.getCoefPoints());
+        if(!assoc.getActive()) {
+            assoc.setActive(true);
+            logger.info("Reactivated team association stats",
+                keyValue("action", "reactivate_association_stats"),
+                keyValue("poolId", poolId),
+                keyValue("teamId", teamId));
+        }
 
         CompetitionAssociation updatedAssoc = associationRepository.save(assoc);
 
