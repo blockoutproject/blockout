@@ -1,6 +1,6 @@
 import { CONFIG } from '@/config/config';
 import AbstractApi from './AbstractApi';
-import { PoolTeam } from '@/types/Competition';
+import { CompetitionAssociation } from '@/types/Competition';
 
 class CompetitionsApi extends AbstractApi {
     private static instance: CompetitionsApi | null = null;
@@ -34,10 +34,9 @@ class CompetitionsApi extends AbstractApi {
      * @param poolId - L'ID du pool à récupérer.
      * @returns Une liste des entrées d'équipes dans le pool.
      */
-    public async getTeamsByPool(poolId: number): Promise<PoolTeam[]> {
+    public async getTeamsByPool(poolId: number): Promise<CompetitionAssociation[]> {
         const response = await this.service.get(`/pools/${poolId}/teams`);
-        console.log(response.data);
-        return response.data as PoolTeam[];
+        return response.data as CompetitionAssociation[];
     }
 }
 

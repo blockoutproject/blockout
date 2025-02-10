@@ -60,7 +60,13 @@ const RankingCard: React.FC<RankingCardProps> = ({ poolId }) => {
 
             {/* LISTE DES ÉQUIPES */}
             <FlatList
-                data={teams.sort((a, b) => b.points - a.points)}    
+                data={teams.sort((a, b) => 
+                    b.points - a.points || // Tri par points
+                    a.points_penalty - b.points_penalty || // Tri par matchs joués
+                    b.wins - a.wins || // Tri par victoires
+                    b.coef_sets - a.coef_sets || // Tri par coef sets
+                    b.coef_points - a.coef_points // Tri par coef points
+                )}    
                 keyExtractor={(item) => item.id.toString()}
                 scrollEnabled={false}
                 renderItem={({ item, index }) => {

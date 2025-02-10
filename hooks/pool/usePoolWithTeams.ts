@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import CompetitionApi from '@/api/CompetitionsApi';
 import TeamsApi from '@/api/TeamsApi';
-import { PoolTeam } from '@/types/Competition';
+import { CompetitionAssociation } from '@/types/Competition';
 import { Team } from '@/types/Team';
 
 interface TeamWithPoints extends Team {
@@ -9,10 +9,13 @@ interface TeamWithPoints extends Team {
     wins: number;
     losses: number;
     played: number;
+    points_penalty: number;
+    coef_points: number;
+    coef_sets: number;
 }
 
 export function usePoolWithTeams(poolId: number) {
-    return useQuery<PoolTeam[], Error>({
+    return useQuery<CompetitionAssociation[], Error>({
         queryKey: ['poolTeams', poolId],
         queryFn: async () => {
             if (!poolId) {
@@ -43,6 +46,9 @@ export function useDetailedPoolTeams(poolId: number) {
                         wins: entry.wins,
                         losses: entry.losses,
                         played: entry.played,
+                        points_penalty: entry.points_penalty,
+                        coef_points: entry.coef_points,
+                        coef_sets: entry.coef_sets
                     };
                 })
             );

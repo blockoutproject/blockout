@@ -58,15 +58,16 @@ const styles = StyleSheet.create({
         backgroundColor: '#111',
     },
     fixedHeader: {
-        position: 'absolute',  // 📌 Fixe en haut
+        position: 'absolute',
         top: 0,
         left: 0,
         right: 0,
         zIndex: 10,
-        backgroundColor: '#111', // Même couleur pour éviter effet visuel bizarre
+        backgroundColor: '#111',
         paddingVertical: 10,
     },
     scrollContent: {
         paddingHorizontal: 16,
+        paddingBottom: 32,
     },
 });
