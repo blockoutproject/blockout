@@ -23,6 +23,7 @@ def parse_team_score(score: str) -> Tuple[Optional[int], str]:
     else:
         return None, ""  # Pas levé d'exception ici, libre à toi de logguer
 
+
 def compute_volleyball_match_stats(
     sets_a: str,
     sets_b: str,
@@ -32,9 +33,9 @@ def compute_volleyball_match_stats(
     """
     Calcule les stats de volley-ball en tenant compte :
         - Des champs sets_a et sets_b (ex: "3", "1", "F", "P"), pour déterminer 
-            le gagnant du match, les points de classement, et gérer les lettres F/P.
+          le gagnant du match, les points de classement, et gérer les lettres F/P.
         - D'un score détaillé (score_detail), ex: "20-25,20-25,25-17,23-25"
-            qui décrit chaque set et permet de connaître le total de points et de sets réellement gagnés.
+          qui décrit chaque set et permet de connaître le total de points et de sets réellement gagnés.
     """
 
     # ------------------ 1) Création des stats vides ------------------
@@ -42,7 +43,6 @@ def compute_volleyball_match_stats(
     stats_b = AssociationStats()
 
     # ------------------ 2) Parse du score détaillé -------------------
-    #    ex: "20-25,20-25,25-17,23-25" => on compte sets gagnés/perdus + points
     if score_detail:
         sets_list = score_detail.split(",")
         for raw_set in sets_list:
@@ -78,7 +78,6 @@ def compute_volleyball_match_stats(
         stats_b.lost_points = stats_a.won_points
 
     # ------------------ 3) Parse sets_a / sets_b comme avant -------------------
-    # parse_team_score renvoie (num, letter), ex: (3, "")
     num_a, letter_a = parse_team_score(sets_a)
     num_b, letter_b = parse_team_score(sets_b)
 
@@ -180,38 +179,43 @@ def compute_volleyball_match_stats(
                 stats_a.losses_0_3 = 1
 
     # ------------------ 4) Gestion des lettres F/P selon la division ------------------
+    #    Au lieu de soustraire immédiatement, on utilise "points_penalty".
     if division in (PoolDivisionCode.REG, PoolDivisionCode.OTHER):
         if letter_a == "F" and letter_b == "F":
-            stats_a.points -= 2
-            stats_b.points -= 2
+            stats_a.points_penalty += 2
+            stats_b.points_penalty += 2
         elif letter_a == "P" and letter_b == "P":
-            stats_a.points -= 1
-            stats_b.points -= 1
+            stats_a.points_penalty += 1
+            stats_b.points_penalty += 1
         else:
             if letter_a == "F" and letter_b != "F":
-                stats_a.points -= 3
+                stats_a.points_penalty += 3
             if letter_b == "F" and letter_a != "F":
-                stats_b.points -= 3
+                stats_b.points_penalty += 3
             if letter_a == "P" and letter_b != "P":
-                stats_a.points -= 2
+                stats_a.points_penalty += 2
             if letter_b == "P" and letter_a != "P":
-                stats_b.points -= 2
+                stats_b.points_penalty += 2
 
     elif division == PoolDivisionCode.NAT:
         if letter_a == "F" and letter_b == "F":
-            stats_a.points -= 2
-            stats_b.points -= 2
+            stats_a.points_penalty += 2
+            stats_b.points_penalty += 2
         elif letter_a == "P" and letter_b == "P":
-            stats_a.points -= 1
-            stats_b.points -= 1
+            stats_a.points_penalty += 1
+            stats_b.points_penalty += 1
         else:
             if letter_a == "F" and letter_b != "F":
-                stats_a.points -= 2
+                stats_a.points_penalty += 2
             if letter_b == "F" and letter_a != "F":
-                stats_b.points -= 2
+                stats_b.points_penalty += 2
             if letter_a == "P" and letter_b != "P":
-                stats_a.points -= 1
+                stats_a.points_penalty += 1
             if letter_b == "P" and letter_a != "P":
-                stats_b.points -= 1
+                stats_b.points_penalty += 1
+
+    # ------------------ 5) Application finale des pénalités ------------------
+    stats_a.points -= stats_a.points_penalty
+    stats_b.points -= stats_b.points_penalty
 
     return stats_a, stats_b

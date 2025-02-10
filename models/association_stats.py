@@ -16,8 +16,10 @@ class AssociationStats:
     lost_sets: int = 0
     won_points: int = 0
     lost_points: int = 0
+    points_penalty: int = 0
     coef_sets: float = 0.0
     coef_points: float = 0.0
+    points_penalty: int = 0
 
     def add(
         self, 
@@ -34,7 +36,7 @@ class AssociationStats:
         lost_sets: int,
         won_points: int,
         lost_points: int,
-        
+        points_penalty: int
     ):
         """
         Ajoute une nouvelle ligne de statistiques (pour un match) 
@@ -54,3 +56,4 @@ class AssociationStats:
         self.lost_sets += lost_sets
         self.won_points += won_points
         self.lost_points += lost_points
+        self.points_penalty += points_penalty

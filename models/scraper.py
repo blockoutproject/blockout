@@ -241,6 +241,7 @@ class Scraper(ABC):
                     lost_points=assoc.lost_points,
                     won_sets=assoc.won_sets,
                     lost_sets=assoc.lost_sets,
+                    points_penalty=assoc.points_penalty,
                     coef_sets=assoc.coef_sets,
                     coef_points=assoc.coef_points
                 )
@@ -362,7 +363,8 @@ class Scraper(ABC):
                 won_points=team_stats.won_points,
                 lost_points=team_stats.lost_points,
                 won_sets=team_stats.won_sets,
-                lost_sets=team_stats.lost_sets
+                lost_sets=team_stats.lost_sets,
+                points_penalty=team_stats.points_penalty
             )
         except Exception as e:
             log_event(
@@ -389,7 +391,7 @@ class Scraper(ABC):
             self._associations_cache[key] = (None, AssociationStats())
         
         original, updated = self._associations_cache[key]
-
+        updated.points_penalty = abs(points - updated.points)
         updated.points = points
     
     async def finalize_associations_updates(self):
