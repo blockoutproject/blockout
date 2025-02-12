@@ -24,7 +24,7 @@ async def test_add_or_update_team_create_new(session, mocked_aioresponses):
     factory = FakeTeamFactory()
     team = factory.create()
 
-    url_get = f"{TEAM_API_URL}/search?pool_id={team.pool_id}&team_name={team.team_name}"
+    url_get = f"{TEAM_API_URL}/search?pool_id={team.pool_id}&name={team.name}"
     url_post = TEAM_API_URL
 
     # Simuler qu'aucune équipe existante n'est trouvée
@@ -35,7 +35,7 @@ async def test_add_or_update_team_create_new(session, mocked_aioresponses):
 
     result = await add_or_update_team(session, team)
 
-    assert result.team_name == team.team_name
+    assert result.name == team.name
     assert result.pool_id == team.pool_id
     assert result.club_id == team.club_id
 
@@ -48,10 +48,10 @@ async def test_add_or_update_team_update_existing(session, mocked_aioresponses):
 
     updated_team.id = existing_team.id
     updated_team.pool_id = existing_team.pool_id
-    updated_team.team_name = existing_team.team_name
+    updated_team.name = existing_team.name
     updated_team.club_id = "New Club ID"
 
-    url_get = f"{TEAM_API_URL}/search?pool_id={existing_team.pool_id}&team_name={existing_team.team_name}"
+    url_get = f"{TEAM_API_URL}/search?pool_id={existing_team.pool_id}&name={existing_team.name}"
     url_put = f"{TEAM_API_URL}/{existing_team.id}"
 
     # Simuler qu'une équipe existante est trouvée

@@ -22,7 +22,7 @@ class FakeTeamFactory:
         return Team(
             club_id=self.fake.unique.word().upper(),
             pool_id=self.fake.random_int(min=1, max=100),
-            team_name=self.fake.company(),
+            name=self.fake.company(),
             last_update=self.fake.date_time_this_month(),
             id=self.fake.random_int(min=1, max=1000),
             active=True,
@@ -35,7 +35,7 @@ class FakeTeamFactory:
         return Team(
             club_id=self.fake.unique.word().upper(),
             pool_id=self.fake.random_int(min=1, max=100),
-            team_name=self.fake.company(),
+            name=self.fake.company(),
             last_update=self.fake.date_time_this_month(),
             id=self.fake.random_int(min=1, max=1000),
             active=False,

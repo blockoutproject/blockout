@@ -18,7 +18,7 @@ async def create_team(session: aiohttp.ClientSession, team: Team) -> Team:
     log_event(
         action="create_team",
         level="info",
-        team_name=team.team_name,
+        name=team.name,
         club_id=team.club_id
     )
     return response
@@ -35,7 +35,7 @@ async def update_team(session: aiohttp.ClientSession, team: Team, changes_list: 
     log_event(
         action="update_team",
         level="info",
-        team_name=team.team_name,
+        name=team.name,
         changes_list=changes_list
     )
     return response

@@ -17,7 +17,7 @@ from services.pools_service import add_or_update_pool
 from services.teams_service import find_team_by_name_in_division_format_gender
 from utils.file_utils import create_output_directory, delete_output_directory
 from utils.scraper_logic import handle_csv_download_and_parse
-from utils.team_utils import get_full_team_name
+from utils.team_utils import get_full_name
 from utils.utils import parse_season
 from config.logger_config import log_event
 
@@ -269,8 +269,8 @@ class ProScraper(Scraper):
                 mp = int(mp_str)
 
                 # Récupère le nom complet de l'équipe (via ton mapping JSON)
-                full_team_name = get_full_team_name(nom_club, pool.gender)
-                if not full_team_name:
+                full_name = get_full_name(nom_club, pool.gender)
+                if not full_name:
                     # Si on n’a pas trouvé d’alias, on peut décider de skip ou de logguer un warning
                     continue
 
@@ -279,7 +279,7 @@ class ProScraper(Scraper):
                     pool.division_name,
                     pool.format,
                     pool.gender,
-                    full_team_name
+                    full_name
                 )
 
                 if not team:
@@ -288,8 +288,8 @@ class ProScraper(Scraper):
                         action="team_not_found",
                         level="error",
                         pool_id=pool.id,
-                        team_name=full_team_name,
-                        message="Aucune team trouvée pour cette équipe."
+                        name=full_name,
+                        message="Aucune équipe trouvée pour ce nom."
                     )
                     continue
 
@@ -375,25 +375,25 @@ class ProScraper(Scraper):
         mID = self.extract_match_id(match_block)
 
         # Équipes
-        home_team_name, guest_team_name = self.extract_teams(match_block)
-        home_team_full = get_full_team_name(home_team_name, gender)
-        guest_team_full = get_full_team_name(guest_team_name, gender)
+        home_name, guest_name = self.extract_teams(match_block)
+        home_team_full = get_full_name(home_name, gender)
+        guest_team_full = get_full_name(guest_name, gender)
 
         # Log si alias non trouvé
         if not home_team_full:
             log_event(
-                action="missing_team_name",
+                action="missing_name",
                 level="error",
                 pool_id=pool.id,
-                team_name=home_team_name,
+                name=home_name,
                 message="Nom d'équipe domicile non trouvé dans les alias."
             )
         if not guest_team_full:
             log_event(
-                action="missing_team_name",
+                action="missing_name",
                 level="error",
                 pool_id=pool.id,
-                team_name=guest_team_name,
+                name=guest_name,
                 message="Nom d'équipe visiteur non trouvé dans les alias."
             )
 
@@ -447,6 +447,6 @@ class ProScraper(Scraper):
         team_home = match_block.find("span", id=re.compile("Label2|Label6"))
         team_guest = match_block.find("span", id=re.compile("Label4|Label7"))
 
-        home_team_name = team_home.get_text(strip=True) if team_home else None
-        guest_team_name = team_guest.get_text(strip=True) if team_guest else None
-        return home_team_name, guest_team_name
+        home_name = team_home.get_text(strip=True) if team_home else None
+        guest_name = team_guest.get_text(strip=True) if team_guest else None
+        return home_name, guest_name

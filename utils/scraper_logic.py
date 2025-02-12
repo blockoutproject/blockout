@@ -11,6 +11,7 @@ from api.teams_api import get_teams_by_division_format_gender
 from utils.downloader import download_csv
 from utils.file_utils import parse_csv
 from utils.match_utils import compute_volleyball_match_stats
+from utils.team_utils import get_full_name, get_short_name
 from utils.utils import parse_date
 from models.datasource_priority import DataSourcePriority
 
@@ -67,7 +68,7 @@ async def handle_csv_download_and_parse(
         ) or []
 
         existing_teams_dict = {
-            (t.club_id, t.division_name, t.format, t.gender, t.team_name): t
+            (t.club_id, t.division_name, t.format, t.gender, t.name): t
             for t in existing_teams
         }
 
@@ -94,9 +95,16 @@ async def handle_csv_download_and_parse(
                 )
                 continue
             
+            team_a_full_name = get_full_name(row.get('team_a_name'), pool.gender)
+            team_b_full_name = get_full_name(row.get('team_b_name'), pool.gender)
+            
+            team_a_short_name = get_short_name(row.get('team_a_name'), pool.gender)
+            team_b_short_name = get_short_name(row.get('team_b_name'), pool.gender)
+            
             # Teams
             team_a_data = {
-                "team_name": row.get('team_a_name'),
+                "name": team_a_full_name,
+                "short_name": team_a_short_name,
                 "club_id": club_a_id,
                 "league_code": pool.league_code,
                 "division_name": pool.division_name,
@@ -104,7 +112,8 @@ async def handle_csv_download_and_parse(
                 "gender": pool.gender
             }
             team_b_data = {
-                "team_name": row.get('team_b_name'),
+                "name": team_b_full_name,
+                "short_name": team_b_short_name,
                 "club_id": club_b_id,
                 "league_code": pool.league_code,
                 "division_name": pool.division_name,
@@ -113,13 +122,13 @@ async def handle_csv_download_and_parse(
             }
 
             # Création/update teams
-            team_a_key = (club_a_id, pool.division_name, pool.format, pool.gender, row.get('team_a_name'))
+            team_a_key = (club_a_id, pool.division_name, pool.format, pool.gender, team_a_full_name)
             existing_team_a = existing_teams_dict.get(team_a_key)
             new_team_a = await add_or_update_team(scraper.session, Team(**team_a_data), existing_team_a)
             existing_teams_dict[team_a_key] = new_team_a
             scraped_team_ids.add(new_team_a.id)
         
-            team_b_key = (club_b_id, pool.division_name, pool.format, pool.gender, row.get('team_b_name'))
+            team_b_key = (club_b_id, pool.division_name, pool.format, pool.gender, team_b_full_name)
             existing_team_b = existing_teams_dict.get(team_b_key)
             new_team_b = await add_or_update_team(scraper.session, Team(**team_b_data), existing_team_b)
             existing_teams_dict[team_b_key] = new_team_b

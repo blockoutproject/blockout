@@ -32,7 +32,8 @@
                 "Poitiers VB",
                 "POI",
                 "Poitiers",
-                "Stade Poitevin Poitiers"
+                "Stade Poitevin Poitiers",
+                "Alterna Stade Poitevin VB"
             ],
             "gender": "M"
         },
@@ -50,10 +51,11 @@
             "gender": "M"
         },
         {
-            "full": "Arago De Sete",
+            "full": "Arago De Sète",
             "short": "Sète",
             "aliases": [
                 "Arago Sète",
+                "Arago De Sete",
                 "Sète",
                 "Arago de Sète"
             ],
@@ -106,7 +108,7 @@
             "gender": "M"
         },
         {
-            "full": "PARIS Volley",
+            "full": "Paris Volley",
             "short": "Paris",
             "aliases": [
                 "Paris",
@@ -115,13 +117,14 @@
             "gender": "M"
         },
         {
-            "full": "TOURS Volley-Ball",
+            "full": "Tours Volley-Ball",
             "short": "TVB",
             "aliases": [
                 "Tours VB",
                 "TVB",
                 "Tours",
-                "Tours Volley Ball"
+                "Tours Volley Ball",
+                "Tours Volley-Ball"
             ],
             "gender": "M"
         },
@@ -165,7 +168,8 @@
                 "Mulhouse Alsace",
                 "Mulhouse VB",
                 "VMA",
-                "Mulhouse"
+                "Mulhouse",
+                "Volley Mulhouse Alsace"
             ],
             "gender": "F"
         },
@@ -214,10 +218,11 @@
             "gender": "F"
         },
         {
-            "full": "Bordeaux Merignac Volley",
+            "full": "Bordeaux Mérignac Volley",
             "short": "Burdies",
             "aliases": [
                 "Bordeaux Mérignac VB",
+                "Bordeaux Merignac Volley",
                 "Bordeaux Mérignac Volley",
                 "Bordeaux VB",
                 "Bordeaux Mérignac",
@@ -226,10 +231,11 @@
             "gender": "F"
         },
         {
-            "full": "Beziers Volley",
+            "full": "Béziers Volley",
             "short": "Béziers",
             "aliases": [
                 "Béziers Volley-Ball",
+                "Beziers Volley",
                 "Béziers Volley",
                 "Béziers VB",
                 "Béziers"
@@ -259,9 +265,10 @@
             "gender": "F"
         },
         {
-            "full": "VBC Chamalieres",
+            "full": "VBC Chamalières",
             "short": "Chamalières",
             "aliases": [
+                "VBC Chamalieres",
                 "Chamalières VB",
                 "VBC Chamalières",
                 "Chamalières"
@@ -389,10 +396,11 @@
             "gender": "M"
         },
         {
-            "full": "Frejus Var Volley",
+            "full": "Fréjus Var Volley",
             "short": "Fréjus",
             "aliases": [
                 "Fréjus Var Volley",
+                "Frejus Var Volley",
                 "Fréjus"
             ],
             "gender": "M"

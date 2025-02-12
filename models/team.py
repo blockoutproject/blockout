@@ -8,7 +8,8 @@ from models.gender import Gender
 @dataclass
 class Team:
     club_id: str
-    team_name: str
+    name: str
+    short_name: str
     league_code: str
     division_name: str
     gender: Optional[Gender] = None

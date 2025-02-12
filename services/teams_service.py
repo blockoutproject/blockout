@@ -7,7 +7,7 @@ async def add_or_update_team(session: aiohttp.ClientSession, team: Team, existin
     """
     Vérifie l'existence d'une équipe et la met à jour ou la crée selon les besoins.
     """
-    required_fields = ['league_code', 'division_name', 'team_name']
+    required_fields = ['league_code', 'division_name', 'name']
     missing_fields = [field for field in required_fields if not getattr(team, field, None)]
     if missing_fields:
         raise ValueError(f"Les champs obligatoires suivants sont manquants : {', '.join(missing_fields)}.")
@@ -35,11 +35,11 @@ async def find_team_by_name_in_division_format_gender(
     division_name: str,
     format: str,
     gender: str,
-    searched_team_name: str
+    searched_name: str
 ) -> Optional[Team]:
     """
     1) Récupère toutes les équipes correspondant à (division_name, format, gender).
-    2) Filtre pour trouver celle dont team_name correspond à 'searched_team_name' (insensible à la casse).
+    2) Filtre pour trouver celle dont name correspond à 'searched_name' (insensible à la casse).
     3) Retourne la première correspondante ou None si introuvable.
     """
     teams = await get_teams_by_division_format_gender(session, division_name, format, gender)
@@ -47,10 +47,10 @@ async def find_team_by_name_in_division_format_gender(
         return None
     
     # On peut standardiser les noms (lowercase, trim, etc.) selon ta logique
-    searched_lower = searched_team_name.strip().lower()
+    searched_lower = searched_name.strip().lower()
 
     for t in teams:
-        if t.team_name.strip().lower() == searched_lower:
+        if t.name.strip().lower() == searched_lower:
             return t
     
     return None

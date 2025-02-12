@@ -10,13 +10,28 @@ except Exception as e:
     logger.error(f"Erreur lors du chargement de 'team_aliases': {e}")
     team_aliases = {}
 
-def get_full_team_name(name: str, gender: str) -> Optional[str]:
+def get_full_name(name: str, gender: str) -> Optional[str]:
     """
-    Récupère le nom complet de l'équipe correspondant au nom donné en tenant compte du genre.
-    """    
+    Récupère le nom complet de l'équipe correspondant au nom donné en tenant compte du genre,
+    en effectuant une comparaison insensible à la casse (uppercase).
+    """
+    upper_name = name.upper()
     for team in team_aliases.get('teams', []):
         if team.get('gender') == gender:
-            if name in team.get('aliases', []):
+            # Vérifie si upper_name figure parmi les aliases (également convertis en uppercase)
+            if any(upper_name == alias.upper() for alias in team.get('aliases', [])):
                 return team['full']
-    
-    logger.warning(f"Aucun alias trouvé pour '{name}' avec le genre '{gender}'")
+    return name  # Si aucune correspondance n'est trouvée, on renvoie le nom d'origine
+
+def get_short_name(name: str, gender: str) -> Optional[str]:
+    """
+    Récupère le nom complet de l'équipe correspondant au nom donné en tenant compte du genre,
+    en effectuant une comparaison insensible à la casse (uppercase).
+    """
+    upper_name = name.upper()
+    for team in team_aliases.get('teams', []):
+        if team.get('gender') == gender:
+            # Vérifie si upper_name figure parmi les aliases (également convertis en uppercase)
+            if any(upper_name == alias.upper() for alias in team.get('aliases', [])):
+                return team['short']
+    return name  # Si aucune correspondance n'est trouvée, on renvoie le nom d'origine

@@ -32,7 +32,7 @@ async def test_create_team(session, mocked_aioresponses):
 
     result = await create_team(session, team)
 
-    assert result.team_name == team.team_name
+    assert result.name == team.name
     assert result.club_id == team.club_id
     assert result.active == team.active
 
@@ -42,13 +42,13 @@ async def test_update_team(session, mocked_aioresponses):
     factory = FakeTeamFactory()
     team = factory.create()
 
-    team.team_name = "Updated Team Name"
+    team.name = "Updated Team Name"
     team.active = False
 
     url = f"{TEAM_API_URL}/{team.id}"
     mocked_aioresponses.put(url, payload=team.to_dict())
 
-    result = await update_team(session, team, changes_list=["team_name", "active"])
+    result = await update_team(session, team, changes_list=["name", "active"])
 
-    assert result.team_name == "Updated Team Name"
+    assert result.name == "Updated Team Name"
     assert result.active is False
