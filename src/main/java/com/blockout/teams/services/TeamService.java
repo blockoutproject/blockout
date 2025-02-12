@@ -72,7 +72,8 @@ public class TeamService {
     public Team updateTeam(Long id, Team updatedTeam) {
         return teamRepository.findById(id).map(team -> {
             team.setClubId(updatedTeam.getClubId());
-            team.setTeamName(updatedTeam.getTeamName());
+            team.setName(updatedTeam.getName());
+            team.setShortName(updatedTeam.getShortName());
             team.setDivisionName(updatedTeam.getDivisionName());
             team.setFormat(updatedTeam.getFormat());
             team.setGender(updatedTeam.getGender());

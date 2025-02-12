@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Entity
 @Table(name = "teams", uniqueConstraints = {
-        @UniqueConstraint(columnNames = {"club_id", "division_name", "format", "gender", "team_name"}, name = "uix_team")
+        @UniqueConstraint(columnNames = {"club_id", "division_name", "format", "gender", "name"}, name = "uix_team")
 })
 public class Team {
 
@@ -24,9 +24,11 @@ public class Team {
     @Column(name = "club_id", nullable = false)
     private String clubId;
 
+    @Column(name = "name", nullable = false)
+    private String name;
 
-    @Column(name = "team_name", nullable = false)
-    private String teamName;
+    @Column(name = "short_name", nullable = false)
+    private String shortName;
 
     @Builder.Default
     @Column(name = "active", nullable = false)
