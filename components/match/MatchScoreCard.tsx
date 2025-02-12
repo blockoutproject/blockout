@@ -3,17 +3,17 @@ import React from 'react';
 import { View, Text, Image, StyleSheet } from 'react-native';
 
 type ScoreCardProps = {
-    homeTeamName: string;
+    homeName: string;
     homeTeamLogo: string;
-    awayTeamName: string;
+    awayName: string;
     awayTeamLogo: string;
     finalScore: string; // ex. "2-0"
 };
 
 export default function MatchScoreCard({
-    homeTeamName,
+    homeName,
     homeTeamLogo,
-    awayTeamName,
+    awayName,
     awayTeamLogo,
     finalScore,
 }: ScoreCardProps) {
@@ -30,11 +30,11 @@ export default function MatchScoreCard({
                 {/* Contrainte de maxWidth pour forcer le tronquage */}
                 <View style={styles.teamNameContainer}>
                     <Text
-                        style={styles.teamName}
+                        style={styles.name}
                         numberOfLines={1}
                         ellipsizeMode="tail"
                     >
-                        {homeTeamName}
+                        {homeName}
                     </Text>
                 </View>
             </View>
@@ -54,11 +54,11 @@ export default function MatchScoreCard({
 
                 <View style={styles.teamNameContainer}>
                     <Text
-                        style={styles.teamName}
+                        style={styles.name}
                         numberOfLines={1}
                         ellipsizeMode="tail"
                     >
-                        {awayTeamName}
+                        {awayName}
                     </Text>
                 </View>
             </View>
@@ -89,9 +89,9 @@ const styles = StyleSheet.create({
     teamNameContainer: {
         maxWidth: 110,  // Ajustez selon votre design
     },
-    teamName: {
+    name: {
         color: '#fff',
-        fontSize: 14,
+        fontSize: 18,
         // overflow: 'hidden' n'est pas nécessaire
         // numberOfLines={1} + ellipsizeMode="tail" suffit
     },

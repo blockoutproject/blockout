@@ -35,13 +35,13 @@ export default function MatchScoreDetailsCard({
                 </View>
 
                 {/* Colonne 2 : Nom d’équipe (tronqué si trop long) */}
-                <View style={styles.colTeamName}>
+                <View style={styles.colName}>
                     <Text
-                        style={styles.teamName}
+                        style={styles.name}
                         numberOfLines={1}
                         ellipsizeMode="tail"
                     >
-                        {homeTeam.team_name}
+                        {homeTeam.short_name}
                     </Text>
                 </View>
 
@@ -75,13 +75,13 @@ export default function MatchScoreDetailsCard({
                 </View>
 
                 {/* Colonne 2 : Nom d’équipe */}
-                <View style={styles.colTeamName}>
+                <View style={styles.colName}>
                     <Text
-                        style={styles.teamName}
+                        style={styles.name}
                         numberOfLines={1}
                         ellipsizeMode="tail"
                     >
-                        {awayTeam.team_name}
+                        {awayTeam.short_name}
                     </Text>
                 </View>
 
@@ -132,7 +132,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         marginRight: 4,
     },
-    colTeamName: {
+    colName: {
         flex: 1,
         marginRight: 4,
     },
@@ -152,9 +152,9 @@ const styles = StyleSheet.create({
         width: 36,
         height: 36,
     },
-    teamName: {
+    name: {
         color: '#fff',
-        fontSize: 14,
+        fontSize: 16,
     },
     finalScoreBox: {
         borderWidth: 1,

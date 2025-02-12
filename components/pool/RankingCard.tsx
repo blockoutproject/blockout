@@ -100,11 +100,11 @@ const RankingCard: React.FC<RankingCardProps> = ({ poolId }) => {
                                     style={styles.logo}
                                 />
                                 <Text
-                                    style={styles.teamName}
+                                    style={styles.name}
                                     numberOfLines={1}
                                     ellipsizeMode="tail"
                                 >
-                                    {item.team_name}
+                                    {item.short_name}
                                 </Text>
                             </View>
 
@@ -198,7 +198,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
     },
-    teamName: {
+    name: {
         color: '#fff',
         marginLeft: 8,
         marginRight: 24,

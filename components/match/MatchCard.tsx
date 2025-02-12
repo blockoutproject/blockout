@@ -24,8 +24,8 @@ export default function MatchCard({ match, teamA, teamB }: MatchCardProps) {
         <View style={{ ...styles.card, backgroundColor: secondLeagueColor }}>
             {/* Équipe 1 */}
             <View style={{ ...styles.teamContainer, justifyContent: "flex-end" }}>
-                <Text style={styles.teamName} numberOfLines={1} ellipsizeMode="tail">
-                    {teamA?.team_name || "Équipe inconnue"}
+                <Text style={styles.name} numberOfLines={1} ellipsizeMode="tail">
+                    {teamA?.short_name || "Équipe inconnue"}
                 </Text>
                 <Image
                     source={require("@/assets/clubs/paris_volley.png")}
@@ -46,8 +46,8 @@ export default function MatchCard({ match, teamA, teamB }: MatchCardProps) {
                     style={styles.teamLogo}
                     resizeMode="contain"
                 />
-                <Text style={styles.teamName} numberOfLines={1} ellipsizeMode="tail">
-                    {teamB?.team_name || "Équipe inconnue"}
+                <Text style={styles.name} numberOfLines={1} ellipsizeMode="tail">
+                    {teamB?.short_name || "Équipe inconnue"}
                 </Text>
             </View>
         </View>
@@ -66,12 +66,13 @@ const styles = StyleSheet.create({
         flex: 3,
         flexDirection: "row",
     },
-    teamName: {
+    name: {
         color: colors.light,
         fontSize: 14,
         fontWeight: "800",
         maxWidth: 80,
         minWidth: 80,
+        textAlign: "center",    
     },
     teamLogo: {
         height: 35,

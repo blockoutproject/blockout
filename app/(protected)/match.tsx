@@ -27,9 +27,9 @@ export default function MatchModalScreen() {
                 <>
                     <ScrollView contentContainerStyle={styles.scrollContent}>
                         <MatchScoreCard
-                            homeTeamName={teamA.team_name}
+                            homeName={teamA.short_name}
                             homeTeamLogo="https://exemple.com/logo-ascannes.png"
-                            awayTeamName={teamB.team_name}
+                            awayName={teamB.short_name}
                             awayTeamLogo="https://exemple.com/logo-recvolley.png"
                             finalScore={match.set || '0 : 0'}
                         />
