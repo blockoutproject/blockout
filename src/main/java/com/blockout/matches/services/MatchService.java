@@ -44,66 +44,75 @@ public class MatchService {
         return createdMatch;
     }
 
-    public DayPageDTO getMatchesByDay(int page, int size) {
+    public DayPageDTO getMatchesByDay(Long poolId, int page, int size) {
         LocalDateTime today = LocalDateTime.now();
 
-        // 1. Récupérer la liste de toutes les dates distinctes jusqu'à aujourd'hui
-        List<LocalDate> allDays = matchRepository.findDistinctDatesUntil(today);
+        // 1) Récupérer toutes les dates distinctes (jusqu'à aujourd’hui),
+        //    filtrées ou non par poolId
+        List<LocalDate> allDays = matchRepository.findDistinctDatesUntil(today, poolId);
 
-        // 2. Vérifier si la page demandée est valide
+        // 2) Pagination
         int fromIndex = page * size;
         if (fromIndex >= allDays.size()) {
+            // Page vide
             return new DayPageDTO(Collections.emptyList(), false, null);
         }
 
         int toIndex = Math.min(fromIndex + size, allDays.size());
         List<LocalDate> subDays = allDays.subList(fromIndex, toIndex);
 
-        // 3. Pour optimiser : récupérer en une seule requête les matchs sur la plage de
-        // dates
-        // Déterminer la plage des dates à traiter
-        LocalDate minDay = subDays.get(subDays.size() - 1); // le plus ancien dans la sous-liste
-        LocalDate maxDay = subDays.get(0); // le plus récent
+        // 3) Déterminer la plage de dates min/max
+        LocalDate minDay = subDays.get(subDays.size() - 1); // le + ancien de la liste
+        LocalDate maxDay = subDays.get(0);                  // le + récent
+
         LocalDateTime startOfMinDay = minDay.atStartOfDay();
         LocalDateTime endDateTime;
-
-        // Vérifier si maxDay == le jour d'aujourd'hui
         if (maxDay.equals(LocalDate.now())) {
-            // Alors on s'arrête à l'heure courante
+            // Si la date la + récente est aujourd’hui, on s’arrête à l’heure courante
             endDateTime = today;
         } else {
-            // Sinon, on va jusqu'à minuit du lendemain
+            // Sinon, on prend minuit du lendemain de maxDay
             endDateTime = maxDay.plusDays(1).atStartOfDay();
         }
-        // Récupérer tous les matchs pour la plage de dates en une seule requête
-        List<Match> allMatches = matchRepository.findAllByDay(startOfMinDay, endDateTime);
 
-        // 4. Regrouper les matchs par date
+        // 4) Récupérer tous les matchs dans [startOfMinDay, endDateTime),
+        //    filtrés ou non par poolId
+        List<Match> allMatches = matchRepository.findAllInRange(startOfMinDay, endDateTime, poolId);
+
+        // 5) Grouper par date
         Map<LocalDate, List<Match>> matchesByDate = allMatches.stream()
-                .collect(Collectors.groupingBy(m -> m.getMatchDate().toLocalDate()));
+            .collect(Collectors.groupingBy(m -> m.getMatchDate().toLocalDate()));
 
-        // 5. Construire la liste finale des DTO pour les dates présentes dans subDays
-        List<DayMatchesDTO> dayMatchesList = subDays.stream().map(day -> {
-            List<Match> matchesForDay = matchesByDate.getOrDefault(day, Collections.emptyList());
+        // 6) Construire la liste DayMatchesDTO
+        List<DayMatchesDTO> dayMatchesList = subDays.stream()
+            .map(day -> {
+                // Récupérer les matchs pour ce jour
+                List<Match> matchesForDay = matchesByDate.getOrDefault(day, Collections.emptyList());
 
-            // Regrouper par pool en utilisant un TreeMap pour avoir un ordre (ici par
-            // poolId croissant)
-            Map<Long, List<Match>> matchesByPool = matchesForDay.stream()
-                    .collect(Collectors.groupingBy(Match::getPoolId, TreeMap::new, Collectors.toList()));
+                if (poolId == null) {
+                    // CAS 1 : on gère toutes les pools => on les regroupe par poolId
+                    Map<Long, List<Match>> matchesByPool = matchesForDay.stream()
+                        .collect(Collectors.groupingBy(Match::getPoolId, TreeMap::new, Collectors.toList()));
 
-            // Limiter à 3 poules maximum par date
-            List<PoolMatchesDTO> poolMatchesList = matchesByPool.entrySet().stream()
-                    .filter(entry -> entry.getKey() == 1 || entry.getKey() == 2 || entry.getKey() == 3 || entry.getKey() == 282)
-                    .map(entry -> new PoolMatchesDTO(entry.getKey(), entry.getValue()))
-                    .collect(Collectors.toList());
+                    // On ne filtre pas sur poolId, sauf si tu veux limiter la liste
+                    // ex: .filter(e -> e.getKey() == 1 || e.getKey() == 2 || e.getKey() == 3 || e.getKey() == 282)
+                    List<PoolMatchesDTO> poolsDto = matchesByPool.entrySet().stream()
+                        .map(e -> new PoolMatchesDTO(e.getKey(), e.getValue()))
+                        .collect(Collectors.toList());
 
-            DayMatchesDTO dayMatchesDTO = new DayMatchesDTO();
-            dayMatchesDTO.setDate(day);
-            dayMatchesDTO.setPools(poolMatchesList);
-            return dayMatchesDTO;
-        }).collect(Collectors.toList());
+                    return new DayMatchesDTO(day, poolsDto);
 
-        // 6. Déterminer s'il y a une page suivante
+                } else {
+                    // CAS 2 : un seul pool => on crée directement 1 seul PoolMatchesDTO
+                    // matchesForDay est déjà filtré en DB sur poolId, donc on n’a qu’un seul ID
+                    PoolMatchesDTO singlePoolDto = new PoolMatchesDTO(poolId, matchesForDay);
+
+                    return new DayMatchesDTO(day, Collections.singletonList(singlePoolDto));
+                }
+            })
+            .collect(Collectors.toList());
+
+        // 7) Page suivante ?
         boolean hasNext = (toIndex < allDays.size());
         Integer nextPage = hasNext ? (page + 1) : null;
 

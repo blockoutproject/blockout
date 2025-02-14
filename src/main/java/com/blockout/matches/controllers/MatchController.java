@@ -66,17 +66,26 @@ public class MatchController {
         return ResponseEntity.ok(matches);
     }
 
-    @Operation(summary = "Récupérer les matchs groupés par jour avec pagination", description = "Retourne une liste paginée de groupes de matchs par jour")
+    @Operation(
+        summary = "Récupérer les matchs groupés par jour avec pagination (optionnel: poolId)",
+        description = """
+            Retourne une liste paginée de groupes de matchs par jour.
+            - Si 'poolId' est omis ou null, on renvoie toutes les poules.
+            - Sinon, on renvoie uniquement la poule spécifiée.
+        """
+    )
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Liste paginée des groupes de matchs par jour renvoyée avec succès"),
-            @ApiResponse(responseCode = "204", description = "Aucun match trouvé"),
+        @ApiResponse(responseCode = "200", description = "Liste paginée des groupes de matchs par jour renvoyée avec succès"),
+        @ApiResponse(responseCode = "204", description = "Aucun match trouvé"),
     })
     @GetMapping("/matches/day-based")
-    public ResponseEntity<DayPageDTO> getMatchesByDay(
+    public ResponseEntity<DayPageDTO> getMatchesDayBased(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "3") int size) {
+            @RequestParam(defaultValue = "3") int size,
+            @RequestParam(name = "pool_id", required = false) Long poolId) {
+                
+        DayPageDTO dayPage = matchService.getMatchesByDay(poolId, page, size);
 
-        DayPageDTO dayPage = matchService.getMatchesByDay(page, size);
         if (dayPage.getDayMatches().isEmpty()) {
             return ResponseEntity.noContent().build();
         }
@@ -189,12 +198,12 @@ public class MatchController {
     @GetMapping("/pools/{poolId}/matches/search")
     public ResponseEntity<Match> getMatchByPoolAndTeamsAndDate(
             @PathVariable Long poolId,
-            @RequestParam Long team_id_a,
-            @RequestParam Long team_id_b,
-            @RequestParam String match_date) {
+            @RequestParam(name = "team_id_a") Long teamIdA,
+            @RequestParam(name = "team_id_b") Long teamIdB,
+            @RequestParam(name = "match_date") String matchDate) {
 
-        LocalDate matchDate = LocalDate.parse(match_date);
-        Optional<Match> match = matchService.getMatchByPoolAndTeamsAndDate(poolId, team_id_a, team_id_b, matchDate);
+        LocalDate parsedMatchDate = LocalDate.parse(matchDate);
+        Optional<Match> match = matchService.getMatchByPoolAndTeamsAndDate(poolId, teamIdA, teamIdB, parsedMatchDate);
 
         return match.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
     }
