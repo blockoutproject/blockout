@@ -36,6 +36,8 @@ public class MatchService {
     @Autowired
     private MatchRepository matchRepository;
 
+    private static final List<Long> POOLS_WHEN_NULL = List.of(1L, 2L, 3L, 282L);
+
     public Match createMatch(Match match) {
         Match createdMatch = matchRepository.save(match);
         logger.info("Match created successfully",
@@ -89,7 +91,7 @@ public class MatchService {
         }
         
         // 4) Récupérer tous les matchs dans la plage
-        List<Match> allMatches = matchRepository.findAllInRange(startOfMinDay, endDateTime, poolId, status);
+        List<Match> allMatches = matchRepository.findAllInRange(startOfMinDay, endDateTime, poolId, status, POOLS_WHEN_NULL);
         
         // 5) Grouper par date
         Map<LocalDate, List<Match>> matchesByDate = allMatches.stream()
