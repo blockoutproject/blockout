@@ -66,26 +66,25 @@ public class MatchController {
         return ResponseEntity.ok(matches);
     }
 
-    @Operation(
-        summary = "Récupérer les matchs groupés par jour avec pagination (optionnel: poolId)",
-        description = """
-            Retourne une liste paginée de groupes de matchs par jour.
-            - Si 'poolId' est omis ou null, on renvoie toutes les poules.
-            - Sinon, on renvoie uniquement la poule spécifiée.
-        """
-    )
+    @Operation(summary = "Récupérer les matchs groupés par jour avec pagination (optionnel: poolId et status)", description = """
+                Retourne une liste paginée de groupes de matchs par jour.
+                - Si 'pool_id' est omis ou null, on renvoie toutes les poules.
+                - Le paramètre 'status' permet de filtrer :
+                    * Par défaut (status non renseigné ou FINISHED) : matchs passés.
+                    * Si status=UPCOMING : matchs à venir.
+            """)
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Liste paginée des groupes de matchs par jour renvoyée avec succès"),
-        @ApiResponse(responseCode = "204", description = "Aucun match trouvé"),
+            @ApiResponse(responseCode = "200", description = "Liste paginée des groupes de matchs renvoyée avec succès"),
+            @ApiResponse(responseCode = "204", description = "Aucun match trouvé"),
     })
     @GetMapping("/matches/day-based")
     public ResponseEntity<DayPageDTO> getMatchesDayBased(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "3") int size,
-            @RequestParam(name = "pool_id", required = false) Long poolId) {
-                
-        DayPageDTO dayPage = matchService.getMatchesByDay(poolId, page, size);
+            @RequestParam(name = "pool_id", required = false) Long poolId,
+            @RequestParam(name = "status", required = false) MatchStatus status) {
 
+        DayPageDTO dayPage = matchService.getMatchesByDay(poolId, page, size, status);
         if (dayPage.getDayMatches().isEmpty()) {
             return ResponseEntity.noContent().build();
         }

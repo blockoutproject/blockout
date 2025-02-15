@@ -41,9 +41,10 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
                 SELECT DISTINCT CAST(m.matchDate AS LocalDate)
                 FROM Match m
                 WHERE m.matchDate <= :today
+                        AND m.status = 'FINISHED'
                         AND (:poolId IS NULL OR m.poolId = :poolId)
                 ORDER BY CAST(m.matchDate AS LocalDate) DESC
-                        """)
+        """)
         List<LocalDate> findDistinctDatesUntil(@Param("today") LocalDateTime today,
                         @Param("poolId") Long poolId);
 
@@ -53,9 +54,20 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
                 WHERE m.matchDate >= :startOfDay
                         AND m.matchDate < :endOfDay
                         AND (:poolId IS NULL OR m.poolId = :poolId)
+                        AND (:status IS NULL OR m.status = :status)
                 ORDER BY m.poolId ASC, m.matchDate ASC
-                        """)
+        """)
         List<Match> findAllInRange(@Param("startOfDay") LocalDateTime startOfDay,
                         @Param("endOfDay") LocalDateTime endOfDay,
-                        @Param("poolId") Long poolId);
+                        @Param("poolId") Long poolId,
+                        @Param("status") MatchStatus status);
+
+        @Query("""
+                SELECT DISTINCT CAST(m.matchDate AS LocalDate)
+                FROM Match m
+                WHERE m.status = 'UPCOMING'
+                        AND (:poolId IS NULL OR m.poolId = :poolId)
+                ORDER BY CAST(m.matchDate AS LocalDate) ASC
+        """)
+        List<LocalDate> findDistinctUpcomingDates(@Param("poolId") Long poolId);
 }
