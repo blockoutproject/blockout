@@ -52,9 +52,9 @@ public class MatchService {
         // 1) Récupérer toutes les dates distinctes
         List<LocalDate> allDays;
         if (status == MatchStatus.UPCOMING) {
-            allDays = matchRepository.findDistinctUpcomingDates(poolId);
+            allDays = matchRepository.findDistinctUpcomingDates(poolId, POOLS_WHEN_NULL);
         } else {
-            allDays = matchRepository.findDistinctDatesUntil(now, poolId);
+            allDays = matchRepository.findDistinctDatesUntil(now, poolId, POOLS_WHEN_NULL);
         }
     
         // 2) Pagination
