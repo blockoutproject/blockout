@@ -3,7 +3,6 @@ import PoolsApi from '@/api/PoolsApi';
 import { Pool } from '@/types/Pool';
 
 export function usePoolsByIds(ids: number[]) {
-    // Pour chaque ID, on lance une requête individuelle
     const poolQueries = useQueries({
         queries: ids.map(id => ({
             queryKey: ['pool', id],

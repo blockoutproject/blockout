@@ -4,6 +4,7 @@ import { useAuth0 } from 'react-native-auth0';
 import { View, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { MatchHeader } from '@/components/match/MatchHeader';
+import { PoolHeader } from '@/components/pool/PoolHeader';
 
 export default function ProtectedLayout() {
     const { user, isLoading } = useAuth0();
@@ -33,13 +34,18 @@ export default function ProtectedLayout() {
                     headerShown: false
                 }}
             />
-
-            {/* Écran modal pour afficher les détails */}
             <Stack.Screen
                 name="match"
                 options={{
                     presentation: 'modal',
-                    header: () => <MatchHeader />
+                    headerShown: false
+                }}
+            />
+            <Stack.Screen
+                name="pool"
+                options={{
+                    presentation: 'modal',
+                    headerShown: false
                 }}
             />
         </Stack>

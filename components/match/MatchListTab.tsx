@@ -1,6 +1,4 @@
-import { DayMatchesDTO, PoolMatchesDTO, Match } from "@/types/Match";
-import MatchCard from "./MatchCard";
-
+import { DayMatchesDTO, PoolMatchesDTO, Match, MatchStatus } from "@/types/Match";
 import React from "react";
 import {
     ActivityIndicator,
@@ -10,17 +8,18 @@ import {
     TouchableOpacity,
     View,
 } from "react-native";
-
 import { colors } from "@/constants/colors";
 import { useRouter } from "expo-router";
-import Filters from "../Filters";
 import { useMatchesWithTeamsAndPools } from "@/hooks/match/useMatchesWithTeamsAndPools";
+import MatchCard from "./MatchCard";
+import { Pool } from "@/types/Pool";
 
-type MatchListProps = {
-    poolId?: number;
+type FinishedMatchesTabProps = {
+    pool?: Pool;
+    status: MatchStatus
 };
 
-export default function MatchList({ poolId }: MatchListProps) {
+export default function MatchListTab({ pool, status }: FinishedMatchesTabProps) {
     const router = useRouter();
     const {
         dayMatches,
@@ -32,7 +31,7 @@ export default function MatchList({ poolId }: MatchListProps) {
         fetchNextPage,
         hasNextPage,
         isFetching,
-    } = useMatchesWithTeamsAndPools(poolId);
+    } = useMatchesWithTeamsAndPools(status, pool?.id);
 
     const handleCardPress = (matchId: number) => {
         router.push(`/match/${matchId}`);
@@ -43,6 +42,7 @@ export default function MatchList({ poolId }: MatchListProps) {
     };
 
     const loadMoreMatches = () => {
+        console.log("loadMoreMatches", hasNextPage);
         if (hasNextPage) {
             fetchNextPage();
         }
@@ -50,9 +50,6 @@ export default function MatchList({ poolId }: MatchListProps) {
 
     return (
         <View style={styles.container}>
-            <View style={{ paddingLeft: 16 }}>
-                <Filters />
-            </View>
 
             <View style={{ ...styles.container, padding: 16 }}>
 
@@ -71,22 +68,24 @@ export default function MatchList({ poolId }: MatchListProps) {
                     renderItem={({ item: day }) => (
                         <View>
                             <Text style={styles.dateHeader}>{day.date}</Text>
-                            {day.pools.map((pool: PoolMatchesDTO) => (
+                            {day.pools.map((poolDTO: PoolMatchesDTO) => (
                                 <View
-                                    key={`${day.date}#${pool.pool_id}`}
+                                    key={`${day.date}#${poolDTO.pool_id}`}
                                     style={styles.poolContainer}
                                 >
-                                    {/* Titre de la pool */}
-                                    <TouchableOpacity onPress={() => handlePoolPress(pool.pool_id)}>
-                                        <Text style={styles.poolHeader}>
-                                            {pools[pool.pool_id]
-                                                ? pools[pool.pool_id].pool_name
-                                                : `Pool ${pool.pool_id}`}
-                                        </Text>
-                                    </TouchableOpacity>
+                                    {/* Titre de la pool, que dans le cas ou plusieurs poules sont affichées */}
+                                    {!pool && (
+                                        <TouchableOpacity onPress={() => handlePoolPress(poolDTO.pool_id)}>
+                                            <Text style={styles.poolHeader}>
+                                                {pools[poolDTO.pool_id]
+                                                    ? pools[poolDTO.pool_id].pool_name
+                                                    : `Pool ${poolDTO.pool_id}`}
+                                            </Text>
+                                        </TouchableOpacity>
+                                    )}
 
                                     {/* Liste des matchs */}
-                                    {pool.matches.map((match: Match) => {
+                                    {poolDTO.matches.map((match: Match) => {
                                         const teamA = teams[match.team_id_a];
                                         const teamB = teams[match.team_id_b];
                                         return (
@@ -139,7 +138,7 @@ const styles = StyleSheet.create({
     },
     poolContainer: {
         marginBottom: 10,
-        padding: 10,
+        padding: 4,
         borderRadius: 8,
         backgroundColor: colors.dark,
     },

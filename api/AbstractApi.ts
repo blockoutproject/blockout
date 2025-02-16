@@ -34,10 +34,10 @@ abstract class AbstractApi {
             (error) => {
                 if (error.response) {
                     // Erreur côté serveur (statut HTTP)
-                    console.error('Erreur de réponse du serveur :', error.response.status, error.response.data);
+                    console.error('Erreur de réponse du serveur :', url, error.response.status, error.response.data);
                 } else if (error.request) {
                     // La requête a été envoyée mais aucune réponse n'a été reçue
-                    console.error('Aucune réponse reçue :', error.request);
+                    console.error('Aucune réponse reçue :', url, error.request);
                 } else {
                     // Autres erreurs (configuration, etc.)
                     console.error('Erreur Axios :', error.message);

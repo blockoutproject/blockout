@@ -1,5 +1,5 @@
 import React from 'react';
-import { ScrollView, View, Text, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Text, ActivityIndicator, StyleSheet, ScrollView } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { useMatchById } from '@/hooks/match/useMatchById';
 import MatchScoreCard from '@/components/match/MatchScoreCard';
@@ -8,8 +8,10 @@ import MatchInfoCard from '@/components/match/MatchInfoCard';
 import RankingCard from '@/components/pool/RankingCard';
 
 export default function MatchModalScreen() {
-    const params = useLocalSearchParams();
-    const matchId = Number(params.id);
+    console.log(useLocalSearchParams())
+    const { match_id } = useLocalSearchParams();
+    console.log(match_id)
+    const matchId = Number(match_id);
     const { match, teamA, teamB, isLoading } = useMatchById(matchId);
 
     if (isLoading) {
@@ -34,7 +36,6 @@ export default function MatchModalScreen() {
                             finalScore={match.set || '0 : 0'}
                         />
 
-                        {/* 📌 ScrollView pour tout le reste */}
                         <MatchScoreDetailsCard title="Score" homeTeam={teamA} awayTeam={teamB} match={match} />
                         <MatchInfoCard
                             date={match.match_date}

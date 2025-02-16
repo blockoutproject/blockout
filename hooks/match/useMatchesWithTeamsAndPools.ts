@@ -1,22 +1,21 @@
-// useMatchesWithTeams.ts
 import { useMemo } from "react";
 import { useMatches } from "./useMatches";
 import { useTeamsByIds } from "../team/useTeamsByIds";
 import { usePoolsByIds } from "../pool/usePoolsByIds";
+import { MatchStatus } from "@/types/Match";
 
-export function useMatchesWithTeamsAndPools() {
+export function useMatchesWithTeamsAndPools(status: MatchStatus, poolId?: number) {
     const {
-        data,           // Données brutes de l'infinite query
-        dayMatches,     // Liste groupée (ou aplatie) de matchs
+        data,
+        dayMatches,
         isLoading: isLoadingMatches,
         isError: isErrorMatches,
         error: errorMatches,
         fetchNextPage,
         isFetchingNextPage,
         hasNextPage
-    } = useMatches();
+    } = useMatches(status, poolId);
 
-    // Calculer l'union de tous les team IDs depuis toutes les pages fetchées
     const allTeamIds = useMemo(() => {
         if (!data || !data.pages) return [];
         const ids = new Set<number>();
@@ -33,7 +32,6 @@ export function useMatchesWithTeamsAndPools() {
         return Array.from(ids);
     }, [data]);
 
-    // Calculer l'union de tous les team IDs depuis toutes les pages fetchées
     const allPoolIds = useMemo(() => {
         if (!data || !data.pages) return [];
         const ids = new Set<number>();
@@ -47,6 +45,7 @@ export function useMatchesWithTeamsAndPools() {
         return Array.from(ids);
     }, [data]);
 
+    // Charger les équipes
     const {
         teams,
         isLoading: isLoadingTeams,
@@ -54,6 +53,7 @@ export function useMatchesWithTeamsAndPools() {
         error: errorTeams
     } = useTeamsByIds(allTeamIds);
 
+    // Charger les poules
     const {
         pools,
         isLoading: isLoadingPools,
@@ -61,8 +61,14 @@ export function useMatchesWithTeamsAndPools() {
         error: errorPools
     } = usePoolsByIds(allPoolIds);
 
-    const isLoading = isLoadingMatches || (isLoadingTeams && allTeamIds.length === 0) || (isLoadingPools && allPoolIds.length > 0);
-    const isFetching = isFetchingNextPage || (isLoadingTeams && allTeamIds.length > 0) || (isLoadingPools && allPoolIds.length > 0);
+    const isLoading = isLoadingMatches
+        || (isLoadingTeams && allTeamIds.length === 0)
+        || (isLoadingPools && allPoolIds.length > 0);
+
+    const isFetching = isFetchingNextPage
+        || (isLoadingTeams && allTeamIds.length > 0)
+        || (isLoadingPools && allPoolIds.length > 0);
+
     const isError = isErrorMatches || isErrorTeams || isErrorPools;
     const error = errorMatches || errorTeams || errorPools;
 

@@ -17,10 +17,12 @@ import {
     SceneRendererProps,
     TabView,
 } from "react-native-tab-view";
+import MatchListTab from "@/components/match/MatchListTab";
+import { MatchStatus } from "@/types/Match";
 
 const renderScene = SceneMap({
-    results: MatchList,
-    to_come: Placeholder.PlaceholderScreen1,
+    results: () => <MatchListTab status={MatchStatus.FINISHED} />,
+    to_come: () => <MatchListTab status={MatchStatus.UPCOMING} />,
     discover: Placeholder.PlaceholderScreen2,
 });
 

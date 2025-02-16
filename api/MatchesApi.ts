@@ -1,6 +1,6 @@
 import { CONFIG } from '@/config/config';
 import AbstractApi from './AbstractApi';
-import { DayPageDTO, Match } from '@/types/Match';
+import { DayPageDTO, Match, MatchStatus } from '@/types/Match';
 
 class MatchesApi extends AbstractApi {
     private static instance: MatchesApi | null = null;
@@ -30,16 +30,22 @@ class MatchesApi extends AbstractApi {
     }
 
     /**
-     * Récupère les matchs par jour avec pagination.
-     * @param page - La page demandée.
-     * @param size - Le nombre d'éléments par page.
-     * @returns La liste des matchs groupés par date et pool.
+     * Récupère les matchs (optionnel: poolId).
+     * - Si `poolId` est fourni, retourne la poule spécifiée.
+     * - Sinon, retourne toutes les poules.
      */
-    public async getMatches({ page = 0, size = 10 }): Promise<DayPageDTO> {
-        const response = await this.service.get('/matches/day-based', {
-            params: { page, size },
-        });
+    public async getMatches({ page = 0, size = 10, poolId, status }: { page: number, size: number, poolId?: number, status?: MatchStatus}): Promise<DayPageDTO> {
+        const params: Record<string, number | MatchStatus> = { page, size };
+        if (poolId !== undefined) {
+            params.pool_id = poolId;
+        }
+        if (status !== undefined) {
+            params.status = status;
+        }
 
+        const response = await this.service.get('/matches/day-based', { params });
+
+        console.log(params, response.data);
         return response.data as DayPageDTO;
     }
 

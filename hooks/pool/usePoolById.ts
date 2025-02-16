@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Pool } from '@/types/Pool';
 import PoolsApi from '@/api/PoolsApi';
 
-export function usePoolById(id: number | undefined) {
+export function usePoolById(id?: number) {
     return useQuery<Pool, Error>({
         queryKey: ['pool', id],
         queryFn: async () => {

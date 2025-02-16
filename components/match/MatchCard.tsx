@@ -57,6 +57,7 @@ export default function MatchCard({ match, teamA, teamB }: MatchCardProps) {
 const styles = StyleSheet.create({
     card: {
         padding: 12,
+        marginVertical: 8,
         borderRadius: 10,
         flexDirection: "row",
         gap: 5,
