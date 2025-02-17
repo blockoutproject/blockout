@@ -117,4 +117,18 @@ public class CompetitionAssociationController {
         CompetitionAssociation updatedAssoc = associationService.updateTeamAssociationStats(poolId, teamId, statsRequest);
         return ResponseEntity.ok(updatedAssoc);
     }
+
+    @Operation(summary = "Récupérer les poules associées à une équipe")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Liste des poules renvoyée avec succès"),
+        @ApiResponse(responseCode = "204", description = "Aucune poule active trouvée pour cette équipe")
+    })
+    @GetMapping("/teams/{teamId}/pools")
+    public ResponseEntity<List<CompetitionAssociation>> getPoolsByTeam(@PathVariable Long teamId) {
+        List<CompetitionAssociation> pools = associationService.getPoolsByTeam(teamId);
+        if (pools.isEmpty()) {
+            return ResponseEntity.noContent().build();
+        }
+        return ResponseEntity.ok(pools);
+    }
 }
