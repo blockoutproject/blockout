@@ -212,18 +212,4 @@ public class CompetitionAssociationService {
                 keyValue("points", request.getPoints()));
         return updatedAssoc;
     }
-
-    /**
-     * Récupère toutes les associations actives (team ↔ pool) pour une équipe donnée.
-     */
-    public List<CompetitionAssociation> getPoolsByTeam(Long teamId) {
-        List<CompetitionAssociation> pools = associationRepository.findByTeamIdAndActive(teamId, true);
-
-        if (pools.isEmpty()) {
-            logger.info("Aucune association active trouvée pour l'équipe",
-                    keyValue("action", "get_pools_by_team"),
-                    keyValue("teamId", teamId));
-        }
-        return pools;
-    }
 }
