@@ -9,22 +9,28 @@ type MatchCardProps = {
     match: Match;
     teamA?: Team;
     teamB?: Team;
+    mainColor: string;
+    secondColor: string;
 };
 
-export default function MatchCard({ match, teamA, teamB }: MatchCardProps) {
-    const index = Math.floor(Math.random() * 3);
-
-    const mainLeagueColors = ["#5a8d36", "#007d89", "#bf447d"];
-    const mainLeagueColor = mainLeagueColors[index];
-
-    const secondLeagueColors = ["#2f362b", "#243335", "#3d3136"];
-    const secondLeagueColor = secondLeagueColors[index];
-
+const MatchCard: React.FC<MatchCardProps> = ({
+    match,
+    teamA,
+    teamB,
+    mainColor,
+    secondColor,
+}) => {
     return (
-        <View style={{ ...styles.card, backgroundColor: secondLeagueColor }}>
+        <View style={{ ...styles.card, backgroundColor: secondColor }}>
             {/* Équipe 1 */}
-            <View style={{ ...styles.teamContainer, justifyContent: "flex-end" }}>
-                <Text style={styles.name} numberOfLines={1} ellipsizeMode="tail">
+            <View
+                style={{ ...styles.teamContainer, justifyContent: "flex-end" }}
+            >
+                <Text
+                    style={styles.name}
+                    numberOfLines={1}
+                    ellipsizeMode="tail"
+                >
                     {teamA?.short_name || "Équipe inconnue"}
                 </Text>
                 <Image
@@ -35,18 +41,27 @@ export default function MatchCard({ match, teamA, teamB }: MatchCardProps) {
             </View>
 
             {/* Score */}
-            <View style={{ ...styles.scoreBox, borderColor: mainLeagueColor }}>
+            <View style={{ ...styles.scoreBox, borderColor: mainColor }}>
                 <Text style={styles.scoreText}>{match.set || "-"}</Text>
             </View>
 
             {/* Équipe 2 */}
-            <View style={{ ...styles.teamContainer, justifyContent: "flex-start" }}>
+            <View
+                style={{
+                    ...styles.teamContainer,
+                    justifyContent: "flex-start",
+                }}
+            >
                 <Image
                     source={require("@/assets/clubs/as_cannes.png")}
                     style={styles.teamLogo}
                     resizeMode="contain"
                 />
-                <Text style={styles.name} numberOfLines={1} ellipsizeMode="tail">
+                <Text
+                    style={styles.name}
+                    numberOfLines={1}
+                    ellipsizeMode="tail"
+                >
                     {teamB?.short_name || "Équipe inconnue"}
                 </Text>
             </View>
@@ -57,7 +72,6 @@ export default function MatchCard({ match, teamA, teamB }: MatchCardProps) {
 const styles = StyleSheet.create({
     card: {
         padding: 12,
-        marginVertical: 8,
         borderRadius: 10,
         flexDirection: "row",
         gap: 5,
@@ -73,7 +87,7 @@ const styles = StyleSheet.create({
         fontWeight: "800",
         maxWidth: 80,
         minWidth: 80,
-        textAlign: "center",    
+        textAlign: "center",
     },
     teamLogo: {
         height: 35,
@@ -94,3 +108,5 @@ const styles = StyleSheet.create({
         fontWeight: "800",
     },
 });
+
+export default MatchCard;

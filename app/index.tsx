@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 import { useAuth0 } from 'react-native-auth0';
 import { View, ActivityIndicator } from 'react-native';
 
-export default function Index() {
+const Index: React.FC = () => {
     const { user, isLoading } = useAuth0();
     const router = useRouter();
 
@@ -24,3 +24,5 @@ export default function Index() {
         </View>
     );
 }
+
+export default Index;

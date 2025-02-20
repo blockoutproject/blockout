@@ -6,7 +6,6 @@ interface RankingCardProps {
     poolId: number;
 }
 
-/** Exemple d’attribution de couleur de la petite barre à gauche selon le rang. */
 function getRankColor(rank: number, length: number): string {
     switch (rank) {
         case 1:
@@ -26,6 +25,7 @@ function getRankColor(rank: number, length: number): string {
 
 const RankingCard: React.FC<RankingCardProps> = ({ poolId }) => {
     const { teams, isLoading, isError } = useDetailedPoolTeams(poolId);
+    console.log("RankingCard", teams);
     if (isLoading) {
         return (
             <View style={styles.container}>

@@ -10,12 +10,13 @@ type MatchScoreDetailsCardProps = {
     match: Match;
 };
 
-export default function MatchScoreDetailsCard({
+const MatchScoreDetailsCard: React.FC<MatchScoreDetailsCardProps> = ({
     title = 'Score',
     homeTeam,
     awayTeam,
     match,
-}: MatchScoreDetailsCardProps) {
+}) => {
+
     const setsArray = match.score?.split(',').map((s) => s.split('-')) || [];
     const [homeFinal, awayFinal] = match.set?.split('-') || ['0', '0'];
 
@@ -172,3 +173,5 @@ const styles = StyleSheet.create({
         fontSize: 16,
     },
 });
+
+export default MatchScoreDetailsCard;

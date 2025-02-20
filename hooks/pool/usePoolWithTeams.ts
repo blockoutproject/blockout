@@ -36,7 +36,6 @@ export function useDetailedPoolTeams(poolId: number) {
         queryFn: async () => {
             if (!poolTeams) return [];
             
-            // Récupère les détails des équipes
             const teamDetails = await Promise.all(
                 poolTeams.map(async (entry) => {
                     const team = await TeamsApi.getInstance().getTeamById(entry.team_id);

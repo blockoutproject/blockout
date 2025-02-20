@@ -12,7 +12,7 @@ import {
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useRouter } from "expo-router";
 
-const HomeHeader = () => {
+const HomeHeader: React.FC = () => {
     const router = useRouter();
 
     return (

@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Button } from 'react-native';
 import { useAuth0 } from 'react-native-auth0';
 
-export default function LoginScreen() {
+const LoginScreen: React.FC = () => {
     const { authorize } = useAuth0();
 
     const handleLogin = async () => {
@@ -22,3 +22,5 @@ export default function LoginScreen() {
         </View>
     );
 }
+
+export default LoginScreen;

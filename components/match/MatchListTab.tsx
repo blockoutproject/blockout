@@ -5,6 +5,7 @@ import {
     FlatList,
     StyleSheet,
     Text,
+    Image,
     TouchableOpacity,
     View,
 } from "react-native";
@@ -19,7 +20,7 @@ type FinishedMatchesTabProps = {
     status: MatchStatus
 };
 
-export default function MatchListTab({ pool, status }: FinishedMatchesTabProps) {
+const MatchListTab: React.FC<FinishedMatchesTabProps> = ({ pool, status }) => {
     const router = useRouter();
     const {
         dayMatches,
@@ -48,6 +49,75 @@ export default function MatchListTab({ pool, status }: FinishedMatchesTabProps) 
         }
     };
 
+    type ItemProps = { day: DayMatchesDTO };
+    const MatchPerDayItem = ({ day }: ItemProps) => {
+        const index = Math.floor(Math.random() * 3);
+
+        const mainLeagueColors = ["#5a8d36", "#007d89", "#bf447d"];
+        const mainLeagueColor = mainLeagueColors[index];
+
+        const secondLeagueColors = ["#2f362b", "#243335", "#3d3136"];
+        const secondLeagueColor = secondLeagueColors[index];
+
+        return (
+            <View>
+                <Text style={styles.dateHeader}>{day.date}</Text>
+                <View style={{ gap: 25 }}>
+                    {day.pools.map((pool: PoolMatchesDTO) => (
+                        <View
+                            key={`${day.date}#${pool.pool_id}`}
+                            style={styles.poolContainer}
+                        >
+                            <TouchableOpacity onPress={() => handlePoolPress(pool.pool_id)}>
+
+                                <View>
+                                    <Image
+                                        source={require("../../assets/leagues/msl.png")}
+                                        style={{
+                                            width: 25,
+                                            height: 25,
+                                            marginRight: 8,
+                                            borderRadius: 5,
+                                        }}
+                                        resizeMode="contain"
+                                    />
+                                    <Text style={styles.poolHeader}>
+                                        {pools[pool.pool_id]
+                                            ? pools[pool.pool_id].pool_name
+                                            : "Chargement..."}
+                                    </Text>
+                                </View>
+                            </TouchableOpacity>
+
+                            <View style={{ gap: 10 }}>
+                                {pool.matches.map((match: Match) => {
+                                    const teamA = teams[match.team_id_a];
+                                    const teamB = teams[match.team_id_b];
+                                    return (
+                                        <TouchableOpacity
+                                            key={match.id}
+                                            onPress={() =>
+                                                handleCardPress(match.id)
+                                            }
+                                        >
+                                            <MatchCard
+                                                match={match}
+                                                teamA={teamA}
+                                                teamB={teamB}
+                                                mainColor={mainLeagueColor}
+                                                secondColor={secondLeagueColor}
+                                            />
+                                        </TouchableOpacity>
+                                    );
+                                })}
+                            </View>
+                        </View>
+                    ))}
+                </View>
+            </View>
+        );
+    };
+
     return (
         <View style={styles.container}>
 
@@ -66,40 +136,7 @@ export default function MatchListTab({ pool, status }: FinishedMatchesTabProps) 
                     keyExtractor={(item: DayMatchesDTO) => item.date}
                     showsVerticalScrollIndicator={false}
                     renderItem={({ item: day }) => (
-                        <View>
-                            <Text style={styles.dateHeader}>{day.date}</Text>
-                            {day.pools.map((poolDTO: PoolMatchesDTO) => (
-                                <View
-                                    key={`${day.date}#${poolDTO.pool_id}`}
-                                    style={styles.poolContainer}
-                                >
-                                    {/* Titre de la pool, que dans le cas ou plusieurs poules sont affichées */}
-                                    {!pool && (
-                                        <TouchableOpacity onPress={() => handlePoolPress(poolDTO.pool_id)}>
-                                            <Text style={styles.poolHeader}>
-                                                {pools[poolDTO.pool_id]
-                                                    ? pools[poolDTO.pool_id].pool_name
-                                                    : `Pool ${poolDTO.pool_id}`}
-                                            </Text>
-                                        </TouchableOpacity>
-                                    )}
-
-                                    {/* Liste des matchs */}
-                                    {poolDTO.matches.map((match: Match) => {
-                                        const teamA = teams[match.team_id_a];
-                                        const teamB = teams[match.team_id_b];
-                                        return (
-                                            <TouchableOpacity
-                                                key={match.id}
-                                                onPress={() => handleCardPress(match.id)}
-                                            >
-                                                <MatchCard match={match} teamA={teamA} teamB={teamB} />
-                                            </TouchableOpacity>
-                                        );
-                                    })}
-                                </View>
-                            ))}
-                        </View>
+                        <MatchPerDayItem day={day} />
                     )}
                     onEndReached={loadMoreMatches}
                     onEndReachedThreshold={0.5}
@@ -149,3 +186,5 @@ const styles = StyleSheet.create({
         marginBottom: 5,
     },
 });
+
+export default MatchListTab;

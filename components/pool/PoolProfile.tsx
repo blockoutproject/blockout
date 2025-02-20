@@ -7,7 +7,7 @@ type PoolProfileProps = {
     pool: Pool;
 };
 
-export function PoolProfile({ pool }: PoolProfileProps) {
+const PoolProfile: React.FC<PoolProfileProps> = ({ pool }) => {
     return (
         <View style={styles.container}>
             {/* Logo à gauche */}
@@ -100,3 +100,5 @@ const styles = StyleSheet.create({
         fontSize: 14,
     },
 });
+
+export default PoolProfile;

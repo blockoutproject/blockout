@@ -7,10 +7,8 @@ import MatchScoreDetailsCard from '@/components/match/MatchScoreDetailsCard';
 import MatchInfoCard from '@/components/match/MatchInfoCard';
 import RankingCard from '@/components/pool/RankingCard';
 
-export default function MatchModalScreen() {
-    console.log(useLocalSearchParams())
+const MatchModalScreen: React.FC = () => {
     const { match_id } = useLocalSearchParams();
-    console.log(match_id)
     const matchId = Number(match_id);
     const { match, teamA, teamB, isLoading } = useMatchById(matchId);
 
@@ -29,10 +27,8 @@ export default function MatchModalScreen() {
                 <>
                     <ScrollView contentContainerStyle={styles.scrollContent}>
                         <MatchScoreCard
-                            homeName={teamA.short_name}
-                            homeTeamLogo="https://exemple.com/logo-ascannes.png"
-                            awayName={teamB.short_name}
-                            awayTeamLogo="https://exemple.com/logo-recvolley.png"
+                            homeTeam={teamA}
+                            awayTeam={teamB}
                             finalScore={match.set || '0 : 0'}
                         />
 
@@ -72,3 +68,5 @@ const styles = StyleSheet.create({
         paddingBottom: 32,
     },
 });
+
+export default MatchModalScreen;

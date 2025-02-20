@@ -5,13 +5,10 @@ import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import { TouchableOpacity, View, Image, Text } from "react-native";
 
-export function MatchHeader() {
-    console.log("MatchHeader", useLocalSearchParams());
-    const { match_id } = useLocalSearchParams(); // ne lit QUE les params de l'écran "match"
+const MatchHeader: React.FC = () => {
+    const { match_id } = useLocalSearchParams(); 
     const matchId = Number(match_id);
-    console.log("matchId", matchId);
     const { match } = useMatchById(matchId);
-    console.log("match pool_id", match?.pool_id);
     const { data: pool } = usePoolById(match?.pool_id);
 
     const handlePoolPress = (poolId: number) => {
@@ -61,3 +58,5 @@ export function MatchHeader() {
         </View>
     );
 }
+
+export default MatchHeader;

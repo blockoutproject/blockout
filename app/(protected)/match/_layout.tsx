@@ -1,9 +1,8 @@
 import React from 'react';
-import { Stack, useLocalSearchParams } from 'expo-router';
-import { MatchHeader } from '@/components/match/MatchHeader';
+import { Stack } from 'expo-router';
+import MatchHeader from '@/components/match/MatchHeader';
 
-export default function MatchLayout() {
-
+const MatchLayout: React.FC = () =>{
     return (
         <Stack
             screenOptions={{
@@ -15,3 +14,5 @@ export default function MatchLayout() {
         </Stack>
     );
 }
+
+export default MatchLayout;

@@ -13,14 +13,15 @@ type MatchInfoCardProps = {
     referee2?: string;
 };
 
-export default function MatchInfoCard({
+const MatchInfoCard: React.FC<MatchInfoCardProps> = ({
     date,
     league,
     duration,
     venue,
     referee1,
     referee2,
-}: MatchInfoCardProps) {
+}) => {
+
     const infoData = [
         { icon: 'calendar-outline', text: new Date(date).toLocaleString('fr-FR', {
             year: 'numeric',
@@ -94,3 +95,5 @@ const styles = StyleSheet.create({
         fontSize: 15,
     },
 });
+
+export default MatchInfoCard;

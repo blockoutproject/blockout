@@ -14,24 +14,44 @@ import {
     SceneRendererProps,
     TabView,
 } from "react-native-tab-view";
-import MatchListTab from "@/components/match/MatchListTab";
-import { MatchStatus } from "@/types/Match";
-import Placeholder from "@/components/home/Placeholder";
-import Filters from "@/components/home/Filters";
 
-const renderScene = SceneMap({
-    over: () => <MatchListTab status={MatchStatus.FINISHED} />,
-    to_come: () => <MatchListTab status={MatchStatus.UPCOMING} />,
-    search: Placeholder.PlaceholderScreen2,
-});
+type TabViewScreen = {
+    title: string;
+    view: () => React.JSX.Element;
+};
 
-const renderTabBar = (
-    props: SceneRendererProps & {
-        navigationState: NavigationState<Route>;
-    }
-) => {
-    return (
-        <View>
+type CustomTabViewProps = {
+    firstScreen: TabViewScreen;
+    secondScreen: TabViewScreen;
+    thirdScreen: TabViewScreen;
+    indicatorColor: string;
+};
+
+const CustomTabView: React.FC<CustomTabViewProps> = ({
+    firstScreen,
+    secondScreen,
+    thirdScreen,
+    indicatorColor,
+}) => {
+
+    const layout = useWindowDimensions();
+    const [index, setIndex] = React.useState(0);
+    const routes = [
+        { key: "first", title: firstScreen.title },
+        { key: "second", title: secondScreen.title },
+        { key: "third", title: thirdScreen.title },
+    ];
+    const renderScene = SceneMap({
+        first: firstScreen.view,
+        second: secondScreen.view,
+        third: thirdScreen.view,
+    });
+    const renderTabBar = (
+        props: SceneRendererProps & {
+            navigationState: NavigationState<Route>;
+        }
+    ) => {
+        return (
             <View style={styles.tabBar}>
                 {props.navigationState.routes.map(
                     (route: Route, index: number) => (
@@ -50,24 +70,26 @@ const renderTabBar = (
                             >
                                 {route.title}
                             </Text>
+                            {/* tab indicator */}
+                            {props.navigationState.index === index ? (
+                                <View
+                                    style={{
+                                        marginTop: 3,
+                                        height: 2,
+                                        width: "70%",
+                                        backgroundColor: indicatorColor,
+                                        alignSelf: "center",
+                                    }}
+                                />
+                            ) : (
+                                <></>
+                            )}
                         </Pressable>
-                    ))}
+                    )
+                )}
             </View>
-            <Filters />
-        </View>
-    );
-};
-
-const HomeScreen: React.FC = () => {
-    const layout = useWindowDimensions();
-    const [index, setIndex] = React.useState(0);
-
-    const routes = [
-        { key: "over", title: "Terminés" },
-        { key: "to_come", title: "A Venir" },
-        { key: "search", title: "Découvrir" },
-    ];
-
+        );
+    };
     return (
         <TabView
             initialLayout={{ height: layout.height, width: layout.width }} // is this necessary? good precaution?
@@ -82,13 +104,13 @@ const HomeScreen: React.FC = () => {
 const styles = StyleSheet.create({
     tabBar: {
         flexDirection: "row",
-        gap: 15,
+        gap: 25,
         justifyContent: "center",
-        paddingBottom: 15,
+        paddingBottom: 5,
         backgroundColor: colors.dark,
     },
     tabItem: {
-        fontSize: 18,
+        fontSize: 16,
         fontWeight: "800",
     },
     activeTabItem: {
@@ -99,4 +121,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default HomeScreen;
+export default CustomTabView;

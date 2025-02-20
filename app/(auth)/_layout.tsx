@@ -3,7 +3,7 @@ import { Slot, useRouter } from 'expo-router';
 import { useAuth0 } from 'react-native-auth0';
 import { View, ActivityIndicator } from 'react-native';
 
-export default function AuthLayout() {
+const AuthLayout: React.FC = () => {
   const { user, isLoading } = useAuth0();
   const router = useRouter();
 
@@ -23,3 +23,5 @@ export default function AuthLayout() {
 
   return <Slot />;
 }
+
+export default AuthLayout;

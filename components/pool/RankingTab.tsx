@@ -6,7 +6,7 @@ type RankingTabProps = {
     pool: Pool;
 };
 
-export function RankingTab({ pool }: RankingTabProps) {
+const RankingTab: React.FC<RankingTabProps> = ({ pool }: RankingTabProps) => {
 
     return (
         <View style={styles.container}>
@@ -28,3 +28,5 @@ const styles = StyleSheet.create({
         paddingBottom: 32,
     }
 });
+
+export default RankingTab;

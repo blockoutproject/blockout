@@ -1,43 +1,57 @@
 
+import { Team } from '@/types/Team';
+import { useRouter } from 'expo-router';
 import React from 'react';
-import { View, Text, Image, StyleSheet } from 'react-native';
+import { View, Text, Image, StyleSheet, Pressable } from 'react-native';
 
 type ScoreCardProps = {
-    homeName: string;
-    homeTeamLogo: string;
-    awayName: string;
-    awayTeamLogo: string;
-    finalScore: string; // ex. "2-0"
+    homeTeam: Team,
+    awayTeam: Team,
+    finalScore: string;
 };
 
-export default function MatchScoreCard({
-    homeName,
-    homeTeamLogo,
-    awayName,
-    awayTeamLogo,
+const MatchScoreCard: React.FC<ScoreCardProps> = ({
+    homeTeam,
+    awayTeam,
     finalScore,
-}: ScoreCardProps) {
+}) => {
+
+    const router = useRouter();
+    const home = require("../../assets/clubs/paris_volley.png");
+    const away = require("../../assets/clubs/as_cannes.png");
+    type TeamProps = { team: Team; source: any };
+
+    const handleTeamPress = (teamId: number) => {
+        router.push(`/team/${teamId}`);
+    };
+
+    function Team({ team, source }: TeamProps) {
+        return (
+            <Pressable onPress={() => handleTeamPress(team.id)}>
+                <View style={styles.teamContainer}>
+                    <Image
+                        source={source}
+                        style={styles.teamLogo}
+                        resizeMode="contain"
+                    />
+                    {/* Contrainte de maxWidth pour forcer le tronquage */}
+                    <View style={styles.teamNameContainer}>
+                        <Text
+                            style={styles.name}
+                            numberOfLines={1}
+                            ellipsizeMode="tail"
+                        >
+                            {team.name}
+                        </Text>
+                    </View>
+                </View>
+            </Pressable>
+        );
+    }
     return (
         <View style={styles.cardContainer}>
             {/* Équipe à domicile (gauche) */}
-            <View style={styles.teamContainer}>
-                <Image
-                    source={require('../../assets/clubs/paris_volley.png')}
-                    style={styles.teamLogo}
-                    resizeMode="contain"
-                />
-
-                {/* Contrainte de maxWidth pour forcer le tronquage */}
-                <View style={styles.teamNameContainer}>
-                    <Text
-                        style={styles.name}
-                        numberOfLines={1}
-                        ellipsizeMode="tail"
-                    >
-                        {homeName}
-                    </Text>
-                </View>
-            </View>
+            <Team team={homeTeam} source={home} />
 
             {/* Score au centre */}
             <View style={styles.scoreBox}>
@@ -45,33 +59,17 @@ export default function MatchScoreCard({
             </View>
 
             {/* Équipe à l’extérieur (droite) */}
-            <View style={styles.teamContainer}>
-                <Image
-                    source={require('../../assets/clubs/as_cannes.png')}
-                    style={styles.teamLogo}
-                    resizeMode="contain"
-                />
-
-                <View style={styles.teamNameContainer}>
-                    <Text
-                        style={styles.name}
-                        numberOfLines={1}
-                        ellipsizeMode="tail"
-                    >
-                        {awayName}
-                    </Text>
-                </View>
-            </View>
+            <Team team={awayTeam} source={away} />
         </View>
     );
 }
 
 const styles = StyleSheet.create({
     cardContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-around',
-        backgroundColor: '#1C1C1E',
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-around",
+        backgroundColor: "#1C1C1E",
         paddingHorizontal: 16,
         paddingVertical: 20,
         borderRadius: 12,
@@ -90,21 +88,23 @@ const styles = StyleSheet.create({
         maxWidth: 110,  // Ajustez selon votre design
     },
     name: {
-        color: '#fff',
+        color: "#fff",
         fontSize: 18,
         // overflow: 'hidden' n'est pas nécessaire
         // numberOfLines={1} + ellipsizeMode="tail" suffit
     },
     scoreBox: {
         borderWidth: 2,
-        borderColor: '#4CAF50',
+        borderColor: "#4CAF50",
         borderRadius: 8,
         paddingHorizontal: 16,
         paddingVertical: 8,
     },
     scoreText: {
-        color: '#fff',
+        color: "#fff",
         fontSize: 22,
         fontWeight: 'bold',
     },
 });
+
+export default MatchScoreCard;

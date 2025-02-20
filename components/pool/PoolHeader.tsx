@@ -3,7 +3,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import { TouchableOpacity, View, Image, Text } from "react-native";
 
-export function PoolHeader() {
+const PoolHeader: React.FC = () =>{
     const { pool_id } = useLocalSearchParams();
     const poolId = Number(pool_id);
     const { data: pool } = usePoolById(poolId);
@@ -47,3 +47,5 @@ export function PoolHeader() {
         </View>
     );
 }
+
+export default PoolHeader;

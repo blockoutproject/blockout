@@ -1,22 +1,18 @@
-// /components/pool/PoolTabs.tsx
-
 import { Pool } from '@/types/Pool';
 import React, { useState } from 'react';
-import { View, StyleSheet, useWindowDimensions } from 'react-native';
+import { StyleSheet, useWindowDimensions } from 'react-native';
 import { TabView, SceneMap, TabBar } from 'react-native-tab-view';
-import { RankingTab } from './RankingTab';
-import FinishedMatchesTab from '../match/MatchListTab';
 import MatchListTab from '../match/MatchListTab';
 import { MatchStatus } from '@/types/Match';
+import RankingTab from './RankingTab';
 
 type PoolTabsProps = {
     pool: Pool;
 };
 
-export function PoolTabs({ pool }: PoolTabsProps) {
+const PoolTabs: React.FC<PoolTabsProps> = ({ pool }) => {
     const layout = useWindowDimensions();
 
-    // On ouvre éventuellement sur l'onglet "Classement" (index=2) :
     const [index, setIndex] = useState(0);
     const [routes] = useState([
         { key: 'results', title: 'Résultats' },
@@ -42,8 +38,7 @@ export function PoolTabs({ pool }: PoolTabsProps) {
                     style={styles.tabBar}
                     indicatorStyle={styles.tabIndicator}
                 />
-            )}
-            
+            )} 
         />
     );
 }
@@ -65,3 +60,5 @@ const styles = StyleSheet.create({
         backgroundColor: '#111',
     },
 });
+
+export default PoolTabs;

@@ -1,18 +1,19 @@
 import React from 'react';
 import { Stack } from 'expo-router';
-import PoolHeader from '@/components/pool/PoolHeader';
+import TeamHeader from '@/components/team/TeamHeader';
 
-const PoolLayout: React.FC = () => {
+const TeamLayout: React.FC = () => {
+
     return (
         <Stack
             screenOptions={{
                 presentation: 'modal',
-                header: () => <PoolHeader />,
+                header: () => <TeamHeader />,
             }}
         >
-            <Stack.Screen name="[pool_id]" />
+            <Stack.Screen name="[team_id]" />
         </Stack>
     );
 }
 
-export default PoolLayout;
+export default TeamLayout;

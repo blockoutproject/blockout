@@ -38,6 +38,17 @@ class CompetitionsApi extends AbstractApi {
         const response = await this.service.get(`/pools/${poolId}/teams`);
         return response.data as CompetitionAssociation[];
     }
+
+
+    /**
+     * Récupère les poules auxquelles une équipe est rattachée.
+     * @param teamId - L'ID de l'équipe à rechercher.
+     * @returns Une liste des poules où l'équipe est engagée.
+     */
+    public async getPoolsByTeam(teamId: number): Promise<CompetitionAssociation[]> {
+        const response = await this.service.get(`/teams/${teamId}/pools`);
+        return response.data as CompetitionAssociation[];
+    }
 }
 
 export default CompetitionsApi;

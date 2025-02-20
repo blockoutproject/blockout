@@ -2,21 +2,17 @@ import React, { useEffect } from 'react';
 import { router, Stack } from 'expo-router';
 import { useAuth0 } from 'react-native-auth0';
 import { View, ActivityIndicator } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { MatchHeader } from '@/components/match/MatchHeader';
-import { PoolHeader } from '@/components/pool/PoolHeader';
+import HomeHeader from '@/components/home/HomeHeader';
 
-export default function ProtectedLayout() {
+const ProtectedLayout: React.FC = () => {
     const { user, isLoading } = useAuth0();
 
-    // Redirige vers la page de login si l'utilisateur n'est pas connecté
     useEffect(() => {
         if (!isLoading && !user) {
             router.replace('/login');
         }
     }, [isLoading, user]);
 
-    // Affiche un écran de chargement pendant la vérification
     if (isLoading || !user) {
         return (
             <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
@@ -31,7 +27,7 @@ export default function ProtectedLayout() {
             <Stack.Screen
                 name="home"
                 options={{
-                    headerShown: false
+                    header: () => <HomeHeader />
                 }}
             />
             <Stack.Screen
@@ -48,6 +44,15 @@ export default function ProtectedLayout() {
                     headerShown: false
                 }}
             />
+            <Stack.Screen
+                name="team"
+                options={{
+                    presentation: 'modal',
+                    headerShown: false
+                }}
+            />
         </Stack>
     );
 }
+
+export default ProtectedLayout;

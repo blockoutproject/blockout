@@ -3,7 +3,7 @@ import { Button, StyleSheet, View } from "react-native";
 
 import { useAuth0 } from "react-native-auth0";
 
-export default function Profile() {
+const ProfileScreen: React.FC = () => {
     const { clearSession } = useAuth0();
 
     const handleLogin = async () => {
@@ -28,3 +28,5 @@ const styles = StyleSheet.create({
         padding: 16,
     },
 });
+
+export default ProfileScreen;
