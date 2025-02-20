@@ -10,7 +10,6 @@ import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useLocalSearchParams } from "expo-router";
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { ScrollView } from "react-native-gesture-handler";
 
 const TeamScreen: React.FC = () => {
 
@@ -55,13 +54,11 @@ const TeamScreen: React.FC = () => {
                     title: "Classement",
                     view: () => (
                         <View style={{ flex: 1 }}>
-                        <ScrollView style={{ flex: 1 }}>
                             {pools && pools.map((pool) => {
                                 return <RankingCard key={pool.id} poolId={pool.pool_id} />
                             })}
 
-                        </ScrollView>
-                    </View>
+                        </View>
                     ),
                 }}
                 indicatorColor={colors.green}
