@@ -1,18 +1,13 @@
-import { colors } from "@/constants/colors";
+import { colors } from "@/constants/Colors";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import { Text, TouchableOpacity, View } from "react-native";
+import { Text, StyleSheet, TouchableOpacity, View } from "react-native";
+import { style } from "twrnc";
 
 const TeamHeader: React.FC = () => {
     return (
         <View
-            style={{
-                flexDirection: "row",
-                alignItems: "center",
-                paddingHorizontal: 12,
-                paddingVertical: 15,
-                justifyContent: "center",
-            }}
+            style={styles.container}
         >
             {/* Bouton Back */}
             <View
@@ -41,5 +36,16 @@ const TeamHeader: React.FC = () => {
         </View>
     );
 }
+
+const styles = StyleSheet.create({
+    container: {
+        backgroundColor: colors.dark,
+        flexDirection: "row",
+        alignItems: "center",
+        paddingHorizontal: 12,
+        paddingVertical: 15,
+        justifyContent: "center",
+    },
+});
 
 export default TeamHeader;

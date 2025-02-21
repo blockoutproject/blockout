@@ -1,8 +1,13 @@
-import { colors } from "@/constants/colors";
+import { colors } from "@/constants/Colors";
+import { Team } from "@/types/Team";
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 
-const StatCard: React.FC = () => {
+type TeamStatsCardProps = {
+    team: Team,
+};
+
+const TeamStatsCard: React.FC<TeamStatsCardProps> = ({ team }) => {
     type StatProps = {
         total: number;
         description: string;
@@ -68,4 +73,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default StatCard;
+export default TeamStatsCard;

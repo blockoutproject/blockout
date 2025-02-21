@@ -1,7 +1,9 @@
 import React from 'react';
-import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Pool } from '@/types/Pool';
+import { colors } from '@/constants/Colors';
+import { Image } from "expo-image";
 
 type PoolProfileProps = {
     pool: Pool;
@@ -14,7 +16,7 @@ const PoolProfile: React.FC<PoolProfileProps> = ({ pool }) => {
             <Image
                 source={require('../../assets/leagues/msl_profile.png')}
                 style={styles.leagueLogo}
-                resizeMode="contain"
+                contentFit="contain"
             />
 
             {/* Bloc d'infos à droite */}
@@ -29,13 +31,13 @@ const PoolProfile: React.FC<PoolProfileProps> = ({ pool }) => {
                 <View style={styles.actionsRow}>
                     {/* Bouton "Suivre" */}
                     <TouchableOpacity style={styles.followButton}>
-                        <Ionicons name="add" size={14} color="#fff" style={{ marginRight: 4 }} />
+                        <Ionicons name="add" size={14} color={colors.light} style={{ marginRight: 4 }} />
                         <Text style={styles.followText}>Suivre</Text>
                     </TouchableOpacity>
 
                     {/* Icône + compteur */}
                     <View style={styles.iconCounter}>
-                        <Ionicons name="people-outline" size={18} color="#fff" style={{ marginRight: 4 }} />
+                        <Ionicons name="people-outline" size={18} color={colors.light} style={{ marginRight: 4 }} />
                         <Text style={styles.counterText}>156</Text>
                     </View>
                 </View>
@@ -47,7 +49,7 @@ const PoolProfile: React.FC<PoolProfileProps> = ({ pool }) => {
 const styles = StyleSheet.create({
     container: {
         flexDirection: 'row',         // Pour mettre l'image et le bloc à côté
-        backgroundColor: '#111',
+        backgroundColor: colors.dark,
         paddingHorizontal: 26,
         paddingVertical: 20,
         alignItems: 'flex-end',         // Aligne verticalement l’image et le contenu
@@ -65,7 +67,7 @@ const styles = StyleSheet.create({
     leagueTitle: {
         fontSize: 18,
         fontWeight: '700',
-        color: '#fff',
+        color: colors.light,
         marginBottom: 4,
     },
     leagueLink: {
@@ -87,7 +89,7 @@ const styles = StyleSheet.create({
         marginRight: 12,
     },
     followText: {
-        color: '#fff',
+        color: colors.light,
         fontSize: 14,
         fontWeight: '600',
     },
@@ -96,7 +98,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     counterText: {
-        color: '#fff',
+        color: colors.light,
         fontSize: 14,
     },
 });

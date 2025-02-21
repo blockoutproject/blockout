@@ -50,7 +50,8 @@
     "react-native-webview": "13.12.5",
     "expo-clipboard": "~7.0.1",
     "react-native-svg": "15.8.0",
-    "twrnc": "^4.6.1"
+    "twrnc": "^4.6.1",
+    "expo-image": "~2.0.6"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

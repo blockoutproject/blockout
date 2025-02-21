@@ -5,15 +5,16 @@ import {
     FlatList,
     StyleSheet,
     Text,
-    Image,
     TouchableOpacity,
     View,
 } from "react-native";
-import { colors } from "@/constants/colors";
+import { colors } from "@/constants/Colors";
 import { useRouter } from "expo-router";
 import { useMatchesWithTeamsAndPools } from "@/hooks/match/useMatchesWithTeamsAndPools";
 import MatchCard from "./MatchCard";
 import { Pool } from "@/types/Pool";
+import { Image } from "expo-image";
+import PoolHeader from "../pool/PoolHeader";
 
 type FinishedMatchesTabProps = {
     pool?: Pool;
@@ -70,7 +71,7 @@ const MatchListTab: React.FC<FinishedMatchesTabProps> = ({ pool, status }) => {
                         >
                             <TouchableOpacity onPress={() => handlePoolPress(pool.pool_id)}>
 
-                                <View>
+                                <View style={styles.poolHeader}>
                                     <Image
                                         source={require("../../assets/leagues/msl.png")}
                                         style={{
@@ -79,9 +80,9 @@ const MatchListTab: React.FC<FinishedMatchesTabProps> = ({ pool, status }) => {
                                             marginRight: 8,
                                             borderRadius: 5,
                                         }}
-                                        resizeMode="contain"
+                                        contentFit="contain"
                                     />
-                                    <Text style={styles.poolHeader}>
+                                    <Text style={styles.poolTitle}>
                                         {pools[pool.pool_id]
                                             ? pools[pool.pool_id].pool_name
                                             : "Chargement..."}
@@ -156,6 +157,12 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: colors.dark,
     },
+    poolHeader: {
+        marginBottom: 8,
+        flexDirection: "row", 
+        alignItems: "center", 
+        justifyContent: "center"
+    },
     header: {
         fontSize: 18,
         fontWeight: "600",
@@ -179,11 +186,10 @@ const styles = StyleSheet.create({
         borderRadius: 8,
         backgroundColor: colors.dark,
     },
-    poolHeader: {
+    poolTitle: {
         fontSize: 14,
         fontWeight: "600",
         color: colors.inactive,
-        marginBottom: 5,
     },
 });
 

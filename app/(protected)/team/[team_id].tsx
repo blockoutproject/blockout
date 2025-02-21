@@ -1,74 +1,62 @@
-import CustomTabView from "@/components/common/CustomTabView";
+import CustomTabView from "@/components/common/GenericTabView";
 import MatchListTab from "@/components/match/MatchListTab";
-import RankingCard from "@/components/pool/RankingCard";
-import StatCard from "@/components/team/StatCard";
-import TeamData from "@/components/team/TeamData";
-import { colors } from "@/constants/colors";
-import { useDetailedTeamPools, usePoolsByTeam } from "@/hooks/pool/usePoolsByTeam";
+import RankingCard from "@/components/common/RankingCard";
+import TeamStatsCard from "@/components/team/TeamStatsCard";
+import TeamInfoCard from "@/components/team/TeamInfoCard";
+import { colors } from "@/constants/Colors";
+import { usePoolsByTeam } from "@/hooks/pool/usePoolsByTeam";
 import { MatchStatus } from "@/types/Match";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useLocalSearchParams } from "expo-router";
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useTeamById } from "@/hooks/team/useTeamById";
+import TeamTabs from "@/components/team/TeamTabs";
 
 const TeamScreen: React.FC = () => {
 
     const { team_id } = useLocalSearchParams();
     const teamId = Number(team_id);
-    const { data: pools, isLoading, isError } = usePoolsByTeam(teamId);
-
+    const { data: team, isLoading: isTeamLoading, isError: isTeamError, isSuccess: isTeamSuccess } = useTeamById(teamId);
+    const { data: pools, isLoading: isPoolsLoading, isError: isPoolsError, isSuccess: isPoolsSuccess } = usePoolsByTeam(teamId);
 
     return (
         <View style={styles.container}>
-            <TeamData />
-            <View style={{ position: "absolute", right: 10, top: 5 }}>
-                <StatCard />
-            </View>
-            <View
-                style={{
-                    marginLeft: 15,
-                    marginBottom: 20,
-                }}
-            >
-                <Pressable onPress={() => console.log("follow")}>
-                    <View style={styles.followContainer}>
-                        <Text style={styles.followText}>Suivre</Text>
-                        <MaterialCommunityIcons
-                            name={"plus"}
-                            size={20}
-                            color={colors.light}
-                        />
+            {(isTeamLoading || isPoolsLoading) && <Text>Loading...</Text>}
+            {(isTeamError || isPoolsError) && <Text>Error...</Text>}
+            {isPoolsSuccess && isTeamSuccess &&
+                <>
+                    <TeamInfoCard team={team} />
+                    <View style={{ position: "absolute", right: 10, top: 5 }}>
+                        <TeamStatsCard team={team}/>
                     </View>
-                </Pressable>
-            </View>
-            <CustomTabView
-                firstScreen={{
-                    title: "Terminé",
-                    view: () => <MatchListTab status={MatchStatus.FINISHED} />,
-                }}
-                secondScreen={{
-                    title: "A Venir",
-                    view: () => <MatchListTab status={MatchStatus.UPCOMING} />,
-                }}
-                thirdScreen={{
-                    title: "Classement",
-                    view: () => (
-                        <View style={{ flex: 1 }}>
-                            {pools && pools.map((pool) => {
-                                return <RankingCard key={pool.id} poolId={pool.pool_id} />
-                            })}
-
-                        </View>
-                    ),
-                }}
-                indicatorColor={colors.green}
-            />
+                    <View
+                        style={{
+                            marginLeft: 15,
+                            marginBottom: 20,
+                        }}
+                    >
+                        <Pressable onPress={() => console.log("follow")}>
+                            <View style={styles.followContainer}>
+                                <Text style={styles.followText}>Suivre</Text>
+                                <MaterialCommunityIcons
+                                    name={"plus"}
+                                    size={20}
+                                    color={colors.light}
+                                />
+                            </View>
+                        </Pressable>
+                    </View>
+                    <TeamTabs pools={pools} />
+                </>
+            }
         </View>
     );
 }
 const styles = StyleSheet.create({
     container: {
         flex: 1,
+        backgroundColor: colors.dark,
     },
     followContainer: {
         backgroundColor: colors.green,

@@ -4,6 +4,7 @@ import { useLocalSearchParams } from 'expo-router';
 import { usePoolById } from '@/hooks/pool/usePoolById';
 import PoolProfile from '@/components/pool/PoolProfile';
 import PoolTabs from '@/components/pool/PoolTabs';
+import { colors } from '@/constants/Colors';
 
 const PoolModalScreen: React.FC = () => {
     const { pool_id } = useLocalSearchParams();
@@ -24,7 +25,7 @@ const PoolModalScreen: React.FC = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#111',
+        backgroundColor: colors.dark,
     },
     tabsContainer: {
         flex: 1,

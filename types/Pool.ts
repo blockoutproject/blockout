@@ -1,12 +1,18 @@
-export enum PoolDivisionCode {
+export enum EnumPoolDivisionCode {
     REG = "REG",
     NAT = "NAT",
     PRO = "PRO",
 }
 
-export enum PoolGender {
+export enum EnumPoolGender {
     M = "M",
     F = "F",
+    O = "O",
+}
+
+export enum EnumPoolFormat {
+    SIX = "SIX",
+    FOUR = "FOUR",
 }
 
 export interface Pool {
@@ -14,8 +20,9 @@ export interface Pool {
     pool_code: string;
     league_code: string;
     season: number;
-    division_code: PoolDivisionCode;
-    gender?: PoolGender;
+    division_code: EnumPoolDivisionCode;
+    gender?: EnumPoolGender;
+    format?: EnumPoolFormat;
     league_name?: string;
     pool_name?: string;
     division_name?: string;

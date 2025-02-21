@@ -1,9 +1,10 @@
-import { colors } from "@/constants/colors";
+import { colors } from "@/constants/Colors";
 import { Match } from "@/types/Match";
 import { Team } from "@/types/Team";
 
 import React from "react";
-import { Image, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
+import { Image } from "expo-image";
 
 type MatchCardProps = {
     match: Match;
@@ -36,7 +37,7 @@ const MatchCard: React.FC<MatchCardProps> = ({
                 <Image
                     source={require("@/assets/clubs/paris_volley.png")}
                     style={styles.teamLogo}
-                    resizeMode="contain"
+                    contentFit="contain"
                 />
             </View>
 
@@ -55,7 +56,7 @@ const MatchCard: React.FC<MatchCardProps> = ({
                 <Image
                     source={require("@/assets/clubs/as_cannes.png")}
                     style={styles.teamLogo}
-                    resizeMode="contain"
+                    contentFit="contain"
                 />
                 <Text
                     style={styles.name}

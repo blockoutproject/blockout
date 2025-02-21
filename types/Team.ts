@@ -1,10 +1,24 @@
+export enum EnumTeamFormat {
+    SIX = "SIX",
+    FOUR = "FOUR",
+}
+
+export enum EnumTeamGender {
+    M = "M",
+    F = "F",
+    O = "O",
+}
+
 export interface Team {
     id: number;
     club_id: string;
     pool_id: number;
     name: string;
     short_name: string;
-    team_alias?: string;
+    league_code: string;
+    division_name: string;
+    format: EnumTeamFormat;
+    gender: EnumTeamGender;
     last_update?: Date;
     active: boolean;
 }

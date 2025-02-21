@@ -1,7 +1,9 @@
 import React from 'react';
-import { View, Text, StyleSheet, Image } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { Match } from '@/types/Match';
 import { Team } from '@/types/Team';
+import { colors } from '@/constants/Colors';
+import { Image } from "expo-image";
 
 type MatchScoreDetailsCardProps = {
     title?: string;
@@ -31,7 +33,7 @@ const MatchScoreDetailsCard: React.FC<MatchScoreDetailsCardProps> = ({
                     <Image
                         source={require('../../assets/clubs/paris_volley.png')}
                         style={styles.teamLogo}
-                        resizeMode="contain"
+                        contentFit="contain"
                     />
                 </View>
 
@@ -71,7 +73,7 @@ const MatchScoreDetailsCard: React.FC<MatchScoreDetailsCardProps> = ({
                     <Image
                         source={require('../../assets/clubs/as_cannes.png')}
                         style={styles.teamLogo}
-                        resizeMode="contain"
+                        contentFit="contain"
                     />
                 </View>
 
@@ -112,14 +114,14 @@ const styles = StyleSheet.create({
         borderWidth: 2,
         borderColor: '#4A4A4A',
         borderRadius: 12,
-        backgroundColor: '#111',
+        backgroundColor: colors.dark,
         padding: 16,
         marginBottom: 16,
     },
     title: {
         fontSize: 18,
         fontWeight: '600',
-        color: '#fff',
+        color: colors.light,
         marginBottom: 12,
     },
     teamRow: {
@@ -154,7 +156,7 @@ const styles = StyleSheet.create({
         height: 36,
     },
     name: {
-        color: '#fff',
+        color: colors.light,
         fontSize: 16,
     },
     finalScoreBox: {
@@ -165,11 +167,11 @@ const styles = StyleSheet.create({
         paddingVertical: 4,
     },
     finalScoreText: {
-        color: '#fff',
+        color: colors.light,
         fontSize: 16,
     },
     setScore: {
-        color: '#fff',
+        color: colors.light,
         fontSize: 16,
     },
 });

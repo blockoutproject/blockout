@@ -1,3 +1,4 @@
+import { colors } from "@/constants/Colors";
 import React from "react";
 import { Button, StyleSheet, View } from "react-native";
 
@@ -24,7 +25,7 @@ const ProfileScreen: React.FC = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: "#f5f5f5",
+        backgroundColor: colors.light,
         padding: 16,
     },
 });

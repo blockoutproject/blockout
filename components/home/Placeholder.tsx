@@ -1,4 +1,4 @@
-import { colors } from "@/constants/colors";
+import { colors } from "@/constants/Colors";
 import { Text, View } from "react-native";
 const PlaceholderScreen1 = () => (
     <View

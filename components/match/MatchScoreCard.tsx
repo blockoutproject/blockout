@@ -1,8 +1,10 @@
 
+import { colors } from '@/constants/Colors';
 import { Team } from '@/types/Team';
 import { useRouter } from 'expo-router';
 import React from 'react';
-import { View, Text, Image, StyleSheet, Pressable } from 'react-native';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { Image } from "expo-image";
 
 type ScoreCardProps = {
     homeTeam: Team,
@@ -13,7 +15,7 @@ type ScoreCardProps = {
 const MatchScoreCard: React.FC<ScoreCardProps> = ({
     homeTeam,
     awayTeam,
-    finalScore,
+    finalScore
 }) => {
 
     const router = useRouter();
@@ -32,7 +34,7 @@ const MatchScoreCard: React.FC<ScoreCardProps> = ({
                     <Image
                         source={source}
                         style={styles.teamLogo}
-                        resizeMode="contain"
+                        contentFit="contain"
                     />
                     {/* Contrainte de maxWidth pour forcer le tronquage */}
                     <View style={styles.teamNameContainer}>
@@ -88,7 +90,7 @@ const styles = StyleSheet.create({
         maxWidth: 110,  // Ajustez selon votre design
     },
     name: {
-        color: "#fff",
+        color: colors.light,
         fontSize: 18,
         // overflow: 'hidden' n'est pas nécessaire
         // numberOfLines={1} + ellipsizeMode="tail" suffit
@@ -101,7 +103,7 @@ const styles = StyleSheet.create({
         paddingVertical: 8,
     },
     scoreText: {
-        color: "#fff",
+        color: colors.light,
         fontSize: 22,
         fontWeight: 'bold',
     },

@@ -1,6 +1,7 @@
 import { Pool } from "@/types/Pool";
 import { ScrollView, View, StyleSheet } from "react-native";
 import RankingCard from "./RankingCard";
+import { colors } from "@/constants/Colors";
 
 type RankingTabProps = {
     pool: Pool;
@@ -20,7 +21,7 @@ const RankingTab: React.FC<RankingTabProps> = ({ pool }: RankingTabProps) => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#111',
+        backgroundColor: colors.dark,
     },
     scrollContent: {
         paddingHorizontal: 16,

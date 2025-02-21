@@ -1,4 +1,4 @@
-import { colors } from "@/constants/colors";
+import { colors } from "@/constants/Colors";
 import React from "react";
 import {
     Pressable,
@@ -21,7 +21,7 @@ import Filters from "@/components/home/Filters";
 
 const renderScene = SceneMap({
     over: () => <MatchListTab status={MatchStatus.FINISHED} />,
-    to_come: () => <MatchListTab status={MatchStatus.UPCOMING} />,
+    upcoming: () => <MatchListTab status={MatchStatus.UPCOMING} />,
     search: Placeholder.PlaceholderScreen2,
 });
 
@@ -64,7 +64,7 @@ const HomeScreen: React.FC = () => {
 
     const routes = [
         { key: "over", title: "Terminés" },
-        { key: "to_come", title: "A Venir" },
+        { key: "upcoming", title: "A Venir" },
         { key: "search", title: "Découvrir" },
     ];
 

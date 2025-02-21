@@ -1,19 +1,26 @@
-import { colors } from "@/constants/colors";
+import { colors } from "@/constants/Colors";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import React, { useCallback } from "react";
 import {
     Alert,
-    Image,
     Linking,
     Pressable,
     StyleSheet,
     Text,
     View,
 } from "react-native";
+import { Image } from "expo-image";
+import { Team } from "@/types/Team";
+
 type OpenLinkProps = {
     url: string;
     text: string;
 };
+
+type TeamInfoCardProps = {
+    team: Team,
+};
+
 const OpenLink: React.FC<OpenLinkProps> = ({ url, text }: OpenLinkProps) => {
     const handlePress = useCallback(async () => {
         // Checking if the link is supported for links with custom URL scheme.
@@ -32,32 +39,33 @@ const OpenLink: React.FC<OpenLinkProps> = ({ url, text }: OpenLinkProps) => {
         </Pressable>
     );
 };
-export default function TeamData() {
+const TeamInfoCard: React.FC<TeamInfoCardProps> = ({ team }) => {
     return (
         <View style={styles.container}>
             <View style={{ flexDirection: "column" }}>
                 <Image
                     source={require("@/assets/clubs/as_cannes.png")}
                     style={styles.teamLogo}
-                    resizeMode="contain"
+                    contentFit="contain"
                 />
-                <Text style={styles.title}>AS Cannes</Text>
+                <Text style={styles.title}>{team.name}</Text>
                 <View style={styles.data}>
                     <MaterialCommunityIcons
                         name={"trophy-outline"}
                         size={20}
                         color={colors.light}
                     />
-                    <Text style={styles.text}>Nationale 2 Féminine</Text>
+                    <Text style={styles.text}>{team.division_name}</Text>
                 </View>
-                <View style={styles.data}>
+                {/* 🚨 L'info n'est pas encore gérée par l'API */}
+                {/* <View style={styles.data}>
                     <MaterialCommunityIcons
                         name={"map-marker-outline"}
                         size={20}
                         color={colors.light}
                     />
                     <Text style={styles.text}>Palais des victoires</Text>
-                </View>
+                </View> */}
                 <View style={styles.data}>
                     <MaterialCommunityIcons
                         name={"link-variant"}
@@ -101,3 +109,5 @@ const styles = StyleSheet.create({
     },
     icon: {},
 });
+
+export default TeamInfoCard;

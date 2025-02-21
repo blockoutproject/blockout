@@ -5,7 +5,8 @@ import { useMatchById } from '@/hooks/match/useMatchById';
 import MatchScoreCard from '@/components/match/MatchScoreCard';
 import MatchScoreDetailsCard from '@/components/match/MatchScoreDetailsCard';
 import MatchInfoCard from '@/components/match/MatchInfoCard';
-import RankingCard from '@/components/pool/RankingCard';
+import RankingCard from '@/components/common/RankingCard';
+import { colors } from '@/constants/Colors';
 
 const MatchModalScreen: React.FC = () => {
     const { match_id } = useLocalSearchParams();
@@ -31,7 +32,6 @@ const MatchModalScreen: React.FC = () => {
                             awayTeam={teamB}
                             finalScore={match.set || '0 : 0'}
                         />
-
                         <MatchScoreDetailsCard title="Score" homeTeam={teamA} awayTeam={teamB} match={match} />
                         <MatchInfoCard
                             date={match.match_date}
@@ -52,16 +52,7 @@ const MatchModalScreen: React.FC = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#111',
-    },
-    fixedHeader: {
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        zIndex: 10,
-        backgroundColor: '#111',
-        paddingVertical: 10,
+        backgroundColor: colors.dark,
     },
     scrollContent: {
         paddingHorizontal: 16,

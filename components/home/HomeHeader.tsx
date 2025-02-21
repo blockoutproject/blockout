@@ -1,14 +1,13 @@
-import { colors } from "@/constants/colors";
+import { colors } from "@/constants/Colors";
 
 import React from "react";
 import {
-    Image,
     SafeAreaView,
     Text,
     TouchableOpacity,
     View,
 } from "react-native";
-
+import { Image } from "expo-image";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useRouter } from "expo-router";
 
@@ -27,7 +26,7 @@ const HomeHeader: React.FC = () => {
         >
             <Text
                 style={{
-                    color: "#e2e2e2",
+                    color: colors.light,
                     fontSize: 24,
                     fontWeight: "800",
                 }}

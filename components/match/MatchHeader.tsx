@@ -1,9 +1,10 @@
+import { colors } from "@/constants/Colors";
 import { useMatchById } from "@/hooks/match/useMatchById";
 import { usePoolById } from "@/hooks/pool/usePoolById";
-import { usePoolsByIds } from "@/hooks/pool/usePoolsByIds";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
-import { TouchableOpacity, View, Image, Text } from "react-native";
+import { TouchableOpacity, View, Text, StyleSheet } from "react-native";
+import { Image } from "expo-image";
 
 const MatchHeader: React.FC = () => {
     const { match_id } = useLocalSearchParams(); 
@@ -17,18 +18,11 @@ const MatchHeader: React.FC = () => {
 
     return (
         <View
-            style={{
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "space-between",
-                backgroundColor: "#111",
-                paddingHorizontal: 12,
-                paddingVertical: 15,
-            }}
+            style={styles.container}
         >
             {/* Bouton Back */}
             <TouchableOpacity onPress={() => router.back()}>
-                <Ionicons name="arrow-back" size={30} color="#fff" />
+                <Ionicons name="arrow-back" size={30} color={colors.light} />
             </TouchableOpacity>
             <TouchableOpacity
                 onPress={() => handlePoolPress(pool!.id)}
@@ -42,9 +36,9 @@ const MatchHeader: React.FC = () => {
                     <Image
                         source={require("../../assets/leagues/msl.png")}
                         style={{ width: 28, height: 28, marginRight: 8, borderRadius: 5 }}
-                        resizeMode="contain"
+                        contentFit="contain"
                     />
-                    <Text style={{ color: "#fff", fontSize: 18, fontWeight: "600" }}>
+                    <Text style={{ color: colors.light, fontSize: 18, fontWeight: "600" }}>
                         {pool ? pool.pool_name : "Chargement..."}
                     </Text>
                 </View>
@@ -53,10 +47,21 @@ const MatchHeader: React.FC = () => {
 
             {/* Bouton Share */}
             <TouchableOpacity onPress={() => console.log("Share pressed!")}>
-                <Ionicons name="share-outline" size={30} color="#fff" />
+                <Ionicons name="share-outline" size={30} color={colors.light} />
             </TouchableOpacity>
         </View>
     );
 }
+
+const styles = StyleSheet.create({
+    container: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        backgroundColor: colors.dark,
+        paddingHorizontal: 12,
+        paddingVertical: 15,
+    },
+});
 
 export default MatchHeader;

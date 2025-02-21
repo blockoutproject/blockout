@@ -3,6 +3,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { colors } from '@/constants/Colors';
 
 type MatchInfoCardProps = {
     date: string; 
@@ -50,7 +51,7 @@ const MatchInfoCard: React.FC<MatchInfoCardProps> = ({
                     <Ionicons
                         name={item.icon as any}
                         size={20}
-                        color={item.color || '#fff'}
+                        color={item.color || colors.light}
                         style={styles.icon}
                     />
                     <Text
@@ -72,14 +73,14 @@ const styles = StyleSheet.create({
         borderWidth: 2,
         borderColor: '#4A4A4A',
         borderRadius: 12,
-        backgroundColor: '#111',
+        backgroundColor: colors.dark,
         padding: 16,
         marginBottom: 16,
     },
     title: {
         fontSize: 18,
         fontWeight: '600',
-        color: '#fff',
+        color: colors.light,
         marginBottom: 12,
     },
     infoRow: {
@@ -91,7 +92,7 @@ const styles = StyleSheet.create({
         marginRight: 12,
     },
     infoText: {
-        color: '#fff',
+        color: colors.light,
         fontSize: 15,
     },
 });

@@ -1,4 +1,4 @@
-import { colors } from "@/constants/colors";
+import { colors } from "@/constants/Colors";
 import React, { useState } from "react";
 import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 type Filter = {

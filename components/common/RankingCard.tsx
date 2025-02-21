@@ -1,6 +1,8 @@
 import React from 'react';
-import { View, Text, ActivityIndicator, StyleSheet, FlatList, Image } from 'react-native';
+import { View, Text, ActivityIndicator, StyleSheet, FlatList } from 'react-native';
 import { useDetailedPoolTeams } from '@/hooks/pool/usePoolWithTeams';
+import { colors } from '@/constants/Colors';
+import { Image } from "expo-image";
 
 interface RankingCardProps {
     poolId: number;
@@ -29,7 +31,7 @@ const RankingCard: React.FC<RankingCardProps> = ({ poolId }) => {
     if (isLoading) {
         return (
             <View style={styles.container}>
-                <ActivityIndicator size="large" color="#fff" />
+                <ActivityIndicator size="large" color={colors.light} />
                 <Text style={styles.loadingText}>Chargement du classement...</Text>
             </View>
         );
@@ -72,7 +74,7 @@ const RankingCard: React.FC<RankingCardProps> = ({ poolId }) => {
                 renderItem={({ item, index }) => {
                     const rank = index + 1;
                     // On alterne la couleur de fond : index pair -> plus clair, index impair -> plus sombre
-                    const backgroundColor = index % 2 === 0 ? '#111' : '#1C1C1E';
+                    const backgroundColor = index % 2 === 0 ? colors.dark : '#1C1C1E';
 
                     return (
                         <View style={[styles.row, { backgroundColor }]}>
@@ -98,6 +100,7 @@ const RankingCard: React.FC<RankingCardProps> = ({ poolId }) => {
                                 <Image
                                     source={require("@/assets/clubs/paris_volley.png")}
                                     style={styles.logo}
+                                    contentFit='contain'
                                 />
                                 <Text
                                     style={styles.name}
@@ -140,7 +143,7 @@ const styles = StyleSheet.create({
         overflow: 'hidden', 
     },
     loadingText: {
-        color: '#fff',
+        color: colors.light,
         marginTop: 8,
     },
     errorText: {
@@ -171,13 +174,13 @@ const styles = StyleSheet.create({
 
     /** TEXTES **/
     headerText: {
-        color: '#fff',
+        color: colors.light,
         fontSize: 14,
         fontWeight: '600',
         textAlign: 'center',
     },
     cell: {
-        color: '#fff',
+        color: colors.light,
         fontSize: 14,
         textAlign: 'center',
     },
@@ -199,7 +202,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     name: {
-        color: '#fff',
+        color: colors.light,
         marginLeft: 8,
         marginRight: 24,
         fontSize: 14,
@@ -207,7 +210,6 @@ const styles = StyleSheet.create({
     logo: {
         width: 25,
         height: 25,
-        resizeMode: 'contain',
     },
 });
 
