@@ -24,7 +24,7 @@ const PoolTabs: React.FC<PoolTabsProps> = ({ pool }) => {
         {
             key: 'ranking',
             title: 'Classement',
-            render: () => <RankingTab pool={pool} />,
+            render: () => <RankingTab poolId={pool.id} />,
         },
     ];
 

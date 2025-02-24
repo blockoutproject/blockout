@@ -1,11 +1,12 @@
 import React from 'react';
 import { View, Text, ActivityIndicator, StyleSheet, FlatList } from 'react-native';
-import { useDetailedPoolTeams } from '@/hooks/pool/usePoolWithTeams';
 import { colors } from '@/constants/Colors';
 import { Image } from "expo-image";
+import { useDetailedTeamsByPool } from '@/hooks/pool/useDetailedTeamsByPool';
 
 interface RankingCardProps {
     poolId: number;
+    scrollable?: boolean;
 }
 
 function getRankColor(rank: number, length: number): string {
@@ -25,9 +26,8 @@ function getRankColor(rank: number, length: number): string {
     }
 }
 
-const RankingCard: React.FC<RankingCardProps> = ({ poolId }) => {
-    const { teams, isLoading, isError } = useDetailedPoolTeams(poolId);
-    console.log("RankingCard", teams);
+const RankingCard: React.FC<RankingCardProps> = ({ poolId, scrollable = true }) => {
+    const { teams, isLoading, isError } = useDetailedTeamsByPool(poolId);
     if (isLoading) {
         return (
             <View style={styles.container}>
@@ -70,7 +70,8 @@ const RankingCard: React.FC<RankingCardProps> = ({ poolId }) => {
                     b.coef_points - a.coef_points // Tri par coef points
                 )}    
                 keyExtractor={(item) => item.id.toString()}
-                scrollEnabled={false}
+                scrollEnabled={scrollable}
+                showsVerticalScrollIndicator={false}
                 renderItem={({ item, index }) => {
                     const rank = index + 1;
                     // On alterne la couleur de fond : index pair -> plus clair, index impair -> plus sombre

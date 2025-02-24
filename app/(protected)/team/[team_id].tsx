@@ -1,24 +1,20 @@
-import CustomTabView from "@/components/common/GenericTabView";
-import MatchListTab from "@/components/match/MatchListTab";
-import RankingCard from "@/components/common/RankingCard";
 import TeamStatsCard from "@/components/team/TeamStatsCard";
 import TeamInfoCard from "@/components/team/TeamInfoCard";
 import { colors } from "@/constants/Colors";
-import { usePoolsByTeam } from "@/hooks/pool/usePoolsByTeam";
-import { MatchStatus } from "@/types/Match";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useLocalSearchParams } from "expo-router";
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useTeamById } from "@/hooks/team/useTeamById";
 import TeamTabs from "@/components/team/TeamTabs";
+import { useDetailedPoolsByTeam } from "@/hooks/pool/useDetailedPoolsByTeam";
 
 const TeamScreen: React.FC = () => {
 
     const { team_id } = useLocalSearchParams();
     const teamId = Number(team_id);
     const { data: team, isLoading: isTeamLoading, isError: isTeamError, isSuccess: isTeamSuccess } = useTeamById(teamId);
-    const { data: pools, isLoading: isPoolsLoading, isError: isPoolsError, isSuccess: isPoolsSuccess } = usePoolsByTeam(teamId);
+    const { data: pools, isLoading: isPoolsLoading, isError: isPoolsError, isSuccess: isPoolsSuccess } = useDetailedPoolsByTeam(teamId);
 
     return (
         <View style={styles.container}>
@@ -47,7 +43,8 @@ const TeamScreen: React.FC = () => {
                             </View>
                         </Pressable>
                     </View>
-                    <TeamTabs pools={pools} />
+                    {/* pools! is safe because we know pools is defined with isPoolsSuccess */}
+                    <TeamTabs pools={pools!} />
                 </>
             }
         </View>

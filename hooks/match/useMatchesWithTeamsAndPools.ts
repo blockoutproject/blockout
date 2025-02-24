@@ -13,16 +13,16 @@ export function useMatchesWithTeamsAndPools(status: MatchStatus, poolId?: number
         error: errorMatches,
         fetchNextPage,
         isFetchingNextPage,
-        hasNextPage
+        hasNextPage,
     } = useMatches(status, poolId);
 
     const allTeamIds = useMemo(() => {
         if (!data || !data.pages) return [];
         const ids = new Set<number>();
-        data.pages.forEach(page => {
-            page.day_matches.forEach(day => {
-                day.pools.forEach(pool => {
-                    pool.matches.forEach(match => {
+        data.pages.forEach((page) => {
+            page.day_matches.forEach((day) => {
+                day.pools.forEach((pool) => {
+                    pool.matches.forEach((match) => {
                         if (match.team_id_a) ids.add(match.team_id_a);
                         if (match.team_id_b) ids.add(match.team_id_b);
                     });
@@ -35,9 +35,9 @@ export function useMatchesWithTeamsAndPools(status: MatchStatus, poolId?: number
     const allPoolIds = useMemo(() => {
         if (!data || !data.pages) return [];
         const ids = new Set<number>();
-        data.pages.forEach(page => {
-            page.day_matches.forEach(day => {
-                day.pools.forEach(pool => {
+        data.pages.forEach((page) => {
+            page.day_matches.forEach((day) => {
+                day.pools.forEach((pool) => {
                     if (pool.pool_id) ids.add(pool.pool_id);
                 });
             });
@@ -45,29 +45,29 @@ export function useMatchesWithTeamsAndPools(status: MatchStatus, poolId?: number
         return Array.from(ids);
     }, [data]);
 
-    // Charger les équipes
     const {
         teams,
         isLoading: isLoadingTeams,
         isError: isErrorTeams,
-        error: errorTeams
+        error: errorTeams,
     } = useTeamsByIds(allTeamIds);
 
-    // Charger les poules
     const {
         pools,
         isLoading: isLoadingPools,
         isError: isErrorPools,
-        error: errorPools
+        error: errorPools,
     } = usePoolsByIds(allPoolIds);
 
-    const isLoading = isLoadingMatches
-        || (isLoadingTeams && allTeamIds.length === 0)
-        || (isLoadingPools && allPoolIds.length > 0);
+    const isLoading =
+        isLoadingMatches ||
+        (isLoadingTeams && allTeamIds.length === 0) ||
+        (isLoadingPools && allPoolIds.length > 0);
 
-    const isFetching = isFetchingNextPage
-        || (isLoadingTeams && allTeamIds.length > 0)
-        || (isLoadingPools && allPoolIds.length > 0);
+    const isFetching =
+        isFetchingNextPage ||
+        (isLoadingTeams && allTeamIds.length > 0) ||
+        (isLoadingPools && allPoolIds.length > 0);
 
     const isError = isErrorMatches || isErrorTeams || isErrorPools;
     const error = errorMatches || errorTeams || errorPools;
@@ -82,6 +82,6 @@ export function useMatchesWithTeamsAndPools(status: MatchStatus, poolId?: number
         error,
         fetchNextPage,
         isFetchingNextPage,
-        hasNextPage
+        hasNextPage,
     };
 }

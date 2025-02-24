@@ -22,3 +22,13 @@ export interface Team {
     last_update?: Date;
     active: boolean;
 }
+
+export interface TeamWithPoints extends Team {
+    points: number;
+    wins: number;
+    losses: number;
+    played: number;
+    points_penalty: number;
+    coef_points: number;
+    coef_sets: number;
+}

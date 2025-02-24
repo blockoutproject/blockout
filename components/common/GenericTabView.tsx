@@ -1,5 +1,6 @@
+import { colors } from "@/constants/Colors";
 import React, { useState } from "react";
-import { Text, View, Pressable, useWindowDimensions } from "react-native";
+import { Text, View, Pressable, StyleSheet, useWindowDimensions } from "react-native";
 import { TabView, SceneMap, SceneRendererProps, NavigationState, Route } from "react-native-tab-view";
 
 type TabDefinition = {
@@ -31,7 +32,7 @@ const GenericTabView: React.FC<GenericTabViewProps> = ({ tabs, indicatorColor })
             navigationState: NavigationState<Route>;
         }
     ) => (
-        <View style={{ flexDirection: "row", justifyContent: "center", backgroundColor: "#000" }}>
+        <View style={styles.container}>
             {props.navigationState.routes.map((route: Route, i: number) => {
                 const active = i === props.navigationState.index;
                 return (
@@ -70,5 +71,13 @@ const GenericTabView: React.FC<GenericTabViewProps> = ({ tabs, indicatorColor })
         />
     );
 };
+
+const styles = StyleSheet.create({
+    container: { 
+        flexDirection: "row", 
+        justifyContent: "center", 
+        backgroundColor: colors.dark
+    }
+});
 
 export default GenericTabView;

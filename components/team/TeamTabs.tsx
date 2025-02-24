@@ -1,14 +1,13 @@
 import React from "react";
-import { View } from "react-native";
 import GenericTabView from "@/components/common/GenericTabView";
 import MatchListTab from "@/components/match/MatchListTab";
 import { MatchStatus } from "@/types/Match";
 import { colors } from "@/constants/Colors";
-import RankingCard from "../common/RankingCard";
-import { CompetitionAssociation } from "@/types/Competition";
+import { Pool } from "@/types/Pool";
+import RankingTab from "../common/RankingTab";
 
 type TeamTabsProps = {
-    pools: CompetitionAssociation[];
+    pools: Pool[];
 };
 
 const TeamTabs: React.FC<TeamTabsProps> = ({ pools }) => {
@@ -28,12 +27,8 @@ const TeamTabs: React.FC<TeamTabsProps> = ({ pools }) => {
 
     const dynamicTabs = pools.map((pool) => ({
         key: `pool-${pool.id}`,
-        title: `Classement ${pool.id}`,
-        render: () => (
-            <View style={{ flex: 1 }}>
-                <RankingCard key={pool.id} poolId={pool.id!} />
-            </View>
-        ),
+        title: `${pool.pool_name}`,
+        render: () => <RankingTab key={pool.id} poolId={pool.id} />,
     }));
 
     const tabs = [...staticTabs, ...dynamicTabs];

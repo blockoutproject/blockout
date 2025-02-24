@@ -14,7 +14,6 @@ import { useMatchesWithTeamsAndPools } from "@/hooks/match/useMatchesWithTeamsAn
 import MatchCard from "./MatchCard";
 import { Pool } from "@/types/Pool";
 import { Image } from "expo-image";
-import PoolHeader from "../pool/PoolHeader";
 
 type FinishedMatchesTabProps = {
     pool?: Pool;
@@ -63,7 +62,7 @@ const MatchListTab: React.FC<FinishedMatchesTabProps> = ({ pool, status }) => {
         return (
             <View>
                 <Text style={styles.dateHeader}>{day.date}</Text>
-                <View style={{ gap: 25 }}>
+                <View style={{ gap: 10 }}>
                     {day.pools.map((pool: PoolMatchesDTO) => (
                         <View
                             key={`${day.date}#${pool.pool_id}`}
@@ -181,7 +180,6 @@ const styles = StyleSheet.create({
         marginBottom: 5,
     },
     poolContainer: {
-        marginBottom: 10,
         padding: 4,
         borderRadius: 8,
         backgroundColor: colors.dark,

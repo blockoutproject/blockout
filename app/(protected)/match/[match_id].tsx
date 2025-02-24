@@ -41,7 +41,7 @@ const MatchModalScreen: React.FC = () => {
                             referee1={match.referee1}
                             referee2={match.referee2}
                         />
-                        <RankingCard poolId={match.pool_id} />
+                        <RankingCard poolId={match.pool_id} scrollable={false} />
                     </ScrollView>
                 </>
             )}

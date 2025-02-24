@@ -4,16 +4,14 @@ import RankingCard from "./RankingCard";
 import { colors } from "@/constants/Colors";
 
 type RankingTabProps = {
-    pool: Pool;
+    poolId: number;
 };
 
-const RankingTab: React.FC<RankingTabProps> = ({ pool }: RankingTabProps) => {
+const RankingTab: React.FC<RankingTabProps> = ({ poolId }: RankingTabProps) => {
 
     return (
         <View style={styles.container}>
-            <ScrollView contentContainerStyle={styles.scrollContent}>
-                <RankingCard poolId={pool.id} />
-            </ScrollView>
+                <RankingCard poolId={poolId} />
         </View>
     )
 };
@@ -22,8 +20,6 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: colors.dark,
-    },
-    scrollContent: {
         paddingHorizontal: 16,
         paddingTop: 16,
         paddingBottom: 32,
