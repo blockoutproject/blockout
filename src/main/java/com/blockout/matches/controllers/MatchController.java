@@ -82,9 +82,10 @@ public class MatchController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "3") int size,
             @RequestParam(name = "pool_id", required = false) Long poolId,
-            @RequestParam(name = "status", required = false) MatchStatus status) {
-
-        DayPageDTO dayPage = matchService.getMatchesByDay(poolId, page, size, status);
+            @RequestParam(name = "status", required = false) MatchStatus status,
+            @RequestParam(name = "team_id", required = false) Long teamId // <-- Nouvel ajout
+    ) {
+        DayPageDTO dayPage = matchService.getMatchesByDay(poolId, page, size, status, teamId);
         if (dayPage.getDayMatches().isEmpty()) {
             return ResponseEntity.noContent().build();
         }
