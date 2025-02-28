@@ -207,7 +207,10 @@
                 "MOINS DE 13 ANS FÉMININES OCCITANIE EST",
                 "MOINS DE 13 ANS FÉMININES OCCITANIE OUEST",
                 "MOINS 13 ANS FÉMININES OCCITANIE EST",
-                "CHAMPIONNAT REGIONAL ELITE M13 FEMININS"
+                "CHAMPIONNAT REGIONAL ELITE M13 FEMININS",
+                "M12 INTERDEP FEMININ",
+                "TOURNOI INTERDEPARTEMENTAL",
+                "MOINS 13 ANS FÉMININES OCCITANIE OUEST"
             ],
             "M": [
                 "M 13 GARÇONS",
@@ -216,7 +219,10 @@
                 "MOINS DE 13 ANS MASCULIN",
                 "CHAMPIONNAT M13 MASCULIN",
                 "MOINS 13 ANS MASCULINS OCCITANIE EST",
-                "CHAMPIONNAT  REGIONAL ELITE M13 MASCULINS"
+                "CHAMPIONNAT  REGIONAL ELITE M13 MASCULINS",
+                "M13 INTERDEP MASCULIN",
+                "TOURNOI INTERDEPARTEMENTAL",
+                "MOINS 13 ANS MASCULINS OCCITANIE OUEST"
             ],
             "O": [
                 "M13 - ELITE"
