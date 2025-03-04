@@ -19,6 +19,7 @@ import com.blockout.matches.services.MatchService;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -79,13 +80,22 @@ public class MatchController {
     })
     @GetMapping("/matches/day-based")
     public ResponseEntity<DayPageDTO> getMatchesDayBased(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "3") int size,
-            @RequestParam(name = "pool_id", required = false) Long poolId,
-            @RequestParam(name = "status", required = false) MatchStatus status,
-            @RequestParam(name = "team_id", required = false) Long teamId // <-- Nouvel ajout
+        @RequestParam(defaultValue = "0") int page,
+        @RequestParam(defaultValue = "3") int size,
+        @RequestParam(name = "pool_ids", required = false) List<Long> poolIds,
+        @RequestParam(name = "team_ids", required = false) List<Long> teamIds,
+        @RequestParam(name = "status", required = false) MatchStatus status
     ) {
-        DayPageDTO dayPage = matchService.getMatchesByDay(poolId, page, size, status, teamId);
+
+        if (poolIds == null) {
+            poolIds = Collections.emptyList();
+        }
+        if (teamIds == null) {
+            teamIds = Collections.emptyList();
+        }
+    
+        DayPageDTO dayPage = matchService.getMatchesByDay(poolIds, teamIds, status, page, size);
+    
         if (dayPage.getDayMatches().isEmpty()) {
             return ResponseEntity.noContent().build();
         }

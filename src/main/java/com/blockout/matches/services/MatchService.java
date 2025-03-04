@@ -36,8 +36,6 @@ public class MatchService {
     @Autowired
     private MatchRepository matchRepository;
 
-    private static final List<Long> POOLS_WHEN_NULL = List.of(1L, 2L, 3L, 282L);
-
     public Match createMatch(Match match) {
         Match createdMatch = matchRepository.save(match);
         logger.info("Match created successfully",
@@ -47,86 +45,96 @@ public class MatchService {
     }
 
     public DayPageDTO getMatchesByDay(
-        Long poolId,
-        int page,
-        int size,
-        MatchStatus status,
-        Long teamId // <-- Nouvel ajout
-) {
-    LocalDateTime now = LocalDateTime.now();
+            List<Long> poolIds,
+            List<Long> teamIds,
+            MatchStatus status,
+            int page,
+            int size) {
+        LocalDateTime now = LocalDateTime.now();
 
-    List<LocalDate> allDays;
-    if (status == MatchStatus.UPCOMING) {
-        // On récupère les jours distincts dans le futur
-        allDays = matchRepository.findDistinctUpcomingDates(poolId, teamId, POOLS_WHEN_NULL);
-    } else {
-        // On récupère les jours distincts dans le passé (ou maintenant)
-        allDays = matchRepository.findDistinctDatesUntil(now, poolId, teamId, POOLS_WHEN_NULL);
-    }
-
-    int fromIndex = page * size;
-    if (fromIndex >= allDays.size()) {
-        return new DayPageDTO(Collections.emptyList(), false, null);
-    }
-    int toIndex = Math.min(fromIndex + size, allDays.size());
-    List<LocalDate> subDays = allDays.subList(fromIndex, toIndex);
-
-    LocalDate minDay, maxDay;
-    if (status == MatchStatus.UPCOMING) {
-        minDay = subDays.get(0);
-        maxDay = subDays.get(subDays.size() - 1);
-    } else {
-        minDay = subDays.get(subDays.size() - 1);
-        maxDay = subDays.get(0);
-    }
-
-    LocalDateTime startOfMinDay = minDay.atStartOfDay();
-    LocalDateTime endDateTime;
-    if (status == MatchStatus.UPCOMING) {
-        endDateTime = maxDay.plusDays(1).atStartOfDay();
-    } else {
-        if (maxDay.equals(LocalDate.now())) {
-            endDateTime = now;
+        // Récupère la liste de jours distincts
+        List<LocalDate> allDays;
+        if (status == MatchStatus.UPCOMING) {
+            allDays = matchRepository.findDistinctUpcomingDates(
+                    poolIds, poolIds.size(),
+                    teamIds, teamIds.size());
         } else {
+            // Suppose qu'on gère le status FINISHED ou autres
+            allDays = matchRepository.findDistinctDatesUntil(
+                    now,
+                    poolIds, poolIds.size(),
+                    teamIds, teamIds.size());
+        }
+
+        // Pagination sur la liste de jours
+        int fromIndex = page * size;
+        if (fromIndex >= allDays.size()) {
+            // Page vide
+            return new DayPageDTO(Collections.emptyList(), false, null);
+        }
+        int toIndex = Math.min(fromIndex + size, allDays.size());
+        List<LocalDate> subDays = allDays.subList(fromIndex, toIndex);
+
+        // minDay et maxDay
+        LocalDate minDay, maxDay;
+        if (status == MatchStatus.UPCOMING) {
+            // allDays est ASC, donc le premier est le plus petit
+            minDay = subDays.get(0);
+            maxDay = subDays.get(subDays.size() - 1);
+        } else {
+            // allDays est DESC, donc le premier est le plus grand
+            minDay = subDays.get(subDays.size() - 1);
+            maxDay = subDays.get(0);
+        }
+
+        // Détermine la plage de dates
+        LocalDateTime startOfMinDay = minDay.atStartOfDay();
+        LocalDateTime endDateTime;
+        if (status == MatchStatus.UPCOMING) {
             endDateTime = maxDay.plusDays(1).atStartOfDay();
-        }
-    }
-
-    // On récupère tous les matchs dans la plage, en filtrant aussi sur teamId si présent.
-    List<Match> allMatches = matchRepository.findAllInRange(
-        startOfMinDay,
-        endDateTime,
-        poolId,
-        status,
-        teamId,
-        POOLS_WHEN_NULL
-    );
-
-    // Groupement par date
-    Map<LocalDate, List<Match>> matchesByDate = allMatches.stream()
-            .collect(Collectors.groupingBy(m -> m.getMatchDate().toLocalDate()));
-
-    // Construction de la liste DayMatchesDTO
-    List<DayMatchesDTO> dayMatchesList = subDays.stream().map(day -> {
-        List<Match> matchesForDay = matchesByDate.getOrDefault(day, Collections.emptyList());
-        if (poolId == null) {
-            Map<Long, List<Match>> matchesByPool = matchesForDay.stream()
-                    .collect(Collectors.groupingBy(Match::getPoolId, TreeMap::new, Collectors.toList()));
-            List<PoolMatchesDTO> poolsDto = matchesByPool.entrySet().stream()
-                    .map(e -> new PoolMatchesDTO(e.getKey(), e.getValue()))
-                    .collect(Collectors.toList());
-            return new DayMatchesDTO(day, poolsDto);
         } else {
-            PoolMatchesDTO singlePoolDto = new PoolMatchesDTO(poolId, matchesForDay);
-            return new DayMatchesDTO(day, Collections.singletonList(singlePoolDto));
+            if (maxDay.equals(LocalDate.now())) {
+                endDateTime = now;
+            } else {
+                endDateTime = maxDay.plusDays(1).atStartOfDay();
+            }
         }
-    }).collect(Collectors.toList());
 
-    boolean hasNext = (toIndex < allDays.size());
-    Integer nextPage = hasNext ? (page + 1) : null;
+        // Récupère les matchs dans cette plage
+        List<Match> allMatches = matchRepository.findAllInRange(
+                startOfMinDay,
+                endDateTime,
+                poolIds, poolIds.size(),
+                status,
+                teamIds, teamIds.size());
 
-    return new DayPageDTO(dayMatchesList, hasNext, nextPage);
-}
+        // Groupement par date
+        Map<LocalDate, List<Match>> matchesByDate = allMatches.stream()
+                .collect(Collectors.groupingBy(m -> m.getMatchDate().toLocalDate()));
+
+        // Construction de DayMatchesDTO
+        List<DayMatchesDTO> dayMatchesList = subDays.stream()
+                .map(day -> {
+                    List<Match> matchesForDay = matchesByDate.getOrDefault(day, Collections.emptyList());
+                    // Groupement par poolId
+                    Map<Long, List<Match>> matchesByPool = matchesForDay.stream()
+                            .collect(Collectors.groupingBy(Match::getPoolId, TreeMap::new, Collectors.toList()));
+
+                    // On crée un PoolMatchesDTO par pool
+                    List<PoolMatchesDTO> poolsDto = matchesByPool.entrySet().stream()
+                            .map(e -> new PoolMatchesDTO(e.getKey(), e.getValue()))
+                            .collect(Collectors.toList());
+
+                    return new DayMatchesDTO(day, poolsDto);
+                })
+                .collect(Collectors.toList());
+
+        // hasNext et nextPage
+        boolean hasNext = (toIndex < allDays.size());
+        Integer nextPage = hasNext ? (page + 1) : null;
+
+        return new DayPageDTO(dayMatchesList, hasNext, nextPage);
+    }
 
     public Page<Match> getAllMatches(Pageable pageable) {
         LocalDateTime today = LocalDateTime.now();

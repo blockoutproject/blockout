@@ -38,72 +38,54 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
   Page<Match> findAllByMatchDateLessThanEqual(LocalDateTime today, Pageable pageable);
 
   @Query("""
-          SELECT DISTINCT CAST(m.matchDate AS LocalDate)
-          FROM Match m
-          WHERE m.matchDate <= :today
-            AND m.status = 'FINISHED'
-            AND (
-              (:poolId IS NULL AND m.poolId IN :allowedPools)
-              OR (:poolId IS NOT NULL AND m.poolId = :poolId)
-            )
-            AND (
-              :teamId IS NULL
-              OR m.teamIdA = :teamId
-              OR m.teamIdB = :teamId
-            )
-          ORDER BY CAST(m.matchDate AS LocalDate) DESC
-        """)
+    SELECT DISTINCT CAST(m.matchDate AS LocalDate)
+    FROM Match m
+    WHERE m.matchDate <= :today
+      AND m.status = 'FINISHED'
+      AND (:poolIdsSize = 0 OR m.poolId IN :poolIds)
+      AND (:teamIdsSize = 0 OR m.teamIdA IN :teamIds OR m.teamIdB IN :teamIds)
+    ORDER BY CAST(m.matchDate AS LocalDate) DESC
+  """)
   List<LocalDate> findDistinctDatesUntil(
-    @Param("today") LocalDateTime today,
-    @Param("poolId") Long poolId,
-    @Param("teamId") Long teamId,
-    @Param("allowedPools") List<Long> allowedPools
+      @Param("today") LocalDateTime today,
+      @Param("poolIds") List<Long> poolIds,
+      @Param("poolIdsSize") int poolIdsSize,
+      @Param("teamIds") List<Long> teamIds,
+      @Param("teamIdsSize") int teamIdsSize
   );
 
   @Query("""
-          SELECT m
-          FROM Match m
-          WHERE m.matchDate >= :startOfDay
-            AND m.matchDate < :endOfDay
-            AND (
-              (:poolId IS NULL AND m.poolId IN :allowedPools)
-              OR (:poolId IS NOT NULL AND m.poolId = :poolId)
-            )
-            AND (
-              :teamId IS NULL
-              OR m.teamIdA = :teamId
-              OR m.teamIdB = :teamId
-            )
-            AND (:status IS NULL OR m.status = :status)
-          ORDER BY m.poolId ASC, m.matchDate ASC
-        """)
+    SELECT m
+    FROM Match m
+    WHERE m.matchDate >= :startOfDay
+      AND m.matchDate < :endOfDay
+      AND (:poolIdsSize = 0 OR m.poolId IN :poolIds)
+      AND (:teamIdsSize = 0 OR m.teamIdA IN :teamIds OR m.teamIdB IN :teamIds)
+      AND (:status IS NULL OR m.status = :status)
+    ORDER BY m.poolId ASC, m.matchDate ASC
+  """)
   List<Match> findAllInRange(
-    @Param("startOfDay") LocalDateTime startOfDay,
-    @Param("endOfDay") LocalDateTime endOfDay,
-    @Param("poolId") Long poolId,
-    @Param("status") MatchStatus status,
-    @Param("teamId") Long teamId,
-    @Param("allowedPools") List<Long> allowedPools
+      @Param("startOfDay") LocalDateTime startOfDay,
+      @Param("endOfDay") LocalDateTime endOfDay,
+      @Param("poolIds") List<Long> poolIds,
+      @Param("poolIdsSize") int poolIdsSize,
+      @Param("status") MatchStatus status,
+      @Param("teamIds") List<Long> teamIds,
+      @Param("teamIdsSize") int teamIdsSize
   );
 
   @Query("""
-          SELECT DISTINCT CAST(m.matchDate AS LocalDate)
-          FROM Match m
-          WHERE m.status = 'UPCOMING'
-            AND (
-              (:poolId IS NULL AND m.poolId IN :allowedPools)
-              OR (:poolId IS NOT NULL AND m.poolId = :poolId)
-            )
-            AND (
-              :teamId IS NULL
-              OR m.teamIdA = :teamId
-              OR m.teamIdB = :teamId
-            )
-          ORDER BY CAST(m.matchDate AS LocalDate) ASC
-        """)
+    SELECT DISTINCT CAST(m.matchDate AS LocalDate)
+    FROM Match m
+    WHERE m.status = 'UPCOMING'
+      AND (:poolIdsSize = 0 OR m.poolId IN :poolIds)
+      AND (:teamIdsSize = 0 OR m.teamIdA IN :teamIds OR m.teamIdB IN :teamIds)
+    ORDER BY CAST(m.matchDate AS LocalDate) ASC
+  """)
   List<LocalDate> findDistinctUpcomingDates(
-    @Param("poolId") Long poolId,
-    @Param("teamId") Long teamId,
-    @Param("allowedPools") List<Long> allowedPools
+      @Param("poolIds") List<Long> poolIds,
+      @Param("poolIdsSize") int poolIdsSize,
+      @Param("teamIds") List<Long> teamIds,
+      @Param("teamIdsSize") int teamIdsSize
   );
 }
