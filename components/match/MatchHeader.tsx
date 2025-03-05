@@ -4,7 +4,7 @@ import { usePoolById } from "@/hooks/pool/usePoolById";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import { TouchableOpacity, View, Text, StyleSheet } from "react-native";
-import { Image } from "expo-image";
+import FastImage from 'react-native-fast-image'
 
 const MatchHeader: React.FC = () => {
     const { match_id } = useLocalSearchParams(); 
@@ -33,10 +33,10 @@ const MatchHeader: React.FC = () => {
                         alignItems: "center",
                     }}
                 >
-                    <Image
+                    <FastImage
                         source={require("../../assets/leagues/msl.png")}
                         style={{ width: 28, height: 28, marginRight: 8, borderRadius: 5 }}
-                        contentFit="contain"
+                        resizeMode="contain"
                     />
                     <Text style={{ color: colors.light, fontSize: 18, fontWeight: "600" }}>
                         {pool ? pool.pool_name : "Chargement..."}

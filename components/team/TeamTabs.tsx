@@ -1,27 +1,29 @@
 import React from "react";
 import GenericTabView from "@/components/common/GenericTabView";
-import MatchListTab from "@/components/match/MatchListTab";
+import MatchListTab from "@/components/match/matchList/MatchListTab";
 import { MatchStatus } from "@/types/Match";
 import { colors } from "@/constants/Colors";
 import { Pool } from "@/types/Pool";
 import RankingTab from "../common/RankingTab";
+import { Team } from "@/types/Team";
 
 type TeamTabsProps = {
     pools: Pool[];
+    team: Team;
 };
 
-const TeamTabs: React.FC<TeamTabsProps> = ({ pools }) => {
+const TeamTabs: React.FC<TeamTabsProps> = ({ pools, team }) => {
 
     const staticTabs = [
         {
             key: "finished",
-            title: "Terminé",
-            render: () => <MatchListTab status={MatchStatus.FINISHED} />,
+            title: "Terminés",
+            render: () => <MatchListTab teamIds={[team.id]} status={MatchStatus.FINISHED} />,
         },
         {
             key: "upcoming",
             title: "À Venir",
-            render: () => <MatchListTab status={MatchStatus.UPCOMING} />,
+            render: () => <MatchListTab teamIds={[team.id]} status={MatchStatus.UPCOMING} />,
         },
     ];
 

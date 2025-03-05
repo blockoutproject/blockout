@@ -4,7 +4,7 @@ import { Team } from '@/types/Team';
 import { useRouter } from 'expo-router';
 import React from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
-import { Image } from "expo-image";
+import FastImage from 'react-native-fast-image'
 
 type ScoreCardProps = {
     homeTeam: Team,
@@ -31,10 +31,10 @@ const MatchScoreCard: React.FC<ScoreCardProps> = ({
         return (
             <Pressable onPress={() => handleTeamPress(team.id)}>
                 <View style={styles.teamContainer}>
-                    <Image
+                    <FastImage
                         source={source}
                         style={styles.teamLogo}
-                        contentFit="contain"
+                        resizeMode="contain"
                     />
                     {/* Contrainte de maxWidth pour forcer le tronquage */}
                     <View style={styles.teamNameContainer}>
@@ -42,6 +42,8 @@ const MatchScoreCard: React.FC<ScoreCardProps> = ({
                             style={styles.name}
                             numberOfLines={1}
                             ellipsizeMode="tail"
+                            adjustsFontSizeToFit
+                            minimumFontScale={0.8} // par exemple, le texte ne sera pas réduit en dessous de 70% de sa taille d'origine
                         >
                             {team.name}
                         </Text>
@@ -53,54 +55,55 @@ const MatchScoreCard: React.FC<ScoreCardProps> = ({
     return (
         <View style={styles.cardContainer}>
             {/* Équipe à domicile (gauche) */}
-            <Team team={homeTeam} source={home} />
-
+            <View style={{ flex: 1 }}>
+                <Team team={homeTeam} source={home} />
+            </View>
             {/* Score au centre */}
             <View style={styles.scoreBox}>
                 <Text style={styles.scoreText}>{finalScore}</Text>
             </View>
 
             {/* Équipe à l’extérieur (droite) */}
-            <Team team={awayTeam} source={away} />
+            <View style={{ flex: 1 }}>
+                <Team team={awayTeam} source={away} />
+            </View>
         </View>
     );
 }
 
 const styles = StyleSheet.create({
     cardContainer: {
+        flex: 1,
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-around",
-        backgroundColor: "#1C1C1E",
-        paddingHorizontal: 16,
-        paddingVertical: 20,
+        backgroundColor: colors.grey,
         borderRadius: 12,
         marginBottom: 16,
     },
     teamContainer: {
+        padding: 12,
         alignItems: 'center',
     },
     teamLogo: {
         width: 70,
         height: 70,
-        marginBottom: 10,
+        marginBottom: 8,
     },
     // Conteneur avec largeur ou maxWidth pour tronquer
     teamNameContainer: {
-        maxWidth: 110,  // Ajustez selon votre design
     },
     name: {
         color: colors.light,
-        fontSize: 18,
-        // overflow: 'hidden' n'est pas nécessaire
-        // numberOfLines={1} + ellipsizeMode="tail" suffit
+        fontSize: 16,
     },
     scoreBox: {
         borderWidth: 2,
-        borderColor: "#4CAF50",
+        borderColor: colors.green,
         borderRadius: 8,
         paddingHorizontal: 16,
         paddingVertical: 8,
+        backgroundColor: colors.dark,
     },
     scoreText: {
         color: colors.light,

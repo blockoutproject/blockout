@@ -7,7 +7,7 @@ import {
     TouchableOpacity,
     View,
 } from "react-native";
-import { Image } from "expo-image";
+import FastImage from 'react-native-fast-image'
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useRouter } from "expo-router";
 
@@ -31,7 +31,7 @@ const HomeHeader: React.FC = () => {
                     fontWeight: "800",
                 }}
             >
-                Block.Out
+                BlockOut
             </Text>
 
             <View
@@ -52,7 +52,7 @@ const HomeHeader: React.FC = () => {
                 </TouchableOpacity>
 
                 <TouchableOpacity onPress={() => router.navigate("/profile")}>
-                    <Image
+                    <FastImage
                         style={{
                             height: 30,
                             width: 30,

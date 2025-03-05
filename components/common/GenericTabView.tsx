@@ -1,7 +1,18 @@
-import { colors } from "@/constants/Colors";
 import React, { useState } from "react";
-import { Text, View, Pressable, StyleSheet, useWindowDimensions } from "react-native";
-import { TabView, SceneMap, SceneRendererProps, NavigationState, Route } from "react-native-tab-view";
+import {
+    Text,
+    View,
+    Pressable,
+    StyleSheet,
+    useWindowDimensions
+} from "react-native";
+import {
+    TabView,
+    SceneRendererProps,
+    NavigationState,
+    Route
+} from "react-native-tab-view";
+import { colors } from "@/constants/Colors";
 
 type TabDefinition = {
     key: string;
@@ -14,19 +25,29 @@ type GenericTabViewProps = {
     indicatorColor: string;
 };
 
-const GenericTabView: React.FC<GenericTabViewProps> = ({ tabs, indicatorColor }) => {
+const GenericTabView: React.FC<GenericTabViewProps> = ({
+    tabs,
+    indicatorColor
+}) => {
     const layout = useWindowDimensions();
     const [index, setIndex] = useState(0);
 
+    // On construit les routes pour le TabView (une pour chaque tab)
     const routes = tabs.map(({ key, title }) => ({ key, title }));
 
-    const sceneMapObj = tabs.reduce((acc, tab) => {
-        acc[tab.key] = tab.render;
-        return acc;
-    }, {} as { [key: string]: () => JSX.Element });
+    // renderScene personnalisé :
+    // - On cherche l'onglet correspondant à route.key
+    // - On renvoie son JSX (tab.render())
+    // - On évite ainsi l'utilisation de SceneMap, qui démonte/remonte souvent
+    const renderScene = ({
+        route
+    }: SceneRendererProps & { route: Route }) => {
+        const tabDef = tabs.find((t) => t.key === route.key);
+        if (!tabDef) return null;
+        return tabDef.render();
+    };
 
-    const renderScene = SceneMap(sceneMapObj);
-
+    // Bar d’onglet custom
     const renderTabBar = (
         props: SceneRendererProps & {
             navigationState: NavigationState<Route>;
@@ -39,16 +60,16 @@ const GenericTabView: React.FC<GenericTabViewProps> = ({ tabs, indicatorColor })
                     <Pressable
                         key={route.key}
                         onPress={() => props.jumpTo(route.key)}
-                        style={{ marginHorizontal: 16, paddingVertical: 8 }}
+                        style={{ marginHorizontal: 16, paddingVertical: 4 }}
                     >
-                        <Text style={{ color: active ? "white" : "gray", fontWeight: "600" }}>
+                        <Text style={{ color: active ? "white" : "gray", fontSize: 15, fontWeight: "700" }}>
                             {route.title}
                         </Text>
                         {active && (
                             <View
                                 style={{
                                     marginTop: 3,
-                                    height: 2,
+                                    height: 1,
                                     width: "70%",
                                     backgroundColor: indicatorColor,
                                     alignSelf: "center",
@@ -67,16 +88,18 @@ const GenericTabView: React.FC<GenericTabViewProps> = ({ tabs, indicatorColor })
             renderScene={renderScene}
             onIndexChange={setIndex}
             initialLayout={{ width: layout.width }}
+            lazy={true}
+            removeClippedSubviews={false}
             renderTabBar={renderTabBar}
         />
     );
 };
 
 const styles = StyleSheet.create({
-    container: { 
-        flexDirection: "row", 
-        justifyContent: "center", 
-        backgroundColor: colors.dark
+    container: {
+        flexDirection: "row",
+        justifyContent: "center",
+        backgroundColor: colors.dark,
     }
 });
 

@@ -4,7 +4,7 @@ import { useTeamsByIds } from "../team/useTeamsByIds";
 import { usePoolsByIds } from "../pool/usePoolsByIds";
 import { MatchStatus } from "@/types/Match";
 
-export function useMatchesWithTeamsAndPools(status: MatchStatus, poolId?: number) {
+export function useMatchesWithTeamsAndPools(status: MatchStatus, poolIds?: number[], teamIds?: number[]) {
     const {
         data,
         dayMatches,
@@ -14,7 +14,8 @@ export function useMatchesWithTeamsAndPools(status: MatchStatus, poolId?: number
         fetchNextPage,
         isFetchingNextPage,
         hasNextPage,
-    } = useMatches(status, poolId);
+        refetch: refetchMatches,
+    } = useMatches(status, poolIds, teamIds);
 
     const allTeamIds = useMemo(() => {
         if (!data || !data.pages) return [];
@@ -80,6 +81,7 @@ export function useMatchesWithTeamsAndPools(status: MatchStatus, poolId?: number
         isFetching,
         isError,
         error,
+        refetch: refetchMatches,
         fetchNextPage,
         isFetchingNextPage,
         hasNextPage,

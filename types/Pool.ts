@@ -21,8 +21,8 @@ export interface Pool {
     league_code: string;
     season: number;
     division_code: EnumPoolDivisionCode;
-    gender?: EnumPoolGender;
-    format?: EnumPoolFormat;
+    gender: EnumPoolGender;
+    format: EnumPoolFormat;
     league_name?: string;
     pool_name?: string;
     division_name?: string;

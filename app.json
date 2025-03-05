@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "blockout",
-    "slug": "blockout",
+    "slug": "blockoutproject",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -50,9 +50,9 @@
         "origin": false
       },
       "eas": {
-        "projectId": "05f6d83e-e9c1-44f6-a388-1319703dc054"
+        "projectId": "10cdf86a-a81e-496a-bcaa-07c132678f6d"
       }
     },
-    "owner": "lise_gomes"
+    "owner": "blockoutproject"
   }
 }

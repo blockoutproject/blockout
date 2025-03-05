@@ -9,7 +9,7 @@ import {
     Text,
     View,
 } from "react-native";
-import { Image } from "expo-image";
+import FastImage from 'react-native-fast-image'
 import { Team } from "@/types/Team";
 
 type OpenLinkProps = {
@@ -43,10 +43,10 @@ const TeamInfoCard: React.FC<TeamInfoCardProps> = ({ team }) => {
     return (
         <View style={styles.container}>
             <View style={{ flexDirection: "column" }}>
-                <Image
+                <FastImage
                     source={require("@/assets/clubs/as_cannes.png")}
                     style={styles.teamLogo}
-                    contentFit="contain"
+                    resizeMode="contain"
                 />
                 <Text style={styles.title}>{team.name}</Text>
                 <View style={styles.data}>

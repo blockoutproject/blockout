@@ -30,18 +30,43 @@ class MatchesApi extends AbstractApi {
     }
 
     /**
-     * Récupère les matchs (optionnel: poolId).
-     * - Si `poolId` est fourni, retourne la poule spécifiée.
-     * - Sinon, retourne toutes les poules.
+     * Récupère les matchs en filtrant éventuellement par plusieurs pools et plusieurs équipes.
+     * - `poolIds` et `teamIds` sont des tableaux (liste vide => pas de filtre).
+     * - `status` est optionnel (MatchStatus).
      */
-    public async getMatches({ page = 0, size = 10, poolId, status }: { page: number, size: number, poolId?: number, status?: MatchStatus}): Promise<DayPageDTO> {
-        const params: Record<string, number | MatchStatus> = { page, size };
-        if (poolId !== undefined) {
-            params.pool_id = poolId;
+    public async getMatches({
+        page = 0,
+        size = 10,
+        poolIds = [],
+        teamIds = [],
+        status
+    }: {
+        page?: number,
+        size?: number,
+        poolIds?: number[],
+        teamIds?: number[],
+        status?: MatchStatus
+    }): Promise<DayPageDTO> {
+
+        // On construit l'objet params en ajoutant seulement ce qui est nécessaire
+        const params: Record<string, number | number[] | MatchStatus> = {
+            page,
+            size
+        };
+
+        // Ajout des filtres pools et équipes (sous forme de tableaux)
+        if (poolIds.length > 0) {
+            params.pool_ids = poolIds;
         }
+        if (teamIds.length > 0) {
+            params.team_ids = teamIds;
+        }
+
+        // Status
         if (status !== undefined) {
             params.status = status;
         }
+
         const response = await this.service.get('/matches/day-based', { params });
         return response.data as DayPageDTO;
     }

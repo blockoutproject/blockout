@@ -44,7 +44,7 @@ const TeamScreen: React.FC = () => {
                         </Pressable>
                     </View>
                     {/* pools! is safe because we know pools is defined with isPoolsSuccess */}
-                    <TeamTabs pools={pools!} />
+                    <TeamTabs pools={pools!} team={team} />
                 </>
             }
         </View>

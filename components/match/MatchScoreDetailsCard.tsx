@@ -3,7 +3,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { Match } from '@/types/Match';
 import { Team } from '@/types/Team';
 import { colors } from '@/constants/Colors';
-import { Image } from "expo-image";
+import FastImage from 'react-native-fast-image'
 
 type MatchScoreDetailsCardProps = {
     title?: string;
@@ -30,10 +30,10 @@ const MatchScoreDetailsCard: React.FC<MatchScoreDetailsCardProps> = ({
             <View style={styles.teamRow}>
                 {/* Colonne 1 : Logo */}
                 <View style={styles.colLogo}>
-                    <Image
+                    <FastImage
                         source={require('../../assets/clubs/paris_volley.png')}
                         style={styles.teamLogo}
-                        contentFit="contain"
+                        resizeMode="contain"
                     />
                 </View>
 
@@ -70,10 +70,10 @@ const MatchScoreDetailsCard: React.FC<MatchScoreDetailsCardProps> = ({
             <View style={styles.teamRow}>
                 {/* Colonne 1 : Logo */}
                 <View style={styles.colLogo}>
-                    <Image
+                    <FastImage
                         source={require('../../assets/clubs/as_cannes.png')}
                         style={styles.teamLogo}
-                        contentFit="contain"
+                        resizeMode="contain"
                     />
                 </View>
 

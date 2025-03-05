@@ -1,12 +1,16 @@
 
 // components/MatchInfoCard.tsx
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '@/constants/Colors';
+import FastImage from 'react-native-fast-image';
+import { router } from 'expo-router';
+import { Pool } from '@/types/Pool';
 
 type MatchInfoCardProps = {
-    date: string; 
+    pool: Pool;
+    date: string;
     league: string;
     duration?: string;
     venue?: string;
@@ -15,6 +19,7 @@ type MatchInfoCardProps = {
 };
 
 const MatchInfoCard: React.FC<MatchInfoCardProps> = ({
+    pool,
     date,
     league,
     duration,
@@ -23,18 +28,19 @@ const MatchInfoCard: React.FC<MatchInfoCardProps> = ({
     referee2,
 }) => {
 
+    const handlePoolPress = (poolId: number) => {
+        router.push(`/pool/${poolId}`);
+    };
+
     const infoData = [
-        { icon: 'calendar-outline', text: new Date(date).toLocaleString('fr-FR', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-        })},
         {
-            icon: 'trophy-outline',
-            text: league,
-            color: '#2196F3',
+            icon: 'calendar-outline', text: new Date(date).toLocaleString('fr-FR', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+            })
         },
         duration && { icon: 'time-outline', text: duration },
         venue && { icon: 'location-outline', text: venue },
@@ -45,25 +51,41 @@ const MatchInfoCard: React.FC<MatchInfoCardProps> = ({
     return (
         <View style={styles.container}>
             <Text style={styles.title}>Information</Text>
-            {infoData.filter(e => !!e).map((item, index) => (
-                <View style={styles.infoRow} key={index}>
-                    {/* L’icône Ionicons */}
-                    <Ionicons
-                        name={item.icon as any}
-                        size={20}
-                        color={item.color || colors.light}
-                        style={styles.icon}
-                    />
-                    <Text
-                        style={[
-                            styles.infoText,
-                            item.color && { color: item.color },
-                        ]}
-                    >
-                        {item.text}
-                    </Text>
+            <View style={{ gap: 10 }}>
+                <View style={styles.infoRow}>
+                    <TouchableOpacity onPress={() => handlePoolPress(pool.id)}>
+                        <View style={styles.poolHeader}>
+                            <FastImage
+                                source={require('../../assets/leagues/msl.png')}
+                                style={styles.poolLogo}
+                                resizeMode="contain"
+                            />
+                            <Text style={styles.poolTitle}>
+                                {pool.pool_name ?? 'Chargement...'}
+                            </Text>
+                        </View>
+                    </TouchableOpacity>
                 </View>
-            ))}
+
+                {infoData.filter(e => !!e).map((item, index) => (
+                    <View style={styles.infoRow} key={index}>
+                        {/* L’icône Ionicons */}
+                        <Ionicons
+                            name={item.icon as any}
+                            size={20}
+                            color={colors.light}
+                            style={styles.icon}
+                        />
+                        <Text
+                            style={[
+                                styles.infoText,
+                            ]}
+                        >
+                            {item.text}
+                        </Text>
+                    </View>
+                ))}
+            </View>
         </View>
     );
 }
@@ -77,6 +99,21 @@ const styles = StyleSheet.create({
         padding: 16,
         marginBottom: 16,
     },
+    poolHeader: {
+        flexDirection: "row",
+        alignItems: "center",
+    },
+    poolLogo: {
+        width: 20,
+        height: 20,
+        marginRight: 12,
+        borderRadius: 5,
+    },
+    poolTitle: {
+        fontSize: 14,
+        fontWeight: "700",
+        color: colors.light,
+    },
     title: {
         fontSize: 18,
         fontWeight: '600',
@@ -86,7 +123,6 @@ const styles = StyleSheet.create({
     infoRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 10,
     },
     icon: {
         marginRight: 12,

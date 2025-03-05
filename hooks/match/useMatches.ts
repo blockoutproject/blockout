@@ -2,16 +2,24 @@
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import MatchesApi from '@/api/MatchesApi';
 import { DayPageDTO, DayMatchesDTO, Match, MatchStatus } from '@/types/Match';
+import { useMemo } from 'react';
 
-export function useMatches(status: MatchStatus, poolId?: number, pageSize = 3) {
+export function useMatches(status: MatchStatus, poolIds?: number[], teamIds?: number[], pageSize = 3) {
     const queryClient = useQueryClient();
 
     const queryResult = useInfiniteQuery({
-        queryKey: poolId ? ['matches', poolId, status] : ['matches', status],
+        queryKey: useMemo(() => [
+            'matches',
+            {
+                poolIds: poolIds ?? [],
+                teamIds: teamIds ?? [],
+                status
+            }
+        ], [poolIds, teamIds, status]),
         queryFn: async ({ pageParam = 0 }) => {
             return MatchesApi
                 .getInstance()
-                .getMatches({ page: pageParam, size: pageSize, poolId, status });
+                .getMatches({ page: pageParam, size: pageSize, poolIds, teamIds, status });
         },
         getNextPageParam: (lastPage: DayPageDTO) => lastPage.next_page ?? undefined,
         select: (data) => {
@@ -29,6 +37,7 @@ export function useMatches(status: MatchStatus, poolId?: number, pageSize = 3) {
 
     return {
         ...queryResult,
+        refetch: queryResult.refetch,
         dayMatches: queryResult.data?.dayMatches || [],
     };
 }

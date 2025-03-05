@@ -1,64 +1,46 @@
 import { colors } from "@/constants/Colors";
-import React, { useState } from "react";
-import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
-type Filter = {
-    name: string;
-    isActive: boolean;
+import { Filter } from "@/types/Filter";
+import React from "react";
+import {
+    FlatList,
+    Pressable,
+    StyleSheet,
+    Text,
+    View,
+} from "react-native";
+
+type FiltersProps = {
+    filters: Filter[];
+    setFilters: (updatedFilters: Filter[]) => void;
 };
 
-const Filters: React.FC = () => {
+const Filters: React.FC<FiltersProps> = ({ filters, setFilters }) => {
 
-    const [filters, setFilters] = useState<Filter[]>([
-        {
-            name: "Pro",
-            isActive: true,
-        },
-        {
-            name: "Elite",
-            isActive: false,
-        },
-        {
-            name: "N2",
-            isActive: false,
-        },
-        {
-            name: "N3",
-            isActive: false,
-        },
-        {
-            name: "Masc",
-            isActive: true,
-        },
-        {
-            name: "Fem",
-            isActive: true,
-        },
-        {
-            name: "Amateur",
-            isActive: false,
-        },
-    ]);
+    const toggleFilter = (index: number) => {
+        // On copie puis on toggle l’état du filtre
+        const updated = [...filters];
+        updated[index] = {
+            ...updated[index],
+            isActive: !updated[index].isActive,
+        };
+        setFilters(updated);
+    };
+
     type ItemProps = {
         filter: Filter;
+        index: number;
     };
-    function FilterItem({ filter }: ItemProps) {
-        let index = filters.findIndex((item) => item == filter);
+
+    function FilterItem({ filter, index }: ItemProps) {
         return (
             <Pressable
-                style={{
-                    ...styles.filterItem,
-                    backgroundColor: filter.isActive
-                        ? colors.light
-                        : colors.dark,
-                }}
-                onPress={() => {
-                    let updatedFilters = [...filters]; // make shallow copy
-                    updatedFilters[index] = {
-                        ...filters[index],
-                        isActive: !filters[index].isActive,
-                    };
-                    setFilters(updatedFilters);
-                }}
+                style={[
+                    styles.filterItem,
+                    {
+                        backgroundColor: filter.isActive ? colors.light : colors.dark,
+                    },
+                ]}
+                onPress={() => toggleFilter(index)}
             >
                 <Text
                     style={{
@@ -72,28 +54,35 @@ const Filters: React.FC = () => {
             </Pressable>
         );
     }
+
     return (
-        <View
-            style={{
-                backgroundColor: colors.dark,
-                alignItems: "center",
-                justifyContent: "center",
-                paddingLeft: 16,
-            }}
-        >
+        <View style={styles.container}>
             <FlatList
                 data={filters}
-                keyExtractor={(item: Filter) => item.name}
-                renderItem={({ item }) => <FilterItem filter={item} />}
-                contentContainerStyle={{ gap: 6, flexDirection: "row" }}
+                keyExtractor={(item) => item.name}
+                renderItem={({ item, index }) => (
+                    <FilterItem filter={item} index={index} />
+                )}
+                contentContainerStyle={{
+                    gap: 6,
+                    flexDirection: "row",
+                }}
                 horizontal={true}
                 showsHorizontalScrollIndicator={false}
             />
         </View>
     );
-}
+};
+
+export default Filters;
 
 const styles = StyleSheet.create({
+    container: {
+        backgroundColor: colors.dark,
+        alignItems: "center",
+        justifyContent: "center",
+        paddingLeft: 16,
+    },
     filterItem: {
         alignSelf: "flex-start",
         borderColor: colors.light,
@@ -103,5 +92,3 @@ const styles = StyleSheet.create({
         paddingHorizontal: 15,
     },
 });
-
-export default Filters;

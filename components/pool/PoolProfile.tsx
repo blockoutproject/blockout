@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Pool } from '@/types/Pool';
 import { colors } from '@/constants/Colors';
-import { Image } from "expo-image";
+import FastImage from 'react-native-fast-image'
 
 type PoolProfileProps = {
     pool: Pool;
@@ -13,10 +13,10 @@ const PoolProfile: React.FC<PoolProfileProps> = ({ pool }) => {
     return (
         <View style={styles.container}>
             {/* Logo à gauche */}
-            <Image
+            <FastImage
                 source={require('../../assets/leagues/msl_profile.png')}
                 style={styles.leagueLogo}
-                contentFit="contain"
+                resizeMode="contain"
             />
 
             {/* Bloc d'infos à droite */}
@@ -65,14 +65,14 @@ const styles = StyleSheet.create({
         flex: 1,                      // Permet au bloc de prendre toute la place restante
     },
     leagueTitle: {
-        fontSize: 18,
+        fontSize: 24,
         fontWeight: '700',
         color: colors.light,
         marginBottom: 4,
     },
     leagueLink: {
         fontSize: 13,
-        color: '#bbb',
+        color: colors.inactive,
         marginBottom: 16,
     },
     actionsRow: {
@@ -82,7 +82,7 @@ const styles = StyleSheet.create({
     followButton: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#2EA44F',
+        backgroundColor: colors.green,
         paddingVertical: 6,
         paddingHorizontal: 12,
         borderRadius: 10,

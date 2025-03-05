@@ -1,8 +1,9 @@
 import React from 'react';
-import { View, Text, ActivityIndicator, StyleSheet, FlatList } from 'react-native';
+import { View, Text, ActivityIndicator, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
 import { colors } from '@/constants/Colors';
-import { Image } from "expo-image";
 import { useDetailedTeamsByPool } from '@/hooks/pool/useDetailedTeamsByPool';
+import FastImage from 'react-native-fast-image'
+import { useRouter } from 'expo-router';
 
 interface RankingCardProps {
     poolId: number;
@@ -27,7 +28,13 @@ function getRankColor(rank: number, length: number): string {
 }
 
 const RankingCard: React.FC<RankingCardProps> = ({ poolId, scrollable = true }) => {
+    const router = useRouter();
     const { teams, isLoading, isError } = useDetailedTeamsByPool(poolId);
+
+    const handleTeamPress = (teamId: number) => {
+        router.push(`/team/${teamId}`);
+    };
+
     if (isLoading) {
         return (
             <View style={styles.container}>
@@ -62,13 +69,13 @@ const RankingCard: React.FC<RankingCardProps> = ({ poolId, scrollable = true }) 
 
             {/* LISTE DES ÉQUIPES */}
             <FlatList
-                data={teams.sort((a, b) => 
+                data={teams.sort((a, b) =>
                     b.points - a.points || // Tri par points
                     a.points_penalty - b.points_penalty || // Tri par matchs joués
                     b.wins - a.wins || // Tri par victoires
                     b.coef_sets - a.coef_sets || // Tri par coef sets
                     b.coef_points - a.coef_points // Tri par coef points
-                )}    
+                )}
                 keyExtractor={(item) => item.id.toString()}
                 scrollEnabled={scrollable}
                 showsVerticalScrollIndicator={false}
@@ -96,12 +103,13 @@ const RankingCard: React.FC<RankingCardProps> = ({ poolId, scrollable = true }) 
                             </Text>
 
                             {/* Logo + Nom de l'équipe */}
-                            <View style={[styles.teamCell, styles.teamContainer]}>
+                            <TouchableOpacity style={[styles.teamCell, styles.teamContainer]} onPress={() => handleTeamPress(item.id)}>
+
                                 {/* Logo : remplace si besoin par un logo dynamique */}
-                                <Image
+                                <FastImage
                                     source={require("@/assets/clubs/paris_volley.png")}
                                     style={styles.logo}
-                                    contentFit='contain'
+                                    resizeMode='contain'
                                 />
                                 <Text
                                     style={styles.name}
@@ -110,7 +118,8 @@ const RankingCard: React.FC<RankingCardProps> = ({ poolId, scrollable = true }) 
                                 >
                                     {item.short_name}
                                 </Text>
-                            </View>
+                            </TouchableOpacity>
+
 
                             {/* MJ, V, D, PTS */}
                             <Text style={[styles.cell, styles.statCell]}>
@@ -136,12 +145,12 @@ const RankingCard: React.FC<RankingCardProps> = ({ poolId, scrollable = true }) 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#1C1C1E',
+        backgroundColor: colors.grey,
         borderRadius: 12,
         borderWidth: 8,
         borderTopWidth: -6,
-        borderColor: '#1C1C1E',
-        overflow: 'hidden', 
+        borderColor: colors.grey,
+        overflow: 'hidden',
     },
     loadingText: {
         color: colors.light,
@@ -177,12 +186,12 @@ const styles = StyleSheet.create({
     headerText: {
         color: colors.light,
         fontSize: 14,
-        fontWeight: '600',
+        fontWeight: '700',
         textAlign: 'center',
     },
     cell: {
         color: colors.light,
-        fontSize: 14,
+        fontSize: 16,
         textAlign: 'center',
     },
     rankCell: {
@@ -206,11 +215,11 @@ const styles = StyleSheet.create({
         color: colors.light,
         marginLeft: 8,
         marginRight: 24,
-        fontSize: 14,
+        fontSize: 16,
     },
     logo: {
-        width: 25,
-        height: 25,
+        width: 30,
+        height: 30,
     },
 });
 

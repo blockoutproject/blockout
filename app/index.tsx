@@ -1,4 +1,3 @@
-// app/index.tsx
 import React, { useEffect } from 'react';
 import { useRouter } from 'expo-router';
 import { useAuth0 } from 'react-native-auth0';
