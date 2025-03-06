@@ -10,7 +10,10 @@
     "newArchEnabled": false,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.blockoutproject.blockout"
+      "bundleIdentifier": "com.blockoutproject.blockout",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {

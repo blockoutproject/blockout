@@ -99,7 +99,7 @@ const styles = StyleSheet.create({
         color: colors.light,
     },
     link: {
-        color: "#419acb",
+        color: colors.blue,
     },
     title: {
         color: colors.light,

@@ -112,7 +112,7 @@ const MatchScoreDetailsCard: React.FC<MatchScoreDetailsCardProps> = ({
 const styles = StyleSheet.create({
     container: {
         borderWidth: 2,
-        borderColor: '#4A4A4A',
+        borderColor: colors.lightGrey,
         borderRadius: 12,
         backgroundColor: colors.dark,
         padding: 16,

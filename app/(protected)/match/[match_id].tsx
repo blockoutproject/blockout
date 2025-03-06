@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ActivityIndicator, StyleSheet, ScrollView } from 'react-native';
+import { View, StyleSheet, ScrollView } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { useMatchById } from '@/hooks/match/useMatchById';
 import MatchScoreCard from '@/components/match/MatchScoreCard';
@@ -9,7 +9,8 @@ import RankingCard from '@/components/common/RankingCard';
 import { colors } from '@/constants/Colors';
 import { MatchStatus } from '@/types/Match';
 import { Confetti } from 'react-native-fast-confetti';
-import { usePoolById } from '@/hooks/pool/usePoolById';
+import SkeletonPlaceholder from 'react-native-skeleton-placeholder';
+import MatchSkeleton from '@/components/match/MatchSkeleton';
 
 const MatchModalScreen: React.FC = () => {
     const { match_id } = useLocalSearchParams();
@@ -26,59 +27,75 @@ const MatchModalScreen: React.FC = () => {
     }, [match]);
 
     if (isLoading) {
-        return (
-            <View style={styles.container}>
-                <ActivityIndicator size="large" color="#0000ff" />
-                <Text>Chargement en cours...</Text>
-            </View>
-        );
+        return <MatchSkeleton />;
     }
 
     return (
         <View style={styles.container}>
+            {/* Confettis en cas de match terminé */}
             {showConfetti && (
                 <Confetti
-                    count={100} // Nombre de confettis
-                    fallDuration={3000} // Durée de la chute des confettis
-                    colors={['#FF5733', '#FFC300', '#DAF7A6', '#FF33FF', '#33FF57', '#3357FF', '#FF5733', '#C70039', '#900C3F', '#581845']}
-                    fadeOutOnEnd={true} // Les confettis disparaissent progressivement
+                    count={100}
+                    fallDuration={3000}
+                    fadeOutOnEnd
+                    colors={[
+                        '#FF5733', '#FFC300', '#DAF7A6', '#FF33FF',
+                        '#33FF57', '#3357FF', '#C70039', '#900C3F',
+                        '#581845'
+                    ]}
                 />
             )}
+
+            {/* On vérifie que toutes les données nécessaires sont présentes */}
             {teamA && teamB && match && pool && (
-                <>
-                    <ScrollView contentContainerStyle={styles.scrollContent}>
-                        <MatchScoreCard
-                            homeTeam={teamA}
-                            awayTeam={teamB}
-                            finalScore={match.set || '0 : 0'}
-                        />
-                        <MatchScoreDetailsCard title="Score" homeTeam={teamA} awayTeam={teamB} match={match} />
-                        <MatchInfoCard
-                            pool={pool}
-                            date={match.match_date}
-                            duration="1h30"
-                            league={match.league_code}
-                            venue={match.venue}
-                            referee1={match.referee1}
-                            referee2={match.referee2}
-                        />
-                        <RankingCard poolId={match.pool_id} scrollable={false} />
-                    </ScrollView>
-                </>
+                <ScrollView contentContainerStyle={styles.scrollContent}>
+                    {/* Carte Score */}
+                    <MatchScoreCard
+                        homeTeam={teamA}
+                        awayTeam={teamB}
+                        finalScore={match.set || '0 : 0'}
+                    />
+
+                    {/* Score détaillé */}
+                    <MatchScoreDetailsCard
+                        title="Score"
+                        homeTeam={teamA}
+                        awayTeam={teamB}
+                        match={match}
+                    />
+
+                    {/* Informations (ligue, date, lieu, arbitres) */}
+                    <MatchInfoCard
+                        pool={pool}
+                        date={match.match_date}
+                        duration="1h30"
+                        league={match.league_code}
+                        venue={match.venue}
+                        referee1={match.referee1}
+                        referee2={match.referee2}
+                    />
+
+                    {/* Classement */}
+                    <RankingCard poolId={match.pool_id} scrollable={false} />
+                </ScrollView>
             )}
         </View>
     );
-}
+};
+
+export default MatchModalScreen;
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: colors.dark,
     },
+    scrollSkeleton: {
+        paddingHorizontal: 16,
+        paddingTop: 16,
+    },
     scrollContent: {
         paddingHorizontal: 16,
         paddingBottom: 32,
     },
 });
-
-export default MatchModalScreen;

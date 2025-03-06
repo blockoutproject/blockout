@@ -81,19 +81,20 @@ const styles = StyleSheet.create({
         backgroundColor: colors.grey,
     },
     poolHeader: {
-        marginBottom: 10,
+        marginBottom: 12,
         flexDirection: "row",
+        justifyContent: "center",
         alignItems: "center",
     },
     poolLogo: {
-        width: 25,
-        height: 25,
+        width: 20,
+        height: 20,
         marginRight: 8,
         borderRadius: 5,
     },
     poolTitle: {
         fontSize: 14,
         fontWeight: "700",
-        color: colors.light,
+        color: colors.active,
     },
 });

@@ -82,7 +82,7 @@ const RankingCard: React.FC<RankingCardProps> = ({ poolId, scrollable = true }) 
                 renderItem={({ item, index }) => {
                     const rank = index + 1;
                     // On alterne la couleur de fond : index pair -> plus clair, index impair -> plus sombre
-                    const backgroundColor = index % 2 === 0 ? colors.dark : '#1C1C1E';
+                    const backgroundColor = index % 2 === 0 ? colors.dark : colors.grey;
 
                     return (
                         <View style={[styles.row, { backgroundColor }]}>
@@ -162,7 +162,7 @@ const styles = StyleSheet.create({
 
     /** HEADER **/
     headerRow: {
-        backgroundColor: '#1C1C1E',
+        backgroundColor: colors.grey,
         height: 45,
         flexDirection: 'row',
         alignItems: 'center',

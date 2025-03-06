@@ -105,7 +105,7 @@ const styles = StyleSheet.create({
         flexDirection: "row",
     },
     name: {
-        color: colors.light,
+        color: colors.active,
         fontSize: 16,
         fontWeight: "700",
         flex: 1,
@@ -133,7 +133,7 @@ const styles = StyleSheet.create({
         justifyContent: "center",
     },
     scoreText: {
-        color: colors.light,
+        color: colors.active,
         fontSize: 22,
         fontWeight: "700",
     },

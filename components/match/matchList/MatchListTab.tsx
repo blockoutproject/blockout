@@ -5,7 +5,6 @@ import {
     RefreshControl,
     StyleSheet,
     Text,
-    TouchableOpacity,
     View,
 } from "react-native";
 import { colors } from "@/constants/Colors";
@@ -118,7 +117,7 @@ const MatchListTab: React.FC<MatchListTabProps> = ({
     );
 
     const renderSectionHeader = ({ section: { title } }: { section: { title: string } }) => (
-        <View style={styles.headerContainer}>
+        <View style={styles.dateContainer}>
             <Text style={styles.dateHeader}>{title}</Text>
         </View>
     );
@@ -163,11 +162,8 @@ const MatchListTab: React.FC<MatchListTabProps> = ({
                 renderItem={renderItem}
                 onEndReached={handleLoadMore}
                 onEndReachedThreshold={0.3}
-                removeClippedSubviews
                 ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
                 SectionSeparatorComponent={() => <View style={{ height: 6 }} />}
-                initialNumToRender={3}
-                maxToRenderPerBatch={6}
                 refreshControl={
                     <RefreshControl
                         refreshing={isRefreshing}
@@ -188,7 +184,7 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: colors.dark,
     },
-    headerContainer: {
+    dateContainer: {
         backgroundColor: colors.dark,
         paddingVertical: 8,
         paddingStart: 8,
@@ -198,27 +194,6 @@ const styles = StyleSheet.create({
         fontSize: 18,
         fontWeight: "700",
         color: colors.active,
-    },
-    poolContainer: {
-        borderRadius: 16,
-        padding: 12,
-        backgroundColor: colors.grey,
-    },
-    poolHeader: {
-        marginBottom: 10,
-        flexDirection: "row",
-        alignItems: "center",
-    },
-    poolLogo: {
-        width: 25,
-        height: 25,
-        marginRight: 8,
-        borderRadius: 5,
-    },
-    poolTitle: {
-        fontSize: 14,
-        fontWeight: "700",
-        color: colors.light,
     },
     errorText: {
         fontSize: 16,

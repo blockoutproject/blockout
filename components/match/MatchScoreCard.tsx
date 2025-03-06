@@ -37,7 +37,7 @@ const MatchScoreCard: React.FC<ScoreCardProps> = ({
                         resizeMode="contain"
                     />
                     {/* Contrainte de maxWidth pour forcer le tronquage */}
-                    <View style={styles.teamNameContainer}>
+                    <View>
                         <Text
                             style={styles.name}
                             numberOfLines={1}
@@ -89,9 +89,6 @@ const styles = StyleSheet.create({
         width: 70,
         height: 70,
         marginBottom: 8,
-    },
-    // Conteneur avec largeur ou maxWidth pour tronquer
-    teamNameContainer: {
     },
     name: {
         color: colors.light,

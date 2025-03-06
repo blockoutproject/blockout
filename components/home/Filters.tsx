@@ -66,6 +66,8 @@ const Filters: React.FC<FiltersProps> = ({ filters, setFilters }) => {
                 contentContainerStyle={{
                     gap: 6,
                     flexDirection: "row",
+                    paddingHorizontal: 16,
+
                 }}
                 horizontal={true}
                 showsHorizontalScrollIndicator={false}
@@ -81,7 +83,7 @@ const styles = StyleSheet.create({
         backgroundColor: colors.dark,
         alignItems: "center",
         justifyContent: "center",
-        paddingLeft: 16,
+        borderColor: colors.green,
     },
     filterItem: {
         alignSelf: "flex-start",
