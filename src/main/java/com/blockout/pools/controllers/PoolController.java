@@ -7,10 +7,12 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import com.blockout.pools.models.Pool;
 import com.blockout.pools.services.PoolService;
 
+import java.net.URI;
 import java.util.List;
 import java.util.Optional;
 
@@ -29,7 +31,12 @@ public class PoolController {
     @PostMapping("/pools")
     public ResponseEntity<Pool> createPool(@RequestBody Pool pool) {
         Pool createdPool = poolService.createPool(pool);
-        return ResponseEntity.created(null).body(createdPool);
+        URI location = ServletUriComponentsBuilder
+                .fromCurrentRequest()
+                .path("/{id}")
+                .buildAndExpand(createdPool.getId())
+                .toUri();
+        return ResponseEntity.created(location).body(createdPool);
     }
 
     @Operation(summary = "Récupérer toutes les pools", description = "Retourne une liste de toutes les pools disponibles.")
