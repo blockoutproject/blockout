@@ -11,9 +11,9 @@
             ],
             "F": [
                 "Elite Fém.",
-                "Elite F. Play-Off from EFC",
-                "Elite F. Play-Down 1 from EFD",
-                "Elite F. Play-Down 2 from EFE"
+                "Elite F. Play-Off",
+                "Elite F. Play-Down 1",
+                "Elite F. Play-Down 2"
             ]
         },
         "Nationale 2": {
@@ -187,7 +187,7 @@
                 "CHAMPIONNAT REGIONAL ELITE M15 FEMININES",
                 "PLAY-OFF FEMININ",
                 "M15F PERFORMANCE",
-                "INTERDEPARTEMENTAUX from 14F"
+                "INTERDEPARTEMENTAUX"
             ],
             "M": [
                 "M15M EXCELLENCE",
@@ -200,7 +200,7 @@
                 "MOINS 15 ANS MASCULINS OCCITANIE OUEST",
                 "CHAMPIONNAT REGIONAL ELITE M15 MASCULINS",
                 "M15M PERFORMANCE",
-                "INTERDEPARTEMENTAUX from 15M"
+                "INTERDEPARTEMENTAUX"
             ],
             "O": [
                 "M15 - ELITE"
@@ -216,7 +216,7 @@
                 "M12 INTERDEP FEMININ",
                 "TOURNOI INTERDEPARTEMENTAL",
                 "MOINS 13 ANS FÉMININES OCCITANIE OUEST",
-                "INTERDEPARTEMENTAUX from 12F"
+                "INTERDEPARTEMENTAUX"
             ],
             "M": [
                 "M 13 GARÇONS",
@@ -229,7 +229,7 @@
                 "M13 INTERDEP MASCULIN",
                 "TOURNOI INTERDEPARTEMENTAL",
                 "MOINS 13 ANS MASCULINS OCCITANIE OUEST",
-                "INTERDEPARTEMENTAUX from 13M"
+                "INTERDEPARTEMENTAUX"
             ],
             "O": [
                 "M13 - ELITE"
