@@ -16,6 +16,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
@@ -36,6 +37,12 @@ public class MatchService {
     @Autowired
     private MatchRepository matchRepository;
 
+    /**
+     * Crée un nouveau match
+     * @param match L'objet Match à créer
+     * @return Le match créé avec son ID généré
+     */
+    @Transactional
     public Match createMatch(Match match) {
         Match createdMatch = matchRepository.save(match);
         logger.info("Match created successfully",
@@ -44,6 +51,15 @@ public class MatchService {
         return createdMatch;
     }
 
+    /**
+     * Récupère les matchs groupés par jour avec pagination
+     * @param poolIds Liste des IDs de pools à filtrer
+     * @param teamIds Liste des IDs d'équipes à filtrer
+     * @param status Le statut des matchs à récupérer
+     * @param page Le numéro de page
+     * @param size La taille de la page
+     * @return Un objet DayPageDTO contenant les matchs par jour
+     */
     public DayPageDTO getMatchesByDay(
             List<Long> poolIds,
             List<Long> teamIds,
@@ -136,22 +152,27 @@ public class MatchService {
         return new DayPageDTO(dayMatchesList, hasNext, nextPage);
     }
 
+    /**
+     * Récupère tous les matchs avec pagination
+     * @param pageable L'objet Pageable pour la pagination
+     * @return Une page de matchs
+     */
     public Page<Match> getAllMatches(Pageable pageable) {
         LocalDateTime today = LocalDateTime.now();
 
-        // Construction d’un Sort multiple (jour -> pool -> date/time exact)
+        // Construction d'un Sort multiple (jour -> pool -> date/time exact)
         Sort sort = Sort.by(
                 // 1. On trie par la date/time ascendante
                 Sort.Order.desc("matchDate"),
-                // 2. On trie ensuite par pool.id (assure-toi que ta propriété s’appelle “pool”
-                // et non “poolId” si c’est un objet)
+                // 2. On trie ensuite par pool.id (assure-toi que ta propriété s'appelle "pool"
+                // et non "poolId" si c'est un objet)
                 Sort.Order.asc("poolId"),
-                // 3. Pour forcer l’ordre chronologique, on reste sur la date/time ascendante
+                // 3. Pour forcer l'ordre chronologique, on reste sur la date/time ascendante
                 // (souvent redondant, car le tri par date/time est déjà fait, mais tu peux le
                 // conserver)
                 Sort.Order.asc("matchDate"));
 
-        // On "fusionne" ce sort avec le pageable d’entrée.
+        // On "fusionne" ce sort avec le pageable d'entrée.
         Pageable pageableWithSort = PageRequest.of(
                 pageable.getPageNumber(),
                 pageable.getPageSize(),
@@ -160,6 +181,11 @@ public class MatchService {
         return matchRepository.findAllByMatchDateLessThanEqual(today, pageableWithSort);
     }
 
+    /**
+     * Récupère un match par son ID
+     * @param id L'identifiant du match
+     * @return Optional contenant le match s'il existe
+     */
     public Optional<Match> getMatchById(Long id) {
         Optional<Match> matchOpt = matchRepository.findById(id);
         if (!matchOpt.isPresent()) {
@@ -170,6 +196,11 @@ public class MatchService {
         return matchOpt;
     }
 
+    /**
+     * Récupère les matchs par pool
+     * @param poolId L'identifiant de la pool
+     * @return Liste des matchs de la pool
+     */
     public List<Match> getMatchesByPool(Long poolId) {
         List<Match> matches = matchRepository.findByPoolId(poolId);
         if (matches.isEmpty()) {
@@ -180,6 +211,14 @@ public class MatchService {
         return matches;
     }
 
+    /**
+     * Met à jour un match existant
+     * @param id L'identifiant du match à mettre à jour
+     * @param updatedMatch Les nouvelles données du match
+     * @return Le match mis à jour
+     * @throws MatchNotFoundException Si le match n'existe pas
+     */
+    @Transactional
     public Match updateMatch(Long id, Match updatedMatch) {
         return matchRepository.findById(id).map(match -> {
             match.setMatchCode(updatedMatch.getMatchCode());
@@ -210,6 +249,13 @@ public class MatchService {
         });
     }
 
+    /**
+     * Désactive un match
+     * @param matchId L'identifiant du match à désactiver
+     * @return Le match désactivé
+     * @throws MatchNotFoundException Si le match n'existe pas
+     */
+    @Transactional
     public Match deactivateMatch(Long matchId) {
         return matchRepository.findById(matchId).map(match -> {
             match.setActive(false);
@@ -228,6 +274,11 @@ public class MatchService {
         });
     }
 
+    /**
+     * Désactive tous les matchs d'une pool
+     * @param poolId L'identifiant de la pool
+     */
+    @Transactional
     public void deactivateMatchesByPoolId(Long poolId) {
         List<Match> matches = matchRepository.findByPoolId(poolId);
         if (matches.isEmpty()) {
@@ -246,6 +297,11 @@ public class MatchService {
         }
     }
 
+    /**
+     * Désactive tous les matchs d'une équipe
+     * @param teamId L'identifiant de l'équipe
+     */
+    @Transactional
     public void deactivateMatchesByTeamId(Long teamId) {
         List<Match> matches = matchRepository.findByTeamIdAOrTeamIdB(teamId, teamId);
         if (matches.isEmpty()) {
@@ -264,6 +320,12 @@ public class MatchService {
         }
     }
 
+    /**
+     * Récupère un match par code de ligue et code de match
+     * @param leagueCode Le code de la ligue
+     * @param matchCode Le code du match
+     * @return Optional contenant le match s'il existe
+     */
     public Optional<Match> getMatchByLeagueCodeAndMatchCode(String leagueCode, String matchCode) {
         Optional<Match> matchOpt = matchRepository.findByLeagueCodeAndMatchCode(leagueCode, matchCode);
         if (!matchOpt.isPresent()) {
@@ -275,11 +337,23 @@ public class MatchService {
         return matchOpt;
     }
 
+    /**
+     * Récupère les matchs actifs d'une pool
+     * @param poolId L'identifiant de la pool
+     * @return Liste des matchs actifs de la pool
+     */
     public List<Match> getActiveMatchesByPoolId(Long poolId) {
         List<Match> matches = matchRepository.findByPoolIdAndActive(poolId, true);
         return matches;
     }
 
+    /**
+     * Récupère les matchs commencés selon le statut et l'état d'activation
+     * @param status Le statut des matchs
+     * @param active L'état d'activation des matchs
+     * @param currentTime La date/heure actuelle
+     * @return Liste des matchs correspondants
+     */
     public List<Match> getStartedMatches(MatchStatus status, boolean active, LocalDateTime currentTime) {
         List<Match> matches = matchRepository.findByStatusAndActiveAndMatchDateLessThanEqual(status, active,
                 currentTime);
@@ -291,6 +365,14 @@ public class MatchService {
         return matches;
     }
 
+    /**
+     * Récupère un match par pool, équipes et date
+     * @param poolId L'identifiant de la pool
+     * @param teamIdA L'identifiant de la première équipe
+     * @param teamIdB L'identifiant de la deuxième équipe
+     * @param matchDate La date du match
+     * @return Optional contenant le match s'il existe
+     */
     public Optional<Match> getMatchByPoolAndTeamsAndDate(Long poolId, Long teamIdA, Long teamIdB, LocalDate matchDate) {
         Optional<Match> matchOpt = matchRepository.findByPoolIdAndTeamIdAAndTeamIdBAndMatchDate(poolId, teamIdA,
                 teamIdB, matchDate);

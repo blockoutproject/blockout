@@ -10,6 +10,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import com.blockout.matches.exceptions.MatchNotFoundException;
 import com.blockout.matches.models.Match;
@@ -17,6 +18,7 @@ import com.blockout.matches.models.MatchStatus;
 import com.blockout.matches.models.dto.DayPageDTO;
 import com.blockout.matches.services.MatchService;
 
+import java.net.URI;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Collections;
@@ -38,7 +40,12 @@ public class MatchController {
     @PostMapping("/matches")
     public ResponseEntity<Match> createMatch(@RequestBody Match match) {
         Match createdMatch = matchService.createMatch(match);
-        return ResponseEntity.created(null).body(createdMatch);
+        URI location = ServletUriComponentsBuilder
+                .fromCurrentRequest()
+                .path("/{id}")
+                .buildAndExpand(createdMatch.getId())
+                .toUri();
+        return ResponseEntity.created(location).body(createdMatch);
     }
 
     @Operation(summary = "Récupérer les matchs avec pagination", description = "Retourne une liste paginée de matchs")
