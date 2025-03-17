@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -30,8 +31,13 @@ public class CompetitionAssociationService {
     private EventPublisher eventPublisher;
 
     /**
-     * Crée ou réactive l'association entre une pool et une team.
+     * Crée ou réactive l'association entre une pool et une team
+     * @param poolId L'identifiant de la pool
+     * @param teamId L'identifiant de la team
+     * @param category La catégorie de l'association
+     * @return L'association créée ou réactivée
      */
+    @Transactional
     public CompetitionAssociation addOrActivateAssociation(Long poolId, Long teamId, Category category) {
         Optional<CompetitionAssociation> existingAssoc = associationRepository.findByPoolIdAndTeamId(poolId, teamId);
 
@@ -70,23 +76,29 @@ public class CompetitionAssociationService {
     }
 
     /**
-     * Récupère toutes les associations actives (team ↔ pool) pour une pool donnée.
+     * Récupère toutes les associations actives pour une pool donnée
+     * @param poolId L'identifiant de la pool
+     * @return Liste des associations actives de la pool
      */
     public List<CompetitionAssociation> getActiveAssociationsByPool(Long poolId) {
         return associationRepository.findByPoolIdAndActive(poolId, true);
     }
 
     /**
-     * Récupère toutes les associations actives (team ↔ pool) pour une team donnée.
+     * Récupère toutes les associations actives pour une team donnée
+     * @param teamId L'identifiant de la team
+     * @return Liste des associations actives de la team
      */
     public List<CompetitionAssociation> getActivePoolsByTeam(Long teamId) {
         return associationRepository.findByTeamIdAndActive(teamId, true);
     }
 
     /**
-     * Désactive toutes les associations actives qui ne figurent plus
-     * dans la liste 'scrapedTeamIds' fournie.
+     * Désactive les associations qui ne figurent plus dans la liste des teams
+     * @param poolId L'identifiant de la pool
+     * @param scrapedTeamIds Liste des identifiants de teams encore actives
      */
+    @Transactional
     public void bulkDeactivateTeamsForPool(Long poolId, List<Long> scrapedTeamIds) {
         Set<Long> scrapedTeamIdsSet = new HashSet<>(scrapedTeamIds);
 
@@ -128,9 +140,11 @@ public class CompetitionAssociationService {
     }
 
     /**
-     * Désactive toutes les associations dont le poolId
-     * ne figure pas dans 'scrapedPoolIds'.
+     * Désactive les associations dont le poolId ne figure pas dans la liste
+     * @param category La catégorie des pools
+     * @param scrapedPoolIds Liste des identifiants de pools encore actives
      */
+    @Transactional
     public void bulkDeactivatePools(Category category, List<Long> scrapedPoolIds) {
         Set<Long> validPoolIds = new HashSet<>(scrapedPoolIds);
 
@@ -169,8 +183,14 @@ public class CompetitionAssociationService {
     }
 
     /**
-     * Met à jour les statistiques de l'association (pool–team).
+     * Met à jour les statistiques d'une association pool-team
+     * @param poolId L'identifiant de la pool
+     * @param teamId L'identifiant de la team
+     * @param request Les nouvelles statistiques à mettre à jour
+     * @return L'association mise à jour
+     * @throws EntityNotFoundException Si l'association n'existe pas
      */
+    @Transactional
     public CompetitionAssociation updateTeamAssociationStats(Long poolId, Long teamId, TeamAssociationStatsRequest request) {
         CompetitionAssociation assoc = associationRepository.findByPoolIdAndTeamId(poolId, teamId)
                 .orElseThrow(() -> new EntityNotFoundException("Association not found for poolId " + poolId + " and teamId " + teamId));
