@@ -7,6 +7,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import com.blockout.teams.models.Team;
 import com.blockout.teams.models.TeamFormat;
@@ -14,6 +15,7 @@ import com.blockout.teams.models.TeamGender;
 import com.blockout.teams.services.TeamService;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import java.net.URI;
 import java.util.List;
 import java.util.Optional;
 
@@ -32,7 +34,12 @@ public class TeamController {
     @PostMapping("/teams")
     public ResponseEntity<Team> createTeam(@RequestBody Team team) {
         Team createdTeam = teamService.createTeam(team);
-        return ResponseEntity.created(null).body(createdTeam);
+        URI location = ServletUriComponentsBuilder
+                .fromCurrentRequest()
+                .path("/{id}")
+                .buildAndExpand(createdTeam.getId())
+                .toUri();
+        return ResponseEntity.created(location).body(createdTeam);
     }
 
     @Operation(summary = "Récupérer des équipes par IDs", description = "Retourne uniquement les équipes correspondant aux IDs fournis (liste non vide).")

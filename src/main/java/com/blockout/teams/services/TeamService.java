@@ -10,6 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -26,6 +27,12 @@ public class TeamService {
     @Autowired
     private TeamRepository teamRepository;
 
+    /**
+     * Crée une nouvelle équipe
+     * @param team L'objet Team à créer
+     * @return L'équipe créée avec son ID généré
+     */
+    @Transactional
     public Team createTeam(Team team) {
         Team createdTeam = teamRepository.save(team);
         logger.info("Team created successfully",
@@ -34,11 +41,20 @@ public class TeamService {
         return createdTeam;
     }
 
+    /**
+     * Récupère toutes les équipes
+     * @return Liste de toutes les équipes
+     */
     public List<Team> getAllTeams() {
         List<Team> teams = teamRepository.findAll();
         return teams;
     }
 
+    /**
+     * Récupère les équipes par leurs IDs
+     * @param ids Liste d'identifiants d'équipes
+     * @return Liste des équipes correspondantes
+     */
     public List<Team> getTeamsByIds(List<Long> ids) {
         List<Team> teams = teamRepository.findAllById(ids);
 
@@ -59,6 +75,11 @@ public class TeamService {
         return teams;
     }
 
+    /**
+     * Récupère une équipe par son ID
+     * @param id L'identifiant de l'équipe
+     * @return Optional contenant l'équipe si elle existe
+     */
     public Optional<Team> getTeamById(Long id) {
         Optional<Team> teamOpt = teamRepository.findById(id);
         if (!teamOpt.isPresent()) {
@@ -69,6 +90,14 @@ public class TeamService {
         return teamOpt;
     }
 
+    /**
+     * Met à jour une équipe existante
+     * @param id L'identifiant de l'équipe à mettre à jour
+     * @param updatedTeam Les nouvelles données de l'équipe
+     * @return L'équipe mise à jour
+     * @throws TeamNotFoundException Si l'équipe n'existe pas
+     */
+    @Transactional
     public Team updateTeam(Long id, Team updatedTeam) {
         return teamRepository.findById(id).map(team -> {
             team.setClubId(updatedTeam.getClubId());
@@ -92,6 +121,13 @@ public class TeamService {
         });
     }
 
+    /**
+     * Désactive une équipe
+     * @param teamId L'identifiant de l'équipe à désactiver
+     * @return L'équipe désactivée
+     * @throws TeamNotFoundException Si l'équipe n'existe pas
+     */
+    @Transactional
     public Team deactivateTeam(Long teamId) {
         return teamRepository.findById(teamId).map(team -> {
             team.setActive(false);
@@ -110,6 +146,13 @@ public class TeamService {
         });
     }
 
+    /**
+     * Récupère les équipes par division, format et genre
+     * @param divisionName Le nom de la division
+     * @param format Le format de l'équipe
+     * @param gender Le genre de l'équipe
+     * @return Liste des équipes correspondantes
+     */
     public List<Team> getTeamsByDivisionFormatGender(String divisionName, TeamFormat format, TeamGender gender) {
         List<Team> teams = teamRepository.findByDivisionNameAndFormatAndGender(divisionName, format, gender);
         if (teams.isEmpty()) {
@@ -121,5 +164,4 @@ public class TeamService {
         }
         return teams;
     }
-
 }
