@@ -38,7 +38,7 @@ async def fetch_auth0_token():
     audience = AUTH0_AUDIENCE
 
     # Utilisation du SDK Auth0 pour obtenir un token
-    get_token = GetToken(domain, client_id, client_secret=client_secret)
+    get_token = GetToken(domain, client_id, client_secret)
     token = get_token.client_credentials(audience)
     return token['access_token']
 
@@ -55,7 +55,7 @@ async def refresh_token_task():
                 level="info",
                 message="Le token a été mis à jour."
             )
-            await asyncio.sleep(3600)
+            await asyncio.sleep(86400)
         except Exception as e:
             log_event(
                 action="refresh_token_error",
