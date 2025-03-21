@@ -1,61 +1,37 @@
-version: "3.8"
 services:
-  
-  mongo:
-    image: mongo
-    restart: always
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: root
-      MONGO_INITDB_ROOT_PASSWORD: example
+  blockout-api-users:
+    build: .
     ports:
-      - 27017:27017
-    volumes:
-      - mongo-data:/data/db
-
-  mongo-express:
-    image: mongo-express
-    restart: always
-    ports:
-      - 8081:8081
+      - ${SERVER_PORT}:8085
     environment:
-      ME_CONFIG_MONGODB_ADMINUSERNAME: root
-      ME_CONFIG_MONGODB_ADMINPASSWORD: example
-      ME_CONFIG_MONGODB_URL: mongodb://root:example@mongo:27017/
-      ME_CONFIG_BASICAUTH: false
-
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL}
+      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
+      SPRING_RABBITMQ_HOST: ${SPRING_RABBITMQ_HOST}
+      SPRING_RABBITMQ_PORT: ${SPRING_RABBITMQ_PORT}
+      SPRING_RABBITMQ_USERNAME: ${SPRING_RABBITMQ_USERNAME}
+      SPRING_RABBITMQ_PASSWORD: ${SPRING_RABBITMQ_PASSWORD}
+      SPRING_AUTH0_ISSUER: ${SPRING_AUTH0_ISSUER}
+      SPRING_AUTH0_AUDIENCE: ${SPRING_AUTH0_AUDIENCE}
+      USERS_API_KEY: ${USERS_API_KEY}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      
   postgres:
     image: postgres:latest
     restart: always
     environment:
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: myvolley
+      POSTGRES_USER: ${SPRING_DATASOURCE_USERNAME}
+      POSTGRES_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
+      POSTGRES_DB: ${SPRING_DATASOURCE_NAME}
     ports:
-      - 5432:5432
+      - 5436:5432
     volumes:
-      - postgres-data:/var/lib/postgresql/data
-      - ./postgres-init:/docker-entrypoint-initdb.d
-
-  pgadmin:
-    image: dpage/pgadmin4
-    restart: always
-    ports:
-      - 8083:80
-    environment:
-      PGADMIN_DEFAULT_EMAIL: admin@example.com
-      PGADMIN_DEFAULT_PASSWORD: admin
-    depends_on:
-      - postgres
-  
-  flyway:
-    image: flyway/flyway:latest
-    container_name: flyway
-    command: -url=jdbc:postgresql://postgres:5432/myvolley -user=admin -password=password -locations=filesystem:/flyway/sql migrate
-    depends_on:
-      - postgres
-    volumes:
-      - ./flyway:/flyway/sql
-
-volumes:
-  postgres-data:
-  mongo-data:
+      - ./local/postgres-data:/var/lib/postgresql/data
+      - ./local/postgres-init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${SPRING_DATASOURCE_USERNAME} -d ${SPRING_DATASOURCE_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5

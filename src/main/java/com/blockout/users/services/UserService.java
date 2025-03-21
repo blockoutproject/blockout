@@ -1,79 +1,71 @@
 package com.blockout.users.services;
 
-import com.auth0.client.mgmt.ManagementAPI;
-import com.auth0.json.mgmt.users.User;
-import com.auth0.net.Request;
-import com.blockout.users.exceptions.custom.InternalServerErrorException;
-import com.auth0.exception.Auth0Exception;
-
+import com.blockout.users.models.User;
+import com.blockout.users.repositories.UserRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import static net.logstash.logback.argument.StructuredArguments.keyValue;
+
+import java.time.LocalDateTime;
+import java.util.Optional;
 
 @Service
 public class UserService {
-
-    private final ManagementAPI managementAPI;
-
+    
+    private static final Logger logger = LoggerFactory.getLogger(UserService.class);
+    
     @Autowired
-    public UserService(ManagementAPI managementAPI) {
-        this.managementAPI = managementAPI;
+    private UserRepository userRepository;
+
+    /**
+     * Récupère un utilisateur par son ID Auth0
+     * @param auth0Id L'identifiant Auth0 de l'utilisateur
+     * @return Optional contenant l'utilisateur s'il existe
+     */
+    public Optional<User> getUserByAuth0Id(String auth0Id) {
+        logger.info("Récupération de l'utilisateur avec l'ID Auth0",
+                keyValue("action", "get_user_by_auth0_id"),
+                keyValue("auth0Id", auth0Id));
+        return userRepository.findByAuth0Id(auth0Id);
     }
 
-    // 1. Create a user
-    public User createUser(String email, String password) throws Auth0Exception {
-        User user = new User("Username-Password-Authentication");
-        user.setEmail(email);
-        user.setPassword(password.toCharArray());
-
-        try {
-            return managementAPI.users().create(user).execute().getBody();
-        } catch (Auth0Exception e) {
-            // Allow Auth0 exceptions to propagate
-            throw e;
-        } catch (Exception e) {
-            // Handle any other unexpected exceptions
-            throw new InternalServerErrorException("Unexpected error while creating user: " + e.getMessage());
+    /**
+     * Enregistre un nouvel utilisateur
+     * @param user L'utilisateur à enregistrer
+     * @return L'utilisateur enregistré avec son ID généré
+     */
+    @Transactional
+    public User registerUser(User user) {
+        logger.info("Enregistrement d'un nouvel utilisateur",
+                keyValue("action", "register_user"),
+                keyValue("email", user.getEmail()));
+        
+        // Vérifier si l'utilisateur existe déjà
+        if (user.getAuth0Id() != null) {
+            Optional<User> existingUser = userRepository.findByAuth0Id(user.getAuth0Id());
+            if (existingUser.isPresent()) {
+                logger.warn("Un utilisateur avec cet ID Auth0 existe déjà",
+                        keyValue("action", "register_user"),
+                        keyValue("auth0Id", user.getAuth0Id()));
+                return existingUser.get();
+            }
         }
-    }
-
-    // 2. Retrieve a user by ID
-    public User getUserById(String userId) throws Auth0Exception {
-        try {
-            Request<User> request = managementAPI.users().get(userId, null);
-            return request.execute().getBody();
-        } catch (Auth0Exception e) {
-            // Allow Auth0 exceptions to propagate
-            throw e;
-        } catch (Exception e) {
-            // Handle any other unexpected exceptions
-            throw new InternalServerErrorException("Unexpected error while fetching user: " + e.getMessage());
-        }
-    }
-
-    // 3. Update a user
-    public User updateUser(String userId, User updatedUser) throws Auth0Exception {
-        try {
-            Request<User> request = managementAPI.users().update(userId, updatedUser);
-            return request.execute().getBody();
-        } catch (Auth0Exception e) {
-            // Allow Auth0 exceptions to propagate
-            throw e;
-        } catch (Exception e) {
-            // Handle any other unexpected exceptions
-            throw new InternalServerErrorException("Unexpected error while updating user: " + e.getMessage());
-        }
-    }
-
-    // 4. Delete a user
-    public void deleteUser(String userId) throws Auth0Exception {
-        try {
-            managementAPI.users().delete(userId).execute();
-        } catch (Auth0Exception e) {
-            // Allow Auth0 exceptions to propagate
-            throw e;
-        } catch (Exception e) {
-            // Handle any other unexpected exceptions
-            throw new InternalServerErrorException("Unexpected error while deleting user: " + e.getMessage());
-        }
+        
+        // Définir les dates de création
+        LocalDateTime now = LocalDateTime.now();
+        user.setCreatedAt(now);
+        user.setLastUpdate(now);
+        
+        // Enregistrer l'utilisateur
+        User createdUser = userRepository.save(user);
+        logger.info("Utilisateur créé avec succès",
+                keyValue("action", "register_user"),
+                keyValue("userId", createdUser.getId()));
+        
+        return createdUser;
     }
 }

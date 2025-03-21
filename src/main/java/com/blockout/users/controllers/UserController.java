@@ -1,49 +1,60 @@
 package com.blockout.users.controllers;
 
-import com.auth0.json.mgmt.users.User;
+import com.blockout.users.models.User;
 import com.blockout.users.services.UserService;
-import com.auth0.exception.Auth0Exception;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+
+import java.net.URI;
+import java.util.Optional;
 
 @RestController
-@RequestMapping("/api/users")
+@RequestMapping("/users/v1")
 public class UserController {
 
-    private final UserService userService;
-
     @Autowired
-    public UserController(UserService userService) {
-        this.userService = userService;
+    private UserService userService;
+    
+    @Operation(summary = "Récupérer un utilisateur par ID Auth0", description = "Retourne un utilisateur spécifique en fonction de l'ID Auth0 fourni.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Utilisateur trouvé"),
+            @ApiResponse(responseCode = "404", description = "Utilisateur non trouvé")
+    })
+    @GetMapping("/users/auth0/{auth0Id}")
+    public ResponseEntity<User> getUserByAuth0Id(
+            @Parameter(description = "ID Auth0 de l'utilisateur") @PathVariable String auth0Id) {
+        
+        Optional<User> user = userService.getUserByAuth0Id(auth0Id);
+        
+        if (user.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        
+        return ResponseEntity.ok(user.get());
     }
-
-    // 1. Endpoint to create a user
-    @PostMapping
-    public ResponseEntity<User> createUser(@RequestParam String email, @RequestParam String password) throws Auth0Exception {
-        User user = userService.createUser(email, password);
-        return ResponseEntity.ok(user);
-    }
-
-    // 2. Endpoint to get a user by ID
-    @GetMapping("/{id}")
-    public ResponseEntity<User> getUserById(@PathVariable String id) throws Auth0Exception {
-        User user = userService.getUserById(id);
-        return ResponseEntity.ok(user);
-    }
-
-    // 3. Endpoint to update a user
-    @PutMapping("/{id}")
-    public ResponseEntity<User> updateUser(@PathVariable String id, @RequestBody User updatedUser) throws Auth0Exception {
-        User user = userService.updateUser(id, updatedUser);
-        return ResponseEntity.ok(user);
-    }
-
-    // 4. Endpoint to delete a user
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteUser(@PathVariable String id) throws Auth0Exception {
-        userService.deleteUser(id);
-        return ResponseEntity.noContent().build();
+    
+    @Operation(summary = "Enregistrer un nouvel utilisateur", description = "Crée un nouvel utilisateur avec les informations fournies.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "201", description = "Utilisateur créé avec succès"),
+            @ApiResponse(responseCode = "400", description = "Requête invalide")
+    })
+    @PostMapping("/users")
+    public ResponseEntity<User> registerUser(@RequestBody User user) {
+        User createdUser = userService.registerUser(user);
+        
+        URI location = ServletUriComponentsBuilder
+                .fromCurrentRequest()
+                .path("/{id}")
+                .buildAndExpand(createdUser.getId())
+                .toUri();
+                
+        return ResponseEntity.created(location).body(createdUser);
     }
 }
