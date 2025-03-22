@@ -1,6 +1,12 @@
 package com.blockout.users.services;
 
-import com.blockout.users.models.User;
+import com.auth0.client.mgmt.ManagementAPI;
+import com.auth0.exception.Auth0Exception;
+import com.auth0.json.mgmt.users.User;
+import com.blockout.users.config.Auth0TokenManager;
+import com.blockout.users.models.CustomUser;
+import com.blockout.users.models.UserRegistrationRequest;
+import com.blockout.users.models.UserRole;
 import com.blockout.users.repositories.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,18 +21,25 @@ import java.util.Optional;
 
 @Service
 public class UserService {
-    
+
     private static final Logger logger = LoggerFactory.getLogger(UserService.class);
-    
+
+    private final Auth0TokenManager tokenManager;
+    private final UserRepository userRepository;
+
     @Autowired
-    private UserRepository userRepository;
+    public UserService(Auth0TokenManager tokenManager, UserRepository userRepository) {
+        this.tokenManager = tokenManager;
+        this.userRepository = userRepository;
+    }
 
     /**
      * Récupère un utilisateur par son ID Auth0
+     * 
      * @param auth0Id L'identifiant Auth0 de l'utilisateur
      * @return Optional contenant l'utilisateur s'il existe
      */
-    public Optional<User> getUserByAuth0Id(String auth0Id) {
+    public Optional<CustomUser> getUserByAuth0Id(String auth0Id) {
         logger.info("Récupération de l'utilisateur avec l'ID Auth0",
                 keyValue("action", "get_user_by_auth0_id"),
                 keyValue("auth0Id", auth0Id));
@@ -35,37 +48,44 @@ public class UserService {
 
     /**
      * Enregistre un nouvel utilisateur
+     * 
      * @param user L'utilisateur à enregistrer
      * @return L'utilisateur enregistré avec son ID généré
+     * @throws Auth0Exception
      */
     @Transactional
-    public User registerUser(User user) {
+    public CustomUser registerUser(String auth0Id, UserRegistrationRequest registrationRequest) throws Auth0Exception {
+        ManagementAPI managementAPI = tokenManager.getManagementAPI();
+        User auth0User = managementAPI.users().get(auth0Id, null).execute().getBody();
+        if (auth0User == null) {
+            throw new Auth0Exception("Utilisateur non trouvé dans Auth0 pour l'id: " + auth0Id);
+        }
+    
+        CustomUser user = CustomUser.builder()
+                .auth0Id(auth0User.getId())
+                .email(auth0User.getEmail())
+                .pseudo(registrationRequest.getPseudo())
+                .firstName(auth0User.getGivenName())
+                .lastName(auth0User.getFamilyName())
+                .pictureUrl(auth0User.getPicture())
+                .phoneNumber(auth0User.getPhoneNumber())
+                .role(UserRole.USER)
+                .active(true)
+                .build();
+    
         logger.info("Enregistrement d'un nouvel utilisateur",
                 keyValue("action", "register_user"),
                 keyValue("email", user.getEmail()));
-        
-        // Vérifier si l'utilisateur existe déjà
-        if (user.getAuth0Id() != null) {
-            Optional<User> existingUser = userRepository.findByAuth0Id(user.getAuth0Id());
-            if (existingUser.isPresent()) {
-                logger.warn("Un utilisateur avec cet ID Auth0 existe déjà",
-                        keyValue("action", "register_user"),
-                        keyValue("auth0Id", user.getAuth0Id()));
-                return existingUser.get();
-            }
-        }
-        
-        // Définir les dates de création
+    
         LocalDateTime now = LocalDateTime.now();
         user.setCreatedAt(now);
         user.setLastUpdate(now);
-        
-        // Enregistrer l'utilisateur
-        User createdUser = userRepository.save(user);
+    
+        CustomUser createdUser = userRepository.save(user);
         logger.info("Utilisateur créé avec succès",
                 keyValue("action", "register_user"),
                 keyValue("userId", createdUser.getId()));
-        
+    
         return createdUser;
     }
 }

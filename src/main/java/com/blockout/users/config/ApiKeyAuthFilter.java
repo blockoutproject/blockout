@@ -38,12 +38,10 @@ public class ApiKeyAuthFilter extends OncePerRequestFilter {
 
             if (apiKeyValue != null && apiKeyValue.equals(expectedApiKey)) {
                 // On crée un "utilisateur technique" avec un rôle "ROLE_API"
-                UsernamePasswordAuthenticationToken auth =
-                    new UsernamePasswordAuthenticationToken(
+                UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
                         "machineUser",
                         null,
-                        List.of(new SimpleGrantedAuthority("ROLE_API"))
-                    );
+                        List.of(new SimpleGrantedAuthority("ROLE_API")));
 
                 SecurityContextHolder.getContext().setAuthentication(auth);
             }

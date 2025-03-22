@@ -6,8 +6,6 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
-import java.util.HashSet;
-import java.util.Set;
 
 @Data
 @Builder
@@ -18,7 +16,7 @@ import java.util.Set;
         @UniqueConstraint(columnNames = {"auth0_id"}, name = "uix_user_auth0_id"),
         @UniqueConstraint(columnNames = {"email"}, name = "uix_user_email")
 })
-public class User {
+public class CustomUser {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -29,6 +27,9 @@ public class User {
 
     @Column(name = "email", nullable = false)
     private String email;
+
+    @Column(name = "pseudo", nullable = false)
+    private String pseudo;
 
     @Column(name = "first_name")
     private String firstName;
@@ -41,18 +42,6 @@ public class User {
 
     @Column(name = "phone_number")
     private String phoneNumber;
-    
-    @ElementCollection
-    @CollectionTable(name = "user_favorite_teams", joinColumns = @JoinColumn(name = "user_id"))
-    @Column(name = "team_id")
-    @Builder.Default
-    private Set<Long> favoriteTeams = new HashSet<>();
-    
-    @ElementCollection
-    @CollectionTable(name = "user_favorite_pools", joinColumns = @JoinColumn(name = "user_id"))
-    @Column(name = "pool_id")
-    @Builder.Default
-    private Set<Long> favoritePools = new HashSet<>();
 
     @Enumerated(EnumType.STRING)
     @Column(name = "role", nullable = false)
