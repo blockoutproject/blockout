@@ -4,9 +4,13 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.web.filter.OncePerRequestFilter;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.io.IOException;
+import java.util.List;
 
 public class ApiKeyAuthFilter extends OncePerRequestFilter {
 
@@ -22,22 +26,30 @@ public class ApiKeyAuthFilter extends OncePerRequestFilter {
     protected void doFilterInternal(
             HttpServletRequest request,
             HttpServletResponse response,
-            FilterChain filterChain) throws ServletException, IOException {
+            FilterChain filterChain)
+            throws ServletException, IOException {
 
-        // On ne vérifie l’API Key que pour la route POST /users
-        // Vous pouvez affiner le check selon vos besoins.
-        String path = request.getRequestURI();
-        if ("POST".equalsIgnoreCase(request.getMethod()) && path.contains("/users/v1/users")) {
-            String apiKey = request.getHeader(headerName);
+        // Vérifie s'il y a déjà une authentification (par ex. via JWT)
+        // Si oui, pas la peine de checker l’API Key
+        if (SecurityContextHolder.getContext().getAuthentication() == null) {
 
-            // Vérifie l'API Key
-            if (apiKey == null || !apiKey.equals(expectedApiKey)) {
-                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid or missing API Key");
-                return;
+            // Récupère l'API Key depuis l'en-tête
+            String apiKeyValue = request.getHeader(headerName);
+
+            if (apiKeyValue != null && apiKeyValue.equals(expectedApiKey)) {
+                // On crée un "utilisateur technique" avec un rôle "ROLE_API"
+                UsernamePasswordAuthenticationToken auth =
+                    new UsernamePasswordAuthenticationToken(
+                        "machineUser",
+                        null,
+                        List.of(new SimpleGrantedAuthority("ROLE_API"))
+                    );
+
+                SecurityContextHolder.getContext().setAuthentication(auth);
             }
         }
 
-        // Si tout est OK, on continue la chaîne
+        // Passe la main aux filtres suivants
         filterChain.doFilter(request, response);
     }
 }
