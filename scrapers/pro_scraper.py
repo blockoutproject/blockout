@@ -16,6 +16,7 @@ from services.matchs_service import find_match_in_cache
 from services.pools_service import add_or_update_pool
 from services.teams_service import find_team_by_name_in_division_format_gender
 from utils.file_utils import create_output_directory, delete_output_directory
+from utils.match_utils import validate_set_format, validate_set_score_format
 from utils.scraper_logic import handle_csv_download_and_parse
 from utils.team_utils import get_full_name
 from utils.utils import parse_season
@@ -150,94 +151,109 @@ class ProScraper(Scraper):
     #  Parsing XML (LNV)
     # --------------------------------------------------------------------------
     async def parse_and_update_matches(self, lnv_xml_matches_url: str, lnv_xml_rank_url: str, pool: Pool):
-        xml_matches_content = await self.fetch(lnv_xml_matches_url)
-        xml_rank_content = await self.fetch(lnv_xml_rank_url)
+        try:
+            xml_matches_content = await self.fetch(lnv_xml_matches_url)
+            xml_rank_content = await self.fetch(lnv_xml_rank_url)
 
-        if not xml_matches_content:
-            log_event(
-                action="fetch_xml_matches_error",
-                level="error",
-                pool_id=pool.id,
-                url=lnv_xml_matches_url,
-                message="Erreur lors de la récupération du flux XML pour les matchs."
-            )
-            return
-
-        if not xml_rank_content:
-            log_event(
-                action="fetch_xml_rank_error",
-                level="error",
-                pool_id=pool.id,
-                url=lnv_xml_rank_url,
-                message="Erreur lors de la récupération du flux XML pour le classement."
-            )
-            return
-
-        # 1) Parser les matchs
-        matches_root = ET.fromstring(xml_matches_content)
-        await self.process_xml_matches(matches_root, pool.id)
-            
-        # 2) Parser le classement
-        rank_root = ET.fromstring(xml_rank_content)
-        await self.process_xml_rank(rank_root, pool)
-
-    async def process_xml_matches(self, matches_root: ET.Element, pool_id: int):
-        for match_el in matches_root.findall(".//Match"):
-            code_match = match_el.find("CodeMatch").text
-            if not code_match:
+            if not xml_matches_content:
+                log_event(
+                    action="fetch_xml_matches_error",
+                    level="error",
+                    pool_id=pool.id,
+                    url=lnv_xml_matches_url,
+                    message="Erreur lors de la récupération du flux XML pour les matchs."
+                )
                 return
 
-            match_key = (self.league_code, code_match)
-
-            date_str = match_el.find("Date").text or "01-01-1970"
-            heure_str = match_el.find("Heure").text or "00:00:00"
-            match_datetime = datetime.strptime(f"{date_str} {heure_str}", "%d-%m-%Y %H:%M:%S")
-            
-            set_value = match_el.find("Score").text or "0-0"
-            score_details = []
-            for i in range(1, 6):
-                set_score = match_el.find(f"Set{i}").text
-                if set_score and set_score != "0-0":
-                    score_details.append(set_score)
-            score_str = ",".join(score_details)
-
-            # 1) Lire le match existant dans le cache
-            cache_entry = self._matches_cache[match_key]
-
-            if cache_entry:
-                # Déjà présent, on récupère l'existant (deuxième param car on recup les modif du scraping ffvb)
-                _, updated_obj, _, _ = cache_entry
-                existing_match = updated_obj
-            else:
-                existing_match = None
-            
-            # 2) Construire l'updated_match
-            if existing_match:
-                updated_match = replace(existing_match)
-            else:
-                # TODO :
-                # Nouveau match "incomplet"
-                # Remplir le strict nécessaire
-                updated_match = Match(
-                    match_code=code_match,
-                    league_code=self.league_code,
-                    pool_id=pool_id
+            if not xml_rank_content:
+                log_event(
+                    action="fetch_xml_rank_error",
+                    level="error",
+                    pool_id=pool.id,
+                    url=lnv_xml_rank_url,
+                    message="Erreur lors de la récupération du flux XML pour le classement."
                 )
+                return
 
-            # 3) Mettre à jour les champs
-            updated_match.match_date = match_datetime
-            if set_value != "0-0":
-                updated_match.set = set_value
-                if "3" in set_value:
-                    updated_match.status = MatchStatus.FINISHED
-            if score_str:
-                updated_match.score = score_str
+            # 1) Parser les matchs
+            matches_root = ET.fromstring(xml_matches_content)
+            await self.process_xml_matches(matches_root, pool.id)
 
-            # 4) Fusion dans le cache
-            self.schedule_match_changes(
-                updated_match=updated_match,
-                prefix="LNV-XML",
-                priority=DataSourcePriority.LNV_XML
+            # 2) Parser le classement
+            rank_root = ET.fromstring(xml_rank_content)
+            await self.process_xml_rank(rank_root, pool)
+        except Exception as e:
+            log_event(
+                action="parse_and_update_matches_error",
+                level="error",
+                pool_id=pool.id,
+                message=str(e)
+            )
+
+    async def process_xml_matches(self, matches_root: ET.Element, pool_id: int):
+        try:
+            for match_el in matches_root.findall(".//Match"):
+
+                match_code = match_el.find("CodeMatch").text
+
+                if not match_code:
+                    return
+
+                match_key = (self.league_code, match_code)
+
+                date_str = match_el.find("Date").text or "01-01-1970"
+                heure_str = match_el.find("Heure").text or "00:00:00"
+                match_datetime = datetime.strptime(f"{date_str} {heure_str}", "%d-%m-%Y %H:%M:%S")
+                
+                set_value = validate_set_format(match_el.find("Score").text)
+                
+                score_details = []
+                for i in range(1, 6):
+                    set_score = validate_set_score_format(match_el.find(f"Set{i}").text)
+                    if set_score and set_score != "0-0":
+                        score_details.append(set_score)
+                score_str = ",".join(score_details)
+
+                # 1) Lire le match existant dans le cache
+                cache_entry = self._matches_cache.get(match_key)
+
+                if cache_entry:
+                    # Déjà présent, on récupère l'existant (deuxième param car on recup les modif du scraping ffvb)
+                    _, updated_obj, _, _ = cache_entry
+                    existing_match = updated_obj
+                else:
+                    existing_match = None
+                                
+                # 2) Construire l'updated_match
+                if existing_match:
+                    updated_match = replace(existing_match)
+                else:
+                    # TODO :
+                    # Nouveau match "incomplet"
+                    # Remplir le strict nécessaire
+                    continue
+
+                # 3) Mettre à jour les champs
+                updated_match.match_date = match_datetime
+                if set_value != "0-0":
+                    updated_match.set = set_value
+                    if "3" in set_value:
+                        updated_match.status = MatchStatus.FINISHED
+                if score_str:
+                    updated_match.score = score_str
+
+                # 4) Fusion dans le cache
+                self.schedule_match_changes(
+                    updated_match=updated_match,
+                    prefix="LNV-XML",
+                    priority=DataSourcePriority.LNV_XML
+                )
+        except Exception as e:
+            log_event(
+                action="process_xml_matches_error",
+                level="error",
+                pool_id=pool_id,
+                message=str(e)
             )
 
     async def process_xml_rank(self, rank_root: ET.Element, pool: Pool):
@@ -245,60 +261,68 @@ class ProScraper(Scraper):
         Parse le XML de classement pour la poule `pool.id`, 
         et met à jour les stats dans `_associations_cache`.
         """
-        # On parcourt chaque <Equipe> dans le <Competition> (ou directement si c’est le root)
-        for competition_el in rank_root.findall(".//Competition"):
-            # (Optionnel) vérifier CodeCompetition si nécessaire
-            # code_compet = competition_el.attrib.get("CodeCompetition")
+        try:
+            # On parcourt chaque <Equipe> dans le <Competition> (ou directement si c’est le root)
+            for competition_el in rank_root.findall(".//Competition"):
+                # (Optionnel) vérifier CodeCompetition si nécessaire
+                # code_compet = competition_el.attrib.get("CodeCompetition")
 
-            for equipe_el in competition_el.findall(".//Equipe"):
-                nom_club = equipe_el.get("NomClub", "")  # <Equipe NomClub="Tours">
-                num_club = equipe_el.get("NumClub", "")  # <Equipe NumClub="572"> peut êtere utile pour identifier l'équipe plus tard
+                for equipe_el in competition_el.findall(".//Equipe"):
+                    nom_club = equipe_el.get("NomClub", "")  # <Equipe NomClub="Tours">
+                    num_club = equipe_el.get("NumClub", "")  # <Equipe NumClub="572"> peut êtere utile pour identifier l'équipe plus tard
 
-                # Récupération des stats
-                rang_str = equipe_el.findtext("Rang", default="0")
-                points_str = equipe_el.findtext("Points", default="0")
-                mj_str = equipe_el.findtext("MatchsJoues", default="0")
-                mg_str = equipe_el.findtext("MatchsGagnes", default="0")
-                mp_str = equipe_el.findtext("MatchsPerdus", default="0")
+                    # Récupération des stats
+                    rang_str = equipe_el.findtext("Rang", default="0")
+                    points_str = equipe_el.findtext("Points", default="0")
+                    mj_str = equipe_el.findtext("MatchsJoues", default="0")
+                    mg_str = equipe_el.findtext("MatchsGagnes", default="0")
+                    mp_str = equipe_el.findtext("MatchsPerdus", default="0")
 
-                # Convertir en int
-                rang = int(rang_str)
-                points = int(points_str)
-                mj = int(mj_str)
-                mg = int(mg_str)
-                mp = int(mp_str)
+                    # Convertir en int
+                    rang = int(rang_str)
+                    points = int(points_str)
+                    mj = int(mj_str)
+                    mg = int(mg_str)
+                    mp = int(mp_str)
 
-                # Récupère le nom complet de l'équipe (via ton mapping JSON)
-                full_name = get_full_name(nom_club, pool.gender)
-                if not full_name:
-                    # Si on n’a pas trouvé d’alias, on peut décider de skip ou de logguer un warning
-                    continue
+                    # Récupère le nom complet de l'équipe (via ton mapping JSON)
+                    full_name = get_full_name(nom_club, pool.gender)
+                    if not full_name:
+                        # Si on n’a pas trouvé d’alias, on peut décider de skip ou de logguer un warning
+                        continue
 
-                team = await find_team_by_name_in_division_format_gender(
-                    self.session,
-                    pool.division_name,
-                    pool.format,
-                    pool.gender,
-                    full_name
-                )
-
-                if not team:
-                    # Si on ne trouve pas l'équipe dans la base, log et skip
-                    log_event(
-                        action="team_not_found",
-                        level="error",
-                        pool_id=pool.id,
-                        name=full_name,
-                        message="Aucune équipe trouvée pour ce nom."
+                    team = await find_team_by_name_in_division_format_gender(
+                        self.session,
+                        pool.division_name,
+                        pool.format,
+                        pool.gender,
+                        full_name
                     )
-                    continue
 
-                # On met à jour l'association (pool_id, team_id).
-                self.schedule_association_replace(
-                    pool_id=pool.id,
-                    team_id=team.id,
-                    points=points,
-                )
+                    if not team:
+                        # Si on ne trouve pas l'équipe dans la base, log et skip
+                        log_event(
+                            action="team_not_found",
+                            level="error",
+                            pool_id=pool.id,
+                            name=full_name,
+                            message="Aucune équipe trouvée pour ce nom."
+                        )
+                        continue
+
+                    # On met à jour l'association (pool_id, team_id).
+                    self.schedule_association_replace(
+                        pool_id=pool.id,
+                        team_id=team.id,
+                        points=points,
+                    )
+        except Exception as e:
+            log_event(
+                action="process_xml_rank_error",
+                level="error",
+                pool_id=pool.id,
+                message=str(e)
+            )
                     
     # --------------------------------------------------------------------------
     #  Parsing HTML LNV pour le live_code

@@ -1,6 +1,23 @@
+import re
 from typing import Tuple, Optional
 from models.pool import Pool, PoolDivisionCode
 from models.association_stats import AssociationStats
+
+def validate_set_score_format(set_score: str) -> str:
+    """
+    Valide le score d'un set.
+    Renvoie le score s'il est au format attendu, sinon renvoie "0-0".
+    """
+    pattern = re.compile(r"^\d{1,2}-\d{1,2}$")
+    return set_score if set_score and pattern.fullmatch(set_score) else "0-0"
+
+def validate_set_format(set: str) -> str:
+    """
+    Valide le score d'un set.
+    Renvoie le score s'il est au format attendu, sinon renvoie "0-0".
+    """
+    pattern = re.compile(r"^\d{1}-\d{1}$")
+    return set if set and pattern.fullmatch(set) else "0-0"
 
 def parse_team_score(score: str) -> Tuple[Optional[int], str]:
     """

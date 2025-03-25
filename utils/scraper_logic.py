@@ -8,8 +8,7 @@ from services.matchs_service import deactivate_matches
 from services.teams_service import add_or_update_team
 from api.competitions_api import add_team_to_pool, bulk_deactivate_teams_by_pool, get_active_team_associations_by_pool
 from api.teams_api import get_teams_by_division_format_gender
-from utils.downloader import download_csv
-from utils.file_utils import parse_csv
+from utils.file_utils import download_and_parse_csv
 from utils.match_utils import compute_volleyball_match_stats
 from utils.team_utils import get_full_name, get_short_name
 from utils.utils import parse_date
@@ -39,29 +38,32 @@ async def handle_csv_download_and_parse(
         await scraper.init_matches_cache(pool.id)
         await scraper.init_associations_cache(pool.id)
 
-        # 2) download le CSV
-        csv_path = await download_csv(scraper, pool, season)
-        if not csv_path:
+        # 2) download et parse le CSV
+        parsed_data = await download_and_parse_csv(scraper, pool, season)
+        if not parsed_data:
             log_event(
-                action="download_csv_failed",
+                action="download_and_parse_csv_failed",
                 level="error",
                 message="Échec téléchargement CSV",
                 pool_id=pool.id,
                 season=season
             )
             return
-
-        # 3) parse CSV
-        parsed_data = parse_csv(csv_path)
-        if not parsed_data:
+        
+        # Si tu veux vérifier que des données ont bien été extraites, convertis l'itérateur en liste
+        parsed_list = list(parsed_data)
+        if not parsed_list:
             log_event(
                 action="csv_empty",
-                level="error",
-                csv_path=csv_path,
-                message=f"Fichier CSV vide"
+                level="warning",
+                message="Fichier CSV vide, la poule n'est pas prise en compte",
+                pool_id=pool.id,
+                pool_name=pool.pool_name,
+                league_code=pool.league_code,
+                season=season
             )
             return
-
+        
         # Teams existantes
         existing_teams = await get_teams_by_division_format_gender(
             scraper.session, pool.division_name, pool.format, pool.gender
@@ -79,9 +81,10 @@ async def handle_csv_download_and_parse(
         scraped_team_ids = set()
         scraped_match_codes = set()
 
-        for row in parsed_data:
+        for row in parsed_list:
             club_a_id = row.get('club_a_id')
             club_b_id = row.get('club_b_id')
+            
             if not club_a_id or not club_b_id:
                 continue
 

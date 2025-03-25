@@ -271,8 +271,8 @@ class Scraper(ABC):
             if match_key not in self._matches_cache:
                 self._matches_cache[match_key] = (None, updated_match, [], priority)
 
-            existing_obj, updated_obj, changes_list, current_priority = self._matches_cache[match_key]
-
+            existing_obj, updated_obj, changes_list, current_priority = self._matches_cache.get(match_key, (None, None, [], None))
+            
             # Champs
             lnv_priority_fields = ["match_date", "score", "set"]
             live_code_field = "live_code"
