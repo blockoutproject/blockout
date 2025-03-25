@@ -125,12 +125,12 @@ def parse_date(date_str: str, time_str: str) -> Optional[datetime]:
     try:
         return datetime.strptime(f'{date_str} {time_str}', '%Y-%m-%d %H:%M')
     except ValueError as e:
-        log_event(
-            action="parse_date",
-            level="error",
-            message=f"Erreur lors de la conversion des dates: {date_str} {time_str}",
-            error=str(e)
-        )
+        # log_event(
+        #     action="parse_date",
+        #     level="error",
+        #     message=f"Erreur lors de la conversion des dates: {date_str} {time_str}",
+        #     error=str(e)
+        # )
         return None
     
 def to_dict(object) -> dict:

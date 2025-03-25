@@ -87,12 +87,6 @@ async def handle_csv_download_and_parse(
 
             match_datetime = parse_date(row.get('match_date'), row.get('match_time'))
             if not match_datetime:
-                log_event(
-                    action="invalid_match_date",
-                    level="error",
-                    match_code=row.get('match_code'),
-                    message="Date invalide"
-                )
                 continue
             
             team_a_full_name = get_full_name(row.get('team_a_name'), pool.gender)
