@@ -7,7 +7,6 @@ from models.category import Category
 from services.pools_service import add_or_update_pool
 from models.pool import Pool, PoolDivisionCode
 from models.scraper import Scraper
-from utils.file_utils import create_output_directory, delete_output_directory
 from utils.scraper_logic import handle_csv_download_and_parse
 from utils.utils import extract_national_division, extract_season_from_url, parse_season, standardize_division_name
 
@@ -17,7 +16,6 @@ class NationalScraper(Scraper):
         super().__init__(
             session, name="national_scraper", 
             category=Category.NAT, 
-            folder=create_output_directory("National"), 
             url="http://www.ffvb.org/119-37-1-Championnats-Nationaux", 
             priority_validation_enabled=False
         )
@@ -137,8 +135,6 @@ class NationalScraper(Scraper):
             # Finalisation : on applique toutes les modifications pour les associations
             await self.finalize_associations_updates()
             
-            
-
         except Exception as e:
             log_event(
                 action="critical_error",
@@ -147,5 +143,3 @@ class NationalScraper(Scraper):
                 error=str(e),
                 message="Erreur critique lors du scraping des poules nationales."
             )
-        finally:
-            delete_output_directory(self.folder)

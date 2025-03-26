@@ -11,23 +11,6 @@ from config.logger_config import log_event
 from models.pool import Pool
 from models.scraper import Scraper
 
-def delete_output_directory(folder_path: str) -> None:
-    """
-    Supprime un répertoire de sortie et tout son contenu.
-
-    Parameters:
-    - folder_path (str): Le chemin du répertoire à supprimer.
-    """
-    if os.path.exists(folder_path):
-        shutil.rmtree(folder_path)
-    else:
-        log_event(
-            action="delete_output_directory",
-            level="warning",
-            folder_path=folder_path,
-            message=f"Tentative de suppression : le répertoire {folder_path} n'existe pas."
-        )
-
 def detect_encoding(data: bytes, default: str = 'windows-1252') -> str:
     """
     Détecte l'encodage d'un contenu binaire.
@@ -42,30 +25,6 @@ def detect_encoding(data: bytes, default: str = 'windows-1252') -> str:
     result = chardet.detect(data)
     encoding = result.get('encoding', default)
     return encoding
-
-def write_to_file(filename: str, content: str, pool_code: str, encoding: str = 'windows-1252'):
-    """
-    Écrit un contenu texte dans un fichier avec l'encodage spécifié.
-
-    Parameters:
-    - filename (str): Le chemin du fichier.
-    - content (str): Le contenu texte à écrire.
-    - encoding (str): L'encodage à utiliser pour l'écriture.
-    """
-    try:
-        with open(filename, 'w', encoding=encoding, errors='replace') as f:
-            f.write(content)
-    except Exception as e:
-        log_event(
-            action="write_to_file",
-            level="error",
-            filename=filename,
-            encoding=encoding,
-            error=str(e),
-            error_type=type(e).__name__,
-            message=f"Erreur lors de l'écriture dans le fichier {filename}: {e}"
-        )
-        raise
 
 def validate_columns(actual_columns: set, expected_columns: set) -> None:
     """
@@ -134,22 +93,6 @@ def parse_csv_from_content(content: str) -> Iterator[dict]:
                 error=str(e),
                 message=f"Ligne {line_num}: Erreur inattendue : {e}"
             )
-
-def create_output_directory(league: str) -> str:
-    """
-    Crée un répertoire de sortie sous la structure CSV/league, 
-    nommé avec la date et l'heure actuelles.
-
-    Parameters:
-    - league (str): Le nom de la ligue.
-
-    Returns:
-    - str: Le chemin du répertoire créé.
-    """
-    now = datetime.now(timezone.utc)
-    folder_name = now.strftime(f"CSV/{league}/%Y%m%d_%H%M%S")
-    os.makedirs(folder_name, exist_ok=True)
-    return folder_name
 
 async def download_and_parse_csv(
     scraper: Scraper,

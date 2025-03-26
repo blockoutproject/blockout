@@ -7,7 +7,6 @@ from models.category import Category
 from models.pool import Pool, PoolDivisionCode
 from models.scraper import Scraper
 from services.pools_service import add_or_update_pool
-from utils.file_utils import create_output_directory, delete_output_directory
 from utils.scraper_logic import handle_csv_download_and_parse
 from utils.utils import parse_season, standardize_division_name
 from config.logger_config import log_event
@@ -19,7 +18,6 @@ class RegionalScraper(Scraper):
             session, 
             name="regional_scraper", 
             category=Category.REG, 
-            folder=create_output_directory("Regional"), 
             url="http://www.ffvb.org/120-37-1-Championnats-Regionaux", 
             priority_validation_enabled=False
         )
@@ -101,9 +99,6 @@ class RegionalScraper(Scraper):
                 error=str(e),
                 message="Erreur critique lors du scraping des poules régionales."
             )
-        finally:
-            # Nettoyage du dossier
-            delete_output_directory(self.folder)
 
     async def scrape_pools_from_league(self, league_code, league_name, league_page_url):
         """

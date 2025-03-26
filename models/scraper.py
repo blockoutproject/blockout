@@ -21,14 +21,12 @@ class Scraper(ABC):
         session: aiohttp.ClientSession, 
         name: str, 
         category: Category, 
-        folder: str, 
         url: str = None, 
         priority_validation_enabled: bool = False
     ):
         self.session = session
         self.name = name
         self.category = category
-        self.folder = folder
         self.url = url
         self.priority_validation_enabled = priority_validation_enabled
 

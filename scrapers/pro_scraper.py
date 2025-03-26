@@ -15,7 +15,6 @@ from models.scraper import Scraper
 from services.matchs_service import find_match_in_cache
 from services.pools_service import add_or_update_pool
 from services.teams_service import find_team_by_name_in_division_format_gender
-from utils.file_utils import create_output_directory, delete_output_directory
 from utils.match_utils import validate_set_format, validate_set_score_format
 from utils.scraper_logic import handle_csv_download_and_parse
 from utils.team_utils import get_full_name
@@ -25,7 +24,7 @@ from config.logger_config import log_event
 
 class ProScraper(Scraper):
     def __init__(self, session):
-        super().__init__(session, name="pro_scraper", category=Category.PRO, folder=create_output_directory("Pro"), priority_validation_enabled=True)
+        super().__init__(session, name="pro_scraper", category=Category.PRO, priority_validation_enabled=True)
         self.raw_season = "2024/2025"
         self.parsed_season = parse_season(self.raw_season)
         self.league_code = "AALNV"
@@ -134,8 +133,6 @@ class ProScraper(Scraper):
                 error=str(e),
                 message="Erreur critique lors du scraping des poules professionnelles."
             )
-        finally:
-            delete_output_directory(self.folder)
 
     async def execute_task_chain(self, pool: Pool, season, lnv_url, lnv_xml_matches_url, lnv_xml_rank_url):
         # 1) Télécharge et parse un éventuel CSV (FFVB)
