@@ -19,7 +19,8 @@ export interface Team {
     division_name: string;
     format: EnumTeamFormat;
     gender: EnumTeamGender;
-    last_update?: Date;
+    followers_count: number;
+    last_update: string;
     active: boolean;
 }
 

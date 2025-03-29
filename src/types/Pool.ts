@@ -27,6 +27,7 @@ export interface Pool {
     pool_name?: string;
     division_name?: string;
     raw_division_name?: string;
-    last_update?: Date;
+    followers_count: number;
+    last_update: string;
     active: boolean;
 }

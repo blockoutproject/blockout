@@ -1,9 +1,9 @@
 import React, { createContext, useContext, useMemo } from 'react';
-import { User } from '@/src/types/User';
 import { useUser } from '@/src/hooks/user/useUser';
+import { CustomUser } from '../types/User';
 
 interface UserContextValue {
-  user: User | undefined;
+  user: CustomUser | undefined;
   isLoading: boolean;
   error: unknown;
 }

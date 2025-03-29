@@ -3,6 +3,11 @@ export enum UserRole {
     ADMIN = "ADMIN"
 }
 
+export enum EntityType {
+    TEAM = "TEAM",
+    POOL = "POOL",
+}
+
 export interface CustomUser {
     id: number;
     auth0Id: string;
@@ -13,9 +18,17 @@ export interface CustomUser {
     pictureUrl?: string;
     phoneNumber?: string;
     role: UserRole;
+    favorites?: UserFavorite[];
     active: boolean;
-    createdAt?: string;
-    lastUpdate?: string;
+    createdAt: string;
+    lastUpdate: string;
+}
+
+export interface UserFavorite {
+    id: number;
+    entityType: EntityType;
+    entityId: number;
+    createdAt: string;
 }
 
 export interface UserRegistrationRequest {

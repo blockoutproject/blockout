@@ -20,5 +20,5 @@ export interface CompetitionAssociation {
     points_penalty: number;
     coef_sets: number;
     coef_points: number;
-    last_update?: string;
+    last_update: string;
 }

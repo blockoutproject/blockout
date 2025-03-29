@@ -18,7 +18,7 @@ export interface Match {
     referee1?: string;
     referee2?: string;
     live_code?: number;
-    last_update?: Date;
+    last_update: string;
     active: boolean;
 }
 
