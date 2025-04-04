@@ -8,7 +8,6 @@ import com.blockout.teams.repositories.TeamRepository;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,11 +23,15 @@ public class TeamService {
 
     private static final Logger logger = LoggerFactory.getLogger(TeamService.class);
 
-    @Autowired
-    private TeamRepository teamRepository;
+    private final TeamRepository teamRepository;
+
+    public TeamService(TeamRepository teamRepository) {
+        this.teamRepository = teamRepository;
+    }
 
     /**
      * Crée une nouvelle équipe
+     * 
      * @param team L'objet Team à créer
      * @return L'équipe créée avec son ID généré
      */
@@ -43,6 +46,7 @@ public class TeamService {
 
     /**
      * Récupère toutes les équipes
+     * 
      * @return Liste de toutes les équipes
      */
     public List<Team> getAllTeams() {
@@ -52,6 +56,7 @@ public class TeamService {
 
     /**
      * Récupère les équipes par leurs IDs
+     * 
      * @param ids Liste d'identifiants d'équipes
      * @return Liste des équipes correspondantes
      */
@@ -77,6 +82,7 @@ public class TeamService {
 
     /**
      * Récupère une équipe par son ID
+     * 
      * @param id L'identifiant de l'équipe
      * @return Optional contenant l'équipe si elle existe
      */
@@ -92,7 +98,8 @@ public class TeamService {
 
     /**
      * Met à jour une équipe existante
-     * @param id L'identifiant de l'équipe à mettre à jour
+     * 
+     * @param id          L'identifiant de l'équipe à mettre à jour
      * @param updatedTeam Les nouvelles données de l'équipe
      * @return L'équipe mise à jour
      * @throws TeamNotFoundException Si l'équipe n'existe pas
@@ -123,6 +130,7 @@ public class TeamService {
 
     /**
      * Désactive une équipe
+     * 
      * @param teamId L'identifiant de l'équipe à désactiver
      * @return L'équipe désactivée
      * @throws TeamNotFoundException Si l'équipe n'existe pas
@@ -148,9 +156,10 @@ public class TeamService {
 
     /**
      * Récupère les équipes par division, format et genre
+     * 
      * @param divisionName Le nom de la division
-     * @param format Le format de l'équipe
-     * @param gender Le genre de l'équipe
+     * @param format       Le format de l'équipe
+     * @param gender       Le genre de l'équipe
      * @return Liste des équipes correspondantes
      */
     public List<Team> getTeamsByDivisionFormatGender(String divisionName, TeamFormat format, TeamGender gender) {
@@ -163,5 +172,68 @@ public class TeamService {
                     keyValue("gender", gender));
         }
         return teams;
+    }
+
+    /**
+     * Incrémente le compteur de followers pour l'équipe.
+     * 
+     * @param teamId Identifiant de l'équipe
+     * @param userId Identifiant de l'utilisateur qui follow
+     * @return L'équipe mise à jour
+     * @throws TeamNotFoundException Si l'équipe n'existe pas
+     */
+    @Transactional
+    public Team incrementFollowersCount(Long teamId, Long userId) {
+        return teamRepository.findById(teamId).map(team -> {
+            long currentCount = team.getFollowersCount();
+            team.setFollowersCount(currentCount + 1);
+
+            Team updatedTeam = teamRepository.save(team);
+            logger.info("Team followers count incremented",
+                    keyValue("action", "increment_followers_count"),
+                    keyValue("teamId", teamId),
+                    keyValue("userId", userId),
+                    keyValue("newFollowersCount", updatedTeam.getFollowersCount()));
+
+            return updatedTeam;
+        }).orElseThrow(() -> {
+            logger.error("Team not found. Cannot increment followers count.",
+                    keyValue("action", "increment_followers_count"),
+                    keyValue("teamId", teamId),
+                    keyValue("userId", userId));
+            return new TeamNotFoundException(teamId);
+        });
+    }
+
+    /**
+     * Décrémente le compteur de followers pour l'équipe.
+     * 
+     * @param teamId Identifiant de l'équipe
+     * @param userId Identifiant de l'utilisateur qui unfollow
+     * @return L'équipe mise à jour
+     * @throws TeamNotFoundException Si l'équipe n'existe pas
+     */
+    @Transactional
+    public Team decrementFollowersCount(Long teamId, Long userId) {
+        return teamRepository.findById(teamId).map(team -> {
+            long currentCount = team.getFollowersCount();
+            long newCount = (currentCount > 0) ? currentCount - 1 : 0;
+            team.setFollowersCount(newCount);
+
+            Team updatedTeam = teamRepository.save(team);
+            logger.info("Team followers count decremented",
+                    keyValue("action", "decrement_followers_count"),
+                    keyValue("teamId", teamId),
+                    keyValue("userId", userId),
+                    keyValue("newFollowersCount", updatedTeam.getFollowersCount()));
+
+            return updatedTeam;
+        }).orElseThrow(() -> {
+            logger.error("Team not found. Cannot decrement followers count.",
+                    keyValue("action", "decrement_followers_count"),
+                    keyValue("teamId", teamId),
+                    keyValue("userId", userId));
+            return new TeamNotFoundException(teamId);
+        });
     }
 }

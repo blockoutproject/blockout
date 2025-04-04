@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Entity
 @Table(name = "teams", uniqueConstraints = {
-        @UniqueConstraint(columnNames = {"club_id", "division_name", "format", "gender", "name"}, name = "uix_team")
+        @UniqueConstraint(columnNames = { "club_id", "division_name", "format", "gender", "name" }, name = "uix_team")
 })
 public class Team {
 
@@ -50,6 +50,10 @@ public class Team {
     @Enumerated(EnumType.STRING)
     @Column(name = "gender", nullable = false)
     private TeamGender gender;
+
+    @Builder.Default
+    @Column(name = "followers_count", nullable = false)
+    private Long followersCount = 0L;
 
     @PrePersist
     @PreUpdate
