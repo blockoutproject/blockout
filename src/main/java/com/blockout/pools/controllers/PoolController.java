@@ -4,7 +4,6 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
@@ -20,8 +19,11 @@ import java.util.Optional;
 @RequestMapping("/pools/v1")
 public class PoolController {
 
-    @Autowired
-    private PoolService poolService;
+    private final PoolService poolService;
+
+    public PoolController(PoolService poolService) {
+        this.poolService = poolService;
+    }
 
     @Operation(summary = "Créer une pool", description = "Crée une nouvelle pool avec les informations fournies.")
     @ApiResponses(value = {

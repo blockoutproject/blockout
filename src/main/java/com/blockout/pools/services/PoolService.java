@@ -6,7 +6,6 @@ import com.blockout.pools.repositories.PoolRepository;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,11 +19,15 @@ public class PoolService {
 
     private static final Logger logger = LoggerFactory.getLogger(PoolService.class);
 
-    @Autowired
-    private PoolRepository poolRepository;
+    private final PoolRepository poolRepository;
+
+    public PoolService(PoolRepository poolRepository) {
+        this.poolRepository = poolRepository;
+    }
 
     /**
      * Crée une nouvelle pool
+     * 
      * @param pool L'objet Pool à créer
      * @return La pool créée avec son ID généré
      */
@@ -39,6 +42,7 @@ public class PoolService {
 
     /**
      * Récupère toutes les pools
+     * 
      * @return Liste de toutes les pools
      */
     public List<Pool> getAllPools() {
@@ -48,8 +52,9 @@ public class PoolService {
 
     /**
      * Récupère les pools par ligue et saison
+     * 
      * @param leagueCode Le code de la ligue
-     * @param season La saison
+     * @param season     La saison
      * @return Liste des pools correspondantes
      */
     public List<Pool> getPoolsByLeagueAndSeason(String leagueCode, Integer season) {
@@ -65,6 +70,7 @@ public class PoolService {
 
     /**
      * Récupère une pool par son ID
+     * 
      * @param id L'identifiant de la pool
      * @return Optional contenant la pool si elle existe
      */
@@ -80,7 +86,8 @@ public class PoolService {
 
     /**
      * Met à jour une pool existante
-     * @param id L'identifiant de la pool à mettre à jour
+     * 
+     * @param id          L'identifiant de la pool à mettre à jour
      * @param updatedPool Les nouvelles données de la pool
      * @return La pool mise à jour
      * @throws PoolNotFoundException Si la pool n'existe pas
@@ -115,6 +122,7 @@ public class PoolService {
 
     /**
      * Désactive une pool
+     * 
      * @param poolId L'identifiant de la pool à désactiver
      * @return La pool désactivée
      * @throws PoolNotFoundException Si la pool n'existe pas
@@ -140,9 +148,10 @@ public class PoolService {
 
     /**
      * Récupère une pool par code, ligue et saison
-     * @param poolCode Le code de la pool
+     * 
+     * @param poolCode   Le code de la pool
      * @param leagueCode Le code de la ligue
-     * @param season La saison
+     * @param season     La saison
      * @return Optional contenant la pool si elle existe
      */
     public Optional<Pool> getPoolByCodeAndLeagueAndSeason(String poolCode, String leagueCode, Integer season) {
@@ -159,11 +168,75 @@ public class PoolService {
 
     /**
      * Récupère les pools actives par code de ligue
+     * 
      * @param leagueCode Le code de la ligue
      * @return Liste des pools actives correspondantes
      */
     public List<Pool> getActivePoolsByLeagueCode(String leagueCode) {
         List<Pool> pools = poolRepository.findByLeagueCodeAndActive(leagueCode, true);
         return pools;
+    }
+
+    /**
+     * Incrémente le compteur de followers pour la poule.
+     * 
+     * @param poolId Identifiant de la pool
+     * @param userId Identifiant de l'utilisateur qui follow
+     * @return La poule mise à jour
+     * @throws PoolNotFoundException Si la poule n'existe pas
+     */
+    @Transactional
+    public Pool incrementFollowersCount(Long poolId, Long userId) {
+        return poolRepository.findById(poolId).map(pool -> {
+            long currentCount = pool.getFollowersCount();
+            pool.setFollowersCount(currentCount + 1);
+
+            Pool updatedPool = poolRepository.save(pool);
+            logger.info("Pool followers count incremented",
+                    keyValue("action", "increment_followers_count"),
+                    keyValue("poolId", poolId),
+                    keyValue("userId", userId),
+                    keyValue("newFollowersCount", updatedPool.getFollowersCount()));
+
+            return updatedPool;
+        }).orElseThrow(() -> {
+            logger.error("Pool not found. Cannot increment followers count.",
+                    keyValue("action", "increment_followers_count"),
+                    keyValue("poolId", poolId),
+                    keyValue("userId", userId));
+            return new PoolNotFoundException(poolId);
+        });
+    }
+
+    /**
+     * Décrémente le compteur de followers pour la poule.
+     * 
+     * @param poolId Identifiant de la poule
+     * @param userId Identifiant de l'utilisateur qui unfollow
+     * @return La poule mise à jour
+     * @throws PoolNotFoundException Si la poule n'existe pas
+     */
+    @Transactional
+    public Pool decrementFollowersCount(Long poolId, Long userId) {
+        return poolRepository.findById(poolId).map(pool -> {
+            long currentCount = pool.getFollowersCount();
+            long newCount = (currentCount > 0) ? currentCount - 1 : 0;
+            pool.setFollowersCount(newCount);
+
+            Pool updatedPool = poolRepository.save(pool);
+            logger.info("Pool followers count decremented",
+                    keyValue("action", "decrement_followers_count"),
+                    keyValue("poolId", poolId),
+                    keyValue("userId", userId),
+                    keyValue("newFollowersCount", updatedPool.getFollowersCount()));
+
+            return updatedPool;
+        }).orElseThrow(() -> {
+            logger.error("Pool not found. Cannot decrement followers count.",
+                    keyValue("action", "decrement_followers_count"),
+                    keyValue("poolId", poolId),
+                    keyValue("userId", userId));
+            return new PoolNotFoundException(poolId);
+        });
     }
 }

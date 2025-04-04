@@ -56,6 +56,10 @@ public class Pool {
     private String rawDivisionName;
 
     @Builder.Default
+    @Column(name = "followers_count", nullable = false)
+    private Long followersCount = 0L;
+
+    @Builder.Default
     @Column(name = "active", nullable = false)
     private Boolean active = true;
 

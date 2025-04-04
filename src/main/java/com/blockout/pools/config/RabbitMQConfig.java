@@ -1,20 +1,21 @@
 package com.blockout.pools.config;
 
-import java.util.List;
-import org.springframework.amqp.core.Binding;
-import org.springframework.amqp.core.BindingBuilder;
-import org.springframework.amqp.core.FanoutExchange;
-import org.springframework.amqp.core.Queue;
-import org.springframework.amqp.support.converter.SimpleMessageConverter;
+import org.springframework.amqp.core.*;
+import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
+import org.springframework.amqp.support.converter.MessageConverter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class RabbitMQConfig {
 
-    public static final String POOL_DEACTIVATED_EXCHANGE = "pool.deactivated.exchange";
-
+    public static final String DEACTIVATED_EXCHANGE = "deactivated.exchange";
     public static final String POOL_DEACTIVATED_QUEUE_POOLS = "pool.deactivated.queue.pools";
+
+    @Bean
+    public TopicExchange deactivatedExchange() {
+        return new TopicExchange(DEACTIVATED_EXCHANGE);
+    }
 
     @Bean
     public Queue poolDeactivatedQueuePools() {
@@ -22,24 +23,40 @@ public class RabbitMQConfig {
     }
 
     @Bean
-    public FanoutExchange poolDeactivatedExchange() {
-        return new FanoutExchange(POOL_DEACTIVATED_EXCHANGE);
-    }
-
-    @Bean
     public Binding bindPoolDeactivatedQueuePools(
-            FanoutExchange poolDeactivatedExchange,
+            TopicExchange deactivatedExchange,
             Queue poolDeactivatedQueuePools) {
         return BindingBuilder.bind(poolDeactivatedQueuePools)
-                .to(poolDeactivatedExchange);
+                .to(deactivatedExchange)
+                .with("pool.deactivated");
+    }
+
+    public static final String USER_FOLLOW_EXCHANGE = "user.follow.exchange";
+    public static final String POOL_FOLLOW_QUEUE = "user.follow.queue.pools";
+    private static final String POOL_ROUTING_KEY_PATTERN = "pool.*";
+
+    @Bean
+    public TopicExchange userFollowExchange() {
+        return new TopicExchange(USER_FOLLOW_EXCHANGE);
     }
 
     @Bean
-    public SimpleMessageConverter messageConverter() {
-        SimpleMessageConverter converter = new SimpleMessageConverter();
-        converter.setAllowedListPatterns(List.of(
-                "com.blockout.shared.events.*",
-                "java.lang.*"));
-        return converter;
+    public Queue userFollowQueuePools() {
+        return new Queue(POOL_FOLLOW_QUEUE, true);
+    }
+
+    @Bean
+    public Binding bindUserFollowQueuePools(
+            Queue userFollowQueuePools,
+            TopicExchange userFollowExchange) {
+        // pattern = "pool.*"
+        return BindingBuilder.bind(userFollowQueuePools)
+                .to(userFollowExchange)
+                .with(POOL_ROUTING_KEY_PATTERN);
+    }
+
+    @Bean
+    public MessageConverter messageConverter() {
+        return new Jackson2JsonMessageConverter();
     }
 }
