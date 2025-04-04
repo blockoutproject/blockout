@@ -1,15 +1,48 @@
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Pool } from '@/src/types/Pool';
 import { colors } from '@/src/constants/Colors';
 import FastImage from 'react-native-fast-image'
+import UsersApi from '@/src/api/UsersApi';
+import { useUser } from '@/src/hooks/user/useUser';
+import { EntityType } from '@/src/types/User';
+import { useUserContext } from '@/src/context/UserProvider';
 
 type PoolProfileProps = {
     pool: Pool;
 };
 
 const PoolProfile: React.FC<PoolProfileProps> = ({ pool }) => {
+    const { user, isLoading } = useUserContext();
+    const { data: userData, refetch } = useUser();
+    const [isProcessing, setIsProcessing] = useState(false);
+
+    // Check si la pool est déjà dans les favoris
+    const isFollowing = useMemo(() => {
+        if (!user || !user.favorites) return false;
+        console.log(" -------- User dans isFollowing : ", user);
+        const isFav = user.favorites.some((fav) => fav.entity_id === pool.id && fav.entity_type === EntityType.POOL);
+        return isFav;
+    }, [user, pool.id]);
+
+    const handleFollowToggle = async () => {
+        if (!user || isProcessing) return;
+        setIsProcessing(true);
+        try {
+            console.log('Toggle follow for pool:', pool.id, isFollowing);
+            if (isFollowing) {
+                await UsersApi.getInstance().unfollow(EntityType.POOL, pool.id);
+            } else {
+                await UsersApi.getInstance().follow(EntityType.POOL, pool.id);
+            }
+            await refetch();
+        } catch (error) {
+            console.error('Erreur follow/unfollow :', error);
+        } finally {
+            setIsProcessing(false);
+        }
+    };
     return (
         <View style={styles.container}>
             {/* Logo à gauche */}
@@ -30,9 +63,16 @@ const PoolProfile: React.FC<PoolProfileProps> = ({ pool }) => {
                 {/* Ligne de boutons/actions */}
                 <View style={styles.actionsRow}>
                     {/* Bouton "Suivre" */}
-                    <TouchableOpacity style={styles.followButton}>
-                        <Ionicons name="add" size={14} color={colors.light} style={{ marginRight: 4 }} />
-                        <Text style={styles.followText}>Suivre</Text>
+                    <TouchableOpacity style={styles.followButton} onPress={handleFollowToggle} disabled={isProcessing}>
+                        <Ionicons
+                            name={isFollowing ? 'remove' : 'add'}
+                            size={14}
+                            color={colors.light}
+                            style={{ marginRight: 4 }}
+                        />
+                        <Text style={styles.followText}>
+                            {isFollowing ? 'Ne plus suivre' : 'Suivre'}
+                        </Text>
                     </TouchableOpacity>
 
                     {/* Icône + compteur */}

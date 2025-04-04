@@ -32,7 +32,7 @@ class CompetitionsApi extends AbstractApi {
     /**
      * Récupère les équipes associées à un pool spécifique.
      * @param poolId - L'ID du pool à récupérer.
-     * @returns Une liste des entrées d'équipes dans le pool.
+     * @returns Une liste des entrées d'équipes dans la pool.
      */
     public async getTeamsAssocByPool(poolId: number): Promise<CompetitionAssociation[]> {
         const response = await this.service.get(`/pools/${poolId}/teams`);

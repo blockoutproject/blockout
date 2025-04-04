@@ -1,6 +1,6 @@
 import { CONFIG } from '@/src/config/config';
 import AbstractApi from './AbstractApi';
-import { CustomUser, UserRegistrationRequest } from '@/src/types/User';
+import { CustomUser, EntityType, UserRegistrationRequest } from '@/src/types/User';
 
 class UsersApi extends AbstractApi {
     private static instance: UsersApi | null = null;
@@ -35,13 +35,13 @@ class UsersApi extends AbstractApi {
      * @param auth0Id L'identifiant Auth0 de l'utilisateur.
      * @returns Un objet Promise contenant l'utilisateur s'il existe, null sinon.
      */
-    public async getUserByAuth0Id(auth0Id: string): Promise<CustomUser | null> {
+    public async getUserByAuth0Id(auth0Id: string): Promise<CustomUser | undefined> {
         try {
             const response = await this.service.get(`/users/auth0/${auth0Id}`);
             return response.data;
         } catch (error: any) {
             if (error.response && error.response.status === 404) {
-                return null;
+                return undefined;
             }
             throw error;
         }
@@ -55,6 +55,27 @@ class UsersApi extends AbstractApi {
     public async registerUser(registrationData: UserRegistrationRequest): Promise<CustomUser> {
         const response = await this.service.post('/users', registrationData);
         return response.data;
+    }
+
+    /**
+     * Suit une entité pour un utilisateur donné.
+     * @param userId L'ID de l'utilisateur.
+     * @param entityType Le type de l'entité (ex: 'USER', 'POST', etc).
+     * @param entityId L'ID de l'entité à suivre.
+     */
+    public async follow(entityType: EntityType, entityId: number): Promise<void> {
+        console.log('Follow', entityType, entityId);
+        await this.service.post(`/follows/${entityType}/${entityId}`);
+    }
+
+    /**
+     * Ne suit plus une entité pour un utilisateur donné.
+     * @param userId L'ID de l'utilisateur.
+     * @param entityType Le type de l'entité (ex: 'USER', 'POST', etc).
+     * @param entityId L'ID de l'entité à ne plus suivre.
+     */
+    public async unfollow(entityType: EntityType, entityId: number): Promise<void> {
+        await this.service.delete(`/follows/${entityType}/${entityId}`);
     }
 }
 

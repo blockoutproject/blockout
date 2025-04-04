@@ -5,41 +5,33 @@ import { View, ActivityIndicator } from 'react-native';
 import { useUser } from '@/src/hooks/user/useUser';
 
 export default function AuthLayout() {
-  const router = useRouter();
-  const { user: auth0User, isLoading: isAuth0Loading } = useAuth0();
-  const { data: customUser, isLoading: isUserLoading } = useUser();
+    const router = useRouter();
+    const { user: auth0User, isLoading: isAuth0Loading } = useAuth0();
+    const { data: customUser, isLoading: isUserLoading } = useUser();
 
-  const isLoadingCombined = isAuth0Loading || isUserLoading;
+    const isLoadingCombined = isAuth0Loading || isUserLoading;
 
-  useEffect(() => {
-    // Quand tout est chargé et qu’on a un utilisateur Auth0 :
-    if (!isLoadingCombined && auth0User) {
-      // 1) A-t-on un user dans notre base ?
-      if (!customUser) {
-        // N’existe pas → redirection première étape
-        router.replace('/(onboarding)/pseudo');
-      }
-      // 2) S’il existe, on vérifie les champs pour savoir où l’envoyer
-      else if (!customUser.pseudo) {
-        router.replace('/(onboarding)/pseudo');
-      } else if (!customUser.photoUrl) {
-        router.replace('/(onboarding)/photo');
-      } else if (!customUser.favorites || customUser.favorites.length === 0) {
-        router.replace('/(onboarding)/favorites');
-      } else {
-        // S’il a tout, direction home
-        router.replace('/home');
-      }
+    useEffect(() => {
+        // Quand tout est chargé et qu’on a un utilisateur Auth0 :
+        if (!isLoadingCombined && auth0User) {
+            // 1) A-t-on un user dans notre base ?
+            if (!customUser) {
+                // N’existe pas → redirection première étape
+                router.replace('/(onboarding)/pseudo');
+            } else {
+                // S’il a tout, direction home
+                router.replace('/home');
+            }
+        }
+    }, [isLoadingCombined, auth0User, customUser, router]);
+
+    if (isLoadingCombined) {
+        return (
+            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                <ActivityIndicator size='large' />
+            </View>
+        );
     }
-  }, [isLoadingCombined, auth0User, customUser, router]);
 
-  if (isLoadingCombined) {
-    return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size='large' />
-      </View>
-    );
-  }
-
-  return <Slot />;
+    return <Slot />;
 }

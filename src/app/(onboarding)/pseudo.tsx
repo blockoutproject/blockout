@@ -33,10 +33,9 @@ export default function PseudoScreen() {
             await refetch();
 
             // Écran suivant
-            router.replace('/(onboarding)/photo');
+            router.replace('/(protected)/home');
         } catch (error) {
             console.error('Erreur lors de la validation du pseudo :', error);
-            // Gérer l’erreur (afficher un message, etc.)
         }
     };
 

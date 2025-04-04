@@ -10,25 +10,23 @@ export enum EntityType {
 
 export interface CustomUser {
     id: number;
-    auth0Id: string;
+    auth0_id: string;
     email: string;
     pseudo: string;
-    firstName?: string;
-    lastName?: string;
-    pictureUrl?: string;
-    phoneNumber?: string;
+    first_name?: string;
+    last_name?: string;
+    picture_url?: string;
+    phone_number?: string;
     role: UserRole;
     favorites?: UserFavorite[];
     active: boolean;
-    createdAt: string;
-    lastUpdate: string;
+    created_at: string;
+    last_update: string;
 }
 
 export interface UserFavorite {
-    id: number;
-    entityType: EntityType;
-    entityId: number;
-    createdAt: string;
+    entity_type: EntityType;
+    entity_id: number;
 }
 
 export interface UserRegistrationRequest {
