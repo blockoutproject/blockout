@@ -3,13 +3,13 @@ package com.blockout.users.controllers;
 import com.auth0.exception.Auth0Exception;
 import com.blockout.users.models.CustomUser;
 import com.blockout.users.models.UserRegistrationRequest;
+import com.blockout.users.models.dto.CustomUserDto;
 import com.blockout.users.services.UserService;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -23,8 +23,11 @@ import java.util.Optional;
 @RequestMapping("/users/v1")
 public class UserController {
 
-    @Autowired
-    private UserService userService;
+    private final UserService userService;
+
+    public UserController(UserService userService) {
+        this.userService = userService;
+    }
 
     @Operation(summary = "Récupérer un utilisateur par ID Auth0", description = "Retourne un utilisateur spécifique en fonction de l'ID Auth0 fourni.")
     @ApiResponses(value = {
@@ -32,10 +35,10 @@ public class UserController {
             @ApiResponse(responseCode = "404", description = "Utilisateur non trouvé")
     })
     @GetMapping("/users/auth0/{auth0Id}")
-    public ResponseEntity<CustomUser> getUserByAuth0Id(
+    public ResponseEntity<CustomUserDto> getUserByAuth0Id(
             @Parameter(description = "ID Auth0 de l'utilisateur") @PathVariable String auth0Id) {
 
-        Optional<CustomUser> user = userService.getUserByAuth0Id(auth0Id);
+        Optional<CustomUserDto> user = userService.getUserByAuth0Id(auth0Id);
 
         if (user.isEmpty()) {
             return ResponseEntity.notFound().build();

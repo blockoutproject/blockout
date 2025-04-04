@@ -7,10 +7,11 @@ import com.blockout.users.config.Auth0TokenManager;
 import com.blockout.users.models.CustomUser;
 import com.blockout.users.models.UserRegistrationRequest;
 import com.blockout.users.models.UserRole;
+import com.blockout.users.models.dto.CustomUserDto;
+import com.blockout.users.models.mappers.CustomUserMapper;
 import com.blockout.users.repositories.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,11 +27,12 @@ public class UserService {
 
     private final Auth0TokenManager tokenManager;
     private final UserRepository userRepository;
+    private final CustomUserMapper customUserMapper;
 
-    @Autowired
-    public UserService(Auth0TokenManager tokenManager, UserRepository userRepository) {
+    public UserService(Auth0TokenManager tokenManager, UserRepository userRepository, CustomUserMapper customUserMapper) {
         this.tokenManager = tokenManager;
         this.userRepository = userRepository;
+        this.customUserMapper = customUserMapper;
     }
 
     /**
@@ -39,11 +41,9 @@ public class UserService {
      * @param auth0Id L'identifiant Auth0 de l'utilisateur
      * @return Optional contenant l'utilisateur s'il existe
      */
-    public Optional<CustomUser> getUserByAuth0Id(String auth0Id) {
-        logger.info("Récupération de l'utilisateur avec l'ID Auth0",
-                keyValue("action", "get_user_by_auth0_id"),
-                keyValue("auth0Id", auth0Id));
-        return userRepository.findByAuth0Id(auth0Id);
+    public Optional<CustomUserDto> getUserByAuth0Id(String auth0Id) {
+        return userRepository.findByAuth0IdWithFavorites(auth0Id)
+            .map(customUserMapper::toDto);
     }
 
     /**
@@ -60,7 +60,7 @@ public class UserService {
         if (auth0User == null) {
             throw new Auth0Exception("Utilisateur non trouvé dans Auth0 pour l'id: " + auth0Id);
         }
-    
+
         CustomUser user = CustomUser.builder()
                 .auth0Id(auth0User.getId())
                 .email(auth0User.getEmail())
@@ -72,20 +72,20 @@ public class UserService {
                 .role(UserRole.USER)
                 .active(true)
                 .build();
-    
+
         logger.info("Enregistrement d'un nouvel utilisateur",
                 keyValue("action", "register_user"),
                 keyValue("email", user.getEmail()));
-    
+
         LocalDateTime now = LocalDateTime.now();
         user.setCreatedAt(now);
         user.setLastUpdate(now);
-    
+
         CustomUser createdUser = userRepository.save(user);
         logger.info("Utilisateur créé avec succès",
                 keyValue("action", "register_user"),
                 keyValue("userId", createdUser.getId()));
-    
+
         return createdUser;
     }
 }
