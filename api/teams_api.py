@@ -53,3 +53,18 @@ async def get_teams_by_division_format_gender(session: aiohttp.ClientSession, di
         'gender': gender
     }
     return await session.get(f"{TEAM_API_URL}/teams/search", params=params, headers=headers)
+
+@handle_api_response(response_type=list[Team])
+async def get_teams_by_ids(session: aiohttp.ClientSession, ids: list[int]) -> list[Team]:
+    """
+    Récupère les équipes correspondant aux IDs fournis (via query string CSV).
+    """
+    if not ids:
+        raise ValueError("La liste des IDs ne peut pas être vide.")
+
+    headers = _get_auth_headers()
+    params = { 
+        "ids": ",".join(str(id) for id in ids) 
+    }
+
+    return await session.post(f"{TEAM_API_URL}/teams/by-ids", params=params, headers=headers)

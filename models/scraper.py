@@ -269,7 +269,11 @@ class Scraper(ABC):
             if match_key not in self._matches_cache:
                 self._matches_cache[match_key] = (None, updated_match, [], priority)
 
-            existing_obj, updated_obj, changes_list, current_priority = self._matches_cache.get(match_key, (None, None, [], None))
+            existing_obj, updated_obj, changes_list, current_priority = self._matches_cache.get(match_key)
+            
+            if updated_obj and not existing_obj.active:
+                updated_obj.active = True
+                changes_list.append(f"[{prefix}] Match réactivé")
             
             # Champs
             lnv_priority_fields = ["match_date", "score", "set"]
@@ -278,6 +282,10 @@ class Scraper(ABC):
                 "pool_id", "team_id_a", "team_id_b",
                 "venue", "referee1", "referee2", "status"
             ]
+            
+            if updated_obj and not updated_obj.active:
+                updated_obj.active = True
+                changes_list.append(f"[{prefix}] Match réactivé")
 
             if self.priority_validation_enabled:
                 # LNV-XML

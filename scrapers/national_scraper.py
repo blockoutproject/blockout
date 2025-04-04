@@ -103,8 +103,8 @@ class NationalScraper(Scraper):
                     # Ajout / Mise à jour de la Pool
                     new_pool = await add_or_update_pool(self.session, pool_obj, existing_pool)
                     
-                    # 5) Appel de la logique CSV, on passe le scraper
-                    #    pour écrire les matches dans le cache
+                    # Appel de la logique CSV, on passe le scraper
+                    # pour écrire les matches dans le cache
                     task = handle_csv_download_and_parse(
                         self,
                         new_pool,
@@ -126,14 +126,18 @@ class NationalScraper(Scraper):
             # Exécution parallèle du téléchargement CSV
             await asyncio.gather(*tasks)
 
-            # Désactivation des pools non scrapées
-            await bulk_deactivate_pools(self.session, self.scraped_pool_ids)
-
             # Finalisation : on applique toutes les modifications pour les matchs
             await self.finalize_matches_updates()
             
             # Finalisation : on applique toutes les modifications pour les associations
             await self.finalize_associations_updates()
+            
+            # Désactivation des pools non scrapées
+            missing_pools = [
+                pool for pool in existing_pools if pool.id not in self.scraped_pool_ids
+            ]
+            if missing_pools:
+                await bulk_deactivate_pools(self.session, missing_pools)
             
         except Exception as e:
             log_event(

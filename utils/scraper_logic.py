@@ -6,8 +6,8 @@ from models.scraper import Scraper
 from models.team import Team
 from services.matchs_service import deactivate_matches
 from services.teams_service import add_or_update_team
-from api.competitions_api import add_team_to_pool, bulk_deactivate_teams_by_pool, get_active_team_associations_by_pool
-from api.teams_api import get_teams_by_division_format_gender
+from api.competitions_api import add_team_to_pool, bulk_deactivate_teams_by_pool, get_team_associations_by_pool
+from api.teams_api import get_teams_by_ids
 from utils.file_utils import download_and_parse_csv
 from utils.match_utils import compute_volleyball_match_stats
 from utils.team_utils import get_full_name, get_short_name
@@ -50,7 +50,6 @@ async def handle_csv_download_and_parse(
             )
             return
         
-        # Si tu veux vérifier que des données ont bien été extraites, convertis l'itérateur en liste
         parsed_list = list(parsed_data)
         if not parsed_list:
             log_event(
@@ -63,20 +62,17 @@ async def handle_csv_download_and_parse(
                 season=season
             )
             return
+
+        # Associations actives
+        active_assoc = await get_team_associations_by_pool(scraper.session, pool.id) or []
+        active_team_ids = [assoc.team_id for assoc in active_assoc]
         
         # Teams existantes
-        existing_teams = await get_teams_by_division_format_gender(
-            scraper.session, pool.division_name, pool.format, pool.gender
-        ) or []
-
+        existing_teams = await get_teams_by_ids(scraper.session, active_team_ids) if active_team_ids else []
         existing_teams_dict = {
             (t.club_id, t.division_name, t.format, t.gender, t.name): t
             for t in existing_teams
         }
-
-        # Associations actives
-        active_assoc = await get_active_team_associations_by_pool(scraper.session, pool.id)
-        active_team_ids = {assoc.team_id for assoc in active_assoc} #????
 
         scraped_team_ids = set()
         scraped_match_codes = set()
@@ -200,10 +196,14 @@ async def handle_csv_download_and_parse(
             )
 
         # Désactivation
-        await asyncio.gather(
-            bulk_deactivate_teams_by_pool(scraper.session, pool.id, scraped_team_ids),
-            deactivate_matches(scraper.session, pool.id, scraped_match_codes)
-        )
+        missing_team_ids = [
+            team.id for team in existing_teams if team.id not in scraped_team_ids
+        ]
+        if missing_team_ids:
+            await bulk_deactivate_teams_by_pool(scraper.session, pool.id, missing_team_ids),
+            
+        await deactivate_matches(scraper.session, pool.id, scraped_match_codes)
+        
 
     except Exception as e:
         log_event(

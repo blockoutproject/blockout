@@ -19,8 +19,9 @@ class RegionalScraper(Scraper):
             name="regional_scraper", 
             category=Category.REG, 
             url="http://www.ffvb.org/120-37-1-Championnats-Regionaux", 
-            priority_validation_enabled=False
+            priority_validation_enabled=False,
         )
+        self.existing_pools: list[Pool] = []
 
     async def run_scraping(self):
         """
@@ -82,14 +83,18 @@ class RegionalScraper(Scraper):
             # On exécute toutes les tâches (une par ligue)
             await asyncio.gather(*tasks)
             
-            # Désactiver les poules non retrouvées
-            await bulk_deactivate_pools(self.session, self.scraped_pool_ids)
-            
             # Finalisation : on applique toutes les modifications pour les matchs
             await self.finalize_matches_updates()
             
             # Finalisation : on applique toutes les modifications pour les associations
             await self.finalize_associations_updates()
+            
+            # Désactiver les poules non retrouvées
+            missing_pool_ids = [
+                pool.id for pool in self.existing_pools if pool.id not in self.scraped_pool_ids
+            ]
+            if missing_pool_ids:
+                await bulk_deactivate_pools(self.session, missing_pool_ids)
 
         except Exception as e:
             log_event(
@@ -107,50 +112,52 @@ class RegionalScraper(Scraper):
         """
         try:
             # On ignore certaines ligues...
-            if league_code not in ['LIMY', 'LIGY', 'LIGU', 'LIMART', 'LIRE']:
-                league_page_url = league_page_url.replace('https://', 'http://')
-                html_content = await self.fetch(league_page_url)
-                if not html_content:
-                    log_event(
-                        action="fetch_html_error",
-                        level="error",
-                        league_name=league_name,
-                        league_code=league_code,
-                        message="Échec de la récupération du contenu HTML pour la ligue."
-                    )
-                    return
+            league_page_url = league_page_url.replace('https://', 'http://')
+            html_content = await self.fetch(league_page_url)
+            if not html_content:
+                log_event(
+                    action="fetch_html_error",
+                    level="error",
+                    league_name=league_name,
+                    league_code=league_code,
+                    message="Échec de la récupération du contenu HTML pour la ligue."
+                )
+                return
 
-                soup = BeautifulSoup(html_content, 'html.parser')
-                pool_links = soup.select('ul#menu > li > ul > li > ul > li > a[href*="poule="]')
-                tasks = []
+            soup = BeautifulSoup(html_content, 'html.parser')
+            pool_links = soup.select('ul#menu > li > ul > li > ul > li > a[href*="poule="]')
+            tasks = []
 
-                # On essaie de récupérer la saison depuis le premier lien
-                raw_season = None
-                for a_tag in pool_links:
-                    href = a_tag['href']
-                    season_match = re.search(r'saison=([^&]+)', href)
-                    if season_match:
-                        raw_season = season_match.group(1)
-                        break
+            # On essaie de récupérer la saison depuis le premier lien
+            raw_season = None
+            for a_tag in pool_links:
+                href = a_tag['href']
+                season_match = re.search(r'saison=([^&]+)', href)
+                if season_match:
+                    raw_season = season_match.group(1)
+                    break
 
-                if not raw_season:
-                    log_event(
-                        action="missing_season",
-                        level="warning",
-                        league_name=league_name,
-                        league_code=league_code,
-                        message="Aucune saison trouvée pour la ligue."
-                    )
-                    raise ValueError("Saison non trouvée.")
+            if not raw_season:
+                log_event(
+                    action="missing_season",
+                    level="warning",
+                    league_name=league_name,
+                    league_code=league_code,
+                    message="Aucune saison trouvée pour la ligue."
+                )
+                raise ValueError("Saison non trouvée.")
 
-                parsed_season = parse_season(raw_season)
-                existing_pools = await get_pools_by_league_and_season(self.session, league_code, parsed_season)
-                existing_pools_dict = {
-                    (p.pool_code, p.league_code, p.season): p
-                    for p in existing_pools
-                }
+            parsed_season = parse_season(raw_season)
+            existing_pools = await get_pools_by_league_and_season(self.session, league_code, parsed_season)
+            self.existing_pools.extend(existing_pools) # On stocke les poules existantes pour la désactivation
 
-                # Parcours des poules
+            existing_pools_dict = {
+                (p.pool_code, p.league_code, p.season): p
+                for p in existing_pools
+            }
+
+            # Parcours des poules
+            if league_code not in ['LIMY', 'LIGY', 'LIGU', 'LIMART']:
                 for a_tag in pool_links:
                     try:
                         href = a_tag['href']

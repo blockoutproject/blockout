@@ -59,6 +59,15 @@ class ProScraper(Scraper):
                 "lnv_xml_matches_url": "https://www.lnv.fr/xml/calendrier-LAF.xml",                
                 "lnv_xml_rank_url": "https://www.lnv.fr/xml/classement-LAF.xml"
             },
+            # {
+            #     "code": "FAZ",
+            #     "pool_name": "Saforelle Power 6 - Playoffs",
+            #     "division_name": "Saforelle Power 6 - Playoffs",
+            #     "gender": "F",
+            #     "lnv_url": "http://lnv-web.dataproject.com/CompetitionMatches.aspx?ID=113",
+            #     "lnv_xml_matches_url": "https://www.lnv.fr/xml/calendrier-LAF.xml",                
+            #     "lnv_xml_rank_url": "https://www.lnv.fr/xml/classement-LAF.xml"
+            # },
         ]
 
     async def run_scraping(self):

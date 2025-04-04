@@ -56,6 +56,7 @@ async def update_pool(session: aiohttp.ClientSession, pool: Pool, changes_list: 
     log_event(
         action="update_pool",
         level="info",
+        pool_id=pool.id,
         pool_code=pool.pool_code,
         changes_list=changes_list
     )

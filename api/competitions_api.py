@@ -13,10 +13,20 @@ from utils.utils import to_dict
 @handle_api_response(response_type=list[CompetitionAssociation])
 async def get_active_team_associations_by_pool(session: aiohttp.ClientSession, pool_id: int) -> Optional[list[CompetitionAssociation]]:
     """
-    Récupère la liste des associations 'Pool–Team' actives (côté Competition) pour une pool donnée.
+    Récupère la liste des associations actives pour une pool donnée.
     """
     headers = _get_auth_headers()
     url = f"{COMPETITION_API_URL}/pools/{pool_id}/teams/active"
+    response = await session.get(url, headers=headers)
+    return response
+
+@handle_api_response(response_type=list[CompetitionAssociation])
+async def get_team_associations_by_pool(session: aiohttp.ClientSession, pool_id: int) -> Optional[list[CompetitionAssociation]]:
+    """
+    Récupère la liste de toutes les associations pour une pool donnée.
+    """
+    headers = _get_auth_headers()
+    url = f"{COMPETITION_API_URL}/pools/{pool_id}/teams"
     response = await session.get(url, headers=headers)
     return response
 
@@ -39,31 +49,36 @@ async def add_team_to_pool(session: aiohttp.ClientSession, category: Category, p
     return response
 
 @handle_api_response(response_type=None)
-async def bulk_deactivate_teams_by_pool(session: aiohttp.ClientSession, pool_id: int, scraped_team_ids: list[int]) -> None:
+async def bulk_deactivate_teams_by_pool(session: aiohttp.ClientSession, pool_id: int, missing_team_ids: list[int]) -> None:
     """
-    Désactive en masse les associations Pool–Team qui ne figurent plus dans la liste 'scraped_team_ids'.
+    Désactive en masse les associations Pool–Team qui figurent dans la liste 'missing_team_ids'.
     """
     headers = _get_auth_headers()
     url = f"{COMPETITION_API_URL}/pools/{pool_id}/teams/bulk-deactivate"
     payload = {
-        "scraped_team_ids": list(scraped_team_ids)
+        "missing_team_ids": list(missing_team_ids)
     }
 
     response = await session.put(url, json=payload, headers=headers)
     return response
 
 @handle_api_response(response_type=None)
-async def bulk_deactivate_pools(session: aiohttp.ClientSession, scraped_pool_ids: list[int]) -> None:
+async def bulk_deactivate_pools(session: aiohttp.ClientSession, missing_pool_ids: list[int]) -> None:
     """
-    Désactive en masse les associations pool_id qui ne figurent plus dans la liste 'scraped_pool_ids'.
+    Désactive en masse les associations pool_id qui ne figurent plus dans la liste 'missing_pool_ids'.
     """
     headers = _get_auth_headers()
     url = f"{COMPETITION_API_URL}/pools/bulk-deactivate"
     payload = {
-        "scraped_pool_ids": list(scraped_pool_ids)
+        "missing_pool_ids": list(missing_pool_ids)
     }
 
     response = await session.put(url, json=payload, headers=headers)
+    log_event(
+        action="bulk_deactivate_pools",
+        level="info",
+        message=f"PUT {url} - Désactivation en masse des pools {missing_pool_ids}."
+    )
     return response
 
 @handle_api_response(response_type=CompetitionAssociation)

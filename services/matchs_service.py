@@ -6,39 +6,6 @@ from models.match import Match, MatchStatus
 from config.logger_config import log_event, logger
 from models.scraper import Scraper
 
-async def add_or_update_match(session: aiohttp.ClientSession, match: Match, existing_match: Optional[Match]) -> Match:
-    """
-    Vérifie l'existence d'un match et le met à jour ou le crée selon les besoins.
-    """
-    # Vérification des champs requis
-    required_fields = ['league_code', 'match_code', 'pool_id', 'team_id_a', 'team_id_b', 'match_date']
-    missing_fields = [field for field in required_fields if not getattr(match, field, None)]
-    if missing_fields:
-        raise ValueError(f"Les champs obligatoires suivants sont manquants : {', '.join(missing_fields)}.")
-    
-    if existing_match:
-        changes_list = []
-        match.id = existing_match.id
-
-        for field in ['team_id_a', 'team_id_b', 'match_date', 'set', 'score', 'status', 'venue', 'referee1', 'referee2']:
-            if field == 'match_date' and match.league_code != 'AALNV':
-                if existing_match.match_date.isoformat() != match.match_date.isoformat():
-                    changes_list.append(f"{field}: {existing_match.match_date.isoformat()} -> {match.match_date.isoformat()}")
-            elif field != 'match_date' and getattr(existing_match, field, None) != getattr(match, field, None):
-                changes_list.append(f"{field}: {getattr(existing_match, field)} -> {getattr(match, field)}")
-
-        if not existing_match.active:
-            match.active = True
-            changes_list.append("Match réactivé.")
-
-        if changes_list:
-            return await update_match(session, match, changes_list)
-        return existing_match
-
-    # Cas où le match n'existe pas
-    new_match = await create_match(session, match)
-    return new_match
-
 def find_match_in_cache(scraper: Scraper, pool_id: int, team_id_a: int, team_id_b: int, match_date: date) -> Optional[Match]:
     # On parcourt le cache: key => (league_code, match_code), value => (existing_match, updated_match, changes_list, priority)
     for (league_code, match_code), (original, updated, _, _) in scraper._matches_cache.items():
