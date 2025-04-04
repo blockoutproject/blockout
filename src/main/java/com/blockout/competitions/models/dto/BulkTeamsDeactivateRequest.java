@@ -11,6 +11,6 @@ public class BulkTeamsDeactivateRequest {
      * Liste des teamIds qui sont encore présents dans la poule 
      * selon le scraping.
      */
-    @JsonProperty("scraped_team_ids")
-    private List<Long> scrapedTeamIds;
+    @JsonProperty("missing_team_ids")
+    private List<Long> missingTeamIds;
 }
