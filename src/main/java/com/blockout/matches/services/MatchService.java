@@ -10,7 +10,6 @@ import com.blockout.matches.repositories.MatchRepository;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -23,9 +22,11 @@ import static net.logstash.logback.argument.StructuredArguments.keyValue;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
 
@@ -34,11 +35,15 @@ public class MatchService {
 
     private static final Logger logger = LoggerFactory.getLogger(MatchService.class);
 
-    @Autowired
-    private MatchRepository matchRepository;
+    private final MatchRepository matchRepository;
+
+    public MatchService(MatchRepository matchRepository) {
+        this.matchRepository = matchRepository;
+    }
 
     /**
      * Crée un nouveau match
+     * 
      * @param match L'objet Match à créer
      * @return Le match créé avec son ID généré
      */
@@ -53,11 +58,12 @@ public class MatchService {
 
     /**
      * Récupère les matchs groupés par jour avec pagination
+     * 
      * @param poolIds Liste des IDs de pools à filtrer
      * @param teamIds Liste des IDs d'équipes à filtrer
-     * @param status Le statut des matchs à récupérer
-     * @param page Le numéro de page
-     * @param size La taille de la page
+     * @param status  Le statut des matchs à récupérer
+     * @param page    Le numéro de page
+     * @param size    La taille de la page
      * @return Un objet DayPageDTO contenant les matchs par jour
      */
     public DayPageDTO getMatchesByDay(
@@ -154,6 +160,7 @@ public class MatchService {
 
     /**
      * Récupère tous les matchs avec pagination
+     * 
      * @param pageable L'objet Pageable pour la pagination
      * @return Une page de matchs
      */
@@ -183,6 +190,7 @@ public class MatchService {
 
     /**
      * Récupère un match par son ID
+     * 
      * @param id L'identifiant du match
      * @return Optional contenant le match s'il existe
      */
@@ -198,6 +206,7 @@ public class MatchService {
 
     /**
      * Récupère les matchs par pool
+     * 
      * @param poolId L'identifiant de la pool
      * @return Liste des matchs de la pool
      */
@@ -213,6 +222,7 @@ public class MatchService {
 
     /**
      * Met à jour un match existant
+     * 
      * @param id L'identifiant du match à mettre à jour
      * @param updatedMatch Les nouvelles données du match
      * @return Le match mis à jour
@@ -249,33 +259,43 @@ public class MatchService {
         });
     }
 
-    /**
-     * Désactive un match
-     * @param matchId L'identifiant du match à désactiver
-     * @return Le match désactivé
-     * @throws MatchNotFoundException Si le match n'existe pas
-     */
     @Transactional
-    public Match deactivateMatch(Long matchId) {
-        return matchRepository.findById(matchId).map(match -> {
-            match.setActive(false);
-            Match updatedMatch = matchRepository.save(match);
+    public void bulkDeactivateMatches(List<Long> matchIds) {
+        Set<Long> matchIdsToDeactivateSet = new HashSet<>(matchIds);
+        logger.info("Début de la désactivation en masse des matches",
+                keyValue("action", "bulk_deactivate_matches"),
+                keyValue("matchIds", matchIdsToDeactivateSet));
 
-            logger.info("Match successfully deactivated",
-                    keyValue("action", "deactivate_match"),
-                    keyValue("matchId", matchId));
+        // Récupérer les matches actifs parmi ceux dont l'ID figure dans la liste
+        List<Match> matchesToDeactivate = matchRepository.findByIdInAndActiveTrue(matchIdsToDeactivateSet);
 
-            return updatedMatch;
-        }).orElseThrow(() -> {
-            logger.error("Match not found. Cannot deactivate.",
-                    keyValue("action", "deactivate_match"),
-                    keyValue("matchId", matchId));
-            return new MatchNotFoundException(matchId);
-        });
+        if (matchesToDeactivate.isEmpty()) {
+            logger.info("Aucun match trouvé à désactiver pour les IDs fournis",
+                    keyValue("action", "bulk_deactivate_matches"),
+                    keyValue("matchIds", matchIdsToDeactivateSet));
+            return;
+        }
+
+        // Désactiver les matches récupérés
+        matchesToDeactivate.forEach(match -> match.setActive(false));
+        matchRepository.saveAll(matchesToDeactivate);
+        logger.info("Matches désactivés en masse",
+                keyValue("action", "bulk_deactivate_matches"),
+                keyValue("nombreMatches", matchesToDeactivate.size()));
+
+        Long poolId = matchesToDeactivate.get(0).getPoolId();
+        boolean poolHasActiveMatches = matchRepository.existsByPoolIdAndActiveTrue(poolId);
+        // if (!poolHasActiveMatches) {
+        //     eventPublisher.publishPoolDeactivationEvent(poolId);
+        //     logger.info("Événement de désactivation de pool publié",
+        //             keyValue("action", "publish_pool_deactivation"),
+        //             keyValue("poolId", poolId));
+        // }
     }
 
     /**
      * Désactive tous les matchs d'une pool
+     * 
      * @param poolId L'identifiant de la pool
      */
     @Transactional
@@ -290,7 +310,7 @@ public class MatchService {
                 match.setActive(false);
                 matchRepository.save(match);
                 logger.info("Match deactivated as part of pool deactivation",
-                        keyValue("action", "deactivate_match"),
+                        keyValue("action", "deactivate_matches_by_pool"),
                         keyValue("matchId", match.getId()),
                         keyValue("poolId", poolId));
             });
@@ -299,13 +319,14 @@ public class MatchService {
 
     /**
      * Désactive tous les matchs d'une équipe
+     * 
      * @param teamId L'identifiant de l'équipe
      */
     @Transactional
     public void deactivateMatchesByTeamId(Long teamId) {
-        List<Match> matches = matchRepository.findByTeamIdAOrTeamIdB(teamId, teamId);
+        List<Match> matches = matchRepository.findByActiveAndTeamId(true, teamId);
         if (matches.isEmpty()) {
-            logger.warn("No matches found for team ID. No deactivation performed.",
+            logger.warn("No actives matches found for team ID. No deactivation performed.",
                     keyValue("action", "deactivate_matches_by_team"),
                     keyValue("teamId", teamId));
         } else {
@@ -313,17 +334,46 @@ public class MatchService {
                 match.setActive(false);
                 matchRepository.save(match);
                 logger.info("Match deactivated as part of team deactivation",
-                        keyValue("action", "deactivate_match"),
+                        keyValue("action", "deactivate_matches_by_team"),
                         keyValue("matchId", match.getId()),
+                        keyValue("poolId", match.getPoolId()),
                         keyValue("teamId", teamId));
             });
         }
     }
 
     /**
+     * Désactive tous les matchs d'une équipe dans une poule
+     * 
+     * @param teamId L'identifiant de l'équipe
+     * @param poolId L'identifiant de la poule
+     */
+    @Transactional
+    public void deactivateMatchesByTeamAndPool(Long teamId, Long poolId) {
+        List<Match> matches = matchRepository.findByActiveAndPoolIdAndTeamId(true, poolId, teamId);
+        if (matches.isEmpty()) {
+            logger.warn("No actives matches found for team ID and pool ID. No deactivation performed.",
+                    keyValue("action", "deactivate_matches_by_team_and_pool"),
+                    keyValue("teamId", teamId),
+                    keyValue("poolId", poolId));
+        } else {
+            matches.forEach(match -> {
+                match.setActive(false);
+                matchRepository.save(match);
+                logger.info("Match deactivated as part of team and pool deactivation",
+                        keyValue("action", "deactivate_matches_by_team_and_pool"),
+                        keyValue("matchId", match.getId()),
+                        keyValue("teamId", teamId),
+                        keyValue("poolId", poolId));
+            });
+        }
+    }
+
+    /**
      * Récupère un match par code de ligue et code de match
+     * 
      * @param leagueCode Le code de la ligue
-     * @param matchCode Le code du match
+     * @param matchCode  Le code du match
      * @return Optional contenant le match s'il existe
      */
     public Optional<Match> getMatchByLeagueCodeAndMatchCode(String leagueCode, String matchCode) {
@@ -339,6 +389,7 @@ public class MatchService {
 
     /**
      * Récupère les matchs actifs d'une pool
+     * 
      * @param poolId L'identifiant de la pool
      * @return Liste des matchs actifs de la pool
      */
@@ -349,8 +400,9 @@ public class MatchService {
 
     /**
      * Récupère les matchs commencés selon le statut et l'état d'activation
-     * @param status Le statut des matchs
-     * @param active L'état d'activation des matchs
+     * 
+     * @param status      Le statut des matchs
+     * @param active      L'état d'activation des matchs
      * @param currentTime La date/heure actuelle
      * @return Liste des matchs correspondants
      */
@@ -367,9 +419,10 @@ public class MatchService {
 
     /**
      * Récupère un match par pool, équipes et date
-     * @param poolId L'identifiant de la pool
-     * @param teamIdA L'identifiant de la première équipe
-     * @param teamIdB L'identifiant de la deuxième équipe
+     * 
+     * @param poolId    L'identifiant de la pool
+     * @param teamIdA   L'identifiant de la première équipe
+     * @param teamIdB   L'identifiant de la deuxième équipe
      * @param matchDate La date du match
      * @return Optional contenant le match s'il existe
      */

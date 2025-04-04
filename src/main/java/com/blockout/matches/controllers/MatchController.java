@@ -5,7 +5,6 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
@@ -15,6 +14,7 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import com.blockout.matches.exceptions.MatchNotFoundException;
 import com.blockout.matches.models.Match;
 import com.blockout.matches.models.MatchStatus;
+import com.blockout.matches.models.dto.BulkMatchesDeactivateRequest;
 import com.blockout.matches.models.dto.DayPageDTO;
 import com.blockout.matches.services.MatchService;
 
@@ -29,8 +29,11 @@ import java.util.Optional;
 @RequestMapping("/matches/v1")
 public class MatchController {
 
-    @Autowired
-    private MatchService matchService;
+    private final MatchService matchService;
+
+    public MatchController(MatchService matchService) {
+        this.matchService = matchService;
+    }
 
     @Operation(summary = "Créer un nouveau match", description = "Crée un nouveau match avec les informations fournies")
     @ApiResponses(value = {
@@ -87,12 +90,11 @@ public class MatchController {
     })
     @GetMapping("/matches/day-based")
     public ResponseEntity<DayPageDTO> getMatchesDayBased(
-        @RequestParam(defaultValue = "0") int page,
-        @RequestParam(defaultValue = "3") int size,
-        @RequestParam(name = "pool_ids", required = false) List<Long> poolIds,
-        @RequestParam(name = "team_ids", required = false) List<Long> teamIds,
-        @RequestParam(name = "status", required = false) MatchStatus status
-    ) {
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "3") int size,
+            @RequestParam(name = "pool_ids", required = false) List<Long> poolIds,
+            @RequestParam(name = "team_ids", required = false) List<Long> teamIds,
+            @RequestParam(name = "status", required = false) MatchStatus status) {
 
         if (poolIds == null) {
             poolIds = Collections.emptyList();
@@ -100,9 +102,9 @@ public class MatchController {
         if (teamIds == null) {
             teamIds = Collections.emptyList();
         }
-    
+
         DayPageDTO dayPage = matchService.getMatchesByDay(poolIds, teamIds, status, page, size);
-    
+
         if (dayPage.getDayMatches().isEmpty()) {
             return ResponseEntity.noContent().build();
         }
@@ -153,20 +155,14 @@ public class MatchController {
         }
     }
 
-    @Operation(summary = "Désactiver un match", description = "Désactive un match en fonction de l'ID fourni")
+    @Operation(summary = "Désactiver en masse des matches", description = "Désactive en masse les matches en fonction de la liste d'IDs fournie")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Match désactivé avec succès"),
-            @ApiResponse(responseCode = "404", description = "Match non trouvé")
+        @ApiResponse(responseCode = "200", description = "Matches désactivés en masse avec succès")
     })
-    @PutMapping("/matches/{id}/deactivate")
-    public ResponseEntity<Void> deactivateMatch(
-            @Parameter(description = "ID du match à désactiver") @PathVariable Long id) {
-        try {
-            matchService.deactivateMatch(id);
-            return ResponseEntity.ok().build();
-        } catch (MatchNotFoundException e) {
-            return ResponseEntity.notFound().build();
-        }
+    @PutMapping("/matches/bulk-deactivate")
+    public ResponseEntity<Void> bulkDeactivateMatches(@RequestBody BulkMatchesDeactivateRequest request) {
+        matchService.bulkDeactivateMatches(request.getMissingMatchIds());
+        return ResponseEntity.ok().build();
     }
 
     @Operation(summary = "Récupérer les matchs actifs par pool_id", description = "Retourne une liste des matchs actifs pour une pool donnée.")
