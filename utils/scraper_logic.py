@@ -6,8 +6,8 @@ from models.scraper import Scraper
 from models.team import Team
 from services.matchs_service import deactivate_matches
 from services.teams_service import add_or_update_team
-from api.competitions_api import add_team_to_pool, bulk_deactivate_teams_by_pool, get_team_associations_by_pool
-from api.teams_api import get_teams_by_ids
+from api.competitions_api import add_team_to_pool, bulk_deactivate_teams_by_pool
+from api.teams_api import get_teams_by_division_format_gender
 from utils.file_utils import download_and_parse_csv
 from utils.match_utils import compute_volleyball_match_stats
 from utils.team_utils import get_full_name, get_short_name
@@ -62,13 +62,19 @@ async def handle_csv_download_and_parse(
                 season=season
             )
             return
-
-        # Associations actives
-        active_assoc = await get_team_associations_by_pool(scraper.session, pool.id) or []
-        active_team_ids = [assoc.team_id for assoc in active_assoc]
         
         # Teams existantes
-        existing_teams = await get_teams_by_ids(scraper.session, active_team_ids) if active_team_ids else []
+        existing_teams = await get_teams_by_division_format_gender(
+            scraper.session, pool.division_name, pool.format, pool.gender
+        ) or []
+        
+        # Associations actives
+        active_team_ids = [
+            t_id
+            for (p_id, t_id), (original, _) in scraper._associations_cache.items()
+            if p_id == pool.id and original is not None
+        ]
+        
         existing_teams_dict = {
             (t.club_id, t.division_name, t.format, t.gender, t.name): t
             for t in existing_teams

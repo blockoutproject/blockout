@@ -11,7 +11,7 @@ async def add_or_update_team(session: aiohttp.ClientSession, team: Team, existin
     missing_fields = [field for field in required_fields if not getattr(team, field, None)]
     if missing_fields:
         raise ValueError(f"Les champs obligatoires suivants sont manquants : {', '.join(missing_fields)}.")
-
+        
     if existing_team:
         changes_list = []
         team.id = existing_team.id
