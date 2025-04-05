@@ -47,7 +47,6 @@ const RootLayout: React.FC = () => {
                                 <Stack screenOptions={{ headerShown: false }}>
                                     <Stack.Screen name="(auth)" />
                                     <Stack.Screen name="(protected)" />
-                                    <Stack.Screen name="+not-found" />
                                 </Stack>
                             </UserProvider>
                         </ApiProvider>

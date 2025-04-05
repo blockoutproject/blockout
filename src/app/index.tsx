@@ -1,27 +1,6 @@
-import React, { useEffect } from 'react';
-import { useRouter } from 'expo-router';
-import { useAuth0 } from 'react-native-auth0';
-import { View, ActivityIndicator } from 'react-native';
+// app/index.tsx
+import { Redirect } from 'expo-router';
 
-const Index: React.FC = () => {
-    const { user, isLoading } = useAuth0();
-    const router = useRouter();
-
-    useEffect(() => {
-        if (isLoading) return;
-
-        if (user) {
-            router.replace('/home');
-        } else {
-            router.replace('/login');
-        }
-    }, [user, isLoading, router]);
-
-    return (
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-            <ActivityIndicator size="large" />
-        </View>
-    );
+export default function Index() {
+    return <Redirect href="/home" />;
 }
-
-export default Index;

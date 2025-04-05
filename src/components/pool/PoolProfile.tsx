@@ -5,32 +5,28 @@ import { Pool } from '@/src/types/Pool';
 import { colors } from '@/src/constants/Colors';
 import FastImage from 'react-native-fast-image'
 import UsersApi from '@/src/api/UsersApi';
-import { useUser } from '@/src/hooks/user/useUser';
 import { EntityType } from '@/src/types/User';
-import { useUserContext } from '@/src/context/UserProvider';
+import { useUserContext } from '@/src/hooks/user/useUserContext';
 
 type PoolProfileProps = {
     pool: Pool;
 };
 
 const PoolProfile: React.FC<PoolProfileProps> = ({ pool }) => {
-    const { user, isLoading } = useUserContext();
-    const { data: userData, refetch } = useUser();
+    const { customUser, refetch } = useUserContext();
     const [isProcessing, setIsProcessing] = useState(false);
 
     // Check si la pool est déjà dans les favoris
     const isFollowing = useMemo(() => {
-        if (!user || !user.favorites) return false;
-        console.log(" -------- User dans isFollowing : ", user);
-        const isFav = user.favorites.some((fav) => fav.entity_id === pool.id && fav.entity_type === EntityType.POOL);
+        if (!customUser || !customUser.favorites) return false;
+        const isFav = customUser.favorites.some((fav) => fav.entity_id === pool.id && fav.entity_type === EntityType.POOL);
         return isFav;
-    }, [user, pool.id]);
+    }, [customUser, pool.id]);
 
     const handleFollowToggle = async () => {
-        if (!user || isProcessing) return;
+        if (!customUser || isProcessing) return;
         setIsProcessing(true);
         try {
-            console.log('Toggle follow for pool:', pool.id, isFollowing);
             if (isFollowing) {
                 await UsersApi.getInstance().unfollow(EntityType.POOL, pool.id);
             } else {

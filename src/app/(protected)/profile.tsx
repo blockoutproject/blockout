@@ -11,6 +11,7 @@ const ProfileScreen: React.FC = () => {
     const handleLogout = async () => {
         try {
             await clearSession();
+            router.replace('/login'); // Redirige vers la page de connexion après déconnexion
         } catch (error) {
             console.log('Erreur lors de la déconnexion :', error);
         }

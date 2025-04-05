@@ -1,23 +1,28 @@
-import React, { createContext, useContext, useMemo } from 'react';
-import { useUser } from '@/src/hooks/user/useUser';
-import { CustomUser } from '../types/User';
+import { createContext, useMemo } from "react";
+import { useCustomUser } from "../hooks/user/useUser";
+import { useAuth0 } from "react-native-auth0";
+import { UserContextValue } from "../types/User";
 
-interface UserContextValue {
-    user: CustomUser | undefined;
-    isLoading: boolean;
-    error: unknown;
-}
-
-const UserContext = createContext<UserContextValue | undefined>(undefined);
+export const UserContext = createContext<UserContextValue | undefined>(undefined);
 
 export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const { data, isLoading, error } = useUser();
+    const { user: auth0User, isLoading: isAuth0Loading } = useAuth0();
+    const {
+        data: customUser,
+        isLoading: isCustomUserLoading,
+        error,
+        refetch
+    } = useCustomUser(auth0User?.sub);
+
+    const isLoading = isAuth0Loading || isCustomUserLoading;
 
     const value = useMemo(() => ({
-        user: data,
+        auth0User,
+        customUser,
         isLoading,
         error,
-    }), [data, isLoading, error]);
+        refetch,
+    }), [auth0User, customUser, isLoading, error, refetch]);
 
     return (
         <UserContext.Provider value={value}>
@@ -25,11 +30,3 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         </UserContext.Provider>
     );
 };
-
-export function useUserContext() {
-    const context = useContext(UserContext);
-    if (!context) {
-        throw new Error('useUserContext must be used within a UserProvider');
-    }
-    return context;
-}

@@ -1,37 +1,20 @@
 import React, { useEffect } from 'react';
 import { Slot, useRouter } from 'expo-router';
-import { useAuth0 } from 'react-native-auth0';
-import { View, ActivityIndicator } from 'react-native';
-import { useUser } from '@/src/hooks/user/useUser';
+import { ActivityIndicator, View } from 'react-native';
+import { useUserContext } from '@/src/hooks/user/useUserContext';
+import { useAuthGuard } from '@/src/hooks/auth/useAuthGuard';
 
 export default function AuthLayout() {
+    useAuthGuard();
     const router = useRouter();
-    const { user: auth0User, isLoading: isAuth0Loading } = useAuth0();
-    const { data: customUser, isLoading: isUserLoading } = useUser();
+    const { auth0User, customUser, isLoading } = useUserContext();
 
-    const isLoadingCombined = isAuth0Loading || isUserLoading;
-
-    useEffect(() => {
-        // Quand tout est chargé et qu’on a un utilisateur Auth0 :
-        if (!isLoadingCombined && auth0User) {
-            // 1) A-t-on un user dans notre base ?
-            if (!customUser) {
-                // N’existe pas → redirection première étape
-                router.replace('/(onboarding)/pseudo');
-            } else {
-                // S’il a tout, direction home
-                router.replace('/home');
-            }
-        }
-    }, [isLoadingCombined, auth0User, customUser, router]);
-
-    if (isLoadingCombined) {
+    if (isLoading) {
         return (
-            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-                <ActivityIndicator size='large' />
+            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#111' }}>
+                <ActivityIndicator size='small' />
             </View>
         );
     }
-
     return <Slot />;
 }

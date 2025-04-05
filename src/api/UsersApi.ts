@@ -35,13 +35,13 @@ class UsersApi extends AbstractApi {
      * @param auth0Id L'identifiant Auth0 de l'utilisateur.
      * @returns Un objet Promise contenant l'utilisateur s'il existe, null sinon.
      */
-    public async getUserByAuth0Id(auth0Id: string): Promise<CustomUser | undefined> {
+    public async getUserByAuth0Id(auth0Id: string): Promise<CustomUser | null> {
         try {
             const response = await this.service.get(`/users/auth0/${auth0Id}`);
             return response.data;
         } catch (error: any) {
             if (error.response && error.response.status === 404) {
-                return undefined;
+                return null;
             }
             throw error;
         }

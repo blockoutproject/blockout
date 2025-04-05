@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, Button } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useUser } from '@/src/hooks/user/useUser';
 import UsersApi from '@/src/api/UsersApi';
+import { useUserContext } from '@/src/hooks/user/useUserContext';
 
 export default function PseudoScreen() {
-    const { data: customUser, refetch } = useUser();
+    const { customUser, refetch } = useUserContext();
     const router = useRouter();
 
     const [pseudo, setPseudo] = useState('');
@@ -24,9 +24,6 @@ export default function PseudoScreen() {
             if (!customUser) {
                 // User n’existe pas -> on le crée
                 await usersApi.registerUser({ pseudo });
-            } else {
-                // User existe -> on met à jour
-                await usersApi.updateUser(customUser.id, { pseudo });
             }
 
             // Refetch pour mettre à jour localement

@@ -1,3 +1,5 @@
+import { User } from "react-native-auth0";
+
 export enum UserRole {
     USER = "USER",
     ADMIN = "ADMIN"
@@ -31,4 +33,12 @@ export interface UserFavorite {
 
 export interface UserRegistrationRequest {
     pseudo: string;
+}
+
+export interface UserContextValue {
+    auth0User: User | null;
+    customUser: CustomUser | null | undefined;
+    isLoading: boolean;
+    error: unknown;
+    refetch: () => void;
 }

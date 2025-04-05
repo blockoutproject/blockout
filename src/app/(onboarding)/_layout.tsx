@@ -1,35 +1,18 @@
-// app/(auth)/_layout.tsx (ou AuthLayout.tsx)
 import React, { useEffect } from 'react';
 import { Slot, useRouter } from 'expo-router';
-import { useAuth0 } from 'react-native-auth0';
-import { View, ActivityIndicator } from 'react-native';
-import { useUser } from '@/src/hooks/user/useUser';
+import { ActivityIndicator, View } from 'react-native';
+import { useUserContext } from '@/src/hooks/user/useUserContext';
+import { useAuthGuard } from '@/src/hooks/auth/useAuthGuard';
 
-export default function AuthLayout() {
+export default function OnboardingLayout() {
+    useAuthGuard();
     const router = useRouter();
-    const { user: auth0User, isLoading: isAuth0Loading } = useAuth0();
-    const { data: customUser, isLoading: isUserLoading } = useUser();
+    const { auth0User, customUser, isLoading } = useUserContext();
 
-    const isLoadingCombined = isAuth0Loading || isUserLoading;
-
-    useEffect(() => {
-        if (!isLoadingCombined && auth0User) {
-            if (!customUser) {
-                router.replace('/(onboarding)/pseudo');
-            } else {
-                if (!customUser.pseudo) {
-                    router.replace('/(onboarding)/pseudo');
-                } else {
-                    router.replace('/home');
-                }
-            }
-        }
-    }, [isLoadingCombined, auth0User, customUser, router]);
-
-    if (isLoadingCombined) {
+    if (isLoading) {
         return (
             <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-                <ActivityIndicator size='large' />
+                <ActivityIndicator size="large" />
             </View>
         );
     }
