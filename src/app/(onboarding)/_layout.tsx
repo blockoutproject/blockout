@@ -3,15 +3,15 @@ import { Slot, useRouter } from 'expo-router';
 import { ActivityIndicator, View } from 'react-native';
 import { useUserContext } from '@/src/hooks/user/useUserContext';
 import { useAuthGuard } from '@/src/hooks/auth/useAuthGuard';
+import { colors } from '@/src/constants/Colors';
 
 export default function OnboardingLayout() {
     useAuthGuard();
-    const router = useRouter();
-    const { auth0User, customUser, isLoading } = useUserContext();
+    const { isLoading } = useUserContext();
 
     if (isLoading) {
         return (
-            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.dark }}>
                 <ActivityIndicator size="large" />
             </View>
         );

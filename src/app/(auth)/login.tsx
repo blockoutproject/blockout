@@ -14,7 +14,6 @@ import { colors } from '@/src/constants/Colors';
 
 const LoginScreen: React.FC = () => {
     const { authorize } = useAuth0();
-    const router = useRouter();
 
     const handleLogin = async () => {
         try {

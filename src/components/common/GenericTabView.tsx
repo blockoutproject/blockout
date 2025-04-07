@@ -25,10 +25,7 @@ type GenericTabViewProps = {
     indicatorColor: string;
 };
 
-const GenericTabView: React.FC<GenericTabViewProps> = ({
-    tabs,
-    indicatorColor
-}) => {
+const GenericTabView: React.FC<GenericTabViewProps> = ({ tabs, indicatorColor }) => {
     const layout = useWindowDimensions();
     const [index, setIndex] = useState(0);
 

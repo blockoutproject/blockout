@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ScrollView, ActivityIndicator } from 'react-native';
 import { useAuth0 } from 'react-native-auth0';
 import FastImage from 'react-native-fast-image';
 import { colors } from '@/src/constants/Colors';
@@ -11,7 +11,6 @@ const ProfileScreen: React.FC = () => {
     const handleLogout = async () => {
         try {
             await clearSession();
-            router.replace('/login'); // Redirige vers la page de connexion après déconnexion
         } catch (error) {
             console.log('Erreur lors de la déconnexion :', error);
         }
@@ -19,8 +18,8 @@ const ProfileScreen: React.FC = () => {
 
     if (!user) {
         return (
-            <View style={styles.container}>
-                <Text style={styles.errorText}>Aucun utilisateur n’est connecté.</Text>
+            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.dark }}>
+                <ActivityIndicator size="large" />
             </View>
         );
     }

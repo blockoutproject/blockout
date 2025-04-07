@@ -5,14 +5,15 @@ import { View, ActivityIndicator } from 'react-native';
 import HomeHeader from '@/src/components/home/HomeHeader';
 import { useUserContext } from '@/src/hooks/user/useUserContext';
 import { useAuthGuard } from '@/src/hooks/auth/useAuthGuard';
+import { colors } from '@/src/constants/Colors';
 
 const ProtectedLayout: React.FC = () => {
     useAuthGuard();
-    const { auth0User, customUser, isLoading } = useUserContext();
+    const { isLoading } = useUserContext();
 
     if (isLoading) {
         return (
-            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.dark }}>
                 <ActivityIndicator size="large" />
             </View>
         );

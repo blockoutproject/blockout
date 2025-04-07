@@ -14,7 +14,6 @@ const PoolModalScreen: React.FC = () => {
     return (
         <View style={styles.container}>
             <PoolProfile pool={pool!} />
-
             <View style={styles.tabsContainer}>
                 <PoolTabs pool={pool!} />
             </View>

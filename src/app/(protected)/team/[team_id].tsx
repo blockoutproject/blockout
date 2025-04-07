@@ -1,16 +1,13 @@
-import TeamStatsCard from "@/src/components/team/TeamStatsCard";
-import TeamInfoCard from "@/src/components/team/TeamInfoCard";
 import { colors } from "@/src/constants/Colors";
-import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useLocalSearchParams } from "expo-router";
 import React from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { useTeamById } from "@/src/hooks/team/useTeamById";
 import TeamTabs from "@/src/components/team/TeamTabs";
 import { useDetailedPoolsByTeam } from "@/src/hooks/pool/useDetailedPoolsByTeam";
+import TeamProfile from "@/src/components/team/TeamProfile";
 
 const TeamScreen: React.FC = () => {
-
     const { team_id } = useLocalSearchParams();
     const teamId = Number(team_id);
     const { data: team, isLoading: isTeamLoading, isError: isTeamError, isSuccess: isTeamSuccess } = useTeamById(teamId);
@@ -20,33 +17,12 @@ const TeamScreen: React.FC = () => {
         <View style={styles.container}>
             {(isTeamLoading || isPoolsLoading) && <Text>Loading...</Text>}
             {(isTeamError || isPoolsError) && <Text>Error...</Text>}
-            {isPoolsSuccess && isTeamSuccess &&
+            {isPoolsSuccess && isTeamSuccess && (
                 <>
-                    <TeamInfoCard team={team} />
-                    <View style={{ position: "absolute", right: 10, top: 5 }}>
-                        <TeamStatsCard team={team}/>
-                    </View>
-                    <View
-                        style={{
-                            marginLeft: 15,
-                            marginBottom: 20,
-                        }}
-                    >
-                        <Pressable onPress={() => console.log("follow")}>
-                            <View style={styles.followContainer}>
-                                <Text style={styles.followText}>Suivre</Text>
-                                <MaterialCommunityIcons
-                                    name={"plus"}
-                                    size={20}
-                                    color={colors.light}
-                                />
-                            </View>
-                        </Pressable>
-                    </View>
-                    {/* pools! is safe because we know pools is defined with isPoolsSuccess */}
-                    <TeamTabs pools={pools!} team={team} />
+                    <TeamProfile team={team} />
+                    <TeamTabs pools={pools || []} team={team} />
                 </>
-            }
+            )}
         </View>
     );
 }
@@ -55,20 +31,31 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: colors.dark,
     },
-    followContainer: {
+    actionsRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    followButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
         backgroundColor: colors.green,
-        flexDirection: "row",
-        paddingHorizontal: 15,
-        paddingVertical: 10,
-        gap: 5,
-        borderRadius: 20,
-        alignItems: "center",
-        alignSelf: "flex-start",
+        paddingVertical: 6,
+        paddingHorizontal: 12,
+        borderRadius: 10,
+        marginRight: 12,
     },
     followText: {
         color: colors.light,
-        fontWeight: "500",
-        fontSize: 16,
+        fontSize: 14,
+        fontWeight: '600',
+    },
+    iconCounter: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    counterText: {
+        color: colors.light,
+        fontSize: 14,
     },
 });
 

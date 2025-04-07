@@ -135,8 +135,8 @@ const MatchListTab: React.FC<MatchListTabProps> = ({
 
     if (isLoading) {
         return (
-            <View style={[styles.container, { justifyContent: "center", alignItems: "center" }]}>
-                <ActivityIndicator size="large" color="#0000ff" />
+            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.dark }}>
+                <ActivityIndicator size="large" />
             </View>
         );
     }

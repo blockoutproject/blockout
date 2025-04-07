@@ -4,6 +4,7 @@ import MatchListTab from '../match/matchList/MatchListTab';
 import { MatchStatus } from '@/src/types/Match';
 import RankingTab from '../common/RankingTab';
 import { Pool } from '@/src/types/Pool';
+import { colors } from '@/src/constants/Colors';
 
 type PoolTabsProps = {
     pool: Pool;
@@ -28,7 +29,7 @@ const PoolTabs: React.FC<PoolTabsProps> = ({ pool }) => {
         },
     ];
 
-    return <GenericTabView tabs={tabs} indicatorColor="white" />;
+    return <GenericTabView tabs={tabs} indicatorColor={colors.active} />;
 };
 
 export default PoolTabs;
