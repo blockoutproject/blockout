@@ -29,7 +29,7 @@ public class PoolListeners {
 
     @RabbitListener(queues = RabbitMQConfig.POOL_FOLLOW_QUEUE)
     public void handleFollowEvent(UserFollowEvent event) {
-        if (event.getEntityType() != EntityType.TEAM) {
+        if (event.getEntityType() != EntityType.POOL) {
             logger.error("Received event for non-pool entity type: {}", event.getEntityType());
             return;
         }
