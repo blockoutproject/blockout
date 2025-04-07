@@ -32,8 +32,7 @@ public class RabbitMQConfig {
     }
 
     public static final String USER_FOLLOW_EXCHANGE = "user.follow.exchange";
-    public static final String POOL_FOLLOW_QUEUE = "user.follow.queue.pools";
-    private static final String POOL_ROUTING_KEY_PATTERN = "pool.*";
+    public static final String POOL_FOLLOW_QUEUE = "pool.follow.queue";
 
     @Bean
     public TopicExchange userFollowExchange() {
@@ -49,10 +48,9 @@ public class RabbitMQConfig {
     public Binding bindUserFollowQueuePools(
             Queue userFollowQueuePools,
             TopicExchange userFollowExchange) {
-        // pattern = "pool.*"
         return BindingBuilder.bind(userFollowQueuePools)
                 .to(userFollowExchange)
-                .with(POOL_ROUTING_KEY_PATTERN);
+                .with("pool.follow");
     }
 
     @Bean

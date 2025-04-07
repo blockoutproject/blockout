@@ -1,10 +1,13 @@
 package com.blockout.pools.listeners;
 
 import com.blockout.pools.config.RabbitMQConfig;
+import com.blockout.pools.models.EntityType;
 import com.blockout.pools.services.PoolService;
 import com.blockout.shared.events.PoolDeactivatedEvent;
-import com.blockout.shared.events.UserFollowCreatedEvent;
-import com.blockout.shared.events.UserFollowDeletedEvent;
+import com.blockout.shared.events.UserFollowEvent;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
 
@@ -12,6 +15,7 @@ import org.springframework.stereotype.Component;
 public class PoolListeners {
 
     private final PoolService poolService;
+    private static final Logger logger = LoggerFactory.getLogger(PoolService.class);
 
     public PoolListeners(PoolService poolService) {
         this.poolService = poolService;
@@ -24,18 +28,15 @@ public class PoolListeners {
     }
 
     @RabbitListener(queues = RabbitMQConfig.POOL_FOLLOW_QUEUE)
-    public void handleFollowCreated(UserFollowCreatedEvent event) {
-        switch (event.getEntityType()) {
-            case POOL -> poolService.incrementFollowersCount(event.getEntityId(), event.getUserId());
-            default -> {}
+    public void handleFollowEvent(UserFollowEvent event) {
+        if (event.getEntityType() != EntityType.TEAM) {
+            logger.error("Received event for non-pool entity type: {}", event.getEntityType());
+            return;
         }
-    }
-
-    @RabbitListener(queues = RabbitMQConfig.POOL_FOLLOW_QUEUE)
-    public void handleFollowDeleted(UserFollowDeletedEvent event) {
-        switch (event.getEntityType()) {
-            case POOL -> poolService.decrementFollowersCount(event.getEntityId(), event.getUserId());
-            default -> {}
+    
+        switch (event.getEventType()) {
+            case CREATED -> poolService.incrementFollowersCount(event.getEntityId(), event.getUserId());
+            case DELETED -> poolService.decrementFollowersCount(event.getEntityId(), event.getUserId());
         }
     }
 }
