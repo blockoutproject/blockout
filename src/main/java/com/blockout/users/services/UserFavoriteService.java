@@ -1,5 +1,6 @@
 package com.blockout.users.services;
 
+import com.blockout.shared.events.UserFollowEvent.EventType;
 import com.blockout.users.models.CustomUser;
 import com.blockout.users.models.EntityType;
 import com.blockout.users.models.UserFavorite;
@@ -45,13 +46,13 @@ public class UserFavoriteService {
                             keyValue("entityId", entityId));
                     return new IllegalArgumentException("Utilisateur inexistant (id=" + auth0Id + ")");
                 });
-    
+
         Long userId = user.getId();
-    
+
         boolean alreadyFollowed = userFavoriteRepository
                 .findByUserAndEntityTypeAndEntityId(user, entityType, entityId)
                 .isPresent();
-    
+
         if (alreadyFollowed) {
             logger.info("Follow already exists",
                     keyValue("action", "follow"),
@@ -60,25 +61,25 @@ public class UserFavoriteService {
                     keyValue("entityId", entityId));
             return;
         }
-    
+
         UserFavorite favorite = UserFavorite.builder()
                 .user(user)
                 .entityType(entityType)
                 .entityId(entityId)
                 .build();
-    
+
         UserFavorite saved = userFavoriteRepository.save(favorite);
-    
+
         logger.info("Follow created successfully",
                 keyValue("action", "follow"),
                 keyValue("userId", userId),
                 keyValue("entityType", entityType),
                 keyValue("entityId", entityId),
                 keyValue("favoriteId", saved.getId()));
-    
-        eventPublisher.publishFollowCreatedEvent(userId, entityType, entityId);
+
+        eventPublisher.publishFollowEvent(userId, entityType, entityId, EventType.CREATED);
     }
-    
+
     @Transactional
     public void unfollow(String auth0Id, EntityType entityType, Long entityId) {
         CustomUser user = userRepository.findByAuth0Id(auth0Id)
@@ -106,13 +107,7 @@ public class UserFavoriteService {
                     keyValue("entityType", entityType),
                     keyValue("entityId", entityId));
 
-            eventPublisher.publishFollowDeletedEvent(userId, entityType, entityId);
-        } else {
-            logger.warn("No favorite found to unfollow",
-                    keyValue("action", "unfollow"),
-                    keyValue("userId", userId),
-                    keyValue("entityType", entityType),
-                    keyValue("entityId", entityId));
+            eventPublisher.publishFollowEvent(userId, entityType, entityId, EventType.DELETED);
         }
     }
 

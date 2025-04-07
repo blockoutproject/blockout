@@ -3,8 +3,7 @@ package com.blockout.users.services;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Service;
 
-import com.blockout.shared.events.UserFollowCreatedEvent;
-import com.blockout.shared.events.UserFollowDeletedEvent;
+import com.blockout.shared.events.UserFollowEvent;
 import com.blockout.users.config.RabbitMQConfig;
 import com.blockout.users.models.EntityType;
 
@@ -17,30 +16,15 @@ public class EventPublisher {
         this.rabbitTemplate = rabbitTemplate;
     }
 
-    public void publishFollowCreatedEvent(Long userId, EntityType entityType, Long entityId) {
-        UserFollowCreatedEvent event = UserFollowCreatedEvent.builder()
+    public void publishFollowEvent(Long userId, EntityType entityType, Long entityId, UserFollowEvent.EventType type) {
+        UserFollowEvent event = UserFollowEvent.builder()
                 .userId(userId)
                 .entityType(entityType)
                 .entityId(entityId)
+                .eventType(type)
                 .build();
 
-        // Par ex: team.created ou pool.created
-        String routingKey = entityType.name().toLowerCase() + ".created";
-
-        rabbitTemplate.convertAndSend(
-                RabbitMQConfig.USER_FOLLOW_EXCHANGE,
-                routingKey,
-                event);
-    }
-
-    public void publishFollowDeletedEvent(Long userId, EntityType entityType, Long entityId) {
-        UserFollowDeletedEvent event = UserFollowDeletedEvent.builder()
-                .userId(userId)
-                .entityType(entityType)
-                .entityId(entityId)
-                .build();
-
-        String routingKey = entityType.name().toLowerCase() + ".deleted";
+        String routingKey = entityType.name().toLowerCase() + ".follow";
 
         rabbitTemplate.convertAndSend(
                 RabbitMQConfig.USER_FOLLOW_EXCHANGE,

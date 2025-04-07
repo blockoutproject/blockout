@@ -3,7 +3,6 @@ package com.blockout.shared.events;
 import java.io.Serializable;
 
 import com.blockout.users.models.EntityType;
-
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -13,8 +12,14 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class UserFollowCreatedEvent implements Serializable {
+public class UserFollowEvent implements Serializable {
+    public enum EventType {
+        CREATED,
+        DELETED
+    }
+
     private Long userId;
     private EntityType entityType;
     private Long entityId;
+    private EventType eventType;
 }
