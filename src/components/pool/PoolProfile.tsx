@@ -32,7 +32,7 @@ const PoolProfile: React.FC<PoolProfileProps> = ({ pool }) => {
             } else {
                 await UsersApi.getInstance().follow(EntityType.POOL, pool.id);
             }
-            await refetch();
+            refetch();
         } catch (error) {
             console.error('Erreur follow/unfollow :', error);
         } finally {
@@ -59,22 +59,28 @@ const PoolProfile: React.FC<PoolProfileProps> = ({ pool }) => {
                 {/* Ligne de boutons/actions */}
                 <View style={styles.actionsRow}>
                     {/* Bouton "Suivre" */}
-                    <TouchableOpacity style={styles.followButton} onPress={handleFollowToggle} disabled={isProcessing}>
-                        <Ionicons
-                            name={isFollowing ? 'remove' : 'add'}
-                            size={14}
-                            color={colors.light}
-                            style={{ marginRight: 4 }}
-                        />
-                        <Text style={styles.followText}>
-                            {isFollowing ? 'Ne plus suivre' : 'Suivre'}
+                    <TouchableOpacity
+                        style={[
+                            styles.followButton,
+                            isFollowing && styles.followingButton, // bouton dark si déjà suivi
+                        ]}
+                        onPress={handleFollowToggle}
+                        disabled={isProcessing}
+                    >
+                        <Text
+                            style={[
+                                styles.followText,
+                                isFollowing && styles.followingText, // texte blanc si déjà suivi
+                            ]}
+                        >
+                            {isFollowing ? 'Suivie' : 'Suivre'}
                         </Text>
                     </TouchableOpacity>
 
                     {/* Icône + compteur */}
                     <View style={styles.iconCounter}>
-                        <Ionicons name="people-outline" size={18} color={colors.light} style={{ marginRight: 4 }} />
-                        <Text style={styles.counterText}>156</Text>
+                        <Ionicons name="people-outline" size={20} color={colors.light} style={{ marginRight: 4 }} />
+                        <Text style={styles.counterText}>{pool.followers_count}</Text>
                     </View>
                 </View>
             </View>
@@ -92,7 +98,7 @@ const styles = StyleSheet.create({
     },
     leagueLogo: {
         width: 70,
-        height: 126, 
+        height: 126,
         borderRadius: 12,
         marginRight: 16,
 
@@ -118,16 +124,27 @@ const styles = StyleSheet.create({
     followButton: {
         flexDirection: 'row',
         alignItems: 'center',
+        justifyContent: 'center',
         backgroundColor: colors.green,
+        borderWidth: 1,
+        borderColor: colors.green,
         paddingVertical: 6,
-        paddingHorizontal: 12,
-        borderRadius: 10,
+        paddingHorizontal: 20,
+        borderRadius: 12,
         marginRight: 12,
     },
     followText: {
         color: colors.light,
-        fontSize: 14,
+        fontSize: 16,
         fontWeight: '600',
+    },
+    followingButton: {
+        backgroundColor: colors.dark,
+        borderWidth: 1,
+        borderColor: colors.light,
+    },
+    followingText: {
+        color: colors.light,
     },
     iconCounter: {
         flexDirection: 'row',
@@ -135,7 +152,7 @@ const styles = StyleSheet.create({
     },
     counterText: {
         color: colors.light,
-        fontSize: 14,
+        fontSize: 16,
     },
 });
 
