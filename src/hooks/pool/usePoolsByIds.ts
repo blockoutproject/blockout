@@ -9,7 +9,7 @@ export function usePoolsByIds(ids: number[]) {
             queryFn: async (): Promise<Pool> => {
                 return PoolsApi.getInstance().getPoolById(id);
             },
-            staleTime: 1000 * 60 * 5,
+            staleTime: 0
         })),
     });
 

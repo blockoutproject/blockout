@@ -11,7 +11,6 @@ export function usePoolById(id?: number) {
             }
             return PoolsApi.getInstance().getPoolById(id);
         },
-        staleTime: 1000 * 60 * 5,
-        enabled: id !== undefined,
+        staleTime: 0
     });
 }

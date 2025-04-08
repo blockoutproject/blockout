@@ -10,7 +10,7 @@ export function useTeamsByIds(ids: number[]) {
             queryFn: async (): Promise<Team> => {
                 return TeamsApi.getInstance().getTeamById(id);
             },
-            staleTime: 1000 * 60 * 5,
+            staleTime: 0,
         })),
     });
 

@@ -65,7 +65,6 @@ class UsersApi extends AbstractApi {
      */
     public async follow(entityType: EntityType, entityId: number): Promise<void> {
         const response = await this.service.post(`/follows/${entityType}/${entityId}`);
-        console.log('Follow', entityType, entityId, response);
     }
 
     /**
@@ -76,7 +75,6 @@ class UsersApi extends AbstractApi {
      */
     public async unfollow(entityType: EntityType, entityId: number): Promise<void> {
         const response = await this.service.delete(`/follows/${entityType}/${entityId}`);
-        console.log('Unfollow', entityType, entityId, response);
     }
 }
 

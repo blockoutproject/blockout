@@ -44,6 +44,18 @@ class TeamsApi extends AbstractApi {
     }
 
     /**
+     * Recherche des équipes par nom (fuzzy).
+     * @param query - Le texte saisi à rechercher partiellement.
+     * @returns Une promesse contenant la liste des équipes trouvées.
+     */
+    public async searchTeamsByName(query: string): Promise<Team[]> {
+        const response = await this.service.get<Team[]>('/teams/by-name', {
+            params: { query }
+        });
+        return response.data;
+    }   
+
+    /**
      * Récupère une équipe par son identifiant.
      * @param id - L'identifiant de l'équipe.
      * @returns Une promesse renvoyant l'équipe correspondante.

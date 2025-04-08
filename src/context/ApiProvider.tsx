@@ -12,7 +12,6 @@ export const ApiProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     useEffect(() => {
         const initializeApis = async () => {
             if (user) {
-                console.info('Utilisateur connecté :', user);
                 try {
                     const credentials = await getCredentials();
                     const token = credentials?.accessToken;

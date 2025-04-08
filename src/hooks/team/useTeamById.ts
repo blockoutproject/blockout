@@ -12,7 +12,6 @@ export function useTeamById(id: number | undefined) {
             }
             return TeamsApi.getInstance().getTeamById(id);
         },
-        staleTime: 0,
-        enabled: id !== undefined, // La query ne se lance que si id est défini
+        staleTime: 0
     });
 }

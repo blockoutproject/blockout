@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Pool } from '@/src/types/Pool';
@@ -7,6 +7,8 @@ import FastImage from 'react-native-fast-image'
 import UsersApi from '@/src/api/UsersApi';
 import { EntityType } from '@/src/types/User';
 import { useUserContext } from '@/src/hooks/user/useUserContext';
+import FollowButton from '../common/FollowButton';
+import FollowersCounter from '../common/FollowersCount';
 
 type PoolProfileProps = {
     pool: Pool;
@@ -15,73 +17,66 @@ type PoolProfileProps = {
 const PoolProfile: React.FC<PoolProfileProps> = ({ pool }) => {
     const { customUser, refetch } = useUserContext();
     const [isProcessing, setIsProcessing] = useState(false);
+    const [followersCount, setFollowersCount] = useState(pool.followers_count);
 
-    // Check si la pool est déjà dans les favoris
-    const isFollowing = useMemo(() => {
+    useEffect(() => {
+        setFollowersCount(pool.followers_count);
+    }, [pool.followers_count]);
+
+    const initialIsFollowing = useMemo(() => {
         if (!customUser || !customUser.favorites) return false;
-        const isFav = customUser.favorites.some((fav) => fav.entity_id === pool.id && fav.entity_type === EntityType.POOL);
-        return isFav;
+        return customUser.favorites.some(
+            (fav) => fav.entity_id === pool.id && fav.entity_type === EntityType.POOL
+        );
     }, [customUser, pool.id]);
+
+    const [isFollowing, setIsFollowing] = useState(initialIsFollowing);
 
     const handleFollowToggle = async () => {
         if (!customUser || isProcessing) return;
+
+        const newFollowState = !isFollowing;
+        const newCount = newFollowState ? followersCount + 1 : followersCount - 1;
+
+        setIsFollowing(newFollowState);
+        setFollowersCount(newCount);
         setIsProcessing(true);
+
         try {
-            if (isFollowing) {
-                await UsersApi.getInstance().unfollow(EntityType.POOL, pool.id);
-            } else {
+            if (newFollowState) {
                 await UsersApi.getInstance().follow(EntityType.POOL, pool.id);
+            } else {
+                await UsersApi.getInstance().unfollow(EntityType.POOL, pool.id);
             }
             refetch();
         } catch (error) {
             console.error('Erreur follow/unfollow :', error);
+            setIsFollowing(!newFollowState);
+            setFollowersCount(followersCount);
         } finally {
             setIsProcessing(false);
         }
     };
     return (
         <View style={styles.container}>
-            {/* Logo à gauche */}
             <FastImage
                 source={require('@/assets/leagues/msl_profile.png')}
                 style={styles.leagueLogo}
                 resizeMode="contain"
             />
 
-            {/* Bloc d'infos à droite */}
             <View style={styles.infoContainer}>
-                {/* Titre */}
                 <Text style={styles.leagueTitle}>{pool.pool_name}</Text>
 
-                {/* Lien */}
                 <Text style={styles.leagueLink}>ligue-b-masculine.com</Text>
 
-                {/* Ligne de boutons/actions */}
                 <View style={styles.actionsRow}>
-                    {/* Bouton "Suivre" */}
-                    <TouchableOpacity
-                        style={[
-                            styles.followButton,
-                            isFollowing && styles.followingButton, // bouton dark si déjà suivi
-                        ]}
+                    <FollowButton
+                        isFollowing={isFollowing}
                         onPress={handleFollowToggle}
                         disabled={isProcessing}
-                    >
-                        <Text
-                            style={[
-                                styles.followText,
-                                isFollowing && styles.followingText, // texte blanc si déjà suivi
-                            ]}
-                        >
-                            {isFollowing ? 'Suivie' : 'Suivre'}
-                        </Text>
-                    </TouchableOpacity>
-
-                    {/* Icône + compteur */}
-                    <View style={styles.iconCounter}>
-                        <Ionicons name="people-outline" size={20} color={colors.light} style={{ marginRight: 4 }} />
-                        <Text style={styles.counterText}>{pool.followers_count}</Text>
-                    </View>
+                    />
+                    <FollowersCounter count={followersCount} />
                 </View>
             </View>
         </View>
@@ -90,21 +85,20 @@ const PoolProfile: React.FC<PoolProfileProps> = ({ pool }) => {
 
 const styles = StyleSheet.create({
     container: {
-        flexDirection: 'row',         // Pour mettre l'image et le bloc à côté
+        flexDirection: 'row',
         backgroundColor: colors.dark,
         paddingHorizontal: 26,
         paddingVertical: 20,
-        alignItems: 'flex-end',         // Aligne verticalement l’image et le contenu
+        alignItems: 'flex-end',
     },
     leagueLogo: {
         width: 70,
         height: 126,
         borderRadius: 12,
         marginRight: 16,
-
     },
     infoContainer: {
-        flex: 1,                      // Permet au bloc de prendre toute la place restante
+        flex: 1,
     },
     leagueTitle: {
         fontSize: 24,
