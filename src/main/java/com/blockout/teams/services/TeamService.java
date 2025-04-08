@@ -55,6 +55,29 @@ public class TeamService {
     }
 
     /**
+     * Recherche fuzzy des équipes par nom (tolérance aux fautes).
+     * 
+     * @param query Requête partielle
+     * @return Liste des équipes correspondantes
+     */
+    public List<Team> fuzzySearchTeams(String query) {
+        List<Team> teams = teamRepository.fuzzySearchTeams(query);
+
+        if (teams.isEmpty()) {
+            logger.info("Fuzzy search returned no result",
+                    keyValue("action", "fuzzy_search_teams"),
+                    keyValue("query", query));
+        } else {
+            logger.info("Fuzzy search found results",
+                    keyValue("action", "fuzzy_search_teams"),
+                    keyValue("query", query),
+                    keyValue("resultsCount", teams.size()));
+        }
+
+        return teams;
+    }
+
+    /**
      * Récupère les équipes par leurs IDs
      * 
      * @param ids Liste d'identifiants d'équipes

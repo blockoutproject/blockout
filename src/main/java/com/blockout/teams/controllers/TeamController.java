@@ -44,6 +44,24 @@ public class TeamController {
         return ResponseEntity.created(location).body(createdTeam);
     }
 
+    @Operation(summary = "Rechercher des équipes par nom", description = "Retourne une liste d'équipes correspondant partiellement au nom fourni, limité à 20 résultats.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Équipes trouvées"),
+            @ApiResponse(responseCode = "204", description = "Aucune équipe ne correspond à la recherche")
+    })
+    @GetMapping("/teams/by-name")
+    public ResponseEntity<List<Team>> searchTeamsByName(
+            @Parameter(description = "Texte de la recherche partielle") @RequestParam("query") String query) {
+
+        List<Team> teams = teamService.fuzzySearchTeams(query);
+
+        if (teams.isEmpty()) {
+            return ResponseEntity.noContent().build();
+        }
+
+        return ResponseEntity.ok(teams);
+    }
+
     @Operation(summary = "Récupérer des équipes par IDs", description = "Retourne uniquement les équipes correspondant aux IDs fournis (liste non vide).")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Équipes trouvées"),
