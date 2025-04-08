@@ -56,23 +56,22 @@ public class MatchService {
         return createdMatch;
     }
 
-    /**
-     * Récupère les matchs groupés par jour avec pagination
-     * 
-     * @param poolIds Liste des IDs de pools à filtrer
-     * @param teamIds Liste des IDs d'équipes à filtrer
-     * @param status  Le statut des matchs à récupérer
-     * @param page    Le numéro de page
-     * @param size    La taille de la page
-     * @return Un objet DayPageDTO contenant les matchs par jour
-     */
     public DayPageDTO getMatchesByDay(
             List<Long> poolIds,
             List<Long> teamIds,
             MatchStatus status,
             int page,
             int size) {
+
         LocalDateTime now = LocalDateTime.now();
+
+        logger.info("Fetching matches grouped by day",
+                keyValue("action", "get_matches_by_day"),
+                keyValue("status", status),
+                keyValue("page", page),
+                keyValue("size", size),
+                keyValue("poolIds", poolIds),
+                keyValue("teamIds", teamIds));
 
         // Récupère la liste de jours distincts
         List<LocalDate> allDays;
@@ -80,47 +79,57 @@ public class MatchService {
             allDays = matchRepository.findDistinctUpcomingDates(
                     poolIds, poolIds.size(),
                     teamIds, teamIds.size());
+            logger.info("Found distinct upcoming match days",
+                    keyValue("count", allDays.size()));
         } else {
-            // Suppose qu'on gère le status FINISHED ou autres
             allDays = matchRepository.findDistinctDatesUntil(
                     now,
                     poolIds, poolIds.size(),
                     teamIds, teamIds.size());
+            logger.info("Found distinct past match days",
+                    keyValue("count", allDays.size()));
         }
 
         // Pagination sur la liste de jours
         int fromIndex = page * size;
         if (fromIndex >= allDays.size()) {
-            // Page vide
+            logger.info("Requested page exceeds total available days",
+                    keyValue("fromIndex", fromIndex),
+                    keyValue("totalDays", allDays.size()));
             return new DayPageDTO(Collections.emptyList(), false, null);
         }
+
         int toIndex = Math.min(fromIndex + size, allDays.size());
         List<LocalDate> subDays = allDays.subList(fromIndex, toIndex);
+
+        logger.info("Paginated days selected",
+                keyValue("from", fromIndex),
+                keyValue("to", toIndex),
+                keyValue("selectedDaysCount", subDays.size()));
 
         // minDay et maxDay
         LocalDate minDay, maxDay;
         if (status == MatchStatus.UPCOMING) {
-            // allDays est ASC, donc le premier est le plus petit
             minDay = subDays.get(0);
             maxDay = subDays.get(subDays.size() - 1);
         } else {
-            // allDays est DESC, donc le premier est le plus grand
             minDay = subDays.get(subDays.size() - 1);
             maxDay = subDays.get(0);
         }
 
-        // Détermine la plage de dates
         LocalDateTime startOfMinDay = minDay.atStartOfDay();
         LocalDateTime endDateTime;
         if (status == MatchStatus.UPCOMING) {
             endDateTime = maxDay.plusDays(1).atStartOfDay();
         } else {
-            if (maxDay.equals(LocalDate.now())) {
-                endDateTime = now;
-            } else {
-                endDateTime = maxDay.plusDays(1).atStartOfDay();
-            }
+            endDateTime = maxDay.equals(LocalDate.now())
+                    ? now
+                    : maxDay.plusDays(1).atStartOfDay();
         }
+
+        logger.info("Computed date range for match fetching",
+                keyValue("start", startOfMinDay),
+                keyValue("end", endDateTime));
 
         // Récupère les matchs dans cette plage
         List<Match> allMatches = matchRepository.findAllInRange(
@@ -130,6 +139,9 @@ public class MatchService {
                 status,
                 teamIds, teamIds.size());
 
+        logger.info("Fetched matches in date range",
+                keyValue("matchesCount", allMatches.size()));
+
         // Groupement par date
         Map<LocalDate, List<Match>> matchesByDate = allMatches.stream()
                 .collect(Collectors.groupingBy(m -> m.getMatchDate().toLocalDate()));
@@ -138,11 +150,9 @@ public class MatchService {
         List<DayMatchesDTO> dayMatchesList = subDays.stream()
                 .map(day -> {
                     List<Match> matchesForDay = matchesByDate.getOrDefault(day, Collections.emptyList());
-                    // Groupement par poolId
                     Map<Long, List<Match>> matchesByPool = matchesForDay.stream()
                             .collect(Collectors.groupingBy(Match::getPoolId, TreeMap::new, Collectors.toList()));
 
-                    // On crée un PoolMatchesDTO par pool
                     List<PoolMatchesDTO> poolsDto = matchesByPool.entrySet().stream()
                             .map(e -> new PoolMatchesDTO(e.getKey(), e.getValue()))
                             .collect(Collectors.toList());
@@ -151,9 +161,13 @@ public class MatchService {
                 })
                 .collect(Collectors.toList());
 
-        // hasNext et nextPage
         boolean hasNext = (toIndex < allDays.size());
         Integer nextPage = hasNext ? (page + 1) : null;
+
+        logger.info("Returning paginated match result",
+                keyValue("dayGroupsCount", dayMatchesList.size()),
+                keyValue("hasNext", hasNext),
+                keyValue("nextPage", nextPage));
 
         return new DayPageDTO(dayMatchesList, hasNext, nextPage);
     }
@@ -223,7 +237,7 @@ public class MatchService {
     /**
      * Met à jour un match existant
      * 
-     * @param id L'identifiant du match à mettre à jour
+     * @param id           L'identifiant du match à mettre à jour
      * @param updatedMatch Les nouvelles données du match
      * @return Le match mis à jour
      * @throws MatchNotFoundException Si le match n'existe pas
@@ -286,10 +300,10 @@ public class MatchService {
         Long poolId = matchesToDeactivate.get(0).getPoolId();
         boolean poolHasActiveMatches = matchRepository.existsByPoolIdAndActiveTrue(poolId);
         // if (!poolHasActiveMatches) {
-        //     eventPublisher.publishPoolDeactivationEvent(poolId);
-        //     logger.info("Événement de désactivation de pool publié",
-        //             keyValue("action", "publish_pool_deactivation"),
-        //             keyValue("poolId", poolId));
+        // eventPublisher.publishPoolDeactivationEvent(poolId);
+        // logger.info("Événement de désactivation de pool publié",
+        // keyValue("action", "publish_pool_deactivation"),
+        // keyValue("poolId", poolId));
         // }
     }
 
