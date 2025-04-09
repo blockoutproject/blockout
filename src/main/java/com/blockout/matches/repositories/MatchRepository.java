@@ -51,8 +51,10 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
               FROM Match m
               WHERE m.matchDate <= :today
                 AND m.status = 'FINISHED'
-                AND (:poolIdsSize = 0 OR m.poolId IN :poolIds)
-                AND (:teamIdsSize = 0 OR m.teamIdA IN :teamIds OR m.teamIdB IN :teamIds)
+                AND (
+                    (:poolIdsSize = 0 OR m.poolId IN :poolIds)
+                    OR (:teamIdsSize = 0 OR m.teamIdA IN :teamIds OR m.teamIdB IN :teamIds)
+                )
               ORDER BY CAST(m.matchDate AS LocalDate) DESC
             """)
     List<LocalDate> findDistinctDatesUntil(
@@ -67,8 +69,10 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
               FROM Match m
               WHERE m.matchDate >= :startOfDay
                 AND m.matchDate < :endOfDay
-                AND (:poolIdsSize = 0 OR m.poolId IN :poolIds)
-                AND (:teamIdsSize = 0 OR m.teamIdA IN :teamIds OR m.teamIdB IN :teamIds)
+                AND (
+                    (:poolIdsSize = 0 OR m.poolId IN :poolIds)
+                    OR (:teamIdsSize = 0 OR m.teamIdA IN :teamIds OR m.teamIdB IN :teamIds)
+                )
                 AND (:status IS NULL OR m.status = :status)
               ORDER BY m.poolId ASC, m.matchDate ASC
             """)
@@ -85,8 +89,10 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
               SELECT DISTINCT CAST(m.matchDate AS LocalDate)
               FROM Match m
               WHERE m.status = 'UPCOMING'
-                AND (:poolIdsSize = 0 OR m.poolId IN :poolIds)
-                AND (:teamIdsSize = 0 OR m.teamIdA IN :teamIds OR m.teamIdB IN :teamIds)
+                AND (
+                    (:poolIdsSize = 0 OR m.poolId IN :poolIds)
+                    OR (:teamIdsSize = 0 OR m.teamIdA IN :teamIds OR m.teamIdB IN :teamIds)
+                )
               ORDER BY CAST(m.matchDate AS LocalDate) ASC
             """)
     List<LocalDate> findDistinctUpcomingDates(
