@@ -18,7 +18,7 @@ public class Club {
 
     @Id
     @Column(name = "id", nullable = false, unique = true)
-    private String id;
+    private Long id;
 
     @Column(name = "name", nullable = false)
     private String name;

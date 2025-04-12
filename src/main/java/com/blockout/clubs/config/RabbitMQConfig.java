@@ -18,7 +18,7 @@ public class RabbitMQConfig {
     }
 
     @Bean
-    public Queue teamDeactivatedQueueTeams() {
+    public Queue clubDeactivatedQueueClubs() {
         return new Queue(CLUB_DEACTIVATED_QUEUE_CLUBS, true);
     }
 
