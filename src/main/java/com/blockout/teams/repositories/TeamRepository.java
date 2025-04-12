@@ -23,4 +23,7 @@ public interface TeamRepository extends JpaRepository<Team, Long> {
         LIMIT 20
         """, nativeQuery = true)
     List<Team> fuzzySearchTeams(@Param("query") String query);
+
+    @Query("SELECT DISTINCT t.clubId FROM Team t WHERE t.clubId IS NOT NULL")
+    List<String> findDistinctClubIds();
 }

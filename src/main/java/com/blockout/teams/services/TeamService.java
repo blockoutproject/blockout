@@ -259,4 +259,13 @@ public class TeamService {
             return new TeamNotFoundException(teamId);
         });
     }
+
+    /**
+     * Récupère les IDs de clubs uniques
+     * 
+     * @return Liste des IDs de clubs uniques
+     */
+    public List<String> getUniqueClubIds() {
+        return teamRepository.findDistinctClubIds();
+    }
 }

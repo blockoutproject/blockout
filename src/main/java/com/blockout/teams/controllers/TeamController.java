@@ -131,4 +131,20 @@ public class TeamController {
         }
         return ResponseEntity.ok(teams);
     }
+
+    @Operation(summary = "Récupérer tous les club IDs uniques", description = "Retourne une liste de tous les identifiants de clubs uniques présents parmi les équipes.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Liste des club IDs uniques récupérée avec succès"),
+            @ApiResponse(responseCode = "204", description = "Aucun club ID trouvé dans les équipes")
+    })
+    @GetMapping("/teams/club-ids")
+    public ResponseEntity<List<String>> getUniqueClubIds() {
+        List<String> clubIds = teamService.getUniqueClubIds();
+
+        if (clubIds.isEmpty()) {
+            return ResponseEntity.noContent().build();
+        }
+
+        return ResponseEntity.ok(clubIds);
+}
 }
