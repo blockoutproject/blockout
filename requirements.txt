@@ -1,15 +1,12 @@
 aiohttp
 pytest
-pytest-asyncio
 beautifulsoup4
 requests
-pyyaml
 APScheduler
 sseclient
 chardet
 aioresponses
 faker
-pytest-timeout
 python-dotenv
 prometheus_client
 auth0-python
