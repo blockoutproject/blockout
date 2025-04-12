@@ -1,6 +1,6 @@
-DROP DATABASE IF EXISTS blockout_teams;
-DROP USER IF EXISTS 'blockout_teams_admin'@'localhost';
-CREATE database blockout_teams;
-CREATE USER IF NOT EXISTS 'blockout_teams_admin'@'localhost' IDENTIFIED BY 'admin';
-GRANT ALL PRIVILEGES ON blockout_teams.* TO 'blockout_teams_admin'@'localhost';
+DROP DATABASE IF EXISTS blockout_clubs;
+DROP USER IF EXISTS 'blockout_clubs_admin'@'localhost';
+CREATE database blockout_clubs;
+CREATE USER IF NOT EXISTS 'blockout_clubs_admin'@'localhost' IDENTIFIED BY 'admin';
+GRANT ALL PRIVILEGES ON blockout_clubs.* TO 'blockout_clubs_admin'@'localhost';
 FLUSH PRIVILEGES;
