@@ -4,7 +4,6 @@ from scrapers.national_scraper import NationalScraper
 from scrapers.pro_scraper import ProScraper
 from scrapers.regional_scraper import RegionalScraper
 
-
 class ScraperFactory:
     @staticmethod
     def create_scraper(scraper_type: str, session: aiohttp.ClientSession) -> Scraper:

@@ -10,7 +10,6 @@ from models.scraper import Scraper
 from utils.scraper_logic import handle_csv_download_and_parse
 from utils.utils import extract_national_division, extract_season_from_url, parse_season, standardize_division_name
 
-
 class NationalScraper(Scraper):
     def __init__(self, session):
         super().__init__(

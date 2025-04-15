@@ -21,7 +21,6 @@ from utils.team_utils import get_full_name
 from utils.utils import parse_season
 from config.logger_config import log_event
 
-
 class ProScraper(Scraper):
     def __init__(self, session):
         super().__init__(session, name="pro_scraper", category=Category.PRO, priority_validation_enabled=True)

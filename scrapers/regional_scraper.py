@@ -11,7 +11,6 @@ from utils.scraper_logic import handle_csv_download_and_parse
 from utils.utils import parse_season, standardize_division_name
 from config.logger_config import log_event
 
-
 class RegionalScraper(Scraper):
     def __init__(self, session):
         super().__init__(
