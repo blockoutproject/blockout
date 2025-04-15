@@ -2,7 +2,7 @@ import asyncio
 import re
 import aiohttp
 from bs4 import BeautifulSoup
-from api.clubs_api import bulk_deactivate_clubs
+from api.competitions_api import bulk_deactivate_clubs
 from config.logger_config import log_event
 from models.scraper import Scraper
 from models.club import Club

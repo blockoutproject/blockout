@@ -7,8 +7,6 @@ from utils.handlers.api_handler import handle_api_response
 from api.auth0 import _get_auth_headers
 from utils.utils import to_dict
 
-
-
 @handle_api_response(response_type=None)
 async def bulk_deactivate_clubs(session: aiohttp.ClientSession, missing_club_ids: list[int]) -> None:
     """

@@ -17,8 +17,6 @@ def load_environment():
 load_environment()
 
 TEAM_API_URL = os.getenv('TEAM_API_URL')
-MATCH_API_URL = os.getenv('MATCH_API_URL')
-POOL_API_URL = os.getenv('POOL_API_URL')
 COMPETITION_API_URL = os.getenv('COMPETITION_API_URL')
 CLUB_API_URL = os.getenv('CLUB_API_URL')
 LOG_LEVEL = os.getenv('LOG_LEVEL', 'INFO')

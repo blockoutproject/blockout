@@ -190,7 +190,6 @@ class Scraper(ABC):
                         replace(c),  # updated_club (copie mutable)
                     )
             
-            print(f"club 0594143: {self._clubs_cache.get('0594143')}")
             log_event(
                 action="init_clubs_cache_ok",
                 level="info",

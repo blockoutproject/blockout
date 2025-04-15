@@ -7,7 +7,6 @@ from api.auth0 import _get_auth_headers
 from utils.utils import to_dict
 from models.club import Club
 
-
 @handle_api_response(response_type=list[Club])
 async def get_all_clubs(session: aiohttp.ClientSession) -> list[Club]:
     """
