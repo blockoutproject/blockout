@@ -13,18 +13,29 @@ interface RankingCardProps {
 function getRankColor(rank: number, length: number): string {
     switch (rank) {
         case 1:
-            return '#f1c40f';
+            return '#cf9802';
         case 2:
             return '#bfbfbf';
         case 3:
             return '#bc702a';
         case length:
             return '#e51b1b';
-        case length - 1:
-            return '#e51b1b';
         default:
             return '#5d5d5d';
     }
+}
+
+function getRankBackground(rank: number, total: number, isEven: boolean): string {
+    const isRelegation = rank === total;
+
+
+    if (rank === 1) return '#1f1702'; // or sombre ++
+    if (rank === 2) return '#1c1c1c'; // argent sombre ++
+    if (rank === 3) return '#241a12'; // bronze sombre ++
+    if (isRelegation) return '#1c0909';
+
+    // Alternance 1 ligne sur 2
+    return isEven ? colors.dark : colors.grey; // gris moyen / gris foncé
 }
 
 const RankingCard: React.FC<RankingCardProps> = ({ poolId, scrollable = true }) => {
@@ -81,8 +92,8 @@ const RankingCard: React.FC<RankingCardProps> = ({ poolId, scrollable = true }) 
                 showsVerticalScrollIndicator={false}
                 renderItem={({ item, index }) => {
                     const rank = index + 1;
-                    // On alterne la couleur de fond : index pair -> plus clair, index impair -> plus sombre
-                    const backgroundColor = index % 2 === 0 ? colors.dark : colors.grey;
+                    const isEven = index % 2 === 0;
+                    const backgroundColor = getRankBackground(rank, teams.length, isEven);
 
                     return (
                         <View style={[styles.row, { backgroundColor }]}>
@@ -144,7 +155,6 @@ const RankingCard: React.FC<RankingCardProps> = ({ poolId, scrollable = true }) 
 
 const styles = StyleSheet.create({
     container: {
-        flex: 1,
         backgroundColor: colors.grey,
         borderRadius: 12,
         borderWidth: 8,

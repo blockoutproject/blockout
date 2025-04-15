@@ -1,6 +1,7 @@
 import { colors } from "@/src/constants/Colors";
 import React, { useState } from "react";
 import {
+    ActivityIndicator,
     Pressable,
     StyleSheet,
     Text,
@@ -18,9 +19,23 @@ import { MatchStatus } from "@/src/types/Match";
 import Placeholder from "@/src/components/home/Placeholder";
 import Filters from "@/src/components/home/Filters";
 import { Filter } from "@/src/types/Filter";
+import { useUserContext } from "@/src/hooks/user/useUserContext";
+import { EntityType } from "@/src/types/User";
 
 const HomeScreen: React.FC = () => {
     const [index, setIndex] = useState(0);
+    const { customUser, isLoading } = useUserContext();
+
+    if (isLoading || !customUser) {
+        return (
+            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.dark }}>
+                <ActivityIndicator size="large" />
+            </View>
+        );
+    }
+
+    const userFavoritePools = customUser.favorites?.filter(fav => fav.entity_type === EntityType.POOL).map(fav => fav.entity_id);
+    const userFavoriteTeams = customUser.favorites?.filter(fav => fav.entity_type === EntityType.TEAM).map(fav => fav.entity_id);
 
     const [filters, setFilters] = useState<Filter[]>([
         { name: "Pro", dbValue: "PRO", isActive: false },
@@ -42,9 +57,9 @@ const HomeScreen: React.FC = () => {
     }: SceneRendererProps & { route: Route }) => {
         switch (route.key) {
             case "finished":
-                return <MatchListTab poolIds={[1, 2, 3, 83, 282]} status={MatchStatus.FINISHED} filters={filters} />;
+                return <MatchListTab poolIds={userFavoritePools} teamIds={userFavoriteTeams} status={MatchStatus.FINISHED} filters={filters} />;
             case "upcoming":
-                return <MatchListTab poolIds={[1, 2, 3, 83, 282]} status={MatchStatus.UPCOMING} filters={filters} />;
+                return <MatchListTab poolIds={userFavoritePools} teamIds={userFavoriteTeams} status={MatchStatus.UPCOMING} filters={filters} />;
             case "discover":
                 return <Placeholder.PlaceholderScreen2 />;
             default:

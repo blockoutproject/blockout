@@ -46,6 +46,9 @@ export function useMatchesWithTeamsAndPools(status: MatchStatus, poolIds?: numbe
         return Array.from(ids);
     }, [data]);
 
+    console.log("allTeamIds", teamIds, allTeamIds);
+    console.log("allPoolIds", poolIds, allPoolIds);
+
     const {
         teams,
         isLoading: isLoadingTeams,

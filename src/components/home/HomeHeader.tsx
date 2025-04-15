@@ -27,19 +27,6 @@ const HomeHeader: React.FC = () => {
                 flexDirection: "row",
             }}
         >
-            <TouchableOpacity
-                onPress={() => router.navigate("/search")}
-                style={{
-                    position: "absolute",
-                    left: 20,
-                }}
-            >
-                <MaterialCommunityIcons
-                    name="magnify"
-                    size={25}
-                    color={colors.light}
-                />
-            </TouchableOpacity>
             <Text
                 style={{
                     color: colors.light,
@@ -59,6 +46,15 @@ const HomeHeader: React.FC = () => {
                     position: "absolute",
                 }}
             >
+                <TouchableOpacity
+                    onPress={() => router.navigate("/search")}
+                >
+                    <MaterialCommunityIcons
+                        name="magnify"
+                        size={25}
+                        color={colors.light}
+                    />
+                </TouchableOpacity>
                 <TouchableOpacity>
                     <MaterialCommunityIcons
                         name={"whistle"}

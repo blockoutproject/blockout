@@ -39,7 +39,7 @@ const SearchScreen = () => {
                         }}
                     >
                         <Text style={{ fontSize: 16, fontWeight: 'bold' }}>{item.name}</Text>
-                        <Text style={{ color: '#666' }}>{item.short_name}</Text>
+                        <Text style={{ color: '#666' }}>{item.division_name} {item.gender}</Text>
                     </Pressable>
                 )}
                 ListEmptyComponent={

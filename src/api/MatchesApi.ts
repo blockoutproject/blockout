@@ -66,6 +66,7 @@ class MatchesApi extends AbstractApi {
         if (status !== undefined) {
             params.status = status;
         }
+        console.log('params', params);
 
         const response = await this.service.get('/matches/day-based', { params });
         return response.data as DayPageDTO;

@@ -17,9 +17,7 @@ export function useMatches(status: MatchStatus, poolIds?: number[], teamIds?: nu
             }
         ], [poolIds, teamIds, status]),
         queryFn: async ({ pageParam = 0 }) => {
-            return MatchesApi
-                .getInstance()
-                .getMatches({ page: pageParam, size: pageSize, poolIds, teamIds, status });
+            return MatchesApi.getInstance().getMatches({ page: pageParam, size: pageSize, poolIds, teamIds, status });
         },
         getNextPageParam: (lastPage: DayPageDTO) => lastPage.next_page ?? undefined,
         select: (data) => {

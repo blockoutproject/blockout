@@ -56,6 +56,13 @@ const ProtectedLayout: React.FC = () => {
                     headerShown: false
                 }}
             />
+            <Stack.Screen
+                name="search"
+                options={{
+                    presentation: 'modal',
+                    headerShown: false
+                }}
+            />
         </Stack>
     );
 }
