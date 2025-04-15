@@ -296,15 +296,6 @@ public class MatchService {
         logger.info("Matches désactivés en masse",
                 keyValue("action", "bulk_deactivate_matches"),
                 keyValue("nombreMatches", matchesToDeactivate.size()));
-
-        Long poolId = matchesToDeactivate.get(0).getPoolId();
-        boolean poolHasActiveMatches = matchRepository.existsByPoolIdAndActiveTrue(poolId);
-        // if (!poolHasActiveMatches) {
-        // eventPublisher.publishPoolDeactivationEvent(poolId);
-        // logger.info("Événement de désactivation de pool publié",
-        // keyValue("action", "publish_pool_deactivation"),
-        // keyValue("poolId", poolId));
-        // }
     }
 
     /**
