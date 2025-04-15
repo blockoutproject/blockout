@@ -8,9 +8,10 @@ class CompetitionAssociation:
     Représente l'association entre une Pool et une Team,
     avec gestion du statut 'active' et des statistiques de compétition
     """
+    pool_id: int
+    team_id: int
+    club_id: str
     id: Optional[int] = None
-    pool_id: int = 0
-    team_id: int = 0
     active: bool = True
     played: int = 0
     wins: int = 0

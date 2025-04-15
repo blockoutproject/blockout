@@ -69,11 +69,11 @@ async def handle_csv_download_and_parse(
         ) or []
         
         # Associations actives
-        active_team_ids = [
+        active_team_ids = {
             t_id
             for (p_id, t_id), (original, _) in scraper._associations_cache.items()
             if p_id == pool.id and original is not None
-        ]
+        }
         
         existing_teams_dict = {
             (t.club_id, t.division_name, t.format, t.gender, t.name): t
@@ -156,10 +156,10 @@ async def handle_csv_download_and_parse(
             
             # Gestion des associations (création si nécessaire)
             if new_team_a.id not in active_team_ids:
-                await add_team_to_pool(scraper.session, scraper.category, pool.id, new_team_a.id)
+                await add_team_to_pool(scraper.session, scraper.category, pool.id, new_team_a.id, new_team_a.club_id)
                 active_team_ids.add(new_team_a.id)
             if new_team_b.id not in active_team_ids:
-                await add_team_to_pool(scraper.session, scraper.category, pool.id, new_team_b.id)
+                await add_team_to_pool(scraper.session, scraper.category, pool.id, new_team_b.id, new_team_b.club_id)
                 active_team_ids.add(new_team_b.id)
             
             # Mise à jour des statistiques d'association en fonction du résultat

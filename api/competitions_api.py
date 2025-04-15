@@ -31,21 +31,30 @@ async def get_team_associations_by_pool(session: aiohttp.ClientSession, pool_id:
     return response
 
 @handle_api_response(response_type=CompetitionAssociation)
-async def add_team_to_pool(session: aiohttp.ClientSession, category: Category, pool_id: int, team_id: int) -> CompetitionAssociation:
+async def add_team_to_pool(
+    session: aiohttp.ClientSession,
+    category: Category,
+    pool_id: int,
+    team_id: int,
+    club_id: str
+) -> CompetitionAssociation:
     """
     Créer (ou réactiver) l'association entre une poule et une équipe.
     """
     headers = _get_auth_headers()
-    url = f"{COMPETITION_API_URL}/pools/{pool_id}/teams/{team_id}?category={category.value}"
+    url = f"{COMPETITION_API_URL}/pools/{pool_id}/teams/{team_id}?category={category.value}&club_id={club_id}"
     response = await session.post(url, headers=headers)
+
     log_event(
         action="add_team_to_pool",
         level="info",
         category=category.value,
         pool_id=pool_id,
         team_id=team_id,
-        message=f"POST {url} - Association pool/team."
+        club_id=club_id,
+        message=f"POST {url} - Association pool/team/club."
     )
+
     return response
 
 @handle_api_response(response_type=None)
