@@ -26,6 +26,9 @@ public class CompetitionAssociation {
     @Column(name = "team_id", nullable = false)
     private Long teamId;
 
+    @Column(name = "club_id", nullable = false)
+    private String clubId;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "category", nullable = false)
     private Category category;

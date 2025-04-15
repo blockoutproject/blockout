@@ -1,5 +1,6 @@
 package com.blockout.competitions.services;
 
+import com.blockout.shared.events.ClubDeactivatedEvent;
 import com.blockout.shared.events.PoolDeactivatedEvent;
 import com.blockout.shared.events.TeamDeactivatedByPoolEvent;
 import com.blockout.shared.events.TeamDeactivatedEvent;
@@ -38,6 +39,14 @@ public class EventPublisher {
         rabbitTemplate.convertAndSend(
                 RabbitMQConfig.DEACTIVATED_EXCHANGE,
                 "teambypool.deactivated",
+                event);
+    }
+
+    public void publishClubDeactivationEvent(String clubId) {
+        ClubDeactivatedEvent event = ClubDeactivatedEvent.builder().clubId(clubId).build();
+        rabbitTemplate.convertAndSend(
+                RabbitMQConfig.DEACTIVATED_EXCHANGE,
+                "club.deactivated",
                 event);
     }
 }

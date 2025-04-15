@@ -2,6 +2,7 @@ package com.blockout.competitions.controllers;
 
 import com.blockout.competitions.models.Category;
 import com.blockout.competitions.models.CompetitionAssociation;
+import com.blockout.competitions.models.dto.BulkClubsDeactivateRequest;
 import com.blockout.competitions.models.dto.BulkPoolsDeactivateRequest;
 import com.blockout.competitions.models.dto.BulkTeamsDeactivateRequest;
 import com.blockout.competitions.models.dto.TeamAssociationStatsRequest;
@@ -33,9 +34,10 @@ public class CompetitionAssociationController {
     public ResponseEntity<CompetitionAssociation> addTeamToPool(
             @PathVariable Long poolId,
             @PathVariable Long teamId,
+            @RequestParam(name = "club_id") String clubId,
             @RequestParam Category category) {
 
-        CompetitionAssociation assoc = associationService.addOrActivateAssociation(poolId, teamId, category);
+        CompetitionAssociation assoc = associationService.addOrActivateAssociation(poolId, teamId, clubId, category);
         return ResponseEntity.ok(assoc);
     }
 
@@ -104,6 +106,17 @@ public class CompetitionAssociationController {
         return ResponseEntity.ok().build();
     }
 
+    @Operation(summary = "Désactiver en masse les associations Pool–Club qui ne figurent plus dans la liste scrappée")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Associations désactivées en masse avec succès"),
+    })
+    @PutMapping("/clubs/bulk-deactivate")
+    public ResponseEntity<Void> bulkDeactivateClubs(
+            @RequestBody BulkClubsDeactivateRequest request) {
+        associationService.bulkDeactivateClubs(request.getMissingClubIds());
+        return ResponseEntity.ok().build();
+    }
+
     @Operation(summary = "Mettre à jour les statistiques de l'association (pool–team)")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Statistiques mises à jour avec succès"),
@@ -114,8 +127,7 @@ public class CompetitionAssociationController {
             @PathVariable Long poolId,
             @PathVariable Long teamId,
             @RequestBody TeamAssociationStatsRequest statsRequest) {
-        CompetitionAssociation updatedAssoc = associationService.updateTeamAssociationStats(poolId, teamId,
-                statsRequest);
+        CompetitionAssociation updatedAssoc = associationService.updateTeamAssociationStats(poolId, teamId, statsRequest);
         return ResponseEntity.ok(updatedAssoc);
     }
 }

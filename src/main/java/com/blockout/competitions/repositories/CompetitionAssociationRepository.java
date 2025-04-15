@@ -43,6 +43,8 @@ public interface CompetitionAssociationRepository extends JpaRepository<Competit
 
     List<CompetitionAssociation> findByActiveTrueAndPoolIdIn(Set<Long> invalidPoolIds);
 
+    List<CompetitionAssociation> findByActiveTrueAndClubIdIn(Set<String> invalidClubIds);
+
     @Query("""
                 SELECT DISTINCT ca.poolId
                 FROM CompetitionAssociation ca
