@@ -15,6 +15,8 @@ import org.springframework.stereotype.Repository;
 public interface TeamRepository extends JpaRepository<Team, Long> {
     List<Team> findByDivisionNameAndFormatAndGender(String divisionName, TeamFormat format, TeamGender gender);
 
+    List<Team> findByClubIdAndActiveTrue(String clubId);
+    
     @Query(value = """
         SELECT * 
         FROM teams 

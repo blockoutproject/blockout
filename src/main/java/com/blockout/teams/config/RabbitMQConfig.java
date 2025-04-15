@@ -11,6 +11,7 @@ public class RabbitMQConfig {
 
     public static final String DEACTIVATED_EXCHANGE = "deactivated.exchange";
     public static final String TEAM_DEACTIVATED_QUEUE_TEAMS = "team.deactivated.queue.teams";
+    public static final String CLUB_DEACTIVATED_QUEUE_TEAMS = "club.deactivated.queue.teams";
 
     @Bean
     public TopicExchange deactivatedExchange() {
@@ -23,12 +24,26 @@ public class RabbitMQConfig {
     }
 
     @Bean
+    public Queue clubDeactivatedQueueTeams() {
+        return new Queue(CLUB_DEACTIVATED_QUEUE_TEAMS, true);
+    }
+
+    @Bean
     public Binding bindTeamDeactivatedQueueTeams(
             TopicExchange deactivatedExchange,
             Queue teamDeactivatedQueueTeams) {
         return BindingBuilder.bind(teamDeactivatedQueueTeams)
                 .to(deactivatedExchange)
                 .with("team.deactivated");
+    }
+
+    @Bean
+    public Binding bindClubDeactivatedQueueTeams(
+            TopicExchange deactivatedExchange,
+            Queue clubDeactivatedQueueTeams) {
+        return BindingBuilder.bind(clubDeactivatedQueueTeams)
+                .to(deactivatedExchange)
+                .with("club.deactivated");
     }
 
     public static final String USER_FOLLOW_EXCHANGE = "user.follow.exchange";

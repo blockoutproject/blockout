@@ -261,6 +261,30 @@ public class TeamService {
     }
 
     /**
+     * Désactive toutes les équipes d'un club donné.
+     *
+     * @param clubId L'identifiant du club
+     */
+    @Transactional
+    public void deactivateTeamsByClubId(String clubId) {
+        List<Team> teams = teamRepository.findByClubIdAndActiveTrue(clubId);
+        if (teams.isEmpty()) {
+            logger.warn("No active teams found for club ID. No deactivation performed.",
+                    keyValue("action", "deactivate_teams_by_club"),
+                    keyValue("clubId", clubId));
+        } else {
+            teams.forEach(team -> {
+                team.setActive(false);
+                teamRepository.save(team);
+                logger.info("Team deactivated as part of club deactivation",
+                        keyValue("action", "deactivate_teams_by_club"),
+                        keyValue("teamId", team.getId()),
+                        keyValue("clubId", clubId));
+            });
+        }
+    }
+
+    /**
      * Récupère les IDs de clubs uniques
      * 
      * @return Liste des IDs de clubs uniques
