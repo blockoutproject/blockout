@@ -11,9 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 @Service
 public class ClubService {
@@ -21,11 +19,9 @@ public class ClubService {
     private static final Logger logger = LoggerFactory.getLogger(ClubService.class);
 
     private final ClubRepository clubRepository;
-    private final EventPublisher eventPublisher;
 
-    public ClubService(ClubRepository clubRepository, EventPublisher eventPublisher) {
+    public ClubService(ClubRepository clubRepository) {
         this.clubRepository = clubRepository;
-        this.eventPublisher = eventPublisher;
     }
 
     /**
@@ -62,7 +58,7 @@ public class ClubService {
      * @throws ClubNotFoundException Si le club n'existe pas
      */
     @Transactional
-    public Club updateClub(Long id, Club updatedClub) {
+    public Club updateClub(String id, Club updatedClub) {
         return clubRepository.findById(id).map(club -> {
             club.setName(updatedClub.getName());
             club.setCity(updatedClub.getCity());
@@ -86,40 +82,28 @@ public class ClubService {
     }
 
     /**
-     * Désactive les clubs dont les IDs ne figurent pas dans la liste
-     *
-     * @param activeClubIds Liste des clubs considérés comme encore actifs
+     * Désactive un club
+     * 
+     * @param clubId L'identifiant du club à désactiver
+     * @return Le club désactivé
+     * @throws ClubNotFoundException Si le club n'existe pas
      */
     @Transactional
-    public void bulkDeactivateClubs(List<Long> activeClubIds) {
-        Set<Long> activeClubIdsSet = new HashSet<>(activeClubIds);
-        logger.info("Démarrage de la désactivation des clubs",
-                keyValue("action", "bulk_deactivate_clubs"),
-                keyValue("activeClubIds", activeClubIdsSet));
+    public Club deactivateClub(String clubId) {
+        return clubRepository.findById(clubId).map(club -> {
+            club.setActive(false);
+            Club updatedClub = clubRepository.save(club);
 
-        // Récupère les clubs actifs qui NE SONT PAS dans la liste d'IDs actifs
-        List<Club> clubsToDeactivate = clubRepository.findByActiveTrueAndIdNotIn(activeClubIdsSet);
+            logger.info("Club successfully deactivated",
+                    keyValue("action", "deactivate_club"),
+                    keyValue("clubId", clubId));
 
-        if (clubsToDeactivate.isEmpty()) {
-            logger.warn("Aucun club à désactiver trouvé",
-                    keyValue("action", "bulk_deactivate_clubs"),
-                    keyValue("nombreClubs", 0));
-            return;
-        }
-
-        // Marquer chaque club comme inactif
-        clubsToDeactivate.forEach(club -> club.setActive(false));
-        clubRepository.saveAll(clubsToDeactivate);
-
-        logger.info("Clubs désactivés en masse",
-                keyValue("action", "bulk_deactivate_clubs"),
-                keyValue("nombreClubs", clubsToDeactivate.size()));
-
-        for (Club club : clubsToDeactivate) {
-            eventPublisher.publishClubDeactivationEvent(club.getId());
-            logger.info("Événement de désactivation de club publié",
-                    keyValue("action", "publish_club_deactivation"),
-                    keyValue("clubId", club.getId()));
-        }
+            return updatedClub;
+        }).orElseThrow(() -> {
+            logger.error("Club not found. Cannot deactivate.",
+                    keyValue("action", "deactivate_club"),
+                    keyValue("clubId", clubId));
+            return new ClubNotFoundException(clubId);
+        });
     }
 }

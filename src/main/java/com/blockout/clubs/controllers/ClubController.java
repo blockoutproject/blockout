@@ -9,7 +9,6 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import com.blockout.clubs.models.Club;
-import com.blockout.clubs.models.dto.BulkClubsDeactivateRequest;
 import com.blockout.clubs.services.ClubService;
 
 import java.net.URI;
@@ -58,7 +57,7 @@ public class ClubController {
     })
     @PutMapping("/clubs/{id}")
     public ResponseEntity<Club> updateClub(
-            @Parameter(description = "ID du club à mettre à jour") @PathVariable Long id,
+            @Parameter(description = "ID du club à mettre à jour") @PathVariable String id,
             @RequestBody Club updatedClub) {
         try {
             Club updated = clubService.updateClub(id, updatedClub);
@@ -66,17 +65,5 @@ public class ClubController {
         } catch (RuntimeException e) {
             return ResponseEntity.notFound().build();
         }
-    }
-
-    @Operation(summary = "Désactiver en masse les associations Pool–Club qui ne figurent plus dans la liste scrappée")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Associations désactivées en masse avec succès"),
-    })
-    @PutMapping("/pools/{poolId}/teams/bulk-deactivate")
-    public ResponseEntity<Void> bulkDeactivateClubs(
-            @PathVariable Long poolId,
-            @RequestBody BulkClubsDeactivateRequest request) {
-        clubService.bulkDeactivateClubs(request.getMissingClubIds());
-        return ResponseEntity.ok().build();
     }
 }
