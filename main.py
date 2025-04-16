@@ -25,7 +25,7 @@ async def main():
     start_time = datetime.now(timezone.utc)
     async with lock:
         try:
-            async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=60)) as session:
+            async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=1)) as session:
                 
                 scraper_types = ['club']
                 tasks = []
