@@ -55,11 +55,11 @@ async def main():
 
 def schedule_scraper():
     """
-    Planifie l'exécution du scraping toutes les 1 minute à l'aide d'APScheduler.
+    Planifie l'exécution du scraping une fois par jour à l'aide d'APScheduler.
     """
     loop = asyncio.get_event_loop()
     scheduler = AsyncIOScheduler(event_loop=loop)
-    scheduler.add_job(main, 'interval', minutes=1, next_run_time=datetime.now(timezone.utc))
+    scheduler.add_job(main, 'interval', minutes=1440, next_run_time=datetime.now(timezone.utc))
     scheduler.start()
 
     log_event(
