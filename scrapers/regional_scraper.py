@@ -67,8 +67,9 @@ class RegionalScraper(Scraper):
                         league_page_url = a_tag['href']
 
                         # On lance la tâche de scraping des poules pour cette ligue
-                        task = self.scrape_pools_from_league(league_code, league_name, league_page_url)
-                        tasks.append(task)
+                        if league_code not in ['LIMY', 'LIGY', 'LIGU', 'LIMART']:
+                            task = self.scrape_pools_from_league(league_code, league_name, league_page_url)
+                            tasks.append(task)
 
                 except Exception as e:
                     log_event(
@@ -156,66 +157,65 @@ class RegionalScraper(Scraper):
             }
 
             # Parcours des poules
-            if league_code not in ['LIMY', 'LIGY', 'LIGU', 'LIMART']:
-                for a_tag in pool_links:
-                    try:
-                        href = a_tag['href']
-                        pool_code_match = re.search(r'poule=([^&]+)', href)
-                        if not pool_code_match:
-                            log_event(
-                                action="missing_pool_code",
-                                level="warning",
-                                league_name=league_name,
-                                league_code=league_code,
-                                url=href
-                            )
-                            continue
-
-                        pool_code = pool_code_match.group(1)
-                        pool_name = a_tag.get_text(strip=True)
-
-                        # On essaie de déterminer la division depuis les balises parents
-                        raw_division_tag = a_tag.find_parent('ul').find_previous_sibling('a')
-                        raw_division_name = raw_division_tag.get_text(strip=True) if raw_division_tag else ""
-
-                        standardized = standardize_division_name(raw_division_name, PoolDivisionCode.REG, pool_code)
-
-                        pool_data = {
-                            "pool_code": pool_code,
-                            "league_code": league_code,
-                            "season": parsed_season,
-                            "league_name": league_name,
-                            "pool_name": pool_name,
-                            "division_code": standardized["division_code"],
-                            "division_name": standardized["division_name"],
-                            "format": standardized["format"],
-                            "gender": standardized["gender"],
-                            "raw_division_name": raw_division_name
-                        }
-                        pool_obj = Pool(**pool_data)
-                        key = (pool_obj.pool_code, pool_obj.league_code, pool_obj.season)
-                        existing_pool = existing_pools_dict.get(key)
-
-                        new_pool = await add_or_update_pool(self.session, pool_obj, existing_pool)
-                        
-                        # Appel de handle_csv_download_and_parse en passant le scraper
-                        # pour alimenter le cache
-                        task = handle_csv_download_and_parse(
-                            self,
-                            new_pool,
-                            raw_season,
-                        )
-                        tasks.append(task)
-                        self.scraped_pool_ids.add(new_pool.id)
-
-                    except Exception as e:
+            for a_tag in pool_links:
+                try:
+                    href = a_tag['href']
+                    pool_code_match = re.search(r'poule=([^&]+)', href)
+                    if not pool_code_match:
                         log_event(
-                            action="pool_processing_error",
-                            level="error",
+                            action="missing_pool_code",
+                            level="warning",
                             league_name=league_name,
                             league_code=league_code,
-                            error=str(e)
+                            url=href
                         )
+                        continue
+
+                    pool_code = pool_code_match.group(1)
+                    pool_name = a_tag.get_text(strip=True)
+
+                    # On essaie de déterminer la division depuis les balises parents
+                    raw_division_tag = a_tag.find_parent('ul').find_previous_sibling('a')
+                    raw_division_name = raw_division_tag.get_text(strip=True) if raw_division_tag else ""
+
+                    standardized = standardize_division_name(raw_division_name, PoolDivisionCode.REG, pool_code)
+
+                    pool_data = {
+                        "pool_code": pool_code,
+                        "league_code": league_code,
+                        "season": parsed_season,
+                        "league_name": league_name,
+                        "pool_name": pool_name,
+                        "division_code": standardized["division_code"],
+                        "division_name": standardized["division_name"],
+                        "format": standardized["format"],
+                        "gender": standardized["gender"],
+                        "raw_division_name": raw_division_name
+                    }
+                    pool_obj = Pool(**pool_data)
+                    key = (pool_obj.pool_code, pool_obj.league_code, pool_obj.season)
+                    existing_pool = existing_pools_dict.get(key)
+
+                    new_pool = await add_or_update_pool(self.session, pool_obj, existing_pool)
+                    
+                    # Appel de handle_csv_download_and_parse en passant le scraper
+                    # pour alimenter le cache
+                    task = handle_csv_download_and_parse(
+                        self,
+                        new_pool,
+                        raw_season,
+                    )
+                    tasks.append(task)
+                    self.scraped_pool_ids.add(new_pool.id)
+
+                except Exception as e:
+                    log_event(
+                        action="pool_processing_error",
+                        level="error",
+                        league_name=league_name,
+                        league_code=league_code,
+                        error=str(e)
+                    )
 
                 # On attend que tous les CSV de toutes les poules soient gérés
                 await asyncio.gather(*tasks)
