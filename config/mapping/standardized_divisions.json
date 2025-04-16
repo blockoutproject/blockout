@@ -50,7 +50,8 @@
                 "PRÉNATIONALE FÉMININE OCCITANIE OUEST",
                 "PRÉNATIONALE FÉMININE OCCITANIE EST",
                 "PRE-NATIONALE FEMININE",
-                "PRÉNATIONALE FEMININE"
+                "PRÉNATIONALE FEMININE",
+                "PRENATIONAL FEMININES POULE C"
             ],
             "M": [
                 "PRENATIONAL MASCULINS",
@@ -63,7 +64,8 @@
                 "PRE NATIONALE MASCULINE",
                 "PRE-NATIONALE MASCULINE",
                 "CHAMPIONNAT PRE NATIONAL MASCULIN",
-                "PRÉNATIONALE MASCULINE"
+                "PRÉNATIONALE MASCULINE",
+                "PRENATIONAL MASCULINS POULE C"
             ]
         },
         "Régionale": {
@@ -89,7 +91,9 @@
                 "RÉGIONALE  FÉMININE",
                 "REGIONAL 1 FEMININE",
                 "PLAY-DOWN FEMININ",
-                ""
+                "REGIONAL FEMININES POULE E",
+                "PH2 POULE HAUTE R1F 2024-2025",
+                "PH2 POULE BASSE R1F-R2F FEMININ 2024 2025"
             ],
             "M": [
                 "REGIONAL MASCULINS",
@@ -112,7 +116,9 @@
                 "RÉGIONALE  MASCULINE",
                 "REGIONALE MASCULINE",
                 "PLAY-DOWN MASCULIN",
-                "PLAY-OFF MASCULIN"
+                "PLAY-OFF MASCULIN",
+                "REGIONAL MASCULINS POULE E",
+                "PH 2 POULE DU MILIEU R1M 2024 2025"
             ],
             "O": [
                 "REGIONAL MIXTE"
@@ -254,7 +260,9 @@
             "O": [
                 "COUPE DE FRANCE COMPET'LIB 2025",
                 "LOISIR CORPO",
-                "REGIONAL M15/M18 6X6"
+                "REGIONAL M15/M18 6X6",
+                "COMPET'LIB",
+                "PHASE REGIONALE CDF COMPET LIB"
             ]
         }
     },
