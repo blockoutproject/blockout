@@ -91,7 +91,7 @@ public class CompetitionAssociationController {
     public ResponseEntity<Void> bulkDeactivateTeams(
             @PathVariable Long poolId,
             @RequestBody BulkTeamsDeactivateRequest request) {
-        associationService.bulkDeactivateTeamsForPool(poolId, request.getMissingTeamIds());
+        associationService.bulkDeactivateTeamsByPool(poolId, request.getMissingTeamIds());
         return ResponseEntity.ok().build();
     }
 

@@ -13,44 +13,58 @@ import java.util.Set;
 @Repository
 public interface CompetitionAssociationRepository extends JpaRepository<CompetitionAssociation, Long> {
 
+    /*
+     * ----------------------------------------------------------------
+     * Requêtes simples par identifiant
+     * ----------------------------------------------------------------
+     */
     List<CompetitionAssociation> findByPoolId(Long poolId);
-
     List<CompetitionAssociation> findByPoolIdAndActive(Long poolId, Boolean active);
-
     List<CompetitionAssociation> findByTeamId(Long teamId);
-
     List<CompetitionAssociation> findByTeamIdAndActive(Long teamId, Boolean active);
-
-    // Récupère toutes les associations actives
-    List<CompetitionAssociation> findByActive(boolean active);
-
-    // Trouver l'association unique entre une pool et une équipe
     Optional<CompetitionAssociation> findByPoolIdAndTeamId(Long poolId, Long teamId);
 
-    // Vérifier qu'il y a des associations actives pour une pool
+    /*
+     * ----------------------------------------------------------------
+     * Existence d’associations actives
+     * ----------------------------------------------------------------
+     */
     boolean existsByPoolIdAndActiveTrue(Long poolId);
+    boolean existsByTeamIdAndActiveTrue(Long teamId);
+    boolean existsByClubIdAndActiveTrue(String clubId);
 
-    List<CompetitionAssociation> findByPoolIdAndActiveTrueAndTeamIdIn(Long poolId, Set<Long> invalidTeamIds);
+    /*
+     * ----------------------------------------------------------------
+     * Bulk désactivations : récupération des associations actives
+     * ----------------------------------------------------------------
+     */
+    List<CompetitionAssociation> findByPoolIdAndActiveTrueAndTeamIdIn(Long poolId, Set<Long> teamIds);
+    List<CompetitionAssociation> findByActiveTrueAndPoolIdIn(Set<Long> poolIds);
+    List<CompetitionAssociation> findByActiveTrueAndClubIdIn(Set<String> clubIds);
+
+    /*
+     * ----------------------------------------------------------------
+     * Helpers DISTINCT (cascade : pool ➜ team ➜ club)
+     * ----------------------------------------------------------------
+     */
+    @Query("""
+            SELECT DISTINCT ca.teamId
+            FROM CompetitionAssociation ca
+            WHERE ca.teamId IN :teamIds AND ca.active = :active
+            """)
+    List<Long> findDistinctTeamIdByTeamIdInAndActive(@Param("teamIds") Set<Long> teamIds, @Param("active") boolean active);
 
     @Query("""
-                SELECT DISTINCT ca.teamId
-                FROM CompetitionAssociation ca
-                WHERE ca.teamId IN :teamIds AND ca.active = :active
+            SELECT DISTINCT ca.teamId
+            FROM CompetitionAssociation ca
+            WHERE ca.poolId IN :poolIds
             """)
-    List<Long> findDistinctTeamIdByTeamIdInAndActive(
-            @Param("teamIds") Set<Long> teamIds,
-            @Param("active") boolean active);
-
-    List<CompetitionAssociation> findByActiveTrueAndPoolIdIn(Set<Long> invalidPoolIds);
-
-    List<CompetitionAssociation> findByActiveTrueAndClubIdIn(Set<String> invalidClubIds);
+    List<Long> findDistinctTeamIdByPoolIdIn(@Param("poolIds") Set<Long> poolIds);
 
     @Query("""
-                SELECT DISTINCT ca.poolId
-                FROM CompetitionAssociation ca
-                WHERE ca.poolId IN :poolIds AND ca.active = :active
+            SELECT DISTINCT ca.clubId
+            FROM CompetitionAssociation ca
+            WHERE ca.teamId IN :teamIds
             """)
-    List<Long> findDistinctPoolIdByPoolIdInAndActive(
-            @Param("poolIds") Set<Long> poolIds,
-            @Param("active") boolean active);
+    List<String> findDistinctClubIdByTeamIdIn(@Param("teamIds") Set<Long> teamIds);
 }
