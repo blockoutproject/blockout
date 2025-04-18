@@ -180,6 +180,15 @@ public class CompetitionAssociationService {
             logger.warn("Aucune association trouvée à désactiver pour les pools",
                     keyValue("action", "bulk_deactivate_pools"),
                     keyValue("nombreAssociations", 0));
+            // Publier un événement pour chaque pool désactivée
+            for (Long poolId : poolIdsToDeactivateSet) {
+                if (!associationRepository.existsByPoolIdAndActiveTrue(poolId)) {
+                    eventPublisher.publishPoolDeactivationEvent(poolId);
+                    logger.info("Événement de désactivation de pool publié",
+                            keyValue("action", "publish_pool_deactivation"),
+                            keyValue("poolId", poolId));
+                }
+            }
             return;
         }
 
