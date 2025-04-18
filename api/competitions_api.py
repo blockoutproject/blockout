@@ -58,7 +58,7 @@ async def add_team_to_pool(
     return response
 
 @handle_api_response(response_type=None)
-async def bulk_deactivate_teams_by_pool(session: aiohttp.ClientSession, pool_id: int, missing_team_ids: list[int]) -> None:
+async def bulk_deactivate_teams_by_pool(session: aiohttp.ClientSession, pool_id: int, missing_team_ids: set[int]) -> None:
     """
     Désactive en masse les associations Pool–Team qui figurent dans la liste 'missing_team_ids'.
     """
@@ -72,7 +72,7 @@ async def bulk_deactivate_teams_by_pool(session: aiohttp.ClientSession, pool_id:
     return response
 
 @handle_api_response(response_type=None)
-async def bulk_deactivate_pools(session: aiohttp.ClientSession, missing_pool_ids: list[int]) -> None:
+async def bulk_deactivate_pools(session: aiohttp.ClientSession, league_name: str, league_code: str, missing_pool_ids: set[int]) -> None:
     """
     Désactive en masse les associations pool_id qui ne figurent plus dans la liste 'missing_pool_ids'.
     """
@@ -86,7 +86,7 @@ async def bulk_deactivate_pools(session: aiohttp.ClientSession, missing_pool_ids
     log_event(
         action="bulk_deactivate_pools",
         level="info",
-        message=f"PUT {url} - Désactivation en masse des pools {missing_pool_ids}."
+        message=f"PUT {url} - Désactivation en masse des pools pour la league {league_name} ({league_code}) {missing_pool_ids}."
     )
     return response
 

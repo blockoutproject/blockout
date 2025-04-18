@@ -1,10 +1,12 @@
 import asyncio
+from typing import Optional
+from api.matches_api import bulk_deactivate_matches
+from api.pools_api import update_pool
 from config.logger_config import log_event
 from models.match import Match, MatchStatus
 from models.pool import Pool
 from models.scraper import Scraper
 from models.team import Team
-from services.matchs_service import deactivate_matches
 from services.teams_service import add_or_update_team
 from api.competitions_api import add_team_to_pool, bulk_deactivate_teams_by_pool
 from api.teams_api import get_teams_by_division_format_gender
@@ -17,13 +19,15 @@ from models.datasource_priority import DataSourcePriority
 async def handle_csv_download_and_parse(
     scraper: Scraper,
     pool: Pool,
-    season
+    season: int,
+    scraped_pool_ids: Optional[set[int]] = None
 ) -> None:
     """
     1) init le cache (scraper.init_matches_cache)
     2) download CSV
     3) parse CSV => schedule_match_changes & schedule_association_update
     """
+
     if scraper.session.closed:
         log_event(
             action="csv_download_session_closed",
@@ -37,7 +41,7 @@ async def handle_csv_download_and_parse(
         # 1) Init le cache => on charge les matchs et les associations existants pour pool.id
         await scraper.init_matches_cache(pool.id)
         await scraper.init_associations_cache(pool.id)
-
+        
         # 2) download et parse le CSV
         parsed_data = await download_and_parse_csv(scraper, pool, season)
         if not parsed_data:
@@ -51,16 +55,9 @@ async def handle_csv_download_and_parse(
             return
         
         parsed_list = list(parsed_data)
+        
+        # On vérifie qu'on a bien des données
         if not parsed_list:
-            log_event(
-                action="csv_empty",
-                level="warning",
-                message="Fichier CSV vide, la poule n'est pas prise en compte",
-                pool_id=pool.id,
-                pool_name=pool.pool_name,
-                league_code=pool.league_code,
-                season=season
-            )
             return
         
         # Teams existantes
@@ -201,15 +198,52 @@ async def handle_csv_download_and_parse(
                 priority=DataSourcePriority.FFVB
             )
 
-        # Désactivation
-        missing_team_ids = [
-            team.id for team in existing_teams if team.id not in scraped_team_ids
-        ]
-        if missing_team_ids:
-            await bulk_deactivate_teams_by_pool(scraper.session, pool.id, missing_team_ids),
-            
-        await deactivate_matches(scraper.session, pool.id, scraped_match_codes)
+        # Vérifie qu'on a au moins un match scrappé
+        if not scraped_match_codes:
+            return
         
+        # Si la pool n'est pas active, on la réactive 
+        if not pool.active:
+            pool.active = True
+            await update_pool(scraper.session, pool, ["Pool réactivée après détection de matchs"])
+            log_event(
+                action="pool_manual_reactivation",
+                level="info",
+                pool_id=pool.id,
+                message="Réactivation de la pool suite à la détection de matchs"
+            )
+
+        # Si on arrive ici, on a au moins un match, on peut continuer
+        if scraped_pool_ids is not None:
+            scraped_pool_ids.add(pool.id) 
+
+        # Désactivation des équipes et des matchs manquants
+        missing_team_ids = {
+            team.id
+            for team in existing_teams
+            if team.id not in scraped_team_ids
+        }
+        if missing_team_ids:
+            await bulk_deactivate_teams_by_pool(
+                scraper.session,
+                pool.id,
+                list(missing_team_ids)
+            )
+
+        missing_match_codes = {
+            match_code
+            for (league_code, match_code), (existing_match, *_) in scraper._matches_cache.items()
+            if existing_match 
+            and existing_match.pool_id == pool.id
+            and match_code not in scraped_match_codes
+            and existing_match.active
+        }
+        if missing_match_codes:
+            await bulk_deactivate_matches(
+                scraper.session,
+                pool.id,
+                list(missing_match_codes)
+            )    
 
     except Exception as e:
         log_event(

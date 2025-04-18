@@ -39,9 +39,8 @@ class Scraper(ABC):
         self._associations_cache: dict[
             tuple[int, int], 
             tuple[Optional[AssociationStats], AssociationStats]
-        ] = {}        
-        self.scraped_pool_ids = set()
-
+        ] = {}    
+        
         # Prometheus gauge
         class_name = self.__class__.__name__.lower()
         if class_name not in Scraper._gauges:

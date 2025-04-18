@@ -106,7 +106,7 @@ class ProScraper(Scraper):
                     existing_pool = existing_pools_dict.get(key)
 
                     # Ajout/mise à jour de la poule en base
-                    new_pool = await add_or_update_pool(self.session, pool_obj, existing_pool)
+                    new_pool = await add_or_update_pool(self.session, pool_obj, existing_pool, False)
 
                     # Si la poule est créée ou mise à jour, on lance la chaîne de tâches
                     if new_pool:

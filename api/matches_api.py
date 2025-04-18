@@ -67,21 +67,6 @@ async def update_match(session: aiohttp.ClientSession, match: Match, changes_lis
     return response
 
 
-@handle_api_response(response_type=None)
-async def deactivate_match(session: aiohttp.ClientSession, match_id: int) -> None:
-    """
-    Désactive un match en envoyant une requête PUT à une route dédiée.
-    """
-    headers = _get_auth_headers()
-    response = await session.put(f"{MATCH_API_URL}/matches/{match_id}/deactivate", headers=headers)
-    log_event(
-        action="deactivate_match", 
-        level="info", 
-        match_id=match_id
-    )
-    return response
-
-
 @handle_api_response(response_type=list[Match])
 async def get_started_matches(session: aiohttp.ClientSession, status: MatchStatus, active: bool, current_time: str) -> Optional[list[Match]]:
     """
@@ -108,3 +93,21 @@ async def get_match_by_pool_teams_date(session: aiohttp.ClientSession, pool_id: 
         'match_date': match_date.isoformat()
     }
     return await session.get(f"{MATCH_API_URL}/pools/{pool_id}/matches/search", params=params, headers=headers)
+
+@handle_api_response(response_type=None)
+async def bulk_deactivate_matches(session: aiohttp.ClientSession, pool_id: int, missing_match_codes: set[str]) -> None:
+    """
+    Désactive en masse les matches dont les IDs sont fournis.
+    """
+    headers = _get_auth_headers()
+    payload = {
+        "missing_match_codes": list(missing_match_codes)
+    }
+    url = f"{MATCH_API_URL}/pools/{pool_id}/matches/bulk-deactivate"
+    response = await session.put(url, json=payload, headers=headers)
+    log_event(
+        action="bulk_deactivate_matches",
+        level="info",
+        message=f"PUT {url} - Désactivation en masse des matches {missing_match_codes}."
+    )
+    return response

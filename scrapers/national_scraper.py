@@ -68,6 +68,9 @@ class NationalScraper(Scraper):
                 (p.pool_code, p.league_code, p.season): p
                 for p in existing_pools
             }
+            
+            # Set local pour gérer la désactivation par league
+            scraped_pool_ids = set()
 
             # Parcours de chaque lien .htm (chaque poule)
             for a_tag in soup.find_all('a', href=lambda href: href and href.endswith('.htm')):
@@ -100,19 +103,18 @@ class NationalScraper(Scraper):
                     existing_pool = existing_pools_dict.get(key)
 
                     # Ajout / Mise à jour de la Pool
-                    new_pool = await add_or_update_pool(self.session, pool_obj, existing_pool)
+                    new_pool = await add_or_update_pool(self.session, pool_obj, existing_pool, False)
                     
                     # Appel de la logique CSV, on passe le scraper
                     # pour écrire les matches dans le cache
                     task = handle_csv_download_and_parse(
                         self,
                         new_pool,
-                        raw_season
+                        raw_season,
+                        scraped_pool_ids
                     )
                     tasks.append(task)
                         
-                    self.scraped_pool_ids.add(new_pool.id)
-
                 except Exception as e:
                     log_event(
                         action="pool_processing_error",
@@ -132,11 +134,14 @@ class NationalScraper(Scraper):
             await self.finalize_associations_updates()
             
             # Désactivation des pools non scrapées
-            missing_pools = [
-                pool for pool in existing_pools if pool.id not in self.scraped_pool_ids
-            ]
-            if missing_pools:
-                await bulk_deactivate_pools(self.session, missing_pools)
+            missing_pool_ids = {
+                pool.id 
+                for pool in existing_pools 
+                if pool.active 
+                and pool.id not in scraped_pool_ids
+            }
+            if missing_pool_ids:
+                await bulk_deactivate_pools(self.session, self.league_name, self.league_code, missing_pool_ids)
             
         except Exception as e:
             log_event(
