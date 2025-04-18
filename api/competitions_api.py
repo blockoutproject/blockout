@@ -8,13 +8,13 @@ from api.auth0 import _get_auth_headers
 from utils.utils import to_dict
 
 @handle_api_response(response_type=None)
-async def bulk_deactivate_clubs(session: aiohttp.ClientSession, missing_club_ids: list[int]) -> None:
+async def bulk_deactivate_clubs(session: aiohttp.ClientSession, missing_club_ids: set[int]) -> None:
     """
     Envoie une requête PUT pour désactiver en masse les clubs non présents dans la liste scrapée.
     """
     headers = _get_auth_headers()
     body = {
-        "missing_club_ids": missing_club_ids
+        "missing_club_ids": list(missing_club_ids)
     }
     url = f"{COMPETITION_API_URL}/clubs/bulk-deactivate"
 

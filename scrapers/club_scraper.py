@@ -30,10 +30,10 @@ class ClubScraper(Scraper):
             await asyncio.gather(*tasks)
             
             # Désactivation des clubs non scrapées
-            missing_clubs_ids = [
+            missing_clubs_ids = {
                 updated.id for (_, updated) in self._clubs_cache.values()
                 if updated.id not in self.scraped_club_ids
-            ]
+            }
             if missing_clubs_ids:
                 await bulk_deactivate_clubs(self.session, missing_clubs_ids)
 
