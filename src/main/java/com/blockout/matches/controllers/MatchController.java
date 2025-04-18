@@ -159,9 +159,11 @@ public class MatchController {
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Matches désactivés en masse avec succès")
     })
-    @PutMapping("/matches/bulk-deactivate")
-    public ResponseEntity<Void> bulkDeactivateMatches(@RequestBody BulkMatchesDeactivateRequest request) {
-        matchService.bulkDeactivateMatches(request.getMissingMatchIds());
+    @PutMapping("/pools/{poolId}/matches/bulk-deactivate")
+    public ResponseEntity<Void> bulkDeactivateMatches(
+        @Parameter(description = "ID de la poule sur laquelle filtrer") @PathVariable Long poolId,
+        @RequestBody BulkMatchesDeactivateRequest request) {
+        matchService.bulkDeactivateMatches(poolId, request.getMissingMatchCodes());
         return ResponseEntity.ok().build();
     }
 

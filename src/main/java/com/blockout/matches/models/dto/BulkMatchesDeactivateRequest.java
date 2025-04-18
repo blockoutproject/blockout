@@ -8,9 +8,9 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 @Data
 public class BulkMatchesDeactivateRequest {
     /**
-     * Liste des matchIds qui sont encore présents dans la poule 
+     * Liste des matchCodes qui sont encore présents dans la poule 
      * selon le scraping.
      */
-    @JsonProperty("missing_match_ids")
-    private List<Long> missingMatchIds;
+    @JsonProperty("missing_match_codes")
+    private List<String> missingMatchCodes;
 }

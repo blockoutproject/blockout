@@ -274,27 +274,30 @@ public class MatchService {
     }
 
     @Transactional
-    public void bulkDeactivateMatches(List<Long> matchIds) {
-        Set<Long> matchIdsToDeactivateSet = new HashSet<>(matchIds);
+    public void bulkDeactivateMatches(Long poolId, List<String> matchCodesToDeactivate) {
+        Set<String> matchCodesToDeactivateSet = new HashSet<>(matchCodesToDeactivate);
         logger.info("Début de la désactivation en masse des matches",
                 keyValue("action", "bulk_deactivate_matches"),
-                keyValue("matchIds", matchIdsToDeactivateSet));
+                keyValue("poolId", poolId),
+                keyValue("matchCodesToDeactivateSet", matchCodesToDeactivateSet));
 
-        // Récupérer les matches actifs parmi ceux dont l'ID figure dans la liste
-        List<Match> matchesToDeactivate = matchRepository.findByIdInAndActiveTrue(matchIdsToDeactivateSet);
+        List<Match> matchesToDeactivate = matchRepository
+                .findByActiveTrueAndPoolIdAndMatchCodeIn(poolId, matchCodesToDeactivateSet);
 
         if (matchesToDeactivate.isEmpty()) {
-            logger.info("Aucun match trouvé à désactiver pour les IDs fournis",
+            logger.info("Aucun match trouvé à désactiver pour la pool et les codes fournis",
                     keyValue("action", "bulk_deactivate_matches"),
-                    keyValue("matchIds", matchIdsToDeactivateSet));
+                    keyValue("poolId", poolId),
+                    keyValue("matchCodesToDeactivateSet", matchCodesToDeactivateSet));
             return;
         }
 
-        // Désactiver les matches récupérés
         matchesToDeactivate.forEach(match -> match.setActive(false));
         matchRepository.saveAll(matchesToDeactivate);
+
         logger.info("Matches désactivés en masse",
                 keyValue("action", "bulk_deactivate_matches"),
+                keyValue("poolId", poolId),
                 keyValue("nombreMatches", matchesToDeactivate.size()));
     }
 
