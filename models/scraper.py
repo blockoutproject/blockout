@@ -192,7 +192,6 @@ class Scraper(ABC):
             for m in existing_matches:
                 match_key = (m.league_code, m.match_code)
                 
-                # (existing_match, cloneMutable, changes_list, sourcePriority)
                 if match_key not in self._matches_cache:
                     self._matches_cache[match_key] = (
                         m,           # existing_match

@@ -38,11 +38,11 @@ async def handle_csv_download_and_parse(
         return
 
     try:
-        # 1) Init le cache => on charge les matchs et les associations existants pour pool.id
+        # Init le cache => on charge les matchs et les associations existants pour pool.id
         await scraper.init_matches_cache(pool.id)
         await scraper.init_associations_cache(pool.id)
         
-        # 2) download et parse le CSV
+        # download et parse le CSV
         parsed_data = await download_and_parse_csv(scraper, pool, season)
         if not parsed_data:
             log_event(
