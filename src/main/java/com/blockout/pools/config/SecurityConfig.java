@@ -14,7 +14,7 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         return http
                 .authorizeHttpRequests((authorize) -> authorize
-                        .requestMatchers("/pools/v1/**").authenticated()
+                        .requestMatchers("/pools/**").authenticated()
                         .anyRequest().permitAll())
                 .cors(withDefaults())
                 .oauth2ResourceServer(oauth2 -> oauth2
