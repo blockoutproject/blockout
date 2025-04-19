@@ -312,7 +312,7 @@ public class CompetitionAssociationService {
 
         // Teams
         if (teams.isEmpty() && !pools.isEmpty()) {
-            teams.addAll(associationRepository.findDistinctTeamIdByPoolIdIn(pools));
+            teams.addAll(associationRepository.findDistinctTeamIdByActiveTrueAndPoolIdIn(pools));
         }
         for (Long teamId : teams) {
             if (!associationRepository.existsByTeamIdAndActiveTrue(teamId)) {
@@ -325,7 +325,7 @@ public class CompetitionAssociationService {
 
         // Clubs
         if (clubs.isEmpty() && !teams.isEmpty()) {
-            clubs.addAll(associationRepository.findDistinctClubIdByTeamIdIn(teams));
+            clubs.addAll(associationRepository.findDistinctClubIdByActiveTrueAndTeamIdIn(teams));
         }
         for (String clubId : clubs) {
             if (!associationRepository.existsByClubIdAndActiveTrue(clubId)) {

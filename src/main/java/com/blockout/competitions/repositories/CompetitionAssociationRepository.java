@@ -50,21 +50,14 @@ public interface CompetitionAssociationRepository extends JpaRepository<Competit
     @Query("""
             SELECT DISTINCT ca.teamId
             FROM CompetitionAssociation ca
-            WHERE ca.teamId IN :teamIds AND ca.active = :active
-            """)
-    List<Long> findDistinctTeamIdByTeamIdInAndActive(@Param("teamIds") Set<Long> teamIds, @Param("active") boolean active);
-
-    @Query("""
-            SELECT DISTINCT ca.teamId
-            FROM CompetitionAssociation ca
             WHERE ca.poolId IN :poolIds
             """)
-    List<Long> findDistinctTeamIdByPoolIdIn(@Param("poolIds") Set<Long> poolIds);
+    List<Long> findDistinctTeamIdByActiveTrueAndPoolIdIn(@Param("poolIds") Set<Long> poolIds);
 
     @Query("""
             SELECT DISTINCT ca.clubId
             FROM CompetitionAssociation ca
             WHERE ca.teamId IN :teamIds
             """)
-    List<String> findDistinctClubIdByTeamIdIn(@Param("teamIds") Set<Long> teamIds);
+    List<String> findDistinctClubIdByActiveTrueAndTeamIdIn(@Param("teamIds") Set<Long> teamIds);
 }
