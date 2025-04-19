@@ -4,6 +4,7 @@ import com.blockout.competitions.models.Category;
 import com.blockout.competitions.models.CompetitionAssociation;
 import com.blockout.competitions.models.dto.TeamAssociationStatsRequest;
 import com.blockout.competitions.repositories.CompetitionAssociationRepository;
+import com.blockout.competitions.utils.DiffUtils;
 
 import jakarta.persistence.EntityNotFoundException;
 
@@ -125,7 +126,8 @@ public class CompetitionAssociationService {
                 keyValue("poolId", poolId),
                 keyValue("teamIdsToDeactivate", teamIdsToDeactivateSet));
 
-        // Récupérer les associations actives dont l'ID de team figure dans la liste à désactiver
+        // Récupérer les associations actives dont l'ID de team figure dans la liste à
+        // désactiver
         List<CompetitionAssociation> associationsToDeactivate = associationRepository
                 .findByPoolIdAndActiveTrueAndTeamIdIn(poolId, teamIdsToDeactivateSet);
 
@@ -147,7 +149,8 @@ public class CompetitionAssociationService {
                 .map(CompetitionAssociation::getTeamId)
                 .collect(Collectors.toSet());
 
-        // Publier un événement pour chaque team désactivée dans la poule pour désactiver les matchs concernés
+        // Publier un événement pour chaque team désactivée dans la poule pour
+        // désactiver les matchs concernés
         for (Long teamId : deactivatedTeams) {
             eventPublisher.publishTeamDeactivationByPoolEvent(teamId, poolId);
             logger.info("Événement de désactivation de team par pool publié",
@@ -172,7 +175,8 @@ public class CompetitionAssociationService {
                 keyValue("action", "bulk_deactivate_pools"),
                 keyValue("poolIdsToDeactivate", poolIdsToDeactivateSet));
 
-        // Récupérer et désactiver les associations actives correspondant aux poolIds fournis
+        // Récupérer et désactiver les associations actives correspondant aux poolIds
+        // fournis
         List<CompetitionAssociation> associationsToDeactivate = associationRepository
                 .findByActiveTrueAndPoolIdIn(poolIdsToDeactivateSet);
 
@@ -219,7 +223,8 @@ public class CompetitionAssociationService {
                 keyValue("action", "bulk_deactivate_clubs"),
                 keyValue("clubIdsToDeactivate", clubIdsToDeactivateSet));
 
-        // Récupérer et désactiver les associations actives correspondant aux clubIds fournis
+        // Récupérer et désactiver les associations actives correspondant aux clubIds
+        // fournis
         List<CompetitionAssociation> associationsToDeactivate = associationRepository
                 .findByActiveTrueAndClubIdIn(clubIdsToDeactivateSet);
 
@@ -249,7 +254,7 @@ public class CompetitionAssociationService {
 
     /**
      * Met à jour les statistiques d'une association pool-team
-     * 
+     *
      * @param poolId  L'identifiant de la pool
      * @param teamId  L'identifiant de la team
      * @param request Les nouvelles statistiques à mettre à jour
@@ -257,53 +262,49 @@ public class CompetitionAssociationService {
      * @throws EntityNotFoundException Si l'association n'existe pas
      */
     @Transactional
-    public CompetitionAssociation updateTeamAssociationStats(Long poolId, Long teamId, TeamAssociationStatsRequest request) {
-        CompetitionAssociation a = associationRepository.findByPoolIdAndTeamId(poolId, teamId)
+    public CompetitionAssociation updateTeamAssociationStats(Long poolId,
+            Long teamId,
+            TeamAssociationStatsRequest request) {
+        return associationRepository
+                .findByPoolIdAndTeamId(poolId, teamId)
+                .map(assoc -> {
+                    CompetitionAssociation before = assoc.toBuilder().build();
+
+                    assoc.setPlayed(request.getPlayed());
+                    assoc.setWins(request.getWins());
+                    assoc.setLosses(request.getLosses());
+                    assoc.setPoints(request.getPoints());
+                    assoc.setWins30(request.getWins30());
+                    assoc.setLosses03(request.getLosses03());
+                    assoc.setWins31(request.getWins31());
+                    assoc.setLosses13(request.getLosses13());
+                    assoc.setWins32(request.getWins32());
+                    assoc.setLosses23(request.getLosses23());
+                    assoc.setWonSets(request.getWonSets());
+                    assoc.setLostSets(request.getLostSets());
+                    assoc.setWonPoints(request.getWonPoints());
+                    assoc.setLostPoints(request.getLostPoints());
+                    assoc.setPointsPenalty(request.getPointsPenalty());
+                    assoc.setCoefSets(request.getCoefSets());
+                    assoc.setCoefPoints(request.getCoefPoints());
+
+                    // Ici pas de réactivation, on ne fait que mettre à jour les stats
+
+                    CompetitionAssociation savedAssoc = associationRepository.save(assoc);
+
+                    DiffUtils.logChanges(before, savedAssoc, logger,
+                            "update_association_stats", savedAssoc.getId());
+                    return savedAssoc;
+                })
                 .orElseThrow(() -> new EntityNotFoundException(
-                        "Association not found for poolId " + poolId + " and teamId " + teamId));
-
-        a.setPlayed(request.getPlayed());
-        a.setWins(request.getWins());
-        a.setLosses(request.getLosses());
-        a.setPoints(request.getPoints());
-        a.setWins30(request.getWins30());
-        a.setLosses03(request.getLosses03());
-        a.setWins31(request.getWins31());
-        a.setLosses13(request.getLosses13());
-        a.setWins32(request.getWins32());
-        a.setLosses23(request.getLosses23());
-        a.setWonSets(request.getWonSets());
-        a.setLostSets(request.getLostSets());
-        a.setWonPoints(request.getWonPoints());
-        a.setLostPoints(request.getLostPoints());
-        a.setPointsPenalty(request.getPointsPenalty());
-        a.setCoefSets(request.getCoefSets());
-        a.setCoefPoints(request.getCoefPoints());
-        if (!a.getActive()) {
-            a.setActive(true);
-            logger.info("Reactivated team association stats",
-                    keyValue("action", "reactivate_association_stats"),
-                    keyValue("poolId", poolId),
-                    keyValue("teamId", teamId));
-        }
-
-        CompetitionAssociation updatedAssoc = associationRepository.save(a);
-
-        logger.info("Updated team association stats",
-                keyValue("action", "update_association_stats"),
-                keyValue("poolId", poolId),
-                keyValue("teamId", teamId),
-                keyValue("played", request.getPlayed()),
-                keyValue("wins", request.getWins()),
-                keyValue("losses", request.getLosses()),
-                keyValue("points", request.getPoints()));
-        return updatedAssoc;
+                        "Association introuvable pour poolId " + poolId + " et teamId " + teamId));
     }
 
     /**
      * Cascade complète après désactivation d’associations.
      */
-    private void cascadeDeactivation(Set<Long> candidatePoolIds, Set<Long> candidateTeamIds, Set<String> candidateClubIds) {
+    private void cascadeDeactivation(Set<Long> candidatePoolIds, Set<Long> candidateTeamIds,
+            Set<String> candidateClubIds) {
 
         Set<Long> pools = new HashSet<>(candidatePoolIds);
         Set<Long> teams = new HashSet<>(candidateTeamIds);

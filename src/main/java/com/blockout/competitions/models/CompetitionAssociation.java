@@ -11,7 +11,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
     @UniqueConstraint(columnNames = { "pool_id", "team_id", "category" }, name = "uix_pool_team_category")
 })
 @Data
-@Builder
+@Builder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
 public class CompetitionAssociation {
