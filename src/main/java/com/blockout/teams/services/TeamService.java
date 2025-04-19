@@ -5,6 +5,7 @@ import com.blockout.teams.models.Team;
 import com.blockout.teams.models.TeamFormat;
 import com.blockout.teams.models.TeamGender;
 import com.blockout.teams.repositories.TeamRepository;
+import com.blockout.teams.utils.DiffUtils;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -121,7 +122,7 @@ public class TeamService {
 
     /**
      * Met à jour une équipe existante
-     * 
+     *
      * @param id          L'identifiant de l'équipe à mettre à jour
      * @param updatedTeam Les nouvelles données de l'équipe
      * @return L'équipe mise à jour
@@ -130,6 +131,8 @@ public class TeamService {
     @Transactional
     public Team updateTeam(Long id, Team updatedTeam) {
         return teamRepository.findById(id).map(team -> {
+            Team before = team.toBuilder().build();
+
             team.setClubId(updatedTeam.getClubId());
             team.setName(updatedTeam.getName());
             team.setShortName(updatedTeam.getShortName());
@@ -137,14 +140,20 @@ public class TeamService {
             team.setFormat(updatedTeam.getFormat());
             team.setGender(updatedTeam.getGender());
             team.setActive(updatedTeam.getActive());
+
+            if (!before.getActive() && team.getActive()) {
+                logger.info("Équipe réactivée",
+                        keyValue("action", "reactivate_team"),
+                        keyValue("teamId", id));
+            }
+
             Team savedTeam = teamRepository.save(team);
 
-            logger.info("Team updated successfully",
-                    keyValue("action", "update_team"),
-                    keyValue("teamId", savedTeam.getId()));
+            DiffUtils.logChanges(before, savedTeam, logger,
+                    "update_team", savedTeam.getId());
             return savedTeam;
         }).orElseThrow(() -> {
-            logger.error("Team not found, cannot update",
+            logger.error("Équipe introuvable, impossible de mettre à jour",
                     keyValue("action", "update_team"),
                     keyValue("teamId", id));
             return new TeamNotFoundException(id);
