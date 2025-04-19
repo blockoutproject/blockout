@@ -54,7 +54,7 @@ async def handle_csv_download_and_parse(
         parsed_list = list(parsed_data)
         
         # On vérifie qu'on a bien des données
-        valid_rows = [row for row in parsed_list if row.get("match_code")]
+        valid_rows = [row for row in parsed_list if row.get("match_code") and row.get("club_a_id") and row.get("club_b_id")]
         if not valid_rows:
             return
         
@@ -85,9 +85,6 @@ async def handle_csv_download_and_parse(
         for row in valid_rows:
             club_a_id = row.get('club_a_id')
             club_b_id = row.get('club_b_id')
-            
-            if not club_a_id or not club_b_id:
-                continue
 
             match_datetime = parse_date(row.get('match_date'), row.get('match_time'))
             if not match_datetime:
