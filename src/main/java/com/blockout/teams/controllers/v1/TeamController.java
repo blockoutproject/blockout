@@ -1,4 +1,4 @@
-package com.blockout.teams.controllers;
+package com.blockout.teams.controllers.v1;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -19,7 +19,7 @@ import java.util.List;
 import java.util.Optional;
 
 @RestController
-@RequestMapping("/teams/v1")
+@RequestMapping("/teams")
 public class TeamController {
 
     private final TeamService teamService;
@@ -33,7 +33,7 @@ public class TeamController {
             @ApiResponse(responseCode = "201", description = "Équipe créée avec succès"),
             @ApiResponse(responseCode = "400", description = "Requête invalide")
     })
-    @PostMapping("/teams")
+    @PostMapping("/")
     public ResponseEntity<Team> createTeam(@RequestBody Team team) {
         Team createdTeam = teamService.createTeam(team);
         URI location = ServletUriComponentsBuilder
@@ -49,7 +49,7 @@ public class TeamController {
             @ApiResponse(responseCode = "200", description = "Équipes trouvées"),
             @ApiResponse(responseCode = "204", description = "Aucune équipe ne correspond à la recherche")
     })
-    @GetMapping("/teams/by-name")
+    @GetMapping("/by-name")
     public ResponseEntity<List<Team>> searchTeamsByName(
             @Parameter(description = "Texte de la recherche partielle") @RequestParam("query") String query) {
 
@@ -68,7 +68,7 @@ public class TeamController {
             @ApiResponse(responseCode = "400", description = "Liste d'IDs absente ou vide"),
             @ApiResponse(responseCode = "404", description = "Aucune équipe trouvée pour les IDs fournis")
     })
-    @PostMapping("/teams/by-ids")
+    @PostMapping("/by-ids")
     public ResponseEntity<List<Team>> getTeamsByIds(@RequestParam List<Long> ids) {
 
         if (ids.isEmpty()) {
@@ -89,7 +89,7 @@ public class TeamController {
             @ApiResponse(responseCode = "200", description = "Équipe trouvée"),
             @ApiResponse(responseCode = "404", description = "Équipe non trouvée")
     })
-    @GetMapping("/teams/{id}")
+    @GetMapping("/{id}")
     public ResponseEntity<Optional<Team>> getTeamById(
             @Parameter(description = "ID de l'équipe à récupérer") @PathVariable Long id) {
         Optional<Team> team = teamService.getTeamById(id);
@@ -102,7 +102,7 @@ public class TeamController {
             @ApiResponse(responseCode = "200", description = "Équipe mise à jour avec succès"),
             @ApiResponse(responseCode = "404", description = "Équipe non trouvée")
     })
-    @PutMapping("/teams/{id}")
+    @PutMapping("/{id}")
     public ResponseEntity<Team> updateTeam(
             @Parameter(description = "ID de l'équipe à mettre à jour") @PathVariable Long id,
             @RequestBody Team updatedTeam) {
@@ -119,7 +119,7 @@ public class TeamController {
             @ApiResponse(responseCode = "200", description = "Équipes trouvées avec succès"),
             @ApiResponse(responseCode = "204", description = "Aucune équipe trouvée avec les critères fournis")
     })
-    @GetMapping("/teams/search")
+    @GetMapping("/search")
     public ResponseEntity<List<Team>> getTeamsByDivisionFormatGender(
             @Parameter(description = "Nom de la division") @RequestParam("division_name") @JsonProperty("division_name") String divisionName,
             @Parameter(description = "Format de l'équipe") @RequestParam("format") @JsonProperty("format") TeamFormat format,
@@ -137,7 +137,7 @@ public class TeamController {
             @ApiResponse(responseCode = "200", description = "Liste des club IDs uniques récupérée avec succès"),
             @ApiResponse(responseCode = "204", description = "Aucun club ID trouvé dans les équipes")
     })
-    @GetMapping("/teams/club-ids")
+    @GetMapping("/club-ids")
     public ResponseEntity<List<String>> getUniqueClubIds() {
         List<String> clubIds = teamService.getUniqueClubIds();
 
