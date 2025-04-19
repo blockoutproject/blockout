@@ -9,9 +9,6 @@ import org.slf4j.Logger;
 
 public final class DiffUtils {
 
-    private DiffUtils() {
-        /* utilitaire */ }
-
     /**
      * Compare chaque champ en utilisant la réflexion et loggue uniquement ceux qui
      * changent.
