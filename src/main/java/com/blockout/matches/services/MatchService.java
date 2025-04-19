@@ -7,6 +7,7 @@ import com.blockout.matches.models.dto.DayMatchesDTO;
 import com.blockout.matches.models.dto.DayPageDTO;
 import com.blockout.matches.models.dto.PoolMatchesDTO;
 import com.blockout.matches.repositories.MatchRepository;
+import com.blockout.matches.utils.DiffUtils;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -245,6 +246,9 @@ public class MatchService {
     @Transactional
     public Match updateMatch(Long id, Match updatedMatch) {
         return matchRepository.findById(id).map(match -> {
+
+            Match before = match.toBuilder().build(); 
+
             match.setMatchCode(updatedMatch.getMatchCode());
             match.setLeagueCode(updatedMatch.getLeagueCode());
             match.setMatchDate(updatedMatch.getMatchDate());
@@ -259,11 +263,11 @@ public class MatchService {
             match.setReferee1(updatedMatch.getReferee1());
             match.setReferee2(updatedMatch.getReferee2());
             match.setActive(true);
+
             Match savedMatch = matchRepository.save(match);
 
-            logger.info("Match updated successfully",
-                    keyValue("action", "update_match"),
-                    keyValue("matchId", savedMatch.getId()));
+            DiffUtils.logChanges(before, savedMatch, logger, "update_match", savedMatch.getId());
+
             return savedMatch;
         }).orElseThrow(() -> {
             logger.error("Match not found, cannot update",
