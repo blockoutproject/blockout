@@ -23,9 +23,10 @@ async def handle_csv_download_and_parse(
     scraped_pool_ids: Optional[set[int]] = None
 ) -> None:
     """
-    1) init le cache (scraper.init_matches_cache)
-    2) download CSV
-    3) parse CSV => schedule_match_changes & schedule_association_update
+    Handle l’import CSV des matchs pour une pool donnée :
+        • Initialise les caches de matchs et d’associations via le scraper
+        • Télécharge et parse le fichier CSV
+        • Planifie les créations ou mises à jour de matchs et d’associations
     """
 
     if scraper.session.closed:
@@ -38,10 +39,6 @@ async def handle_csv_download_and_parse(
         return
 
     try:
-        # Init le cache => on charge les matchs et les associations existants pour pool.id
-        await scraper.init_matches_cache(pool.id)
-        await scraper.init_associations_cache(pool.id)
-        
         # download et parse le CSV
         parsed_data = await download_and_parse_csv(scraper, pool, season)
         if not parsed_data:
@@ -57,8 +54,13 @@ async def handle_csv_download_and_parse(
         parsed_list = list(parsed_data)
         
         # On vérifie qu'on a bien des données
-        if not parsed_list:
+        valid_rows = [row for row in parsed_list if row.get("match_code")]
+        if not valid_rows:
             return
+        
+        # Init le cache => on charge les matchs et les associations existants pour pool.id
+        await scraper.init_matches_cache(pool.id)
+        await scraper.init_associations_cache(pool.id)
         
         # Teams existantes
         existing_teams = await get_teams_by_division_format_gender(
@@ -80,7 +82,7 @@ async def handle_csv_download_and_parse(
         scraped_team_ids = set()
         scraped_match_codes = set()
 
-        for row in parsed_list:
+        for row in valid_rows:
             club_a_id = row.get('club_a_id')
             club_b_id = row.get('club_b_id')
             
