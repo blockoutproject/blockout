@@ -3,6 +3,7 @@ package com.blockout.pools.services;
 import com.blockout.pools.exceptions.PoolNotFoundException;
 import com.blockout.pools.models.Pool;
 import com.blockout.pools.repositories.PoolRepository;
+import com.blockout.pools.utils.DiffUtils;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -86,7 +87,7 @@ public class PoolService {
 
     /**
      * Met à jour une pool existante
-     * 
+     *
      * @param id          L'identifiant de la pool à mettre à jour
      * @param updatedPool Les nouvelles données de la pool
      * @return La pool mise à jour
@@ -95,6 +96,8 @@ public class PoolService {
     @Transactional
     public Pool updatePool(Long id, Pool updatedPool) {
         return poolRepository.findById(id).map(pool -> {
+            Pool before = pool.toBuilder().build();
+
             pool.setPoolCode(updatedPool.getPoolCode());
             pool.setLeagueCode(updatedPool.getLeagueCode());
             pool.setSeason(updatedPool.getSeason());
@@ -106,14 +109,22 @@ public class PoolService {
             pool.setGender(updatedPool.getGender());
             pool.setRawDivisionName(updatedPool.getRawDivisionName());
             pool.setActive(updatedPool.getActive());
+
+            if (!before.getActive() && pool.getActive()) {
+                logger.info("Pool réactivée",
+                        keyValue("action", "reactivate_pool"),
+                        keyValue("poolId", id),
+                        keyValue("league_code", updatedPool.getLeagueCode()),
+                        keyValue("pool_name", updatedPool.getPoolName()));
+            }
+
             Pool savedPool = poolRepository.save(pool);
 
-            logger.info("Pool updated successfully",
-                    keyValue("action", "update_pool"),
-                    keyValue("poolId", savedPool.getId()));
+            DiffUtils.logChanges(before, savedPool, logger,
+                    "update_pool", savedPool.getId());
             return savedPool;
         }).orElseThrow(() -> {
-            logger.error("Pool not found, cannot update",
+            logger.error("Pool introuvable, impossible de mettre à jour",
                     keyValue("action", "update_pool"),
                     keyValue("poolId", id));
             return new PoolNotFoundException(id);

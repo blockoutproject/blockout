@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
 import jakarta.persistence.*;
 
 @Data
-@Builder
+@Builder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
