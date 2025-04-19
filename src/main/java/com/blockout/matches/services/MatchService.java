@@ -237,7 +237,7 @@ public class MatchService {
 
     /**
      * Met à jour un match existant
-     * 
+     *
      * @param id           L'identifiant du match à mettre à jour
      * @param updatedMatch Les nouvelles données du match
      * @return Le match mis à jour
@@ -246,8 +246,7 @@ public class MatchService {
     @Transactional
     public Match updateMatch(Long id, Match updatedMatch) {
         return matchRepository.findById(id).map(match -> {
-
-            Match before = match.toBuilder().build(); 
+            Match before = match.toBuilder().build();
 
             match.setMatchCode(updatedMatch.getMatchCode());
             match.setLeagueCode(updatedMatch.getLeagueCode());
@@ -264,13 +263,20 @@ public class MatchService {
             match.setReferee2(updatedMatch.getReferee2());
             match.setActive(true);
 
+            if (!before.getActive() && match.getActive()) {
+                logger.info("Match réactivé",
+                        keyValue("action", "reactivate_match"),
+                        keyValue("matchId", id),
+                        keyValue("league_code", updatedMatch.getLeagueCode()));
+            }
+
             Match savedMatch = matchRepository.save(match);
 
-            DiffUtils.logChanges(before, savedMatch, logger, "update_match", savedMatch.getId());
-
+            DiffUtils.logChanges(before, savedMatch, logger,
+                    "update_match", savedMatch.getId());
             return savedMatch;
         }).orElseThrow(() -> {
-            logger.error("Match not found, cannot update",
+            logger.error("Match introuvable, impossible de mettre à jour",
                     keyValue("action", "update_match"),
                     keyValue("matchId", id));
             return new MatchNotFoundException(id);
