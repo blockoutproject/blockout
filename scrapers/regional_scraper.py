@@ -148,12 +148,11 @@ class RegionalScraper(Scraper):
             # Set local pour gérer la désactivation par league
             scraped_pool_ids = set()
             
-            # Exclusion pour tester les desactivations
-            if league_code in ['LICO']:
-                return
-            
             # Parcours des poules
             for a_tag in pool_links:
+                # Exclusion pour tester les desactivations
+                if league_code in ['LICO']:
+                    continue
                 try:
                     href = a_tag['href']
                     pool_code_match = re.search(r'poule=([^&]+)', href)
