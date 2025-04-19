@@ -114,43 +114,42 @@ public class CompetitionAssociationService {
 
     /**
      * Désactive les associations qui ne figurent plus dans la liste des teams
-     * 
+     *
      * @param poolId              L'identifiant de la pool
      * @param teamIdsToDeactivate Liste des identifiants de teams encore actives
      */
     @Transactional
     public void bulkDeactivateTeamsByPool(Long poolId, List<Long> teamIdsToDeactivate) {
-        Set<Long> teamIdsToDeactivateSet = new HashSet<>(teamIdsToDeactivate);
+        Set<Long> toDeactivate = new HashSet<>(teamIdsToDeactivate);
         logger.info("Démarrage de la désactivation en masse des teams pour la pool",
-                keyValue("action", "bulk_deactivate_teams"),
+                keyValue("action", "bulk_deactivate_teams_by_pool"),
                 keyValue("poolId", poolId),
-                keyValue("teamIdsToDeactivate", teamIdsToDeactivateSet));
+                keyValue("teamIdsToDeactivate", toDeactivate));
 
-        // Récupérer les associations actives dont l'ID de team figure dans la liste à
-        // désactiver
-        List<CompetitionAssociation> associationsToDeactivate = associationRepository
-                .findByPoolIdAndActiveTrueAndTeamIdIn(poolId, teamIdsToDeactivateSet);
+        var associations = associationRepository
+                .findByPoolIdAndActiveTrueAndTeamIdIn(poolId, toDeactivate);
 
-        if (associationsToDeactivate.isEmpty()) {
+        if (associations.isEmpty()) {
             logger.info("Aucune association trouvée à désactiver pour la pool",
                     keyValue("poolId", poolId));
             return;
         }
 
-        // Désactiver les associations récupérées
-        associationsToDeactivate.forEach(a -> a.setActive(false));
-        associationRepository.saveAll(associationsToDeactivate);
-        logger.info("Associations désactivées en masse pour la pool",
-                keyValue("action", "bulk_deactivate_teams_by_pool"),
-                keyValue("poolId", poolId),
-                keyValue("nombreAssociations", associationsToDeactivate.size()));
+        // désactivation + log par association
+        associations.forEach(a -> {
+            a.setActive(false);
+            logger.info("Association désactivée par teams et pool",
+                    keyValue("action", "deactivate_association"),
+                    keyValue("poolId", poolId),
+                    keyValue("teamId", a.getTeamId()));
+        });
 
-        Set<Long> deactivatedTeams = associationsToDeactivate.stream()
+        associationRepository.saveAll(associations);
+
+        var deactivatedTeams = associations.stream()
                 .map(CompetitionAssociation::getTeamId)
                 .collect(Collectors.toSet());
 
-        // Publier un événement pour chaque team désactivée dans la poule pour
-        // désactiver les matchs concernés
         for (Long teamId : deactivatedTeams) {
             eventPublisher.publishTeamDeactivationByPoolEvent(teamId, poolId);
             logger.info("Événement de désactivation de team par pool publié",
@@ -164,92 +163,83 @@ public class CompetitionAssociationService {
 
     /**
      * Désactive les associations dont le poolId figure dans la liste
-     * 
-     * @param category            La catégorie des pools
+     *
      * @param poolIdsToDeactivate Liste des identifiants de pools à désactiver
      */
     @Transactional
     public void bulkDeactivatePools(List<Long> poolIdsToDeactivate) {
-        Set<Long> poolIdsToDeactivateSet = new HashSet<>(poolIdsToDeactivate);
+        Set<Long> toDeactivate = new HashSet<>(poolIdsToDeactivate);
         logger.info("Démarrage de la désactivation en masse des pools",
                 keyValue("action", "bulk_deactivate_pools"),
-                keyValue("poolIdsToDeactivate", poolIdsToDeactivateSet));
+                keyValue("poolIdsToDeactivate", toDeactivate));
 
-        // Récupérer et désactiver les associations actives correspondant aux poolIds
-        // fournis
-        List<CompetitionAssociation> associationsToDeactivate = associationRepository
-                .findByActiveTrueAndPoolIdIn(poolIdsToDeactivateSet);
+        var associations = associationRepository
+                .findByActiveTrueAndPoolIdIn(toDeactivate);
 
-        if (associationsToDeactivate.isEmpty()) {
+        if (associations.isEmpty()) {
             logger.warn("Aucune association trouvée à désactiver pour les pools",
                     keyValue("action", "bulk_deactivate_pools"),
                     keyValue("nombreAssociations", 0));
-            // Publier un événement pour chaque pool désactivée
-            for (Long poolId : poolIdsToDeactivateSet) {
-                if (!associationRepository.existsByPoolIdAndActiveTrue(poolId)) {
-                    eventPublisher.publishPoolDeactivationEvent(poolId);
-                    logger.info("Événement de désactivation de pool publié",
-                            keyValue("action", "publish_pool_deactivation"),
-                            keyValue("poolId", poolId));
-                }
-            }
             return;
         }
 
-        associationsToDeactivate.forEach(a -> a.setActive(false));
-        associationRepository.saveAll(associationsToDeactivate);
-        logger.info("Associations désactivées en masse pour les pools",
-                keyValue("action", "bulk_deactivate_pools"),
-                keyValue("nombreAssociations", associationsToDeactivate.size()));
+        associations.forEach(a -> {
+            a.setActive(false);
+            logger.info("Association désactivée par pool",
+                    keyValue("action", "deactivate_association"),
+                    keyValue("poolId", a.getPoolId()),
+                    keyValue("teamId", a.getTeamId()));
+        });
 
-        // Récupérer l'ensemble des teamIds concernées par ces associations désactivées
-        Set<Long> affectedTeams = associationsToDeactivate.stream()
+        associationRepository.saveAll(associations);
+
+        Set<Long> affectedTeams = associations.stream()
                 .map(CompetitionAssociation::getTeamId)
                 .collect(Collectors.toSet());
 
-        cascadeDeactivation(poolIdsToDeactivateSet, affectedTeams, Collections.emptySet());
+        cascadeDeactivation(toDeactivate, affectedTeams, Collections.emptySet());
     }
 
     /**
      * Désactive les associations dont le clubId figure dans la liste
-     * 
-     * @param category            La catégorie des clubs
+     *
      * @param clubIdsToDeactivate Liste des identifiants de clubs à désactiver
      */
     @Transactional
     public void bulkDeactivateClubs(List<String> clubIdsToDeactivate) {
-        Set<String> clubIdsToDeactivateSet = new HashSet<>(clubIdsToDeactivate);
+        Set<String> toDeactivate = new HashSet<>(clubIdsToDeactivate);
         logger.info("Démarrage de la désactivation en masse des clubs",
                 keyValue("action", "bulk_deactivate_clubs"),
-                keyValue("clubIdsToDeactivate", clubIdsToDeactivateSet));
+                keyValue("clubIdsToDeactivate", toDeactivate));
 
-        // Récupérer et désactiver les associations actives correspondant aux clubIds
-        // fournis
-        List<CompetitionAssociation> associationsToDeactivate = associationRepository
-                .findByActiveTrueAndClubIdIn(clubIdsToDeactivateSet);
+        var associations = associationRepository
+                .findByActiveTrueAndClubIdIn(toDeactivate);
 
-        if (associationsToDeactivate.isEmpty()) {
+        if (associations.isEmpty()) {
             logger.warn("Aucune association trouvée à désactiver pour les clubs",
                     keyValue("action", "bulk_deactivate_clubs"),
                     keyValue("nombreAssociations", 0));
             return;
         }
 
-        associationsToDeactivate.forEach(a -> a.setActive(false));
-        associationRepository.saveAll(associationsToDeactivate);
-        logger.info("Associations désactivées en masse pour les clubs",
-                keyValue("action", "bulk_deactivate_clubs"),
-                keyValue("nombreAssociations", associationsToDeactivate.size()));
+        associations.forEach(a -> {
+            a.setActive(false);
+            logger.info("Association désactivée par club",
+                    keyValue("action", "deactivate_association"),
+                    keyValue("poolId", a.getPoolId()),
+                    keyValue("clubId", a.getClubId()));
+        });
 
-        Set<Long> affectedPools = associationsToDeactivate.stream()
+        associationRepository.saveAll(associations);
+
+        Set<Long> pools = associations.stream()
                 .map(CompetitionAssociation::getPoolId)
                 .collect(Collectors.toSet());
-
-        Set<Long> affectedTeams = associationsToDeactivate.stream()
+        Set<Long> teams = associations.stream()
                 .map(CompetitionAssociation::getTeamId)
                 .collect(Collectors.toSet());
 
-        cascadeDeactivation(affectedPools, affectedTeams, clubIdsToDeactivateSet);
+        cascadeDeactivation(pools, teams, toDeactivate);
     }
 
     /**
