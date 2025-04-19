@@ -219,9 +219,9 @@ async def handle_csv_download_and_parse(
 
         # Désactivation des équipes et des matchs manquants
         missing_team_ids = {
-            team.id
-            for team in existing_teams
-            if team.id not in scraped_team_ids
+            team_id
+            for team_id in active_team_ids
+            if team_id not in scraped_team_ids
         }
         if missing_team_ids:
             await bulk_deactivate_teams_by_pool(
