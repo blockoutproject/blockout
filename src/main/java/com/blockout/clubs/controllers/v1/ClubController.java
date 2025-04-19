@@ -1,4 +1,4 @@
-package com.blockout.clubs.controllers;
+package com.blockout.clubs.controllers.v1;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -15,7 +15,7 @@ import java.net.URI;
 import java.util.List;
 
 @RestController
-@RequestMapping("/clubs/v1")
+@RequestMapping("/clubs")
 public class ClubController {
 
     private final ClubService clubService;
@@ -28,7 +28,7 @@ public class ClubController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Liste des clubs renvoyée avec succès")
     })
-    @GetMapping("/clubs")
+    @GetMapping("/")
     public ResponseEntity<List<Club>> getAllClubs() {
         List<Club> clubs = clubService.getAllClubs();
         return ResponseEntity.ok(clubs);
@@ -39,7 +39,7 @@ public class ClubController {
             @ApiResponse(responseCode = "201", description = "Club créée avec succès"),
             @ApiResponse(responseCode = "400", description = "Requête invalide")
     })
-    @PostMapping("/clubs")
+    @PostMapping("/")
     public ResponseEntity<Club> createClub(@RequestBody Club club) {
         Club createdClub = clubService.createClub(club);
         URI location = ServletUriComponentsBuilder
@@ -55,7 +55,7 @@ public class ClubController {
             @ApiResponse(responseCode = "200", description = "Club mis à jour avec succès"),
             @ApiResponse(responseCode = "404", description = "Club non trouvée")
     })
-    @PutMapping("/clubs/{id}")
+    @PutMapping("/{id}")
     public ResponseEntity<Club> updateClub(
             @Parameter(description = "ID du club à mettre à jour") @PathVariable String id,
             @RequestBody Club updatedClub) {

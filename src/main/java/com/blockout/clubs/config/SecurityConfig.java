@@ -21,7 +21,7 @@ public class SecurityConfig {
         */
         return http
                 .authorizeHttpRequests((authorize) -> authorize
-                    .requestMatchers("/clubs/v1/**").authenticated()
+                    .requestMatchers("/clubs/**").authenticated()
                     .anyRequest().permitAll()
                 )
                 .cors(withDefaults())
