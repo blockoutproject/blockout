@@ -42,7 +42,7 @@ public class CompetitionAssociationService {
      * @return L'association créée ou réactivée
      */
     @Transactional
-    public CompetitionAssociation addOrActivateAssociation(Long poolId, Long teamId, String clubId, Category category) {
+    public CompetitionAssociation addOrReactivateAssociation(Long poolId, Long teamId, String clubId, Category category) {
         Optional<CompetitionAssociation> existingAssoc = associationRepository.findByPoolIdAndTeamId(poolId, teamId);
 
         if (existingAssoc.isPresent()) {

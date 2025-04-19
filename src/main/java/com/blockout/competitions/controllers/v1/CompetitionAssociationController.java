@@ -1,4 +1,4 @@
-package com.blockout.competitions.controllers;
+package com.blockout.competitions.controllers.v1;
 
 import com.blockout.competitions.models.Category;
 import com.blockout.competitions.models.CompetitionAssociation;
@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/competitions/v1")
+@RequestMapping("/competitions")
 public class CompetitionAssociationController {
 
     private final CompetitionAssociationService associationService;
@@ -37,7 +37,7 @@ public class CompetitionAssociationController {
             @RequestParam(name = "club_id") String clubId,
             @RequestParam Category category) {
 
-        CompetitionAssociation assoc = associationService.addOrActivateAssociation(poolId, teamId, clubId, category);
+        CompetitionAssociation assoc = associationService.addOrReactivateAssociation(poolId, teamId, clubId, category);
         return ResponseEntity.ok(assoc);
     }
 
