@@ -57,6 +57,16 @@ public class MatchService {
         return createdMatch;
     }
 
+    /**
+     * Regroupe les matchs par jour avec pagination.
+     *
+     * @param poolIds listes des pools à inclure
+     * @param teamIds listes des équipes à inclure
+     * @param status  statut des matchs (UPCOMING pour futurs, autre pour passés)
+     * @param page    indice de la page (0-based)
+     * @param size    nombre de jours par page
+     * @return un DayPageDTO contenant les groupes de matchs par jour, un indicateur hasNext et le numéro de nextPage
+     */
     public DayPageDTO getMatchesByDay(
             List<Long> poolIds,
             List<Long> teamIds,
@@ -272,8 +282,7 @@ public class MatchService {
 
             Match savedMatch = matchRepository.save(match);
 
-            DiffUtils.logChanges(before, savedMatch, logger,
-                    "update_match", savedMatch.getId());
+            DiffUtils.logChanges(before, savedMatch, logger, "update_match", savedMatch.getId());
             return savedMatch;
         }).orElseThrow(() -> {
             logger.error("Match introuvable, impossible de mettre à jour",
@@ -283,26 +292,40 @@ public class MatchService {
         });
     }
 
+    /**
+     * Désactive en masse les matches actifs d'une pool pour les codes spécifiés.
+     *
+     * @param poolId                 L'identifiant de la pool
+     * @param matchCodesToDeactivate Liste des codes de match à désactiver
+     */
     @Transactional
     public void bulkDeactivateMatches(Long poolId, List<String> matchCodesToDeactivate) {
-        Set<String> matchCodesToDeactivateSet = new HashSet<>(matchCodesToDeactivate);
+        Set<String> toDeactivate = new HashSet<>(matchCodesToDeactivate);
         logger.info("Début de la désactivation en masse des matches",
                 keyValue("action", "bulk_deactivate_matches"),
                 keyValue("poolId", poolId),
-                keyValue("matchCodesToDeactivateSet", matchCodesToDeactivateSet));
+                keyValue("matchCodesToDeactivate", toDeactivate));
 
         List<Match> matchesToDeactivate = matchRepository
-                .findByActiveTrueAndPoolIdAndMatchCodeIn(poolId, matchCodesToDeactivateSet);
+                .findByActiveTrueAndPoolIdAndMatchCodeIn(poolId, toDeactivate);
 
         if (matchesToDeactivate.isEmpty()) {
             logger.info("Aucun match trouvé à désactiver pour la pool et les codes fournis",
                     keyValue("action", "bulk_deactivate_matches"),
                     keyValue("poolId", poolId),
-                    keyValue("matchCodesToDeactivateSet", matchCodesToDeactivateSet));
+                    keyValue("matchCodesToDeactivate", toDeactivate));
             return;
         }
 
-        matchesToDeactivate.forEach(match -> match.setActive(false));
+        // Pour chaque match, on désactive et on logue individuellement
+        matchesToDeactivate.forEach(match -> {
+            match.setActive(false);
+            logger.info("Match désactivé",
+                    keyValue("action", "deactivate_match"),
+                    keyValue("poolId", poolId),
+                    keyValue("matchCode", match.getMatchCode()));
+        });
+
         matchRepository.saveAll(matchesToDeactivate);
 
         logger.info("Matches désactivés en masse",
