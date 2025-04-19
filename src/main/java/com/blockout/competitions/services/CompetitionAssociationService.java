@@ -139,7 +139,7 @@ public class CompetitionAssociationService {
         associationsToDeactivate.forEach(a -> a.setActive(false));
         associationRepository.saveAll(associationsToDeactivate);
         logger.info("Associations désactivées en masse pour la pool",
-                keyValue("action", "bulk_deactivate_teams"),
+                keyValue("action", "bulk_deactivate_teams_by_pool"),
                 keyValue("poolId", poolId),
                 keyValue("nombreAssociations", associationsToDeactivate.size()));
 
