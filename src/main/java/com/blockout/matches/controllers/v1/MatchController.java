@@ -1,12 +1,10 @@
-package com.blockout.matches.controllers;
+package com.blockout.matches.controllers.v1;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
@@ -26,7 +24,7 @@ import java.util.List;
 import java.util.Optional;
 
 @RestController
-@RequestMapping("/matches/v1")
+@RequestMapping("/matches")
 public class MatchController {
 
     private final MatchService matchService;
@@ -40,7 +38,7 @@ public class MatchController {
             @ApiResponse(responseCode = "201", description = "Match créé avec succès"),
             @ApiResponse(responseCode = "400", description = "Requête invalide")
     })
-    @PostMapping("/matches")
+    @PostMapping("/")
     public ResponseEntity<Match> createMatch(@RequestBody Match match) {
         Match createdMatch = matchService.createMatch(match);
         URI location = ServletUriComponentsBuilder
@@ -49,16 +47,6 @@ public class MatchController {
                 .buildAndExpand(createdMatch.getId())
                 .toUri();
         return ResponseEntity.created(location).body(createdMatch);
-    }
-
-    @Operation(summary = "Récupérer les matchs avec pagination", description = "Retourne une liste paginée de matchs")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Liste paginée des matchs renvoyée avec succès")
-    })
-    @GetMapping("/matches")
-    public ResponseEntity<Page<Match>> getMatches(Pageable pageable) {
-        Page<Match> matches = matchService.getAllMatches(pageable);
-        return ResponseEntity.ok(matches);
     }
 
     @Operation(summary = "Récupérer les matchs par poule", description = "Retourne une liste de tous les matchs associés à une poule spécifique.")
@@ -88,7 +76,7 @@ public class MatchController {
             @ApiResponse(responseCode = "200", description = "Liste paginée des groupes de matchs renvoyée avec succès"),
             @ApiResponse(responseCode = "204", description = "Aucun match trouvé"),
     })
-    @GetMapping("/matches/day-based")
+    @GetMapping("/day-based")
     public ResponseEntity<DayPageDTO> getMatchesDayBased(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "3") int size,
@@ -130,7 +118,7 @@ public class MatchController {
             @ApiResponse(responseCode = "200", description = "Match trouvé"),
             @ApiResponse(responseCode = "404", description = "Match non trouvé")
     })
-    @GetMapping("/matches/{id}")
+    @GetMapping("/{id}")
     public ResponseEntity<Optional<Match>> getMatchById(
             @Parameter(description = "ID du match à récupérer") @PathVariable Long id) {
         Optional<Match> match = matchService.getMatchById(id);
@@ -143,7 +131,7 @@ public class MatchController {
             @ApiResponse(responseCode = "200", description = "Match mis à jour avec succès"),
             @ApiResponse(responseCode = "404", description = "Match non trouvé")
     })
-    @PutMapping("/matches/{id}")
+    @PutMapping("/{id}")
     public ResponseEntity<Match> updateMatch(
             @Parameter(description = "ID du match à mettre à jour") @PathVariable Long id,
             @RequestBody Match updatedMatch) {
@@ -189,7 +177,7 @@ public class MatchController {
             @ApiResponse(responseCode = "200", description = "Liste des matchs en cours renvoyée avec succès"),
             @ApiResponse(responseCode = "204", description = "Aucun match trouvé"),
     })
-    @GetMapping("/matches/started")
+    @GetMapping("/started")
     public ResponseEntity<List<Match>> getStartedMatches(
             @RequestParam MatchStatus status,
             @RequestParam boolean active,
