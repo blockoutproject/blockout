@@ -2,7 +2,11 @@
     <appender name="JSON" class="ch.qos.logback.core.ConsoleAppender">
         <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
             <providers>
-                <timestamp/>
+                <timestamp 
+                    fieldName="timestamp"
+                    pattern="yyyy-MM-dd HH:mm:ss"
+                    timeZone="Europe/Paris" 
+                />
                 <logLevel/>
                 <message/>
                 <mdc/>
