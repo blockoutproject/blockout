@@ -1,4 +1,4 @@
-package com.blockout.users.controllers;
+package com.blockout.users.controllers.v1;
 
 import com.blockout.users.models.*;
 import com.blockout.users.services.UserFavoriteService;
@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/users/v1")
+@RequestMapping("/users")
 public class UserFavoriteController {
 
     private final UserFavoriteService userFavoriteService;
@@ -27,7 +27,7 @@ public class UserFavoriteController {
             @ApiResponse(responseCode = "200", description = "Liste de favoris retournée"),
             @ApiResponse(responseCode = "404", description = "Utilisateur non trouvé")
     })
-    @GetMapping("/users/{userId}/favorites")
+    @GetMapping("/{userId}/favorites")
     public ResponseEntity<List<UserFavorite>> getAllFavoritesOfUser(@PathVariable Long userId) {
         List<UserFavorite> favorites = userFavoriteService.getUserFavorites(userId);
         return ResponseEntity.ok(favorites);
@@ -38,7 +38,7 @@ public class UserFavoriteController {
             @ApiResponse(responseCode = "200", description = "Liste de favoris retournée"),
             @ApiResponse(responseCode = "404", description = "Utilisateur non trouvé")
     })
-    @GetMapping("/users/{userId}/favorites/{entityType}")
+    @GetMapping("/{userId}/favorites/{entityType}")
     public ResponseEntity<List<UserFavorite>> getAllFavoritesOfUserByType(@PathVariable Long userId,
             @PathVariable EntityType entityType) {
         List<UserFavorite> favorites = userFavoriteService.getUserFavoritesByType(userId, entityType);

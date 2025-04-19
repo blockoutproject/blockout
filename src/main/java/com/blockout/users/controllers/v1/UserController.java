@@ -1,4 +1,4 @@
-package com.blockout.users.controllers;
+package com.blockout.users.controllers.v1;
 
 import com.auth0.exception.Auth0Exception;
 import com.blockout.users.models.CustomUser;
@@ -20,7 +20,7 @@ import java.net.URI;
 import java.util.Optional;
 
 @RestController
-@RequestMapping("/users/v1")
+@RequestMapping("/users")
 public class UserController {
 
     private final UserService userService;

@@ -18,7 +18,7 @@ public class SecurityConfig {
                  */
                 return http.csrf(csrf -> csrf.disable()) // Disable CSRF protection /!\ A ENLEVER PLUS TARD /!\
                                 .authorizeHttpRequests((authorize) -> authorize
-                                                .requestMatchers("/users/v1/**").authenticated())
+                                                .requestMatchers("/users/**").authenticated())
                                 .oauth2ResourceServer(oauth2 -> oauth2
                                                 .jwt(Customizer.withDefaults()))
                                 .build();
