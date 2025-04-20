@@ -9,20 +9,15 @@ class MatchesApi extends AbstractApi {
         super(url, token);
     }
 
-    /**
-     * Initialise l'instance de l'API avec le token d'accès.
-     * @param token Le token d'accès.
-     */
+    /** Initialise l'instance de l'API avec le token d'accès. */
     public static initInstance(token: string): void {
         if (!MatchesApi.instance) {
             MatchesApi.instance = new MatchesApi(CONFIG.API_MATCHES_BASE_URL, token);
         }
     }
 
-    /**
-     * Retourne l'instance de l'API.
-     * @throws Une erreur si l'instance n'a pas été initialisée.
-     */    public static getInstance(): MatchesApi {
+    /** Retourne l'instance de l'API. */
+    public static getInstance(): MatchesApi {
         if (!MatchesApi.instance) {
             throw new Error('Initialize instance before calling getInstance().');
         }
@@ -30,8 +25,8 @@ class MatchesApi extends AbstractApi {
     }
 
     /**
-     * Récupère les matchs en filtrant éventuellement par plusieurs pools et plusieurs équipes.
-     * - `poolIds` et `teamIds` sont des tableaux (liste vide => pas de filtre).
+     * Récupère les matchs regroupés par jour.
+     * - `poolIds` et `teamIds` sont des tableaux (liste vide ⇒ pas de filtre).
      * - `status` est optionnel (MatchStatus).
      */
     public async getMatches({
@@ -41,42 +36,23 @@ class MatchesApi extends AbstractApi {
         teamIds = [],
         status
     }: {
-        page?: number,
-        size?: number,
-        poolIds?: number[],
-        teamIds?: number[],
-        status?: MatchStatus
+        page?: number;
+        size?: number;
+        poolIds?: number[];
+        teamIds?: number[];
+        status?: MatchStatus;
     }): Promise<DayPageDTO> {
+        const params: Record<string, number | number[] | MatchStatus> = { page, size };
 
-        // On construit l'objet params en ajoutant seulement ce qui est nécessaire
-        const params: Record<string, number | number[] | MatchStatus> = {
-            page,
-            size
-        };
+        if (poolIds.length) params.pool_ids = poolIds;
+        if (teamIds.length) params.team_ids = teamIds;
+        if (status !== undefined) params.status = status;
 
-        // Ajout des filtres pools et équipes (sous forme de tableaux)
-        if (poolIds.length > 0) {
-            params.pool_ids = poolIds;
-        }
-        if (teamIds.length > 0) {
-            params.team_ids = teamIds;
-        }
-
-        // Status
-        if (status !== undefined) {
-            params.status = status;
-        }
-        console.log('params', params);
-
-        const response = await this.service.get('/matches/day-based', { params });
+        const response = await this.service.get('/day-groups', { params });
         return response.data as DayPageDTO;
     }
 
-    /**
-     * Récupère un match spécifique par son ID.
-     * @param matchId - L'ID du match à récupérer.
-     * @returns Le match correspondant à l'ID donné.
-     */
+    /** Récupère un match par ID. */
     public async getMatchById(matchId: number): Promise<Match> {
         const response = await this.service.get(`/matches/${matchId}`);
         return response.data as Match;

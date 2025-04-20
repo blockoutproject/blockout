@@ -9,20 +9,15 @@ class CompetitionsApi extends AbstractApi {
         super(url, token);
     }
 
-    /**
-     * Initialise l'instance de l'API avec le token d'accès.
-     * @param token Le token d'accès.
-     */
+    /** Initialise l'instance avec le token d'accès. */
     public static initInstance(token: string): void {
         if (!CompetitionsApi.instance) {
             CompetitionsApi.instance = new CompetitionsApi(CONFIG.API_COMPETITIONS_BASE_URL, token);
         }
     }
 
-    /**
-     * Retourne l'instance de l'API.
-     * @throws Une erreur si l'instance n'a pas été initialisée.
-     */    public static getInstance(): CompetitionsApi {
+    /** Retourne l'instance. */
+    public static getInstance(): CompetitionsApi {
         if (!CompetitionsApi.instance) {
             throw new Error('Initialize instance before calling getInstance().');
         }
@@ -30,22 +25,25 @@ class CompetitionsApi extends AbstractApi {
     }
 
     /**
-     * Récupère les équipes associées à un pool spécifique.
-     * @param poolId - L'ID du pool à récupérer.
-     * @returns Une liste des entrées d'équipes dans la pool.
+     * Récupère les équipes associées à un pool.
+     * @param poolId ID du pool.
+     * @param activeOnly true ⇒ seulement les associations actives.
      */
-    public async getTeamsAssocByPool(poolId: number): Promise<CompetitionAssociation[]> {
-        const response = await this.service.get(`/pools/${poolId}/teams`);
+    public async getTeamsAssocByPool(
+        poolId: number,
+        activeOnly = false
+    ): Promise<CompetitionAssociation[]> {
+        const params = activeOnly ? { activeOnly: true } : undefined;
+        const response = await this.service.get(`/pools/${poolId}/teams`, { params });
         return response.data as CompetitionAssociation[];
     }
 
-
     /**
-     * Récupère les poules auxquelles une équipe est rattachée.
-     * @param teamId - L'ID de l'équipe à rechercher.
-     * @returns Une liste des poules où l'équipe est engagée.
+     * Récupère les pools d'une équipe.
      */
-    public async getPoolsAssocByTeam(teamId: number): Promise<CompetitionAssociation[]> {
+    public async getPoolsAssocByTeam(
+        teamId: number
+    ): Promise<CompetitionAssociation[]> {
         const response = await this.service.get(`/teams/${teamId}/pools`);
         return response.data as CompetitionAssociation[];
     }
