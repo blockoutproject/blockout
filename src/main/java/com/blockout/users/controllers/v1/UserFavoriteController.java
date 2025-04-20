@@ -30,7 +30,7 @@ public class UserFavoriteController {
     @GetMapping("/{userId}/favorites")
     public ResponseEntity<List<UserFavorite>> listFavorites(
             @PathVariable Long userId,
-            @RequestParam(required = false) EntityType entityType) {
+            @RequestParam(required = false, name = "entity_type") EntityType entityType) {
 
         List<UserFavorite> list = entityType == null
                 ? favoriteService.getUserFavorites(userId)
@@ -47,8 +47,8 @@ public class UserFavoriteController {
     @PostMapping("/favorites/follow")
     public ResponseEntity<Void> follow(
             @AuthenticationPrincipal Jwt jwt,
-            @RequestParam EntityType entityType,
-            @RequestParam Long entityId) {
+            @RequestParam(name = "entity_type") EntityType entityType,
+            @RequestParam(name = "entity_id") Long entityId) {
 
         favoriteService.follow(jwt.getSubject(), entityType, entityId);
         return ResponseEntity.noContent().build();
@@ -62,8 +62,8 @@ public class UserFavoriteController {
     @DeleteMapping("/favorites/follow")
     public ResponseEntity<Void> unfollow(
             @AuthenticationPrincipal Jwt jwt,
-            @RequestParam EntityType entityType,
-            @RequestParam Long entityId) {
+            @RequestParam(name = "entity_type") EntityType entityType,
+            @RequestParam(name = "entity_id") Long entityId) {
 
         favoriteService.unfollow(jwt.getSubject(), entityType, entityId);
         return ResponseEntity.noContent().build();
