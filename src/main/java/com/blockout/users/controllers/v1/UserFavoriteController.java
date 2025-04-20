@@ -1,6 +1,7 @@
 package com.blockout.users.controllers.v1;
 
-import com.blockout.users.models.*;
+import com.blockout.users.models.EntityType;
+import com.blockout.users.models.UserFavorite;
 import com.blockout.users.services.UserFavoriteService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -13,67 +14,59 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/users")
+@RequestMapping("/")
 public class UserFavoriteController {
 
-    private final UserFavoriteService userFavoriteService;
+    private final UserFavoriteService favoriteService;
 
-    public UserFavoriteController(UserFavoriteService userFavoriteService) {
-        this.userFavoriteService = userFavoriteService;
+    public UserFavoriteController(UserFavoriteService favoriteService) {
+        this.favoriteService = favoriteService;
     }
 
-    @Operation(summary = "Récupérer tous les favoris d'un utilisateur")
+    @Operation(summary = "List favorites for a user")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Liste de favoris retournée"),
-            @ApiResponse(responseCode = "404", description = "Utilisateur non trouvé")
+            @ApiResponse(responseCode = "200", description = "Favorites returned"),
+            @ApiResponse(responseCode = "404", description = "User not found")
     })
-    @GetMapping("/{userId}/favorites")
-    public ResponseEntity<List<UserFavorite>> getAllFavoritesOfUser(@PathVariable Long userId) {
-        List<UserFavorite> favorites = userFavoriteService.getUserFavorites(userId);
-        return ResponseEntity.ok(favorites);
+    @GetMapping("/users/{userId}/favorites")
+    public ResponseEntity<List<UserFavorite>> listFavorites(
+            @PathVariable Long userId,
+            @RequestParam(required = false) EntityType entityType) {
+
+        List<UserFavorite> list = entityType == null
+                ? favoriteService.getUserFavorites(userId)
+                : favoriteService.getUserFavoritesByType(userId, entityType);
+
+        return ResponseEntity.ok(list);
     }
 
-    @Operation(summary = "Récupérer les favoris d'un utilisateur par type d'entité")
+    @Operation(summary = "Follow an entity")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Liste de favoris retournée"),
-            @ApiResponse(responseCode = "404", description = "Utilisateur non trouvé")
+            @ApiResponse(responseCode = "204", description = "Follow updated"),
+            @ApiResponse(responseCode = "404", description = "User not found")
     })
-    @GetMapping("/{userId}/favorites/{entityType}")
-    public ResponseEntity<List<UserFavorite>> getAllFavoritesOfUserByType(@PathVariable Long userId,
-            @PathVariable EntityType entityType) {
-        List<UserFavorite> favorites = userFavoriteService.getUserFavoritesByType(userId, entityType);
-        return ResponseEntity.ok(favorites);
-    }
-
-    @Operation(summary = "Suivre une entité")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Follow créé ou déjà existant"),
-            @ApiResponse(responseCode = "404", description = "Utilisateur non trouvé")
-    })
-    @PostMapping("/follows/{entityType}/{entityId}")
+    @PostMapping("/favorites/follow")
     public ResponseEntity<Void> follow(
             @AuthenticationPrincipal Jwt jwt,
-            @PathVariable EntityType entityType,
-            @PathVariable Long entityId) {
+            @RequestParam EntityType entityType,
+            @RequestParam Long entityId) {
 
-        String auth0Id = jwt.getSubject();
-        userFavoriteService.follow(auth0Id, entityType, entityId);
+        favoriteService.follow(jwt.getSubject(), entityType, entityId);
         return ResponseEntity.noContent().build();
     }
 
-    @Operation(summary = "Ne plus suivre une entité")
+    @Operation(summary = "Unfollow an entity")
     @ApiResponses({
-            @ApiResponse(responseCode = "204", description = "Follow supprimé"),
-            @ApiResponse(responseCode = "404", description = "Utilisateur non trouvé")
+            @ApiResponse(responseCode = "204", description = "Follow removed"),
+            @ApiResponse(responseCode = "404", description = "User not found")
     })
-    @DeleteMapping("/follows/{entityType}/{entityId}")
+    @DeleteMapping("/favorites/follow")
     public ResponseEntity<Void> unfollow(
             @AuthenticationPrincipal Jwt jwt,
-            @PathVariable EntityType entityType,
-            @PathVariable Long entityId) {
+            @RequestParam EntityType entityType,
+            @RequestParam Long entityId) {
 
-        String auth0Id = jwt.getSubject();
-        userFavoriteService.unfollow(auth0Id, entityType, entityId);
+        favoriteService.unfollow(jwt.getSubject(), entityType, entityId);
         return ResponseEntity.noContent().build();
     }
 }
