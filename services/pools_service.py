@@ -2,7 +2,6 @@ from typing import Optional
 import aiohttp
 from api.pools_api import create_pool, update_pool
 from models.pool import Pool
-from config.logger_config import log_event
 
 async def add_or_update_pool(
     session: aiohttp.ClientSession, 
