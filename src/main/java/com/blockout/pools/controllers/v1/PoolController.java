@@ -47,7 +47,7 @@ public class PoolController {
     })
     @GetMapping
     public ResponseEntity<List<Pool>> listPools(
-            @RequestParam(required = false) String leagueCode,
+            @RequestParam(required = false, name = "league_code") String leagueCode,
             @RequestParam(required = false) Integer season,
             @RequestParam(required = false) Boolean active) {
 
