@@ -50,7 +50,7 @@ public class TeamController {
     @GetMapping
     public ResponseEntity<List<Team>> listTeams(
             @RequestParam(required = false) String name,
-            @RequestParam(required = false) String divisionName,
+            @RequestParam(required = false, name = "division_name") String divisionName,
             @RequestParam(required = false) TeamFormat format,
             @RequestParam(required = false) TeamGender gender,
             @RequestParam(required = false) List<Long> ids) {
