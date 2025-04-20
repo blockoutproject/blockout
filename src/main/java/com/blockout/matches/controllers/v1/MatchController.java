@@ -13,14 +13,11 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.net.URI;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
 @RestController
-@RequestMapping("/")
 public class MatchController {
 
     private final MatchService matchService;
@@ -34,7 +31,7 @@ public class MatchController {
             @ApiResponse(responseCode = "201", description = "Match created"),
             @ApiResponse(responseCode = "400", description = "Invalid request")
     })
-    @PostMapping("/matches")
+    @PostMapping
     public ResponseEntity<Match> createMatch(@RequestBody Match match) {
         Match created = matchService.createMatch(match);
         URI location = ServletUriComponentsBuilder.fromCurrentRequest()
@@ -52,7 +49,7 @@ public class MatchController {
             @ApiResponse(responseCode = "200", description = "Matches returned"),
             @ApiResponse(responseCode = "204", description = "No match found")
     })
-    @GetMapping("/matches")
+    @GetMapping
     public ResponseEntity<List<Match>> listMatches(
             @RequestParam(required = false) Long poolId,
             @RequestParam(required = false) List<Long> teamIds,
@@ -72,7 +69,7 @@ public class MatchController {
             @ApiResponse(responseCode = "200", description = "Day groups returned"),
             @ApiResponse(responseCode = "204", description = "No match found")
     })
-    @GetMapping("/matches/day-groups")
+    @GetMapping("/day-groups")
     public ResponseEntity<DayPageDTO> dayGroups(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "3") int size,
@@ -98,7 +95,7 @@ public class MatchController {
             @ApiResponse(responseCode = "200", description = "Match found"),
             @ApiResponse(responseCode = "404", description = "Match not found")
     })
-    @GetMapping("/matches/{id}")
+    @GetMapping("/{id}")
     public ResponseEntity<Match> getMatchById(@PathVariable Long id) {
         return matchService.getMatchById(id)
                 .map(ResponseEntity::ok)
@@ -110,7 +107,7 @@ public class MatchController {
             @ApiResponse(responseCode = "200", description = "Match updated"),
             @ApiResponse(responseCode = "404", description = "Match not found")
     })
-    @PutMapping("/matches/{id}")
+    @PutMapping("/{id}")
     public ResponseEntity<Match> updateMatch(
             @PathVariable Long id,
             @RequestBody Match updated) {
@@ -124,47 +121,12 @@ public class MatchController {
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Matches deactivated")
     })
-    @PutMapping("/pools/{poolId}/matches/bulk-deactivate")
+    @PutMapping("/pools/{poolId}/bulk-deactivate")
     public ResponseEntity<Void> bulkDeactivateMatches(
             @PathVariable Long poolId,
             @RequestBody BulkMatchesDeactivateRequest request) {
 
         matchService.bulkDeactivateMatches(poolId, request.getMissingMatchCodes());
         return ResponseEntity.ok().build();
-    }
-
-    @Operation(summary = "Started matches", description = "Returns upcoming matches that have already started.")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Matches returned"),
-            @ApiResponse(responseCode = "204", description = "No match found")
-    })
-    @GetMapping("/matches/started")
-    public ResponseEntity<List<Match>> startedMatches(
-            @RequestParam MatchStatus status,
-            @RequestParam boolean active,
-            @RequestParam LocalDateTime currentTime) {
-
-        List<Match> started = matchService.getStartedMatches(status, active, currentTime);
-
-        if (started.isEmpty()) {
-            return ResponseEntity.noContent().build();
-        }
-        return ResponseEntity.ok(started);
-    }
-
-    @Operation(summary = "Get match by composite keys")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Match found"),
-            @ApiResponse(responseCode = "404", description = "Match not found")
-    })
-    @GetMapping("/pools/{poolId}/matches/search")
-    public ResponseEntity<Match> getMatchByPoolTeamsDate(
-            @PathVariable Long poolId,
-            @RequestParam Long teamIdA,
-            @RequestParam Long teamIdB,
-            @RequestParam LocalDate matchDate) {
-
-        Optional<Match> match = matchService.getMatchByPoolAndTeamsAndDate(poolId, teamIdA, teamIdB, matchDate);
-        return match.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
     }
 }
