@@ -32,7 +32,7 @@ public class CompetitionAssociationController {
     public ResponseEntity<CompetitionAssociation> addTeamToPool(
             @PathVariable Long poolId,
             @PathVariable Long teamId,
-            @RequestParam String clubId,
+            @RequestParam(name = "club_id") String clubId,
             @RequestParam Category category) {
 
         CompetitionAssociation assoc = associationService.addOrReactivateAssociation(poolId, teamId, clubId, category);
@@ -47,7 +47,7 @@ public class CompetitionAssociationController {
     @GetMapping("/pools/{poolId}/teams")
     public ResponseEntity<List<CompetitionAssociation>> listPoolTeams(
             @PathVariable Long poolId,
-            @RequestParam(required = false, defaultValue = "false") boolean activeOnly) {
+            @RequestParam(required = false, defaultValue = "false", name = "active_only") boolean activeOnly) {
 
         List<CompetitionAssociation> list = activeOnly
                 ? associationService.getActiveAssociationsByPool(poolId)
