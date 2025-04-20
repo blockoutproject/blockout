@@ -19,21 +19,7 @@ async def get_pools_by_league_and_season(
     """
     headers = _get_auth_headers()
     params = {"leagueCode": league_code, "season": season}
-    url = f"{POOL_API_URL}/pools"
-    return await session.get(url, params=params, headers=headers)
-
-
-@handle_api_response(response_type=List[Pool])
-async def get_active_pools_by_league_code(
-    session: aiohttp.ClientSession,
-    league_code: str
-) -> Optional[List[Pool]]:
-    """
-    Récupère les pools actives pour une ligue donnée.
-    """
-    headers = _get_auth_headers()
-    params = {"leagueCode": league_code, "active": "true"}
-    url = f"{POOL_API_URL}/pools"
+    url = f"{POOL_API_URL}"
     return await session.get(url, params=params, headers=headers)
 
 
@@ -47,7 +33,8 @@ async def create_pool(
     """
     headers = _get_auth_headers()
     pool_dict = to_dict(pool)
-    response = await session.post(f"{POOL_API_URL}/pools", json=pool_dict, headers=headers)
+    url = f"{POOL_API_URL}"
+    response = await session.post(url, json=pool_dict, headers=headers)
     log_event(
         action="create_pool",
         level="info",
@@ -68,7 +55,7 @@ async def update_pool(
     """
     headers = _get_auth_headers()
     pool_dict = to_dict(pool)
-    url = f"{POOL_API_URL}/pools/{pool.id}"
+    url = f"{POOL_API_URL}/{pool.id}"
     response = await session.put(url, json=pool_dict, headers=headers)
     log_event(
         action="update_pool",

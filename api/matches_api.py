@@ -9,28 +9,6 @@ from utils.handlers.api_handler import handle_api_response
 from utils.utils import to_dict
 
 
-@handle_api_response(response_type=Match)
-async def get_match_by_pool_teams_date(
-    session: aiohttp.ClientSession,
-    pool_id: int,
-    team_id_a: int,
-    team_id_b: int,
-    match_date: datetime
-) -> Optional[Match]:
-    """
-    Récupère un match selon poule, équipes et date.
-    """
-    headers = _get_auth_headers()
-    params = {
-        "teamIdA": team_id_a,
-        "teamIdB": team_id_b,
-        "matchDate": match_date.isoformat()
-    }
-    url = f"{MATCH_API_URL}/pools/{pool_id}/matches/search"
-    response = await session.get(url, params=params, headers=headers)
-    return response
-
-
 @handle_api_response(response_type=List[Match])
 async def get_matches_by_pool(
     session: aiohttp.ClientSession,
@@ -41,43 +19,7 @@ async def get_matches_by_pool(
     """
     headers = _get_auth_headers()
     params = {"poolId": pool_id}
-    url = f"{MATCH_API_URL}/matches"
-    response = await session.get(url, params=params, headers=headers)
-    return response
-
-
-@handle_api_response(response_type=List[Match])
-async def get_active_matches_by_pool_id(
-    session: aiohttp.ClientSession,
-    pool_id: int
-) -> Optional[List[Match]]:
-    """
-    Récupère les matchs actifs pour une poule donnée.
-    """
-    headers = _get_auth_headers()
-    params = {"poolId": pool_id, "active": "true"}
-    url = f"{MATCH_API_URL}/matches"
-    response = await session.get(url, params=params, headers=headers)
-    return response
-
-
-@handle_api_response(response_type=List[Match])
-async def get_started_matches(
-    session: aiohttp.ClientSession,
-    status: MatchStatus,
-    active: bool,
-    current_time: str
-) -> Optional[List[Match]]:
-    """
-    Récupère les matchs qui ont commencé (status 'UPCOMING' et date ≤ maintenant).
-    """
-    headers = _get_auth_headers()
-    params = {
-        "status": status.value if hasattr(status, "value") else status,
-        "active": str(active).lower(),
-        "currentTime": current_time
-    }
-    url = f"{MATCH_API_URL}/matches/started"
+    url = f"{MATCH_API_URL}"
     response = await session.get(url, params=params, headers=headers)
     return response
 
@@ -92,7 +34,7 @@ async def create_match(
     """
     headers = _get_auth_headers()
     match_dict = to_dict(match)
-    url = f"{MATCH_API_URL}/matches"
+    url = f"{MATCH_API_URL}"
     response = await session.post(url, json=match_dict, headers=headers)
     log_event(
         action="create_match",
@@ -115,7 +57,7 @@ async def update_match(
     """
     headers = _get_auth_headers()
     match_dict = to_dict(match)
-    url = f"{MATCH_API_URL}/matches/{match.id}"
+    url = f"{MATCH_API_URL}/{match.id}"
     response = await session.put(url, json=match_dict, headers=headers)
     log_event(
         action="update_match",
@@ -137,7 +79,7 @@ async def bulk_deactivate_matches(
     Désactive en masse les matchs correspondant aux codes fournis.
     """
     headers = _get_auth_headers()
-    url = f"{MATCH_API_URL}/pools/{pool_id}/matches/bulk-deactivate"
+    url = f"{MATCH_API_URL}/pools/{pool_id}/bulk-deactivate"
     payload = {"missing_match_codes": list(missing_match_codes)}
     response = await session.put(url, json=payload, headers=headers)
     log_event(

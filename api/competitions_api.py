@@ -10,10 +10,6 @@ from api.auth0 import _get_auth_headers
 from utils.utils import to_dict
 
 
-# ---------------------------------------------------------------------
-#  --- LECTURE --------------------------------------------------------
-# ---------------------------------------------------------------------
-
 @handle_api_response(response_type=list[CompetitionAssociation])
 async def get_active_team_associations_by_pool(
     session: aiohttp.ClientSession,
@@ -27,24 +23,6 @@ async def get_active_team_associations_by_pool(
     response = await session.get(url, params={"activeOnly": "true"}, headers=headers)
     return response
 
-
-@handle_api_response(response_type=list[CompetitionAssociation])
-async def get_team_associations_by_pool(
-    session: aiohttp.ClientSession,
-    pool_id: int
-) -> Optional[List[CompetitionAssociation]]:
-    """
-    Récupère la liste de toutes les associations pour une poule donnée.
-    """
-    headers = _get_auth_headers()
-    url = f"{COMPETITION_API_URL}/pools/{pool_id}/teams"
-    response = await session.get(url, headers=headers)
-    return response
-
-
-# ---------------------------------------------------------------------
-#  --- ÉCRITURE -------------------------------------------------------
-# ---------------------------------------------------------------------
 
 @handle_api_response(response_type=CompetitionAssociation)
 async def add_team_to_pool(

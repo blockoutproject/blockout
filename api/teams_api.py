@@ -1,4 +1,4 @@
-from typing import Optional, List
+from typing import List
 import aiohttp
 from config.env_config import TEAM_API_URL
 from config.logger_config import log_event
@@ -15,7 +15,8 @@ async def create_team(session: aiohttp.ClientSession, team: Team) -> Team:
     """
     headers = _get_auth_headers()
     team_dict = to_dict(team)
-    response = await session.post(f"{TEAM_API_URL}/teams", json=team_dict, headers=headers)
+    url = f"{TEAM_API_URL}"
+    response = await session.post(url, json=team_dict, headers=headers)
     log_event(action="create_team", level="info", name=team.name, club_id=team.club_id)
     return response
 
@@ -31,7 +32,7 @@ async def update_team(
     """
     headers = _get_auth_headers()
     team_dict = to_dict(team)
-    url = f"{TEAM_API_URL}/teams/{team.id}"
+    url = f"{TEAM_API_URL}/{team.id}"
     response = await session.put(url, json=team_dict, headers=headers)
     log_event(
         action="update_team",
@@ -58,36 +59,5 @@ async def get_teams_by_division_format_gender(
         "format": format,
         "gender": gender
     }
-    url = f"{TEAM_API_URL}/teams"
-    return await session.get(url, params=params, headers=headers)
-
-
-@handle_api_response(response_type=list[Team])
-async def get_teams_by_ids(
-    session: aiohttp.ClientSession,
-    ids: list[int]
-) -> List[Team]:
-    """
-    Récupère les équipes correspondant aux IDs fournis (via query‑string CSV).
-    """
-    if not ids:
-        raise ValueError("La liste des IDs ne peut pas être vide.")
-
-    headers = _get_auth_headers()
-    params = {"ids": ",".join(str(_id) for _id in ids)}
-    url = f"{TEAM_API_URL}/teams"
-    return await session.get(url, params=params, headers=headers)
-
-
-@handle_api_response(response_type=list[Team])
-async def search_teams_by_name(
-    session: aiohttp.ClientSession,
-    query: str
-) -> Optional[List[Team]]:
-    """
-    Recherche fuzzy des équipes par nom (max 20 résultats).
-    """
-    headers = _get_auth_headers()
-    params = {"name": query}
-    url = f"{TEAM_API_URL}/teams"
+    url = f"{TEAM_API_URL}"
     return await session.get(url, params=params, headers=headers)
