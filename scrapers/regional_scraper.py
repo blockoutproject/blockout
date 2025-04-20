@@ -223,7 +223,14 @@ class RegionalScraper(Scraper):
                 and pool.id not in scraped_pool_ids
             }
             if missing_pool_ids:
-                await bulk_deactivate_pools(self.session, league_name, league_code, missing_pool_ids)
+                log_event(
+                    action="bulk_deactivate_pools",
+                    level="info",
+                    league_name='National',
+                    missing_pool_ids=missing_pool_ids,
+                    message="Désactivation en masse des poules non scrapées."
+                )
+                await bulk_deactivate_pools(self.session, missing_pool_ids)
 
         except Exception as e:
             log_event(

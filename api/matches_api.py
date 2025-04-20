@@ -82,9 +82,4 @@ async def bulk_deactivate_matches(
     url = f"{MATCH_API_URL}/pools/{pool_id}/bulk-deactivate"
     payload = {"missing_match_codes": list(missing_match_codes)}
     response = await session.put(url, json=payload, headers=headers)
-    log_event(
-        action="bulk_deactivate_matches",
-        level="info",
-        message=f"PUT {url} - Désactivation en masse des matchs : {missing_match_codes}."
-    )
     return response

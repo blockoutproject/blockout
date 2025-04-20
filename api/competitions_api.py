@@ -82,21 +82,7 @@ async def bulk_deactivate_pools(
     url = f"{COMPETITION_API_URL}/pools/bulk-deactivate"
     payload = {"missing_pool_ids": list(missing_pool_ids)}
     await session.put(url, json=payload, headers=headers)
-
-
-@handle_api_response(response_type=None)
-async def bulk_deactivate_clubs(
-    session: aiohttp.ClientSession,
-    missing_club_ids: set[str]
-) -> None:
-    """
-    Désactive en masse les clubs absents de la liste.
-    """
-    headers = _get_auth_headers()
-    url = f"{COMPETITION_API_URL}/clubs/bulk-deactivate"
-    payload = {"missing_club_ids": list(missing_club_ids)}
-    await session.put(url, json=payload, headers=headers)
-
+    
 
 @handle_api_response(response_type=CompetitionAssociation)
 async def update_team_association_stats(
