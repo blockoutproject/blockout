@@ -55,7 +55,7 @@ async def get_teams_by_division_format_gender(
     """
     headers = _get_auth_headers()
     params = {
-        "divisionName": division_name,
+        "division_name": division_name,
         "format": format,
         "gender": gender
     }

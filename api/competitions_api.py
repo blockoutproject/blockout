@@ -20,7 +20,7 @@ async def get_active_team_associations_by_pool(
     """
     headers = _get_auth_headers()
     url = f"{COMPETITION_API_URL}/pools/{pool_id}/teams"
-    response = await session.get(url, params={"activeOnly": "true"}, headers=headers)
+    response = await session.get(url, params={"active_only": "true"}, headers=headers)
     return response
 
 
@@ -36,11 +36,12 @@ async def add_team_to_pool(
     Crée ou réactive l'association entre une poule et une équipe.
     """
     headers = _get_auth_headers()
-    url = (
-        f"{COMPETITION_API_URL}/pools/{pool_id}/teams/{team_id}"
-        f"?clubId={club_id}&category={category.value}"
-    )
-    response = await session.post(url, headers=headers)
+    url = f"{COMPETITION_API_URL}/pools/{pool_id}/teams/{team_id}"
+    params = {
+        "club_id": club_id,
+        "category": category.value
+    }
+    response = await session.post(url, params=params, headers=headers)
 
     log_event(
         action="add_team_to_pool",
@@ -49,7 +50,7 @@ async def add_team_to_pool(
         pool_id=pool_id,
         team_id=team_id,
         club_id=club_id,
-        message=f"POST {url} - Association poule/équipe/club."
+        message=f"POST {url} with params={params}"
     )
     return response
 

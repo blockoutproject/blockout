@@ -18,7 +18,7 @@ async def get_pools_by_league_and_season(
     Récupère toutes les pools pour un code de ligue et une saison spécifiques.
     """
     headers = _get_auth_headers()
-    params = {"leagueCode": league_code, "season": season}
+    params = {"league_code": league_code, "season": season}
     url = f"{POOL_API_URL}"
     return await session.get(url, params=params, headers=headers)
 

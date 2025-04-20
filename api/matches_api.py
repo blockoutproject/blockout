@@ -15,10 +15,10 @@ async def get_matches_by_pool(
     pool_id: int
 ) -> Optional[List[Match]]:
     """
-    Récupère tous les matchs d'une poule (filtre poolId).
+    Récupère tous les matchs d'une poule (filtre pool_id).
     """
     headers = _get_auth_headers()
-    params = {"poolId": pool_id}
+    params = {"pool_id": pool_id}
     url = f"{MATCH_API_URL}"
     response = await session.get(url, params=params, headers=headers)
     return response
