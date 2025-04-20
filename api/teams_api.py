@@ -14,12 +14,6 @@ async def get_unique_club_ids(
     Récupère la liste des club IDs uniques (Teams).
     """
     headers = _get_auth_headers()
-    url = f"{TEAM_API_URL}/teams/club-ids"
+    url = f"{TEAM_API_URL}/club-ids"
     response = await session.get(url, headers=headers)
-
-    log_event(
-        action="get_unique_club_ids",
-        level="info",
-        message=f"GET {url} - Club IDs uniques récupérés"
-    )
     return response

@@ -28,13 +28,6 @@ async def create_club(session: aiohttp.ClientSession, club: Club) -> Club:
         json=to_dict(club),
         headers=headers
     )
-    log_event(
-        action="create_club",
-        level="info",
-        club_id=club.id,
-        name=club.name,
-        message=f"[club_api + {club.id}] - Création d’un club"
-    )
     return response
 
 
@@ -50,13 +43,4 @@ async def update_club(
     headers = _get_auth_headers()
     url = f"{CLUB_API_URL}/clubs/{club.id}"
     response = await session.put(url, json=to_dict(club), headers=headers)
-
-    log_event(
-        action="update_club",
-        level="info",
-        club_id=club.id,
-        name=club.name,
-        changes_list=changes_list,
-        message=f"[club_api + {club.id}] - Mise à jour club ({len(changes_list)} chang.)"
-    )
     return response

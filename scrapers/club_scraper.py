@@ -49,7 +49,7 @@ class ClubScraper(Scraper):
                 action="club_scraper_critical_error",
                 level="error",
                 error=str(e),
-                message="[club_scraper + run_scraping] - Erreur critique lors du scraping des clubs."
+                message="Erreur critique lors du scraping des clubs."
             )
 
     async def scrape_one_club(self, url: str, club_id: str):
@@ -61,7 +61,7 @@ class ClubScraper(Scraper):
                     action="club_scraper_fetch_html_error",
                     level="error",
                     url=url,
-                    message=f"[club_scraper + {url}] - Contenu HTML vide ou inexistant."
+                    message=f"{url} - Contenu HTML vide ou inexistant."
                 )
                 return
             
@@ -79,7 +79,7 @@ class ClubScraper(Scraper):
                 level="error",
                 url=url,
                 error=str(e),
-                message=f"[club_scraper + {url}] - Erreur lors du scraping d'un club."
+                message=f"{url} - Erreur lors du scraping d'un club."
             )
             
     def parse_club_page(self, html_content: str, club_id: str) -> Club:
@@ -165,6 +165,6 @@ class ClubScraper(Scraper):
                 level="error",
                 club_id=club_id,
                 error=str(e),
-                message=f"[club_scraper + parse_club_page] - Erreur lors du parsing HTML du club {club_id}."
+                message=f"Erreur lors du parsing HTML du club {club_id}."
             )
             return None
