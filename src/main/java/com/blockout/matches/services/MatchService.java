@@ -80,7 +80,7 @@ public class MatchService {
                 safeTeamIds,
                 safeTeamIds.size());
 
-        logger.info("findMatches executed",
+        logger.debug("findMatches executed",
                 keyValue("action", "find_matches"),
                 keyValue("poolId", poolId),
                 keyValue("teamIds", safeTeamIds),
@@ -111,7 +111,7 @@ public class MatchService {
 
         LocalDateTime now = LocalDateTime.now();
 
-        logger.info("Fetching matches grouped by day",
+        logger.debug("Fetching matches grouped by day",
                 keyValue("action", "get_matches_by_day"),
                 keyValue("status", status),
                 keyValue("page", page),
@@ -125,21 +125,21 @@ public class MatchService {
             allDays = matchRepository.findDistinctUpcomingDates(
                     poolIds, poolIds.size(),
                     teamIds, teamIds.size());
-            logger.info("Found distinct upcoming match days",
+            logger.debug("Found distinct upcoming match days",
                     keyValue("count", allDays.size()));
         } else {
             allDays = matchRepository.findDistinctDatesUntil(
                     now,
                     poolIds, poolIds.size(),
                     teamIds, teamIds.size());
-            logger.info("Found distinct past match days",
+            logger.debug("Found distinct past match days",
                     keyValue("count", allDays.size()));
         }
 
         // Pagination sur la liste de jours
         int fromIndex = page * size;
         if (fromIndex >= allDays.size()) {
-            logger.info("Requested page exceeds total available days",
+            logger.debug("Requested page exceeds total available days",
                     keyValue("fromIndex", fromIndex),
                     keyValue("totalDays", allDays.size()));
             return new DayPageDTO(Collections.emptyList(), false, null);
@@ -148,7 +148,7 @@ public class MatchService {
         int toIndex = Math.min(fromIndex + size, allDays.size());
         List<LocalDate> subDays = allDays.subList(fromIndex, toIndex);
 
-        logger.info("Paginated days selected",
+        logger.debug("Paginated days selected",
                 keyValue("from", fromIndex),
                 keyValue("to", toIndex),
                 keyValue("selectedDaysCount", subDays.size()));
@@ -173,7 +173,7 @@ public class MatchService {
                     : maxDay.plusDays(1).atStartOfDay();
         }
 
-        logger.info("Computed date range for match fetching",
+        logger.debug("Computed date range for match fetching",
                 keyValue("start", startOfMinDay),
                 keyValue("end", endDateTime));
 
@@ -185,7 +185,7 @@ public class MatchService {
                 status,
                 teamIds, teamIds.size());
 
-        logger.info("Fetched matches in date range",
+        logger.debug("Fetched matches in date range",
                 keyValue("matchesCount", allMatches.size()));
 
         // Groupement par date
@@ -210,7 +210,7 @@ public class MatchService {
         boolean hasNext = (toIndex < allDays.size());
         Integer nextPage = hasNext ? (page + 1) : null;
 
-        logger.info("Returning paginated match result",
+        logger.debug("Returning paginated match result",
                 keyValue("dayGroupsCount", dayMatchesList.size()),
                 keyValue("hasNext", hasNext),
                 keyValue("nextPage", nextPage));
