@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class ClubService {
@@ -59,7 +60,7 @@ public class ClubService {
      * @throws ClubNotFoundException Si le club n'existe pas
      */
     @Transactional
-    public Club updateClub(String id, Club updatedClub) {
+    public Optional<Club> updateClub(String id, Club updatedClub) {
         return clubRepository.findById(id).map(club -> {
             Club before = club.toBuilder().build();
 
@@ -83,11 +84,6 @@ public class ClubService {
             DiffUtils.logChanges(before, savedClub, logger,
                     "update_club", Long.valueOf(savedClub.getId()));
             return savedClub;
-        }).orElseThrow(() -> {
-            logger.error("Club introuvable, impossible de mettre à jour",
-                    keyValue("action", "update_club"),
-                    keyValue("clubId", id));
-            return new ClubNotFoundException(id);
         });
     }
 
