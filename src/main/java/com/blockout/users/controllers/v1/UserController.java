@@ -18,7 +18,6 @@ import java.net.URI;
 import java.util.Optional;
 
 @RestController
-@RequestMapping("/")
 public class UserController {
 
     private final UserService userService;
@@ -32,7 +31,7 @@ public class UserController {
             @ApiResponse(responseCode = "200", description = "User found"),
             @ApiResponse(responseCode = "404", description = "User not found")
     })
-    @GetMapping("/users/{auth0Id}")
+    @GetMapping("/{auth0Id}")
     public ResponseEntity<CustomUserDto> getUserByAuth0Id(@PathVariable String auth0Id) {
         Optional<CustomUserDto> user = userService.getUserByAuth0Id(auth0Id);
         return user.map(ResponseEntity::ok)
@@ -44,7 +43,7 @@ public class UserController {
             @ApiResponse(responseCode = "201", description = "User created"),
             @ApiResponse(responseCode = "400", description = "Invalid request")
     })
-    @PostMapping("/users")
+    @PostMapping
     public ResponseEntity<CustomUser> registerUser(
             @RequestBody UserRegistrationRequest body,
             @AuthenticationPrincipal Jwt jwt) throws Auth0Exception {

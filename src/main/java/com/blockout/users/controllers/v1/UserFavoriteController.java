@@ -14,7 +14,6 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/")
 public class UserFavoriteController {
 
     private final UserFavoriteService favoriteService;
@@ -28,7 +27,7 @@ public class UserFavoriteController {
             @ApiResponse(responseCode = "200", description = "Favorites returned"),
             @ApiResponse(responseCode = "404", description = "User not found")
     })
-    @GetMapping("/users/{userId}/favorites")
+    @GetMapping("/{userId}/favorites")
     public ResponseEntity<List<UserFavorite>> listFavorites(
             @PathVariable Long userId,
             @RequestParam(required = false) EntityType entityType) {
