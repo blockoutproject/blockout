@@ -42,30 +42,30 @@ public class PoolService {
     }
 
     /**
-     * Récupère toutes les pools
-     * 
-     * @return Liste de toutes les pools
+     * Récupère les pools en appliquant des filtres facultatifs.
+     *
+     * @param leagueCode code de la ligue (null pour ignorer)
+     * @param season     saison (null pour ignorer)
+     * @param active     état d’activation (null pour ignorer)
+     * @param poolCode   code de la pool (null pour ignorer)
+     * @return liste des pools correspondant aux critères
      */
-    public List<Pool> getAllPools() {
-        List<Pool> pools = poolRepository.findAll();
-        return pools;
-    }
+    public List<Pool> findPools(String leagueCode,
+            Integer season,
+            Boolean active) {
 
-    /**
-     * Récupère les pools par ligue et saison
-     * 
-     * @param leagueCode Le code de la ligue
-     * @param season     La saison
-     * @return Liste des pools correspondantes
-     */
-    public List<Pool> getPoolsByLeagueAndSeason(String leagueCode, Integer season) {
-        List<Pool> pools = poolRepository.findByLeagueCodeAndSeason(leagueCode, season);
-        if (pools.isEmpty()) {
-            logger.warn("No pools found for leagueCode and season",
-                    keyValue("action", "get_pools_by_league_and_season"),
-                    keyValue("leagueCode", leagueCode),
-                    keyValue("season", season));
-        }
+        List<Pool> pools = poolRepository.findFiltered(
+                leagueCode,
+                season,
+                active);
+
+        logger.info("findPools executed",
+                keyValue("action", "find_pools"),
+                keyValue("leagueCode", leagueCode),
+                keyValue("season", season),
+                keyValue("active", active),
+                keyValue("resultCount", pools.size()));
+
         return pools;
     }
 
@@ -94,7 +94,7 @@ public class PoolService {
      * @throws PoolNotFoundException Si la pool n'existe pas
      */
     @Transactional
-    public Pool updatePool(Long id, Pool updatedPool) {
+    public Optional<Pool> updatePool(Long id, Pool updatedPool) {
         return poolRepository.findById(id).map(pool -> {
             Pool before = pool.toBuilder().build();
 
@@ -123,11 +123,6 @@ public class PoolService {
             DiffUtils.logChanges(before, savedPool, logger,
                     "update_pool", savedPool.getId());
             return savedPool;
-        }).orElseThrow(() -> {
-            logger.error("Pool introuvable, impossible de mettre à jour",
-                    keyValue("action", "update_pool"),
-                    keyValue("poolId", id));
-            return new PoolNotFoundException(id);
         });
     }
 
@@ -155,26 +150,6 @@ public class PoolService {
                     keyValue("poolId", poolId));
             return new PoolNotFoundException(poolId);
         });
-    }
-
-    /**
-     * Récupère une pool par code, ligue et saison
-     * 
-     * @param poolCode   Le code de la pool
-     * @param leagueCode Le code de la ligue
-     * @param season     La saison
-     * @return Optional contenant la pool si elle existe
-     */
-    public Optional<Pool> getPoolByCodeAndLeagueAndSeason(String poolCode, String leagueCode, Integer season) {
-        Optional<Pool> poolOpt = poolRepository.findByPoolCodeAndLeagueCodeAndSeason(poolCode, leagueCode, season);
-        if (!poolOpt.isPresent()) {
-            logger.warn("No pool found for given code, league and season",
-                    keyValue("action", "get_pool_by_code_league_season"),
-                    keyValue("poolCode", poolCode),
-                    keyValue("leagueCode", leagueCode),
-                    keyValue("season", season));
-        }
-        return poolOpt;
     }
 
     /**

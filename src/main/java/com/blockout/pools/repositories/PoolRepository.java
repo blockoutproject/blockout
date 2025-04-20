@@ -6,11 +6,27 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 @Repository
 public interface PoolRepository extends JpaRepository<Pool, Long> {
     Optional<Pool> findByPoolCodeAndLeagueCodeAndSeason(String poolCode, String leagueCode, Integer season);
+
     List<Pool> findByLeagueCodeAndActive(String leagueCode, Boolean active);
+
     List<Pool> findByLeagueCodeAndSeason(String leagueCode, Integer season);
+
+    @Query("""
+            SELECT p
+            FROM Pool p
+            WHERE (:leagueCode IS NULL OR p.leagueCode = :leagueCode)
+              AND (:season     IS NULL OR p.season     = :season)
+              AND (:active     IS NULL OR p.active     = :active)
+            ORDER BY p.season DESC, p.poolName ASC
+            """)
+    List<Pool> findFiltered(@Param("leagueCode") String leagueCode,
+            @Param("season") Integer season,
+            @Param("active") Boolean active);
 }
