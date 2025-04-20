@@ -136,4 +136,19 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
             @Param("status") MatchStatus status,
             @Param("teamIds") List<Long> teamIds,
             @Param("teamIdsSize") int teamIdsSize);
+
+    @Query("""
+            SELECT m
+            FROM Match m
+            WHERE (:poolId IS NULL OR m.poolId = :poolId)
+              AND (:status IS NULL OR m.status = :status)
+              AND (:active IS NULL OR m.active = :active)
+              AND (:teamIdsSize = 0 OR m.teamIdA IN :teamIds OR m.teamIdB IN :teamIds)
+            ORDER BY m.matchDate DESC
+            """)
+    List<Match> findFiltered(@Param("poolId") Long poolId,
+            @Param("status") MatchStatus status,
+            @Param("active") Boolean active,
+            @Param("teamIds") List<Long> teamIds,
+            @Param("teamIdsSize") int teamIdsSize);
 }

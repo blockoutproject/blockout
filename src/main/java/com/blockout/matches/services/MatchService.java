@@ -58,6 +58,40 @@ public class MatchService {
     }
 
     /**
+     * Récupère les matchs en appliquant des filtres facultatifs.
+     *
+     * @param poolId  identifiant de la poule (null pour ignorer le filtre)
+     * @param teamIds liste d'IDs d'équipes (null ou vide pour ignorer le filtre)
+     * @param status  statut du match (null pour ignorer le filtre)
+     * @param active  flag d'activation (null pour ignorer le filtre)
+     * @return liste de matchs correspondant aux critères
+     */
+    public List<Match> findMatches(Long poolId,
+            List<Long> teamIds,
+            MatchStatus status,
+            Boolean active) {
+
+        List<Long> safeTeamIds = (teamIds == null) ? Collections.emptyList() : teamIds;
+
+        List<Match> matches = matchRepository.findFiltered(
+                poolId,
+                status,
+                active,
+                safeTeamIds,
+                safeTeamIds.size());
+
+        logger.info("findMatches executed",
+                keyValue("action", "find_matches"),
+                keyValue("poolId", poolId),
+                keyValue("teamIds", safeTeamIds),
+                keyValue("status", status),
+                keyValue("active", active),
+                keyValue("resultCount", matches.size()));
+
+        return matches;
+    }
+
+    /**
      * Regroupe les matchs par jour avec pagination.
      *
      * @param poolIds listes des pools à inclure
@@ -65,7 +99,8 @@ public class MatchService {
      * @param status  statut des matchs (UPCOMING pour futurs, autre pour passés)
      * @param page    indice de la page (0-based)
      * @param size    nombre de jours par page
-     * @return un DayPageDTO contenant les groupes de matchs par jour, un indicateur hasNext et le numéro de nextPage
+     * @return un DayPageDTO contenant les groupes de matchs par jour, un indicateur
+     *         hasNext et le numéro de nextPage
      */
     public DayPageDTO getMatchesByDay(
             List<Long> poolIds,
@@ -254,7 +289,7 @@ public class MatchService {
      * @throws MatchNotFoundException Si le match n'existe pas
      */
     @Transactional
-    public Match updateMatch(Long id, Match updatedMatch) {
+    public Optional<Match> updateMatch(Long id, Match updatedMatch) {
         return matchRepository.findById(id).map(match -> {
             Match before = match.toBuilder().build();
 
@@ -284,11 +319,6 @@ public class MatchService {
 
             DiffUtils.logChanges(before, savedMatch, logger, "update_match", savedMatch.getId());
             return savedMatch;
-        }).orElseThrow(() -> {
-            logger.error("Match introuvable, impossible de mettre à jour",
-                    keyValue("action", "update_match"),
-                    keyValue("matchId", id));
-            return new MatchNotFoundException(id);
         });
     }
 
