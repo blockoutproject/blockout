@@ -33,7 +33,7 @@ class CompetitionsApi extends AbstractApi {
         poolId: number,
         activeOnly = false
     ): Promise<CompetitionAssociation[]> {
-        const params = activeOnly ? { activeOnly: true } : undefined;
+        const params = activeOnly ? { active_only: true } : undefined;
         const response = await this.service.get(`/pools/${poolId}/teams`, { params });
         return response.data as CompetitionAssociation[];
     }

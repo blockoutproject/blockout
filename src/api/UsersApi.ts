@@ -54,7 +54,7 @@ class UsersApi extends AbstractApi {
      * GET /users/{userId}/favorites[?entityType=...]
      */
     public async getFavorites(userId: number, entityType?: EntityType): Promise<UserFavorite[]> {
-        const params = entityType ? { entityType } : undefined;
+        const params = entityType ? { entity_type: entityType } : undefined;
         const response = await this.service.get<UserFavorite[]>(`/users/${userId}/favorites`, { params });
         return response.data;
     }
@@ -65,7 +65,7 @@ class UsersApi extends AbstractApi {
      */
     public async follow(entityType: EntityType, entityId: number): Promise<void> {
         await this.service.post('/favorites/follow', null, {
-            params: { entityType, entityId }
+            params: { entity_type: entityType, entity_id: entityId }
         });
     }
 
@@ -75,7 +75,7 @@ class UsersApi extends AbstractApi {
      */
     public async unfollow(entityType: EntityType, entityId: number): Promise<void> {
         await this.service.delete('/favorites/follow', {
-            params: { entityType, entityId }
+            params: { entity_type: entityType, entity_id: entityId }
         });
     }
 }
