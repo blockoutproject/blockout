@@ -35,6 +35,13 @@ class ClubScraper(Scraper):
                 if updated.id not in self.scraped_club_ids
             }
             if missing_clubs_ids:
+                log_event(
+                    action="bulk_deactivate_clubs",
+                    level="info",
+                    missing_pool_ids=missing_clubs_ids,
+                    message="Désactivation en masse des poules non scrapées."
+                )
+                    
                 await bulk_deactivate_clubs(self.session, missing_clubs_ids)
 
         except Exception as e:
