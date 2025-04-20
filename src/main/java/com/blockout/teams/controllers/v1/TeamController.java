@@ -19,7 +19,6 @@ import java.util.List;
 import java.util.Optional;
 
 @RestController
-@RequestMapping("/")
 public class TeamController {
 
     private final TeamService teamService;
@@ -33,7 +32,7 @@ public class TeamController {
             @ApiResponse(responseCode = "201", description = "Team created"),
             @ApiResponse(responseCode = "400", description = "Invalid request")
     })
-    @PostMapping("/teams")
+    @PostMapping
     public ResponseEntity<Team> createTeam(@RequestBody Team team) {
         Team created = teamService.createTeam(team);
         URI location = ServletUriComponentsBuilder.fromCurrentRequest()
@@ -48,7 +47,7 @@ public class TeamController {
             @ApiResponse(responseCode = "200", description = "Teams returned"),
             @ApiResponse(responseCode = "204", description = "No team found")
     })
-    @GetMapping("/teams")
+    @GetMapping
     public ResponseEntity<List<Team>> listTeams(
             @RequestParam(required = false) String name,
             @RequestParam(required = false) String divisionName,
@@ -69,7 +68,7 @@ public class TeamController {
             @ApiResponse(responseCode = "200", description = "Team found"),
             @ApiResponse(responseCode = "404", description = "Team not found")
     })
-    @GetMapping("/teams/{id}")
+    @GetMapping("/{id}")
     public ResponseEntity<Team> getTeamById(@PathVariable Long id) {
         return teamService.getTeamById(id)
                 .map(ResponseEntity::ok)
@@ -81,7 +80,7 @@ public class TeamController {
             @ApiResponse(responseCode = "200", description = "Team updated"),
             @ApiResponse(responseCode = "404", description = "Team not found")
     })
-    @PutMapping("/teams/{id}")
+    @PutMapping("/{id}")
     public ResponseEntity<Team> updateTeam(
             @PathVariable Long id,
             @RequestBody Team updated) {
@@ -96,7 +95,7 @@ public class TeamController {
             @ApiResponse(responseCode = "200", description = "Club IDs returned"),
             @ApiResponse(responseCode = "204", description = "No club ID found")
     })
-    @GetMapping("/teams/club-ids")
+    @GetMapping("/club-ids")
     public ResponseEntity<List<String>> uniqueClubIds() {
         List<String> clubIds = teamService.getUniqueClubIds();
         if (clubIds.isEmpty()) {
