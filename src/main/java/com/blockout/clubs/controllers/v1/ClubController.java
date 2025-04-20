@@ -14,7 +14,6 @@ import java.util.List;
 import java.util.Optional;
 
 @RestController
-@RequestMapping("/")
 public class ClubController {
 
     private final ClubService clubService;
@@ -28,8 +27,8 @@ public class ClubController {
             @ApiResponse(responseCode = "200", description = "Clubs returned"),
             @ApiResponse(responseCode = "204", description = "No club found")
     })
-    @GetMapping("/clubs")
-    public ResponseEntity<List<Club>> listClubs() {
+    @GetMapping
+        public ResponseEntity<List<Club>> listClubs() {
         List<Club> list = clubService.getAllClubs();
         if (list.isEmpty()) {
             return ResponseEntity.noContent().build();
@@ -42,7 +41,7 @@ public class ClubController {
             @ApiResponse(responseCode = "201", description = "Club created"),
             @ApiResponse(responseCode = "400", description = "Invalid request")
     })
-    @PostMapping("/clubs")
+    @PostMapping
     public ResponseEntity<Club> createClub(@RequestBody Club club) {
         Club created = clubService.createClub(club);
         URI location = ServletUriComponentsBuilder.fromCurrentRequest()
@@ -57,7 +56,7 @@ public class ClubController {
             @ApiResponse(responseCode = "200", description = "Club updated"),
             @ApiResponse(responseCode = "404", description = "Club not found")
     })
-    @PutMapping("/clubs/{id}")
+    @PutMapping("/{id}")
     public ResponseEntity<Club> updateClub(
             @PathVariable String id,
             @RequestBody Club updated) {
