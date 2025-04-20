@@ -14,7 +14,6 @@ import java.util.List;
 import java.util.Optional;
 
 @RestController
-@RequestMapping("/")
 public class PoolController {
 
     private final PoolService poolService;
@@ -28,7 +27,7 @@ public class PoolController {
             @ApiResponse(responseCode = "201", description = "Pool created"),
             @ApiResponse(responseCode = "400", description = "Invalid request")
     })
-    @PostMapping("/pools")
+    @PostMapping
     public ResponseEntity<Pool> createPool(@RequestBody Pool pool) {
         Pool created = poolService.createPool(pool);
         URI location = ServletUriComponentsBuilder.fromCurrentRequest()
@@ -46,7 +45,7 @@ public class PoolController {
             @ApiResponse(responseCode = "200", description = "Pools returned"),
             @ApiResponse(responseCode = "204", description = "No pool found")
     })
-    @GetMapping("/pools")
+    @GetMapping
     public ResponseEntity<List<Pool>> listPools(
             @RequestParam(required = false) String leagueCode,
             @RequestParam(required = false) Integer season,
@@ -65,7 +64,7 @@ public class PoolController {
             @ApiResponse(responseCode = "200", description = "Pool found"),
             @ApiResponse(responseCode = "404", description = "Pool not found")
     })
-    @GetMapping("/pools/{id}")
+    @GetMapping("/{id}")
     public ResponseEntity<Pool> getPoolById(@PathVariable Long id) {
         return poolService.getPoolById(id)
                 .map(ResponseEntity::ok)
@@ -77,7 +76,7 @@ public class PoolController {
             @ApiResponse(responseCode = "200", description = "Pool updated"),
             @ApiResponse(responseCode = "404", description = "Pool not found")
     })
-    @PutMapping("/pools/{id}")
+    @PutMapping("/{id}")
     public ResponseEntity<Pool> updatePool(
             @PathVariable Long id,
             @RequestBody Pool updatedPool) {
