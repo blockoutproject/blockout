@@ -59,7 +59,7 @@ public class PoolService {
                 season,
                 active);
 
-        logger.info("findPools executed",
+        logger.debug("findPools executed",
                 keyValue("action", "find_pools"),
                 keyValue("leagueCode", leagueCode),
                 keyValue("season", season),
