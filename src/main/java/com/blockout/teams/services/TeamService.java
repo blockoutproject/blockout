@@ -64,9 +64,6 @@ public class TeamService {
 
         List<Long> safeIds = (ids == null) ? Collections.emptyList() : ids;
 
-        logger.info("Calling findFiltered with name = {}, type = {}", name, name != null ? name.getClass().getName() : "null");
-        logger.info("Calling findFiltered with divisionName = {}, type = {}", divisionName, divisionName != null ? divisionName.getClass().getName() : "null");
-
         List<Team> teams = teamRepository.findFiltered(
                 name,
                 divisionName,
@@ -75,7 +72,7 @@ public class TeamService {
                 safeIds,
                 safeIds.size());
 
-        logger.info("findTeams executed",
+        logger.debug("findTeams executed",
                 keyValue("action", "find_teams"),
                 keyValue("name", name),
                 keyValue("divisionName", divisionName),
@@ -83,29 +80,6 @@ public class TeamService {
                 keyValue("gender", gender),
                 keyValue("ids", safeIds),
                 keyValue("resultCount", teams.size()));
-
-        return teams;
-    }
-
-    /**
-     * Recherche fuzzy des équipes par nom (tolérance aux fautes).
-     * 
-     * @param query Requête partielle
-     * @return Liste des équipes correspondantes
-     */
-    public List<Team> fuzzySearchTeams(String query) {
-        List<Team> teams = teamRepository.fuzzySearchTeams(query);
-
-        if (teams.isEmpty()) {
-            logger.info("Fuzzy search returned no result",
-                    keyValue("action", "fuzzy_search_teams"),
-                    keyValue("query", query));
-        } else {
-            logger.info("Fuzzy search found results",
-                    keyValue("action", "fuzzy_search_teams"),
-                    keyValue("query", query),
-                    keyValue("resultsCount", teams.size()));
-        }
 
         return teams;
     }
@@ -181,8 +155,7 @@ public class TeamService {
 
             Team savedTeam = teamRepository.save(team);
 
-            DiffUtils.logChanges(before, savedTeam, logger,
-                    "update_team", savedTeam.getId());
+            DiffUtils.logChanges(before, savedTeam, logger, "update_team", savedTeam.getId());
             return savedTeam;
         });
     }

@@ -1,6 +1,3 @@
-/*=====================================================================
-  ▓▓▓   TEAM CONTROLLER
-  =====================================================================*/
 package com.blockout.teams.controllers.v1;
 
 import com.blockout.teams.models.Team;

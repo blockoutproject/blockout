@@ -17,15 +17,6 @@ public interface TeamRepository extends JpaRepository<Team, Long> {
 
     List<Team> findByClubIdAndActiveTrue(String clubId);
 
-    @Query(value = """
-            SELECT *
-            FROM teams
-            WHERE name % :query
-            ORDER BY similarity(name, :query) DESC
-            LIMIT 20
-            """, nativeQuery = true)
-    List<Team> fuzzySearchTeams(@Param("query") String query);
-
     @Query("SELECT DISTINCT t.clubId FROM Team t WHERE t.clubId IS NOT NULL")
     List<String> findDistinctClubIds();
 
