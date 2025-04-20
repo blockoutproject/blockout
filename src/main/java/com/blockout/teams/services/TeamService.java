@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -46,12 +47,43 @@ public class TeamService {
     }
 
     /**
-     * Récupère toutes les équipes
-     * 
-     * @return Liste de toutes les équipes
+     * Récupère les équipes en appliquant des filtres facultatifs.
+     *
+     * @param name         fragment de nom (null pour ignorer)
+     * @param divisionName nom de division exact (null pour ignorer)
+     * @param format       format de l'équipe (null pour ignorer)
+     * @param gender       genre de l'équipe (null pour ignorer)
+     * @param ids          liste d'IDs (null ou vide pour ignorer)
+     * @return liste des équipes correspondant aux critères
      */
-    public List<Team> getAllTeams() {
-        List<Team> teams = teamRepository.findAll();
+    public List<Team> findTeams(String name,
+            String divisionName,
+            TeamFormat format,
+            TeamGender gender,
+            List<Long> ids) {
+
+        List<Long> safeIds = (ids == null) ? Collections.emptyList() : ids;
+
+        logger.info("Calling findFiltered with name = {}, type = {}", name, name != null ? name.getClass().getName() : "null");
+        logger.info("Calling findFiltered with divisionName = {}, type = {}", divisionName, divisionName != null ? divisionName.getClass().getName() : "null");
+
+        List<Team> teams = teamRepository.findFiltered(
+                name,
+                divisionName,
+                format,
+                gender,
+                safeIds,
+                safeIds.size());
+
+        logger.info("findTeams executed",
+                keyValue("action", "find_teams"),
+                keyValue("name", name),
+                keyValue("divisionName", divisionName),
+                keyValue("format", format),
+                keyValue("gender", gender),
+                keyValue("ids", safeIds),
+                keyValue("resultCount", teams.size()));
+
         return teams;
     }
 
@@ -129,7 +161,7 @@ public class TeamService {
      * @throws TeamNotFoundException Si l'équipe n'existe pas
      */
     @Transactional
-    public Team updateTeam(Long id, Team updatedTeam) {
+    public Optional<Team> updateTeam(Long id, Team updatedTeam) {
         return teamRepository.findById(id).map(team -> {
             Team before = team.toBuilder().build();
 
@@ -152,11 +184,6 @@ public class TeamService {
             DiffUtils.logChanges(before, savedTeam, logger,
                     "update_team", savedTeam.getId());
             return savedTeam;
-        }).orElseThrow(() -> {
-            logger.error("Équipe introuvable, impossible de mettre à jour",
-                    keyValue("action", "update_team"),
-                    keyValue("teamId", id));
-            return new TeamNotFoundException(id);
         });
     }
 

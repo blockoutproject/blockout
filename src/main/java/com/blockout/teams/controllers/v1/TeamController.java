@@ -1,25 +1,25 @@
+/*=====================================================================
+  ▓▓▓   TEAM CONTROLLER
+  =====================================================================*/
 package com.blockout.teams.controllers.v1;
 
+import com.blockout.teams.models.Team;
+import com.blockout.teams.models.TeamFormat;
+import com.blockout.teams.models.TeamGender;
+import com.blockout.teams.services.TeamService;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
-import com.blockout.teams.models.Team;
-import com.blockout.teams.models.TeamFormat;
-import com.blockout.teams.models.TeamGender;
-import com.blockout.teams.services.TeamService;
-import com.fasterxml.jackson.annotation.JsonProperty;
-
 import java.net.URI;
 import java.util.List;
 import java.util.Optional;
 
 @RestController
-@RequestMapping("/teams")
+@RequestMapping("/")
 public class TeamController {
 
     private final TeamService teamService;
@@ -28,123 +28,80 @@ public class TeamController {
         this.teamService = teamService;
     }
 
-    @Operation(summary = "Créer une équipe", description = "Crée une nouvelle équipe avec les informations fournies.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "201", description = "Équipe créée avec succès"),
-            @ApiResponse(responseCode = "400", description = "Requête invalide")
+    @Operation(summary = "Create a team", description = "Creates a team.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "Team created"),
+            @ApiResponse(responseCode = "400", description = "Invalid request")
     })
-    @PostMapping("/")
+    @PostMapping("/teams")
     public ResponseEntity<Team> createTeam(@RequestBody Team team) {
-        Team createdTeam = teamService.createTeam(team);
-        URI location = ServletUriComponentsBuilder
-                .fromCurrentRequest()
+        Team created = teamService.createTeam(team);
+        URI location = ServletUriComponentsBuilder.fromCurrentRequest()
                 .path("/{id}")
-                .buildAndExpand(createdTeam.getId())
+                .buildAndExpand(created.getId())
                 .toUri();
-        return ResponseEntity.created(location).body(createdTeam);
+        return ResponseEntity.created(location).body(created);
     }
 
-    @Operation(summary = "Rechercher des équipes par nom", description = "Retourne une liste d'équipes correspondant partiellement au nom fourni, limité à 20 résultats.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Équipes trouvées"),
-            @ApiResponse(responseCode = "204", description = "Aucune équipe ne correspond à la recherche")
+    @Operation(summary = "List teams", description = "Returns teams. Optional filters: name, divisionName, format, gender, ids.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Teams returned"),
+            @ApiResponse(responseCode = "204", description = "No team found")
     })
-    @GetMapping("/by-name")
-    public ResponseEntity<List<Team>> searchTeamsByName(
-            @Parameter(description = "Texte de la recherche partielle") @RequestParam("query") String query) {
+    @GetMapping("/teams")
+    public ResponseEntity<List<Team>> listTeams(
+            @RequestParam(required = false) String name,
+            @RequestParam(required = false) String divisionName,
+            @RequestParam(required = false) TeamFormat format,
+            @RequestParam(required = false) TeamGender gender,
+            @RequestParam(required = false) List<Long> ids) {
 
-        List<Team> teams = teamService.fuzzySearchTeams(query);
+        List<Team> teams = teamService.findTeams(name, divisionName, format, gender, ids);
 
         if (teams.isEmpty()) {
             return ResponseEntity.noContent().build();
         }
-
         return ResponseEntity.ok(teams);
     }
 
-    @Operation(summary = "Récupérer des équipes par IDs", description = "Retourne uniquement les équipes correspondant aux IDs fournis (liste non vide).")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Équipes trouvées"),
-            @ApiResponse(responseCode = "400", description = "Liste d'IDs absente ou vide"),
-            @ApiResponse(responseCode = "404", description = "Aucune équipe trouvée pour les IDs fournis")
+    @Operation(summary = "Get team by ID", description = "Returns a team by ID.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Team found"),
+            @ApiResponse(responseCode = "404", description = "Team not found")
     })
-    @PostMapping("/by-ids")
-    public ResponseEntity<List<Team>> getTeamsByIds(@RequestParam List<Long> ids) {
-
-        if (ids.isEmpty()) {
-            return ResponseEntity.badRequest().build();
-        }
-
-        List<Team> teams = teamService.getTeamsByIds(ids);
-
-        if (teams.isEmpty()) {
-            return ResponseEntity.notFound().build();
-        }
-
-        return ResponseEntity.ok(teams);
+    @GetMapping("/teams/{id}")
+    public ResponseEntity<Team> getTeamById(@PathVariable Long id) {
+        return teamService.getTeamById(id)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
-    @Operation(summary = "Récupérer une équipe par ID", description = "Retourne une équipe spécifique en fonction de l'ID fourni.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Équipe trouvée"),
-            @ApiResponse(responseCode = "404", description = "Équipe non trouvée")
+    @Operation(summary = "Update a team")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Team updated"),
+            @ApiResponse(responseCode = "404", description = "Team not found")
     })
-    @GetMapping("/{id}")
-    public ResponseEntity<Optional<Team>> getTeamById(
-            @Parameter(description = "ID de l'équipe à récupérer") @PathVariable Long id) {
-        Optional<Team> team = teamService.getTeamById(id);
-        return team.isPresent() ? ResponseEntity.ok(team)
-                : ResponseEntity.notFound().build();
-    }
-
-    @Operation(summary = "Mettre à jour une équipe", description = "Met à jour une équipe avec les informations fournies.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Équipe mise à jour avec succès"),
-            @ApiResponse(responseCode = "404", description = "Équipe non trouvée")
-    })
-    @PutMapping("/{id}")
+    @PutMapping("/teams/{id}")
     public ResponseEntity<Team> updateTeam(
-            @Parameter(description = "ID de l'équipe à mettre à jour") @PathVariable Long id,
-            @RequestBody Team updatedTeam) {
-        try {
-            Team updated = teamService.updateTeam(id, updatedTeam);
-            return ResponseEntity.ok(updated);
-        } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
-        }
+            @PathVariable Long id,
+            @RequestBody Team updated) {
+
+        Optional<Team> result = teamService.updateTeam(id, updated);
+        return result.map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
-    @Operation(summary = "Récupérer les équipes par division_name, format et gender", description = "Retourne une liste des équipes filtrées par division_name, format et gender.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Équipes trouvées avec succès"),
-            @ApiResponse(responseCode = "204", description = "Aucune équipe trouvée avec les critères fournis")
+    @Operation(summary = "Get unique club IDs")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Club IDs returned"),
+            @ApiResponse(responseCode = "204", description = "No club ID found")
     })
-    @GetMapping("/search")
-    public ResponseEntity<List<Team>> getTeamsByDivisionFormatGender(
-            @Parameter(description = "Nom de la division") @RequestParam("division_name") @JsonProperty("division_name") String divisionName,
-            @Parameter(description = "Format de l'équipe") @RequestParam("format") @JsonProperty("format") TeamFormat format,
-            @Parameter(description = "Genre de l'équipe") @RequestParam("gender") @JsonProperty("gender") TeamGender gender) {
-
-        List<Team> teams = teamService.getTeamsByDivisionFormatGender(divisionName, format, gender);
-        if (teams.isEmpty()) {
-            return ResponseEntity.noContent().build();
-        }
-        return ResponseEntity.ok(teams);
-    }
-
-    @Operation(summary = "Récupérer tous les club IDs uniques", description = "Retourne une liste de tous les identifiants de clubs uniques présents parmi les équipes.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Liste des club IDs uniques récupérée avec succès"),
-            @ApiResponse(responseCode = "204", description = "Aucun club ID trouvé dans les équipes")
-    })
-    @GetMapping("/club-ids")
-    public ResponseEntity<List<String>> getUniqueClubIds() {
+    @GetMapping("/teams/club-ids")
+    public ResponseEntity<List<String>> uniqueClubIds() {
         List<String> clubIds = teamService.getUniqueClubIds();
-
         if (clubIds.isEmpty()) {
             return ResponseEntity.noContent().build();
         }
-
         return ResponseEntity.ok(clubIds);
-}
+    }
 }
