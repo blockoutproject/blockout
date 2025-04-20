@@ -151,7 +151,7 @@ class RegionalScraper(Scraper):
             # Parcours des poules
             for a_tag in pool_links:
                 # Exclusion pour tester les desactivations
-                if league_code in []:
+                if league_code in ['LICO']:
                     continue
                 try:
                     href = a_tag['href']
