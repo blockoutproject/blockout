@@ -205,12 +205,6 @@ async def handle_csv_download_and_parse(
         if not pool.active:
             pool.active = True
             await update_pool(scraper.session, pool, ["Pool réactivée après détection de matchs"])
-            log_event(
-                action="pool_manual_reactivation",
-                level="info",
-                pool_id=pool.id,
-                message="Réactivation de la pool suite à la détection de matchs"
-            )
 
         # Si on arrive ici, on a au moins un match, on peut continuer
         if scraped_pool_ids is not None:
@@ -223,13 +217,6 @@ async def handle_csv_download_and_parse(
             if team_id not in scraped_team_ids
         }
         if missing_team_ids:
-            log_event(
-                action="bulk_deactivate_teams",
-                level="info",
-                pool_id=pool.id,
-                missing_team_ids=missing_team_ids,
-                message="Désactivation en masse des équipes absentes du CSV"
-            )
             await bulk_deactivate_teams_by_pool(
                 scraper.session,
                 pool.id,
@@ -245,17 +232,10 @@ async def handle_csv_download_and_parse(
             and existing_match.active
         }
         if missing_match_codes:
-            log_event(
-                action="bulk_deactivate_matches",
-                level="info",
-                pool_id=pool.id,
-                missing_match_codes=missing_match_codes,
-                message="Désactivation en masse des matchs"
-            )
             await bulk_deactivate_matches(
                 scraper.session,
                 pool.id,
-                list(missing_match_codes)
+                missing_match_codes
             )    
 
     except Exception as e:

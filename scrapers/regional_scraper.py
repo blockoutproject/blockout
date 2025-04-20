@@ -193,8 +193,6 @@ class RegionalScraper(Scraper):
 
                     new_pool = await add_or_update_pool(self.session, pool_obj, existing_pool, False)
                     
-                    # Appel de handle_csv_download_and_parse en passant le scraper
-                    # pour alimenter le cache
                     task = handle_csv_download_and_parse(
                         self,
                         new_pool,
@@ -223,13 +221,6 @@ class RegionalScraper(Scraper):
                 and pool.id not in scraped_pool_ids
             }
             if missing_pool_ids:
-                log_event(
-                    action="bulk_deactivate_pools",
-                    level="info",
-                    league_name='National',
-                    missing_pool_ids=missing_pool_ids,
-                    message="Désactivation en masse des poules non scrapées."
-                )
                 await bulk_deactivate_pools(self.session, missing_pool_ids)
 
         except Exception as e:

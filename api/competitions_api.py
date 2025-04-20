@@ -37,10 +37,7 @@ async def add_team_to_pool(
     """
     headers = _get_auth_headers()
     url = f"{COMPETITION_API_URL}/pools/{pool_id}/teams/{team_id}"
-    params = {
-        "club_id": club_id,
-        "category": category.value
-    }
+    params = { "club_id": club_id, "category": category.value }
     response = await session.post(url, params=params, headers=headers)
 
     log_event(
@@ -97,12 +94,4 @@ async def update_team_association_stats(
     headers = _get_auth_headers()
     url = f"{COMPETITION_API_URL}/pools/{pool_id}/teams/{team_id}/stats"
     response = await session.put(url, json=to_dict(stats), headers=headers)
-
-    log_event(
-        action="update_team_association_stats",
-        level="info",
-        pool_id=pool_id,
-        team_id=team_id,
-        message=f"PUT {url} - Mise à jour des stats de l'association."
-    )
     return response
