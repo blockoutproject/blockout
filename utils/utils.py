@@ -49,7 +49,7 @@ def standardize_division_name(raw_division_name: str, default_division_code: Poo
         log_event(
             action="standardize_division_name",
             level="warning",
-            message=f"Division non standardisée: {raw_division_name} from {pool_code}"
+            name_to_standardize=raw_division_name
         )
         return {"format": Format.SIX, "division_name": raw_division_name, "division_code": PoolDivisionCode.OTHER, "gender": Gender.O.value} # Format 6x6 par défaut
     except Exception as e:

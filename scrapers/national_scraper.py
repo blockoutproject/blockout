@@ -93,9 +93,9 @@ class NationalScraper(Scraper):
                         "league_name": self.league_name,
                         "pool_name": pool_name,
                         "division_code": PoolDivisionCode.NAT,
-                        "division_name": standardized["division_name"],
-                        "format": standardized["format"],
-                        "gender": standardized["gender"],
+                        "division_name": standardized.get("division_name"),
+                        "format": standardized.get("format"),
+                        "gender": standardized.get("gender"),
                         "raw_division_name": raw_division_name,
                     }
                     pool_obj = Pool(**pool_data)
