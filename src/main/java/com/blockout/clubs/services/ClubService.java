@@ -82,7 +82,7 @@ public class ClubService {
             Club savedClub = clubRepository.save(club);
 
             DiffUtils.logChanges(before, savedClub, logger,
-                    "update_club", Long.valueOf(savedClub.getId()));
+                    "update_club", savedClub.getId());
             return savedClub;
         });
     }

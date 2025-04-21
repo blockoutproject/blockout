@@ -1,7 +1,5 @@
 server:
   port: 8086
-  servlet:
-    context-path: /api/v1/clubs
 
 spring:
   application:

@@ -24,7 +24,7 @@ public final class DiffUtils {
             T after,
             Logger logger,
             String action,
-            Long id) {
+            T id) {
 
         String diff = Stream.of(after.getClass().getDeclaredFields())
                 .peek(f -> f.setAccessible(true))

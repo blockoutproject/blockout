@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Optional;
 
 @RestController
+@RequestMapping("/api/v1/clubs")
 public class ClubController {
 
     private final ClubService clubService;
