@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.Optional;
 
 @RestController
+@RequestMapping("/api/v1/matches")
 public class MatchController {
 
     private final MatchService matchService;
