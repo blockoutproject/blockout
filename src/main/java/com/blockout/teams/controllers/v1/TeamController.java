@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.Optional;
 
 @RestController
+@RequestMapping("/api/v1/teams")
 public class TeamController {
 
     private final TeamService teamService;
