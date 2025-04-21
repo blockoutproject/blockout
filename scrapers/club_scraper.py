@@ -69,9 +69,7 @@ class ClubScraper(Scraper):
             club = self.parse_club_page(html_content, club_id)
             club_key = (club.id)
             existing_obj, updated_obj = self._clubs_cache.get(club_key, (None, club))
-        
-            new_club = await add_or_update_club(self.session, club, existing_obj)
-            
+            new_club = await add_or_update_club(self.session, updated_obj, existing_obj)
             self.scraped_club_ids.add(new_club.id)
         except Exception as e:
             log_event(

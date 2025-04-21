@@ -1,7 +1,6 @@
 from typing import List
 import aiohttp
 from config.env_config import TEAM_API_URL
-from config.logger_config import log_event
 from utils.handlers.api_handler import handle_api_response
 from api.auth0 import _get_auth_headers
 

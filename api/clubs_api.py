@@ -13,7 +13,8 @@ async def get_all_clubs(session: aiohttp.ClientSession) -> List[Club]:
     Récupère tous les clubs.
     """
     headers = _get_auth_headers()
-    return await session.get(f"{CLUB_API_URL}", headers=headers)
+    url = f"{CLUB_API_URL}"
+    return await session.get(url, headers=headers)
 
 
 @handle_api_response(response_type=Club)
@@ -23,7 +24,8 @@ async def create_club(session: aiohttp.ClientSession, club: Club) -> Club:
     """
     headers = _get_auth_headers()
     url = f"{CLUB_API_URL}"
-    response = await session.post(url, json=to_dict(club), headers=headers)
+    club_dict = to_dict(club)
+    response = await session.post(url, json=club_dict, headers=headers)
     return response
 
 
