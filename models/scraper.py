@@ -51,12 +51,6 @@ class Scraper(ABC):
         try:
             await self.init_clubs_cache()
             club_ids = await get_unique_club_ids(self.session)
-            log_event(
-                action="get_unique_club_ids",
-                level="info",
-                count=len(club_ids),
-                message=f"Récupération des IDs uniques de clubs"
-            )
             await self.run_scraping(club_ids)
         except Exception as e:
             log_event(
@@ -195,13 +189,6 @@ class Scraper(ABC):
                         c,           # existing_club
                         replace(c),  # updated_club (copie mutable)
                     )
-            
-            log_event(
-                action="init_clubs_cache_ok",
-                level="info",
-                count=len(self._clubs_cache),
-                message=f"Cache initialisé avec {len(self._clubs_cache)} clubs"
-            )
 
         except Exception as e:
             log_event(
