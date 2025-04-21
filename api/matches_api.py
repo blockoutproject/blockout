@@ -64,7 +64,7 @@ async def update_match(
         level="info",
         match_code=match.match_code,
         changes_list=changes_list,
-        message=f"PUT {url} - Mise à jour du match."
+        message=f"Mise à jour du match."
     )
     return response
 
