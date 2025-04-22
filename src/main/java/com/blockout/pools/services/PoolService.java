@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -52,18 +53,24 @@ public class PoolService {
      */
     public List<Pool> findPools(String leagueCode,
             Integer season,
-            Boolean active) {
+            Boolean active,
+            List<Long> ids) {
+
+        List<Long> safeIds = (ids == null) ? Collections.emptyList() : ids;
 
         List<Pool> pools = poolRepository.findFiltered(
                 leagueCode,
                 season,
-                active);
+                active,
+                safeIds,
+                safeIds.size());
 
         logger.debug("findPools executed",
                 keyValue("action", "find_pools"),
                 keyValue("leagueCode", leagueCode),
                 keyValue("season", season),
                 keyValue("active", active),
+                keyValue("ids", safeIds),
                 keyValue("resultCount", pools.size()));
 
         return pools;
