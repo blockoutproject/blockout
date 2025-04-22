@@ -158,7 +158,9 @@
                 "M18 FEMININES 6X6 2EME PHASE HDF",
                 "M18F PERFORMANCE",
                 "CHAMPIONNAT REGIONAL ELITE M18 FEMININS",
-                "CHAMPIONNAT REGIONAL M18 FEMININ"
+                "CHAMPIONNAT REGIONAL M18 FEMININ",
+                "TOURNOI INTERDEPARTEMENTAL M18 FEMININS"
+
             ],
             "M": [
                 "CHAMPIONNAT M18 6X6 MASCULIN",
@@ -179,7 +181,8 @@
                 "M18 MASCULINS 6X6 2EME PHASE HDF",
                 "M18M PERFORMANCE",
                 "CHAMPIONNAT REGIONAL ELITE M18 MASCULINS",
-                "CHAMPIONNAT REGIONAL M18 MASCULIN"
+                "CHAMPIONNAT REGIONAL M18 MASCULIN",
+                "TOURNOI INTERDEPARTEMENTAL M18 MASCULINS"
             ],
             "O": [
                 "M18 - ELITE"
