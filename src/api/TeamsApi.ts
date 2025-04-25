@@ -1,5 +1,5 @@
 import { CONFIG } from '@/src/config/config';
-import AbstractApi from './AbstractApi';
+import AbstractApi, { ApiError } from './AbstractApi';
 import { Team } from '@/src/types/Team';
 
 class TeamsApi extends AbstractApi {
@@ -9,49 +9,84 @@ class TeamsApi extends AbstractApi {
         super(url, token);
     }
 
-    /** Initialise l'instance de l'API avec le token d'accès. */
+    /** Initialise l'instance de l'API avec le token d'accès */
     public static initInstance(token: string): void {
         if (!TeamsApi.instance) {
-            TeamsApi.instance = new TeamsApi(CONFIG.API_TEAMS_BASE_URL, token);
+            TeamsApi.instance = new TeamsApi(
+                CONFIG.API_TEAMS_BASE_URL,
+                token
+            );
         }
     }
 
-    /** Retourne l'instance de l'API. */
+    /** Retourne l'instance de l'API */
     public static getInstance(): TeamsApi {
         if (!TeamsApi.instance) {
-            throw new Error('Initialize instance before calling getInstance().');
+            throw new Error(
+                'Initialisez l’instance avant d’appeler getInstance().'
+            );
         }
         return TeamsApi.instance;
     }
 
     /**
-     * Récupère les équipes par leurs identifiants (liste non vide).
+     * Récupère les équipes par leurs identifiants (liste non vide)
+     * @param ids tableau d’identifiants
      */
     public async getTeamsByIds(ids: number[]): Promise<Team[]> {
-        if (ids.length === 0) throw new Error('La liste d’IDs ne peut pas être vide.');
+        if (ids.length === 0) {
+            throw new Error('La liste d’IDs ne peut pas être vide.');
+        }
 
-        const response = await this.service.get<Team[]>('/teams', {
-            params: { ids: ids.join(',') }
-        });
-        return response.data;
+        try {
+            return await this.request<Team[]>({
+                method: 'get',
+                url: '',
+                params: { ids: ids.join(',') }
+            });
+        } catch (error) {
+            if (error instanceof ApiError && error.status === 404) {
+                return [];
+            }
+            throw error;
+        }
     }
 
     /**
-     * Recherche des équipes par nom (fuzzy).
+     * Recherche des équipes par nom (fuzzy)
+     * @param query texte de recherche
      */
     public async searchTeamsByName(query: string): Promise<Team[]> {
-        const response = await this.service.get<Team[]>('/teams', {
-            params: { name: query }
-        });
-        return response.data;
+        try {
+            return await this.request<Team[]>({
+                method: 'get',
+                url: '',
+                params: { name: query }
+            });
+        } catch (error) {
+            if (error instanceof ApiError && error.status === 404) {
+                return [];
+            }
+            throw error;
+        }
     }
 
     /**
-     * Récupère une équipe par son identifiant.
+     * Récupère une équipe par son identifiant
+     * @param id identifiant de l’équipe
      */
-    public async getTeamById(id: number): Promise<Team> {
-        const response = await this.service.get<Team>(`/teams/${id}`);
-        return response.data;
+    public async getTeamById(id: number): Promise<Team | null> {
+        try {
+            return await this.request<Team>({
+                method: 'get',
+                url: `/${id}`
+            });
+        } catch (error) {
+            if (error instanceof ApiError && error.status === 404) {
+                return null;
+            }
+            throw error;
+        }
     }
 }
 

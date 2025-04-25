@@ -66,7 +66,15 @@ const PoolProfile: React.FC<PoolProfileProps> = ({ pool }) => {
             />
 
             <View style={styles.infoContainer}>
-                <Text style={styles.leagueTitle}>{pool.pool_name}</Text>
+                <Text
+                    style={styles.leagueTitle}
+                    numberOfLines={2}
+                    ellipsizeMode="tail"
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.8}
+                >
+                    {pool.pool_name}
+                </Text>
 
                 <Text style={styles.leagueLink}>ligue-b-masculine.com</Text>
 

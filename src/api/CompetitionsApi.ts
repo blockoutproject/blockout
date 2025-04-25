@@ -1,5 +1,5 @@
 import { CONFIG } from '@/src/config/config';
-import AbstractApi from './AbstractApi';
+import AbstractApi, { ApiError } from './AbstractApi';
 import { CompetitionAssociation } from '@/src/types/Competition';
 
 class CompetitionsApi extends AbstractApi {
@@ -9,43 +9,67 @@ class CompetitionsApi extends AbstractApi {
         super(url, token);
     }
 
-    /** Initialise l'instance avec le token d'accès. */
+    /** Initialise l'instance avec le token d'accès */
     public static initInstance(token: string): void {
         if (!CompetitionsApi.instance) {
-            CompetitionsApi.instance = new CompetitionsApi(CONFIG.API_COMPETITIONS_BASE_URL, token);
+            CompetitionsApi.instance = new CompetitionsApi(
+                CONFIG.API_COMPETITIONS_BASE_URL,
+                token
+            );
         }
     }
 
-    /** Retourne l'instance. */
+    /** Retourne l'instance de l'API */
     public static getInstance(): CompetitionsApi {
         if (!CompetitionsApi.instance) {
-            throw new Error('Initialize instance before calling getInstance().');
+            throw new Error(
+                'Initialisez l’instance avant d’appeler getInstance().'
+            );
         }
         return CompetitionsApi.instance;
     }
 
     /**
-     * Récupère les équipes associées à un pool.
-     * @param poolId ID du pool.
-     * @param activeOnly true ⇒ seulement les associations actives.
+     * Récupère les équipes associées à un pool
+     * @param poolId ID du pool
+     * @param activeOnly true ⇒ seulement les associations actives
      */
     public async getTeamsAssocByPool(
         poolId: number,
         activeOnly = false
     ): Promise<CompetitionAssociation[]> {
-        const params = activeOnly ? { active_only: true } : undefined;
-        const response = await this.service.get(`/pools/${poolId}/teams`, { params });
-        return response.data as CompetitionAssociation[];
+        try {
+            return await this.request<CompetitionAssociation[]>({
+                method: 'get',
+                url: `/pools/${poolId}/teams`,
+                params: activeOnly ? { active_only: true } : undefined,
+            });
+        } catch (error) {
+            if (error instanceof ApiError && error.status === 404) {
+                return [];
+            }
+            throw error;
+        }
     }
 
     /**
-     * Récupère les pools d'une équipe.
+     * Récupère les pools d'une équipe
+     * @param teamId ID de l’équipe
      */
     public async getPoolsAssocByTeam(
         teamId: number
     ): Promise<CompetitionAssociation[]> {
-        const response = await this.service.get(`/teams/${teamId}/pools`);
-        return response.data as CompetitionAssociation[];
+        try {
+            return await this.request<CompetitionAssociation[]>({
+                method: 'get',
+                url: `/teams/${teamId}/pools`,
+            });
+        } catch (error) {
+            if (error instanceof ApiError && error.status === 404) {
+                return [];
+            }
+            throw error;
+        }
     }
 }
 

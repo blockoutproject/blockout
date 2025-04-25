@@ -21,6 +21,7 @@ const MatchCard: React.FC<MatchCardProps> = ({
     mainColor,
     secondColor,
 }) => {
+
     return (
         <View style={{ ...styles.card, backgroundColor: secondColor }}>
             {/* Équipe 1 */}

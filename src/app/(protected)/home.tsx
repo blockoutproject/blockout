@@ -1,5 +1,5 @@
 import { colors } from "@/src/constants/Colors";
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
     ActivityIndicator,
     Pressable,
@@ -34,8 +34,19 @@ const HomeScreen: React.FC = () => {
         );
     }
 
-    const userFavoritePools = customUser.favorites?.filter(fav => fav.entity_type === EntityType.POOL).map(fav => fav.entity_id);
-    const userFavoriteTeams = customUser.favorites?.filter(fav => fav.entity_type === EntityType.TEAM).map(fav => fav.entity_id);
+    // On récupère les ids des poules favorites de l'utilisateur
+    const userFavoritePools = useMemo(() => {
+        return customUser.favorites
+            ?.filter(fav => fav.entity_type === EntityType.POOL)
+            .map(fav => fav.entity_id) || [];
+    }, [customUser.favorites]);
+
+    // On récupère les ids des équipes favorites de l'utilisateur
+    const userFavoriteTeams = useMemo(() => {
+        return customUser.favorites
+            ?.filter(fav => fav.entity_type === EntityType.TEAM)
+            .map(fav => fav.entity_id) || [];
+    }, [customUser.favorites]);
 
     const [filters, setFilters] = useState<Filter[]>([
         { name: "Pro", dbValue: "PRO", isActive: false },
@@ -52,14 +63,28 @@ const HomeScreen: React.FC = () => {
         { key: "discover", title: "Découvrir" },
     ];
 
-    const renderScene = ({
-        route,
-    }: SceneRendererProps & { route: Route }) => {
+    const finishedTab = useMemo(() => (
+        <MatchListTab
+            poolIds={userFavoritePools}
+            teamIds={userFavoriteTeams}
+            status={MatchStatus.FINISHED}
+        />
+    ), [userFavoritePools, userFavoriteTeams, filters]);
+    
+    const upcomingTab = useMemo(() => (
+        <MatchListTab
+            poolIds={userFavoritePools}
+            teamIds={userFavoriteTeams}
+            status={MatchStatus.UPCOMING}
+        />
+    ), [userFavoritePools, userFavoriteTeams, filters]);
+    
+    const renderScene = ({ route }: SceneRendererProps & { route: Route }) => {
         switch (route.key) {
             case "finished":
-                return <MatchListTab poolIds={userFavoritePools} teamIds={userFavoriteTeams} status={MatchStatus.FINISHED} filters={filters} />;
+                return finishedTab;
             case "upcoming":
-                return <MatchListTab poolIds={userFavoritePools} teamIds={userFavoriteTeams} status={MatchStatus.UPCOMING} filters={filters} />;
+                return upcomingTab;
             case "discover":
                 return <Placeholder.PlaceholderScreen2 />;
             default:

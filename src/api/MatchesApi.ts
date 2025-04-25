@@ -1,5 +1,5 @@
 import { CONFIG } from '@/src/config/config';
-import AbstractApi from './AbstractApi';
+import AbstractApi, { ApiError } from './AbstractApi';
 import { DayPageDTO, Match, MatchStatus } from '@/src/types/Match';
 
 class MatchesApi extends AbstractApi {
@@ -9,25 +9,33 @@ class MatchesApi extends AbstractApi {
         super(url, token);
     }
 
-    /** Initialise l'instance de l'API avec le token d'accès. */
+    /** Initialise l'instance de l'API avec le token d'accès */
     public static initInstance(token: string): void {
         if (!MatchesApi.instance) {
-            MatchesApi.instance = new MatchesApi(CONFIG.API_MATCHES_BASE_URL, token);
+            MatchesApi.instance = new MatchesApi(
+                CONFIG.API_MATCHES_BASE_URL,
+                token
+            );
         }
     }
 
-    /** Retourne l'instance de l'API. */
+    /** Retourne l'instance de l'API */
     public static getInstance(): MatchesApi {
         if (!MatchesApi.instance) {
-            throw new Error('Initialize instance before calling getInstance().');
+            throw new Error(
+                'Initialisez l’instance avant d’appeler getInstance().'
+            );
         }
         return MatchesApi.instance;
     }
 
     /**
-     * Récupère les matchs regroupés par jour.
-     * - `poolIds` et `teamIds` sont des tableaux (liste vide ⇒ pas de filtre).
-     * - `status` est optionnel (MatchStatus).
+     * Récupère les matchs regroupés par jour
+     * @param page numéro de la page (défaut 0)
+     * @param size taille de la page (défaut 10)
+     * @param poolIds filtres par IDs de poule (tableau vide ⇒ pas de filtre)
+     * @param teamIds filtres par IDs d’équipe (tableau vide ⇒ pas de filtre)
+     * @param status filtre par statut du match (optionnel)
      */
     public async getMatches({
         page = 0,
@@ -48,14 +56,41 @@ class MatchesApi extends AbstractApi {
         if (teamIds.length) params.team_ids = teamIds;
         if (status !== undefined) params.status = status;
 
-        const response = await this.service.get('/day-groups', { params });
-        return response.data as DayPageDTO;
+        try {
+            return await this.request<DayPageDTO>({
+                method: 'get',
+                url: '/day-groups',
+                params
+            });
+        } catch (error) {
+            if (error instanceof ApiError && error.status === 404) {
+                // Retourne une page vide si aucune donnée
+                return {
+                    day_matches: [],
+                    has_next: false,
+                    next_page: 0
+                } as DayPageDTO;
+            }
+            throw error;
+        }
     }
 
-    /** Récupère un match par ID. */
-    public async getMatchById(matchId: number): Promise<Match> {
-        const response = await this.service.get(`/matches/${matchId}`);
-        return response.data as Match;
+    /**
+     * Récupère un match par ID
+     * @param matchId ID du match
+     */
+    public async getMatchById(matchId: number): Promise<Match | null> {
+        try {
+            return await this.request<Match>({
+                method: 'get',
+                url: `/${matchId}`
+            });
+        } catch (error) {
+            if (error instanceof ApiError && error.status === 404) {
+                return null;
+            }
+            throw error;
+        }
     }
 }
 

@@ -1,29 +1,6 @@
-import { useQueries } from '@tanstack/react-query';
 import PoolsApi from '@/src/api/PoolsApi';
-import { Pool } from '@/src/types/Pool';
+import type { Pool } from '@/src/types/Pool';
+import { useEntitiesByIds } from '../utils/useEntitiesByIds';
 
-export function usePoolsByIds(ids: number[]) {
-    const poolQueries = useQueries({
-        queries: ids.map(id => ({
-            queryKey: ['pool', id],
-            queryFn: async (): Promise<Pool> => {
-                return PoolsApi.getInstance().getPoolById(id);
-            },
-            staleTime: 0
-        })),
-    });
-
-    const pools: Record<number, Pool> = poolQueries.reduce((acc, query) => {
-        if (query.data) {
-            acc[query.data.id] = query.data;
-        }
-        return acc;
-    }, {} as Record<number, Pool>);
-
-    // Rassembler les poules chargées
-    const isLoading = poolQueries.some(query => query.isLoading);
-    const isError = poolQueries.some(query => query.isError);
-    const error = poolQueries.find(query => query.error)?.error;
-
-    return { pools, isLoading, isError, error };
-}
+export const usePoolsByIds = (ids?: number[]) =>
+    useEntitiesByIds<Pool>('pools', (ids) => PoolsApi.getInstance().getPoolsByIds(ids), ids);

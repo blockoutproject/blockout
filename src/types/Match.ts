@@ -1,3 +1,6 @@
+import { Pool } from "./Pool";
+import { Team } from "./Team";
+
 export enum MatchStatus {
     UPCOMING = "UPCOMING",
     FINISHED = "FINISHED",
@@ -36,4 +39,18 @@ export interface DayPageDTO {
     day_matches: DayMatchesDTO[];
     has_next: boolean;
     next_page: number | null;
+}
+
+export interface EnrichedMatch extends Match {
+    teamA?: Team;
+    teamB?: Team;
+}
+
+export interface EnrichedPoolMatchesDTO extends PoolMatchesDTO {
+    poolData?: Pool;
+    matches: EnrichedMatch[];
+}
+
+export interface EnrichedDayMatchesDTO extends DayMatchesDTO {
+    pools: EnrichedPoolMatchesDTO[];
 }

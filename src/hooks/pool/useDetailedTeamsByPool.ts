@@ -1,9 +1,9 @@
-import { TeamWithPoints } from "@/src/types/Team";
-import { useQuery } from "@tanstack/react-query";
-import TeamsApi from "@/src/api/TeamsApi";
+import { useMemo } from "react";
 import { useTeamsAssocByPool } from "./useTeamsAssocByPool";
+import { useTeamsByIds } from "../team/useTeamsByIds";
+import type { TeamWithPoints } from "@/src/types/Team";
 
-export function useDetailedTeamsByPool(poolId: number) {
+export const useDetailedTeamsByPool = (poolId: number) => {
     const {
         data: poolTeams,
         isLoading: isLoadingPoolTeams,
@@ -11,35 +11,38 @@ export function useDetailedTeamsByPool(poolId: number) {
         isError: isErrorPoolTeams,
     } = useTeamsAssocByPool(poolId);
 
-    const detailedTeamsQuery = useQuery<TeamWithPoints[], Error>({
-        queryKey: ['teamsWithPoints', poolId],
-        queryFn: async () => {
-            if (!poolTeams) return [];
+    const teamIds = poolTeams?.map(({ team_id }) => team_id) ?? [];
 
-            return Promise.all(
-                poolTeams.map(async ({ team_id, points, wins, losses, played, points_penalty, coef_points, coef_sets }) => {
-                    const team = await TeamsApi.getInstance().getTeamById(team_id);
-                    return {
-                        ...team,
-                        points,
-                        wins,
-                        losses,
-                        played,
-                        points_penalty,
-                        coef_points,
-                        coef_sets,
-                    };
-                })
-            );
-        },
-        staleTime: 1000 * 60 * 5,
-        enabled: !!poolTeams && poolTeams.length > 0,
-    });
+    const {
+        entitiesMap: teamsMap,
+        isLoading: isLoadingTeams,
+        isError: isErrorTeams,
+    } = useTeamsByIds(teamIds);
+
+    const teamsWithPoints = useMemo<TeamWithPoints[]>(() => {
+        if (!poolTeams) return [];
+        return poolTeams
+            .map((assoc) => {
+                const team = teamsMap[assoc.team_id];
+                if (!team) return null;
+                return {
+                    ...team,
+                    points: assoc.points,
+                    wins: assoc.wins,
+                    losses: assoc.losses,
+                    played: assoc.played,
+                    points_penalty: assoc.points_penalty,
+                    coef_points: assoc.coef_points,
+                    coef_sets: assoc.coef_sets,
+                };
+            })
+            .filter((t): t is TeamWithPoints => t !== null);
+    }, [poolTeams, teamsMap]);
 
     return {
-        teams: detailedTeamsQuery.data,
-        isLoading: isLoadingPoolTeams || detailedTeamsQuery.isLoading,
-        isSuccess: isSuccessPoolTeams && detailedTeamsQuery.isSuccess && detailedTeamsQuery.data !== undefined,
-        isError: isErrorPoolTeams || detailedTeamsQuery.isError,
+        teams: teamsWithPoints,
+        isLoading: isLoadingPoolTeams || isLoadingTeams,
+        isError: isErrorPoolTeams || isErrorTeams,
+        isSuccess: isSuccessPoolTeams && !isLoadingTeams && !isErrorTeams,
     };
 }

@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef } from "react";
+import React, { useState, useMemo } from "react";
 import {
     ActivityIndicator,
     SectionList,
@@ -9,39 +9,38 @@ import {
 } from "react-native";
 import { colors } from "@/src/constants/Colors";
 import { useRouter } from "expo-router";
-import { useMatchesWithTeamsAndPools } from "@/src/hooks/match/useMatchesWithTeamsAndPools";
-import { PoolMatchesDTO, MatchStatus } from "@/src/types/Match";
-import { Pool } from "@/src/types/Pool";
+import { useMatchesWithEntities } from "@/src/hooks/match/useMatchesWithEntities";
+import { MatchStatus } from "@/src/types/Match";
 import { Filter } from "@/src/types/Filter";
 import { formatDateFrenchLocale } from "@/src/utils/utils";
 import PoolItem from "./components/PoolItem";
 import * as Haptics from "expo-haptics";
+import type { EnrichedPoolMatchesDTO, PoolMatchesDTO } from "@/src/types/Match";
+import type { Pool } from "@/src/types/Pool";
 
 type MatchListTabProps = {
     poolIds?: number[];
     teamIds?: number[];
     status: MatchStatus;
-    filters?: Filter[];
 };
 
 const MatchListTab: React.FC<MatchListTabProps> = ({
     poolIds,
     teamIds,
     status,
-    filters,
 }) => {
     const router = useRouter();
+
     const {
         dayMatches,
-        teams,
-        pools,
+        fetchNextPage,
+        hasNextPage,
+        isFetchingNextPage,
         isLoading,
         isError,
         error,
-        fetchNextPage,
-        hasNextPage,
         refetch,
-    } = useMatchesWithTeamsAndPools(status, poolIds, teamIds);
+    } = useMatchesWithEntities(status, poolIds, teamIds);
 
     const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -56,7 +55,7 @@ const MatchListTab: React.FC<MatchListTabProps> = ({
     };
 
     const handleLoadMore = () => {
-        if (hasNextPage) {
+        if (hasNextPage && !isFetchingNextPage) {
             fetchNextPage();
         }
     };
@@ -69,48 +68,12 @@ const MatchListTab: React.FC<MatchListTabProps> = ({
         router.push(`/match/${matchId}`);
     };
 
-    // Filtrage
-    const divisionValues = ["PRO", "NAT", "REG"];
-    const genderValues = ["M", "F", "O"];
-
-    const activeDivisions = filters
-        ?.filter((f) => f.isActive && divisionValues.includes(f.dbValue))
-        .map((f) => f.dbValue);
-
-    const activeGenders = filters
-        ?.filter((f) => f.isActive && genderValues.includes(f.dbValue))
-        .map((f) => f.dbValue);
-
-    const applyPoolFilter = (pool: Pool) => {
-        if (!pool) return false;
-        const matchDivision =
-            activeDivisions &&
-            (activeDivisions.length === 0 || activeDivisions.includes(pool.division_code));
-        const matchGender =
-            activeGenders &&
-            (activeGenders.length === 0 || activeGenders.includes(pool.gender));
-        return filters ? matchDivision && matchGender : true;
-    };
-
-    const filteredDayMatches = dayMatches
-        .map((day) => {
-            const filteredPools = day.pools.filter((poolItem: PoolMatchesDTO) => {
-                const poolData = pools[poolItem.pool_id];
-                return applyPoolFilter(poolData);
-            });
-            return { ...day, pools: filteredPools };
-        })
-        .filter((day) => day.pools.length > 0);
-
-    // Transformation en sections pour le SectionList
-    const sections = useMemo(
-        () =>
-            filteredDayMatches.map((day) => ({
-                title: formatDateFrenchLocale(day.date),
-                data: day.pools,
-            })),
-        [filteredDayMatches]
-    );
+    const sections = useMemo(() => {
+        return dayMatches.map((day) => ({
+            title: formatDateFrenchLocale(day.date),
+            data: day.pools,
+        }));
+    }, [dayMatches]);
 
     const renderSectionHeader = ({ section: { title } }: { section: { title: string } }) => (
         <View style={styles.dateContainer}>
@@ -118,13 +81,11 @@ const MatchListTab: React.FC<MatchListTabProps> = ({
         </View>
     );
 
-    const renderItem = ({ item, index }: { item: PoolMatchesDTO; index: number }) => {
+    const renderItem = ({ item, index }: { item: EnrichedPoolMatchesDTO; index: number }) => {
         return (
             <PoolItem
                 pool={item}
                 index={index}
-                teams={teams}
-                pools={pools}
                 handlePoolPress={handlePoolPress}
                 handleCardPress={handleCardPress}
                 mainLeagueColors={["#5a8d36", "#007d89", "#bf447d"]}
@@ -135,7 +96,7 @@ const MatchListTab: React.FC<MatchListTabProps> = ({
 
     if (isLoading) {
         return (
-            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.dark }}>
+            <View style={styles.loadingContainer}>
                 <ActivityIndicator size="large" />
             </View>
         );
@@ -180,6 +141,12 @@ export default MatchListTab;
 const styles = StyleSheet.create({
     container: {
         flex: 1,
+        backgroundColor: colors.dark,
+    },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
         backgroundColor: colors.dark,
     },
     dateContainer: {

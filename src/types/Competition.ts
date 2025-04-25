@@ -1,5 +1,5 @@
 export interface CompetitionAssociation {
-    id?: number;
+    id: number;
     pool_id: number;
     team_id: number;
     active: boolean;

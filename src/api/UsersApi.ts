@@ -1,6 +1,11 @@
 import { CONFIG } from '@/src/config/config';
-import AbstractApi from './AbstractApi';
-import { CustomUser, EntityType, UserRegistrationRequest, UserFavorite } from '@/src/types/User';
+import AbstractApi, { ApiError } from './AbstractApi';
+import {
+    CustomUser,
+    EntityType,
+    UserRegistrationRequest,
+    UserFavorite
+} from '@/src/types/User';
 
 class UsersApi extends AbstractApi {
     private static instance: UsersApi | null = null;
@@ -12,28 +17,33 @@ class UsersApi extends AbstractApi {
     /** Initialise l'instance de l'API avec le token d'accès. */
     public static initInstance(token: string): void {
         if (!UsersApi.instance) {
-            UsersApi.instance = new UsersApi(CONFIG.API_USERS_BASE_URL, token);
+            UsersApi.instance = new UsersApi(
+                CONFIG.API_USERS_BASE_URL,
+                token
+            );
         }
     }
 
     /** Retourne l'instance de l'API. */
     public static getInstance(): UsersApi {
         if (!UsersApi.instance) {
-            throw new Error('Initialize instance before calling getInstance().');
+            throw new Error('Initialisez l’instance avant d’appeler getInstance().');
         }
         return UsersApi.instance;
     }
 
     /**
      * Vérifie si un utilisateur existe dans la base de données.
-     * GET /users/{auth0Id}
+     * @param auth0Id Identifiant Auth0 de l’utilisateur.
      */
     public async getUserByAuth0Id(auth0Id: string): Promise<CustomUser | null> {
         try {
-            const response = await this.service.get(`/users/${auth0Id}`);
-            return response.data;
-        } catch (error: any) {
-            if (error.response && error.response.status === 404) {
+            return await this.request<CustomUser>({
+                method: 'get',
+                url: `/${auth0Id}`
+            });
+        } catch (error) {
+            if (error instanceof ApiError && error.status === 404) {
                 return null;
             }
             throw error;
@@ -42,39 +52,69 @@ class UsersApi extends AbstractApi {
 
     /**
      * Enregistre un nouvel utilisateur.
-     * POST /users
+     * @param data Données de création de l’utilisateur.
      */
-    public async registerUser(data: UserRegistrationRequest): Promise<CustomUser> {
-        const response = await this.service.post('/users', data);
-        return response.data;
+    public async registerUser(
+        data: UserRegistrationRequest
+    ): Promise<CustomUser> {
+        return this.request<CustomUser>({
+            method: 'post',
+            url: '/',
+            data
+        });
     }
 
     /**
      * Récupère la liste des favoris d'un utilisateur.
-     * GET /users/{userId}/favorites[?entityType=...]
+     * @param userId Identifiant de l’utilisateur.
+     * @param entityType Type d’entité à filtrer (optionnel).
      */
-    public async getFavorites(userId: number, entityType?: EntityType): Promise<UserFavorite[]> {
-        const params = entityType ? { entity_type: entityType } : undefined;
-        const response = await this.service.get<UserFavorite[]>(`/users/${userId}/favorites`, { params });
-        return response.data;
+    public async getFavorites(
+        userId: number,
+        entityType?: EntityType
+    ): Promise<UserFavorite[]> {
+        try {
+            return await this.request<UserFavorite[]>({
+                method: 'get',
+                url: `/${userId}/favorites`,
+                params: entityType ? { entity_type: entityType } : undefined
+            });
+        } catch (error) {
+            if (error instanceof ApiError && error.status === 404) {
+                return [];
+            }
+            throw error;
+        }
     }
 
     /**
      * Suit une entité.
-     * POST /favorites/follow?entityType=...&entityId=...
+     * @param entityType Type de l’entité à suivre.
+     * @param entityId Identifiant de l’entité à suivre.
      */
-    public async follow(entityType: EntityType, entityId: number): Promise<void> {
-        await this.service.post('/favorites/follow', null, {
+    public async follow(
+        entityType: EntityType,
+        entityId: number
+    ): Promise<void> {
+        await this.request<void>({
+            method: 'post',
+            url: '/favorites/follow',
             params: { entity_type: entityType, entity_id: entityId }
         });
     }
 
     /**
      * Ne suit plus une entité.
-     * DELETE /favorites/follow?entityType=...&entityId=...
+     * @param entityType Type de l’entité à ne plus suivre.
+     * @param entityId Identifiant de l’entité à ne plus suivre.
      */
-    public async unfollow(entityType: EntityType, entityId: number): Promise<void> {
-        await this.service.delete('/favorites/follow', {
+    public async unfollow(
+        entityType: EntityType,
+        entityId: number
+    ): Promise<void> {
+        await this.request<void>({
+            method: 'delete',
+            url: '/favorites/follow',
             params: { entity_type: entityType, entity_id: entityId }
         });
     }

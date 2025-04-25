@@ -11,7 +11,7 @@ const TeamScreen: React.FC = () => {
     const { team_id } = useLocalSearchParams();
     const teamId = Number(team_id);
     const { data: team, isLoading: isTeamLoading, isError: isTeamError, isSuccess: isTeamSuccess } = useTeamById(teamId);
-    const { data: pools, isLoading: isPoolsLoading, isError: isPoolsError, isSuccess: isPoolsSuccess } = useDetailedPoolsByTeam(teamId);
+    const { pools, isLoading: isPoolsLoading, isError: isPoolsError, isSuccess: isPoolsSuccess } = useDetailedPoolsByTeam(teamId);
 
     return (
         <View style={styles.container}>
@@ -19,8 +19,8 @@ const TeamScreen: React.FC = () => {
             {(isTeamError || isPoolsError) && <Text>Error...</Text>}
             {isPoolsSuccess && isTeamSuccess && (
                 <>
-                    <TeamProfile team={team} />
-                    <TeamTabs pools={pools || []} team={team} />
+                    <TeamProfile team={team!} />
+                    <TeamTabs pools={pools} team={team!} />
                 </>
             )}
         </View>

@@ -1,5 +1,5 @@
 import { CONFIG } from '@/src/config/config';
-import AbstractApi from './AbstractApi';
+import AbstractApi, { ApiError } from './AbstractApi';
 import { Pool } from '@/src/types/Pool';
 
 class PoolsApi extends AbstractApi {
@@ -9,32 +9,81 @@ class PoolsApi extends AbstractApi {
         super(url, token);
     }
 
-    /** Initialise l'instance de l'API avec le token d'accès. */
+    /** Initialise l'instance de l'API avec le token d'accès */
     public static initInstance(token: string): void {
         if (!PoolsApi.instance) {
-            PoolsApi.instance = new PoolsApi(CONFIG.API_POOLS_BASE_URL, token);
+            PoolsApi.instance = new PoolsApi(
+                CONFIG.API_POOLS_BASE_URL,
+                token
+            );
         }
     }
 
-    /** Retourne l'instance de l'API. */
+    /** Retourne l'instance de l'API */
     public static getInstance(): PoolsApi {
         if (!PoolsApi.instance) {
-            throw new Error('Initialize instance before calling getInstance().');
+            throw new Error(
+                'Initialisez l’instance avant d’appeler getInstance().'
+            );
         }
         return PoolsApi.instance;
     }
 
-    /** Récupère toutes les poules. */
+    /** Récupère toutes les poules */
     public async getAllPools(): Promise<Pool[]> {
-        const response = await this.service.get<Pool[]>('/pools');
-        return response.data;
+        try {
+            return await this.request<Pool[]>({
+                method: 'get',
+                url: ''
+            });
+        } catch (error) {
+            if (error instanceof ApiError && error.status === 404) {
+                return [];
+            }
+            throw error;
+        }
     }
 
-    /** Récupère une poule par son identifiant. */
-    public async getPoolById(id: number): Promise<Pool> {
-        const response = await this.service.get<Pool>(`/pools/${id}`);
-        return response.data;
+    /** Récupère une poule par son identifiant */
+    public async getPoolById(id: number): Promise<Pool | null> {
+        try {
+            console.log('--------- getPoolById', id);
+            return await this.request<Pool>({
+                method: 'get',
+                url: `/${id}`
+            });
+        } catch (error) {
+            if (error instanceof ApiError && error.status === 404) {
+                return null;
+            }
+            throw error;
+        }
     }
+
+        /**
+     * Récupère les poules par leurs identifiants (batch)
+     * @param ids tableau d’identifiants
+     */
+        public async getPoolsByIds(ids: number[]): Promise<Pool[]> {
+            console.log('--------- getPoolByIds', ids);
+
+            if (ids.length === 0) {
+                throw new Error('La liste d’IDs ne peut pas être vide.');
+            }
+    
+            try {
+                return await this.request<Pool[]>({
+                    method: 'get',
+                    url: '',
+                    params: { ids: ids.join(',') },
+                });
+            } catch (error) {
+                if (error instanceof ApiError && error.status === 404) {
+                    return [];
+                }
+                throw error;
+            }
+        }
 }
 
 export default PoolsApi;

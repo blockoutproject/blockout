@@ -23,6 +23,8 @@ const PoolHeader: React.FC = () =>{
                 style={{
                     flexDirection: "row",
                     alignItems: "center",
+                    flex: 1,
+                    marginHorizontal: 12
                 }}
             >
                 <FastImage
@@ -30,7 +32,11 @@ const PoolHeader: React.FC = () =>{
                     style={{ width: 28, height: 28, marginRight: 8, borderRadius: 5 }}
                     resizeMode="contain"
                 />
-                <Text style={{ color: colors.light, fontSize: 18, fontWeight: "600" }}>
+                <Text 
+                    style={styles.title}
+                    numberOfLines={1}
+                    ellipsizeMode="tail"
+                >
                     {pool ? pool.pool_name : "Chargement..."}
                 </Text>
             </View>
@@ -51,6 +57,12 @@ const styles = StyleSheet.create({
         backgroundColor: colors.dark,
         paddingHorizontal: 12,
         paddingVertical: 15,
+    },
+    title: {
+        fontSize: 14,
+        fontWeight: "700",
+        color: colors.active,
+        flexShrink: 1
     },
 });
 

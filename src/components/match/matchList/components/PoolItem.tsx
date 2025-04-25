@@ -1,53 +1,43 @@
 import React, { memo } from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import FastImage from "react-native-fast-image";
-import { PoolMatchesDTO, Match } from "@/src/types/Match";
-import { Team } from "@/src/types/Team";
-import { Pool } from "@/src/types/Pool";
+import { EnrichedPoolMatchesDTO } from "@/src/types/Match";
 import MatchCard from "./MatchCard";
 import { colors } from "@/src/constants/Colors";
 
-type Props = {
-    pool: PoolMatchesDTO;
-    teams: Record<number, Team>;
-    pools: Record<number, Pool>;
+interface PoolItemProps {
+    pool: EnrichedPoolMatchesDTO;
     index: number;
     handlePoolPress: (poolId: number) => void;
     handleCardPress: (matchId: number) => void;
     mainLeagueColors: string[];
     secondLeagueColors: string[];
-};
+}
 
 const PoolItem = ({
     pool,
-    teams,
-    pools,
     index,
     handlePoolPress,
     handleCardPress,
     mainLeagueColors,
     secondLeagueColors,
-}: Props) => {
+}: PoolItemProps) => {
     const colorIndex = index % mainLeagueColors.length;
 
-    const teamMatches = pool.matches.map((match: Match) => {
-        const teamA = teams[match.team_id_a];
-        const teamB = teams[match.team_id_b];
-        return (
-            <TouchableOpacity
-                key={match.id}
-                onPress={() => handleCardPress(match.id)}
-            >
-                <MatchCard
-                    match={match}
-                    teamA={teamA}
-                    teamB={teamB}
-                    mainColor={mainLeagueColors[colorIndex]}
-                    secondColor={secondLeagueColors[colorIndex]}
-                />
-            </TouchableOpacity>
-        );
-    });
+    const teamMatches = pool.matches.map((match) => (
+        <TouchableOpacity
+            key={match.id}
+            onPress={() => handleCardPress(match.id)}
+        >
+            <MatchCard
+                match={match}
+                teamA={match.teamA}
+                teamB={match.teamB}
+                mainColor={mainLeagueColors[colorIndex]}
+                secondColor={secondLeagueColors[colorIndex]}
+            />
+        </TouchableOpacity>
+    ));
 
     return (
         <View style={styles.poolContainer}>
@@ -58,10 +48,14 @@ const PoolItem = ({
                         style={styles.poolLogo}
                         resizeMode="contain"
                     />
-                    <Text style={styles.poolTitle}>
-                        {pools[pool.pool_id]
-                            ? pools[pool.pool_id].pool_name
-                            : "Chargement..."}
+                    <Text 
+                        style={styles.poolTitle}
+                        numberOfLines={1}
+                        ellipsizeMode="tail"
+                        adjustsFontSizeToFit
+                        minimumFontScale={0.9}
+                    >
+                        {pool.poolData?.pool_name ?? "Chargement..."}
                     </Text>
                 </View>
             </TouchableOpacity>
@@ -82,6 +76,7 @@ const styles = StyleSheet.create({
     },
     poolHeader: {
         marginBottom: 12,
+        paddingHorizontal: 12,
         flexDirection: "row",
         justifyContent: "center",
         alignItems: "center",

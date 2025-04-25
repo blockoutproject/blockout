@@ -2,7 +2,7 @@ import UsersApi from "@/src/api/UsersApi";
 import { CustomUser } from "@/src/types/User";
 import { useQuery } from "@tanstack/react-query";
 
-export function useCustomUser(auth0UserSub?: string) {
+export const useCustomUser = (auth0UserSub?: string) => {
     return useQuery<CustomUser | null>({
         queryKey: ['custom-user', auth0UserSub],
         queryFn: async () => {

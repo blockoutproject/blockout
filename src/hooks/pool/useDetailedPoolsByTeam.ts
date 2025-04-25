@@ -1,9 +1,9 @@
-import { Pool } from "@/src/types/Pool";
-import { useQuery } from "@tanstack/react-query";
+import { useMemo } from "react";
 import { usePoolsAssocByTeam } from "./usePoolsAssocByTeam";
-import PoolsApi from "@/src/api/PoolsApi";
+import { usePoolsByIds } from "./usePoolsByIds";
+import type { Pool } from "@/src/types/Pool";
 
-export function useDetailedPoolsByTeam(teamId: number) {
+export const useDetailedPoolsByTeam = (teamId: number) => {
     const {
         data: poolsAssoc,
         isLoading: isPoolsAssocLoading,
@@ -11,26 +11,25 @@ export function useDetailedPoolsByTeam(teamId: number) {
         isError: isPoolsAssocError,
     } = usePoolsAssocByTeam(teamId);
 
-    const detailedPoolsQuery = useQuery<Pool[], Error>({
-        queryKey: ['poolsByTeam', teamId],
-        queryFn: async () => {
-            if (!poolsAssoc) return [];
+    const poolIds = poolsAssoc?.map(({ pool_id }) => pool_id) ?? [];
 
-            return Promise.all(
-                poolsAssoc.map(async ({ pool_id }) => {
-                    const pool = await PoolsApi.getInstance().getPoolById(pool_id);
-                    return { ...pool };
-                })
-            );
-        },
-        staleTime: 1000 * 60 * 5,
-        enabled: !!poolsAssoc && poolsAssoc.length > 0,
-    });
+    const {
+        entitiesMap: poolsMap,
+        isLoading: isPoolsLoading,
+        isError: isPoolsError,
+    } = usePoolsByIds(poolIds);
+
+    const pools = useMemo<Pool[]>(() => {
+        if (!poolsAssoc) return [];
+        return poolsAssoc
+            .map(({ pool_id }) => poolsMap[pool_id])
+            .filter((p): p is Pool => p !== undefined);
+    }, [poolsAssoc, poolsMap]);
 
     return {
-        data: detailedPoolsQuery.data,
-        isLoading: isPoolsAssocLoading || detailedPoolsQuery.isLoading,
-        isSuccess: isPoolsAssocSuccess && detailedPoolsQuery.isSuccess && detailedPoolsQuery.data !== undefined,
-        isError: isPoolsAssocError || detailedPoolsQuery.isError,
+        pools,
+        isLoading: isPoolsAssocLoading || isPoolsLoading,
+        isError: isPoolsAssocError || isPoolsError,
+        isSuccess: isPoolsAssocSuccess && !isPoolsLoading && !isPoolsError,
     };
 }
