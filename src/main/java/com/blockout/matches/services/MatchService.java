@@ -123,6 +123,7 @@ public class MatchService {
         List<LocalDate> allDays;
         if (status == MatchStatus.UPCOMING) {
             allDays = matchRepository.findDistinctUpcomingDates(
+                    now,
                     poolIds, poolIds.size(),
                     teamIds, teamIds.size());
             logger.debug("Found distinct upcoming match days",

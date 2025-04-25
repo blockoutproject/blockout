@@ -99,6 +99,7 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
                 SELECT DISTINCT CAST(m.matchDate AS LocalDate)
                 FROM Match m
                 WHERE m.status = 'UPCOMING'
+                  AND m.matchDate > :now
                   AND (
                       (:poolIdsSize = 0 OR m.poolId IN :poolIds)
                       OR (:teamIdsSize = 0 OR m.teamIdA IN :teamIds OR m.teamIdB IN :teamIds)
@@ -106,6 +107,7 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
                 ORDER BY CAST(m.matchDate AS LocalDate) ASC
             """)
     List<LocalDate> findDistinctUpcomingDates(
+            @Param("now") LocalDateTime now,
             @Param("poolIds") List<Long> poolIds,
             @Param("poolIdsSize") int poolIdsSize,
             @Param("teamIds") List<Long> teamIds,
