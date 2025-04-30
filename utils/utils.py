@@ -33,7 +33,7 @@ def is_junior_pool(string):
             return PoolDivisionCode.JNR
     return PoolDivisionCode.REG
 
-def standardize_division_name(raw_division_name: str, default_division_code: PoolDivisionCode) -> dict:
+def standardize_division_name(raw_division_name: str, default_division_code: PoolDivisionCode) -> Optional[dict]:
     """
     Standardise le nom d'une division en fonction des variations prédéfinies.
     """
