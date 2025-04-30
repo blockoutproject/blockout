@@ -4,13 +4,14 @@ import {
     View,
     Pressable,
     StyleSheet,
-    useWindowDimensions
+    useWindowDimensions,
+    ScrollView,
 } from "react-native";
 import {
     TabView,
     SceneRendererProps,
     NavigationState,
-    Route
+    Route,
 } from "react-native-tab-view";
 import { colors } from "@/src/constants/Colors";
 
@@ -25,58 +26,61 @@ type GenericTabViewProps = {
     indicatorColor: string;
 };
 
-const GenericTabView: React.FC<GenericTabViewProps> = ({ tabs, indicatorColor }) => {
-    const layout = useWindowDimensions();
+const GenericTabView: React.FC<GenericTabViewProps> = ({
+    tabs,
+    indicatorColor,
+}) => {
     const [index, setIndex] = useState(0);
 
-    // On construit les routes pour le TabView (une pour chaque tab)
     const routes = tabs.map(({ key, title }) => ({ key, title }));
 
-    // renderScene personnalisé :
-    // - On cherche l'onglet correspondant à route.key
-    // - On renvoie son JSX (tab.render())
-    // - On évite ainsi l'utilisation de SceneMap, qui démonte/remonte souvent
     const renderScene = ({
-        route
+        route,
     }: SceneRendererProps & { route: Route }) => {
         const tabDef = tabs.find((t) => t.key === route.key);
-        if (!tabDef) return null;
-        return tabDef.render();
+        return tabDef ? tabDef.render() : null;
     };
 
-    // Bar d’onglet custom
     const renderTabBar = (
         props: SceneRendererProps & {
             navigationState: NavigationState<Route>;
+            jumpTo: (key: string) => void;
         }
     ) => (
-        <View style={styles.container}>
+        <ScrollView
+            horizontal
+            style={styles.tabBar}
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.tabBarContent}
+        >
             {props.navigationState.routes.map((route: Route, i: number) => {
                 const active = i === props.navigationState.index;
                 return (
                     <Pressable
                         key={route.key}
                         onPress={() => props.jumpTo(route.key)}
-                        style={{ marginHorizontal: 16, paddingVertical: 4 }}
+                        style={styles.tabButton}
                     >
-                        <Text style={{ color: active ? "white" : "gray", fontSize: 15, fontWeight: "700" }}>
+                        <Text
+                            style={[
+                                styles.tabLabel,
+                                active && styles.tabLabelActive,
+                            ]}
+                        >
                             {route.title}
                         </Text>
                         {active && (
                             <View
-                                style={{
-                                    marginTop: 3,
-                                    height: 1,
-                                    width: "70%",
-                                    backgroundColor: indicatorColor,
-                                    alignSelf: "center",
-                                }}
+                                style={[
+                                    styles.indicator,
+                                    { backgroundColor: indicatorColor },
+                                ]}
                             />
                         )}
                     </Pressable>
                 );
             })}
-        </View>
+        </ScrollView>
     );
 
     return (
@@ -84,8 +88,7 @@ const GenericTabView: React.FC<GenericTabViewProps> = ({ tabs, indicatorColor })
             navigationState={{ index, routes }}
             renderScene={renderScene}
             onIndexChange={setIndex}
-            initialLayout={{ width: layout.width }}
-            lazy={true}
+            lazy
             removeClippedSubviews={false}
             renderTabBar={renderTabBar}
         />
@@ -93,11 +96,36 @@ const GenericTabView: React.FC<GenericTabViewProps> = ({ tabs, indicatorColor })
 };
 
 const styles = StyleSheet.create({
-    container: {
+    tabBar: {
+        flexGrow: 0,
+        paddingVertical: 4,
+    },
+    tabBarContent: {
+        flexGrow: 1,
         flexDirection: "row",
         justifyContent: "center",
-        backgroundColor: colors.dark,
-    }
+        alignItems: "center",
+        paddingHorizontal: 16,
+    },
+    tabButton: {
+        marginHorizontal: 16,
+        paddingVertical: 4,
+    },
+    tabLabel: {
+        color: colors.inactive,
+        fontSize: 15,
+    },
+    tabLabelActive: {
+        color: colors.active,
+        fontWeight: "700",
+    },
+    indicator: {
+        marginTop: 8,
+        height: 3,
+        borderRadius: 20,
+        width: "70%",
+        alignSelf: "center",
+    },
 });
 
 export default GenericTabView;

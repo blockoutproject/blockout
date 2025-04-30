@@ -1,8 +1,8 @@
-import GenericTabView from '@/src/components/common/GenericTabView';
 import React from 'react';
+import GenericTabView from '@/src/components/common/GenericTabView';
 import MatchListTab from '../match/matchList/MatchListTab';
-import { MatchStatus } from '@/src/types/Match';
 import RankingTab from '../common/RankingTab';
+import { MatchStatus } from '@/src/types/Match';
 import { Pool } from '@/src/types/Pool';
 import { colors } from '@/src/constants/Colors';
 
@@ -20,16 +20,31 @@ const PoolTabs: React.FC<PoolTabsProps> = ({ pool }) => {
         {
             key: 'finished',
             title: 'Terminés',
-            render: () => <MatchListTab poolIds={[pool.id]} status={MatchStatus.FINISHED} />,
+            render: () => (
+                <MatchListTab
+                    poolIds={[pool.id]}
+                    status={MatchStatus.FINISHED}
+                />
+            ),
         },
         {
             key: 'upcoming',
             title: 'À Venir',
-            render: () => <MatchListTab poolIds={[pool.id]} status={MatchStatus.UPCOMING} />,
+            render: () => (
+                <MatchListTab
+                    poolIds={[pool.id]}
+                    status={MatchStatus.UPCOMING}
+                />
+            ),
         },
     ];
 
-    return <GenericTabView tabs={tabs} indicatorColor={colors.active} />;
+    return (
+        <GenericTabView
+            tabs={tabs}
+            indicatorColor={colors.active}
+        />
+    );
 };
 
 export default PoolTabs;

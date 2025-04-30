@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { useMatchById } from '@/src/hooks/match/useMatchById';
-import MatchScoreCard from '@/src/components/match/MatchScoreCard';
 import MatchScoreDetailsCard from '@/src/components/match/MatchScoreDetailsCard';
 import MatchInfoCard from '@/src/components/match/MatchInfoCard';
 import RankingCard from '@/src/components/common/RankingCard';
@@ -10,6 +9,7 @@ import { colors } from '@/src/constants/Colors';
 import { MatchStatus } from '@/src/types/Match';
 import { Confetti } from 'react-native-fast-confetti';
 import MatchSkeleton from '@/src/components/match/MatchSkeleton';
+import MatchScoreCard from '@/src/components/match/MatchScoreCard';
 
 const MatchModalScreen: React.FC = () => {
     const { match_id } = useLocalSearchParams();
@@ -19,11 +19,12 @@ const MatchModalScreen: React.FC = () => {
     const [showConfetti, setShowConfetti] = useState(false);
 
     useEffect(() => {
-        if (match && match.status === MatchStatus.FINISHED) {
+        if (match?.status === MatchStatus.FINISHED) {
             setShowConfetti(true);
-            setTimeout(() => setShowConfetti(false), 3000);
+            const timer = setTimeout(() => setShowConfetti(false), 3000);
+            return () => clearTimeout(timer);
         }
-    }, [match]);
+    }, [match?.status]);
 
     if (isLoading) {
         return <MatchSkeleton />;
@@ -31,7 +32,6 @@ const MatchModalScreen: React.FC = () => {
 
     return (
         <View style={styles.container}>
-            {/* Confettis en cas de match terminé */}
             {showConfetti && (
                 <Confetti
                     count={100}
@@ -40,25 +40,24 @@ const MatchModalScreen: React.FC = () => {
                     colors={[
                         '#FF5733', '#FFC300', '#DAF7A6', '#FF33FF',
                         '#33FF57', '#3357FF', '#C70039', '#900C3F',
-                        '#581845'
+                        '#581845',
                     ]}
                 />
             )}
 
-            {/* On vérifie que toutes les données nécessaires sont présentes */}
             {teamA && teamB && match && pool && (
-                <ScrollView 
+                <ScrollView
                     contentContainerStyle={styles.scrollContent}
                     showsVerticalScrollIndicator={false}
                 >
-                    {/* Carte Score */}
                     <MatchScoreCard
+                        leagueName={`${pool.division_name} - ${pool.gender}`}
                         homeTeam={teamA}
                         awayTeam={teamB}
-                        finalScore={match.set || '0 : 0'}
+                        finalScore={match.set}
+                        matchDate={match.match_date}
                     />
 
-                    {/* Score détaillé */}
                     <MatchScoreDetailsCard
                         title="Score"
                         homeTeam={teamA}
@@ -66,7 +65,6 @@ const MatchModalScreen: React.FC = () => {
                         match={match}
                     />
 
-                    {/* Informations (ligue, date, lieu, arbitres) */}
                     <MatchInfoCard
                         pool={pool}
                         date={match.match_date}
@@ -77,8 +75,10 @@ const MatchModalScreen: React.FC = () => {
                         referee2={match.referee2}
                     />
 
-                    {/* Classement */}
-                    <RankingCard poolId={match.pool_id} scrollable={false} />
+                    <RankingCard
+                        poolId={match.pool_id}
+                        scrollable={false}
+                    />
                 </ScrollView>
             )}
         </View>
@@ -92,11 +92,8 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: colors.dark,
     },
-    scrollSkeleton: {
-        paddingHorizontal: 16,
-        paddingTop: 16,
-    },
     scrollContent: {
+        gap: 16,
         paddingHorizontal: 16,
         paddingBottom: 32,
     },

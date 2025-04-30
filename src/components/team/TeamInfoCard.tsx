@@ -9,7 +9,7 @@ import {
     Text,
     View,
 } from "react-native";
-import FastImage from 'react-native-fast-image'
+import FastImage from 'react-native-fast-image';
 import { Team } from "@/src/types/Team";
 
 type OpenLinkProps = {
@@ -18,57 +18,59 @@ type OpenLinkProps = {
 };
 
 type TeamInfoCardProps = {
-    team: Team,
+    team: Team;
 };
 
-const OpenLink: React.FC<OpenLinkProps> = ({ url, text }: OpenLinkProps) => {
+const OpenLink: React.FC<OpenLinkProps> = ({ url, text }) => {
     const handlePress = async () => {
-        // Checking if the link is supported for links with custom URL scheme.
         const supported = await Linking.canOpenURL(url);
         if (supported) {
-            // Opening the link with some app, if the URL scheme is "http" the web link should be opened
-            // by some browser in the mobile
             await Linking.openURL(url);
         } else {
-            Alert.alert(`Don't know how to open this URL: ${url}`);
+            Alert.alert(`Impossible d'ouvrir l'URL : ${url}`);
         }
     };
+
     return (
         <Pressable onPress={handlePress}>
             <Text style={styles.link}>{text}</Text>
         </Pressable>
     );
 };
+
 const TeamInfoCard: React.FC<TeamInfoCardProps> = ({ team }) => {
     return (
         <View style={styles.container}>
-            <View style={{ flexDirection: "column" }}>
+            <View style={styles.column}>
                 <FastImage
                     source={require("@/assets/clubs/as_cannes.png")}
                     style={styles.teamLogo}
                     resizeMode="contain"
                 />
                 <Text style={styles.title}>{team.name}</Text>
+
                 <View style={styles.data}>
                     <MaterialCommunityIcons
-                        name={"trophy-outline"}
+                        name="trophy-outline"
                         size={20}
                         color={colors.light}
                     />
                     <Text style={styles.text}>{team.division_name}</Text>
                 </View>
-                {/* 🚨 L'info n'est pas encore gérée par l'API */}
+
+                {/* Future API info */}
                 {/* <View style={styles.data}>
                     <MaterialCommunityIcons
-                        name={"map-marker-outline"}
+                        name="map-marker-outline"
                         size={20}
                         color={colors.light}
                     />
                     <Text style={styles.text}>Palais des victoires</Text>
                 </View> */}
+
                 <View style={styles.data}>
                     <MaterialCommunityIcons
-                        name={"link-variant"}
+                        name="link-variant"
                         size={20}
                         color={colors.light}
                     />
@@ -80,26 +82,20 @@ const TeamInfoCard: React.FC<TeamInfoCardProps> = ({ team }) => {
             </View>
         </View>
     );
-}
+};
+
 const styles = StyleSheet.create({
     container: {
         padding: 20,
         paddingBottom: 15,
     },
+    column: {
+        flexDirection: "column",
+    },
     teamLogo: {
         aspectRatio: 1,
         height: 110,
         marginBottom: 10,
-    },
-    data: {
-        flexDirection: "row",
-        gap: 10,
-    },
-    text: {
-        color: colors.light,
-    },
-    link: {
-        color: colors.blue,
     },
     title: {
         color: colors.light,
@@ -107,7 +103,20 @@ const styles = StyleSheet.create({
         fontSize: 26,
         paddingBottom: 5,
     },
-    icon: {},
+    data: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 10,
+        marginBottom: 8,
+    },
+    text: {
+        color: colors.light,
+        fontSize: 14,
+    },
+    link: {
+        color: colors.blue,
+        fontSize: 14,
+    },
 });
 
 export default TeamInfoCard;

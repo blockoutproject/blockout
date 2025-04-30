@@ -4,6 +4,7 @@ import FastImage from "react-native-fast-image";
 import { EnrichedPoolMatchesDTO } from "@/src/types/Match";
 import MatchCard from "./MatchCard";
 import { colors } from "@/src/constants/Colors";
+import { LinearGradient } from "expo-linear-gradient";
 
 interface PoolItemProps {
     pool: EnrichedPoolMatchesDTO;
@@ -14,33 +15,23 @@ interface PoolItemProps {
     secondLeagueColors: string[];
 }
 
-const PoolItem = ({
+const PoolItem: React.FC<PoolItemProps> = ({
     pool,
     index,
     handlePoolPress,
     handleCardPress,
     mainLeagueColors,
     secondLeagueColors,
-}: PoolItemProps) => {
+}) => {
     const colorIndex = index % mainLeagueColors.length;
 
-    const teamMatches = pool.matches.map((match) => (
-        <TouchableOpacity
-            key={match.id}
-            onPress={() => handleCardPress(match.id)}
-        >
-            <MatchCard
-                match={match}
-                teamA={match.teamA}
-                teamB={match.teamB}
-                mainColor={mainLeagueColors[colorIndex]}
-                secondColor={secondLeagueColors[colorIndex]}
-            />
-        </TouchableOpacity>
-    ));
-
     return (
-        <View style={styles.poolContainer}>
+        <LinearGradient
+            colors={[colors.dark, colors.grey]}
+            start={{ x: 0, y: 2 }}
+            end={{ x: 0, y: 0 }}
+            style={styles.poolContainer}
+        >
             <TouchableOpacity onPress={() => handlePoolPress(pool.pool_id)}>
                 <View style={styles.poolHeader}>
                     <FastImage
@@ -48,7 +39,7 @@ const PoolItem = ({
                         style={styles.poolLogo}
                         resizeMode="contain"
                     />
-                    <Text 
+                    <Text
                         style={styles.poolTitle}
                         numberOfLines={1}
                         ellipsizeMode="tail"
@@ -59,14 +50,26 @@ const PoolItem = ({
                     </Text>
                 </View>
             </TouchableOpacity>
-            <View style={{ gap: 12 }}>
-                {teamMatches}
+
+            <View style={styles.matchesWrapper}>
+                {pool.matches.map((match) => (
+                    <TouchableOpacity
+                        key={match.id}
+                        onPress={() => handleCardPress(match.id)}
+                    >
+                        <MatchCard
+                            match={match}
+                            teamA={match.teamA}
+                            teamB={match.teamB}
+                            mainColor={mainLeagueColors[colorIndex]}
+                            secondColor={secondLeagueColors[colorIndex]}
+                        />
+                    </TouchableOpacity>
+                ))}
             </View>
-        </View>
+        </LinearGradient>
     );
 };
-
-export default memo(PoolItem);
 
 const styles = StyleSheet.create({
     poolContainer: {
@@ -76,7 +79,7 @@ const styles = StyleSheet.create({
     },
     poolHeader: {
         marginBottom: 12,
-        paddingHorizontal: 12,
+        paddingHorizontal: 24,
         flexDirection: "row",
         justifyContent: "center",
         alignItems: "center",
@@ -92,4 +95,10 @@ const styles = StyleSheet.create({
         fontWeight: "700",
         color: colors.active,
     },
+    matchesWrapper: {
+        flexDirection: "column",
+        gap: 12,
+    },
 });
+
+export default PoolItem;

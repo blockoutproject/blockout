@@ -1,9 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { View, Text, StyleSheet } from 'react-native';
 import { Pool } from '@/src/types/Pool';
 import { colors } from '@/src/constants/Colors';
-import FastImage from 'react-native-fast-image'
+import FastImage from 'react-native-fast-image';
 import UsersApi from '@/src/api/UsersApi';
 import { EntityType } from '@/src/types/User';
 import { useUserContext } from '@/src/hooks/user/useUserContext';
@@ -18,19 +17,20 @@ const PoolProfile: React.FC<PoolProfileProps> = ({ pool }) => {
     const { customUser, refetch } = useUserContext();
     const [isProcessing, setIsProcessing] = useState(false);
     const [followersCount, setFollowersCount] = useState(pool.followers_count);
+    const [isFollowing, setIsFollowing] = useState(false);
 
     useEffect(() => {
         setFollowersCount(pool.followers_count);
     }, [pool.followers_count]);
 
-    const initialIsFollowing = useMemo(() => {
-        if (!customUser || !customUser.favorites) return false;
-        return customUser.favorites.some(
-            (fav) => fav.entity_id === pool.id && fav.entity_type === EntityType.POOL
-        );
+    useEffect(() => {
+        if (customUser?.favorites) {
+            const isFav = customUser.favorites.some(
+                (fav) => fav.entity_id === pool.id && fav.entity_type === EntityType.POOL
+            );
+            setIsFollowing(isFav);
+        }
     }, [customUser, pool.id]);
-
-    const [isFollowing, setIsFollowing] = useState(initialIsFollowing);
 
     const handleFollowToggle = async () => {
         if (!customUser || isProcessing) return;
@@ -57,6 +57,7 @@ const PoolProfile: React.FC<PoolProfileProps> = ({ pool }) => {
             setIsProcessing(false);
         }
     };
+
     return (
         <View style={styles.container}>
             <FastImage
@@ -64,7 +65,6 @@ const PoolProfile: React.FC<PoolProfileProps> = ({ pool }) => {
                 style={styles.leagueLogo}
                 resizeMode="contain"
             />
-
             <View style={styles.infoContainer}>
                 <Text
                     style={styles.leagueTitle}
@@ -75,7 +75,6 @@ const PoolProfile: React.FC<PoolProfileProps> = ({ pool }) => {
                 >
                     {pool.pool_name}
                 </Text>
-
                 <Text style={styles.leagueLink}>ligue-b-masculine.com</Text>
 
                 <View style={styles.actionsRow}>
@@ -89,7 +88,9 @@ const PoolProfile: React.FC<PoolProfileProps> = ({ pool }) => {
             </View>
         </View>
     );
-}
+};
+
+export default PoolProfile;
 
 const styles = StyleSheet.create({
     container: {
@@ -123,39 +124,4 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
     },
-    followButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: colors.green,
-        borderWidth: 1,
-        borderColor: colors.green,
-        paddingVertical: 6,
-        paddingHorizontal: 20,
-        borderRadius: 12,
-        marginRight: 12,
-    },
-    followText: {
-        color: colors.light,
-        fontSize: 16,
-        fontWeight: '600',
-    },
-    followingButton: {
-        backgroundColor: colors.dark,
-        borderWidth: 1,
-        borderColor: colors.light,
-    },
-    followingText: {
-        color: colors.light,
-    },
-    iconCounter: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    counterText: {
-        color: colors.light,
-        fontSize: 16,
-    },
 });
-
-export default PoolProfile;

@@ -5,16 +5,20 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { colors } from '@/src/constants/Colors';
 import { Skeleton } from 'moti/skeleton';
 
-const SkeletonCard = ({ style }: { style: any }) => (
+type SkeletonCardProps = {
+    flexValue: number;
+};
+
+const SkeletonCard: React.FC<SkeletonCardProps> = ({ flexValue }) => (
     <MotiView
-        style={[styles.card, style]}
+        style={[styles.card, { flex: flexValue }]}
         transition={{
             type: 'timing',
         }}
         animate={{ backgroundColor: colors.dark }}
     >
         <Skeleton
-            colorMode={'dark'} 
+            colorMode="dark"
             width="100%"
             height="100%"
         />
@@ -24,19 +28,19 @@ const SkeletonCard = ({ style }: { style: any }) => (
 const MatchSkeleton: React.FC = () => {
     return (
         <View style={styles.screen}>
-            <SkeletonCard style={{ flex: 0.7 }} />
-            <SkeletonCard style={{ flex: 1 }} />
-            <SkeletonCard style={{ flex: 1.4 }} />
-            <SkeletonCard style={{ flex: 1 }} />
+            <SkeletonCard flexValue={0.7} />
+            <SkeletonCard flexValue={1} />
+            <SkeletonCard flexValue={1.4} />
+            <SkeletonCard flexValue={1} />
         </View>
     );
-}
+};
 
 const styles = StyleSheet.create({
     screen: {
         flex: 1,
         padding: 16,
-        gap: 16,
+        gap: 24,
         backgroundColor: colors.dark,
     },
     card: {

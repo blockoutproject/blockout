@@ -3,7 +3,8 @@ import { View, Text, StyleSheet } from 'react-native';
 import { Match } from '@/src/types/Match';
 import { Team } from '@/src/types/Team';
 import { colors } from '@/src/constants/Colors';
-import FastImage from 'react-native-fast-image'
+import FastImage from 'react-native-fast-image';
+import { LinearGradient } from 'expo-linear-gradient';
 
 type MatchScoreDetailsCardProps = {
     title?: string;
@@ -18,105 +19,93 @@ const MatchScoreDetailsCard: React.FC<MatchScoreDetailsCardProps> = ({
     awayTeam,
     match,
 }) => {
-
     const setsArray = match.score?.split(',').map((s) => s.split('-')) || [];
     const [homeFinal, awayFinal] = match.set?.split('-') || ['0', '0'];
 
+    const homeSets = setsArray.map((set) => parseInt(set[0], 10));
+    const awaySets = setsArray.map((set) => parseInt(set[1], 10));
+
+    const TeamRow: React.FC<TeamRowProps> = ({ team, finalScore, sets, opponentSets, logo }) => {
+        return (
+            <View style={styles.teamRow}>
+                <View style={styles.colLogo}>
+                    <FastImage
+                        source={logo}
+                        style={styles.teamLogo}
+                        resizeMode="contain"
+                    />
+                </View>
+                <View style={styles.colName}>
+                    <Text
+                        style={styles.name}
+                        numberOfLines={1}
+                        ellipsizeMode="tail"
+                        adjustsFontSizeToFit
+                        minimumFontScale={0.8}
+                    >
+                        {team.short_name}
+                    </Text>
+                </View>
+                <View style={styles.colFinalScore}>
+                    <View style={styles.finalScoreBox}>
+                        <Text style={styles.finalScoreText}>{finalScore}</Text>
+                    </View>
+                </View>
+                {sets.map((setScore, idx) => {
+                    const isWinner = setScore > opponentSets[idx];
+                    return (
+                        <View style={styles.colSet} key={`set-${idx}`}>
+                            <Text style={[styles.setScore, isWinner && styles.highlightScore]}>
+                                {setScore}
+                            </Text>
+                        </View>
+                    );
+                })}
+            </View>
+        );
+    };
+
     return (
-        <View style={styles.container}>
+        <LinearGradient
+            colors={[colors.dark, colors.grey]}
+            start={{ x: 0, y: 2 }}
+            end={{ x: 0, y: 0 }}
+            style={styles.container}
+        >
             <Text style={styles.title}>{title}</Text>
 
-            {/* LIGNE ÉQUIPE HOME */}
-            <View style={styles.teamRow}>
-                {/* Colonne 1 : Logo */}
-                <View style={styles.colLogo}>
-                    <FastImage
-                        source={require('@/assets/clubs/paris_volley.png')}
-                        style={styles.teamLogo}
-                        resizeMode="contain"
-                    />
-                </View>
-
-                {/* Colonne 2 : Nom d’équipe (tronqué si trop long) */}
-                <View style={styles.colName}>
-                    <Text
-                        style={styles.name}
-                        numberOfLines={1}
-                        ellipsizeMode="tail"
-                    >
-                        {homeTeam.short_name}
-                    </Text>
-                </View>
-
-                {/* Colonne 3 : Score final (dans un cadre) */}
-                <View style={styles.colFinalScore}>
-                    <View style={styles.finalScoreBox}>
-                        <Text style={styles.finalScoreText}>{homeFinal}</Text>
-                    </View>
-                </View>
-
-                {/* Colonnes sets : autant de colonnes que nécessaire */}
-                {setsArray.map((setPair, idx) => {
-                    const homeSetScore = setPair[0]; // ex: "25"
-                    return (
-                        <View style={styles.colSet} key={`home-set-${idx}`}>
-                            <Text style={styles.setScore}>{homeSetScore}</Text>
-                        </View>
-                    );
-                })}
+            <View style={styles.teamsWrapper}>
+                <TeamRow
+                    team={homeTeam}
+                    finalScore={homeFinal}
+                    sets={homeSets}
+                    opponentSets={awaySets}
+                    logo={require('@/assets/clubs/paris_volley.png')}
+                />
+                <TeamRow
+                    team={awayTeam}
+                    finalScore={awayFinal}
+                    sets={awaySets}
+                    opponentSets={homeSets}
+                    logo={require('@/assets/clubs/as_cannes.png')}
+                />
             </View>
-
-            {/* LIGNE ÉQUIPE AWAY */}
-            <View style={styles.teamRow}>
-                {/* Colonne 1 : Logo */}
-                <View style={styles.colLogo}>
-                    <FastImage
-                        source={require('@/assets/clubs/as_cannes.png')}
-                        style={styles.teamLogo}
-                        resizeMode="contain"
-                    />
-                </View>
-
-                {/* Colonne 2 : Nom d’équipe */}
-                <View style={styles.colName}>
-                    <Text
-                        style={styles.name}
-                        numberOfLines={1}
-                        ellipsizeMode="tail"
-                    >
-                        {awayTeam.short_name}
-                    </Text>
-                </View>
-
-                {/* Colonne 3 : Score final */}
-                <View style={styles.colFinalScore}>
-                    <View style={styles.finalScoreBox}>
-                        <Text style={styles.finalScoreText}>{awayFinal}</Text>
-                    </View>
-                </View>
-
-                {/* Colonnes sets */}
-                {setsArray.map((setPair, idx) => {
-                    const awaySetScore = setPair[1]; // ex: "23"
-                    return (
-                        <View style={styles.colSet} key={`away-set-${idx}`}>
-                            <Text style={styles.setScore}>{awaySetScore}</Text>
-                        </View>
-                    );
-                })}
-            </View>
-        </View>
+        </LinearGradient>
     );
-}
+};
+
+type TeamRowProps = {
+    team: Team;
+    finalScore: string;
+    sets: number[];
+    opponentSets: number[];
+    logo: any;
+};
 
 const styles = StyleSheet.create({
     container: {
-        borderWidth: 2,
-        borderColor: colors.lightGrey,
         borderRadius: 12,
-        backgroundColor: colors.dark,
         padding: 16,
-        marginBottom: 16,
     },
     title: {
         fontSize: 18,
@@ -124,10 +113,13 @@ const styles = StyleSheet.create({
         color: colors.light,
         marginBottom: 12,
     },
+    teamsWrapper: {
+        flexDirection: 'column',
+        gap: 10,
+    },
     teamRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginVertical: 4,
     },
     colLogo: {
         width: 40,
@@ -157,11 +149,12 @@ const styles = StyleSheet.create({
     },
     name: {
         color: colors.light,
-        fontSize: 16,
+        fontWeight: '500',
+        fontSize: 14,
     },
     finalScoreBox: {
         borderWidth: 1,
-        borderColor: '#6C6C6C',
+        borderColor: colors.inactive,
         borderRadius: 6,
         paddingHorizontal: 10,
         paddingVertical: 4,
@@ -169,10 +162,15 @@ const styles = StyleSheet.create({
     finalScoreText: {
         color: colors.light,
         fontSize: 16,
+        fontWeight: '600',
     },
     setScore: {
-        color: colors.light,
+        color: colors.inactive,
         fontSize: 16,
+    },
+    highlightScore: {
+        fontWeight: '600',
+        color: colors.light,
     },
 });
 

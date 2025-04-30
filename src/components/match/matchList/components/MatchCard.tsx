@@ -4,7 +4,7 @@ import { Team } from "@/src/types/Team";
 
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
-import FastImage from 'react-native-fast-image'
+import FastImage from 'react-native-fast-image';
 
 type MatchCardProps = {
     match: Match;
@@ -21,13 +21,19 @@ const MatchCard: React.FC<MatchCardProps> = ({
     mainColor,
     secondColor,
 }) => {
+    const matchTime = match?.match_date
+        ? (() => {
+            const date = new Date(match.match_date);
+            const hours = date.getHours().toString().padStart(2, '0');
+            const minutes = date.getMinutes().toString().padStart(2, '0');
+            return `${hours}:${minutes}`;
+        })()
+        : "-";
 
     return (
-        <View style={{ ...styles.card, backgroundColor: secondColor }}>
-            {/* Équipe 1 */}
-            <View
-                style={{ ...styles.teamContainer, justifyContent: "flex-end" }}
-            >
+        <View style={[styles.card, { backgroundColor: secondColor }]}>
+            {/* Équipe A */}
+            <View style={[styles.teamContainer, styles.teamLeft]}>
                 <Text
                     style={styles.name}
                     numberOfLines={1}
@@ -44,36 +50,19 @@ const MatchCard: React.FC<MatchCardProps> = ({
                 />
             </View>
 
-            {/* Score */}
+            {/* Score ou Heure */}
             {match.status === MatchStatus.UPCOMING ? (
-                <View style={{ ...styles.timeBox, borderColor: mainColor }}>
-                    <Text style={styles.timeText}>
-                        {
-                            // Si match_date est défini, on formate l'heure, sinon on affiche "-"
-                            match?.match_date
-                                ? (() => {
-                                    const date = new Date(match.match_date);
-                                    const hours = date.getHours().toString().padStart(2, '0');
-                                    const minutes = date.getMinutes().toString().padStart(2, '0');
-                                    return `${hours}:${minutes}`;
-                                })()
-                                : "-"
-                        }
-                    </Text>
+                <View style={[styles.timeBox, { borderColor: mainColor }]}>
+                    <Text style={styles.timeText}>{matchTime}</Text>
                 </View>
             ) : (
-                <View style={{ ...styles.scoreBox, borderColor: mainColor }}>
+                <View style={[styles.scoreBox, { borderColor: mainColor }]}>
                     <Text style={styles.scoreText}>{match.set || "-"}</Text>
                 </View>
             )}
 
-            {/* Équipe 2 */}
-            <View
-                style={{
-                    ...styles.teamContainer,
-                    justifyContent: "flex-start",
-                }}
-            >
+            {/* Équipe B */}
+            <View style={[styles.teamContainer, styles.teamRight]}>
                 <FastImage
                     source={require("@/assets/clubs/as_cannes.png")}
                     style={styles.teamLogo}
@@ -84,18 +73,18 @@ const MatchCard: React.FC<MatchCardProps> = ({
                     numberOfLines={1}
                     ellipsizeMode="tail"
                     adjustsFontSizeToFit
-                    minimumFontScale={0.8}
+                    minimumFontScale={0.7}
                 >
                     {teamB?.short_name || "Équipe inconnue"}
                 </Text>
             </View>
         </View>
     );
-}
+};
 
 const styles = StyleSheet.create({
     card: {
-        padding: 12,
+        padding: 8,
         borderRadius: 10,
         flexDirection: "row",
         gap: 4,
@@ -105,9 +94,15 @@ const styles = StyleSheet.create({
         flex: 3,
         flexDirection: "row",
     },
+    teamLeft: {
+        justifyContent: "flex-end",
+    },
+    teamRight: {
+        justifyContent: "flex-start",
+    },
     name: {
         color: colors.active,
-        fontSize: 16,
+        fontSize: 14,
         fontWeight: "700",
         flex: 1,
         textAlign: "center",
@@ -123,7 +118,7 @@ const styles = StyleSheet.create({
         borderRadius: 8,
         flex: 1,
         justifyContent: "center",
-        paddingHorizontal: 8,
+        padding: 2,
     },
     timeBox: {
         alignItems: "center",

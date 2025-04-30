@@ -1,6 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import React, { useEffect, useState } from 'react';
+import { View, StyleSheet } from 'react-native';
 import TeamInfoCard from '@/src/components/team/TeamInfoCard';
 import TeamStatsCard from '@/src/components/team/TeamStatsCard';
 import { Team } from '@/src/types/Team';
@@ -18,20 +17,21 @@ type Props = {
 const TeamProfile: React.FC<Props> = ({ team }) => {
     const { customUser, refetch } = useUserContext();
     const [isProcessing, setIsProcessing] = useState(false);
-
     const [followersCount, setFollowersCount] = useState(team.followers_count);
+    const [isFollowing, setIsFollowing] = useState(false);
 
     useEffect(() => {
         setFollowersCount(team.followers_count);
     }, [team.followers_count]);
 
-    const initialIsFollowing = useMemo(() => {
-        if (!customUser || !customUser.favorites) return false;
-        const isFav = customUser.favorites.some((fav) => team && fav.entity_id === team.id && fav.entity_type === EntityType.TEAM);
-        return isFav;
-    }, [customUser, team]);
-
-    const [isFollowing, setIsFollowing] = useState(initialIsFollowing);
+    useEffect(() => {
+        if (customUser?.favorites) {
+            const isFav = customUser.favorites.some(
+                (fav) => fav.entity_id === team.id && fav.entity_type === EntityType.TEAM
+            );
+            setIsFollowing(isFav);
+        }
+    }, [customUser, team.id]);
 
     const handleFollowToggle = async () => {
         if (!customUser || isProcessing) return;
@@ -42,28 +42,31 @@ const TeamProfile: React.FC<Props> = ({ team }) => {
         setIsFollowing(newFollowState);
         setFollowersCount(newCount);
         setIsProcessing(true);
+
         try {
-            if (isFollowing) {
-                await UsersApi.getInstance().unfollow(EntityType.TEAM, team.id);
-            } else {
+            if (newFollowState) {
                 await UsersApi.getInstance().follow(EntityType.TEAM, team.id);
+            } else {
+                await UsersApi.getInstance().unfollow(EntityType.TEAM, team.id);
             }
             refetch();
         } catch (error) {
             console.error('Erreur follow/unfollow :', error);
+            setIsFollowing(!newFollowState); // rollback follow state
+            setFollowersCount(followersCount); // rollback followers count
         } finally {
             setIsProcessing(false);
         }
     };
 
     return (
-        <>
+        <View style={styles.container}>
             <TeamInfoCard team={team} />
 
-            <View style={{ position: 'absolute', right: 10, top: 5 }}>
+            <View style={styles.statsContainer}>
                 <TeamStatsCard team={team} />
             </View>
-            
+
             <View style={styles.actionsRow}>
                 <FollowButton
                     isFollowing={isFollowing}
@@ -72,11 +75,19 @@ const TeamProfile: React.FC<Props> = ({ team }) => {
                 />
                 <FollowersCounter count={followersCount} />
             </View>
-        </>
+        </View>
     );
 };
 
 const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+    },
+    statsContainer: {
+        position: 'absolute',
+        top: 5,
+        right: 10,
+    },
     actionsRow: {
         flexDirection: 'row',
         alignItems: 'center',

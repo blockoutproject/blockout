@@ -1,50 +1,53 @@
 import { colors } from "@/src/constants/Colors";
+import { useTeamById } from "@/src/hooks/team/useTeamById";
 import { Ionicons } from "@expo/vector-icons";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { Text, StyleSheet, TouchableOpacity, View } from "react-native";
-import { style } from "twrnc";
 
 const TeamHeader: React.FC = () => {
+    const { team_id } = useLocalSearchParams();
+    const teamId = Number(team_id);
+    const { data: team } = useTeamById(teamId);
+
     return (
-        <View
-            style={styles.container}
-        >
+        <View style={styles.container}>
             {/* Bouton Back */}
-            <View
-                style={{
-                    position: "absolute",
-                    left: 12,
-                }}
-            >
-                <TouchableOpacity onPress={() => router.back()}>
-                    <Ionicons
-                        name="arrow-back"
-                        size={25}
-                        color={colors.light}
-                    />
-                </TouchableOpacity>
-            </View>
+            <TouchableOpacity onPress={() => router.back()}>
+                <Ionicons
+                    name="arrow-back"
+                    size={25}
+                    color={colors.light}
+                />
+            </TouchableOpacity>
+
+            {/* Nom de l'équipe */}
             <Text
-                style={{
-                    color: colors.light,
-                    fontSize: 18,
-                    fontWeight: "600",
-                }}
+                style={styles.teamName}
+                numberOfLines={1}
+                ellipsizeMode="tail"
+                adjustsFontSizeToFit
+                minimumFontScale={0.8}
             >
-                AS Cannes - N2F
+                {team?.short_name || "Chargement..."}
             </Text>
         </View>
     );
-}
+};
 
 const styles = StyleSheet.create({
     container: {
+        flexDirection: 'row',
+        alignItems: 'center',
         backgroundColor: colors.dark,
-        flexDirection: "row",
-        alignItems: "center",
         paddingHorizontal: 12,
         paddingVertical: 15,
-        justifyContent: "center",
+    },
+    teamName: {
+        color: colors.light,
+        fontSize: 18,
+        fontWeight: "600",
+        marginHorizontal: 12,
+        flexShrink: 1,
     },
 });
 

@@ -11,12 +11,10 @@ import { colors } from "@/src/constants/Colors";
 import { useRouter } from "expo-router";
 import { useMatchesWithEntities } from "@/src/hooks/match/useMatchesWithEntities";
 import { MatchStatus } from "@/src/types/Match";
-import { Filter } from "@/src/types/Filter";
 import { formatDateFrenchLocale } from "@/src/utils/utils";
 import PoolItem from "./components/PoolItem";
 import * as Haptics from "expo-haptics";
-import type { EnrichedPoolMatchesDTO, PoolMatchesDTO } from "@/src/types/Match";
-import type { Pool } from "@/src/types/Pool";
+import type { EnrichedPoolMatchesDTO } from "@/src/types/Match";
 
 type MatchListTabProps = {
     poolIds?: number[];
@@ -81,18 +79,16 @@ const MatchListTab: React.FC<MatchListTabProps> = ({
         </View>
     );
 
-    const renderItem = ({ item, index }: { item: EnrichedPoolMatchesDTO; index: number }) => {
-        return (
-            <PoolItem
-                pool={item}
-                index={index}
-                handlePoolPress={handlePoolPress}
-                handleCardPress={handleCardPress}
-                mainLeagueColors={["#5a8d36", "#007d89", "#bf447d"]}
-                secondLeagueColors={["#2f362b", "#243335", "#3d3136"]}
-            />
-        );
-    };
+    const renderItem = ({ item, index }: { item: EnrichedPoolMatchesDTO; index: number }) => (
+        <PoolItem
+            pool={item}
+            index={index}
+            handlePoolPress={handlePoolPress}
+            handleCardPress={handleCardPress}
+            mainLeagueColors={["#5a8d36", "#007d89", "#bf447d"]}
+            secondLeagueColors={["#2f362b", "#243335", "#3d3136"]}
+        />
+    );
 
     if (isLoading) {
         return (
@@ -119,8 +115,8 @@ const MatchListTab: React.FC<MatchListTabProps> = ({
                 renderItem={renderItem}
                 onEndReached={handleLoadMore}
                 onEndReachedThreshold={0.3}
-                ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
-                SectionSeparatorComponent={() => <View style={{ height: 6 }} />}
+                ItemSeparatorComponent={() => <View style={styles.itemSeparator} />}
+                SectionSeparatorComponent={() => <View style={styles.sectionSeparator} />}
                 showsVerticalScrollIndicator={false}
                 refreshControl={
                     <RefreshControl
@@ -130,13 +126,11 @@ const MatchListTab: React.FC<MatchListTabProps> = ({
                     />
                 }
                 scrollEventThrottle={16}
-                contentContainerStyle={{ paddingHorizontal: 12 }}
+                contentContainerStyle={styles.contentContainer}
             />
         </View>
     );
 };
-
-export default MatchListTab;
 
 const styles = StyleSheet.create({
     container: {
@@ -149,10 +143,20 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         backgroundColor: colors.dark,
     },
+    contentContainer: {
+        paddingHorizontal: 12,
+        paddingBottom: 16,
+    },
+    itemSeparator: {
+        height: 16,
+    },
+    sectionSeparator: {
+        height: 6,
+    },
     dateContainer: {
         backgroundColor: colors.dark,
         paddingVertical: 8,
-        paddingStart: 8,
+        paddingLeft: 8,
     },
     dateHeader: {
         textAlign: "left",
@@ -162,7 +166,9 @@ const styles = StyleSheet.create({
     },
     errorText: {
         fontSize: 16,
-        color: "red",
+        color: colors.red,
         textAlign: "center",
     },
 });
+
+export default MatchListTab;

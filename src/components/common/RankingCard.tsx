@@ -2,40 +2,33 @@ import React from 'react';
 import { View, Text, ActivityIndicator, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
 import { colors } from '@/src/constants/Colors';
 import { useDetailedTeamsByPool } from '@/src/hooks/pool/useDetailedTeamsByPool';
-import FastImage from 'react-native-fast-image'
+import FastImage from 'react-native-fast-image';
 import { useRouter } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
 
 interface RankingCardProps {
     poolId: number;
     scrollable?: boolean;
 }
 
+const rankColors = {
+    first: '#cf9802',
+    second: '#bfbfbf',
+    third: '#bc702a',
+    last: '#e51b1b',
+    default: '#5d5d5d',
+};
+
 function getRankColor(rank: number, length: number): string {
-    switch (rank) {
-        case 1:
-            return '#cf9802';
-        case 2:
-            return '#bfbfbf';
-        case 3:
-            return '#bc702a';
-        case length:
-            return '#e51b1b';
-        default:
-            return '#5d5d5d';
-    }
+    if (rank === 1) return rankColors.first;
+    if (rank === 2) return rankColors.second;
+    if (rank === 3) return rankColors.third;
+    if (rank === length) return rankColors.last;
+    return rankColors.default;
 }
 
-function getRankBackground(rank: number, total: number, isEven: boolean): string {
-    const isRelegation = rank === total;
-
-
-    if (rank === 1) return '#1f1702'; // or sombre ++
-    if (rank === 2) return '#1c1c1c'; // argent sombre ++
-    if (rank === 3) return '#241a12'; // bronze sombre ++
-    if (isRelegation) return '#1c0909';
-
-    // Alternance 1 ligne sur 2
-    return isEven ? colors.dark : colors.grey; // gris moyen / gris foncé
+function getRankBackground(isEven: boolean): string {
+    return isEven ? colors.dark : 'transparent';
 }
 
 const RankingCard: React.FC<RankingCardProps> = ({ poolId, scrollable = true }) => {
@@ -64,12 +57,15 @@ const RankingCard: React.FC<RankingCardProps> = ({ poolId, scrollable = true }) 
     }
 
     return (
-        <View style={styles.container}>
-
+        <LinearGradient
+            colors={[colors.dark, colors.grey]}
+            start={{ x: 0, y: 2.5 }}
+            end={{ x: 0, y: 0 }}
+            style={styles.container}
+        >
             {/* HEADER */}
-            <View style={[styles.row, styles.headerRow]}>
-                {/* Barrette à gauche du header (on peut laisser transparent) */}
-                <View style={[styles.rankIndicator, { backgroundColor: 'transparent' }]} />
+            <View style={styles.headerRow}>
+                <View style={styles.transparentRankIndicator} />
                 <Text style={[styles.headerText, styles.rankCell]} numberOfLines={1}>#</Text>
                 <Text style={[styles.headerText, styles.teamCell]} numberOfLines={1}>Team</Text>
                 <Text style={[styles.headerText, styles.statCell]} numberOfLines={1}>MJ</Text>
@@ -81,11 +77,11 @@ const RankingCard: React.FC<RankingCardProps> = ({ poolId, scrollable = true }) 
             {/* LISTE DES ÉQUIPES */}
             <FlatList
                 data={teams.sort((a, b) =>
-                    b.points - a.points || // Tri par points
-                    a.points_penalty - b.points_penalty || // Tri par matchs joués
-                    b.wins - a.wins || // Tri par victoires
-                    b.coef_sets - a.coef_sets || // Tri par coef sets
-                    b.coef_points - a.coef_points // Tri par coef points
+                    b.points - a.points ||
+                    a.points_penalty - b.points_penalty ||
+                    b.wins - a.wins ||
+                    b.coef_sets - a.coef_sets ||
+                    b.coef_points - a.coef_points
                 )}
                 keyExtractor={(item) => item.id.toString()}
                 scrollEnabled={scrollable}
@@ -93,18 +89,15 @@ const RankingCard: React.FC<RankingCardProps> = ({ poolId, scrollable = true }) 
                 renderItem={({ item, index }) => {
                     const rank = index + 1;
                     const isEven = index % 2 === 0;
-                    const backgroundColor = getRankBackground(rank, teams.length, isEven);
 
                     return (
-                        <View style={[styles.row, { backgroundColor }]}>
-                            {/* Barre colorée à gauche */}
+                        <View style={[styles.row, { backgroundColor: getRankBackground(isEven) }]}>
                             <View
                                 style={[
                                     styles.rankIndicator,
                                     { backgroundColor: getRankColor(rank, teams.length) },
                                 ]}
                             />
-                            {/* Rang */}
                             <Text
                                 style={[styles.cell, styles.rankCell]}
                                 numberOfLines={1}
@@ -112,27 +105,25 @@ const RankingCard: React.FC<RankingCardProps> = ({ poolId, scrollable = true }) 
                             >
                                 {rank}
                             </Text>
-
-                            {/* Logo + Nom de l'équipe */}
-                            <TouchableOpacity style={[styles.teamCell, styles.teamContainer]} onPress={() => handleTeamPress(item.id)}>
-
-                                {/* Logo : remplace si besoin par un logo dynamique */}
+                            <TouchableOpacity
+                                style={[styles.teamCell, styles.teamContainer]}
+                                onPress={() => handleTeamPress(item.id)}
+                            >
                                 <FastImage
                                     source={require("@/assets/clubs/paris_volley.png")}
                                     style={styles.logo}
-                                    resizeMode='contain'
+                                    resizeMode="contain"
                                 />
                                 <Text
                                     style={styles.name}
                                     numberOfLines={1}
                                     ellipsizeMode="tail"
+                                    adjustsFontSizeToFit
+                                    minimumFontScale={0.9}
                                 >
                                     {item.short_name}
                                 </Text>
                             </TouchableOpacity>
-
-
-                            {/* MJ, V, D, PTS */}
                             <Text style={[styles.cell, styles.statCell]}>
                                 {item.played}
                             </Text>
@@ -149,36 +140,29 @@ const RankingCard: React.FC<RankingCardProps> = ({ poolId, scrollable = true }) 
                     );
                 }}
             />
-        </View>
+        </LinearGradient>
     );
 };
 
 const styles = StyleSheet.create({
     container: {
-        backgroundColor: colors.grey,
+        flex: 1,
+        padding: 8,
+        paddingTop: -8,
         borderRadius: 12,
-        borderWidth: 8,
-        borderTopWidth: -6,
-        borderColor: colors.grey,
-        overflow: 'hidden',
     },
     loadingText: {
         color: colors.light,
         marginTop: 8,
     },
     errorText: {
-        color: 'red',
+        color: colors.red,
     },
-
-    /** HEADER **/
     headerRow: {
-        backgroundColor: colors.grey,
-        height: 45,
+        height: 40,
         flexDirection: 'row',
         alignItems: 'center',
     },
-
-    /** LIGNES DU TABLEAU **/
     row: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -191,8 +175,13 @@ const styles = StyleSheet.create({
         borderRadius: 2,
         marginRight: 16,
     },
-
-    /** TEXTES **/
+    transparentRankIndicator: {
+        width: 5,
+        height: '85%',
+        borderRadius: 2,
+        marginRight: 16,
+        backgroundColor: 'transparent',
+    },
     headerText: {
         color: colors.light,
         fontSize: 14,
@@ -215,8 +204,6 @@ const styles = StyleSheet.create({
     statCell: {
         flex: 0.5,
     },
-
-    /** CONTENU DE LA COLONNE ÉQUIPE (logo + nom) **/
     teamContainer: {
         flexDirection: 'row',
         alignItems: 'center',

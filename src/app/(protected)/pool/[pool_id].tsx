@@ -5,11 +5,16 @@ import { usePoolById } from '@/src/hooks/pool/usePoolById';
 import PoolProfile from '@/src/components/pool/PoolProfile';
 import PoolTabs from '@/src/components/pool/PoolTabs';
 import { colors } from '@/src/constants/Colors';
+import MatchSkeleton from '@/src/components/match/MatchSkeleton';
 
 const PoolModalScreen: React.FC = () => {
     const { pool_id } = useLocalSearchParams();
     const poolId = Number(pool_id);
-    const { data: pool } = usePoolById(poolId);
+    const { data: pool, isLoading } = usePoolById(poolId);
+
+    if (isLoading) {
+        return <MatchSkeleton />;
+    }
 
     return (
         <View style={styles.container}>
