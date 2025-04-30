@@ -174,6 +174,9 @@ class RegionalScraper(Scraper):
                     raw_division_name = raw_division_tag.get_text(strip=True) if raw_division_tag else ""
 
                     standardized = standardize_division_name(raw_division_name, PoolDivisionCode.REG)
+                    
+                    if standardized is None:
+                        continue
 
                     pool_data = {
                         "pool_code": pool_code,
