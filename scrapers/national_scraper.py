@@ -83,7 +83,10 @@ class NationalScraper(Scraper):
                     raw_division_name = extract_national_division(pool_name)
 
                     # Standardisation
-                    standardized = standardize_division_name(raw_division_name, PoolDivisionCode.NAT, pool_code)
+                    standardized = standardize_division_name(raw_division_name, PoolDivisionCode.NAT)
+                    
+                    if standardized is None:
+                        continue
 
                     # Construction de l'objet Pool
                     pool_data = {
