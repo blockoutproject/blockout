@@ -38,7 +38,7 @@ const MatchScoreDetailsCard: React.FC<MatchScoreDetailsCardProps> = ({
                 <View style={styles.colName}>
                     <Text
                         style={styles.name}
-                        numberOfLines={1}
+                        numberOfLines={2}
                         ellipsizeMode="tail"
                         adjustsFontSizeToFit
                         minimumFontScale={0.8}
@@ -149,7 +149,7 @@ const styles = StyleSheet.create({
     },
     name: {
         color: colors.light,
-        fontWeight: '500',
+        fontWeight: '600',
         fontSize: 14,
     },
     finalScoreBox: {

@@ -1,7 +1,6 @@
 import { colors } from "@/src/constants/Colors";
 import { Match, MatchStatus } from "@/src/types/Match";
 import { Team } from "@/src/types/Team";
-
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 import FastImage from 'react-native-fast-image';
@@ -36,7 +35,7 @@ const MatchCard: React.FC<MatchCardProps> = ({
             <View style={[styles.teamContainer, styles.teamLeft]}>
                 <Text
                     style={styles.name}
-                    numberOfLines={1}
+                    numberOfLines={2}
                     ellipsizeMode="tail"
                     adjustsFontSizeToFit
                     minimumFontScale={0.8}
@@ -50,16 +49,16 @@ const MatchCard: React.FC<MatchCardProps> = ({
                 />
             </View>
 
-            {/* Score ou Heure */}
+            {/* Bloc central */}
+            <View style={[styles.centerBlock]}>
             {match.status === MatchStatus.UPCOMING ? (
-                <View style={[styles.timeBox, { borderColor: mainColor }]}>
-                    <Text style={styles.timeText}>{matchTime}</Text>
-                </View>
+                <Text style={styles.timeText}>{matchTime}</Text>
             ) : (
-                <View style={[styles.scoreBox, { borderColor: mainColor }]}>
+                <View style={[styles.centerFlow, { borderColor: mainColor }]}>
                     <Text style={styles.scoreText}>{match.set || "-"}</Text>
                 </View>
             )}
+            </View>
 
             {/* Équipe B */}
             <View style={[styles.teamContainer, styles.teamRight]}>
@@ -70,10 +69,10 @@ const MatchCard: React.FC<MatchCardProps> = ({
                 />
                 <Text
                     style={styles.name}
-                    numberOfLines={1}
+                    numberOfLines={2}
                     ellipsizeMode="tail"
                     adjustsFontSizeToFit
-                    minimumFontScale={0.7}
+                    minimumFontScale={0.8}
                 >
                     {teamB?.short_name || "Équipe inconnue"}
                 </Text>
@@ -84,10 +83,15 @@ const MatchCard: React.FC<MatchCardProps> = ({
 
 const styles = StyleSheet.create({
     card: {
-        padding: 8,
+        paddingVertical: 12,
+        paddingHorizontal: 8,
         borderRadius: 10,
         flexDirection: "row",
         gap: 4,
+    },
+    centerBlock: {
+        justifyContent: "center",
+        alignItems: "center",
     },
     teamContainer: {
         alignItems: "center",
@@ -102,7 +106,7 @@ const styles = StyleSheet.create({
     },
     name: {
         color: colors.active,
-        fontSize: 14,
+        fontSize: 16,
         fontWeight: "700",
         flex: 1,
         textAlign: "center",
@@ -111,32 +115,22 @@ const styles = StyleSheet.create({
         height: 35,
         width: 35,
     },
-    scoreBox: {
-        alignItems: "center",
-        backgroundColor: colors.dark,
+    centerFlow: {
         borderWidth: 2,
-        borderRadius: 8,
-        flex: 1,
-        justifyContent: "center",
-        padding: 2,
-    },
-    timeBox: {
-        alignItems: "center",
+        borderRadius: 10,
         backgroundColor: colors.dark,
-        borderWidth: 2,
-        borderRadius: 8,
-        flex: 1.5,
-        justifyContent: "center",
+        paddingVertical: 6,
+        paddingHorizontal: 10,
     },
     scoreText: {
-        color: colors.active,
+        color: colors.light,
         fontSize: 22,
-        fontWeight: "700",
+        fontWeight: '700',
     },
     timeText: {
         color: colors.light,
-        fontSize: 18,
-        fontWeight: "700",
+        fontSize: 22,
+        fontWeight: '600',
     },
 });
 
