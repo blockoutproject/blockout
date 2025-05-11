@@ -1,0 +1,39 @@
+server:
+  port: 8087
+
+spring:
+  application:
+    name: ${SPRING_APPLICATION_NAME:search}
+  
+  jackson:
+    property-naming-strategy: SNAKE_CASE
+
+  config:
+    import: optional:file:.env.local[.properties]
+    on-missing-location: fail
+
+  rabbitmq:
+    host: ${SPRING_RABBITMQ_HOST}
+    port: ${SPRING_RABBITMQ_PORT}
+    username: ${SPRING_RABBITMQ_USERNAME}
+    password: ${SPRING_RABBITMQ_PASSWORD}
+
+logging:
+  level:
+    root: ${LOGGING_LEVEL_ROOT:INFO}
+
+elasticsearch:
+  username: ${SPRING_ELASTICSEARCH_USERNAME}
+  password: ${SPRING_ELASTICSEARCH_PASSWORD}
+
+auth0:
+  domain: ${SPRING_AUTH0_DOMAIN}
+  client-id: ${SPRING_AUTH0_CLIENT_ID}
+  client-secret: ${SPRING_AUTH0_CLIENT_SECRET}
+  audience: ${SPRING_AUTH0_AUDIENCE}
+
+api:
+  club:
+    url: ${CLUB_API_URL}
+  team:
+    url: ${TEAM_API_URL}
