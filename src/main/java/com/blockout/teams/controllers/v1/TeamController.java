@@ -40,7 +40,7 @@ public class TeamController {
         return ResponseEntity.created(location).body(created);
     }
 
-    @Operation(summary = "List teams", description = "Returns teams. Optional filters: name, divisionName, format, gender, ids.")
+    @Operation(summary = "List teams", description = "Returns teams. Optional filters: name, divisionName, format, gender, clubId, ids.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Teams returned"),
             @ApiResponse(responseCode = "204", description = "No team found")
@@ -51,9 +51,10 @@ public class TeamController {
             @RequestParam(required = false, name = "division_name") String divisionName,
             @RequestParam(required = false) TeamFormat format,
             @RequestParam(required = false) TeamGender gender,
+            @RequestParam(required = false, name = "club_id") String clubId,
             @RequestParam(required = false) List<Long> ids) {
 
-        List<Team> teams = teamService.findTeams(name, divisionName, format, gender, ids);
+        List<Team> teams = teamService.findTeams(name, divisionName, format, gender, clubId, ids);
 
         if (teams.isEmpty()) {
             return ResponseEntity.noContent().build();

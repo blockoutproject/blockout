@@ -26,8 +26,10 @@ public class TeamService {
     private static final Logger logger = LoggerFactory.getLogger(TeamService.class);
 
     private final TeamRepository teamRepository;
+    private final EventPublisher eventPublisher;
 
-    public TeamService(TeamRepository teamRepository) {
+    public TeamService(TeamRepository teamRepository, EventPublisher eventPublisher) {
+        this.eventPublisher = eventPublisher;
         this.teamRepository = teamRepository;
     }
 
@@ -43,6 +45,10 @@ public class TeamService {
         logger.info("Team created successfully",
                 keyValue("action", "create_team"),
                 keyValue("teamId", createdTeam.getId()));
+
+        // Publier l'événement de création de l'équipe
+        eventPublisher.publishTeamUpsert(createdTeam);
+
         return createdTeam;
     }
 
@@ -60,6 +66,7 @@ public class TeamService {
             String divisionName,
             TeamFormat format,
             TeamGender gender,
+            String clubId,
             List<Long> ids) {
 
         List<Long> safeIds = (ids == null) ? Collections.emptyList() : ids;
@@ -69,6 +76,7 @@ public class TeamService {
                 divisionName,
                 format,
                 gender,
+                clubId,
                 safeIds,
                 safeIds.size());
 
@@ -155,7 +163,12 @@ public class TeamService {
 
             Team savedTeam = teamRepository.save(team);
 
-            DiffUtils.logChanges(before, savedTeam, logger, "update_team", savedTeam.getId());
+            DiffUtils.logChanges(before, savedTeam, logger,
+                    "update_team", savedTeam.getId());
+
+            // Publier l'événement de mise à jour de l'équipe
+            eventPublisher.publishTeamUpsert(savedTeam);
+                    
             return savedTeam;
         });
     }

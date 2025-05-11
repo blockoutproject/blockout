@@ -2,9 +2,9 @@ package com.blockout.teams.listeners;
 
 import com.blockout.teams.config.RabbitMQConfig;
 import com.blockout.teams.models.EntityType;
-import com.blockout.shared.events.ClubDeactivatedEvent;
-import com.blockout.shared.events.TeamDeactivatedEvent;
-import com.blockout.shared.events.UserFollowEvent;
+import com.blockout.teams.models.events.ClubDeactivatedEvent;
+import com.blockout.teams.models.events.TeamDeactivatedEvent;
+import com.blockout.teams.models.events.UserFollowEvent;
 import com.blockout.teams.services.TeamService;
 
 import org.slf4j.Logger;

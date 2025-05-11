@@ -1,0 +1,53 @@
+package com.blockout.teams.services;
+
+import com.blockout.teams.config.RabbitMQConfig;
+import com.blockout.teams.models.Team;
+import com.blockout.teams.models.events.TeamUpsertEvent;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.amqp.AmqpException;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.stereotype.Service;
+
+import static net.logstash.logback.argument.StructuredArguments.keyValue;
+
+@Service
+public class EventPublisher {
+
+    private static final Logger logger = LoggerFactory.getLogger(EventPublisher.class);
+
+    private final RabbitTemplate rabbitTemplate;
+
+    public EventPublisher(RabbitTemplate rabbitTemplate) {
+        this.rabbitTemplate = rabbitTemplate;
+    }
+
+    /** Créé ou MAJ → même méthode */
+    public void publishTeamUpsert(Team team) {
+
+        TeamUpsertEvent event = TeamUpsertEvent.builder()
+                .teamId(team.getId())
+                .name(team.getName())
+                .clubId(team.getClubId())
+                .divisionName(team.getDivisionName())
+                .format(team.getFormat())
+                .gender(team.getGender())
+                .build();
+
+        try {
+            rabbitTemplate.convertAndSend(
+                    RabbitMQConfig.ENTITY_LIFECYCLE_EXCHANGE,
+                    "team.upsert",
+                    event);
+
+            logger.info("Team upsert event sent",
+                    keyValue("action", "publish_team_upsert"),
+                    keyValue("teamId", team.getId()));
+
+        } catch (AmqpException ex) {
+            logger.error("Failed to publish team event",
+                    keyValue("teamId", team.getId()), ex);
+            throw ex;    // retry / DLQ si besoin
+        }
+    }
+}
