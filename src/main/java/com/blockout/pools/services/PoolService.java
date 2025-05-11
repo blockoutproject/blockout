@@ -22,8 +22,10 @@ public class PoolService {
     private static final Logger logger = LoggerFactory.getLogger(PoolService.class);
 
     private final PoolRepository poolRepository;
+    private final EventPublisher eventPublisher;
 
-    public PoolService(PoolRepository poolRepository) {
+    public PoolService(PoolRepository poolRepository, EventPublisher eventPublisher) {
+        this.eventPublisher = eventPublisher;
         this.poolRepository = poolRepository;
     }
 
@@ -39,6 +41,10 @@ public class PoolService {
         logger.info("Pool created successfully",
                 keyValue("action", "create_pool"),
                 keyValue("poolId", createdPool.getId()));
+
+        // Publier l'événement de création de la pool
+        eventPublisher.publishPoolUpsert(createdPool);
+
         return createdPool;
     }
 
@@ -129,6 +135,10 @@ public class PoolService {
 
             DiffUtils.logChanges(before, savedPool, logger,
                     "update_pool", savedPool.getId());
+
+            // Publier l'événement de mise à jour de la pool
+            eventPublisher.publishPoolUpsert(savedPool);
+                    
             return savedPool;
         });
     }

@@ -2,9 +2,9 @@ package com.blockout.pools.listeners;
 
 import com.blockout.pools.config.RabbitMQConfig;
 import com.blockout.pools.models.EntityType;
+import com.blockout.pools.models.events.PoolDeactivatedEvent;
+import com.blockout.pools.models.events.UserFollowEvent;
 import com.blockout.pools.services.PoolService;
-import com.blockout.shared.events.PoolDeactivatedEvent;
-import com.blockout.shared.events.UserFollowEvent;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

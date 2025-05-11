@@ -1,6 +1,4 @@
-package com.blockout.shared.events;
-
-import java.io.Serializable;
+package com.blockout.pools.models.events;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -11,6 +9,9 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class PoolDeactivatedEvent implements Serializable {
+public class PoolUpsertEvent {
     private Long poolId;
+    private String name;
+    private String divisionName;
+    private String poolName;
 }
