@@ -1,10 +1,10 @@
 package com.blockout.competitions.services;
 
-import com.blockout.shared.events.ClubDeactivatedEvent;
-import com.blockout.shared.events.PoolDeactivatedEvent;
-import com.blockout.shared.events.TeamDeactivatedByPoolEvent;
-import com.blockout.shared.events.TeamDeactivatedEvent;
 import com.blockout.competitions.config.RabbitMQConfig;
+import com.blockout.competitions.models.events.ClubDeactivatedEvent;
+import com.blockout.competitions.models.events.PoolDeactivatedEvent;
+import com.blockout.competitions.models.events.TeamDeactivatedByPoolEvent;
+import com.blockout.competitions.models.events.TeamDeactivatedEvent;
 
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Service;

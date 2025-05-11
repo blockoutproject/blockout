@@ -1,4 +1,4 @@
-package com.blockout.shared.events;
+package com.blockout.competitions.models.events;
 
 import java.io.Serializable;
 
@@ -11,7 +11,6 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class TeamDeactivatedByPoolEvent implements Serializable {
+public class TeamDeactivatedEvent implements Serializable {
     private Long teamId;
-    private Long poolId;
 }

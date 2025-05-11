@@ -1,4 +1,4 @@
-package com.blockout.shared.events;
+package com.blockout.competitions.models.events;
 
 import java.io.Serializable;
 
