@@ -1,8 +1,9 @@
 package com.blockout.matches.listeners;
 
 import com.blockout.matches.services.MatchService;
-import com.blockout.shared.events.TeamDeactivatedByPoolEvent;
 import com.blockout.matches.config.RabbitMQConfig;
+import com.blockout.matches.models.events.TeamDeactivatedByPoolEvent;
+
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
 
