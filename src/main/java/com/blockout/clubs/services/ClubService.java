@@ -5,6 +5,8 @@ import com.blockout.clubs.models.Club;
 import com.blockout.clubs.repositories.ClubRepository;
 import com.blockout.clubs.utils.DiffUtils;
 
+import lombok.RequiredArgsConstructor;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -16,17 +18,13 @@ import java.util.List;
 import java.util.Optional;
 
 @Service
+@RequiredArgsConstructor
 public class ClubService {
 
     private static final Logger logger = LoggerFactory.getLogger(ClubService.class);
 
     private final ClubRepository clubRepository;
     private final EventPublisher eventPublisher;
-
-    public ClubService(ClubRepository clubRepository, EventPublisher eventPublisher) {
-        this.eventPublisher = eventPublisher;
-        this.clubRepository = clubRepository;
-    }
 
     /**
      * Récupère tous les clubs

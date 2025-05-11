@@ -5,6 +5,8 @@ import com.blockout.clubs.services.ClubService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import lombok.RequiredArgsConstructor;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
@@ -14,14 +16,11 @@ import java.util.List;
 import java.util.Optional;
 
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/api/v1/clubs")
 public class ClubController {
 
     private final ClubService clubService;
-
-    public ClubController(ClubService clubService) {
-        this.clubService = clubService;
-    }
 
     @Operation(summary = "List clubs", description = "Returns all clubs.")
     @ApiResponses({
