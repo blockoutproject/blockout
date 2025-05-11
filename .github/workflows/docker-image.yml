@@ -22,7 +22,7 @@ jobs:
         with:
           context: .
           push: true
-          tags: blockoutproject/blockout-api-search:latest
+          tags: blockoutproject/blockout-worker-search:latest
 
   deploy:
     needs: build_and_push
@@ -37,8 +37,8 @@ jobs:
           port: ${{ secrets.VPS_PORT }}
           script: |
             cd ~/blockout/docker
-            sudo docker compose pull blockout-api-search
-            sudo docker compose up -d --no-deps blockout-api-search
+            sudo docker compose pull blockout-worker-search
+            sudo docker compose up -d --no-deps blockout-worker-search
 
       - name: Discord Notification
         if: success()
@@ -47,7 +47,7 @@ jobs:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
         with:
           args: |
-            ✅ **Le déploiement de blockout-api-search a réussi !**
+            ✅ **Le déploiement de blockout-worker-search a réussi !**
             Le déploiement sur le VPS a été effectué avec succès.
 
       - name: Discord Notification on Failure
@@ -57,5 +57,5 @@ jobs:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
         with:
           args: |
-            ❌ **Le déploiement de blockout-api-search a échoué !**
+            ❌ **Le déploiement de blockout-worker-search a échoué !**
             Le déploiement sur le VPS a rencontré une erreur.

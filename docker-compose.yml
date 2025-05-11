@@ -1,5 +1,5 @@
 services:
-  blockout-api-search:
+  blockout-worker-search:
     build: .
     ports:
       - ${SERVER_PORT}:8087
