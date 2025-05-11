@@ -3,9 +3,9 @@ package com.blockout.users.services;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Service;
 
-import com.blockout.shared.events.UserFollowEvent;
 import com.blockout.users.config.RabbitMQConfig;
 import com.blockout.users.models.EntityType;
+import com.blockout.users.models.events.UserFollowEvent;
 
 @Service
 public class EventPublisher {
