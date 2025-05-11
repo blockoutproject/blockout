@@ -21,8 +21,10 @@ public class ClubService {
     private static final Logger logger = LoggerFactory.getLogger(ClubService.class);
 
     private final ClubRepository clubRepository;
+    private final EventPublisher eventPublisher;
 
-    public ClubService(ClubRepository clubRepository) {
+    public ClubService(ClubRepository clubRepository, EventPublisher eventPublisher) {
+        this.eventPublisher = eventPublisher;
         this.clubRepository = clubRepository;
     }
 
@@ -48,13 +50,17 @@ public class ClubService {
         logger.info("Club created successfully",
                 keyValue("action", "create_club"),
                 keyValue("clubId", createdClub.getId()));
+
+        // Publie l'événement de création de club
+        eventPublisher.publishClubUpsert(createdClub);
+
         return createdClub;
     }
 
     /**
      * Met à jour un club existant
      *
-     * @param id          L'identifiant du club à mettre à jour
+     * @param id L'identifiant du club à mettre à jour
      * @param updatedClub Les nouvelles données du club
      * @return Le club mis à jour
      * @throws ClubNotFoundException Si le club n'existe pas
@@ -83,6 +89,10 @@ public class ClubService {
 
             DiffUtils.logChanges(before, savedClub, logger,
                     "update_club", savedClub.getId());
+
+            // Publisher l'événement de mise à jour de club
+            eventPublisher.publishClubUpsert(savedClub);
+                    
             return savedClub;
         });
     }

@@ -1,7 +1,7 @@
 package com.blockout.clubs.listeners;
 
 import com.blockout.clubs.config.RabbitMQConfig;
-import com.blockout.shared.events.ClubDeactivatedEvent;
+import com.blockout.clubs.models.events.ClubDeactivatedEvent;
 import com.blockout.clubs.services.ClubService;
 
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
