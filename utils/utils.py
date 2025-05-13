@@ -50,18 +50,18 @@ def extract_season_from_url(url: str) -> Optional[str]:
         )
         raise
 
-def extract_national_division(pool_name: str) -> str:
+def extract_national_division(name: str) -> str:
     """
     Extrait la division nationale du nom de la poule.
     """
     try:
-        division_name = pool_name.split('Poule')[0].strip()
+        division_name = name.split('Poule')[0].strip()
         return division_name
     except Exception as e:
         log_event(
             action="extract_national_division",
             level="error",
-            message=f"Erreur inattendue lors de l'extraction de la division pour '{pool_name}'",
+            message=f"Erreur inattendue lors de l'extraction de la division pour '{name}'",
             error=str(e)
         )
         raise
