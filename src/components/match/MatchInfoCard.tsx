@@ -72,7 +72,7 @@ const MatchInfoCard: React.FC<MatchInfoCardProps> = ({
                             adjustsFontSizeToFit
                             minimumFontScale={0.8}
                         >
-                            {pool.pool_name ?? 'Chargement...'}
+                            {pool.name ?? 'Chargement...'}
                         </Text>
                     </View>
                 </TouchableOpacity>

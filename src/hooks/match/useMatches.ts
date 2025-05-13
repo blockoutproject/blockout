@@ -27,9 +27,9 @@ export const useMatches = (
                 status,
             }),
         initialPageParam: 0,
-        getNextPageParam: lastPage => lastPage.next_page,
+        getNextPageParam: lastPage => lastPage.nextPage,
         select: data => {
-            const dayMatches: DayMatchesDTO[] = data.pages.flatMap(page => page.day_matches);
+            const dayMatches: DayMatchesDTO[] = data.pages.flatMap(page => page.dayMatches);
             const matches = dayMatches.flatMap(dm =>
                 dm.pools.flatMap(p => p.matches)
             );

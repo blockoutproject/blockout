@@ -16,17 +16,17 @@ type PoolProfileProps = {
 const PoolProfile: React.FC<PoolProfileProps> = ({ pool }) => {
     const { customUser, refetch } = useUserContext();
     const [isProcessing, setIsProcessing] = useState(false);
-    const [followersCount, setFollowersCount] = useState(pool.followers_count);
+    const [followersCount, setFollowersCount] = useState(pool.followersCount);
     const [isFollowing, setIsFollowing] = useState(false);
 
     useEffect(() => {
-        setFollowersCount(pool.followers_count);
-    }, [pool.followers_count]);
+        setFollowersCount(pool.followersCount);
+    }, [pool.followersCount]);
 
     useEffect(() => {
         if (customUser?.favorites) {
             const isFav = customUser.favorites.some(
-                (fav) => fav.entity_id === pool.id && fav.entity_type === EntityType.POOL
+                (fav) => fav.entityId === pool.id && fav.entityType === EntityType.POOL
             );
             setIsFollowing(isFav);
         }
@@ -73,7 +73,7 @@ const PoolProfile: React.FC<PoolProfileProps> = ({ pool }) => {
                     adjustsFontSizeToFit
                     minimumFontScale={0.8}
                 >
-                    {pool.pool_name}
+                    {pool.name}
                 </Text>
                 <Text style={styles.leagueLink}>ligue-b-masculine.com</Text>
 

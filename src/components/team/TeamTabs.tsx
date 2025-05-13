@@ -29,7 +29,7 @@ const TeamTabs: React.FC<TeamTabsProps> = ({ pools, team }) => {
 
     const dynamicTabs = pools.map((pool) => ({
         key: `pool-${pool.id}`,
-        title: `${pool.pool_name}`,
+        title: `${pool.name}`,
         render: () => <RankingTab key={pool.id} poolId={pool.id} />,
     }));
 

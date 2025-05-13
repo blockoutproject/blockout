@@ -15,20 +15,20 @@ export interface CustomUser {
     auth0_id: string;
     email: string;
     pseudo: string;
-    first_name?: string;
-    last_name?: string;
-    picture_url?: string;
-    phone_number?: string;
+    firstName?: string;
+    lastName?: string;
+    pictureUrl?: string;
+    phoneNumber?: string;
     role: UserRole;
     favorites?: UserFavorite[];
     active: boolean;
-    created_at: string;
-    last_update: string;
+    createdAt: string;
+    lastUpdate: string;
 }
 
 export interface UserFavorite {
-    entity_type: EntityType;
-    entity_id: number;
+    entityType: EntityType;
+    entityId: number;
 }
 
 export interface UserRegistrationRequest {

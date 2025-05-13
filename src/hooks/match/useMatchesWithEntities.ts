@@ -26,12 +26,12 @@ export const useMatchesWithEntities = (
     const allMatches = matches;
 
     const teamIds = useMemo(() => {
-        return [...new Set(allMatches.flatMap(m => [m.team_id_a, m.team_id_b]))];
+        return [...new Set(allMatches.flatMap(m => [m.teamIdA, m.teamIdB]))];
     }, [allMatches]);
 
     const poolIds = useMemo(() => {
         return [...new Set(dayMatches.flatMap(day =>
-            day.pools.map(pool => pool.pool_id)
+            day.pools.map(pool => pool.poolId)
         ))];
     }, [dayMatches]);
 
@@ -43,11 +43,11 @@ export const useMatchesWithEntities = (
             ...day,
             pools: day.pools.map(pool => ({
                 ...pool,
-                poolData: poolsMap[pool.pool_id],
+                poolData: poolsMap[pool.poolId],
                 matches: pool.matches.map(match => ({
                     ...match,
-                    teamA: teamsMap[match.team_id_a],
-                    teamB: teamsMap[match.team_id_b],
+                    teamA: teamsMap[match.teamIdA],
+                    teamB: teamsMap[match.teamIdB],
                 })),
             })),
         }));

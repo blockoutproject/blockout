@@ -1,5 +1,10 @@
-import axios, { AxiosError, AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
+import axios, {
+    AxiosError,
+    AxiosInstance,
+    AxiosRequestConfig,
+} from 'axios';
 import axiosRetry from 'axios-retry';
+import applyCaseMiddleware from 'axios-case-converter'; // 👈 ajoute ça
 
 // Erreur métier enrichie
 export class ApiError extends Error {
@@ -19,15 +24,22 @@ export default abstract class AbstractApi {
 
     protected constructor(url: string, token: string, timeout: number = 60000) {
         if (new.target === AbstractApi) {
-            throw new TypeError('Abstract class "AbstractApi" cannot be instantiated directly');
+            throw new TypeError(
+                'Abstract class "AbstractApi" cannot be instantiated directly'
+            );
         }
 
-        this.service = axios.create({
+        // Applique le middleware de case conversion
+        const baseAxios = axios.create({
             baseURL: url,
             timeout: timeout,
             headers: {
                 Authorization: `Bearer ${token}`,
             },
+        });
+
+        this.service = applyCaseMiddleware(baseAxios, {
+            ignoreHeaders: true, // headers comme Authorization ne sont pas modifiés
         });
 
         // Retry en cas d’erreur réseau/transitoire
@@ -36,13 +48,13 @@ export default abstract class AbstractApi {
             retryDelay: axiosRetry.exponentialDelay,
         });
 
-        // Intercepteur pour injecter la config de requête
+        // Intercepteur requête
         this.service.interceptors.request.use(
             config => config,
             error => Promise.reject(error)
         );
 
-        // Intercepteur pour capturer et transformer les erreurs
+        // Intercepteur réponse
         this.service.interceptors.response.use(
             response => response,
             this.handleError.bind(this)
@@ -59,9 +71,7 @@ export default abstract class AbstractApi {
     private handleError(error: AxiosError): Promise<never> {
         if (error.response) {
             const status = error.response.status;
-            // On force le typage de data en any pour accéder à message
             const data = error.response.data as any;
-            console.log(error.response)
             const message =
                 data?.message ??
                 error.response.statusText ??

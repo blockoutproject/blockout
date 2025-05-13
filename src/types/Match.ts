@@ -8,25 +8,25 @@ export enum MatchStatus {
 
 export interface Match {
     id: number;
-    match_code: string;
-    league_code: string;
-    pool_id: number;
-    team_id_a: number;
-    team_id_b: number;
-    match_date: string;
+    matchCode: string;
+    leagueCode: string;
+    poolId: number;
+    teamIdA: number;
+    teamIdB: number;
+    matchDate: string;
     status: MatchStatus;
     set?: string;
     score?: string;
     venue?: string;
     referee1?: string;
     referee2?: string;
-    live_code?: number;
-    last_update: string;
+    liveCode?: number;
+    lastUpdate: string;
     active: boolean;
 }
 
 export interface PoolMatchesDTO {
-    pool_id: number;
+    poolId: number;
     matches: Match[];
 }
 
@@ -36,9 +36,9 @@ export interface DayMatchesDTO {
 }
 
 export interface DayPageDTO {
-    day_matches: DayMatchesDTO[];
-    has_next: boolean;
-    next_page: number | null;
+    dayMatches: DayMatchesDTO[];
+    hasNext: boolean;
+    nextPage: number | null;
 }
 
 export interface EnrichedMatch extends Match {

@@ -37,15 +37,15 @@ const HomeScreen: React.FC = () => {
     // On récupère les ids des poules favorites de l'utilisateur
     const userFavoritePools = useMemo(() => {
         return customUser.favorites
-            ?.filter(fav => fav.entity_type === EntityType.POOL)
-            .map(fav => fav.entity_id) || [];
+            ?.filter(fav => fav.entityType === EntityType.POOL)
+            .map(fav => fav.entityId) || [];
     }, [customUser.favorites]);
 
     // On récupère les ids des équipes favorites de l'utilisateur
     const userFavoriteTeams = useMemo(() => {
         return customUser.favorites
-            ?.filter(fav => fav.entity_type === EntityType.TEAM)
-            .map(fav => fav.entity_id) || [];
+            ?.filter(fav => fav.entityType === EntityType.TEAM)
+            .map(fav => fav.entityId) || [];
     }, [customUser.favorites]);
 
     const [filters, setFilters] = useState<Filter[]>([

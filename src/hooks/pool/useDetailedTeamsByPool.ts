@@ -11,7 +11,7 @@ export const useDetailedTeamsByPool = (poolId: number) => {
         isError: isErrorPoolTeams,
     } = useTeamsAssocByPool(poolId);
 
-    const teamIds = poolTeams?.map(({ team_id }) => team_id) ?? [];
+    const teamIds = poolTeams?.map(({ teamId }) => teamId) ?? [];
 
     const {
         entitiesMap: teamsMap,
@@ -23,7 +23,7 @@ export const useDetailedTeamsByPool = (poolId: number) => {
         if (!poolTeams) return [];
         return poolTeams
             .map((assoc) => {
-                const team = teamsMap[assoc.team_id];
+                const team = teamsMap[assoc.teamId];
                 if (!team) return null;
                 return {
                     ...team,
@@ -31,9 +31,9 @@ export const useDetailedTeamsByPool = (poolId: number) => {
                     wins: assoc.wins,
                     losses: assoc.losses,
                     played: assoc.played,
-                    points_penalty: assoc.points_penalty,
-                    coef_points: assoc.coef_points,
-                    coef_sets: assoc.coef_sets,
+                    pointsPenalty: assoc.pointsPenalty,
+                    coefPoints: assoc.coefPoints,
+                    coefSets: assoc.coefSets,
                 };
             })
             .filter((t): t is TeamWithPoints => t !== null);

@@ -10,7 +10,7 @@ const PoolLayout: React.FC = () => {
                 header: () => <PoolHeader />,
             }}
         >
-            <Stack.Screen name="[pool_id]" />
+            <Stack.Screen name="[poolId]" />
         </Stack>
     );
 }

@@ -17,17 +17,17 @@ export enum EnumPoolFormat {
 
 export interface Pool {
     id: number;
-    pool_code: string;
-    league_code: string;
+    poolCode: string;
+    leagueCode: string;
     season: number;
     division_code: EnumPoolDivisionCode;
     gender: EnumPoolGender;
     format: EnumPoolFormat;
-    league_name?: string;
-    pool_name?: string;
-    division_name?: string;
-    raw_division_name?: string;
-    followers_count: number;
-    last_update: string;
+    leagueName?: string;
+    name?: string;
+    divisionName?: string;
+    rawDivisionName?: string;
+    followersCount: number;
+    lastUpdate: string;
     active: boolean;
 }

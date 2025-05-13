@@ -52,8 +52,8 @@ class MatchesApi extends AbstractApi {
     }): Promise<DayPageDTO> {
         const params: Record<string, number | number[] | MatchStatus> = { page, size };
 
-        if (poolIds.length) params.pool_ids = poolIds;
-        if (teamIds.length) params.team_ids = teamIds;
+        if (poolIds.length) params.poolIds = poolIds;
+        if (teamIds.length) params.teamIds = teamIds;
         if (status !== undefined) params.status = status;
 
         try {
@@ -66,9 +66,9 @@ class MatchesApi extends AbstractApi {
             if (error instanceof ApiError && error.status === 404) {
                 // Retourne une page vide si aucune donnée
                 return {
-                    day_matches: [],
-                    has_next: false,
-                    next_page: 0
+                    dayMatches: [],
+                    hasNext: false,
+                    nextPage: 0
                 } as DayPageDTO;
             }
             throw error;

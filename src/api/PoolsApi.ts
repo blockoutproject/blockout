@@ -47,7 +47,6 @@ class PoolsApi extends AbstractApi {
     /** Récupère une poule par son identifiant */
     public async getPoolById(id: number): Promise<Pool | null> {
         try {
-            console.log('--------- getPoolById', id);
             return await this.request<Pool>({
                 method: 'get',
                 url: `/${id}`
@@ -65,8 +64,6 @@ class PoolsApi extends AbstractApi {
      * @param ids tableau d’identifiants
      */
         public async getPoolsByIds(ids: number[]): Promise<Pool[]> {
-            console.log('--------- getPoolByIds', ids);
-
             if (ids.length === 0) {
                 throw new Error('La liste d’IDs ne peut pas être vide.');
             }

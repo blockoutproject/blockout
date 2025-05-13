@@ -11,7 +11,7 @@ const TeamLayout: React.FC = () => {
                 header: () => <TeamHeader />,
             }}
         >
-            <Stack.Screen name="[team_id]" />
+            <Stack.Screen name="[teamId]" />
         </Stack>
     );
 }

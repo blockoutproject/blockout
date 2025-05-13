@@ -10,7 +10,7 @@ const MatchLayout: React.FC = () =>{
                 header: () => <MatchHeader />,
             }}
         >
-            <Stack.Screen name="[match_id]" />
+            <Stack.Screen name="[matchId]" />
         </Stack>
     );
 }

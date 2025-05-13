@@ -7,9 +7,9 @@ import type { Match } from '@/src/types/Match'
 export function useMatchById(matchId: number) {
     const matchQuery = useEntityById<Match>('match', id => MatchesApi.getInstance().getMatchById(id), matchId)
 
-    const teamAQuery = useTeamById(matchQuery.data?.team_id_a)
-    const teamBQuery = useTeamById(matchQuery.data?.team_id_b)
-    const poolQuery = usePoolById(matchQuery.data?.pool_id)
+    const teamAQuery = useTeamById(matchQuery.data?.teamIdA)
+    const teamBQuery = useTeamById(matchQuery.data?.teamIdB)
+    const poolQuery = usePoolById(matchQuery.data?.poolId)
 
     return {
         match: matchQuery.data,

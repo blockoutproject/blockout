@@ -46,7 +46,7 @@ const PoolItem: React.FC<PoolItemProps> = ({
                         adjustsFontSizeToFit
                         minimumFontScale={0.9}
                     >
-                        {pool.poolData?.pool_name ?? "Chargement..."}
+                        {pool.poolData?.name ?? "Chargement..."}
                     </Text>
                 </View>
             </TouchableOpacity>

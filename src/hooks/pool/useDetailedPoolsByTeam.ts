@@ -11,7 +11,7 @@ export const useDetailedPoolsByTeam = (teamId: number) => {
         isError: isPoolsAssocError,
     } = usePoolsAssocByTeam(teamId);
 
-    const poolIds = poolsAssoc?.map(({ pool_id }) => pool_id) ?? [];
+    const poolIds = poolsAssoc?.map(({ poolId }) => poolId) ?? [];
 
     const {
         entitiesMap: poolsMap,
@@ -22,7 +22,7 @@ export const useDetailedPoolsByTeam = (teamId: number) => {
     const pools = useMemo<Pool[]>(() => {
         if (!poolsAssoc) return [];
         return poolsAssoc
-            .map(({ pool_id }) => poolsMap[pool_id])
+            .map(({ poolId }) => poolsMap[poolId])
             .filter((p): p is Pool => p !== undefined);
     }, [poolsAssoc, poolsMap]);
 

@@ -39,7 +39,7 @@ const MatchHeader: React.FC = () => {
                     adjustsFontSizeToFit
                     minimumFontScale={0.9}
                 >
-                    {pool ? pool.pool_name : 'Chargement...'}
+                    {pool ? pool.name : 'Chargement...'}
                 </Text>
             </TouchableOpacity>
 

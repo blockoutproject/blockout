@@ -29,7 +29,7 @@ const PoolHeader: React.FC = () => {
                     numberOfLines={1}
                     ellipsizeMode="tail"
                 >
-                    {pool ? pool.pool_name : "Chargement..."}
+                    {pool ? pool.name : "Chargement..."}
                 </Text>
             </View>
         </View>

@@ -11,16 +11,16 @@ export enum EnumTeamGender {
 
 export interface Team {
     id: number;
-    club_id: string;
-    pool_id: number;
+    clubId: string;
+    poolId: number;
     name: string;
-    short_name: string;
-    league_code: string;
-    division_name: string;
+    shortName: string;
+    leagueCode: string;
+    divisionName: string;
     format: EnumTeamFormat;
     gender: EnumTeamGender;
-    followers_count: number;
-    last_update: string;
+    followersCount: number;
+    lastUpdate: string;
     active: boolean;
 }
 
@@ -29,7 +29,7 @@ export interface TeamWithPoints extends Team {
     wins: number;
     losses: number;
     played: number;
-    points_penalty: number;
-    coef_points: number;
-    coef_sets: number;
+    pointsPenalty: number;
+    coefPoints: number;
+    coefSets: number;
 }

@@ -42,7 +42,7 @@ class CompetitionsApi extends AbstractApi {
             return await this.request<CompetitionAssociation[]>({
                 method: 'get',
                 url: `/pools/${poolId}/teams`,
-                params: activeOnly ? { active_only: true } : undefined,
+                params: activeOnly ? { activeOnly: true } : undefined,
             });
         } catch (error) {
             if (error instanceof ApiError && error.status === 404) {

@@ -51,11 +51,11 @@ const MatchModalScreen: React.FC = () => {
                     showsVerticalScrollIndicator={false}
                 >
                     <MatchScoreCard
-                        leagueName={`${pool.division_name} - ${pool.gender}`}
+                        leagueName={`${pool.divisionName} - ${pool.gender}`}
                         homeTeam={teamA}
                         awayTeam={teamB}
                         finalScore={match.set}
-                        matchDate={match.match_date}
+                        matchDate={match.matchDate}
                     />
 
                     <MatchScoreDetailsCard
@@ -67,16 +67,16 @@ const MatchModalScreen: React.FC = () => {
 
                     <MatchInfoCard
                         pool={pool}
-                        date={match.match_date}
+                        date={match.matchDate}
                         duration="1h30"
-                        league={match.league_code}
+                        league={match.leagueCode}
                         venue={match.venue}
                         referee1={match.referee1}
                         referee2={match.referee2}
                     />
 
                     <RankingCard
-                        poolId={match.pool_id}
+                        poolId={match.poolId}
                         scrollable={false}
                     />
                 </ScrollView>

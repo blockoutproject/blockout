@@ -8,9 +8,8 @@ import { colors } from '@/src/constants/Colors';
 import MatchSkeleton from '@/src/components/match/MatchSkeleton';
 
 const PoolModalScreen: React.FC = () => {
-    const { pool_id } = useLocalSearchParams();
-    const poolId = Number(pool_id);
-    const { data: pool, isLoading } = usePoolById(poolId);
+    const { poolId } = useLocalSearchParams();
+    const { data: pool, isLoading } = usePoolById(Number(poolId));
 
     if (isLoading) {
         return <MatchSkeleton />;

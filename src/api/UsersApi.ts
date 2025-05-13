@@ -77,7 +77,7 @@ class UsersApi extends AbstractApi {
             return await this.request<UserFavorite[]>({
                 method: 'get',
                 url: `/${userId}/favorites`,
-                params: entityType ? { entity_type: entityType } : undefined
+                params: entityType ? { entityType } : undefined
             });
         } catch (error) {
             if (error instanceof ApiError && error.status === 404) {
@@ -99,7 +99,7 @@ class UsersApi extends AbstractApi {
         await this.request<void>({
             method: 'post',
             url: '/favorites/follow',
-            params: { entity_type: entityType, entity_id: entityId }
+            params: { entityType, entityId }
         });
     }
 
@@ -115,7 +115,7 @@ class UsersApi extends AbstractApi {
         await this.request<void>({
             method: 'delete',
             url: '/favorites/follow',
-            params: { entity_type: entityType, entity_id: entityId }
+            params: { entityType, entityId }
         });
     }
 }
