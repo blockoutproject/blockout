@@ -1,0 +1,26 @@
+server:
+  port: 8088
+
+spring:
+  application:
+    name: ${SPRING_APPLICATION_NAME:search}
+
+  jackson:
+    property-naming-strategy: SNAKE_CASE
+
+  config:
+    import: optional:file:.env.local[.properties]
+    on-missing-location: fail
+
+logging:
+  level:
+    root: ${LOGGING_LEVEL_ROOT:INFO}
+
+elasticsearch:
+  username: ${SPRING_ELASTICSEARCH_USERNAME}
+  password: ${SPRING_ELASTICSEARCH_PASSWORD}
+
+okta:
+  oauth2:
+    issuer: ${SPRING_AUTH0_ISSUER}
+    audience: ${SPRING_AUTH0_AUDIENCE}
