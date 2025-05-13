@@ -24,9 +24,10 @@ public class EventPublisher {
 
     public void publishPoolUpsert(Pool pool) {
         PoolUpsertEvent event = PoolUpsertEvent.builder()
-                .poolId(pool.getId())
+                .id(pool.getId())
+                .name(pool.getName())
                 .divisionName(pool.getDivisionName())
-                .poolName(pool.getPoolName())
+                .leagueName(pool.getLeagueName())
                 .build();
 
         try {
@@ -36,10 +37,14 @@ public class EventPublisher {
                     event);
             logger.info("Pool upsert event sent",
                     keyValue("action", "publish_pool_upsert"),
-                    keyValue("poolId", pool.getId()));
+                    keyValue("id", pool.getId()),
+                    keyValue("name", pool.getName()));
+
         } catch (AmqpException ex) {
             logger.error("Failed to publish pool event",
-                    keyValue("poolId", pool.getId()), ex);
+                    keyValue("id", pool.getId()),
+                    keyValue("name", pool.getName()),
+                    ex);
             throw ex; // ou retry / DLQ selon ta stratégie
         }
     }

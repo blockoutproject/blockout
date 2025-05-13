@@ -115,7 +115,7 @@ public class PoolService {
             pool.setLeagueCode(updatedPool.getLeagueCode());
             pool.setSeason(updatedPool.getSeason());
             pool.setLeagueName(updatedPool.getLeagueName());
-            pool.setPoolName(updatedPool.getPoolName());
+            pool.setName(updatedPool.getName());
             pool.setDivisionCode(updatedPool.getDivisionCode());
             pool.setDivisionName(updatedPool.getDivisionName());
             pool.setFormat(updatedPool.getFormat());
@@ -128,7 +128,7 @@ public class PoolService {
                         keyValue("action", "reactivate_pool"),
                         keyValue("poolId", id),
                         keyValue("league_code", updatedPool.getLeagueCode()),
-                        keyValue("pool_name", updatedPool.getPoolName()));
+                        keyValue("name", updatedPool.getName()));
             }
 
             Pool savedPool = poolRepository.save(pool);
