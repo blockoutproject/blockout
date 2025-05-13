@@ -25,7 +25,7 @@ public class EventPublisher {
     public void publishClubUpsert(Club club) {
 
         ClubUpsertEvent event = ClubUpsertEvent.builder()
-                .clubId(club.getId())
+                .id(club.getId())
                 .name(club.getName())
                 .city(club.getCity())
                 .build();

@@ -10,7 +10,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ClubUpsertEvent {
-    private String clubId;
+    private String id;
     private String name;
     private String city;
 }
