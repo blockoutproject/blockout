@@ -7,20 +7,19 @@ import com.blockout.teams.models.events.TeamDeactivatedEvent;
 import com.blockout.teams.models.events.UserFollowEvent;
 import com.blockout.teams.services.TeamService;
 
+import lombok.RequiredArgsConstructor;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
 
 @Component
+@RequiredArgsConstructor
 public class TeamListeners {
 
     private final TeamService teamService;
     private static final Logger logger = LoggerFactory.getLogger(TeamService.class);
-
-    public TeamListeners(TeamService teamService) {
-        this.teamService = teamService;
-    }
 
     @RabbitListener(queues = RabbitMQConfig.TEAM_DEACTIVATED_QUEUE_TEAMS)
     public void handleTeamDeactivated(TeamDeactivatedEvent event) {

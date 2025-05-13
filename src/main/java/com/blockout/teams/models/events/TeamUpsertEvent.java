@@ -13,7 +13,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class TeamUpsertEvent {
-    private Long   teamId;
+    private Long id;
     private String name;
     private String clubId;
     private String divisionName;

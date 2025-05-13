@@ -7,6 +7,8 @@ import com.blockout.teams.models.TeamGender;
 import com.blockout.teams.repositories.TeamRepository;
 import com.blockout.teams.utils.DiffUtils;
 
+import lombok.RequiredArgsConstructor;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -21,17 +23,13 @@ import java.util.stream.Collectors;
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
 @Service
+@RequiredArgsConstructor
 public class TeamService {
 
     private static final Logger logger = LoggerFactory.getLogger(TeamService.class);
 
     private final TeamRepository teamRepository;
     private final EventPublisher eventPublisher;
-
-    public TeamService(TeamRepository teamRepository, EventPublisher eventPublisher) {
-        this.eventPublisher = eventPublisher;
-        this.teamRepository = teamRepository;
-    }
 
     /**
      * Crée une nouvelle équipe
