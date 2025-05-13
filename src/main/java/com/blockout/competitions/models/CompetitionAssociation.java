@@ -4,8 +4,6 @@ import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-
 @Entity
 @Table(name = "competition_association", uniqueConstraints = {
     @UniqueConstraint(columnNames = { "pool_id", "team_id", "category" }, name = "uix_pool_team_category")
@@ -54,67 +52,54 @@ public class CompetitionAssociation {
     private Integer losses = 0;
 
     @Builder.Default
-    @JsonProperty("wins_3_0")
-    @Column(name = "wins_3_0", nullable = false)
-    private Integer wins30 = 0;
+    @Column(name = "wins_3_to_0", nullable = false)
+    private Integer wins3To0 = 0;
 
     @Builder.Default
-    @JsonProperty("wins_3_1")
-    @Column(name = "wins_3_1", nullable = false)
-    private Integer wins31 = 0;
+    @Column(name = "wins_3_to_1", nullable = false)
+    private Integer wins3To1 = 0;
 
     @Builder.Default
-    @JsonProperty("wins_3_2")
-    @Column(name = "wins_3_2", nullable = false)
-    private Integer wins32 = 0;
+    @Column(name = "wins_3_to_2", nullable = false)
+    private Integer wins3To2 = 0;
 
     @Builder.Default
-    @JsonProperty("losses_0_3")
-    @Column(name = "losses_0_3", nullable = false)
-    private Integer losses03 = 0;
+    @Column(name = "losses_0_to_3", nullable = false)
+    private Integer losses0To3 = 0;
 
     @Builder.Default
-    @JsonProperty("losses_1_3")
-    @Column(name = "losses_1_3", nullable = false)
-    private Integer losses13 = 0;
+    @Column(name = "losses_1_to_3", nullable = false)
+    private Integer losses1To3 = 0;
 
     @Builder.Default
-    @JsonProperty("losses_2_3")
-    @Column(name = "losses_2_3", nullable = false)
-    private Integer losses23 = 0;
+    @Column(name = "losses_2_to_3", nullable = false)
+    private Integer losses2To3 = 0;
 
     @Builder.Default
-    @JsonProperty("won_sets")
     @Column(name = "won_sets", nullable = false)
     private Integer wonSets = 0;
 
     @Builder.Default
-    @JsonProperty("lost_sets")
     @Column(name = "lost_sets", nullable = false)
     private Integer lostSets = 0;
 
     @Builder.Default
-    @JsonProperty("won_points")
     @Column(name = "won_points", nullable = false)
     private Integer wonPoints = 0;
 
     @Builder.Default
-    @JsonProperty("lost_points")
     @Column(name = "lost_points", nullable = false)
     private Integer lostPoints = 0;
 
     @Builder.Default
-    @JsonProperty("points_penalty")
     @Column(name = "points_penalty", nullable = false)
     private Integer pointsPenalty = 0;
 
     @Builder.Default
-    @JsonProperty("coef_sets")
     @Column(name = "coef_sets", nullable = false)
     private Double coefSets = 0.0;
 
     @Builder.Default
-    @JsonProperty("coef_points")
     @Column(name = "coef_points", nullable = false)
     private Double coefPoints = 0.0;
 

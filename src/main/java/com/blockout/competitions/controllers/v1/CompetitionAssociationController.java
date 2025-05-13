@@ -10,20 +10,19 @@ import com.blockout.competitions.services.CompetitionAssociationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import lombok.RequiredArgsConstructor;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/api/v1/competitions")
 public class CompetitionAssociationController {
 
     private final CompetitionAssociationService associationService;
-
-    public CompetitionAssociationController(CompetitionAssociationService associationService) {
-        this.associationService = associationService;
-    }
 
     @Operation(summary = "Add or reactivate team in pool")
     @ApiResponses({
@@ -105,6 +104,13 @@ public class CompetitionAssociationController {
     public ResponseEntity<Void> bulkDeactivateClubs(@RequestBody BulkClubsDeactivateRequest request) {
         associationService.bulkDeactivateClubs(request.getMissingClubIds());
         return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/stats")
+    public String testStats(@RequestBody TeamAssociationStatsRequest request) {
+        System.out.println("📦 Classe réelle : " + request.getClass().getName());
+        System.out.println("🎯 wins3To0 = " + request.getWins3To0());
+        return "OK";
     }
 
     @Operation(summary = "Update stats for a team–pool association")

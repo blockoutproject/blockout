@@ -6,17 +6,16 @@ import com.blockout.competitions.models.events.PoolDeactivatedEvent;
 import com.blockout.competitions.models.events.TeamDeactivatedByPoolEvent;
 import com.blockout.competitions.models.events.TeamDeactivatedEvent;
 
+import lombok.RequiredArgsConstructor;
+
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Service;
 
 @Service
+@RequiredArgsConstructor
 public class EventPublisher {
 
     private final RabbitTemplate rabbitTemplate;
-
-    public EventPublisher(RabbitTemplate rabbitTemplate) {
-        this.rabbitTemplate = rabbitTemplate;
-    }
 
     public void publishTeamDeactivationEvent(Long teamId) {
         TeamDeactivatedEvent event = TeamDeactivatedEvent.builder().teamId(teamId).build();

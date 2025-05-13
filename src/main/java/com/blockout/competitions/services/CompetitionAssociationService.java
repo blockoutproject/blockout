@@ -7,6 +7,7 @@ import com.blockout.competitions.repositories.CompetitionAssociationRepository;
 import com.blockout.competitions.utils.DiffUtils;
 
 import jakarta.persistence.EntityNotFoundException;
+import lombok.RequiredArgsConstructor;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,18 +21,13 @@ import java.util.stream.Collectors;
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
 @Service
+@RequiredArgsConstructor
 public class CompetitionAssociationService {
 
     private static final Logger logger = LoggerFactory.getLogger(CompetitionAssociationService.class);
 
     private final CompetitionAssociationRepository associationRepository;
     private final EventPublisher eventPublisher;
-
-    public CompetitionAssociationService(CompetitionAssociationRepository associationRepository,
-            EventPublisher eventPublisher) {
-        this.associationRepository = associationRepository;
-        this.eventPublisher = eventPublisher;
-    }
 
     /**
      * Crée ou réactive l'association entre une pool et une team
@@ -264,12 +260,12 @@ public class CompetitionAssociationService {
                     assoc.setWins(request.getWins());
                     assoc.setLosses(request.getLosses());
                     assoc.setPoints(request.getPoints());
-                    assoc.setWins30(request.getWins30());
-                    assoc.setLosses03(request.getLosses03());
-                    assoc.setWins31(request.getWins31());
-                    assoc.setLosses13(request.getLosses13());
-                    assoc.setWins32(request.getWins32());
-                    assoc.setLosses23(request.getLosses23());
+                    assoc.setWins3To0(request.getWins3To0());
+                    assoc.setLosses0To3(request.getLosses0To3());
+                    assoc.setWins3To1(request.getWins3To1());
+                    assoc.setLosses1To3(request.getLosses1To3());
+                    assoc.setWins3To2(request.getWins3To2());
+                    assoc.setLosses2To3(request.getLosses2To3());
                     assoc.setWonSets(request.getWonSets());
                     assoc.setLostSets(request.getLostSets());
                     assoc.setWonPoints(request.getWonPoints());
