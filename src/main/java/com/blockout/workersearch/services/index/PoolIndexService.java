@@ -26,8 +26,8 @@ public class PoolIndexService {
         PoolDoc doc = map(e);
         logger.info("Upserting single pool",
                 keyValue("action", "upsert_pool"),
-                keyValue("poolId", doc.getPoolId()),
-                keyValue("poolName", doc.getPoolName()));
+                keyValue("id", doc.getId()),
+                keyValue("name", doc.getName()));
         poolRepository.save(doc);
     }
 
@@ -37,35 +37,23 @@ public class PoolIndexService {
         logger.info("Upserting batch of pools",
                 keyValue("action", "upsert_pool_batch"),
                 keyValue("count", docs.size()));
-
-        docs.forEach(doc -> logger.debug("Prepared PoolDoc",
-                keyValue("poolId", doc.getPoolId()),
-                keyValue("division", doc.getDivisionName()),
-                keyValue("poolName", doc.getPoolName())));
-
         poolRepository.saveAll(docs);
     }
 
     public void delete(Long id) {
         logger.info("Deleting pool",
                 keyValue("action", "delete_pool"),
-                keyValue("poolId", id));
+                keyValue("id", id));
         poolRepository.deleteById(id);
     }
 
     private PoolDoc map(PoolUpsertEvent e) {
         PoolDoc doc = PoolDoc.builder()
-                .poolId(e.getPoolId())
+                .id(e.getId())
+                .name(e.getName())
                 .divisionName(e.getDivisionName())
-                .poolName(e.getPoolName())
+                .leagueName(e.getLeagueName())
                 .build();
-
-        logger.debug("Mapped PoolUpsertEvent to PoolDoc",
-                keyValue("action", "map_pool_event"),
-                keyValue("poolId", doc.getPoolId()),
-                keyValue("division", doc.getDivisionName()),
-                keyValue("poolName", doc.getPoolName()));
-
         return doc;
     }
 }

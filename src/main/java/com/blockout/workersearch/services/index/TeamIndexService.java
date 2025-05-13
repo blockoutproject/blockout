@@ -31,7 +31,7 @@ public class TeamIndexService {
         TeamDoc doc = map(e);
         logger.info("Upserting single team",
                 keyValue("action", "upsert_team"),
-                keyValue("teamId", doc.getTeamId()),
+                keyValue("id", doc.getId()),
                 keyValue("name", doc.getName()));
         teamRepository.save(doc);
         teamCacheService.put(e);
@@ -46,16 +46,6 @@ public class TeamIndexService {
                 keyValue("action", "upsert_team_batch"),
                 keyValue("count", docs.size()));
 
-        docs.forEach(doc -> logger.info("Prepared TeamDoc",
-                keyValue("teamId", doc.getTeamId()),
-                keyValue("clubId", doc.getClubId()),
-                keyValue("clubName", doc.getClubName()),
-                keyValue("clubCity", doc.getClubCity()),
-                keyValue("name", doc.getName()),
-                keyValue("division", doc.getDivisionName()),
-                keyValue("format", doc.getFormat()),
-                keyValue("gender", doc.getGender())));
-
         teamRepository.saveAll(docs);
         events.forEach(teamCacheService::put);
     }
@@ -63,7 +53,7 @@ public class TeamIndexService {
     public void delete(Long id) {
         logger.info("Deleting team",
                 keyValue("action", "delete_team"),
-                keyValue("teamId", id));
+                keyValue("id", id));
         teamRepository.deleteById(id);
     }
 
@@ -73,12 +63,12 @@ public class TeamIndexService {
         if (club == null) {
             logger.warn("Club not found in cache during team mapping",
                     keyValue("action", "missing_club_in_cache"),
-                    keyValue("teamId", e.getTeamId()),
+                    keyValue("id", e.getId()),
                     keyValue("clubId", e.getClubId()));
         }
 
         return TeamDoc.builder()
-                .teamId(e.getTeamId())
+                .id(e.getId())
                 .name(e.getName())
                 .clubId(e.getClubId())
                 .clubName(club != null ? club.getName() : null)

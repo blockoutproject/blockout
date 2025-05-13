@@ -10,7 +10,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class PoolUpsertEvent {
-    private Long poolId;
+    private Long id;
+    private String name;
     private String divisionName;
-    private String poolName;
+    private String leagueName;
 }

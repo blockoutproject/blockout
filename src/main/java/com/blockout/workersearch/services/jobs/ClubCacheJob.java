@@ -34,7 +34,7 @@ public class ClubCacheJob {
             var clubs = clubClientService.listClubs();
             var events = clubs.stream()
                     .map(club -> ClubUpsertEvent.builder()
-                            .clubId(club.getId())
+                            .id(club.getId())
                             .name(club.getName())
                             .city(club.getCity())
                             .build())

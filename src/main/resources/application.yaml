@@ -3,7 +3,7 @@ server:
 
 spring:
   application:
-    name: ${SPRING_APPLICATION_NAME:search}
+    name: ${SPRING_APPLICATION_NAME:workersearch}
   
   jackson:
     property-naming-strategy: SNAKE_CASE
@@ -37,3 +37,5 @@ api:
     url: ${CLUB_API_URL}
   team:
     url: ${TEAM_API_URL}
+  pool:
+    url: ${POOL_API_URL}

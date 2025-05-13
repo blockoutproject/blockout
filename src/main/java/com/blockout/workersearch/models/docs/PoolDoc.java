@@ -9,12 +9,14 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Document(indexName = "pools")
-@Data 
-@Builder 
-@NoArgsConstructor 
+@Data
+@Builder
+@NoArgsConstructor
 @AllArgsConstructor
 public class PoolDoc {
-    @Id private Long poolId;
+    @Id
+    private Long id;
+    private String name;
     private String divisionName;
-    private String poolName;
+    private String leagueName;
 }

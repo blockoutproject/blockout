@@ -13,12 +13,13 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Document(indexName = "teams")
-@Data 
-@Builder 
-@NoArgsConstructor 
+@Data
+@Builder
+@NoArgsConstructor
 @AllArgsConstructor
 public class TeamDoc {
-    @Id private Long teamId;
+    @Id
+    private Long id;
     private String name;
     private String clubId;
     private String clubName;

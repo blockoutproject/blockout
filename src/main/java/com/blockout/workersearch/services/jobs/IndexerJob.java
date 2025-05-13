@@ -8,12 +8,16 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import com.blockout.workersearch.models.dto.club.Club;
+import com.blockout.workersearch.models.dto.pool.Pool;
 import com.blockout.workersearch.models.dto.team.Team;
 import com.blockout.workersearch.models.events.ClubUpsertEvent;
+import com.blockout.workersearch.models.events.PoolUpsertEvent;
 import com.blockout.workersearch.models.events.TeamUpsertEvent;
 import com.blockout.workersearch.services.client.ClubClientService;
+import com.blockout.workersearch.services.client.PoolClientService;
 import com.blockout.workersearch.services.client.TeamClientService;
 import com.blockout.workersearch.services.index.ClubIndexService;
+import com.blockout.workersearch.services.index.PoolIndexService;
 import com.blockout.workersearch.services.index.TeamIndexService;
 
 import java.util.List;
@@ -28,8 +32,10 @@ public class IndexerJob {
 
     private final ClubClientService clubClientService;
     private final TeamClientService teamClientService;
+    private final PoolClientService poolClientService;
     private final ClubIndexService clubIndexService;
     private final TeamIndexService teamIndexService;
+    private final PoolIndexService poolIndexService;
 
     @Scheduled(cron = "${reindex.full.cron:0 0 3 * * *}") // Tous les jours à 3h par défaut
     public void reindexAll() {
@@ -37,6 +43,7 @@ public class IndexerJob {
 
         reindexClubs();
         reindexTeams();
+        reindexPools();
 
         logger.info("Full reindex job completed", keyValue("action", "full_reindex_done"));
     }
@@ -45,7 +52,7 @@ public class IndexerJob {
         List<Club> clubs = clubClientService.listClubs();
         List<ClubUpsertEvent> events = clubs.stream()
                 .map(club -> ClubUpsertEvent.builder()
-                        .clubId(club.getId())
+                        .id(club.getId())
                         .name(club.getName())
                         .city(club.getCity())
                         .build())
@@ -59,7 +66,7 @@ public class IndexerJob {
         List<Team> teams = teamClientService.listAllTeams();
         List<TeamUpsertEvent> events = teams.stream()
                 .map(team -> TeamUpsertEvent.builder()
-                        .teamId(team.getId())
+                        .id(team.getId())
                         .name(team.getName())
                         .clubId(team.getClubId())
                         .divisionName(team.getDivisionName())
@@ -70,5 +77,20 @@ public class IndexerJob {
 
         logger.info("Reindexing teams", keyValue("count", events.size()));
         teamIndexService.upsertBatch(events);
+    }
+
+    private void reindexPools() {
+        List<Pool> pools = poolClientService.listPools();
+        List<PoolUpsertEvent> events = pools.stream()
+                .map(pool -> PoolUpsertEvent.builder()
+                        .id(pool.getId())
+                        .name(pool.getName())
+                        .divisionName(pool.getDivisionName())
+                        .leagueName(pool.getLeagueName())
+                        .build())
+                .toList();
+
+        logger.info("Reindexing pools", keyValue("count", events.size()));
+        poolIndexService.upsertBatch(events);
     }
 }

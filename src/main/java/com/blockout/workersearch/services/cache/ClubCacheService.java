@@ -1,7 +1,5 @@
 package com.blockout.workersearch.services.cache;
 import lombok.RequiredArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import com.blockout.workersearch.models.events.ClubUpsertEvent;
@@ -9,13 +7,10 @@ import com.blockout.workersearch.models.events.ClubUpsertEvent;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
-import static net.logstash.logback.argument.StructuredArguments.keyValue;
-
 @Service
 @RequiredArgsConstructor
 public class ClubCacheService {
 
-    private static final Logger logger = LoggerFactory.getLogger(ClubCacheService.class);
     private final Map<String, ClubUpsertEvent> clubCache = new ConcurrentHashMap<>();
 
     public ClubUpsertEvent getClubById(String id) {
@@ -27,11 +22,7 @@ public class ClubCacheService {
     }
 
     public void put(ClubUpsertEvent event) {
-        clubCache.put(event.getClubId(), event);
-        logger.debug("Inserted club in cache from event",
-                keyValue("clubId", event.getClubId()),
-                keyValue("name", event.getName()),
-                keyValue("city", event.getCity()));
+        clubCache.put(event.getId(), event);
     }
 
     public void replaceAll(List<ClubUpsertEvent> events) {

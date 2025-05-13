@@ -5,12 +5,13 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.elasticsearch.annotations.Document;
 
 @Document(indexName = "clubs")
-@Data 
-@Builder 
+@Data
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class ClubDoc {
-    @Id private String clubId;
+    @Id
+    private String id;
     private String name;
     private String city;
 }

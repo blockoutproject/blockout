@@ -34,13 +34,13 @@ public class ClubIndexService {
 
         logger.info("Upserting single club",
                 keyValue("action", "upsert_club"),
-                keyValue("clubId", doc.getClubId()),
+                keyValue("id", doc.getId()),
                 keyValue("name", doc.getName()));
 
         clubRepository.save(doc);
         clubCacheService.put(e);
 
-        reindexTeamsForClub(doc.getClubId());
+        reindexTeamsForClub(doc.getId());
     }
 
     public void upsertBatch(List<ClubUpsertEvent> events) {
@@ -53,36 +53,24 @@ public class ClubIndexService {
         clubRepository.saveAll(docs);
         events.forEach(clubCacheService::put);
 
-        docs.forEach(doc -> {
-            logger.debug("Prepared ClubDoc",
-                    keyValue("clubId", doc.getClubId()),
-                    keyValue("name", doc.getName()),
-                    keyValue("city", doc.getCity()));
-                    
-            reindexTeamsForClub(doc.getClubId());
+        docs.forEach(doc -> {                    
+            reindexTeamsForClub(doc.getId());
         });
     }
 
     public void delete(String id) {
         logger.info("Deleting club",
                 keyValue("action", "delete_club"),
-                keyValue("clubId", id));
+                keyValue("id", id));
         clubRepository.deleteById(id);
     }
 
     private ClubDoc map(ClubUpsertEvent e) {
         ClubDoc doc = ClubDoc.builder()
-                .clubId(e.getClubId())
+                .id(e.getId())
                 .name(e.getName())
                 .city(e.getCity())
                 .build();
-
-        logger.debug("Mapped ClubUpsertEvent to ClubDoc",
-                keyValue("action", "map_club_event"),
-                keyValue("clubId", doc.getClubId()),
-                keyValue("name", doc.getName()),
-                keyValue("city", doc.getCity()));
-
         return doc;
     }
 
@@ -92,7 +80,7 @@ public class ClubIndexService {
         if (events.isEmpty()) {
             logger.warn("No teams found for club during reindex",
                     keyValue("action", "reindex_teams_for_club"),
-                    keyValue("clubId", clubId));
+                    keyValue("id", clubId));
             return;
         }
     
@@ -100,7 +88,7 @@ public class ClubIndexService {
     
         logger.info("Reindexed teams for club",
                 keyValue("action", "reindex_teams_for_club"),
-                keyValue("clubId", clubId),
+                keyValue("id", clubId),
                 keyValue("teamCount", events.size()));
     }
 }

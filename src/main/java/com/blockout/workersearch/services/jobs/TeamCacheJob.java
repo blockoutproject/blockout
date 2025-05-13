@@ -35,7 +35,7 @@ public class TeamCacheJob {
 
             var events = teams.stream()
                     .map(team -> TeamUpsertEvent.builder()
-                            .teamId(team.getId())
+                            .id(team.getId())
                             .name(team.getName())
                             .clubId(team.getClubId())
                             .divisionName(team.getDivisionName())
