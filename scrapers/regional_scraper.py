@@ -167,7 +167,7 @@ class RegionalScraper(Scraper):
                         continue
 
                     pool_code = pool_code_match.group(1)
-                    pool_name = a_tag.get_text(strip=True)
+                    name = a_tag.get_text(strip=True)
 
                     # On essaie de déterminer la division depuis les balises parents
                     raw_division_tag = a_tag.find_parent('ul').find_previous_sibling('a')
@@ -183,7 +183,7 @@ class RegionalScraper(Scraper):
                         "league_code": league_code,
                         "season": parsed_season,
                         "league_name": league_name,
-                        "pool_name": pool_name,
+                        "name": name,
                         "division_code": standardized["division_code"],
                         "division_name": standardized["division_name"],
                         "format": standardized["format"],

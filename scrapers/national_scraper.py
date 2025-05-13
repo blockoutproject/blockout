@@ -76,11 +76,11 @@ class NationalScraper(Scraper):
             for a_tag in soup.find_all('a', href=lambda href: href and href.endswith('.htm')):
                 try:
                     href = a_tag['href']
-                    pool_name = a_tag.get_text(strip=True)
+                    name = a_tag.get_text(strip=True)
                     pool_code = href.split('_')[-1].replace('.htm', '').upper()
 
                     # Extraction de la division
-                    raw_division_name = extract_national_division(pool_name)
+                    raw_division_name = extract_national_division(name)
 
                     # Standardisation
                     standardized = standardize_division_name(raw_division_name, PoolDivisionCode.NAT)
@@ -94,7 +94,7 @@ class NationalScraper(Scraper):
                         "league_code": self.league_code,
                         "season": parsed_season,
                         "league_name": self.league_name,
-                        "pool_name": pool_name,
+                        "name": name,
                         "division_code": PoolDivisionCode.NAT,
                         "division_name": standardized.get("division_name"),
                         "format": standardized.get("format"),
@@ -122,7 +122,7 @@ class NationalScraper(Scraper):
                     log_event(
                         action="pool_processing_error",
                         level="error",
-                        pool_name=pool_name,
+                        name=name,
                         url=href,
                         error=str(e)
                     )

@@ -21,7 +21,7 @@ class Pool:
     last_update: Optional[datetime] = None
     id: Optional[int] = None
     league_name: Optional[str] = None
-    pool_name: Optional[str] = None
+    name: Optional[str] = None
     division_name: Optional[str] = None
     format: Optional[Format] = Format.SIX
     gender: Optional[Gender] = None

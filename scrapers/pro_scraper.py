@@ -33,7 +33,7 @@ class ProScraper(Scraper):
         self.pools_json = [
             {
                 "code": "MSL",
-                "pool_name": "Marmara SpikeLigue",
+                "name": "Marmara SpikeLigue",
                 "division_name": "Marmara SpikeLigue",
                 "gender": "M",
                 "lnv_url": "http://lnv-web.dataproject.com/CompetitionMatches.aspx?ID=115",
@@ -42,7 +42,7 @@ class ProScraper(Scraper):
             },
             {
                 "code": "LBM",
-                "pool_name": "Ligue B Masculine",
+                "name": "Ligue B Masculine",
                 "division_name": "Ligue B Masculine",
                 "gender": "M",
                 "lnv_url": "http://lnv-web.dataproject.com/CompetitionMatches.aspx?ID=116",
@@ -51,7 +51,7 @@ class ProScraper(Scraper):
             },
             {
                 "code": "LAF",
-                "pool_name": "Saforelle Power 6",
+                "name": "Saforelle Power 6",
                 "division_name": "Saforelle Power 6",
                 "gender": "F",
                 "lnv_url": "http://lnv-web.dataproject.com/CompetitionMatches.aspx?ID=113",
@@ -60,7 +60,7 @@ class ProScraper(Scraper):
             },
             # {
             #     "code": "FAZ",
-            #     "pool_name": "Saforelle Power 6 - Playoffs",
+            #     "name": "Saforelle Power 6 - Playoffs",
             #     "division_name": "Saforelle Power 6 - Playoffs",
             #     "gender": "F",
             #     "lnv_url": "http://lnv-web.dataproject.com/CompetitionMatches.aspx?ID=113",
@@ -93,7 +93,7 @@ class ProScraper(Scraper):
                         "league_code": self.league_code,
                         "season": self.parsed_season,
                         "league_name": self.league_name,
-                        "pool_name": pool_json['pool_name'],
+                        "name": pool_json['name'],
                         "division_code": PoolDivisionCode.PRO,
                         "division_name": pool_json['division_name'],
                         "format": Format.SIX.value,
@@ -121,7 +121,7 @@ class ProScraper(Scraper):
                     log_event(
                         action="pool_processing_error",
                         level="error",
-                        pool_name=pool_json['pool_name'],
+                        name=pool_json['name'],
                         error=str(e)
                     )
 
