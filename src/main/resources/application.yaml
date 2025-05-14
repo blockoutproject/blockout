@@ -3,13 +3,13 @@ server:
 
 spring:
   application:
-    name: ${SPRING_APPLICATION_NAME:users}
+    name: ${APPLICATION_NAME:users}
 
   security:
     oauth2:
       resourceserver:
         jwt:
-          jwk-set-uri: https://${SPRING_AUTH0_DOMAIN}/.well-known/jwks.json
+          jwk-set-uri: https://${AUTH0_DOMAIN}/.well-known/jwks.json
 
   jackson:
     property-naming-strategy: SNAKE_CASE
@@ -21,26 +21,26 @@ spring:
   jpa:
     hibernate:
       ddl-auto: update
-    show-sql: ${SPRING_JPA_SHOW_SQL:false}
+    show-sql: ${JPA_SHOW_SQL:false}
     database-platform: org.hibernate.dialect.PostgreSQLDialect
 
   datasource:
-    url: ${SPRING_DATASOURCE_URL}
-    username: ${SPRING_DATASOURCE_USERNAME}
-    password: ${SPRING_DATASOURCE_PASSWORD}
+    url: ${DATASOURCE_URL}
+    username: ${DATASOURCE_USERNAME}
+    password: ${DATASOURCE_PASSWORD}
     driver-class-name: org.postgresql.Driver
 
   rabbitmq:
-    host: ${SPRING_RABBITMQ_HOST}
-    port: ${SPRING_RABBITMQ_PORT}
-    username: ${SPRING_RABBITMQ_USERNAME}
-    password: ${SPRING_RABBITMQ_PASSWORD}
+    host: ${RABBITMQ_HOST}
+    port: ${RABBITMQ_PORT}
+    username: ${RABBITMQ_USERNAME}
+    password: ${RABBITMQ_PASSWORD}
 
 logging:
   level:
     root: ${LOGGING_LEVEL_ROOT:INFO}
 
 auth0:
-  domain: ${SPRING_AUTH0_DOMAIN}
-  client-id: ${SPRING_AUTH0_CLIENT_ID}
-  client-secret: ${SPRING_AUTH0_CLIENT_SECRET}
+  domain: ${AUTH0_DOMAIN}
+  client-id: ${AUTH0_CLIENT_ID}
+  client-secret: ${AUTH0_CLIENT_SECRET}
