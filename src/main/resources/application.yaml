@@ -3,7 +3,7 @@ server:
 
 spring:
   application:
-    name: ${SPRING_APPLICATION_NAME:matches}
+    name: ${APPLICATION_NAME:matches}
 
   jackson:
     property-naming-strategy: SNAKE_CASE
@@ -19,16 +19,16 @@ spring:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
 
   datasource:
-    url: ${SPRING_DATASOURCE_URL}
-    username: ${SPRING_DATASOURCE_USERNAME}
-    password: ${SPRING_DATASOURCE_PASSWORD}
+    url: ${DATASOURCE_URL}
+    username: ${DATASOURCE_USERNAME}
+    password: ${DATASOURCE_PASSWORD}
     driver-class-name: org.postgresql.Driver
 
   rabbitmq:
-    host: ${SPRING_RABBITMQ_HOST}
-    port: ${SPRING_RABBITMQ_PORT}
-    username: ${SPRING_RABBITMQ_USERNAME}
-    password: ${SPRING_RABBITMQ_PASSWORD}
+    host: ${RABBITMQ_HOST}
+    port: ${RABBITMQ_PORT}
+    username: ${RABBITMQ_USERNAME}
+    password: ${RABBITMQ_PASSWORD}
 
 logging:
   level:
@@ -36,5 +36,5 @@ logging:
 
 okta:
   oauth2:
-    issuer: ${SPRING_AUTH0_ISSUER}
-    audience: ${SPRING_AUTH0_AUDIENCE}
+    issuer: ${AUTH0_ISSUER}
+    audience: ${AUTH0_AUDIENCE}
