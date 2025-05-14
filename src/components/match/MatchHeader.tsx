@@ -8,10 +8,10 @@ import { useMatchById } from '@/src/hooks/match/useMatchById';
 import { usePoolById } from '@/src/hooks/pool/usePoolById';
 
 const MatchHeader: React.FC = () => {
-    const { match_id } = useLocalSearchParams();
-    const matchId = Number(match_id);
-    const { match } = useMatchById(matchId);
-    const { data: pool } = usePoolById(match?.pool_id);
+    const { matchId } = useLocalSearchParams();
+    const matchIdNumber = Number(matchId);
+    const { match } = useMatchById(matchIdNumber);
+    const { data: pool } = usePoolById(match?.poolId);
 
     const handlePoolPress = (poolId: number) => {
         router.push(`/pool/${poolId}`);

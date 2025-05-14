@@ -8,10 +8,10 @@ import { useDetailedPoolsByTeam } from "@/src/hooks/pool/useDetailedPoolsByTeam"
 import TeamProfile from "@/src/components/team/TeamProfile";
 
 const TeamScreen: React.FC = () => {
-    const { team_id } = useLocalSearchParams();
-    const teamId = Number(team_id);
-    const { data: team, isLoading: isTeamLoading, isError: isTeamError, isSuccess: isTeamSuccess } = useTeamById(teamId);
-    const { pools, isLoading: isPoolsLoading, isError: isPoolsError, isSuccess: isPoolsSuccess } = useDetailedPoolsByTeam(teamId);
+    const { teamId } = useLocalSearchParams();
+    const teamIdNumber = Number(teamId);
+    const { data: team, isLoading: isTeamLoading, isError: isTeamError, isSuccess: isTeamSuccess } = useTeamById(teamIdNumber);
+    const { pools, isLoading: isPoolsLoading, isError: isPoolsError, isSuccess: isPoolsSuccess } = useDetailedPoolsByTeam(teamIdNumber);
 
     return (
         <View style={styles.container}>

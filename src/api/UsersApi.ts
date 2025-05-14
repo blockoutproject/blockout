@@ -59,7 +59,7 @@ class UsersApi extends AbstractApi {
     ): Promise<CustomUser> {
         return this.request<CustomUser>({
             method: 'post',
-            url: '/',
+            url: '',
             data
         });
     }

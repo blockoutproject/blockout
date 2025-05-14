@@ -55,7 +55,7 @@ const TeamInfoCard: React.FC<TeamInfoCardProps> = ({ team }) => {
                         size={20}
                         color={colors.light}
                     />
-                    <Text style={styles.text}>{team.division_name}</Text>
+                    <Text style={styles.text}>{team.divisionName}</Text>
                 </View>
 
                 {/* Future API info */}

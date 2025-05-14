@@ -78,10 +78,10 @@ const RankingCard: React.FC<RankingCardProps> = ({ poolId, scrollable = true }) 
             <FlatList
                 data={teams.sort((a, b) =>
                     b.points - a.points ||
-                    a.points_penalty - b.points_penalty ||
+                    a.pointsPenalty - b.pointsPenalty ||
                     b.wins - a.wins ||
-                    b.coef_sets - a.coef_sets ||
-                    b.coef_points - a.coef_points
+                    b.coefSets - a.coefSets ||
+                    b.coefPoints - a.coefPoints
                 )}
                 keyExtractor={(item) => item.id.toString()}
                 scrollEnabled={scrollable}
@@ -121,7 +121,7 @@ const RankingCard: React.FC<RankingCardProps> = ({ poolId, scrollable = true }) 
                                     adjustsFontSizeToFit
                                     minimumFontScale={0.9}
                                 >
-                                    {item.short_name}
+                                    {item.shortName}
                                 </Text>
                             </TouchableOpacity>
                             <Text style={[styles.cell, styles.statCell]}>

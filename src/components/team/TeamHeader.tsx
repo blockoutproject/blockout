@@ -5,9 +5,9 @@ import { router, useLocalSearchParams } from "expo-router";
 import { Text, StyleSheet, TouchableOpacity, View } from "react-native";
 
 const TeamHeader: React.FC = () => {
-    const { team_id } = useLocalSearchParams();
-    const teamId = Number(team_id);
-    const { data: team } = useTeamById(teamId);
+    const { teamId } = useLocalSearchParams();
+    const teamIdNumber = Number(teamId);
+    const { data: team } = useTeamById(teamIdNumber);
 
     return (
         <View style={styles.container}>
@@ -28,7 +28,7 @@ const TeamHeader: React.FC = () => {
                 adjustsFontSizeToFit
                 minimumFontScale={0.8}
             >
-                {team?.short_name || "Chargement..."}
+                {team?.shortName || "Chargement..."}
             </Text>
         </View>
     );

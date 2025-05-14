@@ -12,9 +12,9 @@ import MatchSkeleton from '@/src/components/match/MatchSkeleton';
 import MatchScoreCard from '@/src/components/match/MatchScoreCard';
 
 const MatchModalScreen: React.FC = () => {
-    const { match_id } = useLocalSearchParams();
-    const matchId = Number(match_id);
-    const { match, teamA, teamB, pool, isLoading } = useMatchById(matchId);
+    const { matchId } = useLocalSearchParams();
+    const matchIdNumber = Number(matchId);
+    const { match, teamA, teamB, pool, isLoading } = useMatchById(matchIdNumber);
 
     const [showConfetti, setShowConfetti] = useState(false);
 

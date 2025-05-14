@@ -43,7 +43,7 @@ const MatchScoreDetailsCard: React.FC<MatchScoreDetailsCardProps> = ({
                         adjustsFontSizeToFit
                         minimumFontScale={0.8}
                     >
-                        {team.short_name}
+                        {team.shortName}
                     </Text>
                 </View>
                 <View style={styles.colFinalScore}>

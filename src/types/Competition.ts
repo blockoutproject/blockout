@@ -7,12 +7,12 @@ export interface CompetitionAssociation {
     wins: number;
     losses: number;
     points: number;
-    wins3To0: number;
-    wins3To1: number;
-    wins3To2: number;
-    losses0To3: number;
-    losses1To3: number;
-    losses2To3: number;
+    winsThreeToZero: number;
+    winsThreeToOne: number;
+    winsThreeToTwo: number;
+    lossesZeroToThree: number;
+    lossesOneToThree: number;
+    lossesTwoToThree: number;
     wonSets: number;
     lostSets: number;
     wonPoints: number;

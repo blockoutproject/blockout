@@ -1,5 +1,5 @@
 export interface TeamSearchDoc {
-    teamId: number;
+    id: number;
     name: string;
     clubId: string;
     clubName: string;

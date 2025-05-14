@@ -32,7 +32,7 @@ const PoolItem: React.FC<PoolItemProps> = ({
             end={{ x: 0, y: 0 }}
             style={styles.poolContainer}
         >
-            <TouchableOpacity onPress={() => handlePoolPress(pool.pool_id)}>
+            <TouchableOpacity onPress={() => handlePoolPress(pool.poolId)}>
                 <View style={styles.poolHeader}>
                     <FastImage
                         source={require("@/assets/leagues/msl.png")}

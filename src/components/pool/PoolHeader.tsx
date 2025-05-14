@@ -6,9 +6,9 @@ import { TouchableOpacity, View, Text, StyleSheet } from "react-native";
 import FastImage from 'react-native-fast-image';
 
 const PoolHeader: React.FC = () => {
-    const { pool_id } = useLocalSearchParams();
-    const poolId = Number(pool_id);
-    const { data: pool } = usePoolById(poolId);
+    const { poolId } = useLocalSearchParams();
+    const poolIdNumber = Number(poolId);
+    const { data: pool } = usePoolById(poolIdNumber);
 
     return (
         <View style={styles.container}>

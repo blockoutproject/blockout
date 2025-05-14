@@ -72,10 +72,7 @@ export default abstract class AbstractApi {
         if (error.response) {
             const status = error.response.status;
             const data = error.response.data as any;
-            const message =
-                data?.message ??
-                error.response.statusText ??
-                'Erreur inconnue du serveur';
+            const message = error.message ?? 'Erreur inconnue du serveur';
             return Promise.reject(new ApiError(status, message, data));
         }
 

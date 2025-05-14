@@ -17,17 +17,17 @@ type Props = {
 const TeamProfile: React.FC<Props> = ({ team }) => {
     const { customUser, refetch } = useUserContext();
     const [isProcessing, setIsProcessing] = useState(false);
-    const [followersCount, setFollowersCount] = useState(team.followers_count);
+    const [followersCount, setFollowersCount] = useState(team.followersCount);
     const [isFollowing, setIsFollowing] = useState(false);
 
     useEffect(() => {
-        setFollowersCount(team.followers_count);
-    }, [team.followers_count]);
+        setFollowersCount(team.followersCount);
+    }, [team.followersCount]);
 
     useEffect(() => {
         if (customUser?.favorites) {
             const isFav = customUser.favorites.some(
-                (fav) => fav.entity_id === team.id && fav.entity_type === EntityType.TEAM
+                (fav) => fav.entityId === team.id && fav.entityType === EntityType.TEAM
             );
             setIsFollowing(isFav);
         }
@@ -81,7 +81,6 @@ const TeamProfile: React.FC<Props> = ({ team }) => {
 
 const styles = StyleSheet.create({
     container: {
-        flex: 1,
     },
     statsContainer: {
         position: 'absolute',

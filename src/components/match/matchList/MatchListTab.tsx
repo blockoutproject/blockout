@@ -110,7 +110,7 @@ const MatchListTab: React.FC<MatchListTabProps> = ({
         <View style={styles.container}>
             <SectionList
                 sections={sections}
-                keyExtractor={(item, index) => `${item.pool_id}-${index}`}
+                keyExtractor={(item, index) => `${item.poolId}-${index}`}
                 renderSectionHeader={renderSectionHeader}
                 renderItem={renderItem}
                 onEndReached={handleLoadMore}

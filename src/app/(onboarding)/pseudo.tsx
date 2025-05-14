@@ -27,7 +27,7 @@ export default function PseudoScreen() {
             }
 
             // Refetch pour mettre à jour localement
-            await refetch();
+            refetch();
 
             // Écran suivant
             router.replace('/(protected)/home');

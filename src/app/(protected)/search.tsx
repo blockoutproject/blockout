@@ -9,7 +9,7 @@ const SearchScreen = () => {
     const [debouncedQuery] = useDebounce(query, 300);
     const router = useRouter();
 
-    const { data: teams = [], isLoading } = useSearchTeams(debouncedQuery);
+    const { data: teams, isLoading } = useSearchTeams(debouncedQuery);
 
     return (
         <View style={{ flex: 1, padding: 16 }}>
@@ -30,10 +30,10 @@ const SearchScreen = () => {
 
             <FlatList
                 data={teams}
-                keyExtractor={(item) => item.teamId.toString()}
+                keyExtractor={(item) => item.id.toString()}
                 renderItem={({ item }) => (
                     <Pressable
-                        onPress={() => router.push(`/team/${item.teamId}`)}
+                        onPress={() => router.push(`/team/${item.id}`)}
                         style={{
                             padding: 12,
                             borderBottomColor: '#eee',

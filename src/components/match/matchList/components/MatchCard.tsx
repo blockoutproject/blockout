@@ -20,9 +20,9 @@ const MatchCard: React.FC<MatchCardProps> = ({
     mainColor,
     secondColor,
 }) => {
-    const matchTime = match?.match_date
+    const matchTime = match?.matchDate
         ? (() => {
-            const date = new Date(match.match_date);
+            const date = new Date(match.matchDate);
             const hours = date.getHours().toString().padStart(2, '0');
             const minutes = date.getMinutes().toString().padStart(2, '0');
             return `${hours}:${minutes}`;
@@ -40,7 +40,7 @@ const MatchCard: React.FC<MatchCardProps> = ({
                     adjustsFontSizeToFit
                     minimumFontScale={0.8}
                 >
-                    {teamA?.short_name || "Équipe inconnue"}
+                    {teamA?.shortName || "Équipe inconnue"}
                 </Text>
                 <FastImage
                     source={require("@/assets/clubs/paris_volley.png")}
@@ -74,7 +74,7 @@ const MatchCard: React.FC<MatchCardProps> = ({
                     adjustsFontSizeToFit
                     minimumFontScale={0.8}
                 >
-                    {teamB?.short_name || "Équipe inconnue"}
+                    {teamB?.shortName || "Équipe inconnue"}
                 </Text>
             </View>
         </View>
