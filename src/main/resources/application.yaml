@@ -3,7 +3,7 @@ server:
 
 spring:
   application:
-    name: ${SPRING_APPLICATION_NAME:search}
+    name: ${APPLICATION_NAME:search}
 
   jackson:
     property-naming-strategy: SNAKE_CASE
@@ -17,10 +17,11 @@ logging:
     root: ${LOGGING_LEVEL_ROOT:INFO}
 
 elasticsearch:
-  username: ${SPRING_ELASTICSEARCH_USERNAME}
-  password: ${SPRING_ELASTICSEARCH_PASSWORD}
+  host: ${ELASTICSEARCH_HOST}
+  username: ${ELASTICSEARCH_USERNAME}
+  password: ${ELASTICSEARCH_PASSWORD}
 
 okta:
   oauth2:
-    issuer: ${SPRING_AUTH0_ISSUER}
-    audience: ${SPRING_AUTH0_AUDIENCE}
+    issuer: ${AUTH0_ISSUER}
+    audience: ${AUTH0_AUDIENCE}
