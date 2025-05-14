@@ -3,7 +3,7 @@ server:
 
 spring:
   application:
-    name: ${SPRING_APPLICATION_NAME:workersearch}
+    name: ${APPLICATION_NAME:workersearch}
   
   jackson:
     property-naming-strategy: SNAKE_CASE
@@ -13,24 +13,25 @@ spring:
     on-missing-location: fail
 
   rabbitmq:
-    host: ${SPRING_RABBITMQ_HOST}
-    port: ${SPRING_RABBITMQ_PORT}
-    username: ${SPRING_RABBITMQ_USERNAME}
-    password: ${SPRING_RABBITMQ_PASSWORD}
+    host: ${RABBITMQ_HOST}
+    port: ${RABBITMQ_PORT}
+    username: ${RABBITMQ_USERNAME}
+    password: ${RABBITMQ_PASSWORD}
 
 logging:
   level:
     root: ${LOGGING_LEVEL_ROOT:INFO}
 
 elasticsearch:
-  username: ${SPRING_ELASTICSEARCH_USERNAME}
-  password: ${SPRING_ELASTICSEARCH_PASSWORD}
+  host: ${ELASTICSEARCH_HOST}
+  username: ${ELASTICSEARCH_USERNAME}
+  password: ${ELASTICSEARCH_PASSWORD}
 
 auth0:
-  domain: ${SPRING_AUTH0_DOMAIN}
-  client-id: ${SPRING_AUTH0_CLIENT_ID}
-  client-secret: ${SPRING_AUTH0_CLIENT_SECRET}
-  audience: ${SPRING_AUTH0_AUDIENCE}
+  domain: ${AUTH0_DOMAIN}
+  client-id: ${AUTH0_CLIENT_ID}
+  client-secret: ${AUTH0_CLIENT_SECRET}
+  audience: ${AUTH0_AUDIENCE}
 
 api:
   club:

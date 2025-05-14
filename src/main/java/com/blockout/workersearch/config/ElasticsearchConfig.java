@@ -8,6 +8,9 @@ import org.springframework.data.elasticsearch.client.elc.ElasticsearchConfigurat
 @Configuration
 public class ElasticsearchConfig extends ElasticsearchConfiguration {
 
+    @Value("${elasticsearch.host}")
+    private String host;
+
     @Value("${elasticsearch.username}")
     private String username;
 
@@ -17,7 +20,7 @@ public class ElasticsearchConfig extends ElasticsearchConfiguration {
     @Override
     public ClientConfiguration clientConfiguration() {
         return ClientConfiguration.builder()
-                .connectedTo("localhost:9200")
+                .connectedTo(host)
                 .withBasicAuth(username, password)
                 .build();
     }
