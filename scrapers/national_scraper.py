@@ -4,7 +4,6 @@ from api.competitions_api import bulk_deactivate_pools
 from config.logger_config import log_event
 from api.pools_api import get_pools_by_league_and_season
 from models.category import Category
-from services.pools_service import add_or_update_pool
 from models.pool import Pool, PoolDivisionCode
 from models.scraper import Scraper
 from utils.scraper_logic import handle_csv_download_and_parse
@@ -105,16 +104,14 @@ class NationalScraper(Scraper):
                     key = (pool_obj.pool_code, pool_obj.league_code, pool_obj.season)
                     existing_pool = existing_pools_dict.get(key)
 
-                    # Ajout / Mise à jour de la Pool
-                    new_pool = await add_or_update_pool(self.session, pool_obj, existing_pool, False)
-                    
                     # Appel de la logique CSV, on passe le scraper
                     # pour écrire les matches dans le cache
                     task = handle_csv_download_and_parse(
                         self,
-                        new_pool,
+                        pool_obj,
                         raw_season,
-                        scraped_pool_ids
+                        existing_pool=existing_pool,
+                        scraped_pool_ids=scraped_pool_ids,
                     )
                     tasks.append(task)
                         

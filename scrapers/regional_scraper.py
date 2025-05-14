@@ -194,13 +194,12 @@ class RegionalScraper(Scraper):
                     key = (pool_obj.pool_code, pool_obj.league_code, pool_obj.season)
                     existing_pool = existing_pools_dict.get(key)
 
-                    new_pool = await add_or_update_pool(self.session, pool_obj, existing_pool, False)
-                    
                     task = handle_csv_download_and_parse(
                         self,
-                        new_pool,
+                        pool_obj,
                         raw_season,
-                        scraped_pool_ids
+                        existing_pool=existing_pool,
+                        scraped_pool_ids=scraped_pool_ids,
                     )
                     tasks.append(task)
 

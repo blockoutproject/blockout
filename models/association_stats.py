@@ -6,12 +6,12 @@ class AssociationStats:
     wins: int = 0
     losses: int = 0
     points: int = 0
-    wins_3_to_0: int = 0
-    wins_3_to_1: int = 0
-    wins_3_to_2: int = 0
-    losses_0_to_3: int = 0
-    losses_1_to_3: int = 0
-    losses_2_to_3: int = 0
+    wins_three_to_zero: int = 0
+    wins_three_to_one: int = 0
+    wins_three_to_two: int = 0
+    losses_zero_to_three: int = 0
+    losses_one_to_three: int = 0
+    losses_two_to_three: int = 0
     won_sets: int = 0
     lost_sets: int = 0
     won_points: int = 0
@@ -26,12 +26,12 @@ class AssociationStats:
         wins: int, 
         losses: int, 
         points: int,
-        wins_3_to_0: int,
-        wins_3_to_1: int,
-        wins_3_to_2: int,
-        losses_0_to_3: int,
-        losses_1_to_3: int,
-        losses_2_to_3: int,
+        wins_three_to_zero: int,
+        wins_three_to_one: int,
+        wins_three_to_two: int,
+        losses_zero_to_three: int,
+        losses_one_to_three: int,
+        losses_two_to_three: int,
         won_sets: int,
         lost_sets: int,
         won_points: int,
@@ -46,12 +46,12 @@ class AssociationStats:
         self.wins += wins
         self.losses += losses
         self.points += points
-        self.wins_3_to_0 += wins_3_to_0
-        self.wins_3_to_1 += wins_3_to_1
-        self.wins_3_to_2 += wins_3_to_2
-        self.losses_0_to_3 += losses_0_to_3
-        self.losses_1_to_3 += losses_1_to_3
-        self.losses_2_to_3 += losses_2_to_3
+        self.wins_three_to_zero += wins_three_to_zero
+        self.wins_three_to_one += wins_three_to_one
+        self.wins_three_to_two += wins_three_to_two
+        self.losses_zero_to_three += losses_zero_to_three
+        self.losses_one_to_three += losses_one_to_three
+        self.losses_two_to_three += losses_two_to_three
         self.won_sets += won_sets
         self.lost_sets += lost_sets
         self.won_points += won_points

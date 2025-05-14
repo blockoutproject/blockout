@@ -50,9 +50,9 @@ def compute_volleyball_match_stats(
     """
     Calcule les stats de volley-ball en tenant compte :
         - Des champs sets_a et sets_b (ex: "3", "1", "F", "P"), pour déterminer 
-          le gagnant du match, les points de classement, et gérer les lettres F/P.
+            le gagnant du match, les points de classement, et gérer les lettres F/P.
         - D'un score détaillé (score_detail), ex: "20-25,20-25,25-17,23-25"
-          qui décrit chaque set et permet de connaître le total de points et de sets réellement gagnés.
+            qui décrit chaque set et permet de connaître le total de points et de sets réellement gagnés.
     """
 
     # ------------------ 1) Création des stats vides ------------------
@@ -127,35 +127,35 @@ def compute_volleyball_match_stats(
                 if num_b == 0:
                     stats_a.points = 3
                     stats_b.points = 0
-                    stats_a.wins_3_to_0 = 1
-                    stats_b.losses_0_to_3 = 1
+                    stats_a.wins_three_to_zero = 1
+                    stats_b.losses_zero_to_three = 1
                 elif num_b == 1:
                     stats_a.points = 2
                     stats_b.points = 1
-                    stats_a.wins_3_to_2 = 1
-                    stats_b.losses_2_to_3 = 1
+                    stats_a.wins_three_to_two = 1
+                    stats_b.losses_two_to_three = 1
             elif num_a == 3:
                 if num_b == 0:
                     stats_a.points = 3
                     stats_b.points = 0
-                    stats_a.wins_3_to_0 = 1
-                    stats_b.losses_0_to_3 = 1
+                    stats_a.wins_three_to_zero = 1
+                    stats_b.losses_zero_to_three = 1
                 elif num_b == 1:
                     stats_a.points = 3
                     stats_b.points = 0
-                    stats_a.wins_3_to_1 = 1
-                    stats_b.losses_1_to_3 = 1
+                    stats_a.wins_three_to_one = 1
+                    stats_b.losses_one_to_three = 1
                 elif num_b == 2:
                     stats_a.points = 2
                     stats_b.points = 1
-                    stats_a.wins_3_to_2 = 1
-                    stats_b.losses_2_to_3 = 1
+                    stats_a.wins_three_to_two = 1
+                    stats_b.losses_two_to_three = 1
             elif num_a == 1:
                 # Rare
                 stats_a.points = 2
                 stats_b.points = 0
-                stats_a.wins_3_to_0 = 1
-                stats_b.losses_0_to_3 = 1
+                stats_a.wins_three_to_zero = 1
+                stats_b.losses_zero_to_three = 1
 
         elif num_b > num_a:
             # B GAGNANT
@@ -166,34 +166,34 @@ def compute_volleyball_match_stats(
                 if num_a == 0:
                     stats_b.points = 3
                     stats_a.points = 0
-                    stats_b.wins_3_to_0 = 1
-                    stats_a.losses_0_to_3 = 1
+                    stats_b.wins_three_to_zero = 1
+                    stats_a.losses_zero_to_three = 1
                 elif num_a == 1:
                     stats_b.points = 2
                     stats_a.points = 1
-                    stats_b.wins_3_to_2 = 1
-                    stats_a.losses_2_to_3 = 1
+                    stats_b.wins_three_to_two = 1
+                    stats_a.losses_two_to_three = 1
             elif num_b == 3:
                 if num_a == 0:
                     stats_b.points = 3
                     stats_a.points = 0
-                    stats_b.wins_3_to_0 = 1
-                    stats_a.losses_0_to_3 = 1
+                    stats_b.wins_three_to_zero = 1
+                    stats_a.losses_zero_to_three = 1
                 elif num_a == 1:
                     stats_b.points = 3
                     stats_a.points = 0
-                    stats_b.wins_3_to_1 = 1
-                    stats_a.losses_1_to_3 = 1
+                    stats_b.wins_three_to_one = 1
+                    stats_a.losses_one_to_three = 1
                 elif num_a == 2:
                     stats_b.points = 2
                     stats_a.points = 1
-                    stats_b.wins_3_to_2 = 1
-                    stats_a.losses_2_to_3 = 1
+                    stats_b.wins_three_to_two = 1
+                    stats_a.losses_two_to_three = 1
             elif num_b == 1:
                 stats_b.points = 2
                 stats_a.points = 0
-                stats_b.wins_3_to_0 = 1
-                stats_a.losses_0_to_3 = 1
+                stats_b.wins_three_to_zero = 1
+                stats_a.losses_zero_to_three = 1
 
     # ------------------ 4) Gestion des lettres F/P selon la division ------------------
     #    Au lieu de soustraire immédiatement, on utilise "points_penalty".

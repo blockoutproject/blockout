@@ -105,18 +105,15 @@ class ProScraper(Scraper):
                     key = (pool_obj.pool_code, pool_obj.league_code, pool_obj.season)
                     existing_pool = existing_pools_dict.get(key)
 
-                    # Ajout/mise à jour de la poule en base
-                    new_pool = await add_or_update_pool(self.session, pool_obj, existing_pool, False)
-
                     # Si la poule est créée ou mise à jour, on lance la chaîne de tâches
-                    if new_pool:
-                        tasks.append(self.execute_task_chain(
-                            new_pool,
-                            self.raw_season,
-                            pool_json['lnv_url'],
-                            pool_json['lnv_xml_matches_url'],
-                            pool_json['lnv_xml_rank_url']
-                        ))
+                    tasks.append(self.execute_task_chain(
+                        pool_obj,
+                        existing_pool,
+                        self.raw_season,
+                        pool_json['lnv_url'],
+                        pool_json['lnv_xml_matches_url'],
+                        pool_json['lnv_xml_rank_url']
+                    ))
                 except Exception as e:
                     log_event(
                         action="pool_processing_error",
@@ -142,9 +139,9 @@ class ProScraper(Scraper):
                 message="Erreur critique lors du scraping des poules professionnelles."
             )
 
-    async def execute_task_chain(self, pool: Pool, season, lnv_url, lnv_xml_matches_url, lnv_xml_rank_url):
+    async def execute_task_chain(self, pool: Pool, existing_pool: Pool, season, lnv_url, lnv_xml_matches_url, lnv_xml_rank_url):
         # 1) Télécharge et parse un éventuel CSV (FFVB)
-        await handle_csv_download_and_parse(self, pool, season)
+        await handle_csv_download_and_parse(self, pool, season, existing_pool=existing_pool)
 
         # 2) Parsing du XML LNV
         await self.parse_and_update_matches(lnv_xml_matches_url, lnv_xml_rank_url, pool)

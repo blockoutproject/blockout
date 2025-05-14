@@ -39,16 +39,6 @@ async def add_team_to_pool(
     url = f"{COMPETITION_API_URL}/pools/{pool_id}/teams/{team_id}"
     params = { "club_id": club_id, "category": category.value }
     response = await session.post(url, params=params, headers=headers)
-
-    log_event(
-        action="add_team_to_pool",
-        level="info",
-        category=category.value,
-        pool_id=pool_id,
-        team_id=team_id,
-        club_id=club_id,
-        message=f"POST {url} with params={params}"
-    )
     return response
 
 
@@ -64,7 +54,8 @@ async def bulk_deactivate_teams_by_pool(
     headers = _get_auth_headers()
     url = f"{COMPETITION_API_URL}/pools/{pool_id}/teams/bulk-deactivate"
     payload = {"missing_team_ids": list(missing_team_ids)}
-    await session.put(url, json=payload, headers=headers)
+    response = await session.put(url, json=payload, headers=headers)
+    return response
 
 
 @handle_api_response(response_type=None)
@@ -78,8 +69,9 @@ async def bulk_deactivate_pools(
     headers = _get_auth_headers()
     url = f"{COMPETITION_API_URL}/pools/bulk-deactivate"
     payload = {"missing_pool_ids": list(missing_pool_ids)}
-    await session.put(url, json=payload, headers=headers)
-    
+    response = await session.put(url, json=payload, headers=headers)
+    return response
+
 
 @handle_api_response(response_type=CompetitionAssociation)
 async def update_team_association_stats(

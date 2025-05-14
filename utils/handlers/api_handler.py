@@ -7,16 +7,17 @@ import aiohttp
 from config.logger_config import log_event
 
 def handle_api_response(response_type: Optional[Type] = None):
-    """
-    Décorateur pour analyser les réponses API et convertir en dataclass
-    avec prise en charge des énumérations et datetime.
-    """
     def decorator(func):
         @wraps(func)
-        async def wrapper(*args, **kwargs) -> Optional[Union[dict, object]]:
+        async def wrapper(*args, **kwargs):
             try:
-                response: aiohttp.ClientResponse = await func(*args, **kwargs)
+                response = await func(*args, **kwargs)
+
+                if not isinstance(response, aiohttp.ClientResponse):
+                    raise TypeError(f"La fonction {func.__name__} doit retourner une réponse HTTP valide (ClientResponse), mais a retourné {type(response)}.")
+
                 return await process_response(response, response_type)
+
             except Exception as e:
                 log_event(
                     action="api_response_error",
