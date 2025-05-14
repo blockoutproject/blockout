@@ -260,12 +260,12 @@ public class CompetitionAssociationService {
                     assoc.setWins(request.getWins());
                     assoc.setLosses(request.getLosses());
                     assoc.setPoints(request.getPoints());
-                    assoc.setWins3To0(request.getWins3To0());
-                    assoc.setLosses0To3(request.getLosses0To3());
-                    assoc.setWins3To1(request.getWins3To1());
-                    assoc.setLosses1To3(request.getLosses1To3());
-                    assoc.setWins3To2(request.getWins3To2());
-                    assoc.setLosses2To3(request.getLosses2To3());
+                    assoc.setWinsThreeToZero(request.getWinsThreeToZero());
+                    assoc.setLossesZeroToThree(request.getLossesZeroToThree());
+                    assoc.setWinsThreeToOne(request.getWinsThreeToOne());
+                    assoc.setLossesOneToThree(request.getLossesOneToThree());
+                    assoc.setWinsThreeToTwo(request.getWinsThreeToTwo());
+                    assoc.setLossesTwoToThree(request.getLossesTwoToThree());
                     assoc.setWonSets(request.getWonSets());
                     assoc.setLostSets(request.getLostSets());
                     assoc.setWonPoints(request.getWonPoints());

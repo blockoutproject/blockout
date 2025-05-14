@@ -52,28 +52,28 @@ public class CompetitionAssociation {
     private Integer losses = 0;
 
     @Builder.Default
-    @Column(name = "wins_3_to_0", nullable = false)
-    private Integer wins3To0 = 0;
+    @Column(name = "wins_three_to_zero", nullable = false)
+    private Integer winsThreeToZero = 0;
 
     @Builder.Default
-    @Column(name = "wins_3_to_1", nullable = false)
-    private Integer wins3To1 = 0;
+    @Column(name = "wins_three_to_one", nullable = false)
+    private Integer winsThreeToOne = 0;
 
     @Builder.Default
-    @Column(name = "wins_3_to_2", nullable = false)
-    private Integer wins3To2 = 0;
+    @Column(name = "wins_three_to_two", nullable = false)
+    private Integer winsThreeToTwo = 0;
 
     @Builder.Default
-    @Column(name = "losses_0_to_3", nullable = false)
-    private Integer losses0To3 = 0;
+    @Column(name = "losses_zero_to_three", nullable = false)
+    private Integer lossesZeroToThree = 0;
 
     @Builder.Default
-    @Column(name = "losses_1_to_3", nullable = false)
-    private Integer losses1To3 = 0;
+    @Column(name = "losses_one_to_three", nullable = false)
+    private Integer lossesOneToThree = 0;
 
     @Builder.Default
-    @Column(name = "losses_2_to_3", nullable = false)
-    private Integer losses2To3 = 0;
+    @Column(name = "losses_two_to_three", nullable = false)
+    private Integer lossesTwoToThree = 0;
 
     @Builder.Default
     @Column(name = "won_sets", nullable = false)

@@ -7,12 +7,12 @@ public class TeamAssociationStatsRequest {
     private Integer wins;
     private Integer losses;
     private Integer points;
-    private Integer wins3To0;
-    private Integer wins3To1;
-    private Integer wins3To2;
-    private Integer losses0To3;
-    private Integer losses1To3;
-    private Integer losses2To3;
+    private Integer winsThreeToZero;
+    private Integer winsThreeToOne;
+    private Integer winsThreeToTwo;
+    private Integer lossesZeroToThree;
+    private Integer lossesOneToThree;
+    private Integer lossesTwoToThree;
     private Integer wonSets;
     private Integer lostSets;
     private Integer wonPoints;

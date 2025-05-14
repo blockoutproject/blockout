@@ -109,7 +109,7 @@ public class CompetitionAssociationController {
     @PostMapping("/stats")
     public String testStats(@RequestBody TeamAssociationStatsRequest request) {
         System.out.println("📦 Classe réelle : " + request.getClass().getName());
-        System.out.println("🎯 wins3To0 = " + request.getWins3To0());
+        System.out.println("🎯 winsThreeToZero = " + request.getWinsThreeToZero());
         return "OK";
     }
 
