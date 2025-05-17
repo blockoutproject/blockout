@@ -1,10 +1,17 @@
 package com.blockout.workersearch.services.cache;
 
+import java.util.List;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import com.blockout.workersearch.models.dto.club.Club;
+import com.blockout.workersearch.models.dto.team.Team;
 import com.blockout.workersearch.models.events.ClubUpsertEvent;
 import com.blockout.workersearch.models.events.TeamUpsertEvent;
 import com.blockout.workersearch.services.client.ClubClientService;
+import com.blockout.workersearch.services.client.PoolClientService;
 import com.blockout.workersearch.services.client.TeamClientService;
 
 import jakarta.annotation.PostConstruct;
@@ -13,6 +20,7 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 public class CacheInitializerService {
+    private static final Logger logger = LoggerFactory.getLogger(PoolClientService.class);
 
     private final ClubClientService clubClientService;
     private final TeamClientService teamClientService;
@@ -21,8 +29,8 @@ public class CacheInitializerService {
 
     @PostConstruct
     public void initializeCaches() {
-        var clubs = clubClientService.listClubs();
-        var clubEvents = clubs.stream()
+        List<Club> clubs = clubClientService.listClubs();
+        List<ClubUpsertEvent> clubEvents = clubs.stream()
                 .map(club -> ClubUpsertEvent.builder()
                         .id(club.getId())
                         .name(club.getName())
@@ -32,8 +40,17 @@ public class CacheInitializerService {
 
         clubCacheService.replaceAll(clubEvents);
 
-        var teams = teamClientService.listAllTeams();
-        var teamEvents = teams.stream()
+        List<Team> teams = teamClientService.listAllTeams();
+
+        for (int i = 0; i < teams.size(); i++) {
+            Team t = teams.get(i);
+            if (t == null) {
+                logger.warn("Team #{} is null", i);
+            } else  {
+                logger.warn("Team #{} has null clubId: {}", i, t);
+            }
+        }
+        List<TeamUpsertEvent> teamEvents = teams.stream()
                 .map(team -> TeamUpsertEvent.builder()
                         .id(team.getId())
                         .name(team.getName())
