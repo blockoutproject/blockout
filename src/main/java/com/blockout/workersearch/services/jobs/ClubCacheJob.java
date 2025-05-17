@@ -20,7 +20,7 @@ public class ClubCacheJob {
     private final ClubClientService clubClientService;
     private final ClubCacheService clubCacheService;
 
-    @Scheduled(fixedRateString = "${60000}")
+    @Scheduled(fixedRate = 60000)
     public void refreshClubCache() {
         try {
             var clubs = clubClientService.listClubs();
@@ -37,6 +37,7 @@ public class ClubCacheJob {
             logger.info("Club cache refreshed",
                     keyValue("action", "refresh_club_cache"),
                     keyValue("count", events.size()));
+
         } catch (Exception e) {
             logger.error("Error while refreshing club cache",
                     keyValue("action", "refresh_club_cache"),

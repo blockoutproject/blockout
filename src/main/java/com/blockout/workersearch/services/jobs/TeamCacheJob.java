@@ -20,7 +20,7 @@ public class TeamCacheJob {
     private final TeamClientService teamClientService;
     private final TeamCacheService teamCacheService;
 
-    @Scheduled(fixedRateString = "${60000}")
+    @Scheduled(fixedRate = 60000)
     public void refreshTeamCache() {
         try {
             var teams = teamClientService.listAllTeams();
@@ -42,6 +42,7 @@ public class TeamCacheJob {
                     keyValue("action", "refresh_team_cache_done"),
                     keyValue("teamCount", events.size()),
                     keyValue("clubCount", teamCacheService.getAllTeamCache().size()));
+
         } catch (Exception e) {
             logger.error("Error while refreshing team cache",
                     keyValue("action", "refresh_team_cache"),

@@ -37,7 +37,7 @@ public class IndexerJob {
     private final TeamIndexService teamIndexService;
     private final PoolIndexService poolIndexService;
 
-    @Scheduled(fixedRateString = "${120000}")
+    @Scheduled(fixedRate = 120000)
     public void reindexAll() {
         logger.info("Starting full reindex job", keyValue("action", "full_reindex"));
 
