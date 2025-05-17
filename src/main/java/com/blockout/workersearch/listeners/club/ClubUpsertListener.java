@@ -42,13 +42,13 @@ public class ClubUpsertListener {
             channel.basicAck(lastTag, true);
 
             logger.info("Successfully processed and acknowledged club batch",
-                    keyValue("action", "acknowledge_club_batch"),
+                    keyValue("action", "club_index_batch_upsert"),
                     keyValue("count", events.size()));
+                    
         } catch (Exception e) {
             channel.basicNack(lastTag, true, false);
-
             logger.error("Error processing club batch",
-                    keyValue("action", "error_club_batch"),
+                    keyValue("action", "club_index_batch_upsert_error"),
                     keyValue("count", events.size()),
                     e);
         }

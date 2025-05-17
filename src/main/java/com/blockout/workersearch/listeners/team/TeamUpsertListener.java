@@ -42,13 +42,13 @@ public class TeamUpsertListener {
             channel.basicAck(lastTag, true);
 
             logger.info("Successfully processed and acknowledged team batch",
-                    keyValue("action", "acknowledge_team_batch"),
+                    keyValue("action", "team_index_batch_upsert"),
                     keyValue("count", events.size()));
+                    
         } catch (Exception e) {
             channel.basicNack(lastTag, true, false);
-
             logger.error("Error processing team batch",
-                    keyValue("action", "error_team_batch"),
+                    keyValue("action", "team_index_batch_upsert_error"),
                     keyValue("count", events.size()),
                     e);
         }

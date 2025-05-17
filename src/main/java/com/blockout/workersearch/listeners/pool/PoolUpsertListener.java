@@ -42,13 +42,13 @@ public class PoolUpsertListener {
             channel.basicAck(lastTag, true);
 
             logger.info("Successfully processed and acknowledged pool batch",
-                    keyValue("action", "acknowledge_pool_batch"),
+                    keyValue("action", "pool_index_batch_upsert"),
                     keyValue("count", events.size()));
+                    
         } catch (Exception e) {
             channel.basicNack(lastTag, true, false);
-
             logger.error("Error processing pool batch",
-                    keyValue("action", "error_pool_batch"),
+                    keyValue("action", "pool_index_batch_upsert_error"),
                     keyValue("count", events.size()),
                     e);
         }
