@@ -116,6 +116,56 @@ public class RabbitMQConfig {
                 .with("pool.dlq");
     }
 
+    public static final String DEACTIVATED_EXCHANGE = "deactivated.exchange";
+
+    public static final String CLUB_DEACTIVATED_QUEUE_SEARCH = "club.deactivated.queue.workersearch";
+    public static final String TEAM_DEACTIVATED_QUEUE_SEARCH = "team.deactivated.queue.workersearch";
+    public static final String POOL_DEACTIVATED_QUEUE_SEARCH = "pool.deactivated.queue.workersearch";
+
+    @Bean
+    public TopicExchange deactivatedExchange() {
+        return new TopicExchange(DEACTIVATED_EXCHANGE);
+    }
+
+    @Bean
+    public Queue clubDeactivatedQueueSearch() {
+        return new Queue(CLUB_DEACTIVATED_QUEUE_SEARCH, true);
+    }
+
+    @Bean
+    public Queue teamDeactivatedQueueSearch() {
+        return new Queue(TEAM_DEACTIVATED_QUEUE_SEARCH, true);
+    }
+
+    @Bean
+    public Queue poolDeactivatedQueueSearch() {
+        return new Queue(POOL_DEACTIVATED_QUEUE_SEARCH, true);
+    }
+
+    @Bean
+    public Binding bindClubDeactivatedQueueSearch(TopicExchange deactivatedExchange,
+            Queue clubDeactivatedQueueSearch) {
+        return BindingBuilder.bind(clubDeactivatedQueueSearch)
+                .to(deactivatedExchange)
+                .with("club.deactivated");
+    }
+
+    @Bean
+    public Binding bindTeamDeactivatedQueueSearch(TopicExchange deactivatedExchange,
+            Queue teamDeactivatedQueueSearch) {
+        return BindingBuilder.bind(teamDeactivatedQueueSearch)
+                .to(deactivatedExchange)
+                .with("team.deactivated");
+    }
+
+    @Bean
+    public Binding bindPoolDeactivatedQueueSearch(TopicExchange deactivatedExchange,
+            Queue poolDeactivatedQueueSearch) {
+        return BindingBuilder.bind(poolDeactivatedQueueSearch)
+                .to(deactivatedExchange)
+                .with("pool.deactivated");
+    }
+
     @Bean(name = "rabbitBatchFactory")
     public SimpleRabbitListenerContainerFactory rabbitBatchFactory(ConnectionFactory connectionFactory,
             MessageConverter messageConverter) {

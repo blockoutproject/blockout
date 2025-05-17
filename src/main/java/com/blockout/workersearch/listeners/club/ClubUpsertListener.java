@@ -1,4 +1,4 @@
-package com.blockout.workersearch.listeners;
+package com.blockout.workersearch.listeners.club;
 
 import java.io.IOException;
 import java.util.List;
@@ -19,9 +19,9 @@ import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
 @Component
 @RequiredArgsConstructor
-public class ClubListener {
+public class ClubUpsertListener {
 
-    private static final Logger logger = LoggerFactory.getLogger(ClubListener.class);
+    private static final Logger logger = LoggerFactory.getLogger(ClubUpsertListener.class);
 
     private final ClubIndexService clubIndexService;
 

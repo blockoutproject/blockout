@@ -1,11 +1,11 @@
-package com.blockout.workersearch.listeners;
+package com.blockout.workersearch.listeners.team;
 
 import java.io.IOException;
 import java.util.List;
 
 import com.blockout.workersearch.config.RabbitMQConfig;
-import com.blockout.workersearch.models.events.PoolUpsertEvent;
-import com.blockout.workersearch.services.index.PoolIndexService;
+import com.blockout.workersearch.models.events.TeamUpsertEvent;
+import com.blockout.workersearch.services.index.TeamIndexService;
 import com.rabbitmq.client.Channel;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -19,36 +19,36 @@ import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
 @Component
 @RequiredArgsConstructor
-public class PoolListener {
+public class TeamUpsertListener {
 
-    private static final Logger logger = LoggerFactory.getLogger(PoolListener.class);
+    private static final Logger logger = LoggerFactory.getLogger(TeamUpsertListener.class);
 
-    private final PoolIndexService poolIndexService;
+    private final TeamIndexService teamIndexService;
 
-    @RabbitListener(queues = RabbitMQConfig.POOL_LIFECYCLE_QUEUE_SEARCH, containerFactory = "rabbitBatchFactory")
-    public void onUpsertBatch(List<Message<PoolUpsertEvent>> messages, Channel channel) throws IOException {
-        List<PoolUpsertEvent> events = messages.stream()
+    @RabbitListener(queues = RabbitMQConfig.TEAM_LIFECYCLE_QUEUE_SEARCH, containerFactory = "rabbitBatchFactory")
+    public void onUpsertBatch(List<Message<TeamUpsertEvent>> messages, Channel channel) throws IOException {
+        List<TeamUpsertEvent> events = messages.stream()
                 .map(Message::getPayload)
                 .toList();
 
         Long lastTag = (Long) messages.get(messages.size() - 1).getHeaders().get(AmqpHeaders.DELIVERY_TAG);
 
-        logger.info("Received batch of PoolUpsertEvent",
-                keyValue("action", "receive_pool_batch"),
+        logger.info("Received batch of TeamUpsertEvent",
+                keyValue("action", "receive_team_batch"),
                 keyValue("count", events.size()));
 
         try {
-            poolIndexService.upsertBatch(events);
+            teamIndexService.upsertBatch(events);
             channel.basicAck(lastTag, true);
 
-            logger.info("Successfully processed and acknowledged pool batch",
-                    keyValue("action", "acknowledge_pool_batch"),
+            logger.info("Successfully processed and acknowledged team batch",
+                    keyValue("action", "acknowledge_team_batch"),
                     keyValue("count", events.size()));
         } catch (Exception e) {
             channel.basicNack(lastTag, true, false);
 
-            logger.error("Error processing pool batch",
-                    keyValue("action", "error_pool_batch"),
+            logger.error("Error processing team batch",
+                    keyValue("action", "error_team_batch"),
                     keyValue("count", events.size()),
                     e);
         }
