@@ -10,8 +10,6 @@ import com.blockout.workersearch.models.events.TeamUpsertEvent;
 import com.blockout.workersearch.services.cache.TeamCacheService;
 import com.blockout.workersearch.services.client.TeamClientService;
 
-import jakarta.annotation.PostConstruct;
-
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
 @Service
@@ -21,12 +19,6 @@ public class TeamCacheJob {
     private static final Logger logger = LoggerFactory.getLogger(TeamCacheJob.class);
     private final TeamClientService teamClientService;
     private final TeamCacheService teamCacheService;
-
-    @PostConstruct
-    public void init() {
-        logger.info("Initial team cache loading from API", keyValue("action", "init_team_cache"));
-        refreshTeamCache();
-    }
 
     @Scheduled(fixedRateString = "${60000}")
     public void refreshTeamCache() {

@@ -10,8 +10,6 @@ import com.blockout.workersearch.models.events.ClubUpsertEvent;
 import com.blockout.workersearch.services.cache.ClubCacheService;
 import com.blockout.workersearch.services.client.ClubClientService;
 
-import jakarta.annotation.PostConstruct;
-
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
 @Service
@@ -21,12 +19,6 @@ public class ClubCacheJob {
     private static final Logger logger = LoggerFactory.getLogger(ClubCacheJob.class);
     private final ClubClientService clubClientService;
     private final ClubCacheService clubCacheService;
-
-    @PostConstruct
-    public void init() {
-        logger.info("Initial cache loading from clubs API", keyValue("action", "init_club_cache"));
-        refreshClubCache();
-    }
 
     @Scheduled(fixedRateString = "${60000}")
     public void refreshClubCache() {
