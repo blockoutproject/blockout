@@ -66,7 +66,7 @@ class RegionalScraper(Scraper):
                         league_page_url = a_tag['href']
 
                         # On lance la tâche de scraping des poules pour cette ligue
-                        if league_code not in ['LIMY', 'LIGY', 'LIGU', 'LIMART', 'LIRE']:
+                        if league_code not in ['LIMY', 'LIGY', 'LIGU', 'LIMART', 'LIRE', 'LICO']:
                             task = self.scrape_pools_from_league(league_code, league_name, league_page_url)
                             tasks.append(task)
 
