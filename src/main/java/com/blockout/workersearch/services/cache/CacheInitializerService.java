@@ -17,6 +17,8 @@ import com.blockout.workersearch.services.client.TeamClientService;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 
+import static net.logstash.logback.argument.StructuredArguments.keyValue;
+
 @Service
 @RequiredArgsConstructor
 public class CacheInitializerService {
@@ -40,6 +42,10 @@ public class CacheInitializerService {
 
         clubCacheService.replaceAll(clubEvents);
 
+        logger.info("Club cache initialized",
+                keyValue("action", "initialize_club_cache"),
+                keyValue("clubCount", clubEvents.size()));
+
         List<Team> teams = teamClientService.listAllTeams();
         List<TeamUpsertEvent> teamEvents = teams.stream()
                 .map(team -> TeamUpsertEvent.builder()
@@ -53,5 +59,9 @@ public class CacheInitializerService {
                 .toList();
 
         teamCacheService.replaceAll(teamEvents);
+
+        logger.info("Team cache initialized",
+                keyValue("action", "initialize_team_cache"),
+                keyValue("teamCount", teamEvents.size()));
     }
 }
