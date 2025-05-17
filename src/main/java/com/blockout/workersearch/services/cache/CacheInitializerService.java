@@ -44,7 +44,7 @@ public class CacheInitializerService {
 
         logger.info("Club cache initialized",
                 keyValue("action", "initialize_club_cache"),
-                keyValue("clubCount", clubEvents.size()));
+                keyValue("clubCount", clubCacheService.getAllClubs().size()));
 
         List<Team> teams = teamClientService.listAllTeams();
         List<TeamUpsertEvent> teamEvents = teams.stream()
@@ -62,6 +62,6 @@ public class CacheInitializerService {
 
         logger.info("Team cache initialized",
                 keyValue("action", "initialize_team_cache"),
-                keyValue("teamCount", teamEvents.size()));
+                keyValue("teamCount", teamCacheService.getAllTeamCache().size()));
     }
 }
