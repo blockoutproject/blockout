@@ -75,20 +75,7 @@ public class ClubIndexService {
     }
 
     private void reindexTeamsForClub(String clubId) {
-        List<TeamUpsertEvent> events = new ArrayList<>(teamCacheService.getTeamsByClubId(clubId)); // Copie défensive ici
-
-        if (events.isEmpty()) {
-            logger.warn("No teams found for club during reindex",
-                    keyValue("action", "reindex_teams_for_club"),
-                    keyValue("id", clubId));
-            return;
-        }
-    
+        List<TeamUpsertEvent> events = new ArrayList<>(teamCacheService.getTeamsByClubId(clubId));
         teamIndexService.upsertBatch(events);
-    
-        logger.info("Reindexed teams for club",
-                keyValue("action", "reindex_teams_for_club"),
-                keyValue("id", clubId),
-                keyValue("teamCount", events.size()));
     }
 }

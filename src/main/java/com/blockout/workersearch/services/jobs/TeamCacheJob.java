@@ -20,7 +20,7 @@ public class TeamCacheJob {
     private final TeamClientService teamClientService;
     private final TeamCacheService teamCacheService;
 
-    @Scheduled(fixedRate = 60000)
+    @Scheduled(fixedRate = 600000)
     public void refreshTeamCache() {
         try {
             var teams = teamClientService.listAllTeams();

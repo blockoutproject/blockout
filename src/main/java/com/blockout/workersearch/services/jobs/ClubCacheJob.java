@@ -20,7 +20,7 @@ public class ClubCacheJob {
     private final ClubClientService clubClientService;
     private final ClubCacheService clubCacheService;
 
-    @Scheduled(fixedRate = 60000)
+    @Scheduled(fixedRate = 600000)
     public void refreshClubCache() {
         try {
             var clubs = clubClientService.listClubs();
