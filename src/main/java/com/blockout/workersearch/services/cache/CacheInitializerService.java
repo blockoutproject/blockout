@@ -41,15 +41,6 @@ public class CacheInitializerService {
         clubCacheService.replaceAll(clubEvents);
 
         List<Team> teams = teamClientService.listAllTeams();
-
-        for (int i = 0; i < teams.size(); i++) {
-            Team t = teams.get(i);
-            if (t == null) {
-                logger.warn("Team #{} is null", i);
-            } else  {
-                logger.warn("Team #{} has null clubId: {}", i, t);
-            }
-        }
         List<TeamUpsertEvent> teamEvents = teams.stream()
                 .map(team -> TeamUpsertEvent.builder()
                         .id(team.getId())
