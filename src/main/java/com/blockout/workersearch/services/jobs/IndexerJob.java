@@ -37,7 +37,7 @@ public class IndexerJob {
     private final TeamIndexService teamIndexService;
     private final PoolIndexService poolIndexService;
 
-    @Scheduled(cron = "${reindex.full.cron:0 0 3 * * *}") // Tous les jours à 3h par défaut
+    @Scheduled(fixedRateString = "${120000}")
     public void reindexAll() {
         logger.info("Starting full reindex job", keyValue("action", "full_reindex"));
 

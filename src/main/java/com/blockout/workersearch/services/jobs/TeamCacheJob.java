@@ -28,7 +28,7 @@ public class TeamCacheJob {
         refreshTeamCache();
     }
 
-    @Scheduled(fixedRateString = "${team.cache.refresh.rate:600000}")
+    @Scheduled(fixedRateString = "${60000}")
     public void refreshTeamCache() {
         try {
             var teams = teamClientService.listAllTeams();

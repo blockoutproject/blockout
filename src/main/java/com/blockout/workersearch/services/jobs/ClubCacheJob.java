@@ -28,7 +28,7 @@ public class ClubCacheJob {
         refreshClubCache();
     }
 
-    @Scheduled(fixedRateString = "${club.cache.refresh.rate:600000}")
+    @Scheduled(fixedRateString = "${60000}")
     public void refreshClubCache() {
         try {
             var clubs = clubClientService.listClubs();

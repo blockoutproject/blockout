@@ -7,20 +7,20 @@ import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
 import org.springframework.amqp.support.converter.MessageConverter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.amqp.core.AcknowledgeMode;
 
 @Configuration
 public class RabbitMQConfig {
 
     public static final String ENTITY_LIFECYCLE_EXCHANGE = "entity.lifecycle.exchange";
+    public static final String ENTITY_LIFECYCLE_DLQ_EXCHANGE = "entity.lifecycle.dlq.exchange";
 
-    public static final String CLUB_LIFECYCLE_QUEUE_SEARCH = "club.lifecycle.queue.workerSearch";
-    public static final String TEAM_LIFECYCLE_QUEUE_SEARCH = "team.lifecycle.queue.workerSearch";
-    public static final String POOL_LIFECYCLE_QUEUE_SEARCH = "pool.lifecycle.queue.workerSearch";
+    public static final String CLUB_LIFECYCLE_QUEUE_SEARCH = "club.lifecycle.queue.workersearch";
+    public static final String TEAM_LIFECYCLE_QUEUE_SEARCH = "team.lifecycle.queue.workersearch";
+    public static final String POOL_LIFECYCLE_QUEUE_SEARCH = "pool.lifecycle.queue.workersearch";
 
-    public static final String CLUB_DLQ = "club.lifecycle.queue.workerSearch.dlq";
-    public static final String TEAM_DLQ = "team.lifecycle.queue.workerSearch.dlq";
-    public static final String POOL_DLQ = "pool.lifecycle.queue.workerSearch.dlq";
+    public static final String CLUB_DLQ = "club.lifecycle.queue.workersearch.dlq";
+    public static final String TEAM_DLQ = "team.lifecycle.queue.workersearch.dlq";
+    public static final String POOL_DLQ = "pool.lifecycle.queue.workersearch.dlq";
 
     @Bean
     TopicExchange entityLifecycleExchange() {
@@ -28,9 +28,14 @@ public class RabbitMQConfig {
     }
 
     @Bean
+    TopicExchange entityLifecyclDlqExchange() {
+        return new TopicExchange(ENTITY_LIFECYCLE_DLQ_EXCHANGE);
+    }
+
+    @Bean
     Queue clubLifecycleQueueSearch() {
         return QueueBuilder.durable(CLUB_LIFECYCLE_QUEUE_SEARCH)
-                .withArgument("x-dead-letter-exchange", ENTITY_LIFECYCLE_EXCHANGE)
+                .withArgument("x-dead-letter-exchange", ENTITY_LIFECYCLE_DLQ_EXCHANGE)
                 .withArgument("x-dead-letter-routing-key", "club.dlq")
                 .build();
     }
@@ -38,7 +43,7 @@ public class RabbitMQConfig {
     @Bean
     Queue teamLifecycleQueueSearch() {
         return QueueBuilder.durable(TEAM_LIFECYCLE_QUEUE_SEARCH)
-                .withArgument("x-dead-letter-exchange", ENTITY_LIFECYCLE_EXCHANGE)
+                .withArgument("x-dead-letter-exchange", ENTITY_LIFECYCLE_DLQ_EXCHANGE)
                 .withArgument("x-dead-letter-routing-key", "team.dlq")
                 .build();
     }
@@ -46,7 +51,7 @@ public class RabbitMQConfig {
     @Bean
     Queue poolLifecycleQueueSearch() {
         return QueueBuilder.durable(POOL_LIFECYCLE_QUEUE_SEARCH)
-                .withArgument("x-dead-letter-exchange", ENTITY_LIFECYCLE_EXCHANGE)
+                .withArgument("x-dead-letter-exchange", ENTITY_LIFECYCLE_DLQ_EXCHANGE)
                 .withArgument("x-dead-letter-routing-key", "pool.dlq")
                 .build();
     }
