@@ -4,7 +4,7 @@ from config.env_config import TEAM_API_URL
 from config.logger_config import log_event
 from utils.handlers.api_handler import handle_api_response
 from models.team import Team
-from api.auth0 import _get_auth_headers
+from api.auth0 import _get_headers
 from utils.utils import to_dict
 
 
@@ -13,7 +13,7 @@ async def create_team(session: aiohttp.ClientSession, team: Team) -> Team:
     """
     Envoie une requête POST pour créer une nouvelle équipe.
     """
-    headers = _get_auth_headers()
+    headers = _get_headers()
     team_dict = to_dict(team)
     url = f"{TEAM_API_URL}"
     response = await session.post(url, json=team_dict, headers=headers)
@@ -30,7 +30,7 @@ async def update_team(
     """
     Envoie une requête PUT pour mettre à jour une équipe existante.
     """
-    headers = _get_auth_headers()
+    headers = _get_headers()
     team_dict = to_dict(team)
     url = f"{TEAM_API_URL}/{team.id}"
     response = await session.put(url, json=team_dict, headers=headers)
@@ -53,7 +53,7 @@ async def get_teams_by_division_format_gender(
     """
     Récupère les équipes par division_name, format et gender.
     """
-    headers = _get_auth_headers()
+    headers = _get_headers()
     params = {
         "division_name": division_name,
         "format": format,

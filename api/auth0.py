@@ -21,10 +21,7 @@ def get_token() -> str:
         raise ValueError("Le token n'est pas encore défini.")
     return MIRROR_TOKEN
 
-def _get_auth_headers() -> dict:
-    """
-    Génère les headers d'authentification avec le token JWT.
-    """
+def _get_headers() -> dict:
     token = get_token()
     return {"Authorization": f"Bearer {token}"}
 

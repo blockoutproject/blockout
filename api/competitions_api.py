@@ -6,8 +6,8 @@ from models.association_stats import AssociationStats
 from models.category import Category
 from models.competition_association import CompetitionAssociation
 from utils.handlers.api_handler import handle_api_response
-from api.auth0 import _get_auth_headers
-from utils.utils import to_dict
+from api.auth0 import _get_headers
+from utils.utils import generate_correlation_id, to_dict
 
 
 @handle_api_response(response_type=list[CompetitionAssociation])
@@ -18,7 +18,7 @@ async def get_active_team_associations_by_pool(
     """
     Récupère la liste des associations actives pour une poule donnée.
     """
-    headers = _get_auth_headers()
+    headers = _get_headers()
     url = f"{COMPETITION_API_URL}/pools/{pool_id}/teams"
     response = await session.get(url, params={"active_only": "true"}, headers=headers)
     return response
@@ -35,7 +35,7 @@ async def add_team_to_pool(
     """
     Crée ou réactive l'association entre une poule et une équipe.
     """
-    headers = _get_auth_headers()
+    headers = _get_headers()
     url = f"{COMPETITION_API_URL}/pools/{pool_id}/teams/{team_id}"
     params = { "club_id": club_id, "category": category.value }
     response = await session.post(url, params=params, headers=headers)
@@ -51,7 +51,7 @@ async def bulk_deactivate_teams_by_pool(
     """
     Désactive en masse les associations poule–équipe absentes de la liste.
     """
-    headers = _get_auth_headers()
+    headers = _get_headers()
     url = f"{COMPETITION_API_URL}/pools/{pool_id}/teams/bulk-deactivate"
     payload = {"missing_team_ids": list(missing_team_ids)}
     response = await session.put(url, json=payload, headers=headers)
@@ -66,7 +66,7 @@ async def bulk_deactivate_pools(
     """
     Désactive en masse les poules absentes de la liste.
     """
-    headers = _get_auth_headers()
+    headers = _get_headers()
     url = f"{COMPETITION_API_URL}/pools/bulk-deactivate"
     payload = {"missing_pool_ids": list(missing_pool_ids)}
     response = await session.put(url, json=payload, headers=headers)
@@ -83,7 +83,7 @@ async def update_team_association_stats(
     """
     Met à jour les statistiques de l'association (poule–équipe).
     """
-    headers = _get_auth_headers()
+    headers = _get_headers()
     url = f"{COMPETITION_API_URL}/pools/{pool_id}/teams/{team_id}/stats"
     response = await session.put(url, json=to_dict(stats), headers=headers)
     return response

@@ -4,6 +4,7 @@ from enum import Enum
 import json
 import re
 from typing import Optional
+import uuid
 from config.logger_config import log_event
 from models.format import Format
 from models.gender import Gender
@@ -147,3 +148,6 @@ def to_dict(object) -> dict:
         else:
             result[key] = value  # Conserver les autres types
     return result
+
+def generate_correlation_id() -> str:
+    return f"bulk-{uuid.uuid4()}"

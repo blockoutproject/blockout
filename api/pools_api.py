@@ -4,7 +4,7 @@ from config.env_config import POOL_API_URL
 from config.logger_config import log_event
 from utils.handlers.api_handler import handle_api_response
 from models.pool import Pool
-from api.auth0 import _get_auth_headers
+from api.auth0 import _get_headers
 from utils.utils import to_dict
 
 
@@ -17,7 +17,7 @@ async def get_pools_by_league_and_season(
     """
     Récupère toutes les pools pour un code de ligue et une saison spécifiques.
     """
-    headers = _get_auth_headers()
+    headers = _get_headers()
     params = {"league_code": league_code, "season": season}
     url = f"{POOL_API_URL}"
     return await session.get(url, params=params, headers=headers)
@@ -31,7 +31,7 @@ async def create_pool(
     """
     Envoie une requête POST pour créer une nouvelle pool.
     """
-    headers = _get_auth_headers()
+    headers = _get_headers()
     pool_dict = to_dict(pool)
     url = f"{POOL_API_URL}"
     response = await session.post(url, json=pool_dict, headers=headers)
@@ -53,7 +53,7 @@ async def update_pool(
     """
     Envoie une requête PUT pour mettre à jour une pool existante.
     """
-    headers = _get_auth_headers()
+    headers = _get_headers()
     pool_dict = to_dict(pool)
     url = f"{POOL_API_URL}/{pool.id}"
     response = await session.put(url, json=pool_dict, headers=headers)
