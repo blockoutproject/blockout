@@ -11,11 +11,11 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class RabbitMQConfig {
 
-    public static final String DEACTIVATED_EXCHANGE = "deactivated.exchange";
+    public static final String ENTITY_LIFECYCLE_EXCHANGE = "entity.lifecycle.exchange";
 
     @Bean
-    public TopicExchange deactivatedExchange() {
-        return new TopicExchange(DEACTIVATED_EXCHANGE);
+    public TopicExchange entityLifecycleExchange() {
+        return new TopicExchange(ENTITY_LIFECYCLE_EXCHANGE);
     }
 
     @Bean

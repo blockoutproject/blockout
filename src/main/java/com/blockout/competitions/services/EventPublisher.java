@@ -1,10 +1,10 @@
 package com.blockout.competitions.services;
 
 import com.blockout.competitions.config.RabbitMQConfig;
-import com.blockout.competitions.models.events.ClubDeactivatedEvent;
-import com.blockout.competitions.models.events.PoolDeactivatedEvent;
-import com.blockout.competitions.models.events.TeamDeactivatedByPoolEvent;
-import com.blockout.competitions.models.events.TeamDeactivatedEvent;
+import com.blockout.competitions.models.events.ClubDeactivationEvent;
+import com.blockout.competitions.models.events.PoolDeactivationEvent;
+import com.blockout.competitions.models.events.TeamDeactivationByPoolEvent;
+import com.blockout.competitions.models.events.TeamDeactivationEvent;
 
 import lombok.RequiredArgsConstructor;
 
@@ -18,34 +18,34 @@ public class EventPublisher {
     private final RabbitTemplate rabbitTemplate;
 
     public void publishTeamDeactivationEvent(Long teamId) {
-        TeamDeactivatedEvent event = TeamDeactivatedEvent.builder().teamId(teamId).build();
+        TeamDeactivationEvent event = TeamDeactivationEvent.builder().teamId(teamId).build();
         rabbitTemplate.convertAndSend(
-                RabbitMQConfig.DEACTIVATED_EXCHANGE,
-                "team.deactivated",
+                RabbitMQConfig.ENTITY_LIFECYCLE_EXCHANGE,
+                "team.deactivation",
                 event);
     }
 
     public void publishPoolDeactivationEvent(Long poolId) {
-        PoolDeactivatedEvent event = PoolDeactivatedEvent.builder().poolId(poolId).build();
+        PoolDeactivationEvent event = PoolDeactivationEvent.builder().poolId(poolId).build();
         rabbitTemplate.convertAndSend(
-                RabbitMQConfig.DEACTIVATED_EXCHANGE,
-                "pool.deactivated",
+                RabbitMQConfig.ENTITY_LIFECYCLE_EXCHANGE,
+                "pool.deactivation",
                 event);
     }
 
     public void publishTeamDeactivationByPoolEvent(Long teamId, Long poolId) {
-        TeamDeactivatedByPoolEvent event = TeamDeactivatedByPoolEvent.builder().teamId(teamId).poolId(poolId).build();
+        TeamDeactivationByPoolEvent event = TeamDeactivationByPoolEvent.builder().teamId(teamId).poolId(poolId).build();
         rabbitTemplate.convertAndSend(
-                RabbitMQConfig.DEACTIVATED_EXCHANGE,
-                "teambypool.deactivated",
+                RabbitMQConfig.ENTITY_LIFECYCLE_EXCHANGE,
+                "teambypool.deactivation",
                 event);
     }
 
     public void publishClubDeactivationEvent(String clubId) {
-        ClubDeactivatedEvent event = ClubDeactivatedEvent.builder().clubId(clubId).build();
+        ClubDeactivationEvent event = ClubDeactivationEvent.builder().clubId(clubId).build();
         rabbitTemplate.convertAndSend(
-                RabbitMQConfig.DEACTIVATED_EXCHANGE,
-                "club.deactivated",
+                RabbitMQConfig.ENTITY_LIFECYCLE_EXCHANGE,
+                "club.deactivation",
                 event);
     }
 }
