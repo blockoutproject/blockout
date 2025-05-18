@@ -11,26 +11,27 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class RabbitMQConfig {
 
-    public static final String DEACTIVATED_EXCHANGE = "deactivated.exchange";
-    public static final String POOL_DEACTIVATED_QUEUE_POOLS = "pool.deactivated.queue.pools";
+    public static final String ENTITY_LIFECYCLE_EXCHANGE = "entity.lifecycle.exchange";
+
+    public static final String POOL_DEACTIVATION_QUEUE_POOLS = "pool.deactivation.queue.pools";
 
     @Bean
-    public TopicExchange deactivatedExchange() {
-        return new TopicExchange(DEACTIVATED_EXCHANGE);
+    public TopicExchange entityLifecycleExchange() {
+        return new TopicExchange(ENTITY_LIFECYCLE_EXCHANGE);
     }
 
     @Bean
-    public Queue poolDeactivatedQueuePools() {
-        return new Queue(POOL_DEACTIVATED_QUEUE_POOLS, true);
+    public Queue poolDeactivationQueuePools() {
+        return new Queue(POOL_DEACTIVATION_QUEUE_POOLS, true);
     }
 
     @Bean
-    public Binding bindPoolDeactivatedQueuePools(
-            TopicExchange deactivatedExchange,
-            Queue poolDeactivatedQueuePools) {
-        return BindingBuilder.bind(poolDeactivatedQueuePools)
-                .to(deactivatedExchange)
-                .with("pool.deactivated");
+    public Binding bindPoolDeactivationQueuePools(
+            TopicExchange entityLifecycleExchange,
+            Queue poolDeactivationQueuePools) {
+        return BindingBuilder.bind(poolDeactivationQueuePools)
+                .to(entityLifecycleExchange)
+                .with("pool.deactivation");
     }
 
     public static final String USER_FOLLOW_EXCHANGE = "user.follow.exchange";
@@ -55,13 +56,6 @@ public class RabbitMQConfig {
                 .with("pool.follow");
     }
 
-    public static final String ENTITY_LIFECYCLE_EXCHANGE = "entity.lifecycle.exchange";
-
-    @Bean
-    public TopicExchange entityLifecycleExchange() {
-        return new TopicExchange(ENTITY_LIFECYCLE_EXCHANGE);
-    }
-    
     @Bean
     public MessageConverter messageConverter() {
         return new Jackson2JsonMessageConverter();

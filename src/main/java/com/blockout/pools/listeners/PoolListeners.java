@@ -2,7 +2,7 @@ package com.blockout.pools.listeners;
 
 import com.blockout.pools.config.RabbitMQConfig;
 import com.blockout.pools.models.EntityType;
-import com.blockout.pools.models.events.PoolDeactivatedEvent;
+import com.blockout.pools.models.events.PoolDeactivationEvent;
 import com.blockout.pools.models.events.UserFollowEvent;
 import com.blockout.pools.services.PoolService;
 
@@ -21,8 +21,8 @@ public class PoolListeners {
         this.poolService = poolService;
     }
 
-    @RabbitListener(queues = RabbitMQConfig.POOL_DEACTIVATED_QUEUE_POOLS)
-    public void handlePoolDeactivated(PoolDeactivatedEvent event) {
+    @RabbitListener(queues = RabbitMQConfig.POOL_DEACTIVATION_QUEUE_POOLS)
+    public void handlePoolDeactivation(PoolDeactivationEvent event) {
         Long poolId = event.getPoolId();
         poolService.deactivatePool(poolId);
     }
