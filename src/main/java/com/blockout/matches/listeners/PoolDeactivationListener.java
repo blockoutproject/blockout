@@ -2,7 +2,7 @@ package com.blockout.matches.listeners;
 
 import com.blockout.matches.services.MatchService;
 import com.blockout.matches.config.RabbitMQConfig;
-import com.blockout.matches.models.events.PoolDeactivatedEvent;
+import com.blockout.matches.models.events.PoolDeactivationEvent;
 
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
@@ -16,8 +16,8 @@ public class PoolDeactivationListener {
         this.matchService = matchService;
     }
 
-    @RabbitListener(queues = RabbitMQConfig.POOL_DEACTIVATED_QUEUE_MATCHES)
-    public void handlePoolDeactivated(PoolDeactivatedEvent event) {
+    @RabbitListener(queues = RabbitMQConfig.POOL_DEACTIVATION_QUEUE_MATCHES)
+    public void handlePoolDeactivation(PoolDeactivationEvent event) {
         Long poolId = event.getPoolId();
         matchService.deactivateMatchesByPoolId(poolId);
     }

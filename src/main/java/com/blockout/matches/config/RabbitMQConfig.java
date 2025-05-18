@@ -12,57 +12,57 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class RabbitMQConfig {
 
-    public static final String DEACTIVATED_EXCHANGE = "deactivated.exchange";
+    public static final String ENTITY_LIFECYCLE_EXCHANGE = "entity.lifecycle.exchange";
 
-    public static final String TEAM_DEACTIVATED_QUEUE_MATCHES = "team.deactivated.queue.matches";
-    public static final String POOL_DEACTIVATED_QUEUE_MATCHES = "pool.deactivated.queue.matches";
-    public static final String TEAM_DEACTIVATED_BY_POOL_QUEUE_MATCHES = "teambypool.deactivated.queue.matches";
+    public static final String TEAM_DEACTIVATION_QUEUE_MATCHES = "team.deactivation.queue.matches";
+    public static final String POOL_DEACTIVATION_QUEUE_MATCHES = "pool.deactivation.queue.matches";
+    public static final String TEAM_BY_POOL_DEACTIVATION_QUEUE_MATCHES = "teambypool.deactivation.queue.matches";
 
     @Bean
-    public TopicExchange deactivatedExchange() {
-        return new TopicExchange(DEACTIVATED_EXCHANGE);
+    public TopicExchange entityLifecycleExchange() {
+        return new TopicExchange(ENTITY_LIFECYCLE_EXCHANGE);
     }
 
     @Bean
-    public Queue teamDeactivatedQueueMatches() {
-        return new Queue(TEAM_DEACTIVATED_QUEUE_MATCHES, true);
+    public Queue teamDeactivationQueueMatches() {
+        return new Queue(TEAM_DEACTIVATION_QUEUE_MATCHES, true);
     }
 
     @Bean
-    public Queue poolDeactivatedQueueMatches() {
-        return new Queue(POOL_DEACTIVATED_QUEUE_MATCHES, true);
+    public Queue poolDeactivationQueueMatches() {
+        return new Queue(POOL_DEACTIVATION_QUEUE_MATCHES, true);
     }
 
     @Bean
-    public Queue teamDeactivatedByPoolQueueMatches() {
-        return new Queue(TEAM_DEACTIVATED_BY_POOL_QUEUE_MATCHES, true);
+    public Queue teamByPoolDeactivationQueueMatches() {
+        return new Queue(TEAM_BY_POOL_DEACTIVATION_QUEUE_MATCHES, true);
     }
 
     @Bean
-    public Binding bindTeamDeactivatedQueueMatches(
-            TopicExchange deactivatedExchange,
-            Queue teamDeactivatedQueueMatches) {
-        return BindingBuilder.bind(teamDeactivatedQueueMatches)
-                .to(deactivatedExchange)
-                .with("team.deactivated");
+    public Binding bindTeamDeactivationQueueMatches(
+            TopicExchange entityLifecycleExchange,
+            Queue teamDeactivationQueueMatches) {
+        return BindingBuilder.bind(teamDeactivationQueueMatches)
+                .to(entityLifecycleExchange)
+                .with("team.deactivation");
     }
 
     @Bean
-    public Binding bindPoolDeactivatedQueueMatches(
-            TopicExchange deactivatedExchange,
-            Queue poolDeactivatedQueueMatches) {
-        return BindingBuilder.bind(poolDeactivatedQueueMatches)
-                .to(deactivatedExchange)
-                .with("pool.deactivated");
+    public Binding bindPoolDeactivationQueueMatches(
+            TopicExchange entityLifecycleExchange,
+            Queue poolDeactivationQueueMatches) {
+        return BindingBuilder.bind(poolDeactivationQueueMatches)
+                .to(entityLifecycleExchange)
+                .with("pool.deactivation");
     }
 
     @Bean
-    public Binding bindTeamDeactivatedByPoolQueueMatches(
-            TopicExchange deactivatedExchange,
-            Queue teamDeactivatedByPoolQueueMatches) {
-        return BindingBuilder.bind(teamDeactivatedByPoolQueueMatches)
-                .to(deactivatedExchange)
-                .with("teambypool.deactivated");
+    public Binding bindTeamByPoolDeactivationQueueMatches(
+            TopicExchange entityLifecycleExchange,
+            Queue teamByPoolDeactivationQueueMatches) {
+        return BindingBuilder.bind(teamByPoolDeactivationQueueMatches)
+                .to(entityLifecycleExchange)
+                .with("teambypool.deactivation");
     }
 
     @Bean

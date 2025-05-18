@@ -2,7 +2,7 @@ package com.blockout.matches.listeners;
 
 import com.blockout.matches.services.MatchService;
 import com.blockout.matches.config.RabbitMQConfig;
-import com.blockout.matches.models.events.TeamDeactivatedEvent;
+import com.blockout.matches.models.events.TeamDeactivationEvent;
 
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
@@ -16,8 +16,8 @@ public class TeamDeactivationListener {
         this.matchService = matchService;
     }
 
-    @RabbitListener(queues = RabbitMQConfig.TEAM_DEACTIVATED_QUEUE_MATCHES)
-    public void handleTeamDeactivated(TeamDeactivatedEvent event) {
+    @RabbitListener(queues = RabbitMQConfig.TEAM_DEACTIVATION_QUEUE_MATCHES)
+    public void handleTeamDeactivation(TeamDeactivationEvent event) {
         Long teamId = event.getTeamId();
         matchService.deactivateMatchesByTeamId(teamId);
     }
