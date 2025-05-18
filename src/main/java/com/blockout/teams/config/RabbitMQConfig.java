@@ -11,41 +11,42 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class RabbitMQConfig {
 
-    public static final String DEACTIVATED_EXCHANGE = "deactivated.exchange";
-    public static final String TEAM_DEACTIVATED_QUEUE_TEAMS = "team.deactivated.queue.teams";
-    public static final String CLUB_DEACTIVATED_QUEUE_TEAMS = "club.deactivated.queue.teams";
+    public static final String ENTITY_LIFECYCLE_EXCHANGE = "entity.lifecycle.exchange";
+
+    public static final String TEAM_DEACTIVATION_QUEUE_TEAMS = "team.deactivation.queue.teams";
+    public static final String CLUB_DEACTIVATION_QUEUE_TEAMS = "club.deactivation.queue.teams";
 
     @Bean
-    public TopicExchange deactivatedExchange() {
-        return new TopicExchange(DEACTIVATED_EXCHANGE);
+    public TopicExchange entityLifecycleExchange() {
+        return new TopicExchange(ENTITY_LIFECYCLE_EXCHANGE);
     }
 
     @Bean
-    public Queue teamDeactivatedQueueTeams() {
-        return new Queue(TEAM_DEACTIVATED_QUEUE_TEAMS, true);
+    public Queue teamDeactivationQueueTeams() {
+        return new Queue(TEAM_DEACTIVATION_QUEUE_TEAMS, true);
     }
 
     @Bean
-    public Queue clubDeactivatedQueueTeams() {
-        return new Queue(CLUB_DEACTIVATED_QUEUE_TEAMS, true);
+    public Queue clubDeactivationQueueTeams() {
+        return new Queue(CLUB_DEACTIVATION_QUEUE_TEAMS, true);
     }
 
     @Bean
-    public Binding bindTeamDeactivatedQueueTeams(
-            TopicExchange deactivatedExchange,
-            Queue teamDeactivatedQueueTeams) {
-        return BindingBuilder.bind(teamDeactivatedQueueTeams)
-                .to(deactivatedExchange)
-                .with("team.deactivated");
+    public Binding bindTeamDeactivationQueueTeams(
+            TopicExchange entityLifecycleExchange,
+            Queue teamDeactivationQueueTeams) {
+        return BindingBuilder.bind(teamDeactivationQueueTeams)
+                .to(entityLifecycleExchange)
+                .with("team.deactivation");
     }
 
     @Bean
-    public Binding bindClubDeactivatedQueueTeams(
-            TopicExchange deactivatedExchange,
-            Queue clubDeactivatedQueueTeams) {
-        return BindingBuilder.bind(clubDeactivatedQueueTeams)
-                .to(deactivatedExchange)
-                .with("club.deactivated");
+    public Binding bindClubDeactivationQueueTeams(
+            TopicExchange entityLifecycleExchange,
+            Queue clubDeactivationQueueTeams) {
+        return BindingBuilder.bind(clubDeactivationQueueTeams)
+                .to(entityLifecycleExchange)
+                .with("club.deactivation");
     }
 
     public static final String USER_FOLLOW_EXCHANGE = "user.follow.exchange";
@@ -70,13 +71,6 @@ public class RabbitMQConfig {
                 .with("team.follow");
     }
 
-    public static final String ENTITY_LIFECYCLE_EXCHANGE = "entity.lifecycle.exchange";
-
-    @Bean
-    public TopicExchange entityLifecycleExchange() {
-        return new TopicExchange(ENTITY_LIFECYCLE_EXCHANGE);
-    }
-    
     @Bean
     public MessageConverter messageConverter() {
         return new Jackson2JsonMessageConverter();

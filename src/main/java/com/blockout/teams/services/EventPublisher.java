@@ -22,9 +22,7 @@ public class EventPublisher {
 
     private final RabbitTemplate rabbitTemplate;
 
-    /** Créé ou MAJ → même méthode */
     public void publishTeamUpsert(Team team) {
-
         TeamUpsertEvent event = TeamUpsertEvent.builder()
                 .id(team.getId())
                 .name(team.getName())

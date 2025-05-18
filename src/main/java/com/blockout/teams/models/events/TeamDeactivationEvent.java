@@ -11,6 +11,6 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class TeamDeactivatedEvent implements Serializable {
+public class TeamDeactivationEvent implements Serializable {
     private Long teamId;
 }
