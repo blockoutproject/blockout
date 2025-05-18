@@ -14,13 +14,19 @@ public class RabbitMQConfig {
     public static final String ENTITY_LIFECYCLE_EXCHANGE = "entity.lifecycle.exchange";
     public static final String ENTITY_LIFECYCLE_DLQ_EXCHANGE = "entity.lifecycle.dlq.exchange";
 
-    public static final String CLUB_LIFECYCLE_QUEUE_SEARCH = "club.lifecycle.queue.workersearch";
-    public static final String TEAM_LIFECYCLE_QUEUE_SEARCH = "team.lifecycle.queue.workersearch";
-    public static final String POOL_LIFECYCLE_QUEUE_SEARCH = "pool.lifecycle.queue.workersearch";
+    public static final String CLUB_UPSERT_QUEUE_SEARCH = "club.upsert.queue.search";
+    public static final String CLUB_DEACTIVATION_QUEUE_SEARCH = "club.deactivation.queue.search";
+    public static final String TEAM_UPSERT_QUEUE_SEARCH = "team.upsert.queue.search";
+    public static final String TEAM_DEACTIVATION_QUEUE_SEARCH = "team.deactivation.queue.search";
+    public static final String POOL_UPSERT_QUEUE_SEARCH = "pool.upsert.queue.search";
+    public static final String POOL_DEACTIVATION_QUEUE_SEARCH = "pool.deactivation.queue.search";
 
-    public static final String CLUB_DLQ = "club.lifecycle.queue.workersearch.dlq";
-    public static final String TEAM_DLQ = "team.lifecycle.queue.workersearch.dlq";
-    public static final String POOL_DLQ = "pool.lifecycle.queue.workersearch.dlq";
+    public static final String CLUB_UPSERT_DLQ_SEARCH = "club.upsert.queue.search.dlq";
+    public static final String CLUB_DEACTIVATION_DLQ_SEARCH = "club.deactivation.queue.search.dlq";
+    public static final String TEAM_UPSERT_DLQ_SEARCH = "team.upsert.queue.search.dlq";
+    public static final String TEAM_DEACTIVATION_DLQ_SEARCH = "team.deactivation.queue.search.dlq";
+    public static final String POOL_UPSERT_DLQ_SEARCH = "pool.upsert.queue.search.dlq";
+    public static final String POOL_DEACTIVATION_DLQ_SEARCH = "pool.deactivation.queue.search.dlq";
 
     @Bean
     TopicExchange entityLifecycleExchange() {
@@ -28,150 +34,43 @@ public class RabbitMQConfig {
     }
 
     @Bean
-    TopicExchange entityLifecyclDlqExchange() {
+    TopicExchange entityLifecycleDlqExchange() {
         return new TopicExchange(ENTITY_LIFECYCLE_DLQ_EXCHANGE);
     }
 
-    @Bean
-    Queue clubLifecycleQueueSearch() {
-        return QueueBuilder.durable(CLUB_LIFECYCLE_QUEUE_SEARCH)
-                .withArgument("x-dead-letter-exchange", ENTITY_LIFECYCLE_DLQ_EXCHANGE)
-                .withArgument("x-dead-letter-routing-key", "club.dlq")
-                .build();
-    }
+    @Bean Queue clubUpsertQueue()         { return durableQueue(CLUB_UPSERT_QUEUE_SEARCH, "club.upsert.dlq"); }
+    @Bean Queue clubDeactivationQueue()   { return durableQueue(CLUB_DEACTIVATION_QUEUE_SEARCH, "club.deactivation.dlq"); }
+    @Bean Queue teamUpsertQueue()         { return durableQueue(TEAM_UPSERT_QUEUE_SEARCH, "team.upsert.dlq"); }
+    @Bean Queue teamDeactivationQueue()   { return durableQueue(TEAM_DEACTIVATION_QUEUE_SEARCH, "team.deactivation.dlq"); }
+    @Bean Queue poolUpsertQueue()         { return durableQueue(POOL_UPSERT_QUEUE_SEARCH, "pool.upsert.dlq"); }
+    @Bean Queue poolDeactivationQueue()   { return durableQueue(POOL_DEACTIVATION_QUEUE_SEARCH, "pool.deactivation.dlq"); }
 
-    @Bean
-    Queue teamLifecycleQueueSearch() {
-        return QueueBuilder.durable(TEAM_LIFECYCLE_QUEUE_SEARCH)
-                .withArgument("x-dead-letter-exchange", ENTITY_LIFECYCLE_DLQ_EXCHANGE)
-                .withArgument("x-dead-letter-routing-key", "team.dlq")
-                .build();
-    }
+    @Bean Queue clubUpsertDlq()           { return QueueBuilder.durable(CLUB_UPSERT_DLQ_SEARCH).build(); }
+    @Bean Queue clubDeactivationDlq()     { return QueueBuilder.durable(CLUB_DEACTIVATION_DLQ_SEARCH).build(); }
+    @Bean Queue teamUpsertDlq()           { return QueueBuilder.durable(TEAM_UPSERT_DLQ_SEARCH).build(); }
+    @Bean Queue teamDeactivationDlq()     { return QueueBuilder.durable(TEAM_DEACTIVATION_DLQ_SEARCH).build(); }
+    @Bean Queue poolUpsertDlq()           { return QueueBuilder.durable(POOL_UPSERT_DLQ_SEARCH).build(); }
+    @Bean Queue poolDeactivationDlq()     { return QueueBuilder.durable(POOL_DEACTIVATION_DLQ_SEARCH).build(); }
 
-    @Bean
-    Queue poolLifecycleQueueSearch() {
-        return QueueBuilder.durable(POOL_LIFECYCLE_QUEUE_SEARCH)
-                .withArgument("x-dead-letter-exchange", ENTITY_LIFECYCLE_DLQ_EXCHANGE)
-                .withArgument("x-dead-letter-routing-key", "pool.dlq")
-                .build();
-    }
+    @Bean Binding bindClubUpsertQueue()         { return bindQueue(clubUpsertQueue(), "club.upsert"); }
+    @Bean Binding bindClubDeactivationQueue()   { return bindQueue(clubDeactivationQueue(), "club.deactivation"); }
+    @Bean Binding bindTeamUpsertQueue()         { return bindQueue(teamUpsertQueue(), "team.upsert"); }
+    @Bean Binding bindTeamDeactivationQueue()   { return bindQueue(teamDeactivationQueue(), "team.deactivation"); }
+    @Bean Binding bindPoolUpsertQueue()         { return bindQueue(poolUpsertQueue(), "pool.upsert"); }
+    @Bean Binding bindPoolDeactivationQueue()   { return bindQueue(poolDeactivationQueue(), "pool.deactivation"); }
 
-    @Bean
-    Queue clubDlq() {
-        return QueueBuilder.durable(CLUB_DLQ).build();
-    }
-
-    @Bean
-    Queue teamDlq() {
-        return QueueBuilder.durable(TEAM_DLQ).build();
-    }
-
-    @Bean
-    Queue poolDlq() {
-        return QueueBuilder.durable(POOL_DLQ).build();
-    }
-
-    @Bean
-    Binding bindClubLifecycleQueueSearch(TopicExchange entityLifecycleExchange,
-            Queue clubLifecycleQueueSearch) {
-        return BindingBuilder.bind(clubLifecycleQueueSearch)
-                .to(entityLifecycleExchange)
-                .with("club.upsert");
-    }
-
-    @Bean
-    Binding bindTeamLifecycleQueueSearch(TopicExchange entityLifecycleExchange,
-            Queue teamLifecycleQueueSearch) {
-        return BindingBuilder.bind(teamLifecycleQueueSearch)
-                .to(entityLifecycleExchange)
-                .with("team.upsert");
-    }
-
-    @Bean
-    Binding bindPoolLifecycleQueueSearch(TopicExchange entityLifecycleExchange,
-            Queue poolLifecycleQueueSearch) {
-        return BindingBuilder.bind(poolLifecycleQueueSearch)
-                .to(entityLifecycleExchange)
-                .with("pool.upsert");
-    }
-
-    @Bean
-    Binding bindClubDlq(TopicExchange entityLifecycleExchange, Queue clubDlq) {
-        return BindingBuilder.bind(clubDlq)
-                .to(entityLifecycleExchange)
-                .with("club.dlq");
-    }
-
-    @Bean
-    Binding bindTeamDlq(TopicExchange entityLifecycleExchange, Queue teamDlq) {
-        return BindingBuilder.bind(teamDlq)
-                .to(entityLifecycleExchange)
-                .with("team.dlq");
-    }
-
-    @Bean
-    Binding bindPoolDlq(TopicExchange entityLifecycleExchange, Queue poolDlq) {
-        return BindingBuilder.bind(poolDlq)
-                .to(entityLifecycleExchange)
-                .with("pool.dlq");
-    }
-
-    public static final String DEACTIVATED_EXCHANGE = "deactivated.exchange";
-
-    public static final String CLUB_DEACTIVATED_QUEUE_SEARCH = "club.deactivated.queue.workersearch";
-    public static final String TEAM_DEACTIVATED_QUEUE_SEARCH = "team.deactivated.queue.workersearch";
-    public static final String POOL_DEACTIVATED_QUEUE_SEARCH = "pool.deactivated.queue.workersearch";
-
-    @Bean
-    public TopicExchange deactivatedExchange() {
-        return new TopicExchange(DEACTIVATED_EXCHANGE);
-    }
-
-    @Bean
-    public Queue clubDeactivatedQueueSearch() {
-        return new Queue(CLUB_DEACTIVATED_QUEUE_SEARCH, true);
-    }
-
-    @Bean
-    public Queue teamDeactivatedQueueSearch() {
-        return new Queue(TEAM_DEACTIVATED_QUEUE_SEARCH, true);
-    }
-
-    @Bean
-    public Queue poolDeactivatedQueueSearch() {
-        return new Queue(POOL_DEACTIVATED_QUEUE_SEARCH, true);
-    }
-
-    @Bean
-    public Binding bindClubDeactivatedQueueSearch(TopicExchange deactivatedExchange,
-            Queue clubDeactivatedQueueSearch) {
-        return BindingBuilder.bind(clubDeactivatedQueueSearch)
-                .to(deactivatedExchange)
-                .with("club.deactivated");
-    }
-
-    @Bean
-    public Binding bindTeamDeactivatedQueueSearch(TopicExchange deactivatedExchange,
-            Queue teamDeactivatedQueueSearch) {
-        return BindingBuilder.bind(teamDeactivatedQueueSearch)
-                .to(deactivatedExchange)
-                .with("team.deactivated");
-    }
-
-    @Bean
-    public Binding bindPoolDeactivatedQueueSearch(TopicExchange deactivatedExchange,
-            Queue poolDeactivatedQueueSearch) {
-        return BindingBuilder.bind(poolDeactivatedQueueSearch)
-                .to(deactivatedExchange)
-                .with("pool.deactivated");
-    }
+    @Bean Binding bindClubUpsertDlq()           { return bindDlq(clubUpsertDlq(), "club.upsert.dlq"); }
+    @Bean Binding bindClubDeactivationDlq()     { return bindDlq(clubDeactivationDlq(), "club.deactivation.dlq"); }
+    @Bean Binding bindTeamUpsertDlq()           { return bindDlq(teamUpsertDlq(), "team.upsert.dlq"); }
+    @Bean Binding bindTeamDeactivationDlq()     { return bindDlq(teamDeactivationDlq(), "team.deactivation.dlq"); }
+    @Bean Binding bindPoolUpsertDlq()           { return bindDlq(poolUpsertDlq(), "pool.upsert.dlq"); }
+    @Bean Binding bindPoolDeactivationDlq()     { return bindDlq(poolDeactivationDlq(), "pool.deactivation.dlq"); }
 
     @Bean(name = "rabbitBatchFactory")
     public SimpleRabbitListenerContainerFactory rabbitBatchFactory(ConnectionFactory connectionFactory,
-            MessageConverter messageConverter) {
+                                                                    MessageConverter messageConverter) {
         SimpleRabbitListenerContainerFactory factory = new SimpleRabbitListenerContainerFactory();
         factory.setConnectionFactory(connectionFactory);
-
         factory.setBatchListener(true);
         factory.setConsumerBatchEnabled(true);
         factory.setBatchSize(500);
@@ -185,5 +84,20 @@ public class RabbitMQConfig {
     @Bean
     public MessageConverter messageConverter() {
         return new Jackson2JsonMessageConverter();
+    }
+
+    private Queue durableQueue(String name, String dlqRoutingKey) {
+        return QueueBuilder.durable(name)
+                .withArgument("x-dead-letter-exchange", ENTITY_LIFECYCLE_DLQ_EXCHANGE)
+                .withArgument("x-dead-letter-routing-key", dlqRoutingKey)
+                .build();
+    }
+
+    private Binding bindQueue(Queue queue, String routingKey) {
+        return BindingBuilder.bind(queue).to(entityLifecycleExchange()).with(routingKey);
+    }
+
+    private Binding bindDlq(Queue queue, String routingKey) {
+        return BindingBuilder.bind(queue).to(entityLifecycleDlqExchange()).with(routingKey);
     }
 }

@@ -1,6 +1,7 @@
 package com.blockout.workersearch.listeners.pool;
 
 import com.blockout.workersearch.config.RabbitMQConfig;
+import com.blockout.workersearch.models.events.PoolDeactivationEvent;
 import com.blockout.workersearch.services.index.PoolIndexService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -17,8 +18,9 @@ public class PoolDeactivationListener {
     private static final Logger logger = LoggerFactory.getLogger(PoolDeactivationListener.class);
     private final PoolIndexService poolIndexService;
 
-    @RabbitListener(queues = RabbitMQConfig.POOL_DEACTIVATED_QUEUE_SEARCH)
-    public void onPoolDeactivated(Long poolId) {
+    @RabbitListener(queues = RabbitMQConfig.POOL_DEACTIVATION_QUEUE_SEARCH)
+    public void handlePoolDeactivation(PoolDeactivationEvent event) {
+        Long poolId = event.getPoolId();
         logger.info("Received pool deactivation event",
                 keyValue("action", "pool_deactivated"),
                 keyValue("poolId", poolId));

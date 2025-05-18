@@ -25,8 +25,8 @@ public class TeamUpsertListener {
 
     private final TeamIndexService teamIndexService;
 
-    @RabbitListener(queues = RabbitMQConfig.TEAM_LIFECYCLE_QUEUE_SEARCH, containerFactory = "rabbitBatchFactory")
-    public void onUpsertBatch(List<Message<TeamUpsertEvent>> messages, Channel channel) throws IOException {
+    @RabbitListener(queues = RabbitMQConfig.TEAM_UPSERT_QUEUE_SEARCH, containerFactory = "rabbitBatchFactory")
+    public void handleUpsertBatch(List<Message<TeamUpsertEvent>> messages, Channel channel) throws IOException {
         List<TeamUpsertEvent> events = messages.stream()
                 .map(Message::getPayload)
                 .toList();
@@ -44,7 +44,7 @@ public class TeamUpsertListener {
             logger.info("Successfully processed and acknowledged team batch",
                     keyValue("action", "team_index_batch_upsert"),
                     keyValue("count", events.size()));
-                    
+
         } catch (Exception e) {
             channel.basicNack(lastTag, true, false);
             logger.error("Error processing team batch",

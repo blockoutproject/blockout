@@ -25,8 +25,8 @@ public class ClubUpsertListener {
 
     private final ClubIndexService clubIndexService;
 
-    @RabbitListener(queues = RabbitMQConfig.CLUB_LIFECYCLE_QUEUE_SEARCH, containerFactory = "rabbitBatchFactory")
-    public void onUpsertBatch(List<Message<ClubUpsertEvent>> messages, Channel channel) throws IOException {
+    @RabbitListener(queues = RabbitMQConfig.CLUB_UPSERT_QUEUE_SEARCH, containerFactory = "rabbitBatchFactory")
+    public void handleUpsertBatch(List<Message<ClubUpsertEvent>> messages, Channel channel) throws IOException {
         List<ClubUpsertEvent> events = messages.stream()
                 .map(Message::getPayload)
                 .toList();
@@ -44,7 +44,7 @@ public class ClubUpsertListener {
             logger.info("Successfully processed and acknowledged club batch",
                     keyValue("action", "club_index_batch_upsert"),
                     keyValue("count", events.size()));
-                    
+
         } catch (Exception e) {
             channel.basicNack(lastTag, true, false);
             logger.error("Error processing club batch",

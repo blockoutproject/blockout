@@ -25,8 +25,8 @@ public class PoolUpsertListener {
 
     private final PoolIndexService poolIndexService;
 
-    @RabbitListener(queues = RabbitMQConfig.POOL_LIFECYCLE_QUEUE_SEARCH, containerFactory = "rabbitBatchFactory")
-    public void onUpsertBatch(List<Message<PoolUpsertEvent>> messages, Channel channel) throws IOException {
+    @RabbitListener(queues = RabbitMQConfig.POOL_UPSERT_QUEUE_SEARCH, containerFactory = "rabbitBatchFactory")
+    public void handleUpsertBatch(List<Message<PoolUpsertEvent>> messages, Channel channel) throws IOException {
         List<PoolUpsertEvent> events = messages.stream()
                 .map(Message::getPayload)
                 .toList();
@@ -44,7 +44,7 @@ public class PoolUpsertListener {
             logger.info("Successfully processed and acknowledged pool batch",
                     keyValue("action", "pool_index_batch_upsert"),
                     keyValue("count", events.size()));
-                    
+
         } catch (Exception e) {
             channel.basicNack(lastTag, true, false);
             logger.error("Error processing pool batch",
