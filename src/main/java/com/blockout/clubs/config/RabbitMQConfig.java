@@ -11,35 +11,29 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class RabbitMQConfig {
 
-    public static final String DEACTIVATED_EXCHANGE = "deactivated.exchange";
-    public static final String CLUB_DEACTIVATED_QUEUE_CLUBS = "club.deactivated.queue.clubs";
-
-    @Bean
-    public TopicExchange deactivatedExchange() {
-        return new TopicExchange(DEACTIVATED_EXCHANGE);
-    }
-
-    @Bean
-    public Queue clubDeactivatedQueueClubs() {
-        return new Queue(CLUB_DEACTIVATED_QUEUE_CLUBS, true);
-    }
-
-    @Bean
-    public Binding bindClubDeactivatedQueueClubs(
-            TopicExchange deactivatedExchange,
-            Queue clubDeactivatedQueueClubs) {
-        return BindingBuilder.bind(clubDeactivatedQueueClubs)
-                .to(deactivatedExchange)
-                .with("club.deactivated");
-    }
-
     public static final String ENTITY_LIFECYCLE_EXCHANGE = "entity.lifecycle.exchange";
+
+    public static final String CLUB_DEACTIVATION_QUEUE_CLUBS = "club.deactivation.queue.clubs";
 
     @Bean
     public TopicExchange entityLifecycleExchange() {
         return new TopicExchange(ENTITY_LIFECYCLE_EXCHANGE);
     }
-    
+
+    @Bean
+    public Queue clubDeactivationQueueClubs() {
+        return new Queue(CLUB_DEACTIVATION_QUEUE_CLUBS, true);
+    }
+
+    @Bean
+    public Binding bindClubDeactivationQueueClubs(
+            TopicExchange entityLifecycleExchange,
+            Queue clubDeactivationQueueClubs) {
+        return BindingBuilder.bind(clubDeactivationQueueClubs)
+                .to(entityLifecycleExchange)
+                .with("club.deactivation");
+    }
+
     @Bean
     public MessageConverter messageConverter() {
         return new Jackson2JsonMessageConverter();
