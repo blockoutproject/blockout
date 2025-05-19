@@ -68,7 +68,6 @@ public class MatchController {
     @Operation(summary = "Paginated day groups")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Day groups returned"),
-            @ApiResponse(responseCode = "204", description = "No match found")
     })
     @GetMapping("/day-groups")
     public ResponseEntity<DayPageDTO> dayGroups(
@@ -85,9 +84,6 @@ public class MatchController {
                 page,
                 size);
 
-        if (dto.getDayMatches().isEmpty()) {
-            return ResponseEntity.noContent().build();
-        }
         return ResponseEntity.ok(dto);
     }
 
