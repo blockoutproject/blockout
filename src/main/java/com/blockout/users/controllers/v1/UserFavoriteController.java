@@ -6,6 +6,8 @@ import com.blockout.users.services.UserFavoriteService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import lombok.RequiredArgsConstructor;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -14,14 +16,11 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/api/v1/users")
 public class UserFavoriteController {
 
     private final UserFavoriteService favoriteService;
-
-    public UserFavoriteController(UserFavoriteService favoriteService) {
-        this.favoriteService = favoriteService;
-    }
 
     @Operation(summary = "List favorites for a user")
     @ApiResponses({

@@ -10,6 +10,9 @@ import com.blockout.users.models.UserRole;
 import com.blockout.users.models.dto.CustomUserDto;
 import com.blockout.users.models.mappers.CustomUserMapper;
 import com.blockout.users.repositories.UserRepository;
+
+import lombok.RequiredArgsConstructor;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -21,6 +24,7 @@ import java.time.LocalDateTime;
 import java.util.Optional;
 
 @Service
+@RequiredArgsConstructor
 public class UserService {
 
     private static final Logger logger = LoggerFactory.getLogger(UserService.class);
@@ -28,12 +32,6 @@ public class UserService {
     private final Auth0TokenManager tokenManager;
     private final UserRepository userRepository;
     private final CustomUserMapper customUserMapper;
-
-    public UserService(Auth0TokenManager tokenManager, UserRepository userRepository, CustomUserMapper customUserMapper) {
-        this.tokenManager = tokenManager;
-        this.userRepository = userRepository;
-        this.customUserMapper = customUserMapper;
-    }
 
     /**
      * Récupère un utilisateur par son ID Auth0

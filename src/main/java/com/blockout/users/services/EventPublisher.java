@@ -7,14 +7,13 @@ import com.blockout.users.config.RabbitMQConfig;
 import com.blockout.users.models.EntityType;
 import com.blockout.users.models.events.UserFollowEvent;
 
+import lombok.RequiredArgsConstructor;
+
 @Service
+@RequiredArgsConstructor
 public class EventPublisher {
 
     private final RabbitTemplate rabbitTemplate;
-
-    public EventPublisher(RabbitTemplate rabbitTemplate) {
-        this.rabbitTemplate = rabbitTemplate;
-    }
 
     public void publishFollowEvent(Long userId, EntityType entityType, Long entityId, UserFollowEvent.EventType type) {
         UserFollowEvent event = UserFollowEvent.builder()

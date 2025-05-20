@@ -7,6 +7,8 @@ import com.blockout.users.models.events.UserFollowEvent.EventType;
 import com.blockout.users.repositories.UserFavoriteRepository;
 import com.blockout.users.repositories.UserRepository;
 
+import lombok.RequiredArgsConstructor;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -18,6 +20,7 @@ import java.util.Optional;
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
 @Service
+@RequiredArgsConstructor
 public class UserFavoriteService {
 
     private static final Logger logger = LoggerFactory.getLogger(UserFavoriteService.class);
@@ -25,15 +28,6 @@ public class UserFavoriteService {
     private final UserFavoriteRepository userFavoriteRepository;
     private final UserRepository userRepository;
     private final EventPublisher eventPublisher;
-
-    public UserFavoriteService(
-            UserFavoriteRepository userFavoriteRepository,
-            UserRepository userRepository,
-            EventPublisher eventPublisher) {
-        this.userFavoriteRepository = userFavoriteRepository;
-        this.userRepository = userRepository;
-        this.eventPublisher = eventPublisher;
-    }
 
     @Transactional
     public void follow(String auth0Id, EntityType entityType, Long entityId) {
