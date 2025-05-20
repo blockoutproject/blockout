@@ -6,20 +6,20 @@ import com.blockout.pools.models.events.PoolDeactivationEvent;
 import com.blockout.pools.models.events.UserFollowEvent;
 import com.blockout.pools.services.PoolService;
 
+import lombok.RequiredArgsConstructor;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
 
 @Component
+@RequiredArgsConstructor
 public class PoolListeners {
 
-    private final PoolService poolService;
     private static final Logger logger = LoggerFactory.getLogger(PoolService.class);
 
-    public PoolListeners(PoolService poolService) {
-        this.poolService = poolService;
-    }
+    private final PoolService poolService;
 
     @RabbitListener(queues = RabbitMQConfig.POOL_DEACTIVATION_QUEUE_POOLS)
     public void handlePoolDeactivation(PoolDeactivationEvent event) {

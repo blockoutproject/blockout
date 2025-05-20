@@ -5,6 +5,8 @@ import com.blockout.pools.models.Pool;
 import com.blockout.pools.repositories.PoolRepository;
 import com.blockout.pools.utils.DiffUtils;
 
+import lombok.RequiredArgsConstructor;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -17,17 +19,13 @@ import java.util.List;
 import java.util.Optional;
 
 @Service
+@RequiredArgsConstructor
 public class PoolService {
 
     private static final Logger logger = LoggerFactory.getLogger(PoolService.class);
-
+    
     private final PoolRepository poolRepository;
     private final EventPublisher eventPublisher;
-
-    public PoolService(PoolRepository poolRepository, EventPublisher eventPublisher) {
-        this.eventPublisher = eventPublisher;
-        this.poolRepository = poolRepository;
-    }
 
     /**
      * Crée une nouvelle pool

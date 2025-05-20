@@ -5,6 +5,8 @@ import com.blockout.pools.services.PoolService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import lombok.RequiredArgsConstructor;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
@@ -14,14 +16,11 @@ import java.util.List;
 import java.util.Optional;
 
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/api/v1/pools")
 public class PoolController {
 
     private final PoolService poolService;
-
-    public PoolController(PoolService poolService) {
-        this.poolService = poolService;
-    }
 
     @Operation(summary = "Create a pool", description = "Creates a new pool.")
     @ApiResponses({

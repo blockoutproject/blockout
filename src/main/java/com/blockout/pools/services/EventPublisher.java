@@ -4,6 +4,8 @@ import com.blockout.pools.config.RabbitMQConfig;
 import com.blockout.pools.models.Pool;
 import com.blockout.pools.models.events.PoolUpsertEvent;
 
+import lombok.RequiredArgsConstructor;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.AmqpException;
@@ -12,15 +14,12 @@ import org.springframework.stereotype.Service;
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
 @Service
+@RequiredArgsConstructor
 public class EventPublisher {
 
     private static final Logger logger = LoggerFactory.getLogger(PoolService.class);
-
+    
     private final RabbitTemplate rabbitTemplate;
-
-    public EventPublisher(RabbitTemplate rabbitTemplate) {
-        this.rabbitTemplate = rabbitTemplate;
-    }
 
     public void publishPoolUpsert(Pool pool) {
         PoolUpsertEvent event = PoolUpsertEvent.builder()
