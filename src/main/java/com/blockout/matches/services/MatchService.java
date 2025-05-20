@@ -9,6 +9,8 @@ import com.blockout.matches.models.dto.PoolMatchesDTO;
 import com.blockout.matches.repositories.MatchRepository;
 import com.blockout.matches.utils.DiffUtils;
 
+import lombok.RequiredArgsConstructor;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
@@ -32,15 +34,12 @@ import java.util.TreeMap;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class MatchService {
 
     private static final Logger logger = LoggerFactory.getLogger(MatchService.class);
 
     private final MatchRepository matchRepository;
-
-    public MatchService(MatchRepository matchRepository) {
-        this.matchRepository = matchRepository;
-    }
 
     /**
      * Crée un nouveau match
