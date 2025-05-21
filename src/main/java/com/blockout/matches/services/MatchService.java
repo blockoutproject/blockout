@@ -110,13 +110,10 @@ public class MatchService {
 
         LocalDateTime now = LocalDateTime.now();
 
-        logger.debug("Fetching matches grouped by day",
-                keyValue("action", "get_matches_by_day"),
-                keyValue("status", status),
-                keyValue("page", page),
-                keyValue("size", size),
-                keyValue("poolIds", poolIds),
-                keyValue("teamIds", teamIds));
+        if (poolIds == null && teamIds == null) {
+            logger.debug("No poolIds or teamIds provided, returning empty result");
+            return new DayPageDTO(Collections.emptyList(), false, null);
+        }
 
         // Récupère la liste de jours distincts
         List<LocalDate> allDays;

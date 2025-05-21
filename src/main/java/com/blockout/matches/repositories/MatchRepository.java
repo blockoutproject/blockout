@@ -83,8 +83,7 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
                 WHERE m.matchDate <= :today
                     AND m.status = 'FINISHED'
                     AND (
-                        (:poolIdsSize = 0 AND :teamIdsSize = 0)
-                        OR (:poolIdsSize > 0 AND :teamIdsSize = 0 AND m.poolId IN :poolIds)
+                        (:poolIdsSize > 0 AND :teamIdsSize = 0 AND m.poolId IN :poolIds)
                         OR (:poolIdsSize = 0 AND :teamIdsSize > 0 AND (m.teamIdA IN :teamIds OR m.teamIdB IN :teamIds))
                         OR (:poolIdsSize > 0 AND :teamIdsSize > 0 AND m.poolId IN :poolIds AND (m.teamIdA IN :teamIds OR m.teamIdB IN :teamIds))
                     )
@@ -103,8 +102,7 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
                 WHERE m.status = 'UPCOMING'
                     AND m.matchDate > :now
                     AND (
-                        (:poolIdsSize = 0 AND :teamIdsSize = 0)
-                        OR (:poolIdsSize > 0 AND :teamIdsSize = 0 AND m.poolId IN :poolIds)
+                        (:poolIdsSize > 0 AND :teamIdsSize = 0 AND m.poolId IN :poolIds)
                         OR (:poolIdsSize = 0 AND :teamIdsSize > 0 AND (m.teamIdA IN :teamIds OR m.teamIdB IN :teamIds))
                         OR (:poolIdsSize > 0 AND :teamIdsSize > 0 AND m.poolId IN :poolIds AND (m.teamIdA IN :teamIds OR m.teamIdB IN :teamIds))
                     )
@@ -128,8 +126,7 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
                 WHERE m.matchDate >= :startOfDay
                     AND m.matchDate < :endOfDay
                     AND (
-                        (:poolIdsSize = 0 AND :teamIdsSize = 0)
-                        OR (:poolIdsSize > 0 AND :teamIdsSize = 0 AND m.poolId IN :poolIds)
+                        (:poolIdsSize > 0 AND :teamIdsSize = 0 AND m.poolId IN :poolIds)
                         OR (:poolIdsSize = 0 AND :teamIdsSize > 0 AND (m.teamIdA IN :teamIds OR m.teamIdB IN :teamIds))
                         OR (:poolIdsSize > 0 AND :teamIdsSize > 0 AND m.poolId IN :poolIds AND (m.teamIdA IN :teamIds OR m.teamIdB IN :teamIds))
                     )
