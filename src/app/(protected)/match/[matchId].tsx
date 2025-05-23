@@ -5,16 +5,17 @@ import { useMatchById } from '@/src/hooks/match/useMatchById';
 import MatchScoreDetailsCard from '@/src/components/match/MatchScoreDetailsCard';
 import MatchInfoCard from '@/src/components/match/MatchInfoCard';
 import RankingCard from '@/src/components/common/RankingCard';
-import { colors } from '@/src/constants/Colors';
 import { MatchStatus } from '@/src/types/Match';
 import { Confetti } from 'react-native-fast-confetti';
 import MatchSkeleton from '@/src/components/match/MatchSkeleton';
 import MatchScoreCard from '@/src/components/match/MatchScoreCard';
+import { useAppTheme } from '@/src/context/ThemeProvider';
 
 const MatchModalScreen: React.FC = () => {
     const { matchId } = useLocalSearchParams();
     const matchIdNumber = Number(matchId);
     const { match, teamA, teamB, pool, isLoading } = useMatchById(matchIdNumber);
+    const theme = useAppTheme();
 
     const [showConfetti, setShowConfetti] = useState(false);
 
@@ -31,7 +32,7 @@ const MatchModalScreen: React.FC = () => {
     }
 
     return (
-        <View style={styles.container}>
+        <View style={[styles.container, { backgroundColor: theme.background }]}>
             {showConfetti && (
                 <Confetti
                     count={100}
@@ -90,7 +91,6 @@ export default MatchModalScreen;
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: colors.dark,
     },
     scrollContent: {
         gap: 16,

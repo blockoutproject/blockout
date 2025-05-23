@@ -1,33 +1,37 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { MotiView } from 'moti';
-import { LinearGradient } from 'expo-linear-gradient';
-import { colors } from '@/src/constants/Colors';
 import { Skeleton } from 'moti/skeleton';
+import { useAppTheme } from '@/src/context/ThemeProvider';
 
 type SkeletonCardProps = {
     flexValue: number;
 };
 
-const SkeletonCard: React.FC<SkeletonCardProps> = ({ flexValue }) => (
-    <MotiView
-        style={[styles.card, { flex: flexValue }]}
-        transition={{
-            type: 'timing',
-        }}
-        animate={{ backgroundColor: colors.dark }}
-    >
-        <Skeleton
-            colorMode="dark"
-            width="100%"
-            height="100%"
-        />
-    </MotiView>
-);
+const SkeletonCard: React.FC<SkeletonCardProps> = ({ flexValue }) => {
+    const theme = useAppTheme();
+
+    return (
+        <MotiView
+            style={[styles.card, { flex: flexValue, backgroundColor: theme.background }]}
+            transition={{
+                type: 'timing',
+            }}
+        >
+            <Skeleton
+                colorMode="dark"
+                width="100%"
+                height="100%"
+            />
+        </MotiView>
+    );
+};
 
 const MatchSkeleton: React.FC = () => {
+    const theme = useAppTheme();
+
     return (
-        <View style={styles.screen}>
+        <View style={[styles.screen, { backgroundColor: theme.background }]}>
             <SkeletonCard flexValue={0.7} />
             <SkeletonCard flexValue={1} />
             <SkeletonCard flexValue={1.4} />
@@ -41,7 +45,6 @@ const styles = StyleSheet.create({
         flex: 1,
         padding: 16,
         gap: 24,
-        backgroundColor: colors.dark,
     },
     card: {
         borderRadius: 12,

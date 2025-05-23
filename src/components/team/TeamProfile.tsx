@@ -1,14 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import TeamInfoCard from '@/src/components/team/TeamInfoCard';
-import TeamStatsCard from '@/src/components/team/TeamStatsCard';
 import { Team } from '@/src/types/Team';
 import { EntityType } from '@/src/types/User';
-import { colors } from '@/src/constants/Colors';
 import UsersApi from '@/src/api/UsersApi';
 import { useUserContext } from '@/src/hooks/user/useUserContext';
 import FollowButton from '../common/FollowButton';
 import FollowersCounter from '../common/FollowersCount';
+import { useAppTheme } from '@/src/context/ThemeProvider';
 
 type Props = {
     team: Team;
@@ -19,6 +18,7 @@ const TeamProfile: React.FC<Props> = ({ team }) => {
     const [isProcessing, setIsProcessing] = useState(false);
     const [followersCount, setFollowersCount] = useState(team.followersCount);
     const [isFollowing, setIsFollowing] = useState(false);
+    const theme = useAppTheme();
 
     useEffect(() => {
         setFollowersCount(team.followersCount);
@@ -60,11 +60,9 @@ const TeamProfile: React.FC<Props> = ({ team }) => {
     };
 
     return (
-        <View style={styles.container}>
-            <TeamInfoCard team={team} />
-
-            <View style={styles.statsContainer}>
-                <TeamStatsCard team={team} />
+        <View style={[styles.container, { backgroundColor: theme.background }]}>
+            <View style={styles.profileRow}>
+                <TeamInfoCard team={team} />
             </View>
 
             <View style={styles.actionsRow}>
@@ -81,16 +79,14 @@ const TeamProfile: React.FC<Props> = ({ team }) => {
 
 const styles = StyleSheet.create({
     container: {
+        marginHorizontal: 25,
     },
-    statsContainer: {
-        position: 'absolute',
-        top: 5,
-        right: 10,
+    profileRow: {
+        marginBottom: 10,
     },
     actionsRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginHorizontal: 20,
         marginBottom: 10,
     },
 });

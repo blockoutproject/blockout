@@ -2,9 +2,10 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Match } from '@/src/types/Match';
 import { Team } from '@/src/types/Team';
-import { colors } from '@/src/constants/Colors';
 import FastImage from 'react-native-fast-image';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useAppTheme } from '@/src/context/ThemeProvider';
+import GradientView from '../common/GradientView';
 
 type MatchScoreDetailsCardProps = {
     title?: string;
@@ -19,6 +20,7 @@ const MatchScoreDetailsCard: React.FC<MatchScoreDetailsCardProps> = ({
     awayTeam,
     match,
 }) => {
+    const theme = useAppTheme();
     const setsArray = match.score?.split(',').map((s) => s.split('-')) || [];
     const [homeFinal, awayFinal] = match.set?.split('-') || ['0', '0'];
 
@@ -37,7 +39,7 @@ const MatchScoreDetailsCard: React.FC<MatchScoreDetailsCardProps> = ({
                 </View>
                 <View style={styles.colName}>
                     <Text
-                        style={styles.name}
+                        style={[styles.name, { color: theme.text }]}
                         numberOfLines={2}
                         ellipsizeMode="tail"
                         adjustsFontSizeToFit
@@ -47,15 +49,15 @@ const MatchScoreDetailsCard: React.FC<MatchScoreDetailsCardProps> = ({
                     </Text>
                 </View>
                 <View style={styles.colFinalScore}>
-                    <View style={styles.finalScoreBox}>
-                        <Text style={styles.finalScoreText}>{finalScore}</Text>
+                    <View style={[styles.finalScoreBox, { borderColor: theme.textInactive }]}>
+                        <Text style={[styles.finalScoreText, { color: theme.text }]}>{finalScore}</Text>
                     </View>
                 </View>
                 {sets.map((setScore, idx) => {
                     const isWinner = setScore > opponentSets[idx];
                     return (
                         <View style={styles.colSet} key={`set-${idx}`}>
-                            <Text style={[styles.setScore, isWinner && styles.highlightScore]}>
+                            <Text style={[styles.setScore, { color: theme.textInactive }, isWinner && { color: theme.text }]}>
                                 {setScore}
                             </Text>
                         </View>
@@ -66,13 +68,10 @@ const MatchScoreDetailsCard: React.FC<MatchScoreDetailsCardProps> = ({
     };
 
     return (
-        <LinearGradient
-            colors={[colors.dark, colors.grey]}
-            start={{ x: 0, y: 2 }}
-            end={{ x: 0, y: 0 }}
-            style={styles.container}
+        <GradientView
+            style={[styles.container, { backgroundColor: theme.background }]}
         >
-            <Text style={styles.title}>{title}</Text>
+            <Text style={[styles.title, { color: theme.text }]}>{title}</Text>
 
             <View style={styles.teamsWrapper}>
                 <TeamRow
@@ -90,7 +89,7 @@ const MatchScoreDetailsCard: React.FC<MatchScoreDetailsCardProps> = ({
                     logo={require('@/assets/clubs/as_cannes.png')}
                 />
             </View>
-        </LinearGradient>
+        </GradientView>
     );
 };
 
@@ -110,7 +109,6 @@ const styles = StyleSheet.create({
     title: {
         fontSize: 18,
         fontWeight: '600',
-        color: colors.light,
         marginBottom: 12,
     },
     teamsWrapper: {
@@ -141,36 +139,27 @@ const styles = StyleSheet.create({
         width: 30,
         justifyContent: 'center',
         alignItems: 'center',
-        marginRight: 4,
     },
     teamLogo: {
         width: 36,
         height: 36,
     },
     name: {
-        color: colors.light,
         fontWeight: '600',
         fontSize: 14,
     },
     finalScoreBox: {
         borderWidth: 1,
-        borderColor: colors.inactive,
         borderRadius: 6,
         paddingHorizontal: 10,
         paddingVertical: 4,
     },
     finalScoreText: {
-        color: colors.light,
         fontSize: 16,
         fontWeight: '600',
     },
     setScore: {
-        color: colors.inactive,
         fontSize: 16,
-    },
-    highlightScore: {
-        fontWeight: '600',
-        color: colors.light,
     },
 });
 

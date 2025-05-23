@@ -1,22 +1,16 @@
-import React, { useEffect } from 'react';
-import { router, Stack } from 'expo-router';
-import { useAuth0 } from 'react-native-auth0';
+import React from 'react';
+import { Stack } from 'expo-router';
 import { View, ActivityIndicator } from 'react-native';
-import HomeHeader from '@/src/components/home/HomeHeader';
 import { useUserContext } from '@/src/hooks/user/useUserContext';
 import { useAuthGuard } from '@/src/hooks/auth/useAuthGuard';
-import { colors } from '@/src/constants/Colors';
+import AppLoader from '@/src/components/common/AppLoader';
 
 const ProtectedLayout: React.FC = () => {
     useAuthGuard();
     const { isLoading } = useUserContext();
 
     if (isLoading) {
-        return (
-            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.dark }}>
-                <ActivityIndicator size="large" />
-            </View>
-        );
+        return <AppLoader />;
     }
 
     return (
@@ -25,7 +19,7 @@ const ProtectedLayout: React.FC = () => {
             <Stack.Screen
                 name="home"
                 options={{
-                    header: () => <HomeHeader />
+                    headerShown: false,
                 }}
             />
             <Stack.Screen

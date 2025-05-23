@@ -1,0 +1,43 @@
+import { AppTheme } from "../types/Theme";
+
+export const darkTheme: AppTheme = {
+    background: "#0f1013",
+    backgroundSecondary: "#16181a",
+    surface: "#191c1e",
+    surfaceSecondary: "#2a2b2f",
+    surfaceTertiary: "#4A4A4A",
+    border: "#2e2f33",
+    text: "#ffffff",
+    textSecondary: "#e2e2e2",
+    textInactive: "#88898a",
+    hover: "#1c1d20",
+    pressed: "#242528",
+    primary: "#2d9cdb",
+    success: "#609739",
+    error: "#c83b48",
+    warning: "#e6c84c",
+    gold: "#FFD700",
+    silver: "#C0C0C0",
+    bronze: "#CD7F32",
+};
+
+export const lightTheme: AppTheme = {
+    background: "#ffffff",
+    backgroundSecondary: "#f5f5f5",
+    surface: "#eaeaea",
+    surfaceSecondary: "#dcdcdc",
+    surfaceTertiary: "#cccccc",
+    border: "#bdbdbd",
+    text: "#0e1012",
+    textSecondary: "#2a2b2f",
+    textInactive: "#88898a",
+    hover: "#dddddd",
+    pressed: "#cccccc",
+    primary: "#2d9cdb",
+    success: "#609739",
+    error: "#c83b48",
+    warning: "#e6c84c",
+    gold: "#FFD700",
+    silver: "#C0C0C0",
+    bronze: "#CD7F32",
+};

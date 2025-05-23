@@ -1,11 +1,12 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors } from '@/src/constants/Colors';
 import FastImage from 'react-native-fast-image';
 import { router } from 'expo-router';
 import { Pool } from '@/src/types/Pool';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useAppTheme } from '@/src/context/ThemeProvider';
+import GradientView from '../common/GradientView';
 
 type MatchInfoCardProps = {
     pool: Pool;
@@ -26,6 +27,7 @@ const MatchInfoCard: React.FC<MatchInfoCardProps> = ({
     referee1,
     referee2,
 }) => {
+    const theme = useAppTheme();
 
     const handlePoolPress = (poolId: number) => {
         router.push(`/pool/${poolId}`);
@@ -46,16 +48,13 @@ const MatchInfoCard: React.FC<MatchInfoCardProps> = ({
         venue && { icon: 'location-outline', text: venue },
         referee1 && { icon: 'eye-outline', text: referee1 },
         referee2 && { icon: 'eye-outline', text: referee2 },
-    ].filter(Boolean);
+    ];
 
     return (
-        <LinearGradient
-            colors={[colors.dark, colors.grey]}
-            start={{ x: 0, y: 2 }}
-            end={{ x: 0, y: 0 }}
-            style={styles.container}
+        <GradientView
+            style={[styles.container, { backgroundColor: theme.background }]}
         >
-            <Text style={styles.title}>Information</Text>
+            <Text style={[styles.title, { color: theme.text }]}>Information</Text>
 
             <View style={styles.infoList}>
                 <TouchableOpacity onPress={() => handlePoolPress(pool.id)} style={styles.infoRow}>
@@ -66,7 +65,7 @@ const MatchInfoCard: React.FC<MatchInfoCardProps> = ({
                     />
                     <View style={styles.poolTitleWrapper}>
                         <Text
-                            style={styles.poolTitle}
+                            style={[styles.poolTitle, { color: theme.text }]}
                             numberOfLines={1}
                             ellipsizeMode="tail"
                             adjustsFontSizeToFit
@@ -82,11 +81,11 @@ const MatchInfoCard: React.FC<MatchInfoCardProps> = ({
                         <Ionicons
                             name={item.icon as any}
                             size={20}
-                            color={colors.light}
+                            color={theme.text}
                             style={styles.icon}
                         />
                         <Text
-                            style={styles.infoText}
+                            style={[styles.infoText, { color: theme.text }]}
                             numberOfLines={1}
                             ellipsizeMode="tail"
                             adjustsFontSizeToFit
@@ -97,9 +96,9 @@ const MatchInfoCard: React.FC<MatchInfoCardProps> = ({
                     </View>
                 ))}
             </View>
-        </LinearGradient>
+        </GradientView>
     );
-}
+};
 
 const styles = StyleSheet.create({
     container: {
@@ -109,7 +108,6 @@ const styles = StyleSheet.create({
     title: {
         fontSize: 18,
         fontWeight: '600',
-        color: colors.light,
         marginBottom: 12,
     },
     infoList: {
@@ -130,16 +128,14 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     poolTitle: {
-        fontSize: 14,
+        fontSize: 15,
         fontWeight: '700',
-        color: colors.light,
     },
     icon: {
         marginRight: 12,
     },
     infoText: {
         flex: 1,
-        color: colors.light,
         fontSize: 15,
     },
 });

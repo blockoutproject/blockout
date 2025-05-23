@@ -1,55 +1,85 @@
-import React, { useEffect, useState } from 'react';
-import { View, TextInput, FlatList, Text, Pressable } from 'react-native';
+import React, { useState } from 'react';
+import {
+    TextInput,
+    FlatList,
+    ActivityIndicator,
+    KeyboardAvoidingView,
+    Platform,
+    StyleSheet,
+} from 'react-native';
 import { useRouter } from 'expo-router';
 import { useDebounce } from 'use-debounce';
 import { useSearchTeams } from '@/src/hooks/team/useSearchTeams';
+import { useAppTheme } from '@/src/context/ThemeProvider';
+import { ErrorState } from '@/src/components/search/ErrorState';
+import { EmptyList } from '@/src/components/search/EmptyList';
+import TeamCard from '@/src/components/search/TeamCard';
+import { SearchPrompt } from '@/src/components/search/SearchPrompt';
 
 const SearchScreen = () => {
     const [query, setQuery] = useState('');
     const [debouncedQuery] = useDebounce(query, 300);
     const router = useRouter();
+    const theme = useAppTheme();
 
-    const { data: teams, isLoading } = useSearchTeams(debouncedQuery);
+    const { data: teams, isLoading, isError } = useSearchTeams(debouncedQuery);
 
     return (
-        <View style={{ flex: 1, padding: 16 }}>
+        <KeyboardAvoidingView
+            style={[styles.container, { backgroundColor: theme.background }]}
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        >
             <TextInput
-                placeholder="Rechercher une équipe..."
+                placeholder="🔍 Rechercher une équipe..."
                 value={query}
                 onChangeText={setQuery}
-                style={{
-                    borderWidth: 1,
-                    borderColor: '#ccc',
-                    borderRadius: 8,
-                    padding: 12,
-                    marginBottom: 16,
-                }}
+                placeholderTextColor={theme.textInactive}
+                style={[styles.input, { backgroundColor: theme.backgroundSecondary, color: theme.text }]}
             />
 
-            {isLoading && <Text>Chargement...</Text>}
+            {isLoading && (
+                <ActivityIndicator size="large" style={styles.loader} color={theme.text} />
+            )}
+
+            {isError && <ErrorState message="Une erreur est survenue. Réessaie plus tard." />}
 
             <FlatList
                 data={teams}
                 keyExtractor={(item) => item.id.toString()}
+                scrollEnabled={!!query}
                 renderItem={({ item }) => (
-                    <Pressable
-                        onPress={() => router.push(`/team/${item.id}`)}
-                        style={{
-                            padding: 12,
-                            borderBottomColor: '#eee',
-                            borderBottomWidth: 1,
-                        }}
-                    >
-                        <Text style={{ fontSize: 16, fontWeight: 'bold' }}>{item.name}</Text>
-                        <Text style={{ color: '#666' }}>{item.divisionName} {item.gender}</Text>
-                    </Pressable>
+                    <TeamCard team={item} onPress={() => router.push(`/team/${item.id}`)} />
                 )}
+                contentContainerStyle={{
+                    paddingTop: 16,
+                }}
                 ListEmptyComponent={
-                    debouncedQuery.length > 1 && !isLoading ? <Text>Aucune équipe trouvée</Text> : null
+                    !query ? (
+                        <SearchPrompt />
+                    ) : debouncedQuery.length > 1 && !isLoading && !isError ? (
+                        <EmptyList message="Aucune équipe trouvée pour cette recherche." />
+                    ) : null
                 }
+                keyboardShouldPersistTaps="handled"
             />
-        </View>
+        </KeyboardAvoidingView>
     );
 };
+
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        padding: 16,
+    },
+    input: {
+        borderRadius: 12,
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+        fontSize: 16,
+    },
+    loader: {
+        marginTop: 24,
+    },
+});
 
 export default SearchScreen;

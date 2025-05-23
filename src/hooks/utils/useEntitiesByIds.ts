@@ -12,7 +12,7 @@ export const useEntitiesByIds = <T extends { id: number }>(
         queryKey: [key, ids],
         queryFn: () => fetchFn(ids ?? []),
         enabled: (ids?.length ?? 0) > 0,
-        staleTime: 1000 * 60 * 5,
+        staleTime: 0,
     });
 
     useEffect(() => {

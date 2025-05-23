@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, Button } from 'react-native';
+import { View, Text, TextInput, Button, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import UsersApi from '@/src/api/UsersApi';
 import { useUserContext } from '@/src/hooks/user/useUserContext';
+import { useAppTheme } from '@/src/context/ThemeProvider';
 
 export default function PseudoScreen() {
     const { customUser, refetch } = useUserContext();
     const router = useRouter();
+    const theme = useAppTheme();
 
     const [pseudo, setPseudo] = useState('');
 
@@ -37,14 +39,37 @@ export default function PseudoScreen() {
     };
 
     return (
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-            <Text>Choisis ton pseudo</Text>
+        <View style={[styles.container, { backgroundColor: theme.background }]}>
+            <Text style={[styles.title, { color: theme.text }]}>Choisis ton pseudo</Text>
             <TextInput
-                style={{ borderWidth: 1, marginVertical: 10, width: 200 }}
+                style={[styles.input, { borderColor: theme.textInactive, color: theme.text }]}
                 value={pseudo}
                 onChangeText={setPseudo}
+                placeholder="Pseudo"
+                placeholderTextColor={theme.textInactive}
             />
-            <Button title='Valider' onPress={handleValidatePseudo} />
+            <Button title="Valider" onPress={handleValidatePseudo} />
         </View>
     );
 }
+
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 16,
+    },
+    title: {
+        fontSize: 18,
+        fontWeight: '600',
+        marginBottom: 16,
+    },
+    input: {
+        borderWidth: 1,
+        borderRadius: 8,
+        padding: 10,
+        width: '80%',
+        marginBottom: 16,
+    },
+});

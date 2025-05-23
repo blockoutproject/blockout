@@ -1,4 +1,3 @@
-import { colors } from "@/src/constants/Colors";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import React from "react";
 import {
@@ -11,6 +10,8 @@ import {
 } from "react-native";
 import FastImage from 'react-native-fast-image';
 import { Team } from "@/src/types/Team";
+import TeamStatsCard from "./TeamStatsCard";
+import { useAppTheme } from "@/src/context/ThemeProvider";
 
 type OpenLinkProps = {
     url: string;
@@ -22,6 +23,8 @@ type TeamInfoCardProps = {
 };
 
 const OpenLink: React.FC<OpenLinkProps> = ({ url, text }) => {
+    const theme = useAppTheme();
+
     const handlePress = async () => {
         const supported = await Linking.canOpenURL(url);
         if (supported) {
@@ -33,46 +36,49 @@ const OpenLink: React.FC<OpenLinkProps> = ({ url, text }) => {
 
     return (
         <Pressable onPress={handlePress}>
-            <Text style={styles.link}>{text}</Text>
+            <Text style={[styles.link, { color: theme.text }]}>{text}</Text>
         </Pressable>
     );
 };
 
 const TeamInfoCard: React.FC<TeamInfoCardProps> = ({ team }) => {
+    const theme = useAppTheme();
+
     return (
-        <View style={styles.container}>
+        <View style={{ backgroundColor: theme.background }}>
             <View style={styles.column}>
-                <FastImage
-                    source={require("@/assets/clubs/as_cannes.png")}
-                    style={styles.teamLogo}
-                    resizeMode="contain"
-                />
-                <Text style={styles.title}>{team.name}</Text>
+                <View style={styles.firstLine}>
+                    <FastImage
+                        source={require("@/assets/clubs/as_cannes.png")}
+                        style={styles.teamLogo}
+                        resizeMode="contain"
+                    />
+                    <TeamStatsCard team={team} />
+                </View>
+                <Text style={[styles.title, { color: theme.text }]}>{team.name}</Text>
 
                 <View style={styles.data}>
                     <MaterialCommunityIcons
                         name="trophy-outline"
                         size={20}
-                        color={colors.light}
+                        color={theme.text}
                     />
-                    <Text style={styles.text}>{team.divisionName}</Text>
+                    <Text style={[styles.text, { color: theme.text }]}>{team.divisionName}</Text>
                 </View>
-
-                {/* Future API info */}
-                {/* <View style={styles.data}>
+                <View style={styles.data}>
                     <MaterialCommunityIcons
-                        name="map-marker-outline"
+                        name="gender-male-female"
                         size={20}
-                        color={colors.light}
+                        color={theme.text}
                     />
-                    <Text style={styles.text}>Palais des victoires</Text>
-                </View> */}
+                    <Text style={[styles.text, { color: theme.text }]}>{team.gender}</Text>
+                </View>
 
                 <View style={styles.data}>
                     <MaterialCommunityIcons
                         name="link-variant"
                         size={20}
-                        color={colors.light}
+                        color={theme.text}
                     />
                     <OpenLink
                         url="https://www.ascannesvolley.com/"
@@ -85,37 +91,35 @@ const TeamInfoCard: React.FC<TeamInfoCardProps> = ({ team }) => {
 };
 
 const styles = StyleSheet.create({
-    container: {
-        padding: 20,
-        paddingBottom: 15,
-    },
     column: {
         flexDirection: "column",
     },
+    firstLine: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+        paddingVertical: 10,
+    },
     teamLogo: {
         aspectRatio: 1,
-        height: 110,
-        marginBottom: 10,
+        height: 120,
     },
     title: {
-        color: colors.light,
-        fontWeight: "600",
+        fontWeight: "700",
         fontSize: 26,
-        paddingBottom: 5,
+        marginBottom: 10,
     },
     data: {
         flexDirection: "row",
         alignItems: "center",
         gap: 10,
-        marginBottom: 8,
+        marginBottom: 2,
     },
     text: {
-        color: colors.light,
-        fontSize: 14,
+        fontSize: 15,
     },
     link: {
-        color: colors.blue,
-        fontSize: 14,
+        fontSize: 15,
     },
 });
 

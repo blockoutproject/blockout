@@ -6,14 +6,14 @@ import {
     StyleSheet,
     ImageBackground,
     Pressable,
-    Dimensions
+    Dimensions,
 } from 'react-native';
 import { useAuth0 } from 'react-native-auth0';
-import { useRouter } from 'expo-router';
-import { colors } from '@/src/constants/Colors';
+import { useAppTheme } from '@/src/context/ThemeProvider';
 
 const LoginScreen: React.FC = () => {
     const { authorize } = useAuth0();
+    const theme = useAppTheme();
 
     const handleLogin = async () => {
         try {
@@ -34,17 +34,20 @@ const LoginScreen: React.FC = () => {
             resizeMode="cover"
         >
             {/* Overlay pour assombrir l'image */}
-            <View style={styles.overlay} />
+            <View style={[styles.overlay, { backgroundColor: theme.backgroundSecondary }]} />
 
             <View style={styles.contentContainer}>
-                <Text style={styles.title}>Blockout</Text>
-                <Text style={styles.tagline}>
+                <Text style={[styles.title, { color: theme.text }]}>Blockout</Text>
+                <Text style={[styles.tagline, { color: theme.textInactive }]}>
                     Ton appli pour consulter les scores et suivre tes matchs de volley
                 </Text>
 
                 {/* Bouton Se connecter */}
-                <Pressable style={styles.loginButton} onPress={handleLogin}>
-                    <Text style={styles.loginButtonText}>Se connecter</Text>
+                <Pressable
+                    style={[styles.loginButton, { backgroundColor: theme.text }]}
+                    onPress={handleLogin}
+                >
+                    <Text style={[styles.loginButtonText, { color: theme.text }]}>Se connecter</Text>
                 </Pressable>
             </View>
         </ImageBackground>
@@ -61,7 +64,6 @@ const styles = StyleSheet.create({
     },
     overlay: {
         ...StyleSheet.absoluteFillObject,
-        backgroundColor: colors.dark,
     },
     contentContainer: {
         flex: 1,
@@ -71,30 +73,22 @@ const styles = StyleSheet.create({
     },
     title: {
         fontSize: 48,
-        color: colors.light,
         fontWeight: 'bold',
         marginBottom: 16,
     },
     tagline: {
         fontSize: 16,
-        color: colors.light,
         textAlign: 'center',
         marginHorizontal: 10,
         marginBottom: 50,
     },
     loginButton: {
-        backgroundColor: colors.lightGrey,
         paddingVertical: 15,
         paddingHorizontal: 40,
         borderRadius: 30,
         marginBottom: 15,
     },
-    signupButton: {
-        // Tu peux changer la couleur pour différencier "Créer un compte"
-        backgroundColor: colors.lightGrey, 
-    },
     loginButtonText: {
-        color: colors.light,
         fontSize: 18,
         fontWeight: '600',
     },

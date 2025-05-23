@@ -4,13 +4,15 @@ import MatchListTab from '../match/matchList/MatchListTab';
 import RankingTab from '../common/RankingTab';
 import { MatchStatus } from '@/src/types/Match';
 import { Pool } from '@/src/types/Pool';
-import { colors } from '@/src/constants/Colors';
+import { useAppTheme } from '@/src/context/ThemeProvider';
 
 type PoolTabsProps = {
     pool: Pool;
 };
 
 const PoolTabs: React.FC<PoolTabsProps> = ({ pool }) => {
+    const theme = useAppTheme();
+
     const tabs = [
         {
             key: 'ranking',
@@ -42,7 +44,7 @@ const PoolTabs: React.FC<PoolTabsProps> = ({ pool }) => {
     return (
         <GenericTabView
             tabs={tabs}
-            indicatorColor={colors.active}
+            indicatorColor={theme.text}
         />
     );
 };

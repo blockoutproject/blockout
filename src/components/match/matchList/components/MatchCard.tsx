@@ -1,9 +1,9 @@
-import { colors } from "@/src/constants/Colors";
 import { Match, MatchStatus } from "@/src/types/Match";
 import { Team } from "@/src/types/Team";
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 import FastImage from 'react-native-fast-image';
+import { useAppTheme } from "@/src/context/ThemeProvider";
 
 type MatchCardProps = {
     match: Match;
@@ -20,6 +20,8 @@ const MatchCard: React.FC<MatchCardProps> = ({
     mainColor,
     secondColor,
 }) => {
+    const theme = useAppTheme();
+
     const matchTime = match?.matchDate
         ? (() => {
             const date = new Date(match.matchDate);
@@ -34,7 +36,7 @@ const MatchCard: React.FC<MatchCardProps> = ({
             {/* Équipe A */}
             <View style={[styles.teamContainer, styles.teamLeft]}>
                 <Text
-                    style={styles.name}
+                    style={[styles.name, { color: theme.text }]}
                     numberOfLines={2}
                     ellipsizeMode="tail"
                     adjustsFontSizeToFit
@@ -52,10 +54,10 @@ const MatchCard: React.FC<MatchCardProps> = ({
             {/* Bloc central */}
             <View style={[styles.centerBlock]}>
             {match.status === MatchStatus.UPCOMING ? (
-                <Text style={styles.timeText}>{matchTime}</Text>
+                <Text style={[styles.timeText, { color: theme.text }]}>{matchTime}</Text>
             ) : (
-                <View style={[styles.centerFlow, { borderColor: mainColor }]}>
-                    <Text style={styles.scoreText}>{match.set || "-"}</Text>
+                <View style={[styles.centerFlow, { borderColor: mainColor, backgroundColor: theme.background }]}>
+                    <Text style={[styles.scoreText, { color: theme.text }]}>{match.set || "-"}</Text>
                 </View>
             )}
             </View>
@@ -68,7 +70,7 @@ const MatchCard: React.FC<MatchCardProps> = ({
                     resizeMode="contain"
                 />
                 <Text
-                    style={styles.name}
+                    style={[styles.name, { color: theme.text }]}
                     numberOfLines={2}
                     ellipsizeMode="tail"
                     adjustsFontSizeToFit
@@ -105,7 +107,6 @@ const styles = StyleSheet.create({
         justifyContent: "flex-start",
     },
     name: {
-        color: colors.active,
         fontSize: 16,
         fontWeight: "700",
         flex: 1,
@@ -118,17 +119,14 @@ const styles = StyleSheet.create({
     centerFlow: {
         borderWidth: 2,
         borderRadius: 10,
-        backgroundColor: colors.dark,
         paddingVertical: 6,
         paddingHorizontal: 10,
     },
     scoreText: {
-        color: colors.light,
         fontSize: 22,
         fontWeight: '700',
     },
     timeText: {
-        color: colors.light,
         fontSize: 22,
         fontWeight: '600',
     },

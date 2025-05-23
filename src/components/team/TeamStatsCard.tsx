@@ -1,75 +1,79 @@
-import { colors } from "@/src/constants/Colors";
 import { Team } from "@/src/types/Team";
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
+import { useAppTheme } from "@/src/context/ThemeProvider";
 
 type TeamStatsCardProps = {
-    team: Team,
+    team: Team;
 };
 
 const TeamStatsCard: React.FC<TeamStatsCardProps> = ({ team }) => {
-    type StatProps = {
-        total: number;
-        description: string;
-    };
-    const Stat = ({ total, description }: StatProps) => (
-        <View style={{ alignItems: "center" }}>
-            <Text style={[styles.text, styles.title]}>{total}</Text>
-            <Text style={[styles.text, styles.subtitle]}>{description}</Text>
+    const theme = useAppTheme();
+    const lastFiveResults = [true, false, false, true, true];
+
+    const Stat = ({ total, description }: { total: number; description: string }) => (
+        <View style={styles.statContainer}>
+            <Text style={[styles.statValue, { color: theme.text }]}>{total}</Text>
+            <Text style={[styles.statLabel, { color: theme.text }]}>{description}</Text>
         </View>
     );
-    const lastFiveResults = [true, false, false, true, true];
+
     return (
         <View style={styles.container}>
-            <View style={{ flexDirection: "row", gap: 15 }}>
+            <View style={styles.statsRow}>
                 <Stat total={1} description="place" />
                 <Stat total={4} description="victoires" />
                 <Stat total={6} description="défaites" />
             </View>
-            <View style={{ flexDirection: "row", gap: 5 }}>
+            <View style={styles.resultsRow}>
                 {lastFiveResults.map((isVictory, idx) => (
                     <View
-                        style={{
-                            ...styles.result,
-                            backgroundColor: isVictory
-                                ? colors.green
-                                : colors.red,
-                        }}
                         key={`result-${idx}`}
+                        style={[
+                            styles.resultBadge,
+                            { backgroundColor: isVictory ? theme.success : theme.error },
+                        ]}
                     >
-                        <Text style={styles.text}>{isVictory ? "V" : "D"}</Text>
+                        <Text style={[styles.resultText, { color: theme.text }]}>{isVictory ? "V" : "D"}</Text>
                     </View>
                 ))}
             </View>
         </View>
     );
-}
+};
+
 const styles = StyleSheet.create({
     container: {
         gap: 10,
-        padding: 10,
         alignItems: "center",
     },
-    text: {
-        color: colors.light,
-        fontWeight: "600",
-        fontSize: 16,
+    statsRow: {
+        flexDirection: "row",
+        gap: 15,
     },
-    title: {
-        color: colors.light,
+    statContainer: {
+        alignItems: "center",
+    },
+    statValue: {
         fontWeight: "700",
         fontSize: 32,
     },
-    subtitle: {
-        color: colors.light,
+    statLabel: {
         fontWeight: "400",
         fontSize: 14,
-        marginTop: -5,
     },
-    result: {
+    resultsRow: {
+        flexDirection: "row",
+        gap: 5,
+    },
+    resultBadge: {
         paddingVertical: 5,
         paddingHorizontal: 10,
         borderRadius: 7,
+    },
+    resultText: {
+        fontWeight: "600",
+        fontSize: 16,
     },
 });
 

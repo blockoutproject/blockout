@@ -1,39 +1,42 @@
 import React from 'react';
 import { View, Text, ActivityIndicator, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
-import { colors } from '@/src/constants/Colors';
 import { useDetailedTeamsByPool } from '@/src/hooks/pool/useDetailedTeamsByPool';
 import FastImage from 'react-native-fast-image';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useAppTheme } from '@/src/context/ThemeProvider';
+import { AppTheme } from '@/src/types/Theme';
+import GradientView from './GradientView';
 
 interface RankingCardProps {
     poolId: number;
     scrollable?: boolean;
 }
 
-const rankColors = {
-    first: '#cf9802',
-    second: '#bfbfbf',
-    third: '#bc702a',
-    last: '#e51b1b',
-    default: '#5d5d5d',
-};
+const rankColors = (theme: any) => ({
+    first: theme.gold,
+    second: theme.silver,
+    third: theme.bronze,
+    last: theme.error,
+    default: theme.textInactive,
+});
 
-function getRankColor(rank: number, length: number): string {
-    if (rank === 1) return rankColors.first;
-    if (rank === 2) return rankColors.second;
-    if (rank === 3) return rankColors.third;
-    if (rank === length) return rankColors.last;
-    return rankColors.default;
+function getRankColor(rank: number, theme: AppTheme): string {
+    if (rank === 1) return theme.gold;
+    if (rank === 2) return theme.silver;
+    if (rank === 3) return theme.bronze;
+    return theme.surfaceTertiary;
 }
 
-function getRankBackground(isEven: boolean): string {
-    return isEven ? colors.dark : 'transparent';
+function getRankBackground(isEven: boolean, theme: any): string {
+    return isEven ? theme.backgroundSecondary : 'transparent';
 }
 
 const RankingCard: React.FC<RankingCardProps> = ({ poolId, scrollable = true }) => {
     const router = useRouter();
     const { teams, isLoading, isError } = useDetailedTeamsByPool(poolId);
+    const theme = useAppTheme();
 
     const handleTeamPress = (teamId: number) => {
         router.push(`/team/${teamId}`);
@@ -41,37 +44,34 @@ const RankingCard: React.FC<RankingCardProps> = ({ poolId, scrollable = true }) 
 
     if (isLoading) {
         return (
-            <View style={styles.container}>
-                <ActivityIndicator size="large" color={colors.light} />
-                <Text style={styles.loadingText}>Chargement du classement...</Text>
+            <View style={[styles.container, { backgroundColor: theme.background }]}>
+                <ActivityIndicator size="large" color={theme.text} />
+                <Text style={[styles.loadingText, { color: theme.text }]}>Chargement du classement...</Text>
             </View>
         );
     }
 
     if (isError || !teams) {
         return (
-            <View style={styles.container}>
-                <Text style={styles.errorText}>Erreur lors du chargement du classement.</Text>
+            <View style={[styles.container, { backgroundColor: theme.background }]}>
+                <Text style={[styles.errorText, { color: theme.error }]}>Erreur lors du chargement du classement.</Text>
             </View>
         );
     }
 
     return (
-        <LinearGradient
-            colors={[colors.dark, colors.grey]}
-            start={{ x: 0, y: 2.5 }}
-            end={{ x: 0, y: 0 }}
-            style={styles.container}
+        <GradientView
+            style={[styles.container, { backgroundColor: theme.background }]}
         >
             {/* HEADER */}
             <View style={styles.headerRow}>
                 <View style={styles.transparentRankIndicator} />
-                <Text style={[styles.headerText, styles.rankCell]} numberOfLines={1}>#</Text>
-                <Text style={[styles.headerText, styles.teamCell]} numberOfLines={1}>Team</Text>
-                <Text style={[styles.headerText, styles.statCell]} numberOfLines={1}>MJ</Text>
-                <Text style={[styles.headerText, styles.statCell]} numberOfLines={1}>V</Text>
-                <Text style={[styles.headerText, styles.statCell]} numberOfLines={1}>D</Text>
-                <Text style={[styles.headerText, styles.statCell]} numberOfLines={1}>PTS</Text>
+                <Text style={[styles.headerText, styles.rankCell, { color: theme.text }]} numberOfLines={1}>#</Text>
+                <Text style={[styles.headerText, styles.teamCell, { color: theme.text }]} numberOfLines={1}>Team</Text>
+                <Text style={[styles.headerText, styles.statCell, { color: theme.text }]} numberOfLines={1}>MJ</Text>
+                <Text style={[styles.headerText, styles.statCell, { color: theme.text }]} numberOfLines={1}>V</Text>
+                <Text style={[styles.headerText, styles.statCell, { color: theme.text }]} numberOfLines={1}>D</Text>
+                <Text style={[styles.headerText, styles.statCell, { color: theme.text }]} numberOfLines={1}>PTS</Text>
             </View>
 
             {/* LISTE DES ÉQUIPES */}
@@ -91,15 +91,15 @@ const RankingCard: React.FC<RankingCardProps> = ({ poolId, scrollable = true }) 
                     const isEven = index % 2 === 0;
 
                     return (
-                        <View style={[styles.row, { backgroundColor: getRankBackground(isEven) }]}>
+                        <View style={[styles.row, { backgroundColor: getRankBackground(isEven, theme) }]}>
                             <View
                                 style={[
                                     styles.rankIndicator,
-                                    { backgroundColor: getRankColor(rank, teams.length) },
+                                    { backgroundColor: getRankColor(rank, theme) },
                                 ]}
                             />
                             <Text
-                                style={[styles.cell, styles.rankCell]}
+                                style={[styles.cell, styles.rankCell, { color: theme.text }]}
                                 numberOfLines={1}
                                 ellipsizeMode="tail"
                             >
@@ -115,7 +115,7 @@ const RankingCard: React.FC<RankingCardProps> = ({ poolId, scrollable = true }) 
                                     resizeMode="contain"
                                 />
                                 <Text
-                                    style={styles.name}
+                                    style={[styles.name, { color: theme.text }]}
                                     numberOfLines={1}
                                     ellipsizeMode="tail"
                                     adjustsFontSizeToFit
@@ -124,39 +124,37 @@ const RankingCard: React.FC<RankingCardProps> = ({ poolId, scrollable = true }) 
                                     {item.shortName}
                                 </Text>
                             </TouchableOpacity>
-                            <Text style={[styles.cell, styles.statCell]}>
+                            <Text style={[styles.cell, styles.statCell, { color: theme.text }]}>
                                 {item.played}
                             </Text>
-                            <Text style={[styles.cell, styles.statCell]}>
+                            <Text style={[styles.cell, styles.statCell, { color: theme.text }]}>
                                 {item.wins}
                             </Text>
-                            <Text style={[styles.cell, styles.statCell]}>
+                            <Text style={[styles.cell, styles.statCell, { color: theme.text }]}>
                                 {item.losses}
                             </Text>
-                            <Text style={[styles.cell, styles.statCell]}>
+                            <Text style={[styles.cell, styles.statCell, { color: theme.text }]}>
                                 {item.points}
                             </Text>
                         </View>
                     );
                 }}
             />
-        </LinearGradient>
+        </GradientView>
     );
 };
 
 const styles = StyleSheet.create({
     container: {
-        flex: 1,
         padding: 8,
         paddingTop: -8,
         borderRadius: 12,
     },
     loadingText: {
-        color: colors.light,
         marginTop: 8,
     },
     errorText: {
-        color: colors.red,
+        fontSize: 14,
     },
     headerRow: {
         height: 40,
@@ -183,13 +181,11 @@ const styles = StyleSheet.create({
         backgroundColor: 'transparent',
     },
     headerText: {
-        color: colors.light,
         fontSize: 14,
         fontWeight: '700',
         textAlign: 'center',
     },
     cell: {
-        color: colors.light,
         fontSize: 16,
         textAlign: 'center',
     },
@@ -209,7 +205,6 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     name: {
-        color: colors.light,
         marginLeft: 8,
         marginRight: 24,
         fontSize: 14,

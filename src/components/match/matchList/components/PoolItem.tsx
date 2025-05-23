@@ -3,8 +3,9 @@ import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import FastImage from "react-native-fast-image";
 import { EnrichedPoolMatchesDTO } from "@/src/types/Match";
 import MatchCard from "./MatchCard";
-import { colors } from "@/src/constants/Colors";
 import { LinearGradient } from "expo-linear-gradient";
+import { useAppTheme } from "@/src/context/ThemeProvider";
+import GradientView from "@/src/components/common/GradientView";
 
 interface PoolItemProps {
     pool: EnrichedPoolMatchesDTO;
@@ -23,14 +24,12 @@ const PoolItem: React.FC<PoolItemProps> = ({
     mainLeagueColors,
     secondLeagueColors,
 }) => {
+    const theme = useAppTheme();
     const colorIndex = index % mainLeagueColors.length;
 
     return (
-        <LinearGradient
-            colors={[colors.dark, colors.grey]}
-            start={{ x: 0, y: 2 }}
-            end={{ x: 0, y: 0 }}
-            style={styles.poolContainer}
+        <GradientView
+            style={[styles.poolContainer, { backgroundColor: theme.backgroundSecondary }]}
         >
             <TouchableOpacity onPress={() => handlePoolPress(pool.poolId)}>
                 <View style={styles.poolHeader}>
@@ -40,7 +39,7 @@ const PoolItem: React.FC<PoolItemProps> = ({
                         resizeMode="contain"
                     />
                     <Text
-                        style={styles.poolTitle}
+                        style={[styles.poolTitle, { color: theme.text }]}
                         numberOfLines={1}
                         ellipsizeMode="tail"
                         adjustsFontSizeToFit
@@ -67,7 +66,7 @@ const PoolItem: React.FC<PoolItemProps> = ({
                     </TouchableOpacity>
                 ))}
             </View>
-        </LinearGradient>
+        </GradientView>
     );
 };
 
@@ -75,25 +74,23 @@ const styles = StyleSheet.create({
     poolContainer: {
         borderRadius: 16,
         padding: 12,
-        backgroundColor: colors.grey,
     },
     poolHeader: {
         marginBottom: 12,
-        paddingHorizontal: 24,
         flexDirection: "row",
-        justifyContent: "center",
+        justifyContent: "flex-start",
         alignItems: "center",
     },
     poolLogo: {
-        width: 20,
-        height: 20,
+        width: 22,
+        height: 22,
         marginRight: 8,
         borderRadius: 5,
     },
     poolTitle: {
-        fontSize: 14,
+        flex: 1,
+        fontSize: 16,
         fontWeight: "700",
-        color: colors.active,
     },
     matchesWrapper: {
         flexDirection: "column",

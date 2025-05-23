@@ -12,7 +12,7 @@ export const useEntityById = <T>(
         queryKey: [key, id],
         queryFn: () => fetchOneFn(id as number),
         enabled: !!id,
-        staleTime: 1000 * 60 * 5,
+        staleTime: 0,
         initialData: () => {
             if (id == null) return undefined;
             return qc.getQueryData<T>([key, id]);

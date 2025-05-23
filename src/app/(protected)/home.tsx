@@ -1,47 +1,34 @@
-import { colors } from "@/src/constants/Colors";
 import React, { useMemo, useState } from "react";
-import {
-    ActivityIndicator,
-    Pressable,
-    StyleSheet,
-    Text,
-    View,
-} from "react-native";
+import { StyleSheet } from "react-native";
 import {
     NavigationState,
     Route,
     SceneRendererProps,
     TabView,
 } from "react-native-tab-view";
-
 import MatchListTab from "@/src/components/match/matchList/MatchListTab";
 import { MatchStatus } from "@/src/types/Match";
-import Placeholder from "@/src/components/home/Placeholder";
-import Filters from "@/src/components/home/Filters";
 import { Filter } from "@/src/types/Filter";
 import { useUserContext } from "@/src/hooks/user/useUserContext";
 import { EntityType } from "@/src/types/User";
+import HomeHeader from "@/src/components/home/HomeHeader";
+import * as Haptics from "expo-haptics";
+import MatchListTabSkeleton from "@/src/components/match/matchList/components/MatchListSkeleton";
+import { useAppTheme } from "@/src/context/ThemeProvider"; // 🔥 Thème dynamique
 
 const HomeScreen: React.FC = () => {
     const [index, setIndex] = useState(0);
-    const { customUser, isLoading } = useUserContext();
+    const { customUser } = useUserContext();
+    const [headerHeight, setHeaderHeight] = useState(0);
 
-    if (isLoading || !customUser) {
-        return (
-            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.dark }}>
-                <ActivityIndicator size="large" />
-            </View>
-        );
-    }
+    if (!customUser) return null;
 
-    // On récupère les ids des poules favorites de l'utilisateur
     const userFavoritePools = useMemo(() => {
         return customUser.favorites
             ?.filter(fav => fav.entityType === EntityType.POOL)
             .map(fav => fav.entityId) || [];
     }, [customUser.favorites]);
 
-    // On récupère les ids des équipes favorites de l'utilisateur
     const userFavoriteTeams = useMemo(() => {
         return customUser.favorites
             ?.filter(fav => fav.entityType === EntityType.TEAM)
@@ -60,7 +47,6 @@ const HomeScreen: React.FC = () => {
     const routes = [
         { key: "finished", title: "Terminés" },
         { key: "upcoming", title: "À Venir" },
-        { key: "discover", title: "Découvrir" },
     ];
 
     const finishedTab = useMemo(() => (
@@ -68,25 +54,30 @@ const HomeScreen: React.FC = () => {
             poolIds={userFavoritePools}
             teamIds={userFavoriteTeams}
             status={MatchStatus.FINISHED}
+            headerOffset={headerHeight}
         />
-    ), [userFavoritePools, userFavoriteTeams, filters]);
-    
+    ), [userFavoritePools, userFavoriteTeams, filters, headerHeight]);
+
     const upcomingTab = useMemo(() => (
         <MatchListTab
             poolIds={userFavoritePools}
             teamIds={userFavoriteTeams}
             status={MatchStatus.UPCOMING}
+            headerOffset={headerHeight}
         />
-    ), [userFavoritePools, userFavoriteTeams, filters]);
-    
+    ), [userFavoritePools, userFavoriteTeams, filters, headerHeight]);
+
+    const onTabChange = (i: number) => {
+        Haptics.selectionAsync();
+        setIndex(i);
+    };
+
     const renderScene = ({ route }: SceneRendererProps & { route: Route }) => {
         switch (route.key) {
             case "finished":
                 return finishedTab;
             case "upcoming":
                 return upcomingTab;
-            case "discover":
-                return <Placeholder.PlaceholderScreen2 />;
             default:
                 return null;
         }
@@ -98,58 +89,28 @@ const HomeScreen: React.FC = () => {
         }
     ) => {
         return (
-            <View style={styles.container}>
-                <View style={styles.tabBar}>
-                    {props.navigationState.routes.map((route: Route, idx: number) => (
-                        <Pressable
-                            key={route.key}
-                            onPress={() => props.jumpTo(route.key)}
-                        >
-                            <Text
-                                style={{
-                                    color:
-                                        props.navigationState.index === idx
-                                            ? colors.active
-                                            : colors.inactive,
-                                    ...styles.tabItem,
-                                }}
-                            >
-                                {route.title}
-                            </Text>
-                        </Pressable>
-                    ))}
-                </View>
-
-                {/* On place le composant Filters, auquel on passe filters et setFilters */}
-                <Filters filters={filters} setFilters={setFilters} />
-            </View>
+            <HomeHeader
+                {...props}
+                onLayout={(height) => setHeaderHeight(height)}
+            />
         );
     };
 
     return (
         <TabView
+            lazy
             navigationState={{ index, routes }}
-            onIndexChange={setIndex}
+            onIndexChange={onTabChange}
             renderScene={renderScene}
             renderTabBar={renderTabBar}
+            commonOptions={{ labelStyle: styles.tabItem }}
         />
     );
 };
 
 const styles = StyleSheet.create({
-    container: {
-        paddingBottom: 6,
-        backgroundColor: colors.dark,
-    },
-    tabBar: {
-        flexDirection: "row",
-        gap: 20,
-        justifyContent: "center",
-        paddingBottom: 15,
-        backgroundColor: colors.dark,
-    },
     tabItem: {
-        fontSize: 18,
+        fontSize: 16,
         fontWeight: "700",
     },
 });

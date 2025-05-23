@@ -8,9 +8,10 @@ import {
 import FastImage from 'react-native-fast-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { colors } from '@/src/constants/Colors';
+import { useAppTheme } from '@/src/context/ThemeProvider';
 import { Team } from '@/src/types/Team';
 import { splitIsoDateFormatted } from '@/src/utils/utils';
+import GradientView from '../common/GradientView';
 
 export interface MatchScoreCardProps {
     leagueName: string;
@@ -28,6 +29,7 @@ const MatchScoreCard: React.FC<MatchScoreCardProps> = ({
     matchDate,
 }) => {
     const router = useRouter();
+    const theme = useAppTheme();
     const { date, time } = splitIsoDateFormatted(matchDate);
 
     const onTeamPress = (id: number) => router.push(`/team/${id}`);
@@ -49,25 +51,22 @@ const MatchScoreCard: React.FC<MatchScoreCardProps> = ({
                 numberOfLines={2}
                 ellipsizeMode="tail"
                 adjustsFontSizeToFit
-                minimumFontScale={0.7}
-                style={styles.teamName}
+                minimumFontScale={0.8}
+                style={[styles.teamName, { color: theme.text }]}
             >
                 {team.name}
             </Text>
-            <Text style={styles.teamRole}>{role}</Text>
+            <Text style={[styles.teamRole, { color: theme.textInactive }]}>{role}</Text>
         </Pressable>
     );
 
     return (
-        <LinearGradient
-            colors={[colors.dark, colors.grey]}
-            start={{ x: 0, y: 2 }}
-            end={{ x: 0, y: 0 }}
-            style={styles.cardContainer}
+        <GradientView
+            style={[styles.cardContainer, { backgroundColor: theme.background }]}
         >
             <View style={styles.verticalContent}>
                 {/* Titre en haut */}
-                <Text style={styles.leagueName}>{leagueName}</Text>
+                <Text style={[styles.leagueName, { color: theme.text }]}>{leagueName}</Text>
 
                 {/* Bloc horizontal principal */}
                 <View style={styles.rowContent}>
@@ -76,15 +75,15 @@ const MatchScoreCard: React.FC<MatchScoreCardProps> = ({
                     <View style={styles.centerFlow}>
                         {finalScore ? (
                             <>
-                                <View style={styles.scoreBox}>
-                                    <Text style={styles.scoreText}>{finalScore}</Text>
+                                <View style={[styles.scoreBox, { borderColor: theme.success, backgroundColor: theme.background }]}>
+                                    <Text style={[styles.scoreText, { color: theme.text }]}>{finalScore}</Text>
                                 </View>
-                                {time && <Text style={styles.matchTime}>{time}</Text>}
+                                {time && <Text style={[styles.matchTime, { color: theme.textInactive }]}>{time}</Text>}
                             </>
                         ) : (
                             <>
-                                {time && <Text style={styles.largeTime}>{time}</Text>}
-                                <Text style={styles.upcoming}>À venir</Text>
+                                {time && <Text style={[styles.largeTime, { color: theme.text }]}>{time}</Text>}
+                                <Text style={[styles.upcoming, { color: theme.textInactive }]}>À venir</Text>
                             </>
                         )}
                     </View>
@@ -93,9 +92,9 @@ const MatchScoreCard: React.FC<MatchScoreCardProps> = ({
                 </View>
 
                 {/* Date en bas */}
-                {date && <Text style={styles.matchDate}>{date}</Text>}
+                {date && <Text style={[styles.matchDate, { color: theme.text }]}>{date}</Text>}
             </View>
-        </LinearGradient>
+        </GradientView>
     );
 };
 
@@ -124,13 +123,11 @@ const styles = StyleSheet.create({
         marginBottom: 4,
     },
     teamName: {
-        color: colors.light,
-        fontSize: 14,
+        fontSize: 16,
         fontWeight: '600',
         textAlign: 'center',
     },
     teamRole: {
-        color: colors.inactive,
         fontSize: 12,
         fontWeight: '600',
         marginTop: 2,
@@ -142,39 +139,31 @@ const styles = StyleSheet.create({
     },
     scoreBox: {
         borderWidth: 3,
-        borderColor: colors.green,
         borderRadius: 12,
         paddingHorizontal: 12,
         paddingVertical: 6,
-        backgroundColor: colors.dark,
     },
     scoreText: {
-        color: colors.light,
         fontSize: 30,
         fontWeight: '700',
     },
     matchTime: {
-        color: colors.inactive,
         fontSize: 13,
         fontWeight: '600',
     },
     upcoming: {
-        color: colors.inactive,
         fontSize: 13,
         fontWeight: '600',
     },
     matchDate: {
         fontWeight: '700',
-        color: colors.active,
         fontSize: 14,
     },
     leagueName: {
         fontWeight: '600',
-        color: colors.active,
         fontSize: 16,
     },
     largeTime: {
-        color: colors.light,
         fontSize: 36,
         fontWeight: '700',
     },

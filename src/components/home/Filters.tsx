@@ -1,4 +1,3 @@
-import { colors } from "@/src/constants/Colors";
 import { Filter } from "@/src/types/Filter";
 import React from "react";
 import {
@@ -9,6 +8,7 @@ import {
     View,
 } from "react-native";
 import * as Haptics from "expo-haptics";
+import { useAppTheme } from "@/src/context/ThemeProvider";
 
 type FiltersProps = {
     filters: Filter[];
@@ -16,6 +16,7 @@ type FiltersProps = {
 };
 
 const Filters: React.FC<FiltersProps> = ({ filters, setFilters }) => {
+    const theme = useAppTheme();
 
     const toggleFilter = async (index: number) => {
         // On copie puis on toggle l’état du filtre
@@ -39,7 +40,8 @@ const Filters: React.FC<FiltersProps> = ({ filters, setFilters }) => {
                 style={[
                     styles.filterItem,
                     {
-                        backgroundColor: filter.isActive ? colors.light : colors.dark,
+                        backgroundColor: filter.isActive ? theme.text : theme.background,
+                        borderColor: theme.text,
                     },
                 ]}
                 onPress={async () => toggleFilter(index)}
@@ -47,7 +49,7 @@ const Filters: React.FC<FiltersProps> = ({ filters, setFilters }) => {
                 <Text
                     style={{
                         fontSize: 16,
-                        color: filter.isActive ? colors.dark : colors.light,
+                        color: filter.isActive ? theme.background : theme.text,
                         fontWeight: filter.isActive ? "600" : "400",
                     }}
                 >
@@ -58,7 +60,7 @@ const Filters: React.FC<FiltersProps> = ({ filters, setFilters }) => {
     }
 
     return (
-        <View style={styles.container}>
+        <View style={[styles.container, { backgroundColor: theme.background }]}>
             <FlatList
                 data={filters}
                 keyExtractor={(item) => item.name}
@@ -69,7 +71,6 @@ const Filters: React.FC<FiltersProps> = ({ filters, setFilters }) => {
                     gap: 6,
                     flexDirection: "row",
                     paddingHorizontal: 16,
-
                 }}
                 horizontal={true}
                 showsHorizontalScrollIndicator={false}
@@ -82,14 +83,11 @@ export default Filters;
 
 const styles = StyleSheet.create({
     container: {
-        backgroundColor: colors.dark,
         alignItems: "center",
         justifyContent: "center",
-        borderColor: colors.green,
     },
     filterItem: {
         alignSelf: "flex-start",
-        borderColor: colors.light,
         borderRadius: 100,
         borderWidth: 1,
         paddingVertical: 3,

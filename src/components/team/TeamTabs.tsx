@@ -2,7 +2,7 @@ import React from "react";
 import GenericTabView from "@/src/components/common/GenericTabView";
 import MatchListTab from "@/src/components/match/matchList/MatchListTab";
 import { MatchStatus } from "@/src/types/Match";
-import { colors } from "@/src/constants/Colors";
+import { useAppTheme } from "@/src/context/ThemeProvider";
 import { Pool } from "@/src/types/Pool";
 import RankingTab from "../common/RankingTab";
 import { Team } from "@/src/types/Team";
@@ -13,6 +13,7 @@ type TeamTabsProps = {
 };
 
 const TeamTabs: React.FC<TeamTabsProps> = ({ pools, team }) => {
+    const theme = useAppTheme();
 
     const staticTabs = [
         {
@@ -38,7 +39,7 @@ const TeamTabs: React.FC<TeamTabsProps> = ({ pools, team }) => {
     return (
         <GenericTabView
             tabs={tabs}
-            indicatorColor={colors.green}
+            indicatorColor={theme.success}
         />
     );
 };

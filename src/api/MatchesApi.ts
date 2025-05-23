@@ -52,8 +52,8 @@ class MatchesApi extends AbstractApi {
     }): Promise<DayPageDTO> {
         const params: Record<string, number | number[] | MatchStatus> = { page, size };
 
-        if (poolIds.length) params.poolIds = poolIds;
-        if (teamIds.length) params.teamIds = teamIds;
+        params.poolIds = poolIds;
+        params.teamIds = teamIds;
         if (status !== undefined) params.status = status;
 
         try {

@@ -7,7 +7,7 @@ import {
     Text,
     View,
 } from "react-native";
-import { colors } from "@/src/constants/Colors";
+import { useAppTheme } from "@/src/context/ThemeProvider";
 import { useRouter } from "expo-router";
 import { useMatchesWithEntities } from "@/src/hooks/match/useMatchesWithEntities";
 import { MatchStatus } from "@/src/types/Match";
@@ -15,19 +15,24 @@ import { formatDateFrenchLocale } from "@/src/utils/utils";
 import PoolItem from "./components/PoolItem";
 import * as Haptics from "expo-haptics";
 import type { EnrichedPoolMatchesDTO } from "@/src/types/Match";
+import EmptyPrompt from "../../common/EmptyPrompt";
+import MatchListTabSkeleton from "./components/MatchListSkeleton";
 
 type MatchListTabProps = {
     poolIds?: number[];
     teamIds?: number[];
     status: MatchStatus;
+    headerOffset?: number;
 };
 
 const MatchListTab: React.FC<MatchListTabProps> = ({
     poolIds,
     teamIds,
     status,
+    headerOffset,
 }) => {
     const router = useRouter();
+    const theme = useAppTheme();
 
     const {
         dayMatches,
@@ -75,7 +80,9 @@ const MatchListTab: React.FC<MatchListTabProps> = ({
 
     const renderSectionHeader = ({ section: { title } }: { section: { title: string } }) => (
         <View style={styles.dateContainer}>
-            <Text style={styles.dateHeader}>{title}</Text>
+            <View style={[styles.dateBackground, { backgroundColor: theme.background }]}>
+                <Text style={[styles.dateHeader, { color: theme.text }]}>{title}</Text>
+            </View>
         </View>
     );
 
@@ -92,22 +99,35 @@ const MatchListTab: React.FC<MatchListTabProps> = ({
 
     if (isLoading) {
         return (
-            <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" />
+            <View style={[styles.loadingContainer, { backgroundColor: theme.background, marginTop: headerOffset ? headerOffset + 5 : 0 }]}>
+                <MatchListTabSkeleton />
             </View>
         );
     }
 
     if (isError) {
         return (
-            <View style={styles.container}>
-                <Text style={styles.errorText}>Erreur : {error?.message}</Text>
+            <View style={[styles.container, { backgroundColor: theme.background }]}>
+                <Text style={[styles.errorText, { color: theme.error }]}>Erreur : {error?.message}</Text>
             </View>
         );
     }
 
+    if (!isLoading && !isError && dayMatches.length === 0) {
+        return (
+            <EmptyPrompt
+                title="Aucun match trouvé"
+                subtitle={
+                    poolIds?.length || teamIds?.length
+                        ? "Aucun match à venir pour les équipes ou poules sélectionnées."
+                        : "Commence par suivre une équipe ou une poule pour voir les matchs ici !"
+                }
+            />
+        );
+    }
+
     return (
-        <View style={styles.container}>
+        <View style={[styles.container, { backgroundColor: theme.background }]}>
             <SectionList
                 sections={sections}
                 keyExtractor={(item, index) => `${item.poolId}-${index}`}
@@ -122,11 +142,12 @@ const MatchListTab: React.FC<MatchListTabProps> = ({
                     <RefreshControl
                         refreshing={isRefreshing}
                         onRefresh={handleRefresh}
-                        tintColor={colors.light}
+                        tintColor={theme.text}
+                        progressViewOffset={headerOffset ? headerOffset + 5 : 0}
                     />
                 }
                 scrollEventThrottle={16}
-                contentContainerStyle={styles.contentContainer}
+                contentContainerStyle={[styles.contentContainer, { marginTop: headerOffset ? headerOffset + 5 : 0, paddingBottom: headerOffset ? headerOffset + 5 : 0 }]}
             />
         </View>
     );
@@ -135,17 +156,14 @@ const MatchListTab: React.FC<MatchListTabProps> = ({
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: colors.dark,
     },
     loadingContainer: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: colors.dark,
     },
     contentContainer: {
-        paddingHorizontal: 12,
-        paddingBottom: 16,
+        paddingHorizontal: 8,
     },
     itemSeparator: {
         height: 16,
@@ -154,19 +172,24 @@ const styles = StyleSheet.create({
         height: 6,
     },
     dateContainer: {
-        backgroundColor: colors.dark,
-        paddingVertical: 8,
-        paddingLeft: 8,
+        backgroundColor: "transparent",
+        alignItems: "center",
+    },
+    dateBackground: {
+        borderRadius: 14,
+        paddingVertical: 4,
+        paddingHorizontal: 8,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.6,
+        shadowRadius: 6,
+        elevation: 6,
     },
     dateHeader: {
-        textAlign: "left",
         fontSize: 18,
         fontWeight: "700",
-        color: colors.active,
     },
     errorText: {
         fontSize: 16,
-        color: colors.red,
         textAlign: "center",
     },
 });

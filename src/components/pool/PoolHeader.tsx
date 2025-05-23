@@ -1,20 +1,21 @@
-import { colors } from "@/src/constants/Colors";
 import { usePoolById } from "@/src/hooks/pool/usePoolById";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import { TouchableOpacity, View, Text, StyleSheet } from "react-native";
 import FastImage from 'react-native-fast-image';
+import { useAppTheme } from "@/src/context/ThemeProvider";
 
 const PoolHeader: React.FC = () => {
     const { poolId } = useLocalSearchParams();
     const poolIdNumber = Number(poolId);
     const { data: pool } = usePoolById(poolIdNumber);
+    const theme = useAppTheme();
 
     return (
-        <View style={styles.container}>
+        <View style={[styles.container, { backgroundColor: theme.background }]}>
             {/* Bouton Back */}
             <TouchableOpacity onPress={() => router.back()}>
-                <Ionicons name="arrow-back" size={30} color={colors.light} />
+                <Ionicons name="arrow-back" size={30} color={theme.text} />
             </TouchableOpacity>
 
             {/* Titre + Logo */}
@@ -25,7 +26,7 @@ const PoolHeader: React.FC = () => {
                     resizeMode="contain"
                 />
                 <Text
-                    style={styles.title}
+                    style={[styles.title, { color: theme.text }]}
                     numberOfLines={1}
                     ellipsizeMode="tail"
                 >
@@ -41,7 +42,6 @@ export default PoolHeader;
 const styles = StyleSheet.create({
     container: {
         flexDirection: "row",
-        backgroundColor: colors.dark,
         paddingHorizontal: 12,
         paddingVertical: 15,
         alignItems: 'center',
@@ -62,7 +62,6 @@ const styles = StyleSheet.create({
     title: {
         fontSize: 14,
         fontWeight: "700",
-        color: colors.active,
         flexShrink: 1,
     },
 });

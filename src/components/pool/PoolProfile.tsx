@@ -1,13 +1,13 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Pool } from '@/src/types/Pool';
-import { colors } from '@/src/constants/Colors';
 import FastImage from 'react-native-fast-image';
 import UsersApi from '@/src/api/UsersApi';
 import { EntityType } from '@/src/types/User';
 import { useUserContext } from '@/src/hooks/user/useUserContext';
 import FollowButton from '../common/FollowButton';
 import FollowersCounter from '../common/FollowersCount';
+import { useAppTheme } from '@/src/context/ThemeProvider';
 
 type PoolProfileProps = {
     pool: Pool;
@@ -18,6 +18,7 @@ const PoolProfile: React.FC<PoolProfileProps> = ({ pool }) => {
     const [isProcessing, setIsProcessing] = useState(false);
     const [followersCount, setFollowersCount] = useState(pool.followersCount);
     const [isFollowing, setIsFollowing] = useState(false);
+    const theme = useAppTheme();
 
     useEffect(() => {
         setFollowersCount(pool.followersCount);
@@ -59,7 +60,7 @@ const PoolProfile: React.FC<PoolProfileProps> = ({ pool }) => {
     };
 
     return (
-        <View style={styles.container}>
+        <View style={[styles.container, { backgroundColor: theme.background }]}>
             <FastImage
                 source={require('@/assets/leagues/msl_profile.png')}
                 style={styles.leagueLogo}
@@ -67,7 +68,7 @@ const PoolProfile: React.FC<PoolProfileProps> = ({ pool }) => {
             />
             <View style={styles.infoContainer}>
                 <Text
-                    style={styles.leagueTitle}
+                    style={[styles.leagueTitle, { color: theme.text }]}
                     numberOfLines={2}
                     ellipsizeMode="tail"
                     adjustsFontSizeToFit
@@ -75,7 +76,7 @@ const PoolProfile: React.FC<PoolProfileProps> = ({ pool }) => {
                 >
                     {pool.name}
                 </Text>
-                <Text style={styles.leagueLink}>ligue-b-masculine.com</Text>
+                <Text style={[styles.leagueLink, { color: theme.textInactive }]}>ligue-b-masculine.com</Text>
 
                 <View style={styles.actionsRow}>
                     <FollowButton
@@ -95,7 +96,6 @@ export default PoolProfile;
 const styles = StyleSheet.create({
     container: {
         flexDirection: 'row',
-        backgroundColor: colors.dark,
         paddingHorizontal: 26,
         paddingVertical: 20,
         alignItems: 'flex-end',
@@ -112,12 +112,10 @@ const styles = StyleSheet.create({
     leagueTitle: {
         fontSize: 24,
         fontWeight: '700',
-        color: colors.light,
         marginBottom: 4,
     },
     leagueLink: {
         fontSize: 13,
-        color: colors.inactive,
         marginBottom: 16,
     },
     actionsRow: {

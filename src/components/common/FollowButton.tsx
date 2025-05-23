@@ -1,7 +1,7 @@
 import React from 'react';
 import { Text, TouchableOpacity, StyleSheet, GestureResponderEvent } from 'react-native';
-import { colors } from '@/src/constants/Colors';
 import * as Haptics from 'expo-haptics';
+import { useAppTheme } from '@/src/context/ThemeProvider';
 
 type Props = {
     isFollowing: boolean;
@@ -10,6 +10,8 @@ type Props = {
 };
 
 const FollowButton: React.FC<Props> = ({ isFollowing, onPress, disabled }) => {
+    const theme = useAppTheme();
+
     const handlePress = (e: GestureResponderEvent) => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
         onPress(e);
@@ -19,7 +21,10 @@ const FollowButton: React.FC<Props> = ({ isFollowing, onPress, disabled }) => {
         <TouchableOpacity
             style={[
                 styles.followButton,
-                isFollowing && styles.followingButton,
+                {
+                    backgroundColor: isFollowing ? theme.background : theme.success,
+                    borderColor: isFollowing ? theme.text : theme.success,
+                },
             ]}
             onPress={handlePress}
             disabled={disabled}
@@ -27,7 +32,7 @@ const FollowButton: React.FC<Props> = ({ isFollowing, onPress, disabled }) => {
             <Text
                 style={[
                     styles.followText,
-                    isFollowing && styles.followingText,
+                    { color: theme.text },
                 ]}
             >
                 {isFollowing ? 'Suivie' : 'Suivre'}
@@ -41,26 +46,15 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: colors.green,
         borderWidth: 1,
-        borderColor: colors.green,
         paddingVertical: 6,
         paddingHorizontal: 20,
         borderRadius: 12,
         marginRight: 12,
     },
     followText: {
-        color: colors.light,
         fontSize: 16,
         fontWeight: '600',
-    },
-    followingButton: {
-        backgroundColor: colors.dark,
-        borderWidth: 1,
-        borderColor: colors.light,
-    },
-    followingText: {
-        color: colors.light,
     },
 });
 

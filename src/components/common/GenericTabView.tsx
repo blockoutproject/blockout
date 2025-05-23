@@ -1,19 +1,13 @@
 import React, { useState } from "react";
-import {
-    Text,
-    View,
-    Pressable,
-    StyleSheet,
-    useWindowDimensions,
-    ScrollView,
-} from "react-native";
+import { StyleSheet } from "react-native";
 import {
     TabView,
     SceneRendererProps,
     NavigationState,
     Route,
+    TabBar,
 } from "react-native-tab-view";
-import { colors } from "@/src/constants/Colors";
+import { useAppTheme } from "@/src/context/ThemeProvider";
 
 type TabDefinition = {
     key: string;
@@ -23,7 +17,7 @@ type TabDefinition = {
 
 type GenericTabViewProps = {
     tabs: TabDefinition[];
-    indicatorColor: string;
+    indicatorColor?: string;
 };
 
 const GenericTabView: React.FC<GenericTabViewProps> = ({
@@ -31,6 +25,7 @@ const GenericTabView: React.FC<GenericTabViewProps> = ({
     indicatorColor,
 }) => {
     const [index, setIndex] = useState(0);
+    const theme = useAppTheme();
 
     const routes = tabs.map(({ key, title }) => ({ key, title }));
 
@@ -41,90 +36,51 @@ const GenericTabView: React.FC<GenericTabViewProps> = ({
         return tabDef ? tabDef.render() : null;
     };
 
-    const renderTabBar = (
-        props: SceneRendererProps & {
-            navigationState: NavigationState<Route>;
-            jumpTo: (key: string) => void;
-        }
-    ) => (
-        <ScrollView
-            horizontal
+    const renderTabBar = (props: SceneRendererProps & {
+        navigationState: NavigationState<Route>;
+    }) => (
+        <TabBar
+            {...props}
+            scrollEnabled
             style={styles.tabBar}
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.tabBarContent}
-        >
-            {props.navigationState.routes.map((route: Route, i: number) => {
-                const active = i === props.navigationState.index;
-                return (
-                    <Pressable
-                        key={route.key}
-                        onPress={() => props.jumpTo(route.key)}
-                        style={styles.tabButton}
-                    >
-                        <Text
-                            style={[
-                                styles.tabLabel,
-                                active && styles.tabLabelActive,
-                            ]}
-                        >
-                            {route.title}
-                        </Text>
-                        {active && (
-                            <View
-                                style={[
-                                    styles.indicator,
-                                    { backgroundColor: indicatorColor },
-                                ]}
-                            />
-                        )}
-                    </Pressable>
-                );
-            })}
-        </ScrollView>
+            tabStyle={styles.tabStyle}
+            activeColor={theme.text}
+            inactiveColor={theme.textInactive}
+            indicatorStyle={[
+                styles.indicator,
+                { backgroundColor: indicatorColor || theme.text },
+            ]}
+        />
     );
 
     return (
         <TabView
-            navigationState={{ index, routes }}
-            renderScene={renderScene}
-            onIndexChange={setIndex}
             lazy
-            removeClippedSubviews={false}
+            navigationState={{ index, routes }}
+            onIndexChange={setIndex}
+            renderScene={renderScene}
             renderTabBar={renderTabBar}
+            commonOptions={{ labelStyle: styles.tabItem }}
         />
     );
 };
 
 const styles = StyleSheet.create({
     tabBar: {
-        flexGrow: 0,
+        backgroundColor: "transparent",
         paddingVertical: 4,
     },
-    tabBarContent: {
-        flexGrow: 1,
-        flexDirection: "row",
-        justifyContent: "center",
-        alignItems: "center",
-        paddingHorizontal: 16,
-    },
-    tabButton: {
-        marginHorizontal: 16,
-        paddingVertical: 4,
-    },
-    tabLabel: {
-        color: colors.inactive,
-        fontSize: 15,
-    },
-    tabLabelActive: {
-        color: colors.active,
-        fontWeight: "700",
+    tabStyle: {
+        width: "auto",
+        paddingHorizontal: 20,
     },
     indicator: {
-        marginTop: 8,
         height: 3,
-        borderRadius: 20,
-        width: "70%",
-        alignSelf: "center",
+        width: 0.5,
+    },
+    tabItem: {
+        fontSize: 16,
+        fontWeight: "700",
     },
 });
 
