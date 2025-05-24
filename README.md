@@ -39,10 +39,16 @@
 
    *Remarque* : L'option `--dev-client` permet d'utiliser un client de développement personnalisé au lieu d'Expo Go. 
 
+
+### Build pour mobile
+
+    eas build --platform ios --profile development
+
 ### Résumé des commandes
 
 ```bash
 npm install
 npx expo prebuild
 npx expo start --dev-client
+eas build --platform ios --profile development
 ```

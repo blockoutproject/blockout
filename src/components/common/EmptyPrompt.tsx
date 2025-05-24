@@ -43,7 +43,7 @@ const styles = StyleSheet.create({
         textAlign: "center",
     },
     subtitle: {
-        fontSize: 16,
+        fontSize: 14,
         textAlign: "center",
         maxWidth: 280,
         lineHeight: 22,

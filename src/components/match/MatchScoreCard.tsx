@@ -123,7 +123,7 @@ const styles = StyleSheet.create({
         marginBottom: 4,
     },
     teamName: {
-        fontSize: 16,
+        fontSize: 14,
         fontWeight: '600',
         textAlign: 'center',
     },
@@ -144,15 +144,15 @@ const styles = StyleSheet.create({
         paddingVertical: 6,
     },
     scoreText: {
-        fontSize: 30,
+        fontSize: 28,
         fontWeight: '700',
     },
     matchTime: {
-        fontSize: 13,
+        fontSize: 14,
         fontWeight: '600',
     },
     upcoming: {
-        fontSize: 13,
+        fontSize: 14,
         fontWeight: '600',
     },
     matchDate: {
@@ -161,7 +161,7 @@ const styles = StyleSheet.create({
     },
     leagueName: {
         fontWeight: '600',
-        fontSize: 16,
+        fontSize: 14,
     },
     largeTime: {
         fontSize: 36,

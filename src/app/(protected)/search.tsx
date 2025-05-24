@@ -75,7 +75,7 @@ const styles = StyleSheet.create({
         borderRadius: 12,
         paddingHorizontal: 16,
         paddingVertical: 10,
-        fontSize: 16,
+        fontSize: 14,
     },
     loader: {
         marginTop: 24,

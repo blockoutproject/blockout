@@ -73,10 +73,10 @@ const PoolItem: React.FC<PoolItemProps> = ({
 const styles = StyleSheet.create({
     poolContainer: {
         borderRadius: 16,
-        padding: 12,
+        padding: 8,
     },
     poolHeader: {
-        marginBottom: 12,
+        marginBottom: 8,
         flexDirection: "row",
         justifyContent: "flex-start",
         alignItems: "center",
@@ -85,12 +85,12 @@ const styles = StyleSheet.create({
         width: 22,
         height: 22,
         marginRight: 8,
-        borderRadius: 5,
+        borderRadius: 8,
     },
     poolTitle: {
         flex: 1,
-        fontSize: 16,
-        fontWeight: "700",
+        fontSize: 14,
+        fontWeight: "600",
     },
     matchesWrapper: {
         flexDirection: "column",

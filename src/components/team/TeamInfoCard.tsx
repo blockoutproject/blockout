@@ -60,7 +60,7 @@ const TeamInfoCard: React.FC<TeamInfoCardProps> = ({ team }) => {
                 <View style={styles.data}>
                     <MaterialCommunityIcons
                         name="trophy-outline"
-                        size={20}
+                        size={18}
                         color={theme.text}
                     />
                     <Text style={[styles.text, { color: theme.text }]}>{team.divisionName}</Text>
@@ -68,7 +68,7 @@ const TeamInfoCard: React.FC<TeamInfoCardProps> = ({ team }) => {
                 <View style={styles.data}>
                     <MaterialCommunityIcons
                         name="gender-male-female"
-                        size={20}
+                        size={18}
                         color={theme.text}
                     />
                     <Text style={[styles.text, { color: theme.text }]}>{team.gender}</Text>
@@ -77,7 +77,7 @@ const TeamInfoCard: React.FC<TeamInfoCardProps> = ({ team }) => {
                 <View style={styles.data}>
                     <MaterialCommunityIcons
                         name="link-variant"
-                        size={20}
+                        size={18}
                         color={theme.text}
                     />
                     <OpenLink
@@ -102,11 +102,11 @@ const styles = StyleSheet.create({
     },
     teamLogo: {
         aspectRatio: 1,
-        height: 120,
+        height: 110,
     },
     title: {
         fontWeight: "700",
-        fontSize: 26,
+        fontSize: 20,
         marginBottom: 10,
     },
     data: {
@@ -116,10 +116,10 @@ const styles = StyleSheet.create({
         marginBottom: 2,
     },
     text: {
-        fontSize: 15,
+        fontSize: 14,
     },
     link: {
-        fontSize: 15,
+        fontSize: 14,
     },
 });
 

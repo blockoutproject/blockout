@@ -19,7 +19,7 @@ const TeamCard: React.FC<Props> = ({ team, onPress }) => {
                 styles.card,
                 {
                     backgroundColor: theme.backgroundSecondary,
-                    shadowColor: theme.textInactive,
+                    shadowColor: theme.background,
                 },
             ]}
         >
@@ -48,8 +48,8 @@ const styles = StyleSheet.create({
         padding: 16,
         marginBottom: 12,
         borderRadius: 12,
-        shadowOpacity: 0.1,
-        shadowRadius: 6,
+        shadowOpacity: 1,
+        shadowRadius: 4,
         shadowOffset: { width: 0, height: 2 },
     },
     teamLogo: {

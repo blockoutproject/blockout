@@ -155,11 +155,11 @@ const styles = StyleSheet.create({
         paddingVertical: 4,
     },
     finalScoreText: {
-        fontSize: 16,
+        fontSize: 14,
         fontWeight: '600',
     },
     setScore: {
-        fontSize: 16,
+        fontSize: 14,
     },
 });
 

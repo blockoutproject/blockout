@@ -1,4 +1,3 @@
-// app/(auth)/login.tsx
 import React from 'react';
 import {
     View,
@@ -6,7 +5,6 @@ import {
     StyleSheet,
     ImageBackground,
     Pressable,
-    Dimensions,
 } from 'react-native';
 import { useAuth0 } from 'react-native-auth0';
 import { useAppTheme } from '@/src/context/ThemeProvider';
@@ -77,7 +75,7 @@ const styles = StyleSheet.create({
         marginBottom: 16,
     },
     tagline: {
-        fontSize: 16,
+        fontSize: 14,
         textAlign: 'center',
         marginHorizontal: 10,
         marginBottom: 50,

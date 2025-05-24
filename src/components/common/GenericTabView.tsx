@@ -79,7 +79,7 @@ const styles = StyleSheet.create({
         width: 0.5,
     },
     tabItem: {
-        fontSize: 16,
+        fontSize: 14,
         fontWeight: "700",
     },
 });

@@ -9,10 +9,10 @@ import { AUTH0_CONFIG } from "../config/config";
 import { DevToolsBubble } from "react-native-react-query-devtools";
 import * as Clipboard from "expo-clipboard";
 import { UserProvider } from "@/src/context/UserProvider";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 const RootLayout: React.FC = () => {
     const queryClient = new QueryClient();
-    const colorScheme = useColorScheme();
 
     const onCopy = async (text: string) => {
         try {
@@ -24,21 +24,23 @@ const RootLayout: React.FC = () => {
     };
 
     return (
-        <QueryClientProvider client={queryClient}>
-            <ThemeProvider>
-                <Auth0Provider domain={AUTH0_CONFIG.domain} clientId={AUTH0_CONFIG.clientId}>
-                    <ApiProvider>
-                        <UserProvider>
-                            <Stack screenOptions={{ headerShown: false }}>
-                                <Stack.Screen name="(auth)" />
-                                <Stack.Screen name="(protected)" />
-                            </Stack>
-                        </UserProvider>
-                    </ApiProvider>
-                </Auth0Provider>
-            </ThemeProvider>
-            <DevToolsBubble onCopy={onCopy} />
-        </QueryClientProvider>
+        <GestureHandlerRootView>
+            <QueryClientProvider client={queryClient}>
+                <ThemeProvider>
+                    <Auth0Provider domain={AUTH0_CONFIG.domain} clientId={AUTH0_CONFIG.clientId}>
+                        <ApiProvider>
+                            <UserProvider>
+                                <Stack screenOptions={{ headerShown: false }}>
+                                    <Stack.Screen name="(auth)" />
+                                    <Stack.Screen name="(protected)" />
+                                </Stack>
+                            </UserProvider>
+                        </ApiProvider>
+                    </Auth0Provider>
+                </ThemeProvider>
+                <DevToolsBubble onCopy={onCopy} />
+            </QueryClientProvider>
+        </GestureHandlerRootView>
     );
 };
 

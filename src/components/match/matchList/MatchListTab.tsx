@@ -1,11 +1,13 @@
 import React, { useState, useMemo } from "react";
 import {
-    ActivityIndicator,
     SectionList,
     RefreshControl,
     StyleSheet,
     Text,
     View,
+    Animated,
+    NativeScrollEvent,
+    NativeSyntheticEvent,
 } from "react-native";
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import { useRouter } from "expo-router";
@@ -18,18 +20,21 @@ import type { EnrichedPoolMatchesDTO } from "@/src/types/Match";
 import EmptyPrompt from "../../common/EmptyPrompt";
 import MatchListTabSkeleton from "./components/MatchListSkeleton";
 
+
 type MatchListTabProps = {
     poolIds?: number[];
     teamIds?: number[];
     status: MatchStatus;
     headerOffset?: number;
+    scrollY: Animated.Value;
 };
 
 const MatchListTab: React.FC<MatchListTabProps> = ({
     poolIds,
     teamIds,
     status,
-    headerOffset,
+    headerOffset = 0,
+    scrollY,
 }) => {
     const router = useRouter();
     const theme = useAppTheme();
@@ -99,7 +104,7 @@ const MatchListTab: React.FC<MatchListTabProps> = ({
 
     if (isLoading) {
         return (
-            <View style={[styles.loadingContainer, { backgroundColor: theme.background, marginTop: headerOffset ? headerOffset + 5 : 0 }]}>
+            <View style={[styles.loadingContainer, { backgroundColor: theme.background, marginTop: headerOffset + 6 }]}>
                 <MatchListTabSkeleton />
             </View>
         );
@@ -107,7 +112,7 @@ const MatchListTab: React.FC<MatchListTabProps> = ({
 
     if (isError) {
         return (
-            <View style={[styles.container, { backgroundColor: theme.background }]}>
+            <View style={{ backgroundColor: theme.background }}>
                 <Text style={[styles.errorText, { color: theme.error }]}>Erreur : {error?.message}</Text>
             </View>
         );
@@ -127,8 +132,8 @@ const MatchListTab: React.FC<MatchListTabProps> = ({
     }
 
     return (
-        <View style={[styles.container, { backgroundColor: theme.background }]}>
-            <SectionList
+        <View style={{ backgroundColor: theme.background }}>
+            <Animated.SectionList
                 sections={sections}
                 keyExtractor={(item, index) => `${item.poolId}-${index}`}
                 renderSectionHeader={renderSectionHeader}
@@ -143,20 +148,27 @@ const MatchListTab: React.FC<MatchListTabProps> = ({
                         refreshing={isRefreshing}
                         onRefresh={handleRefresh}
                         tintColor={theme.text}
-                        progressViewOffset={headerOffset ? headerOffset + 5 : 0}
+                        progressViewOffset={headerOffset + 6}
                     />
                 }
                 scrollEventThrottle={16}
-                contentContainerStyle={[styles.contentContainer, { marginTop: headerOffset ? headerOffset + 5 : 0, paddingBottom: headerOffset ? headerOffset + 5 : 0 }]}
+                onScroll={Animated.event(
+                    [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+                    { useNativeDriver: true }
+                )}
+                contentContainerStyle={[
+                    styles.contentContainer,
+                    {
+                        marginTop: headerOffset + 6,
+                        paddingBottom: headerOffset + 6,
+                    },
+                ]}
             />
         </View>
     );
 };
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-    },
     loadingContainer: {
         flex: 1,
         justifyContent: 'center',
@@ -185,11 +197,11 @@ const styles = StyleSheet.create({
         elevation: 6,
     },
     dateHeader: {
-        fontSize: 18,
+        fontSize: 14,
         fontWeight: "700",
     },
     errorText: {
-        fontSize: 16,
+        fontSize: 14,
         textAlign: "center",
     },
 });

@@ -128,7 +128,7 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     poolTitle: {
-        fontSize: 15,
+        fontSize: 14,
         fontWeight: '700',
     },
     icon: {
@@ -136,7 +136,7 @@ const styles = StyleSheet.create({
     },
     infoText: {
         flex: 1,
-        fontSize: 15,
+        fontSize: 14,
     },
 });
 

@@ -48,7 +48,7 @@ const Filters: React.FC<FiltersProps> = ({ filters, setFilters }) => {
             >
                 <Text
                     style={{
-                        fontSize: 16,
+                        fontSize: 14,
                         color: filter.isActive ? theme.background : theme.text,
                         fontWeight: filter.isActive ? "600" : "400",
                     }}

@@ -53,13 +53,13 @@ const MatchCard: React.FC<MatchCardProps> = ({
 
             {/* Bloc central */}
             <View style={[styles.centerBlock]}>
-            {match.status === MatchStatus.UPCOMING ? (
-                <Text style={[styles.timeText, { color: theme.text }]}>{matchTime}</Text>
-            ) : (
-                <View style={[styles.centerFlow, { borderColor: mainColor, backgroundColor: theme.background }]}>
-                    <Text style={[styles.scoreText, { color: theme.text }]}>{match.set || "-"}</Text>
-                </View>
-            )}
+                {match.status === MatchStatus.UPCOMING ? (
+                    <Text style={[styles.timeText, { color: theme.text }]}>{matchTime}</Text>
+                ) : (
+                    <View style={[styles.centerFlow, { borderColor: mainColor, backgroundColor: theme.background }]}>
+                        <Text style={[styles.scoreText, { color: theme.text }]}>{match.set || "-"}</Text>
+                    </View>
+                )}
             </View>
 
             {/* Équipe B */}
@@ -85,9 +85,9 @@ const MatchCard: React.FC<MatchCardProps> = ({
 
 const styles = StyleSheet.create({
     card: {
-        paddingVertical: 12,
+        paddingVertical: 10,
         paddingHorizontal: 8,
-        borderRadius: 10,
+        borderRadius: 8,
         flexDirection: "row",
         gap: 4,
     },
@@ -107,8 +107,8 @@ const styles = StyleSheet.create({
         justifyContent: "flex-start",
     },
     name: {
-        fontSize: 16,
-        fontWeight: "700",
+        fontSize: 14,
+        fontWeight: "600",
         flex: 1,
         textAlign: "center",
     },
@@ -120,14 +120,14 @@ const styles = StyleSheet.create({
         borderWidth: 2,
         borderRadius: 10,
         paddingVertical: 6,
-        paddingHorizontal: 10,
+        paddingHorizontal: 8,
     },
     scoreText: {
         fontSize: 22,
         fontWeight: '700',
     },
     timeText: {
-        fontSize: 22,
+        fontSize: 16,
         fontWeight: '600',
     },
 });

@@ -14,47 +14,44 @@ const ProtectedLayout: React.FC = () => {
     }
 
     return (
-        <Stack>
-            {/* Écran principal (home) */}
+        <Stack
+            screenOptions={{
+                headerShown: false, // par défaut désactivé
+            }}
+        >
             <Stack.Screen
                 name="home"
                 options={{
-                    headerShown: false,
                 }}
             />
             <Stack.Screen
                 name="match"
                 options={{
                     presentation: 'modal',
-                    headerShown: false
                 }}
             />
             <Stack.Screen
                 name="pool"
                 options={{
                     presentation: 'modal',
-                    headerShown: false
                 }}
             />
             <Stack.Screen
                 name="team"
                 options={{
                     presentation: 'modal',
-                    headerShown: false
                 }}
             />
             <Stack.Screen
                 name="profile"
                 options={{
                     presentation: 'card',
-                    headerShown: false
                 }}
             />
             <Stack.Screen
                 name="search"
                 options={{
                     presentation: 'modal',
-                    headerShown: false
                 }}
             />
         </Stack>

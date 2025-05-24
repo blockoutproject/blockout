@@ -53,7 +53,7 @@ const styles = StyleSheet.create({
         marginRight: 12,
     },
     followText: {
-        fontSize: 16,
+        fontSize: 14,
         fontWeight: '600',
     },
 });

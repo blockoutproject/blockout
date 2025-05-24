@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from "react";
-import { StyleSheet } from "react-native";
+import React, { useMemo, useRef, useState } from "react";
+import { StyleSheet, Animated } from "react-native";
 import {
     NavigationState,
     Route,
@@ -13,26 +13,26 @@ import { useUserContext } from "@/src/hooks/user/useUserContext";
 import { EntityType } from "@/src/types/User";
 import HomeHeader from "@/src/components/home/HomeHeader";
 import * as Haptics from "expo-haptics";
-import MatchListTabSkeleton from "@/src/components/match/matchList/components/MatchListSkeleton";
-import { useAppTheme } from "@/src/context/ThemeProvider"; // 🔥 Thème dynamique
+import AnimatedHomeHeader from "@/src/components/home/AnimatedHomeHeader";
 
 const HomeScreen: React.FC = () => {
     const [index, setIndex] = useState(0);
     const { customUser } = useUserContext();
     const [headerHeight, setHeaderHeight] = useState(0);
+    const scrollY = useRef(new Animated.Value(0)).current;
 
     if (!customUser) return null;
 
     const userFavoritePools = useMemo(() => {
         return customUser.favorites
-            ?.filter(fav => fav.entityType === EntityType.POOL)
-            .map(fav => fav.entityId) || [];
+            ?.filter((fav) => fav.entityType === EntityType.POOL)
+            .map((fav) => fav.entityId) || [];
     }, [customUser.favorites]);
 
     const userFavoriteTeams = useMemo(() => {
         return customUser.favorites
-            ?.filter(fav => fav.entityType === EntityType.TEAM)
-            .map(fav => fav.entityId) || [];
+            ?.filter((fav) => fav.entityType === EntityType.TEAM)
+            .map((fav) => fav.entityId) || [];
     }, [customUser.favorites]);
 
     const [filters, setFilters] = useState<Filter[]>([
@@ -49,23 +49,31 @@ const HomeScreen: React.FC = () => {
         { key: "upcoming", title: "À Venir" },
     ];
 
-    const finishedTab = useMemo(() => (
-        <MatchListTab
-            poolIds={userFavoritePools}
-            teamIds={userFavoriteTeams}
-            status={MatchStatus.FINISHED}
-            headerOffset={headerHeight}
-        />
-    ), [userFavoritePools, userFavoriteTeams, filters, headerHeight]);
+    const finishedTab = useMemo(
+        () => (
+            <MatchListTab
+                poolIds={userFavoritePools}
+                teamIds={userFavoriteTeams}
+                status={MatchStatus.FINISHED}
+                headerOffset={headerHeight}
+                scrollY={scrollY}
+            />
+        ),
+        [userFavoritePools, userFavoriteTeams, filters, headerHeight]
+    );
 
-    const upcomingTab = useMemo(() => (
-        <MatchListTab
-            poolIds={userFavoritePools}
-            teamIds={userFavoriteTeams}
-            status={MatchStatus.UPCOMING}
-            headerOffset={headerHeight}
-        />
-    ), [userFavoritePools, userFavoriteTeams, filters, headerHeight]);
+    const upcomingTab = useMemo(
+        () => (
+            <MatchListTab
+                poolIds={userFavoritePools}
+                teamIds={userFavoriteTeams}
+                status={MatchStatus.UPCOMING}
+                headerOffset={headerHeight}
+                scrollY={scrollY}
+            />
+        ),
+        [userFavoritePools, userFavoriteTeams, filters, headerHeight]
+    );
 
     const onTabChange = (i: number) => {
         Haptics.selectionAsync();
@@ -88,12 +96,7 @@ const HomeScreen: React.FC = () => {
             navigationState: NavigationState<Route>;
         }
     ) => {
-        return (
-            <HomeHeader
-                {...props}
-                onLayout={(height) => setHeaderHeight(height)}
-            />
-        );
+        return <AnimatedHomeHeader {...props} onLayout={setHeaderHeight} scrollY={scrollY} />;
     };
 
     return (
@@ -110,7 +113,7 @@ const HomeScreen: React.FC = () => {
 
 const styles = StyleSheet.create({
     tabItem: {
-        fontSize: 16,
+        fontSize: 14,
         fontWeight: "700",
     },
 });

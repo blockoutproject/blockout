@@ -186,7 +186,7 @@ const styles = StyleSheet.create({
         textAlign: 'center',
     },
     cell: {
-        fontSize: 16,
+        fontSize: 14,
         textAlign: 'center',
     },
     rankCell: {

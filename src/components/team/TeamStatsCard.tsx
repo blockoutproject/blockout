@@ -73,7 +73,7 @@ const styles = StyleSheet.create({
     },
     resultText: {
         fontWeight: "600",
-        fontSize: 16,
+        fontSize: 14,
     },
 });
 

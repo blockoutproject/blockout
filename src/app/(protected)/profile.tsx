@@ -122,7 +122,7 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
     },
     email: {
-        fontSize: 16,
+        fontSize: 14,
         marginTop: 4,
     },
     menuContainer: {
@@ -135,7 +135,7 @@ const styles = StyleSheet.create({
         borderRadius: 8,
     },
     menuItemText: {
-        fontSize: 16,
+        fontSize: 14,
     },
     logoutButton: {
         paddingVertical: 16,
@@ -144,7 +144,7 @@ const styles = StyleSheet.create({
         borderRadius: 30,
     },
     logoutButtonText: {
-        fontSize: 16,
+        fontSize: 14,
         fontWeight: 'bold',
         textAlign: 'center',
     },
