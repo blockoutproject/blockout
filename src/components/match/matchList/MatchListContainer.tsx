@@ -1,16 +1,16 @@
 import React, { useState, useMemo } from "react";
 import {
-    SectionList,
     RefreshControl,
     StyleSheet,
     Text,
     View,
     Animated,
-    NativeScrollEvent,
-    NativeSyntheticEvent,
+    StyleProp,
+    ViewStyle,
+    TouchableOpacity,
+    ActivityIndicator,
 } from "react-native";
 import { useAppTheme } from "@/src/context/ThemeProvider";
-import { useRouter } from "expo-router";
 import { useMatchesWithEntities } from "@/src/hooks/match/useMatchesWithEntities";
 import { MatchStatus } from "@/src/types/Match";
 import { formatDateFrenchLocale } from "@/src/utils/utils";
@@ -19,25 +19,29 @@ import * as Haptics from "expo-haptics";
 import type { EnrichedPoolMatchesDTO } from "@/src/types/Match";
 import EmptyPrompt from "../../common/EmptyPrompt";
 import MatchListTabSkeleton from "./components/MatchListSkeleton";
+import { useGlobalBottomSheet } from "@/src/context/GlobalBottomSheetProvider";
+import MatchContainer from "@/src/components/match/MatchContainer";
+import PoolContainer from "../../pool/PoolContainer";
 
-
-type MatchListTabProps = {
+type MatchListContainerProps = {
     poolIds?: number[];
     teamIds?: number[];
     status: MatchStatus;
+    scrollY?: Animated.Value;
     headerOffset?: number;
-    scrollY: Animated.Value;
+    contentContainerStyle?: StyleProp<ViewStyle>;
 };
 
-const MatchListTab: React.FC<MatchListTabProps> = ({
+const MatchListContainer: React.FC<MatchListContainerProps> = ({
     poolIds,
     teamIds,
     status,
-    headerOffset = 0,
     scrollY,
+    headerOffset = 0,
+    contentContainerStyle
 }) => {
-    const router = useRouter();
     const theme = useAppTheme();
+    const { openSheet } = useGlobalBottomSheet();
 
     const {
         dayMatches,
@@ -69,11 +73,13 @@ const MatchListTab: React.FC<MatchListTabProps> = ({
     };
 
     const handlePoolPress = (poolId: number) => {
-        router.push(`/pool/${poolId}`);
+        Haptics.selectionAsync();
+        openSheet(<PoolContainer poolId={poolId} />);
     };
 
-    const handleCardPress = (matchId: number) => {
-        router.push(`/match/${matchId}`);
+    const handleMatchPress = (matchId: number) => {
+        Haptics.selectionAsync();
+        openSheet(<MatchContainer matchId={matchId} />);
     };
 
     const sections = useMemo(() => {
@@ -96,7 +102,7 @@ const MatchListTab: React.FC<MatchListTabProps> = ({
             pool={item}
             index={index}
             handlePoolPress={handlePoolPress}
-            handleCardPress={handleCardPress}
+            handleMatchPress={handleMatchPress}
             mainLeagueColors={["#5a8d36", "#007d89", "#bf447d"]}
             secondLeagueColors={["#2f362b", "#243335", "#3d3136"]}
         />
@@ -104,7 +110,7 @@ const MatchListTab: React.FC<MatchListTabProps> = ({
 
     if (isLoading) {
         return (
-            <View style={[styles.loadingContainer, { backgroundColor: theme.background, marginTop: headerOffset + 6 }]}>
+            <View style={[styles.loadingContainer, { backgroundColor: theme.background }]}>
                 <MatchListTabSkeleton />
             </View>
         );
@@ -112,13 +118,16 @@ const MatchListTab: React.FC<MatchListTabProps> = ({
 
     if (isError) {
         return (
-            <View style={{ backgroundColor: theme.background }}>
+            <View style={[styles.errorContainer, { backgroundColor: theme.background }]}>
                 <Text style={[styles.errorText, { color: theme.error }]}>Erreur : {error?.message}</Text>
+                <TouchableOpacity onPress={() => refetch()}>
+                    <Text style={{ color: theme.primary, marginTop: 8 }}>Réessayer</Text>
+                </TouchableOpacity>
             </View>
         );
     }
 
-    if (!isLoading && !isError && dayMatches.length === 0) {
+    if (dayMatches.length === 0) {
         return (
             <EmptyPrompt
                 title="Aucun match trouvé"
@@ -136,6 +145,8 @@ const MatchListTab: React.FC<MatchListTabProps> = ({
             <Animated.SectionList
                 sections={sections}
                 keyExtractor={(item, index) => `${item.poolId}-${index}`}
+                initialNumToRender={5}
+                stickySectionHeadersEnabled={true}
                 renderSectionHeader={renderSectionHeader}
                 renderItem={renderItem}
                 onEndReached={handleLoadMore}
@@ -152,17 +163,19 @@ const MatchListTab: React.FC<MatchListTabProps> = ({
                     />
                 }
                 scrollEventThrottle={16}
-                onScroll={Animated.event(
-                    [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-                    { useNativeDriver: true }
-                )}
+                onScroll={
+                    scrollY
+                        ? Animated.event(
+                            [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+                            { useNativeDriver: true }
+                        )
+                        : undefined
+                }
                 contentContainerStyle={[
                     styles.contentContainer,
-                    {
-                        marginTop: headerOffset + 6,
-                        paddingBottom: headerOffset + 6,
-                    },
+                    contentContainerStyle,
                 ]}
+                ListFooterComponent={isFetchingNextPage ? <ActivityIndicator /> : null}
             />
         </View>
     );
@@ -170,6 +183,11 @@ const MatchListTab: React.FC<MatchListTabProps> = ({
 
 const styles = StyleSheet.create({
     loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    errorContainer: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
@@ -191,14 +209,14 @@ const styles = StyleSheet.create({
         borderRadius: 14,
         paddingVertical: 4,
         paddingHorizontal: 8,
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.6,
-        shadowRadius: 6,
-        elevation: 6,
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.7,
+        shadowRadius: 5,
+        elevation: 5,
     },
     dateHeader: {
         fontSize: 14,
-        fontWeight: "700",
+        fontWeight: "800",
     },
     errorText: {
         fontSize: 14,
@@ -206,4 +224,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default MatchListTab;
+export default MatchListContainer;

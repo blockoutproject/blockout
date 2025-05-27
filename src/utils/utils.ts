@@ -1,5 +1,6 @@
 import { parseISO, format, Locale } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { Pool } from '../types/Pool';
 
 export function formatDateFrenchLocale(dateString: string): string {
     const date = new Date(dateString);
@@ -29,3 +30,5 @@ export function splitIsoDateFormatted(
 
     return { date, time };
 }
+
+export const getLeagueLabel = (pool: Pool) => `${pool.divisionName} - ${pool.gender}`;

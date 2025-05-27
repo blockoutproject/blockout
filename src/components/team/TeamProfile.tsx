@@ -79,7 +79,7 @@ const TeamProfile: React.FC<Props> = ({ team }) => {
 
 const styles = StyleSheet.create({
     container: {
-        marginHorizontal: 25,
+        paddingHorizontal: 16,
     },
     profileRow: {
         marginBottom: 10,

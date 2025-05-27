@@ -7,9 +7,12 @@ import PoolTabs from '@/src/components/pool/PoolTabs';
 import MatchSkeleton from '@/src/components/match/MatchSkeleton';
 import { useAppTheme } from '@/src/context/ThemeProvider';
 
-const PoolModalScreen: React.FC = () => {
-    const { poolId } = useLocalSearchParams();
-    const { data: pool, isLoading } = usePoolById(Number(poolId));
+type Props = {
+    poolId: number;
+};
+
+const PoolContainer: React.FC<Props> = ({ poolId }) => {
+    const { data: pool, isLoading } = usePoolById(poolId);
     const theme = useAppTheme();
 
     if (isLoading) {
@@ -35,4 +38,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default PoolModalScreen;
+export default PoolContainer;

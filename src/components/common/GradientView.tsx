@@ -18,7 +18,7 @@ const GradientView: React.FC<GradientViewProps> = ({
     end = { x: 0, y: 0 },
 }) => {
     const theme = useAppTheme();
-    const colors = colorsOverride ?? [theme.backgroundSecondary, theme.surface,];
+    const colors = colorsOverride ?? [ theme.surface, theme.surfaceSecondary ];
 
     return (
         <LinearGradient

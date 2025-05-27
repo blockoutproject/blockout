@@ -2,9 +2,12 @@ import axios, {
     AxiosError,
     AxiosInstance,
     AxiosRequestConfig,
+    AxiosResponse,
 } from 'axios';
 import axiosRetry from 'axios-retry';
-import applyCaseMiddleware from 'axios-case-converter'; // 👈 ajoute ça
+import camelcaseKeys from 'camelcase-keys';
+import snakecaseKeys from 'snakecase-keys';
+import qs from 'qs';
 
 // Erreur métier enrichie
 export class ApiError extends Error {
@@ -22,43 +25,64 @@ export class ApiError extends Error {
 export default abstract class AbstractApi {
     protected service: AxiosInstance;
 
-    protected constructor(url: string, token: string, timeout: number = 60000) {
+    protected constructor(
+        url: string,
+        token: string,
+        timeout: number = 60000
+    ) {
         if (new.target === AbstractApi) {
             throw new TypeError(
                 'Abstract class "AbstractApi" cannot be instantiated directly'
             );
         }
 
-        // Applique le middleware de case conversion
         const baseAxios = axios.create({
             baseURL: url,
-            timeout: timeout,
+            timeout,
             headers: {
                 Authorization: `Bearer ${token}`,
             },
+            paramsSerializer: (params) =>
+                qs.stringify(params, { arrayFormat: 'repeat' }),
         });
 
-        this.service = applyCaseMiddleware(baseAxios, {
-            ignoreHeaders: true, // headers comme Authorization ne sont pas modifiés
+        // Middleware manuel de conversion des keys
+        baseAxios.interceptors.request.use((config) => {
+            if (config.data && typeof config.data === 'object') {
+                config.data = snakecaseKeys(config.data, { deep: true });
+            }
+            if (config.params && typeof config.params === 'object') {
+                config.params = snakecaseKeys(config.params, { deep: true });
+            }
+
+            // console.log('[Request]', {
+            //     method: config.method,
+            //     url: config.url,
+            //     headers: config.headers,
+            //     params: config.params,
+            //     data: config.data,
+            // });
+
+            return config;
         });
 
-        // Retry en cas d’erreur réseau/transitoire
-        axiosRetry(this.service, {
+        baseAxios.interceptors.response.use(
+            (response: AxiosResponse) => {
+                if (response.data && typeof response.data === 'object') {
+                    response.data = camelcaseKeys(response.data, { deep: true });
+                }
+                return response;
+            },
+            this.handleError.bind(this)
+        );
+
+        // Retry en cas d’échec réseau
+        axiosRetry(baseAxios, {
             retries: 3,
             retryDelay: axiosRetry.exponentialDelay,
         });
 
-        // Intercepteur requête
-        this.service.interceptors.request.use(
-            config => config,
-            error => Promise.reject(error)
-        );
-
-        // Intercepteur réponse
-        this.service.interceptors.response.use(
-            response => response,
-            this.handleError.bind(this)
-        );
+        this.service = baseAxios;
     }
 
     /** Exécute une requête et renvoie directement le corps ou lève un ApiError */
@@ -67,18 +91,37 @@ export default abstract class AbstractApi {
         return response.data;
     }
 
-    /** Transforme chaque AxiosError en ApiError avec statut et payload */
+    /** Transforme chaque AxiosError en ApiError enrichi */
     private handleError(error: AxiosError): Promise<never> {
         if (error.response) {
             const status = error.response.status;
-            const data = error.response.data as any;
+            const data = error.response.data;
             const message = error.message ?? 'Erreur inconnue du serveur';
+
+            console.error('[API Error]', {
+                url: error.config?.url,
+                method: error.config?.method,
+                status,
+                data,
+                message,
+            });
+
             return Promise.reject(new ApiError(status, message, data));
         }
 
         if (error.request) {
+            console.error('[API Error] Aucune réponse reçue', {
+                url: error.config?.url,
+                method: error.config?.method,
+                request: error.request,
+            });
+
             return Promise.reject(new ApiError(0, 'Pas de réponse du serveur'));
         }
+
+        console.error('[API Error] Erreur inconnue', {
+            message: error.message,
+        });
 
         return Promise.reject(new ApiError(0, error.message));
     }

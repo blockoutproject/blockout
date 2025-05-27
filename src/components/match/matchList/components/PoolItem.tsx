@@ -6,12 +6,13 @@ import MatchCard from "./MatchCard";
 import { LinearGradient } from "expo-linear-gradient";
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import GradientView from "@/src/components/common/GradientView";
+import { th } from "date-fns/locale";
 
 interface PoolItemProps {
     pool: EnrichedPoolMatchesDTO;
     index: number;
     handlePoolPress: (poolId: number) => void;
-    handleCardPress: (matchId: number) => void;
+    handleMatchPress: (matchId: number) => void;
     mainLeagueColors: string[];
     secondLeagueColors: string[];
 }
@@ -20,7 +21,7 @@ const PoolItem: React.FC<PoolItemProps> = ({
     pool,
     index,
     handlePoolPress,
-    handleCardPress,
+    handleMatchPress,
     mainLeagueColors,
     secondLeagueColors,
 }) => {
@@ -28,9 +29,7 @@ const PoolItem: React.FC<PoolItemProps> = ({
     const colorIndex = index % mainLeagueColors.length;
 
     return (
-        <GradientView
-            style={[styles.poolContainer, { backgroundColor: theme.backgroundSecondary }]}
-        >
+        <GradientView style={[styles.container]} >
             <TouchableOpacity onPress={() => handlePoolPress(pool.poolId)}>
                 <View style={styles.poolHeader}>
                     <FastImage
@@ -54,7 +53,7 @@ const PoolItem: React.FC<PoolItemProps> = ({
                 {pool.matches.map((match) => (
                     <TouchableOpacity
                         key={match.id}
-                        onPress={() => handleCardPress(match.id)}
+                        onPress={() => handleMatchPress(match.id)}
                     >
                         <MatchCard
                             match={match}
@@ -71,7 +70,7 @@ const PoolItem: React.FC<PoolItemProps> = ({
 };
 
 const styles = StyleSheet.create({
-    poolContainer: {
+    container: {
         borderRadius: 16,
         padding: 8,
     },

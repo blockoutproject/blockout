@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
     TouchableOpacity,
     View,
     StyleSheet,
     Animated,
     LayoutChangeEvent,
+    Platform,
 } from "react-native";
 import FastImage from "react-native-fast-image";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
@@ -20,81 +21,88 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { BlurView } from "expo-blur";
 import { useAppTheme } from "@/src/context/ThemeProvider";
-
+import { Extrapolation } from "react-native-reanimated";
+import * as Haptics from "expo-haptics";
+import { useGlobalBottomSheet } from "@/src/context/GlobalBottomSheetProvider";
+import SearchContainer from "../search/SearchContainer";
 
 type HeaderProps = SceneRendererProps & {
     navigationState: NavigationState<Route>;
-    onLayout: (height: number) => void;
     scrollY: Animated.Value;
+    onTitleLayout: (height: number) => void;
+    onTabBarLayout: (height: number) => void;
 };
 
-const AnimatedHomeHeader: React.FC<HeaderProps> = ({ onLayout, scrollY, ...props }) => {
+const AnimatedHomeHeader: React.FC<HeaderProps> = ({ scrollY, onTitleLayout, onTabBarLayout, ...props }) => {
     const router = useRouter();
     const { user } = useAuth0();
     const insets = useSafeAreaInsets();
     const theme = useAppTheme();
+    const { openSheet } = useGlobalBottomSheet();
 
     const [titleHeight, setTitleHeight] = useState(0);
-    const [tabHeight, setTabHeight] = useState(0);
-
-    const totalHeight = insets.top + titleHeight + tabHeight;
-
-    useEffect(() => {
-        if (titleHeight && tabHeight) {
-            onLayout(totalHeight);
-        }
-    }, [titleHeight, tabHeight]);
 
     const translateY = scrollY.interpolate({
         inputRange: [0, titleHeight],
         outputRange: [0, -titleHeight],
-        extrapolate: "clamp",
+        extrapolate: Extrapolation.CLAMP,
     });
 
     const titleOpacity = scrollY.interpolate({
         inputRange: [0, titleHeight / 1.5],
         outputRange: [1, 0],
-        extrapolate: "clamp",
+        extrapolate: Extrapolation.CLAMP,
     });
+
+    const handleSearchPress = () => {
+        Haptics.selectionAsync();
+        openSheet(<SearchContainer />);
+    };
 
     return (
         <Animated.View
             style={[styles.container, { paddingTop: insets.top, transform: [{ translateY }] }]}
         >
-            <View style={StyleSheet.absoluteFill}>
-                <Animated.View
-                    style={[
-                        StyleSheet.absoluteFill,
-                        {
-                            opacity: scrollY.interpolate({
-                                inputRange: [0, 30], // ajustable
-                                outputRange: [0, 1],
-                                extrapolate: "clamp",
-                            }),
-                        },
-                    ]}
-                >
-                    <BlurView intensity={50} tint="dark" style={StyleSheet.absoluteFill} />
-                </Animated.View>
+            {Platform.OS === "ios" && (
+                <View style={StyleSheet.absoluteFill}>
+                    <Animated.View
+                        style={[
+                            StyleSheet.absoluteFill,
+                            {
+                                opacity: scrollY.interpolate({
+                                    inputRange: [0, 30], // ajustable
+                                    outputRange: [0, 1],
+                                    extrapolate: "clamp",
+                                }),
+                            },
+                        ]}
+                    >
+                        <BlurView intensity={50} tint="light" style={StyleSheet.absoluteFill} />
+                    </Animated.View>
 
-                <LinearGradient
-                    colors={[theme.background, "transparent"]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 0, y: 1 }}
-                    style={StyleSheet.absoluteFill}
-                />
-            </View>
+                    <LinearGradient
+                        colors={[theme.background, "transparent"]}
+                        start={{ x: 0, y: 0.35 }}
+                        end={{ x: 0, y: 1 }}
+                        style={StyleSheet.absoluteFill}
+                    />
+                </View>
+            )}
 
             <Animated.Text
-                onLayout={(e: LayoutChangeEvent) => setTitleHeight(e.nativeEvent.layout.height)}
+                onLayout={(e: LayoutChangeEvent) => {
+                    const height = e.nativeEvent.layout.height;
+                    setTitleHeight(height);
+                    onTitleLayout(height);
+                }}
                 style={[styles.title, { color: theme.text, opacity: titleOpacity }]}
             >
                 Block🏐ut
             </Animated.Text>
 
             <View
-                style={styles.tabBarContainer}
-                onLayout={(e: LayoutChangeEvent) => setTabHeight(e.nativeEvent.layout.height)}
+                style={[styles.tabBarContainer, { backgroundColor: Platform.OS === "android" ? theme.background : "transparent" }]}
+                onLayout={(e: LayoutChangeEvent) => onTabBarLayout(e.nativeEvent.layout.height)}
             >
                 <TabBar
                     {...props}
@@ -103,10 +111,11 @@ const AnimatedHomeHeader: React.FC<HeaderProps> = ({ onLayout, scrollY, ...props
                     style={styles.tabBar}
                     activeColor={theme.text}
                     inactiveColor={theme.textInactive}
+                    android_ripple={{ color: "transparent" }}
                 />
 
                 <View style={styles.actions}>
-                    <TouchableOpacity onPress={() => router.navigate("/search")}>
+                    <TouchableOpacity onPress={handleSearchPress}>
                         <MaterialCommunityIcons name="magnify" size={25} color={theme.text} />
                     </TouchableOpacity>
 
@@ -130,7 +139,6 @@ const styles = StyleSheet.create({
         left: 0,
         right: 0,
         zIndex: 10,
-        paddingHorizontal: 10,
     },
     tabBarContainer: {
         flexDirection: "row",
@@ -138,7 +146,7 @@ const styles = StyleSheet.create({
         justifyContent: "space-between",
     },
     title: {
-        paddingHorizontal: 10,
+        paddingHorizontal: 16,
         paddingTop: 10,
         fontSize: 26,
         fontWeight: "bold",
@@ -148,8 +156,7 @@ const styles = StyleSheet.create({
     },
     tabStyle: {
         width: "auto",
-        paddingHorizontal: 12,
-        paddingVertical: 0,
+        paddingHorizontal: 16,
     },
     indicator: {
         width: 0.5,

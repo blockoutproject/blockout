@@ -68,9 +68,7 @@ const MatchScoreDetailsCard: React.FC<MatchScoreDetailsCardProps> = ({
     };
 
     return (
-        <GradientView
-            style={[styles.container, { backgroundColor: theme.background }]}
-        >
+        <GradientView style={[styles.container]}>
             <Text style={[styles.title, { color: theme.text }]}>{title}</Text>
 
             <View style={styles.teamsWrapper}>

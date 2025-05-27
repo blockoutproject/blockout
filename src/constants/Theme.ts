@@ -3,9 +3,9 @@ import { AppTheme } from "../types/Theme";
 export const darkTheme: AppTheme = {
     background: "#0f1013",
     backgroundSecondary: "#16181a",
-    surface: "#191c1e",
-    surfaceSecondary: "#2a2b2f",
-    surfaceTertiary: "#4A4A4A",
+    surface: "#191b1d",
+    surfaceSecondary: "#26272a",
+    surfaceTertiary: "#393939",
     border: "#2e2f33",
     text: "#ffffff",
     textSecondary: "#e2e2e2",

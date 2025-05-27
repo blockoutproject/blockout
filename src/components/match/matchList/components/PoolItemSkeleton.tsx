@@ -3,17 +3,13 @@ import { View, StyleSheet } from "react-native";
 import { Skeleton } from "moti/skeleton";
 import { LinearGradient } from "expo-linear-gradient";
 import { useAppTheme } from "@/src/context/ThemeProvider";
+import GradientView from "@/src/components/common/GradientView";
 
 const PoolItemSkeleton: React.FC = () => {
     const theme = useAppTheme();
 
     return (
-        <LinearGradient
-            colors={[theme.background, theme.backgroundSecondary]}
-            start={{ x: 0, y: 2 }}
-            end={{ x: 0, y: 0 }}
-            style={[styles.poolContainer, { backgroundColor: theme.backgroundSecondary }]}
-        >
+        <GradientView style={[styles.container]}>
             <View style={styles.poolHeader}>
                 <Skeleton width="70%" height={20} colors={[theme.background, theme.backgroundSecondary, theme.background]} />
             </View>
@@ -21,12 +17,12 @@ const PoolItemSkeleton: React.FC = () => {
             <View style={styles.matchesWrapper}>
                 <Skeleton width="100%" height={120} colors={[theme.background, theme.backgroundSecondary, theme.background]} />
             </View>
-        </LinearGradient>
+        </GradientView>
     );
 };
 
 const styles = StyleSheet.create({
-    poolContainer: {
+    container: {
         borderRadius: 16,
         padding: 12,
         marginBottom: 16,

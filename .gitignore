@@ -46,3 +46,8 @@ android/
 
 .vscode/
 
+
+# Expo
+.expo
+dist/
+web-build/

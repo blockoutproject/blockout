@@ -1,6 +1,5 @@
 import React from 'react';
 import { Stack } from 'expo-router';
-import { View, ActivityIndicator } from 'react-native';
 import { useUserContext } from '@/src/hooks/user/useUserContext';
 import { useAuthGuard } from '@/src/hooks/auth/useAuthGuard';
 import AppLoader from '@/src/components/common/AppLoader';
@@ -16,30 +15,12 @@ const ProtectedLayout: React.FC = () => {
     return (
         <Stack
             screenOptions={{
-                headerShown: false, // par défaut désactivé
+                headerShown: false,
             }}
         >
             <Stack.Screen
                 name="home"
                 options={{
-                }}
-            />
-            <Stack.Screen
-                name="match"
-                options={{
-                    presentation: 'modal',
-                }}
-            />
-            <Stack.Screen
-                name="pool"
-                options={{
-                    presentation: 'modal',
-                }}
-            />
-            <Stack.Screen
-                name="team"
-                options={{
-                    presentation: 'modal',
                 }}
             />
             <Stack.Screen

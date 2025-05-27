@@ -2,16 +2,17 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import FastImage from 'react-native-fast-image';
-import { router } from 'expo-router';
 import { Pool } from '@/src/types/Pool';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useAppTheme } from '@/src/context/ThemeProvider';
 import GradientView from '../common/GradientView';
+import { useGlobalBottomSheet } from '@/src/context/GlobalBottomSheetProvider';
+import * as Haptics from "expo-haptics";
+import PoolContainer from '../pool/PoolContainer';
 
 type MatchInfoCardProps = {
     pool: Pool;
     date: string;
-    league: string;
+    leagueName?: string;
     duration?: string;
     venue?: string;
     referee1?: string;
@@ -21,19 +22,22 @@ type MatchInfoCardProps = {
 const MatchInfoCard: React.FC<MatchInfoCardProps> = ({
     pool,
     date,
-    league,
+    leagueName,
     duration,
     venue,
     referee1,
     referee2,
 }) => {
     const theme = useAppTheme();
+    const { openSheet } = useGlobalBottomSheet();
 
     const handlePoolPress = (poolId: number) => {
-        router.push(`/pool/${poolId}`);
+        Haptics.selectionAsync();
+        openSheet(<PoolContainer poolId={poolId} />);
     };
 
     const infoData = [
+        leagueName && { icon: 'trophy-outline', text: leagueName },
         {
             icon: 'calendar-outline',
             text: new Date(date).toLocaleString('fr-FR', {
@@ -51,9 +55,7 @@ const MatchInfoCard: React.FC<MatchInfoCardProps> = ({
     ];
 
     return (
-        <GradientView
-            style={[styles.container, { backgroundColor: theme.background }]}
-        >
+        <GradientView style={[styles.container]}>
             <Text style={[styles.title, { color: theme.text }]}>Information</Text>
 
             <View style={styles.infoList}>

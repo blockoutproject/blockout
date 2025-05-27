@@ -12,7 +12,7 @@ const RankingTab: React.FC<RankingTabProps> = ({ poolId }: RankingTabProps) => {
     const theme = useAppTheme();
 
     return (
-        <View style={[styles.container, { paddingBottom: insets.bottom + 16, backgroundColor: theme.background }]}>
+        <View style={[styles.container, { paddingBottom: insets.bottom + 8, backgroundColor: theme.background }]}>
             <RankingCard poolId={poolId} />
         </View>
     );
@@ -21,7 +21,7 @@ const RankingTab: React.FC<RankingTabProps> = ({ poolId }: RankingTabProps) => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        paddingHorizontal: 6,
+        paddingHorizontal: 8,
         paddingTop: 16,
     },
 });

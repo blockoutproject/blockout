@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { StyleSheet, Animated } from "react-native";
 import {
     NavigationState,
@@ -6,22 +6,30 @@ import {
     SceneRendererProps,
     TabView,
 } from "react-native-tab-view";
-import MatchListTab from "@/src/components/match/matchList/MatchListTab";
+import MatchListTab from "@/src/components/match/matchList/MatchListContainer";
 import { MatchStatus } from "@/src/types/Match";
 import { Filter } from "@/src/types/Filter";
 import { useUserContext } from "@/src/hooks/user/useUserContext";
 import { EntityType } from "@/src/types/User";
-import HomeHeader from "@/src/components/home/HomeHeader";
 import * as Haptics from "expo-haptics";
 import AnimatedHomeHeader from "@/src/components/home/AnimatedHomeHeader";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const HomeScreen: React.FC = () => {
-    const [index, setIndex] = useState(0);
+    const insets = useSafeAreaInsets();
     const { customUser } = useUserContext();
-    const [headerHeight, setHeaderHeight] = useState(0);
+    if (!customUser) return null;
+
     const scrollY = useRef(new Animated.Value(0)).current;
 
-    if (!customUser) return null;
+    const [titleHeight, setTitleHeight] = useState(0);
+    const [tabBarHeight, setTabBarHeight] = useState(0);
+    const [index, setIndex] = useState(0);
+    const [headerOffset, setHeaderOffset] = useState(0);
+
+    useEffect(() => {
+        setHeaderOffset(insets.top + tabBarHeight + titleHeight);
+    }, [tabBarHeight, titleHeight]);
 
     const userFavoritePools = useMemo(() => {
         return customUser.favorites
@@ -55,11 +63,16 @@ const HomeScreen: React.FC = () => {
                 poolIds={userFavoritePools}
                 teamIds={userFavoriteTeams}
                 status={MatchStatus.FINISHED}
-                headerOffset={headerHeight}
                 scrollY={scrollY}
+                headerOffset={headerOffset}
+                contentContainerStyle={{
+                    marginTop: insets.top + tabBarHeight + 8,
+                    paddingTop: titleHeight,
+                    paddingBottom: headerOffset + 8,
+                }}
             />
         ),
-        [userFavoritePools, userFavoriteTeams, filters, headerHeight]
+        [userFavoritePools, userFavoriteTeams, headerOffset]
     );
 
     const upcomingTab = useMemo(
@@ -68,11 +81,16 @@ const HomeScreen: React.FC = () => {
                 poolIds={userFavoritePools}
                 teamIds={userFavoriteTeams}
                 status={MatchStatus.UPCOMING}
-                headerOffset={headerHeight}
                 scrollY={scrollY}
+                headerOffset={headerOffset}
+                contentContainerStyle={{
+                    marginTop: insets.top + tabBarHeight + 8,
+                    paddingTop: titleHeight,
+                    paddingBottom: headerOffset + 8,
+                }}
             />
         ),
-        [userFavoritePools, userFavoriteTeams, filters, headerHeight]
+        [userFavoritePools, userFavoriteTeams, headerOffset]
     );
 
     const onTabChange = (i: number) => {
@@ -96,7 +114,14 @@ const HomeScreen: React.FC = () => {
             navigationState: NavigationState<Route>;
         }
     ) => {
-        return <AnimatedHomeHeader {...props} onLayout={setHeaderHeight} scrollY={scrollY} />;
+        return (
+            <AnimatedHomeHeader
+                {...props}
+                scrollY={scrollY}
+                onTitleLayout={setTitleHeight}
+                onTabBarLayout={setTabBarHeight}
+            />
+        );
     };
 
     return (

@@ -6,12 +6,13 @@ import {
     Pressable,
 } from 'react-native';
 import FastImage from 'react-native-fast-image';
-import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
 import { useAppTheme } from '@/src/context/ThemeProvider';
 import { Team } from '@/src/types/Team';
 import { splitIsoDateFormatted } from '@/src/utils/utils';
 import GradientView from '../common/GradientView';
+import { useGlobalBottomSheet } from '@/src/context/GlobalBottomSheetProvider';
+import * as Haptics from "expo-haptics";
+import TeamContainer from '../team/TeamContainer';
 
 export interface MatchScoreCardProps {
     leagueName: string;
@@ -28,20 +29,25 @@ const MatchScoreCard: React.FC<MatchScoreCardProps> = ({
     finalScore,
     matchDate,
 }) => {
-    const router = useRouter();
     const theme = useAppTheme();
-    const { date, time } = splitIsoDateFormatted(matchDate);
+    const { openSheet } = useGlobalBottomSheet();
 
-    const onTeamPress = (id: number) => router.push(`/team/${id}`);
     const home = require('@/assets/clubs/paris_volley.png');
     const away = require('@/assets/clubs/as_cannes.png');
+
+    const { date, time } = splitIsoDateFormatted(matchDate);
+
+    const handleTeamPress = (teamId: number) => {
+        Haptics.selectionAsync();
+        openSheet(<TeamContainer teamId={teamId} />);
+    };
 
     const TeamBlock: React.FC<{ team: Team; logo: any; role: 'Home' | 'Away' }> = ({
         team,
         logo,
         role,
     }) => (
-        <Pressable onPress={() => onTeamPress(team.id)} style={styles.teamWrapper}>
+        <Pressable onPress={() => handleTeamPress(team.id)} style={styles.teamWrapper}>
             <FastImage
                 source={logo}
                 style={styles.teamLogo}
@@ -61,9 +67,7 @@ const MatchScoreCard: React.FC<MatchScoreCardProps> = ({
     );
 
     return (
-        <GradientView
-            style={[styles.cardContainer, { backgroundColor: theme.background }]}
-        >
+        <GradientView style={[styles.container]}>
             <View style={styles.verticalContent}>
                 {/* Titre en haut */}
                 <Text style={[styles.leagueName, { color: theme.text }]}>{leagueName}</Text>
@@ -99,7 +103,7 @@ const MatchScoreCard: React.FC<MatchScoreCardProps> = ({
 };
 
 const styles = StyleSheet.create({
-    cardContainer: {
+    container: {
         paddingVertical: 12,
         borderRadius: 16,
     },

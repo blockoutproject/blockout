@@ -18,7 +18,7 @@ const TeamCard: React.FC<Props> = ({ team, onPress }) => {
             style={[
                 styles.card,
                 {
-                    backgroundColor: theme.backgroundSecondary,
+                    backgroundColor: theme.surface,
                     shadowColor: theme.background,
                 },
             ]}

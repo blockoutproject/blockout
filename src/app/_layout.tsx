@@ -10,6 +10,8 @@ import { DevToolsBubble } from "react-native-react-query-devtools";
 import * as Clipboard from "expo-clipboard";
 import { UserProvider } from "@/src/context/UserProvider";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { GlobalBottomSheetProvider } from "../context/GlobalBottomSheetProvider";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 
 const RootLayout: React.FC = () => {
     const queryClient = new QueryClient();
@@ -24,16 +26,18 @@ const RootLayout: React.FC = () => {
     };
 
     return (
-        <GestureHandlerRootView>
+        <GestureHandlerRootView style={{ flex: 1 }}>
             <QueryClientProvider client={queryClient}>
                 <ThemeProvider>
                     <Auth0Provider domain={AUTH0_CONFIG.domain} clientId={AUTH0_CONFIG.clientId}>
                         <ApiProvider>
                             <UserProvider>
-                                <Stack screenOptions={{ headerShown: false }}>
-                                    <Stack.Screen name="(auth)" />
-                                    <Stack.Screen name="(protected)" />
-                                </Stack>
+                                <GlobalBottomSheetProvider>
+                                    <Stack screenOptions={{ headerShown: false }}>
+                                        <Stack.Screen name="(auth)" />
+                                        <Stack.Screen name="(protected)" />
+                                    </Stack>
+                                </GlobalBottomSheetProvider>
                             </UserProvider>
                         </ApiProvider>
                     </Auth0Provider>
