@@ -53,10 +53,6 @@ public class PoolController {
             @RequestParam(required = false) List<Long> ids) {
 
         List<Pool> pools = poolService.findPools(leagueCode, season, active, ids);
-
-        if (pools.isEmpty()) {
-            return ResponseEntity.noContent().build();
-        }
         return ResponseEntity.ok(pools);
     }
 
