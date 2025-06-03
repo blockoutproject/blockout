@@ -54,10 +54,6 @@ public class TeamController {
             @RequestParam(required = false) List<Long> ids) {
 
         List<Team> teams = teamService.findTeams(name, divisionName, format, gender, clubId, ids);
-
-        if (teams.isEmpty()) {
-            return ResponseEntity.noContent().build();
-        }
         return ResponseEntity.ok(teams);
     }
 
@@ -96,9 +92,6 @@ public class TeamController {
     @GetMapping("/club-ids")
     public ResponseEntity<List<String>> uniqueClubIds() {
         List<String> clubIds = teamService.getUniqueClubIds();
-        if (clubIds.isEmpty()) {
-            return ResponseEntity.noContent().build();
-        }
         return ResponseEntity.ok(clubIds);
     }
 }
