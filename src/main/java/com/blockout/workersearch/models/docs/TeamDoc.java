@@ -2,9 +2,6 @@ package com.blockout.workersearch.models.docs;
 
 import org.springframework.data.elasticsearch.annotations.Document;
 
-import com.blockout.workersearch.models.dto.team.TeamFormat;
-import com.blockout.workersearch.models.dto.team.TeamGender;
-
 import org.springframework.data.annotation.Id;
 
 import lombok.AllArgsConstructor;
@@ -25,6 +22,6 @@ public class TeamDoc {
     private String clubName;
     private String clubCity;
     private String divisionName;
-    private TeamFormat format;
-    private TeamGender gender;
+    private String format;
+    private String gender;
 }

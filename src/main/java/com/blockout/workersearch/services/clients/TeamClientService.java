@@ -1,4 +1,4 @@
-package com.blockout.workersearch.services.client;
+package com.blockout.workersearch.services.clients;
 
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -8,7 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import com.blockout.workersearch.models.dto.team.Team;
+import com.blockout.workersearch.models.dto.team.TeamDTO;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -27,7 +27,7 @@ public class TeamClientService {
     @Value("${api.team.url}")
     private String teamApiUrl;
 
-    public List<Team> listAllTeams() {
+    public List<TeamDTO> listAllTeams() {
         String url = teamApiUrl;
 
         logger.info("Calling listAllTeams endpoint",
@@ -35,9 +35,9 @@ public class TeamClientService {
                 keyValue("url", url));
 
         try {
-            ResponseEntity<Team[]> response = apiClientService.get(url, Team[].class);
-            Team[] body = response.getBody();
-            List<Team> teams = body != null ? Arrays.asList(body) : Collections.emptyList();
+            ResponseEntity<TeamDTO[]> response = apiClientService.get(url, TeamDTO[].class);
+            TeamDTO[] body = response.getBody();
+            List<TeamDTO> teams = body != null ? Arrays.asList(body) : Collections.emptyList();
 
             logger.info("Successfully fetched all teams",
                     keyValue("count", teams.size()));
@@ -51,7 +51,7 @@ public class TeamClientService {
         }
     }
 
-    public List<Team> listTeamsByClubId(String clubId) {
+    public List<TeamDTO> listTeamsByClubId(String clubId) {
         String url = UriComponentsBuilder
                 .fromUriString(teamApiUrl)
                 .queryParam("club_id", clubId)
@@ -64,9 +64,9 @@ public class TeamClientService {
                 keyValue("clubId", clubId));
 
         try {
-            ResponseEntity<Team[]> response = apiClientService.get(url, Team[].class);
-            Team[] body = response.getBody();
-            List<Team> teams = body != null ? Arrays.asList(body) : Collections.emptyList();
+            ResponseEntity<TeamDTO[]> response = apiClientService.get(url, TeamDTO[].class);
+            TeamDTO[] body = response.getBody();
+            List<TeamDTO> teams = body != null ? Arrays.asList(body) : Collections.emptyList();
 
             logger.info("Successfully fetched teams by clubId",
                     keyValue("count", teams.size()));

@@ -7,8 +7,8 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import com.blockout.workersearch.models.events.ClubUpsertEvent;
-import com.blockout.workersearch.services.cache.ClubCacheService;
-import com.blockout.workersearch.services.client.ClubClientService;
+import com.blockout.workersearch.services.caches.ClubCacheService;
+import com.blockout.workersearch.services.clients.ClubClientService;
 
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
 

@@ -13,8 +13,8 @@ import com.blockout.workersearch.models.docs.ClubDoc;
 import com.blockout.workersearch.models.events.ClubUpsertEvent;
 import com.blockout.workersearch.models.events.TeamUpsertEvent;
 import com.blockout.workersearch.repositories.ClubRepository;
-import com.blockout.workersearch.services.cache.ClubCacheService;
-import com.blockout.workersearch.services.cache.TeamCacheService;
+import com.blockout.workersearch.services.caches.ClubCacheService;
+import com.blockout.workersearch.services.caches.TeamCacheService;
 
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
 

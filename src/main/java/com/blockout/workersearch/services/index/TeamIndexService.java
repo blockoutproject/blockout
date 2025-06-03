@@ -10,8 +10,8 @@ import com.blockout.workersearch.models.docs.TeamDoc;
 import com.blockout.workersearch.models.events.ClubUpsertEvent;
 import com.blockout.workersearch.models.events.TeamUpsertEvent;
 import com.blockout.workersearch.repositories.TeamRepository;
-import com.blockout.workersearch.services.cache.ClubCacheService;
-import com.blockout.workersearch.services.cache.TeamCacheService;
+import com.blockout.workersearch.services.caches.ClubCacheService;
+import com.blockout.workersearch.services.caches.TeamCacheService;
 
 import java.util.List;
 

@@ -1,4 +1,4 @@
-package com.blockout.workersearch.services.cache;
+package com.blockout.workersearch.services.caches;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

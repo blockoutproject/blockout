@@ -1,8 +1,5 @@
 package com.blockout.workersearch.models.events;
 
-import com.blockout.workersearch.models.dto.team.TeamFormat;
-import com.blockout.workersearch.models.dto.team.TeamGender;
-
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -17,6 +14,6 @@ public class TeamUpsertEvent {
     private String name;
     private String clubId;
     private String divisionName;
-    private TeamFormat format;
-    private TeamGender gender;
+    private String format;
+    private String gender;
 }

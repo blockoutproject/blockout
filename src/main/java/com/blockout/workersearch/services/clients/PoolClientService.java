@@ -1,4 +1,4 @@
-package com.blockout.workersearch.services.client;
+package com.blockout.workersearch.services.clients;
 
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -7,7 +7,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
-import com.blockout.workersearch.models.dto.pool.Pool;
+import com.blockout.workersearch.models.dto.pool.PoolDTO;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -26,16 +26,16 @@ public class PoolClientService {
     @Value("${api.pool.url}")
     private String poolApiUrl;
 
-    public List<Pool> listPools() {
+    public List<PoolDTO> listPools() {
         String url = poolApiUrl;
         logger.info("Calling listPools endpoint",
                 keyValue("action", "call_pool_list_endpoint"),
                 keyValue("url", url));
 
         try {
-            ResponseEntity<Pool[]> response = apiClientService.get(url, Pool[].class);
-            Pool[] body = response.getBody();
-            List<Pool> pools = body != null ? Arrays.asList(body) : Collections.emptyList();
+            ResponseEntity<PoolDTO[]> response = apiClientService.get(url, PoolDTO[].class);
+            PoolDTO[] body = response.getBody();
+            List<PoolDTO> pools = body != null ? Arrays.asList(body) : Collections.emptyList();
 
             logger.info("Successfully fetched pools",
                     keyValue("count", pools.size()));

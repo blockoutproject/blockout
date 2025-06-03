@@ -7,8 +7,8 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import com.blockout.workersearch.models.events.TeamUpsertEvent;
-import com.blockout.workersearch.services.cache.TeamCacheService;
-import com.blockout.workersearch.services.client.TeamClientService;
+import com.blockout.workersearch.services.caches.TeamCacheService;
+import com.blockout.workersearch.services.clients.TeamClientService;
 
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
 

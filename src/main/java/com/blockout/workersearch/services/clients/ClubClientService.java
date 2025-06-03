@@ -1,4 +1,4 @@
-package com.blockout.workersearch.services.client;
+package com.blockout.workersearch.services.clients;
 
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -7,7 +7,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
-import com.blockout.workersearch.models.dto.club.Club;
+import com.blockout.workersearch.models.dto.club.ClubDTO;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -26,16 +26,16 @@ public class ClubClientService {
     @Value("${api.club.url}")
     private String clubApiUrl;
 
-    public List<Club> listClubs() {
+    public List<ClubDTO> listClubs() {
         String url = clubApiUrl;
         logger.info("Calling listClubs endpoint",
                 keyValue("action", "call_club_list_endpoint"),
                 keyValue("url", url));
 
         try {
-            ResponseEntity<Club[]> response = apiClientService.get(url, Club[].class);
-            Club[] body = response.getBody();
-            List<Club> clubs = body != null ? Arrays.asList(body) : Collections.emptyList();
+            ResponseEntity<ClubDTO[]> response = apiClientService.get(url, ClubDTO[].class);
+            ClubDTO[] body = response.getBody();
+            List<ClubDTO> clubs = body != null ? Arrays.asList(body) : Collections.emptyList();
 
             logger.info("Successfully fetched clubs",
                     keyValue("count", clubs.size()));

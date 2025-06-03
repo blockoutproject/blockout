@@ -7,15 +7,15 @@ import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import com.blockout.workersearch.models.dto.club.Club;
-import com.blockout.workersearch.models.dto.pool.Pool;
-import com.blockout.workersearch.models.dto.team.Team;
+import com.blockout.workersearch.models.dto.club.ClubDTO;
+import com.blockout.workersearch.models.dto.pool.PoolDTO;
+import com.blockout.workersearch.models.dto.team.TeamDTO;
 import com.blockout.workersearch.models.events.ClubUpsertEvent;
 import com.blockout.workersearch.models.events.PoolUpsertEvent;
 import com.blockout.workersearch.models.events.TeamUpsertEvent;
-import com.blockout.workersearch.services.client.ClubClientService;
-import com.blockout.workersearch.services.client.PoolClientService;
-import com.blockout.workersearch.services.client.TeamClientService;
+import com.blockout.workersearch.services.clients.ClubClientService;
+import com.blockout.workersearch.services.clients.PoolClientService;
+import com.blockout.workersearch.services.clients.TeamClientService;
 import com.blockout.workersearch.services.index.ClubIndexService;
 import com.blockout.workersearch.services.index.PoolIndexService;
 import com.blockout.workersearch.services.index.TeamIndexService;
@@ -49,7 +49,7 @@ public class IndexerJob {
     }
 
     private void reindexClubs() {
-        List<Club> clubs = clubClientService.listClubs();
+        List<ClubDTO> clubs = clubClientService.listClubs();
         List<ClubUpsertEvent> events = clubs.stream()
                 .map(club -> ClubUpsertEvent.builder()
                         .id(club.getId())
@@ -63,7 +63,7 @@ public class IndexerJob {
     }
 
     private void reindexTeams() {
-        List<Team> teams = teamClientService.listAllTeams();
+        List<TeamDTO> teams = teamClientService.listAllTeams();
         List<TeamUpsertEvent> events = teams.stream()
                 .map(team -> TeamUpsertEvent.builder()
                         .id(team.getId())
@@ -80,7 +80,7 @@ public class IndexerJob {
     }
 
     private void reindexPools() {
-        List<Pool> pools = poolClientService.listPools();
+        List<PoolDTO> pools = poolClientService.listPools();
         List<PoolUpsertEvent> events = pools.stream()
                 .map(pool -> PoolUpsertEvent.builder()
                         .id(pool.getId())

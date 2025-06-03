@@ -1,4 +1,4 @@
-package com.blockout.workersearch.services.cache;
+package com.blockout.workersearch.services.caches;
 
 import java.util.List;
 
@@ -6,13 +6,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-import com.blockout.workersearch.models.dto.club.Club;
-import com.blockout.workersearch.models.dto.team.Team;
+import com.blockout.workersearch.models.dto.club.ClubDTO;
+import com.blockout.workersearch.models.dto.team.TeamDTO;
 import com.blockout.workersearch.models.events.ClubUpsertEvent;
 import com.blockout.workersearch.models.events.TeamUpsertEvent;
-import com.blockout.workersearch.services.client.ClubClientService;
-import com.blockout.workersearch.services.client.PoolClientService;
-import com.blockout.workersearch.services.client.TeamClientService;
+import com.blockout.workersearch.services.clients.ClubClientService;
+import com.blockout.workersearch.services.clients.PoolClientService;
+import com.blockout.workersearch.services.clients.TeamClientService;
 
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
@@ -31,7 +31,7 @@ public class CacheInitializerService {
 
     @PostConstruct
     public void initializeCaches() {
-        List<Club> clubs = clubClientService.listClubs();
+        List<ClubDTO> clubs = clubClientService.listClubs();
         List<ClubUpsertEvent> clubEvents = clubs.stream()
                 .map(club -> ClubUpsertEvent.builder()
                         .id(club.getId())
@@ -46,7 +46,7 @@ public class CacheInitializerService {
                 keyValue("action", "initialize_club_cache"),
                 keyValue("clubCount", clubCacheService.getAllClubs().size()));
 
-        List<Team> teams = teamClientService.listAllTeams();
+        List<TeamDTO> teams = teamClientService.listAllTeams();
         List<TeamUpsertEvent> teamEvents = teams.stream()
                 .map(team -> TeamUpsertEvent.builder()
                         .id(team.getId())

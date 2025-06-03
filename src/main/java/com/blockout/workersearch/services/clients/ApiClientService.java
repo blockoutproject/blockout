@@ -1,4 +1,4 @@
-package com.blockout.workersearch.services.client;
+package com.blockout.workersearch.services.clients;
 
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;

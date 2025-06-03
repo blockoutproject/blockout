@@ -11,7 +11,7 @@ import java.util.Collections;
 
 @Configuration
 @RequiredArgsConstructor
-public class AuthenticatedRestTemplateConfig {
+public class RestTemplateConfig {
 
     private final Auth0TokenManager tokenManager;
 

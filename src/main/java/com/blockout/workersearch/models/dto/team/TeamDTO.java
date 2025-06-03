@@ -5,15 +5,13 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
-
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class Team {
+public class TeamDTO {
     private Long id;
 
     @JsonProperty("club_id")
@@ -27,7 +25,7 @@ public class Team {
     private Boolean active;
 
     @JsonProperty("last_update")
-    private LocalDateTime lastUpdate;
+    private String lastUpdate;
 
     @JsonProperty("league_code")
     private String leagueCode;
@@ -35,9 +33,9 @@ public class Team {
     @JsonProperty("division_name")
     private String divisionName;
 
-    private TeamFormat format;
+    private String format;
     
-    private TeamGender gender;
+    private String gender;
 
     @JsonProperty("followers_count")
     private Long followersCount;

@@ -6,13 +6,11 @@ import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 
-import java.time.LocalDateTime;
-
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class Pool {
+public class PoolDTO {
     private Long id;
 
     @JsonProperty("pool_code")
@@ -29,13 +27,13 @@ public class Pool {
     private String name;
 
     @JsonProperty("division_code")
-    private PoolDivisionCode divisionCode;
+    private String divisionCode;
 
     @JsonProperty("division_name")
     private String divisionName;
 
-    private PoolFormat format;
-    private PoolGender gender;
+    private String format;
+    private String gender;
 
     @JsonProperty("raw_division_name")
     private String rawDivisionName;
@@ -46,5 +44,5 @@ public class Pool {
     private Boolean active;
 
     @JsonProperty("last_update")
-    private LocalDateTime lastUpdate;
+    private String lastUpdate;
 }

@@ -6,13 +6,11 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
-
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class Club {
+public class ClubDTO {
     private String id;
     private String name;
     private String city;
@@ -28,7 +26,7 @@ public class Club {
     private String website;
 
     @JsonProperty("last_update")
-    private LocalDateTime lastUpdate;
+    private String lastUpdate;
 
     private Boolean active;
 }
