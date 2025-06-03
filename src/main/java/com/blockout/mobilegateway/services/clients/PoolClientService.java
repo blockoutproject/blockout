@@ -1,0 +1,50 @@
+package com.blockout.mobilegateway.services.clients;
+
+import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Service;
+import org.springframework.web.util.UriComponentsBuilder;
+
+import com.blockout.mobilegateway.models.dto.pool.PoolDTO;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.Set;
+
+import static net.logstash.logback.argument.StructuredArguments.keyValue;
+
+@Service
+@RequiredArgsConstructor
+public class PoolClientService {
+
+    private static final Logger logger = LoggerFactory.getLogger(PoolClientService.class);
+
+    private final ApiClientService apiClientService;
+
+    @Value("${api.pool.url}")
+    private String poolApiUrl;
+
+    public List<PoolDTO> getPoolsByIds(Set<Long> ids) {
+        if (ids.isEmpty())
+            return List.of();
+
+        String url = UriComponentsBuilder
+                .fromUriString(poolApiUrl)
+                .queryParam("ids", ids)
+                .build()
+                .toUriString();
+
+        logger.info("Calling getPoolsByIds", keyValue("ids", ids), keyValue("url", url));
+
+        try {
+            ResponseEntity<PoolDTO[]> response = apiClientService.get(url, PoolDTO[].class);
+            return response.getBody() != null ? Arrays.asList(response.getBody()) : List.of();
+        } catch (Exception e) {
+            logger.error("Failed to fetch pools", keyValue("error", e.getMessage()), e);
+            return List.of();
+        }
+    }
+}
