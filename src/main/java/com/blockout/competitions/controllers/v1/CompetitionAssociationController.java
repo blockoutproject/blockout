@@ -52,10 +52,6 @@ public class CompetitionAssociationController {
         List<CompetitionAssociation> list = activeOnly
                 ? associationService.getActiveAssociationsByPool(poolId)
                 : associationService.getAssociationsByPool(poolId);
-
-        if (list.isEmpty()) {
-            return ResponseEntity.noContent().build();
-        }
         return ResponseEntity.ok(list);
     }
 
@@ -67,9 +63,6 @@ public class CompetitionAssociationController {
     @GetMapping("/teams/{teamId}/pools")
     public ResponseEntity<List<CompetitionAssociation>> listPoolsForTeam(@PathVariable Long teamId) {
         List<CompetitionAssociation> list = associationService.getActivePoolsByTeam(teamId);
-        if (list.isEmpty()) {
-            return ResponseEntity.noContent().build();
-        }
         return ResponseEntity.ok(list);
     }
 
