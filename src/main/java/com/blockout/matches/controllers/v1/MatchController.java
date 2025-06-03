@@ -57,10 +57,6 @@ public class MatchController {
             @RequestParam(required = false) Boolean active) {
 
         List<Match> matches = matchService.findMatches(poolId, teamIds, status, active);
-
-        if (matches.isEmpty()) {
-            return ResponseEntity.noContent().build();
-        }
         return ResponseEntity.ok(matches);
     }
 
