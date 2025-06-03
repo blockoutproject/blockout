@@ -30,9 +30,6 @@ public class ClubController {
     @GetMapping
         public ResponseEntity<List<Club>> listClubs() {
         List<Club> list = clubService.getAllClubs();
-        if (list.isEmpty()) {
-            return ResponseEntity.noContent().build();
-        }
         return ResponseEntity.ok(list);
     }
 
