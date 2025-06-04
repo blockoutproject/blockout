@@ -20,29 +20,19 @@ const GlobalBottomSheet: React.FC<Props> = ({ id, sheetRef, onClose, children })
             ref={sheetRef}
             index={0}
             enablePanDownToClose
+            enableContentPanningGesture
+            enableDynamicSizing={false}
             snapPoints={['100%']}
             onClose={() => onClose(id)}
-            handleStyle={{
-                backgroundColor: theme.background,
-                paddingTop: insets.top + 8,
-            }}
-            handleIndicatorStyle={{
-                backgroundColor: theme.text,
-            }}
+            handleStyle={[
+                styles.handle,
+                { backgroundColor: theme.background, paddingTop: insets.top + 8 },
+            ]}
+            handleIndicatorStyle={{ backgroundColor: theme.text }}
             backgroundStyle={{ backgroundColor: theme.background }}
-            style={{
-                shadowColor: "#000",
-                shadowOffset: {
-                    width: 0,
-                    height: -20,
-                },
-                shadowOpacity: 0.5,
-                shadowRadius: 20.00,
-
-                elevation: 24,
-            }}
+            style={styles.sheetShadow}
         >
-            <BottomSheetView style={styles.sheetContent}>
+            <BottomSheetView style={styles.content}>
                 {children}
             </BottomSheetView>
         </BottomSheet>
@@ -50,8 +40,21 @@ const GlobalBottomSheet: React.FC<Props> = ({ id, sheetRef, onClose, children })
 };
 
 const styles = StyleSheet.create({
-    sheetContent: {
+    content: {
         flex: 1,
+    },
+    handle: {
+        
+    },
+    sheetShadow: {
+        shadowColor: '#000',
+        shadowOffset: {
+            width: 0,
+            height: -20,
+        },
+        shadowOpacity: 0.5,
+        shadowRadius: 20,
+        elevation: 24,
     },
 });
 

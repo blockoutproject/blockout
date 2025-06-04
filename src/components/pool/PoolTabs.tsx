@@ -5,6 +5,7 @@ import RankingTab from '../common/RankingTab';
 import { MatchStatus } from '@/src/types/Match';
 import { Pool } from '@/src/types/Pool';
 import { useAppTheme } from '@/src/context/ThemeProvider';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type PoolTabsProps = {
     pool: Pool;
@@ -12,6 +13,7 @@ type PoolTabsProps = {
 
 const PoolTabs: React.FC<PoolTabsProps> = ({ pool }) => {
     const theme = useAppTheme();
+    const insets = useSafeAreaInsets();
 
     const tabs = [
         {
@@ -26,6 +28,10 @@ const PoolTabs: React.FC<PoolTabsProps> = ({ pool }) => {
                 <MatchListTab
                     poolIds={[pool.id]}
                     status={MatchStatus.FINISHED}
+                    contentContainerStyle={{
+                        marginTop: 8,
+                        paddingBottom: insets.bottom + 8,
+                    }}
                 />
             ),
         },
@@ -36,6 +42,10 @@ const PoolTabs: React.FC<PoolTabsProps> = ({ pool }) => {
                 <MatchListTab
                     poolIds={[pool.id]}
                     status={MatchStatus.UPCOMING}
+                    contentContainerStyle={{
+                        marginTop: 8,
+                        paddingBottom: insets.bottom + 8,
+                    }}
                 />
             ),
         },

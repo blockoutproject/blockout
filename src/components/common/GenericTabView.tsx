@@ -8,6 +8,7 @@ import {
     TabBar,
 } from "react-native-tab-view";
 import { useAppTheme } from "@/src/context/ThemeProvider";
+import * as Haptics from "expo-haptics";
 
 type TabDefinition = {
     key: string;
@@ -41,6 +42,7 @@ const GenericTabView: React.FC<GenericTabViewProps> = ({
     }) => (
         <TabBar
             {...props}
+            onTabPress={Haptics.selectionAsync}
             scrollEnabled
             style={styles.tabBar}
             tabStyle={styles.tabStyle}
@@ -48,7 +50,7 @@ const GenericTabView: React.FC<GenericTabViewProps> = ({
             inactiveColor={theme.textInactive}
             indicatorStyle={[
                 styles.indicator,
-                { backgroundColor: indicatorColor || theme.text },
+                { backgroundColor: theme.text },
             ]}
         />
     );

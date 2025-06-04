@@ -7,6 +7,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import GradientView from "@/src/components/common/GradientView";
 import { th } from "date-fns/locale";
+import GradientBorderView from "@/src/components/common/GradientBorderView";
 
 interface PoolItemProps {
     pool: EnrichedPoolMatchesDTO;
@@ -29,7 +30,7 @@ const PoolItem: React.FC<PoolItemProps> = ({
     const colorIndex = index % mainLeagueColors.length;
 
     return (
-        <GradientView style={[styles.container]} >
+        <GradientBorderView style={[styles.container]} colorsOverride={[theme.border, theme.background]} >
             <TouchableOpacity onPress={() => handlePoolPress(pool.poolId)}>
                 <View style={styles.poolHeader}>
                     <FastImage
@@ -65,14 +66,14 @@ const PoolItem: React.FC<PoolItemProps> = ({
                     </TouchableOpacity>
                 ))}
             </View>
-        </GradientView>
+        </GradientBorderView>
     );
 };
 
 const styles = StyleSheet.create({
     container: {
-        borderRadius: 16,
-        padding: 8,
+        borderRadius: 18,
+        padding: 10,
     },
     poolHeader: {
         marginBottom: 8,

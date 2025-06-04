@@ -17,11 +17,11 @@ const AppLoader: React.FC = () => {
                     type: "timing",
                     duration: 1000,
                     easing: Easing.linear,
-                    repeatReverse: false,
+                    repeatReverse: true,
                 }}
                 style={styles.spinner}
             >
-                <Image source={require("@/assets/images/volleyball.png")} style={styles.image} />
+                <Image source={require("@/assets/images/blockout-logo-light.png")} style={styles.image} />
             </MotiView>
         </View>
     );

@@ -6,6 +6,7 @@ import PoolsApi from '@/src/api/PoolsApi';
 import CompetitionsApi from '@/src/api/CompetitionsApi';
 import UsersApi from '@/src/api/UsersApi';
 import SearchApi from '../api/SearchApi';
+import MobileGatewayApi from '../api/MobileGatewayApi';
 
 export const ApiProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const { getCredentials, user } = useAuth0();
@@ -26,6 +27,7 @@ export const ApiProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                         CompetitionsApi.initInstance(token);
                         UsersApi.initInstance(token);
                         SearchApi.initInstance(token);
+                        MobileGatewayApi.initInstance(token);
 
                         console.info('APIs initialisées avec succès.');
                     }

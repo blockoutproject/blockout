@@ -20,20 +20,6 @@ const ProtectedLayout: React.FC = () => {
         >
             <Stack.Screen
                 name="home"
-                options={{
-                }}
-            />
-            <Stack.Screen
-                name="profile"
-                options={{
-                    presentation: 'card',
-                }}
-            />
-            <Stack.Screen
-                name="search"
-                options={{
-                    presentation: 'modal',
-                }}
             />
         </Stack>
     );

@@ -6,6 +6,7 @@ import FastImage from 'react-native-fast-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAppTheme } from '@/src/context/ThemeProvider';
 import GradientView from '../common/GradientView';
+import GradientBorderView from '../common/GradientBorderView';
 
 type MatchScoreDetailsCardProps = {
     title?: string;
@@ -68,7 +69,7 @@ const MatchScoreDetailsCard: React.FC<MatchScoreDetailsCardProps> = ({
     };
 
     return (
-        <GradientView style={[styles.container]}>
+        <GradientBorderView style={[styles.container]} colorsOverride={[theme.background, theme.background]}>
             <Text style={[styles.title, { color: theme.text }]}>{title}</Text>
 
             <View style={styles.teamsWrapper}>
@@ -87,7 +88,7 @@ const MatchScoreDetailsCard: React.FC<MatchScoreDetailsCardProps> = ({
                     logo={require('@/assets/clubs/as_cannes.png')}
                 />
             </View>
-        </GradientView>
+        </GradientBorderView>
     );
 };
 
@@ -101,8 +102,7 @@ type TeamRowProps = {
 
 const styles = StyleSheet.create({
     container: {
-        borderRadius: 12,
-        padding: 16,
+        paddingHorizontal: 8,
     },
     title: {
         fontSize: 18,

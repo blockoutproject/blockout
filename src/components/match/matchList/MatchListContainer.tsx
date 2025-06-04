@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import {
     RefreshControl,
     StyleSheet,
@@ -11,17 +11,19 @@ import {
     ActivityIndicator,
 } from "react-native";
 import { useAppTheme } from "@/src/context/ThemeProvider";
-import { useMatchesWithEntities } from "@/src/hooks/match/useMatchesWithEntities";
 import { MatchStatus } from "@/src/types/Match";
 import { formatDateFrenchLocale } from "@/src/utils/utils";
 import PoolItem from "./components/PoolItem";
 import * as Haptics from "expo-haptics";
-import type { EnrichedPoolMatchesDTO } from "@/src/types/Match";
-import EmptyPrompt from "../../common/EmptyPrompt";
+import EmptyPrompt from "../../common/feedback/EmptyPrompt";
 import MatchListTabSkeleton from "./components/MatchListSkeleton";
 import { useGlobalBottomSheet } from "@/src/context/GlobalBottomSheetProvider";
 import MatchContainer from "@/src/components/match/MatchContainer";
 import PoolContainer from "../../pool/PoolContainer";
+import { useMatchList } from "@/src/hooks/match/useMatchList"; // <-- ton nouveau hook
+import { showApiError } from "@/src/utils/apiErrorHandler";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import ErrorPrompt from "../../common/feedback/ErrorPrompt";
 
 type MatchListContainerProps = {
     poolIds?: number[];
@@ -52,7 +54,7 @@ const MatchListContainer: React.FC<MatchListContainerProps> = ({
         isError,
         error,
         refetch,
-    } = useMatchesWithEntities(status, poolIds, teamIds);
+    } = useMatchList(status, poolIds, teamIds);
 
     const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -97,7 +99,7 @@ const MatchListContainer: React.FC<MatchListContainerProps> = ({
         </View>
     );
 
-    const renderItem = ({ item, index }: { item: EnrichedPoolMatchesDTO; index: number }) => (
+    const renderItem = ({ item, index }: any) => (
         <PoolItem
             pool={item}
             index={index}
@@ -110,7 +112,7 @@ const MatchListContainer: React.FC<MatchListContainerProps> = ({
 
     if (isLoading) {
         return (
-            <View style={[styles.loadingContainer, { backgroundColor: theme.background }]}>
+            <View style={[styles.loadingContainer, { backgroundColor: theme.background, paddingTop: headerOffset }]}>
                 <MatchListTabSkeleton />
             </View>
         );
@@ -118,16 +120,15 @@ const MatchListContainer: React.FC<MatchListContainerProps> = ({
 
     if (isError) {
         return (
-            <View style={[styles.errorContainer, { backgroundColor: theme.background }]}>
-                <Text style={[styles.errorText, { color: theme.error }]}>Erreur : {error?.message}</Text>
-                <TouchableOpacity onPress={() => refetch()}>
-                    <Text style={{ color: theme.primary, marginTop: 8 }}>Réessayer</Text>
-                </TouchableOpacity>
-            </View>
+            <ErrorPrompt
+                title="Erreur de chargement"
+                subtitle="Impossible de récupérer les données. Vérifie ta connexion."
+                onRetry={() => refetch()}
+            />
         );
     }
 
-    if (dayMatches.length === 0) {
+    if (!dayMatches.length) {
         return (
             <EmptyPrompt
                 title="Aucun match trouvé"
@@ -146,7 +147,7 @@ const MatchListContainer: React.FC<MatchListContainerProps> = ({
                 sections={sections}
                 keyExtractor={(item, index) => `${item.poolId}-${index}`}
                 initialNumToRender={5}
-                stickySectionHeadersEnabled={true}
+                stickySectionHeadersEnabled
                 renderSectionHeader={renderSectionHeader}
                 renderItem={renderItem}
                 onEndReached={handleLoadMore}
@@ -175,7 +176,7 @@ const MatchListContainer: React.FC<MatchListContainerProps> = ({
                     styles.contentContainer,
                     contentContainerStyle,
                 ]}
-                ListFooterComponent={isFetchingNextPage ? <ActivityIndicator /> : null}
+                ListFooterComponent={isFetchingNextPage && hasNextPage ? <ActivityIndicator /> : null}
             />
         </View>
     );
@@ -184,8 +185,6 @@ const MatchListContainer: React.FC<MatchListContainerProps> = ({
 const styles = StyleSheet.create({
     loadingContainer: {
         flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
     },
     errorContainer: {
         flex: 1,

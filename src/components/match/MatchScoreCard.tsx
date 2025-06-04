@@ -13,6 +13,7 @@ import GradientView from '../common/GradientView';
 import { useGlobalBottomSheet } from '@/src/context/GlobalBottomSheetProvider';
 import * as Haptics from "expo-haptics";
 import TeamContainer from '../team/TeamContainer';
+import GradientBorderView from '../common/GradientBorderView';
 
 export interface MatchScoreCardProps {
     leagueName: string;
@@ -67,7 +68,11 @@ const MatchScoreCard: React.FC<MatchScoreCardProps> = ({
     );
 
     return (
-        <GradientView style={[styles.container]}>
+        <GradientBorderView 
+            style={[styles.container]}
+            start={{ x : 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+        >
             <View style={styles.verticalContent}>
                 {/* Titre en haut */}
                 <Text style={[styles.leagueName, { color: theme.text }]}>{leagueName}</Text>
@@ -79,9 +84,9 @@ const MatchScoreCard: React.FC<MatchScoreCardProps> = ({
                     <View style={styles.centerFlow}>
                         {finalScore ? (
                             <>
-                                <View style={[styles.scoreBox, { borderColor: theme.success, backgroundColor: theme.background }]}>
+                                <GradientBorderView style={[styles.scoreBox]} colorsOverride={[theme.borderSecondary, theme.borderSecondary]}>
                                     <Text style={[styles.scoreText, { color: theme.text }]}>{finalScore}</Text>
-                                </View>
+                                </GradientBorderView>
                                 {time && <Text style={[styles.matchTime, { color: theme.textInactive }]}>{time}</Text>}
                             </>
                         ) : (
@@ -98,14 +103,13 @@ const MatchScoreCard: React.FC<MatchScoreCardProps> = ({
                 {/* Date en bas */}
                 {date && <Text style={[styles.matchDate, { color: theme.text }]}>{date}</Text>}
             </View>
-        </GradientView>
+        </GradientBorderView>
     );
 };
 
 const styles = StyleSheet.create({
     container: {
         paddingVertical: 12,
-        borderRadius: 16,
     },
     verticalContent: {
         flexDirection: 'column',
@@ -142,8 +146,6 @@ const styles = StyleSheet.create({
         gap: 8,
     },
     scoreBox: {
-        borderWidth: 3,
-        borderRadius: 12,
         paddingHorizontal: 12,
         paddingVertical: 6,
     },

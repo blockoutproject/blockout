@@ -1,26 +1,26 @@
 import React from 'react';
-import { View, Text, ActivityIndicator, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
+import { 
+    View, 
+    Text, 
+    ActivityIndicator, 
+    StyleSheet, 
+    TouchableOpacity 
+} from 'react-native';
 import { useDetailedTeamsByPool } from '@/src/hooks/pool/useDetailedTeamsByPool';
 import FastImage from 'react-native-fast-image';
-import { useRouter } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppTheme } from '@/src/context/ThemeProvider';
 import { AppTheme } from '@/src/types/Theme';
 import GradientView from './GradientView';
+import { FlatList } from 'react-native-gesture-handler';
+import TeamContainer from '../team/TeamContainer';
+import { useGlobalBottomSheet } from '@/src/context/GlobalBottomSheetProvider';
+import * as Haptics from 'expo-haptics';
+import GradientBorderView from './GradientBorderView';
 
 interface RankingCardProps {
     poolId: number;
     scrollable?: boolean;
 }
-
-const rankColors = (theme: any) => ({
-    first: theme.gold,
-    second: theme.silver,
-    third: theme.bronze,
-    last: theme.error,
-    default: theme.textInactive,
-});
 
 function getRankColor(rank: number, theme: AppTheme): string {
     if (rank === 1) return theme.gold;
@@ -29,17 +29,18 @@ function getRankColor(rank: number, theme: AppTheme): string {
     return theme.surfaceTertiary;
 }
 
-function getRankBackground(isEven: boolean, theme: any): string {
-    return isEven ? theme.backgroundSecondary : 'transparent';
+function getRankBackground(isEven: boolean, theme: AppTheme): string {
+    return isEven ? theme.surface : 'transparent';
 }
 
 const RankingCard: React.FC<RankingCardProps> = ({ poolId, scrollable = true }) => {
-    const router = useRouter();
     const { teams, isLoading, isError } = useDetailedTeamsByPool(poolId);
     const theme = useAppTheme();
+    const { openSheet } = useGlobalBottomSheet();
 
     const handleTeamPress = (teamId: number) => {
-        router.push(`/team/${teamId}`);
+        Haptics.selectionAsync();
+        openSheet(<TeamContainer teamId={teamId} />);
     };
 
     if (isLoading) {
@@ -60,8 +61,11 @@ const RankingCard: React.FC<RankingCardProps> = ({ poolId, scrollable = true }) 
     }
 
     return (
-        <GradientView
-            style={[styles.container, { backgroundColor: theme.background }]}
+        <GradientBorderView
+            style={[styles.container]}
+            colorsOverride={[theme.borderSecondary, theme.backgroundSecondary]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
         >
             {/* HEADER */}
             <View style={styles.headerRow}>
@@ -94,9 +98,7 @@ const RankingCard: React.FC<RankingCardProps> = ({ poolId, scrollable = true }) 
                         <View style={[styles.row, { backgroundColor: getRankBackground(isEven, theme) }]}>
                             <View
                                 style={[
-                                    styles.rankIndicator,
-                                    { backgroundColor: getRankColor(rank, theme) },
-                                ]}
+                                    styles.transparentRankIndicator,                                ]}
                             />
                             <Text
                                 style={[styles.cell, styles.rankCell, { color: theme.text }]}
@@ -140,15 +142,15 @@ const RankingCard: React.FC<RankingCardProps> = ({ poolId, scrollable = true }) 
                     );
                 }}
             />
-        </GradientView>
+        </GradientBorderView>
     );
 };
 
 const styles = StyleSheet.create({
     container: {
+        flexShrink: 1,
         padding: 8,
         paddingTop: -8,
-        borderRadius: 12,
     },
     loadingText: {
         marginTop: 8,
@@ -164,21 +166,11 @@ const styles = StyleSheet.create({
     row: {
         flexDirection: 'row',
         alignItems: 'center',
-        borderRadius: 4,
+        borderRadius: 10,
         height: 50,
     },
-    rankIndicator: {
-        width: 5,
-        height: '85%',
-        borderRadius: 2,
-        marginRight: 16,
-    },
     transparentRankIndicator: {
-        width: 5,
-        height: '85%',
-        borderRadius: 2,
-        marginRight: 16,
-        backgroundColor: 'transparent',
+        marginRight: 8,
     },
     headerText: {
         fontSize: 14,

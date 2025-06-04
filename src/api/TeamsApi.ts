@@ -42,7 +42,7 @@ class TeamsApi extends AbstractApi {
             return await this.request<Team[]>({
                 method: 'get',
                 url: '',
-                params: { ids: ids.join(',') }
+                params: { ids },
             });
         } catch (error) {
             if (error instanceof ApiError && error.status === 404) {

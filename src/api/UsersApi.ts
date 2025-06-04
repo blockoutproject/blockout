@@ -65,29 +65,6 @@ class UsersApi extends AbstractApi {
     }
 
     /**
-     * Récupère la liste des favoris d'un utilisateur.
-     * @param userId Identifiant de l’utilisateur.
-     * @param entityType Type d’entité à filtrer (optionnel).
-     */
-    public async getFavorites(
-        userId: number,
-        entityType?: EntityType
-    ): Promise<UserFavorite[]> {
-        try {
-            return await this.request<UserFavorite[]>({
-                method: 'get',
-                url: `/${userId}/favorites`,
-                params: entityType ? { entityType } : undefined
-            });
-        } catch (error) {
-            if (error instanceof ApiError && error.status === 404) {
-                return [];
-            }
-            throw error;
-        }
-    }
-
-    /**
      * Suit une entité.
      * @param entityType Type de l’entité à suivre.
      * @param entityId Identifiant de l’entité à suivre.

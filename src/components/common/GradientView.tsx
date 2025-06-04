@@ -5,7 +5,7 @@ import { useAppTheme } from '@/src/context/ThemeProvider';
 type GradientViewProps = {
     children: React.ReactNode;
     style?: ViewStyle | ViewStyle[];
-    colorsOverride?: [string, string]; // Si tu veux forcer d'autres couleurs
+    colorsOverride?: readonly [string, string, ...string[]]; // Si tu veux forcer d'autres couleurs
     start?: { x: number; y: number };
     end?: { x: number; y: number };
 };

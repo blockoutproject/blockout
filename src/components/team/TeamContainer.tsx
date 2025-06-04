@@ -1,5 +1,5 @@
 import React from "react";
-import { StyleSheet, Text } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { useTeamById } from "@/src/hooks/team/useTeamById";
 import { useDetailedPoolsByTeam } from "@/src/hooks/pool/useDetailedPoolsByTeam";
 import { useAppTheme } from "@/src/context/ThemeProvider";
@@ -27,15 +27,17 @@ const TeamContainer: React.FC<Props> = ({ teamId }) => {
     }
 
     return (
-        <>
+        <View style={[styles.container]}>
             <TeamProfile team={team!} />
             <TeamTabs pools={pools!} team={team!} />
-        </>
+        </View>
     );
 };
 
-export default TeamContainer;
-
 const styles = StyleSheet.create({
-
+    container: {
+        flex: 1,
+    },
 });
+
+export default TeamContainer;

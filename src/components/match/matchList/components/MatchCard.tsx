@@ -32,7 +32,7 @@ const MatchCard: React.FC<MatchCardProps> = ({
         : "-";
 
     return (
-        <View style={[styles.card, { backgroundColor: secondColor }]}>
+        <View style={[styles.card, { backgroundColor: theme.surface }]}>
             {/* Équipe A */}
             <View style={[styles.teamContainer, styles.teamLeft]}>
                 <Text
@@ -56,7 +56,7 @@ const MatchCard: React.FC<MatchCardProps> = ({
                 {match.status === MatchStatus.UPCOMING ? (
                     <Text style={[styles.timeText, { color: theme.text }]}>{matchTime}</Text>
                 ) : (
-                    <View style={[styles.centerFlow, { borderColor: mainColor, backgroundColor: theme.background }]}>
+                    <View style={[styles.centerFlow, { backgroundColor: theme.surface, borderColor: theme.borderSecondary }]}>
                         <Text style={[styles.scoreText, { color: theme.text }]}>{match.set || "-"}</Text>
                     </View>
                 )}
@@ -85,7 +85,7 @@ const MatchCard: React.FC<MatchCardProps> = ({
 
 const styles = StyleSheet.create({
     card: {
-        paddingVertical: 10,
+        paddingVertical: 12,
         paddingHorizontal: 8,
         borderRadius: 8,
         flexDirection: "row",
@@ -117,8 +117,8 @@ const styles = StyleSheet.create({
         width: 35,
     },
     centerFlow: {
-        borderWidth: 2,
-        borderRadius: 10,
+        borderWidth: 1.5,
+        borderRadius: 12,
         paddingVertical: 6,
         paddingHorizontal: 8,
     },

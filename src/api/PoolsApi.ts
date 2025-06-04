@@ -72,7 +72,7 @@ class PoolsApi extends AbstractApi {
                 return await this.request<Pool[]>({
                     method: 'get',
                     url: '',
-                    params: { ids: ids.join(',') },
+                    params: { ids },
                 });
             } catch (error) {
                 if (error instanceof ApiError && error.status === 404) {

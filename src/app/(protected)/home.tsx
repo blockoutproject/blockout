@@ -94,7 +94,6 @@ const HomeScreen: React.FC = () => {
     );
 
     const onTabChange = (i: number) => {
-        Haptics.selectionAsync();
         setIndex(i);
     };
 

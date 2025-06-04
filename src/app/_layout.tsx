@@ -1,6 +1,6 @@
-import { ThemeProvider } from "@/src/context/ThemeProvider";
-import React from "react";
-import { useColorScheme } from "react-native";
+import { ThemeProvider, useAppTheme } from "@/src/context/ThemeProvider";
+import React, { useEffect } from "react";
+import { StatusBar, useColorScheme } from "react-native";
 import { ApiProvider } from "@/src/context/ApiProvider";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
@@ -11,10 +11,11 @@ import * as Clipboard from "expo-clipboard";
 import { UserProvider } from "@/src/context/UserProvider";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { GlobalBottomSheetProvider } from "../context/GlobalBottomSheetProvider";
-import { SafeAreaProvider } from "react-native-safe-area-context";
 
 const RootLayout: React.FC = () => {
     const queryClient = new QueryClient();
+    const colorScheme = useColorScheme();
+    const theme = useAppTheme();
 
     const onCopy = async (text: string) => {
         try {
@@ -29,6 +30,10 @@ const RootLayout: React.FC = () => {
         <GestureHandlerRootView style={{ flex: 1 }}>
             <QueryClientProvider client={queryClient}>
                 <ThemeProvider>
+                    <StatusBar
+                        barStyle={colorScheme === "dark" ? "light-content" : "dark-content"}
+                        backgroundColor={theme.background}
+                    />
                     <Auth0Provider domain={AUTH0_CONFIG.domain} clientId={AUTH0_CONFIG.clientId}>
                         <ApiProvider>
                             <UserProvider>

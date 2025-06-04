@@ -25,6 +25,7 @@ import { Extrapolation } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
 import { useGlobalBottomSheet } from "@/src/context/GlobalBottomSheetProvider";
 import SearchContainer from "../search/SearchContainer";
+import ProfileContainer from "../profile/ProfileContainer";
 
 type HeaderProps = SceneRendererProps & {
     navigationState: NavigationState<Route>;
@@ -49,14 +50,31 @@ const AnimatedHomeHeader: React.FC<HeaderProps> = ({ scrollY, onTitleLayout, onT
     });
 
     const titleOpacity = scrollY.interpolate({
-        inputRange: [0, titleHeight / 1.5],
+        inputRange: [0, titleHeight / 1],
         outputRange: [1, 0],
+        extrapolate: Extrapolation.CLAMP,
+    });
+
+    const blurOpacity = scrollY.interpolate({
+        inputRange: [0, titleHeight / 1],
+        outputRange: [0, 1],
+        extrapolate: "clamp",
+    });
+
+    const titleScale = scrollY.interpolate({
+        inputRange: [0, titleHeight],
+        outputRange: [1, 2.2],
         extrapolate: Extrapolation.CLAMP,
     });
 
     const handleSearchPress = () => {
         Haptics.selectionAsync();
         openSheet(<SearchContainer />);
+    };
+
+    const handleProfilePress = () => {
+        Haptics.selectionAsync();
+        openSheet(<ProfileContainer />);
     };
 
     return (
@@ -69,15 +87,11 @@ const AnimatedHomeHeader: React.FC<HeaderProps> = ({ scrollY, onTitleLayout, onT
                         style={[
                             StyleSheet.absoluteFill,
                             {
-                                opacity: scrollY.interpolate({
-                                    inputRange: [0, 30], // ajustable
-                                    outputRange: [0, 1],
-                                    extrapolate: "clamp",
-                                }),
+                                opacity: blurOpacity
                             },
                         ]}
                     >
-                        <BlurView intensity={50} tint="light" style={StyleSheet.absoluteFill} />
+                        <BlurView intensity={50} tint="default" style={StyleSheet.absoluteFill} />
                     </Animated.View>
 
                     <LinearGradient
@@ -89,16 +103,24 @@ const AnimatedHomeHeader: React.FC<HeaderProps> = ({ scrollY, onTitleLayout, onT
                 </View>
             )}
 
-            <Animated.Text
+            <Animated.View
                 onLayout={(e: LayoutChangeEvent) => {
                     const height = e.nativeEvent.layout.height;
                     setTitleHeight(height);
                     onTitleLayout(height);
                 }}
-                style={[styles.title, { color: theme.text, opacity: titleOpacity }]}
+                style={{
+                    paddingVertical: 10,
+                    opacity: titleOpacity,
+                    transform: [{ scale: titleScale }],
+                }}
             >
-                Block🏐ut
-            </Animated.Text>
+                <FastImage
+                    source={require("@/assets/images/blockout-logo-with-title-light.png")}
+                    style={styles.teamLogo}
+                    resizeMode="contain"
+                />
+            </Animated.View>
 
             <View
                 style={[styles.tabBarContainer, { backgroundColor: Platform.OS === "android" ? theme.background : "transparent" }]}
@@ -106,6 +128,7 @@ const AnimatedHomeHeader: React.FC<HeaderProps> = ({ scrollY, onTitleLayout, onT
             >
                 <TabBar
                     {...props}
+                    onTabPress={Haptics.selectionAsync}
                     indicatorStyle={[styles.indicator, { backgroundColor: theme.text }]}
                     tabStyle={styles.tabStyle}
                     style={styles.tabBar}
@@ -123,7 +146,7 @@ const AnimatedHomeHeader: React.FC<HeaderProps> = ({ scrollY, onTitleLayout, onT
                         <MaterialCommunityIcons name="whistle" size={25} color={theme.text} />
                     </TouchableOpacity>
 
-                    <TouchableOpacity onPress={() => router.navigate("/profile")}>
+                    <TouchableOpacity onPress={handleProfilePress}>
                         <FastImage style={styles.avatar} source={{ uri: user?.picture }} />
                     </TouchableOpacity>
                 </View>
@@ -139,6 +162,9 @@ const styles = StyleSheet.create({
         left: 0,
         right: 0,
         zIndex: 10,
+    },
+    teamLogo: {
+        height: 22,
     },
     tabBarContainer: {
         flexDirection: "row",

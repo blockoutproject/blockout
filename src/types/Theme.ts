@@ -5,8 +5,10 @@ export interface AppTheme {
     surfaceSecondary: string;
     surfaceTertiary: string;
     border: string;
+    borderSecondary: string;
     text: string;
     textSecondary: string;
+    textTiertiary: string;
     textInactive: string;
     hover: string;
     pressed: string;

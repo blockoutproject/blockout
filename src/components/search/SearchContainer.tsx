@@ -1,35 +1,32 @@
 import React, { useState } from 'react';
 import {
     TextInput,
-    Text,
-    FlatList,
     ActivityIndicator,
     KeyboardAvoidingView,
     Platform,
     StyleSheet,
     View,
-    TouchableOpacity,
+    Text,
     Keyboard,
 } from 'react-native';
 import { useDebounce } from 'use-debounce';
 import { useSearchTeams } from '@/src/hooks/team/useSearchTeams';
 import { useAppTheme } from '@/src/context/ThemeProvider';
-import { ErrorState } from '@/src/components/search/ErrorState';
-import { EmptyList } from '@/src/components/search/EmptyList';
+import { ErrorState } from '@/src/components/common/feedback/ErrorState';
 import TeamCard from '@/src/components/search/TeamCard';
-import { SearchPrompt } from '@/src/components/search/SearchPrompt';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import TeamContainer from '@/src/components/team/TeamContainer';
 import { useGlobalBottomSheet } from '@/src/context/GlobalBottomSheetProvider';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BottomSheetFlatList } from '@gorhom/bottom-sheet';
+import { SearchPrompt } from '../common/feedback/SearchPrompt';
 
 const SearchContainer = () => {
     const theme = useAppTheme();
     const { openSheet } = useGlobalBottomSheet();
     const insets = useSafeAreaInsets();
-    
+
     const [query, setQuery] = useState('');
     const [debouncedQuery] = useDebounce(query, 300);
 
@@ -38,6 +35,20 @@ const SearchContainer = () => {
     const handleTeamPress = (teamId: number) => {
         Haptics.selectionAsync();
         openSheet(<TeamContainer teamId={teamId} />);
+    };
+
+    const renderEmpty = () => {
+        if (!query) return <SearchPrompt />;
+        if (debouncedQuery.length > 1 && !isLoading && !isError) {
+            return (
+                <View style={styles.emptyContainer}>
+                    <Text style={[styles.emptyText, { color: theme.textInactive }]}>
+                        Aucune équipe trouvée pour cette recherche.
+                    </Text>
+                </View>
+            );
+        }
+        return null;
     };
 
     return (
@@ -66,25 +77,25 @@ const SearchContainer = () => {
                 </View>
             </View>
 
-            {isLoading && <ActivityIndicator size="large" style={styles.loader} color={theme.text} />}
+            {isLoading && (
+                <ActivityIndicator
+                    size="small"
+                    color={theme.text}
+                    style={styles.loader}
+                />
+            )}
 
             {isError && <ErrorState message="Une erreur est survenue. Réessaie plus tard." />}
 
             <BottomSheetFlatList
                 data={teams}
                 keyExtractor={(item) => item.id.toString()}
-                scrollEnabled={!!query}
+                scrollEnabled={!!(query && teams?.length)}
                 showsVerticalScrollIndicator={false}
                 renderItem={({ item }) => (
                     <TeamCard team={item} onPress={() => handleTeamPress(item.id)} />
                 )}
-                ListEmptyComponent={
-                    !query ? (
-                        <SearchPrompt />
-                    ) : debouncedQuery.length > 1 && !isLoading && !isError ? (
-                        <EmptyList message="Aucune équipe trouvée pour cette recherche." />
-                    ) : null
-                }
+                ListEmptyComponent={renderEmpty}
                 keyboardShouldPersistTaps="handled"
                 onScrollBeginDrag={Keyboard.dismiss}
                 contentContainerStyle={{ paddingBottom: insets.bottom }}
@@ -119,16 +130,15 @@ const styles = StyleSheet.create({
     icon: {
         marginHorizontal: 6,
     },
-    clearIcon: {
-        marginLeft: 8,
-    },
-    cancelButton: {
-        marginLeft: 8,
-        paddingHorizontal: 8,
-        paddingVertical: 6,
-    },
     loader: {
         marginTop: 24,
+    },
+    emptyContainer: {
+        alignItems: 'center',
+    },
+    emptyText: {
+        fontSize: 14,
+        textAlign: 'center',
     },
 });
 

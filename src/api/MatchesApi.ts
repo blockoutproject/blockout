@@ -50,26 +50,19 @@ class MatchesApi extends AbstractApi {
         teamIds?: number[];
         status?: MatchStatus;
     }): Promise<DayPageDTO> {
-        const params: Record<string, number | number[] | MatchStatus> = { page, size };
-
-        params.poolIds = poolIds;
-        params.teamIds = teamIds;
-        if (status !== undefined) params.status = status;
-
         try {
             return await this.request<DayPageDTO>({
                 method: 'get',
                 url: '/day-groups',
-                params
+                params: { page, size, poolIds, teamIds, status },
             });
         } catch (error) {
             if (error instanceof ApiError && error.status === 404) {
-                // Retourne une page vide si aucune donnée
                 return {
                     dayMatches: [],
                     hasNext: false,
                     nextPage: 0
-                } as DayPageDTO;
+                };
             }
             throw error;
         }

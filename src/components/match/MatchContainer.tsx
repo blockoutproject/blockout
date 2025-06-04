@@ -77,7 +77,7 @@ const MatchContainer: React.FC<Props> = ({ matchId }) => {
 
 const styles = StyleSheet.create({
     scrollContent: {
-        gap: 16,
+        gap: 32,
         paddingHorizontal: 8,
     },
 });

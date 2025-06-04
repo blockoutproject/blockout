@@ -4,9 +4,11 @@ import { useAuth0 } from 'react-native-auth0';
 import FastImage from 'react-native-fast-image';
 import { useAppTheme } from '@/src/context/ThemeProvider';
 import { router } from 'expo-router';
+import { useUserContext } from '@/src/hooks/user/useUserContext';
 
-const ProfileScreen: React.FC = () => {
+const ProfileContainer: React.FC = () => {
     const { user, clearSession } = useAuth0();
+    const { customUser } = useUserContext();
     const theme = useAppTheme();
 
     const handleLogout = async () => {
@@ -36,7 +38,7 @@ const ProfileScreen: React.FC = () => {
                 {user.picture && (
                     <FastImage source={{ uri: user.picture }} style={styles.avatar} />
                 )}
-                <Text style={[styles.username, { color: theme.text }]}>{user.name || 'Utilisateur'}</Text>
+                <Text style={[styles.username, { color: theme.text }]}>{customUser?.pseudo || 'Utilisateur'}</Text>
                 <Text style={[styles.email, { color: theme.textInactive }]}>{user.email}</Text>
             </View>
 
@@ -90,8 +92,6 @@ const ProfileScreen: React.FC = () => {
         </ScrollView>
     );
 };
-
-export default ProfileScreen;
 
 const styles = StyleSheet.create({
     scrollContainer: {
@@ -149,3 +149,5 @@ const styles = StyleSheet.create({
         textAlign: 'center',
     },
 });
+
+export default ProfileContainer;

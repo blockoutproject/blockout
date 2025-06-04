@@ -45,7 +45,7 @@ const LoginScreen: React.FC = () => {
                     style={[styles.loginButton, { backgroundColor: theme.text }]}
                     onPress={handleLogin}
                 >
-                    <Text style={[styles.loginButtonText, { color: theme.text }]}>Se connecter</Text>
+                    <Text style={[styles.loginButtonText, { color: theme.textTiertiary }]}>Se connecter</Text>
                 </Pressable>
             </View>
         </ImageBackground>

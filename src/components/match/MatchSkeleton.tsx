@@ -19,7 +19,7 @@ const MatchSkeleton: React.FC = () => {
                 height={150}
             />
             <Skeleton
-                colors={[theme.background, theme.surfaceSecondary, theme.backgroundSecondary]}
+                colors={[theme.backgroundSecondary, theme.surfaceSecondary, theme.backgroundSecondary]}
                 width="100%"
                 height={200}
             />

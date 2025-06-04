@@ -9,7 +9,6 @@ import camelcaseKeys from 'camelcase-keys';
 import snakecaseKeys from 'snakecase-keys';
 import qs from 'qs';
 
-// Erreur métier enrichie
 export class ApiError extends Error {
     public readonly status: number;
     public readonly data: any;
@@ -28,7 +27,7 @@ export default abstract class AbstractApi {
     protected constructor(
         url: string,
         token: string,
-        timeout: number = 60000
+        timeout: number = 30000
     ) {
         if (new.target === AbstractApi) {
             throw new TypeError(
@@ -55,14 +54,6 @@ export default abstract class AbstractApi {
                 config.params = snakecaseKeys(config.params, { deep: true });
             }
 
-            // console.log('[Request]', {
-            //     method: config.method,
-            //     url: config.url,
-            //     headers: config.headers,
-            //     params: config.params,
-            //     data: config.data,
-            // });
-
             return config;
         });
 
@@ -75,12 +66,6 @@ export default abstract class AbstractApi {
             },
             this.handleError.bind(this)
         );
-
-        // Retry en cas d’échec réseau
-        axiosRetry(baseAxios, {
-            retries: 3,
-            retryDelay: axiosRetry.exponentialDelay,
-        });
 
         this.service = baseAxios;
     }

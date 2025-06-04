@@ -8,6 +8,7 @@ import GradientView from '../common/GradientView';
 import { useGlobalBottomSheet } from '@/src/context/GlobalBottomSheetProvider';
 import * as Haptics from "expo-haptics";
 import PoolContainer from '../pool/PoolContainer';
+import GradientBorderView from '../common/GradientBorderView';
 
 type MatchInfoCardProps = {
     pool: Pool;
@@ -55,7 +56,7 @@ const MatchInfoCard: React.FC<MatchInfoCardProps> = ({
     ];
 
     return (
-        <GradientView style={[styles.container]}>
+        <GradientBorderView style={[styles.container]} colorsOverride={[theme.background, theme.background]}>
             <Text style={[styles.title, { color: theme.text }]}>Information</Text>
 
             <View style={styles.infoList}>
@@ -98,14 +99,13 @@ const MatchInfoCard: React.FC<MatchInfoCardProps> = ({
                     </View>
                 ))}
             </View>
-        </GradientView>
+        </GradientBorderView>
     );
 };
 
 const styles = StyleSheet.create({
     container: {
-        borderRadius: 12,
-        padding: 16,
+        paddingHorizontal: 8,
     },
     title: {
         fontSize: 18,
