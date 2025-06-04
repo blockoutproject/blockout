@@ -1,8 +1,8 @@
 package com.blockout.search.services;
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
-import co.elastic.clients.elasticsearch._types.query_dsl.*;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
+import co.elastic.clients.elasticsearch._types.query_dsl.Query;
 import com.blockout.search.models.docs.TeamSearchDoc;
 
 import lombok.RequiredArgsConstructor;
@@ -21,34 +21,36 @@ public class TeamSearchService {
 
     public List<TeamSearchDoc> searchByKeyword(String keyword) {
         try {
-            logger.info("Searching for teams with keyword: {}", keyword);
+            logger.info("🔍 Searching for teams with keyword: {}", keyword);
 
-            // Tokenisation simple des mots-clés
-            String[] tokens = keyword.toLowerCase().split("\\s+");
-
-            Query boolQuery = Query.of(q -> q
-                    .bool(b -> {
-                        for (String token : tokens) {
-                            b.should(s -> s.match(m -> m.field("nameSimplified").query(token).boost(5.0f)));
-                            b.should(s -> s.match(m -> m.field("clubNameSimplified").query(token).boost(4.0f)));
-                            b.should(s -> s.match(m -> m.field("clubCitySimplified").query(token).boost(3.0f)));
-                            b.should(s -> s.match(m -> m.field("divisionNameSimplified").query(token).boost(2.0f)));
-                            b.should(s -> s.match(m -> m.field("keywords").query(token).boost(1.0f)));
-                        }
-                        b.minimumShouldMatch(String.valueOf(tokens.length)); // tous les tokens doivent matcher
-                        return b;
-                    }));
+            // On booste le champ simplifié si besoin
+            Query query = Query.of(q -> q
+                .bool(b -> b
+                    .should(s -> s.match(mq -> mq
+                        .field("keywordsAutocomplete")
+                        .query(keyword)
+                        .boost(2.0f)
+                    ))
+                    .should(s -> s.match(mq -> mq
+                        .field("keywordsAutocompleteSimplified")
+                        .query(keyword)
+                        .boost(1.5f)
+                    ))
+                    .minimumShouldMatch("1")
+                )
+            );
 
             SearchResponse<TeamSearchDoc> response = elasticsearchClient.search(
-                    s -> s.index("teams").query(boolQuery),
-                    TeamSearchDoc.class);
+                    s -> s.index("teams").query(query),
+                    TeamSearchDoc.class
+            );
 
             return response.hits().hits().stream()
                     .map(hit -> hit.source())
                     .toList();
 
         } catch (Exception e) {
-            logger.error("Error during keyword search", e);
+            logger.error("❌ Error during keyword search", e);
             return List.of();
         }
     }
