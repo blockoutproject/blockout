@@ -23,50 +23,29 @@ public class TeamSearchService {
         try {
             logger.info("Searching for teams with keyword: {}", keyword);
 
-            Query multiMatchQuery = Query.of(q -> q
-                .multiMatch(m -> m
-                    .query(keyword)
-                    .fields("name^5", "clubName^4", "clubCity^3", "divisionName")
-                    .fuzziness("AUTO")
-                    .minimumShouldMatch("50%")
-                    .prefixLength(1)
-                    .type(TextQueryType.BestFields)
-                )
-            );
+            // Tokenisation simple des mots-clés
+            String[] tokens = keyword.toLowerCase().split("\\s+");
 
-            Query namePrefixQuery = Query.of(q -> q
-                .prefix(p -> p
-                    .field("name")
-                    .value(keyword.toLowerCase())
-                )
-            );
-
-            Query clubNamePrefixQuery = Query.of(q -> q
-                .prefix(p -> p
-                    .field("clubName")
-                    .value(keyword.toLowerCase())
-                )
-            );
-
-            Query combinedQuery = Query.of(q -> q
-                .bool(b -> b
-                    .should(multiMatchQuery)
-                    .should(namePrefixQuery)
-                    .should(clubNamePrefixQuery)
-                    .minimumShouldMatch("1")
-                )
-            );
+            Query boolQuery = Query.of(q -> q
+                    .bool(b -> {
+                        for (String token : tokens) {
+                            b.should(s -> s.match(m -> m.field("nameSimplified").query(token).boost(5.0f)));
+                            b.should(s -> s.match(m -> m.field("clubNameSimplified").query(token).boost(4.0f)));
+                            b.should(s -> s.match(m -> m.field("clubCitySimplified").query(token).boost(3.0f)));
+                            b.should(s -> s.match(m -> m.field("divisionNameSimplified").query(token).boost(2.0f)));
+                            b.should(s -> s.match(m -> m.field("keywords").query(token).boost(1.0f)));
+                        }
+                        b.minimumShouldMatch(String.valueOf(tokens.length)); // tous les tokens doivent matcher
+                        return b;
+                    }));
 
             SearchResponse<TeamSearchDoc> response = elasticsearchClient.search(
-                s -> s
-                    .index("teams")
-                    .query(combinedQuery),
-                TeamSearchDoc.class
-            );
+                    s -> s.index("teams").query(boolQuery),
+                    TeamSearchDoc.class);
 
             return response.hits().hits().stream()
-                .map(hit -> hit.source())
-                .toList();
+                    .map(hit -> hit.source())
+                    .toList();
 
         } catch (Exception e) {
             logger.error("Error during keyword search", e);
