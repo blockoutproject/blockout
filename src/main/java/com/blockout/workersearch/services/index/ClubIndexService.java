@@ -15,6 +15,7 @@ import com.blockout.workersearch.models.events.TeamUpsertEvent;
 import com.blockout.workersearch.repositories.ClubRepository;
 import com.blockout.workersearch.services.caches.ClubCacheService;
 import com.blockout.workersearch.services.caches.TeamCacheService;
+import com.blockout.workersearch.utils.TextNormalizer;
 
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
@@ -53,7 +54,7 @@ public class ClubIndexService {
         clubRepository.saveAll(docs);
         events.forEach(clubCacheService::put);
 
-        docs.forEach(doc -> {                    
+        docs.forEach(doc -> {
             reindexTeamsForClub(doc.getId());
         });
     }
@@ -70,6 +71,9 @@ public class ClubIndexService {
                 .id(e.getId())
                 .name(e.getName())
                 .city(e.getCity())
+                .nameSimplified(TextNormalizer.simplify(e.getName()))
+                .citySimplified(TextNormalizer.simplify(e.getCity()))
+                .keywords(TextNormalizer.simplify(e.getName() + " " + e.getCity()))
                 .build();
         return doc;
     }

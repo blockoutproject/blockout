@@ -12,6 +12,7 @@ import com.blockout.workersearch.models.events.TeamUpsertEvent;
 import com.blockout.workersearch.repositories.TeamRepository;
 import com.blockout.workersearch.services.caches.ClubCacheService;
 import com.blockout.workersearch.services.caches.TeamCacheService;
+import com.blockout.workersearch.utils.TextNormalizer;
 
 import java.util.List;
 
@@ -60,22 +61,33 @@ public class TeamIndexService {
     private TeamDoc map(TeamUpsertEvent e) {
         ClubUpsertEvent club = clubCacheService.getClubById(e.getClubId());
 
-        if (club == null) {
-            logger.warn("Club not found in cache during team mapping",
-                    keyValue("action", "missing_club_in_cache"),
-                    keyValue("id", e.getId()),
-                    keyValue("clubId", e.getClubId()));
-        }
+        String name = e.getName();
+        String clubName = club != null ? club.getName() : null;
+        String clubCity = club != null ? club.getCity() : null;
+        String divisionName = e.getDivisionName();
+        String format = e.getFormat();
+        String gender = e.getGender();
 
         return TeamDoc.builder()
                 .id(e.getId())
-                .name(e.getName())
+                .name(name)
                 .clubId(e.getClubId())
-                .clubName(club != null ? club.getName() : null)
-                .clubCity(club != null ? club.getCity() : null)
-                .divisionName(e.getDivisionName())
-                .format(e.getFormat())
-                .gender(e.getGender())
+                .clubName(clubName)
+                .clubCity(clubCity)
+                .divisionName(divisionName)
+                .format(format)
+                .gender(gender)
+                .nameSimplified(TextNormalizer.simplify(name))
+                .clubNameSimplified(TextNormalizer.simplify(clubName))
+                .clubCitySimplified(TextNormalizer.simplify(clubCity))
+                .divisionNameSimplified(TextNormalizer.simplify(divisionName))
+                .keywords(TextNormalizer.simplify(
+                        name + " " +
+                                clubName + " " +
+                                clubCity + " " +
+                                divisionName + " " +
+                                format + " " +
+                                gender))
                 .build();
     }
 }

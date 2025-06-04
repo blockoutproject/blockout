@@ -24,4 +24,9 @@ public class TeamDoc {
     private String divisionName;
     private String format;
     private String gender;
+    private String nameSimplified;
+    private String clubNameSimplified;
+    private String clubCitySimplified;
+    private String divisionNameSimplified;
+    private String keywords;
 }

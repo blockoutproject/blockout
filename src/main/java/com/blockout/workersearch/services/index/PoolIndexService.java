@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import com.blockout.workersearch.models.docs.PoolDoc;
 import com.blockout.workersearch.models.events.PoolUpsertEvent;
 import com.blockout.workersearch.repositories.PoolRepository;
+import com.blockout.workersearch.utils.TextNormalizer;
 
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
@@ -53,6 +54,13 @@ public class PoolIndexService {
                 .name(e.getName())
                 .divisionName(e.getDivisionName())
                 .leagueName(e.getLeagueName())
+                .nameSimplified(TextNormalizer.simplify(e.getName()))
+                .divisionNameSimplified(TextNormalizer.simplify(e.getDivisionName()))
+                .leagueNameSimplified(TextNormalizer.simplify(e.getLeagueName()))
+                .keywords(TextNormalizer.simplify(
+                        e.getName() + " " +
+                                e.getDivisionName() + " " +
+                                e.getLeagueName()))
                 .build();
         return doc;
     }
