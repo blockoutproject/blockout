@@ -1,7 +1,6 @@
 package com.blockout.workersearch.services.index;
 
 import lombok.RequiredArgsConstructor;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -68,6 +67,14 @@ public class TeamIndexService {
         String format = e.getFormat();
         String gender = e.getGender();
 
+        // Contenu brut
+        String raw = String.join(" ",
+                name, clubName, clubCity, divisionName, format, gender
+        );
+
+        // Contenu simplifié
+        String simplified = TextNormalizer.simplify(raw);
+
         return TeamDoc.builder()
                 .id(e.getId())
                 .name(name)
@@ -77,17 +84,8 @@ public class TeamIndexService {
                 .divisionName(divisionName)
                 .format(format)
                 .gender(gender)
-                .nameSimplified(TextNormalizer.simplify(name))
-                .clubNameSimplified(TextNormalizer.simplify(clubName))
-                .clubCitySimplified(TextNormalizer.simplify(clubCity))
-                .divisionNameSimplified(TextNormalizer.simplify(divisionName))
-                .keywords(TextNormalizer.simplify(
-                        name + " " +
-                                clubName + " " +
-                                clubCity + " " +
-                                divisionName + " " +
-                                format + " " +
-                                gender))
+                .keywordsAutocomplete(raw)
+                .keywordsAutocompleteSimplified(simplified)
                 .build();
     }
 }

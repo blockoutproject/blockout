@@ -1,7 +1,6 @@
 package com.blockout.workersearch.models.docs;
 
 import org.springframework.data.elasticsearch.annotations.Document;
-
 import org.springframework.data.annotation.Id;
 
 import lombok.AllArgsConstructor;
@@ -24,9 +23,8 @@ public class TeamDoc {
     private String divisionName;
     private String format;
     private String gender;
-    private String nameSimplified;
-    private String clubNameSimplified;
-    private String clubCitySimplified;
-    private String divisionNameSimplified;
-    private String keywords;
+
+    // 🔍 Champs d'autocomplétion
+    private String keywordsAutocomplete;
+    private String keywordsAutocompleteSimplified;
 }

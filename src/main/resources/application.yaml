@@ -4,6 +4,10 @@ server:
 spring:
   application:
     name: ${APPLICATION_NAME:workersearch}
+
+  elasticsearch:
+    index:
+      create-index: false
   
   jackson:
     property-naming-strategy: SNAKE_CASE
