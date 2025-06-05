@@ -14,7 +14,6 @@ import com.blockout.mobilegateway.services.clients.PoolClientService;
 import com.blockout.mobilegateway.services.clients.TeamClientService;
 
 import lombok.RequiredArgsConstructor;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -23,11 +22,13 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import static net.logstash.logback.argument.StructuredArguments.keyValue;
+
 @Service
 @RequiredArgsConstructor
 public class MatchListService {
 
-        private static final Logger logger = LoggerFactory.getLogger(MatchListService.class);
+    private static final Logger logger = LoggerFactory.getLogger(MatchListService.class);
 
     private final MatchClientService matchClientService;
     private final PoolClientService poolClientService;
@@ -40,11 +41,21 @@ public class MatchListService {
             List<Long> poolFilterIds,
             List<Long> teamFilterIds
     ) {
+        logger.info("Fetching match list",
+                keyValue("action", "fetch_match_list"),
+                keyValue("status", status),
+                keyValue("page", page),
+                keyValue("size", size),
+                keyValue("poolFilterIds", poolFilterIds),
+                keyValue("teamFilterIds", teamFilterIds)
+        );
+
         DayPageDTO dayPage = matchClientService.getMatchesByDay(page, size, poolFilterIds, teamFilterIds, status);
-        
-        logger.info("Fetched match list for page {} with status {}", page, status, poolFilterIds, teamFilterIds);
-        logger.info("poolfilter: {}", poolFilterIds);
+
         if (dayPage == null || dayPage.getDayMatches() == null) {
+            logger.warn("No match data returned",
+                    keyValue("action", "empty_match_data"),
+                    keyValue("page", page));
             return Collections.emptyList();
         }
 
@@ -65,10 +76,19 @@ public class MatchListService {
             }
         }
 
+        logger.info("Aggregated IDs from matches",
+                keyValue("poolCount", poolIds.size()),
+                keyValue("teamCount", teamIds.size()));
+
         Map<Long, PoolDTO> poolMap = poolClientService.getPoolsByIds(poolIds).stream()
                 .collect(Collectors.toMap(PoolDTO::getId, Function.identity()));
+
         Map<Long, TeamDTO> teamMap = teamClientService.getTeamsByIds(teamIds).stream()
                 .collect(Collectors.toMap(TeamDTO::getId, Function.identity()));
+
+        logger.info("Fetched and mapped related data",
+                keyValue("poolsFetched", poolMap.size()),
+                keyValue("teamsFetched", teamMap.size()));
 
         List<EnrichedDayMatchesDTO> enrichedDays = new ArrayList<>();
 
@@ -94,6 +114,9 @@ public class MatchListService {
                             .build()
             );
         }
+
+        logger.info("Built enriched match list",
+                keyValue("enrichedDayCount", enrichedDays.size()));
 
         return enrichedDays;
     }
