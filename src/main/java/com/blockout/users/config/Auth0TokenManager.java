@@ -7,7 +7,6 @@ import com.auth0.net.TokenRequest;
 import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -20,47 +19,50 @@ public class Auth0TokenManager {
 
     private static final Logger logger = LoggerFactory.getLogger(Auth0TokenManager.class);
 
-    @Value("${auth0.domain}")
-    private String domain;
-
-    @Value("${auth0.client-id}")
-    private String clientId;
-
-    @Value("${auth0.client-secret}")
-    private String clientSecret;
+    private final Auth0Properties properties;
 
     private volatile ManagementAPI managementAPI;
     private volatile LocalDateTime tokenExpiry;
 
+    public Auth0TokenManager(Auth0Properties properties) {
+        this.properties = properties;
+    }
+
     @PostConstruct
     public void init() {
         try {
+            System.out.println("Domain: " + properties.getDomain());
+        System.out.println("Client ID: " + properties.getClientId());
             logger.info("Initializing Auth0 token manager for Management API",
                     keyValue("action", "init_management_token"),
-                    keyValue("auth0.domain", domain));
+                    keyValue("auth0.domain", properties.getDomain()));
             refreshToken();
         } catch (Exception e) {
             logger.error("Failed to initialize Auth0 Management token",
                     keyValue("action", "init_management_token_failed"),
-                    keyValue("auth0.domain", domain),
+                    keyValue("auth0.domain", properties.getDomain()),
                     e);
             throw new RuntimeException("Unable to initialize Auth0 Management token", e);
         }
     }
 
-    @Scheduled(fixedDelayString = "${auth0.token.refresh.delay:86400000}")
+    @Scheduled(fixedDelayString = "#{@auth0Properties.tokenRefreshDelay}")
     public void refreshToken() {
         logger.info("Refreshing Auth0 Management token",
                 keyValue("action", "refresh_management_token"));
 
         try {
-            AuthAPI auth = AuthAPI.newBuilder(domain, clientId, clientSecret).build();
-            TokenRequest tokenRequest = auth.requestToken("https://" + domain + "/api/v2/");
+            AuthAPI auth = AuthAPI.newBuilder(
+                    properties.getDomain(),
+                    properties.getClientId(),
+                    properties.getClientSecret()).build();
+
+            TokenRequest tokenRequest = auth.requestToken("https://" + properties.getDomain() + "/api/v2/");
             TokenHolder holder = tokenRequest.execute().getBody();
 
             String accessToken = holder.getAccessToken();
             this.tokenExpiry = LocalDateTime.now().plusSeconds(holder.getExpiresIn());
-            this.managementAPI = ManagementAPI.newBuilder(domain, accessToken).build();
+            this.managementAPI = ManagementAPI.newBuilder(properties.getDomain(), accessToken).build();
 
             logger.info("Auth0 Management token refreshed successfully",
                     keyValue("action", "refresh_management_token_success"),
