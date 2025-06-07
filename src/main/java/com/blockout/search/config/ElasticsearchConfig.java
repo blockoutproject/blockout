@@ -1,27 +1,21 @@
 package com.blockout.search.config;
 
-import org.springframework.beans.factory.annotation.Value;
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.elasticsearch.client.ClientConfiguration;
 import org.springframework.data.elasticsearch.client.elc.ElasticsearchConfiguration;
 
 @Configuration
+@RequiredArgsConstructor
 public class ElasticsearchConfig extends ElasticsearchConfiguration {
-    
-    @Value("${elasticsearch.host}")
-    private String host;
 
-    @Value("${elasticsearch.username}")
-    private String username;
-
-    @Value("${elasticsearch.password}")
-    private String password;
+    private final ElasticsearchProperties properties;
 
     @Override
     public ClientConfiguration clientConfiguration() {
         return ClientConfiguration.builder()
-                .connectedTo(host)
-                .withBasicAuth(username, password)
+                .connectedTo(properties.getHost())
+                .withBasicAuth(properties.getUsername(), properties.getPassword())
                 .build();
     }
 }
