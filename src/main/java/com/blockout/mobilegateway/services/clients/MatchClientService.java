@@ -3,11 +3,11 @@ package com.blockout.mobilegateway.services.clients;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import com.blockout.mobilegateway.config.ApiClientProperties;
 import com.blockout.mobilegateway.models.dto.match.DayPageDTO;
 
 import java.util.List;
@@ -21,12 +21,11 @@ public class MatchClientService {
 
     private static final Logger logger = LoggerFactory.getLogger(MatchClientService.class);
 
+    private final ApiClientProperties apiClientProperties;
     private final ApiClientService apiClientService;
 
-    @Value("${api.match.url}")
-    private String matchApiUrl;
-
     public DayPageDTO getMatchesByDay(int page, int size, List<Long> poolIds, List<Long> teamIds, String status) {
+        String matchApiUrl = apiClientProperties.getMatch().getUrl();
         String url = UriComponentsBuilder
                 .fromUriString(matchApiUrl + "/day-groups")
                 .queryParam("page", page)

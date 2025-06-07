@@ -3,11 +3,11 @@ package com.blockout.mobilegateway.services.clients;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import com.blockout.mobilegateway.config.ApiClientProperties;
 import com.blockout.mobilegateway.models.dto.pool.PoolDTO;
 
 import java.util.Arrays;
@@ -22,15 +22,15 @@ public class PoolClientService {
 
     private static final Logger logger = LoggerFactory.getLogger(PoolClientService.class);
 
-    private final ApiClientService apiClientService;
+    private final ApiClientProperties apiClientProperties;
 
-    @Value("${api.pool.url}")
-    private String poolApiUrl;
+    private final ApiClientService apiClientService;
 
     public List<PoolDTO> getPoolsByIds(Set<Long> ids) {
         if (ids.isEmpty())
             return List.of();
 
+        String poolApiUrl = apiClientProperties.getPool().getUrl();
         String url = UriComponentsBuilder
                 .fromUriString(poolApiUrl)
                 .queryParam("ids", ids)

@@ -3,11 +3,11 @@ package com.blockout.mobilegateway.services.clients;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import com.blockout.mobilegateway.config.ApiClientProperties;
 import com.blockout.mobilegateway.models.dto.team.TeamDTO;
 
 import java.util.Arrays;
@@ -22,15 +22,14 @@ public class TeamClientService {
 
     private static final Logger logger = LoggerFactory.getLogger(TeamClientService.class);
 
+    private final ApiClientProperties apiClientProperties;
     private final ApiClientService apiClientService;
-
-    @Value("${api.team.url}")
-    private String teamApiUrl;
 
     public List<TeamDTO> getTeamsByIds(Set<Long> ids) {
         if (ids.isEmpty())
             return List.of();
 
+        String teamApiUrl = apiClientProperties.getTeam().getUrl();
         String url = UriComponentsBuilder
                 .fromUriString(teamApiUrl)
                 .queryParam("ids", ids)
