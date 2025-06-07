@@ -4,9 +4,10 @@ import com.auth0.client.auth.AuthAPI;
 import com.auth0.json.auth.TokenHolder;
 import com.auth0.net.TokenRequest;
 import jakarta.annotation.PostConstruct;
+import lombok.RequiredArgsConstructor;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -15,21 +16,12 @@ import java.time.LocalDateTime;
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
 @Service
+@RequiredArgsConstructor
 public class Auth0TokenManager {
 
     private static final Logger logger = LoggerFactory.getLogger(Auth0TokenManager.class);
 
-    @Value("${auth0.domain}")
-    private String domain;
-
-    @Value("${auth0.client-id}")
-    private String clientId;
-
-    @Value("${auth0.client-secret}")
-    private String clientSecret;
-
-    @Value("${auth0.audience}")
-    private String audience;
+    private final Auth0Properties auth0Properties;
 
     private volatile String accessToken;
     private volatile LocalDateTime tokenExpiry;
@@ -43,8 +35,8 @@ public class Auth0TokenManager {
         } catch (Exception e) {
             logger.error("Failed to initialize Auth0 token",
                     keyValue("action", "init_token_failed"),
-                    keyValue("auth0.domain", domain),
-                    keyValue("auth0.audience", audience),
+                    keyValue("auth0.domain", auth0Properties.getDomain()),
+                    keyValue("auth0.audience", auth0Properties.getAudience()),
                     e);
             throw new RuntimeException("Unable to initialize Auth0 token", e);
         }
@@ -56,9 +48,15 @@ public class Auth0TokenManager {
                 keyValue("action", "refresh_token_start"));
 
         try {
-            AuthAPI auth = AuthAPI.newBuilder(domain, clientId, clientSecret).build();
-            TokenRequest tokenRequest = auth.requestToken(audience);
+            AuthAPI auth = AuthAPI.newBuilder(
+                    auth0Properties.getDomain(),
+                    auth0Properties.getClientId(),
+                    auth0Properties.getClientSecret()
+            ).build();
+
+            TokenRequest tokenRequest = auth.requestToken(auth0Properties.getAudience());
             TokenHolder holder = tokenRequest.execute().getBody();
+
             this.accessToken = holder.getAccessToken();
             this.tokenExpiry = LocalDateTime.now().plusSeconds(holder.getExpiresIn());
 

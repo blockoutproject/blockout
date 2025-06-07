@@ -3,10 +3,10 @@ package com.blockout.workersearch.services.clients;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
+import com.blockout.workersearch.config.ApiClientProperties;
 import com.blockout.workersearch.models.dto.club.ClubDTO;
 
 import java.util.Arrays;
@@ -21,13 +21,11 @@ public class ClubClientService {
 
     private static final Logger logger = LoggerFactory.getLogger(ClubClientService.class);
 
+    private final ApiClientProperties apiClientProperties;
     private final ApiClientService apiClientService;
 
-    @Value("${api.club.url}")
-    private String clubApiUrl;
-
     public List<ClubDTO> listClubs() {
-        String url = clubApiUrl;
+        String url = apiClientProperties.getClub().getUrl();
         logger.info("Calling listClubs endpoint",
                 keyValue("action", "call_club_list_endpoint"),
                 keyValue("url", url));

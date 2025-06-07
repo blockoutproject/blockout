@@ -3,10 +3,10 @@ package com.blockout.workersearch.services.clients;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
+import com.blockout.workersearch.config.ApiClientProperties;
 import com.blockout.workersearch.models.dto.pool.PoolDTO;
 
 import java.util.Arrays;
@@ -21,13 +21,11 @@ public class PoolClientService {
 
     private static final Logger logger = LoggerFactory.getLogger(PoolClientService.class);
 
+    private final ApiClientProperties apiClientProperties;
     private final ApiClientService apiClientService;
 
-    @Value("${api.pool.url}")
-    private String poolApiUrl;
-
     public List<PoolDTO> listPools() {
-        String url = poolApiUrl;
+        String url = apiClientProperties.getPool().getUrl();
         logger.info("Calling listPools endpoint",
                 keyValue("action", "call_pool_list_endpoint"),
                 keyValue("url", url));

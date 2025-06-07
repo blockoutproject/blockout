@@ -3,11 +3,11 @@ package com.blockout.workersearch.services.clients;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import com.blockout.workersearch.config.ApiClientProperties;
 import com.blockout.workersearch.models.dto.team.TeamDTO;
 
 import java.util.Arrays;
@@ -22,14 +22,11 @@ public class TeamClientService {
 
     private static final Logger logger = LoggerFactory.getLogger(TeamClientService.class);
 
+    private final ApiClientProperties apiClientProperties;
     private final ApiClientService apiClientService;
 
-    @Value("${api.team.url}")
-    private String teamApiUrl;
-
     public List<TeamDTO> listAllTeams() {
-        String url = teamApiUrl;
-
+        String url = apiClientProperties.getTeam().getUrl();
         logger.info("Calling listAllTeams endpoint",
                 keyValue("action", "call_team_list_all"),
                 keyValue("url", url));
@@ -52,6 +49,7 @@ public class TeamClientService {
     }
 
     public List<TeamDTO> listTeamsByClubId(String clubId) {
+        String teamApiUrl = apiClientProperties.getTeam().getUrl();
         String url = UriComponentsBuilder
                 .fromUriString(teamApiUrl)
                 .queryParam("club_id", clubId)
