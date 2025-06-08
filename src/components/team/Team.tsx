@@ -1,10 +1,9 @@
 import React from "react";
-import { Text, View } from "react-native";
+import { Text, View, StyleSheet } from "react-native";
 import { useTeamById } from "@/src/hooks/team/useTeamById";
 import { useDetailedPoolsByTeam } from "@/src/hooks/pool/useDetailedPoolsByTeam";
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import TeamTabs from "@/src/components/team/TeamTabs";
-import { teamStyles } from "./teamStyles";
 import TeamProfile from "./teamProfile/TeamProfile";
 
 type Props = {
@@ -28,11 +27,41 @@ const Team: React.FC<Props> = ({ teamId }) => {
     }
 
     return (
-        <View style={[teamStyles.container]}>
+        <View style={[styles.container]}>
             <TeamProfile team={team!} />
             <TeamTabs pools={pools!} team={team!} />
         </View>
     );
 };
+
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+    },
+    sectionTitle: {
+        fontSize: 18,
+        fontWeight: '600',
+        marginBottom: 8,
+    },
+    statRow: {
+        flexDirection: "row",
+        gap: 16,
+        alignItems: "center",
+        marginBottom: 12,
+    },
+    badge: {
+        paddingVertical: 4,
+        paddingHorizontal: 10,
+        borderRadius: 8,
+    },
+    badgeText: {
+        fontWeight: "600",
+        fontSize: 14,
+    },
+    tabContainer: {
+        marginTop: 8,
+        paddingBottom: 16,
+    },
+});
 
 export default Team;

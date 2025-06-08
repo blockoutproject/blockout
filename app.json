@@ -4,7 +4,7 @@
     "slug": "blockoutproject",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/blockout-logo-dark-white-background.png",
+    "icon": "./assets/images/blockout-logo-light.png",
     "scheme": "myapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": false,
@@ -17,7 +17,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/blockout-logo-dark.png",
+        "foregroundImage": "./assets/images/blockout-logo-light.png",
         "backgroundColor": "#ffffff"
       },
       "package": "com.blockoutproject.blockout"

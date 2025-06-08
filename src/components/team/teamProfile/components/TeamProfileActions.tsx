@@ -1,8 +1,7 @@
 import React from 'react';
-import { View } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import FollowButton from '@/src/components/common/FollowButton';
 import FollowersCounter from '@/src/components/common/FollowersCount';
-import teamProfileStyles from '../teamProfileStyles';
 
 type Props = {
     isFollowing: boolean;
@@ -18,7 +17,7 @@ const TeamProfileActions: React.FC<Props> = ({
     onToggleFollow,
 }) => {
     return (
-        <View style={teamProfileStyles.actions}>
+        <View style={styles.actions}>
             <FollowButton
                 isFollowing={isFollowing}
                 onPress={onToggleFollow}
@@ -28,5 +27,13 @@ const TeamProfileActions: React.FC<Props> = ({
         </View>
     );
 };
+
+const styles = StyleSheet.create({
+    actions: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+});
+
 
 export default TeamProfileActions;

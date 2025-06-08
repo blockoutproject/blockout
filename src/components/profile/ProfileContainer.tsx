@@ -139,7 +139,7 @@ const styles = StyleSheet.create({
     },
     logoutButton: {
         paddingVertical: 16,
-        paddingHorizontal: 8,
+        paddingHorizontal: 4,
         marginTop: 16,
         borderRadius: 30,
     },

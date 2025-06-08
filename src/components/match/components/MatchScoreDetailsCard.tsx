@@ -1,11 +1,10 @@
 import React from "react";
-import { View, Text } from "react-native";
+import { View, Text, StyleSheet } from "react-native";
 import FastImage from "react-native-fast-image";
 import { Match } from "@/src/types/Match";
 import { Team } from "@/src/types/Team";
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import GradientBorderView from "../../common/GradientBorderView";
-import matchStyles from "../matchStyles";
 
 type MatchScoreDetailsCardProps = {
     title?: string;
@@ -34,13 +33,13 @@ const MatchScoreDetailsCard: React.FC<MatchScoreDetailsCardProps> = ({
         opponentSets: number[];
         logo: any;
     }> = ({ team, finalScore, sets, opponentSets, logo }) => (
-        <View style={matchStyles.scoreDetailsTeamRow}>
-            <View style={matchStyles.teamLogoColumn}>
-                <FastImage source={logo} style={matchStyles.teamLogoSmall} resizeMode="contain" />
+        <View style={styles.scoreDetailsTeamRow}>
+            <View style={styles.teamLogoColumn}>
+                <FastImage source={logo} style={styles.teamLogoSmall} resizeMode="contain" />
             </View>
-            <View style={matchStyles.teamNameColumn}>
+            <View style={styles.teamNameColumn}>
                 <Text
-                    style={[matchStyles.shortTeamName, { color: theme.text }]}
+                    style={[styles.shortTeamName, { color: theme.text }]}
                     numberOfLines={2}
                     ellipsizeMode="tail"
                     adjustsFontSizeToFit
@@ -49,18 +48,18 @@ const MatchScoreDetailsCard: React.FC<MatchScoreDetailsCardProps> = ({
                     {team.shortName}
                 </Text>
             </View>
-            <View style={matchStyles.finalScoreColumn}>
-                <View style={[matchStyles.scoreBox, { borderColor: theme.textInactive }]}>
-                    <Text style={[matchStyles.finalScoreTextSmall, { color: theme.text }]}>{finalScore}</Text>
+            <View style={styles.finalScoreColumn}>
+                <View style={[styles.scoreBox, { borderColor: theme.textInactive }]}>
+                    <Text style={[styles.finalScoreTextSmall, { color: theme.text }]}>{finalScore}</Text>
                 </View>
             </View>
             {sets.map((setScore, idx) => {
                 const isWinner = setScore > opponentSets[idx];
                 return (
-                    <View style={matchStyles.setColumn} key={`set-${idx}`}>
+                    <View style={styles.setColumn} key={`set-${idx}`}>
                         <Text
                             style={[
-                                matchStyles.setScoreText,
+                                styles.setScoreText,
                                 { color: isWinner ? theme.text : theme.textInactive },
                             ]}
                         >
@@ -74,11 +73,11 @@ const MatchScoreDetailsCard: React.FC<MatchScoreDetailsCardProps> = ({
 
     return (
         <GradientBorderView
-            style={matchStyles.scoreDetailsCard}
+            style={styles.scoreDetailsCard}
             colorsOverride={[theme.background, theme.background]}
         >
-            <Text style={[matchStyles.scoreDetailsTitle, { color: theme.text }]}>{title}</Text>
-            <View style={matchStyles.scoreDetailsWrapper}>
+            <Text style={[styles.scoreDetailsTitle, { color: theme.text }]}>{title}</Text>
+            <View style={styles.scoreDetailsWrapper}>
                 <TeamRow
                     team={homeTeam}
                     finalScore={homeFinal}
@@ -97,5 +96,66 @@ const MatchScoreDetailsCard: React.FC<MatchScoreDetailsCardProps> = ({
         </GradientBorderView>
     );
 };
+
+const styles = StyleSheet.create({
+    scoreDetailsCard: {
+        paddingHorizontal: 4,
+    },
+    scoreDetailsTitle: {
+        fontSize: 18,
+        fontWeight: "600",
+        marginBottom: 12,
+    },
+    scoreDetailsWrapper: {
+        flexDirection: "column",
+        gap: 10,
+    },
+    scoreDetailsTeamRow: {
+        flexDirection: "row",
+        alignItems: "center",
+    },
+    teamLogoColumn: {
+        width: 40,
+        justifyContent: "center",
+        alignItems: "center",
+        marginRight: 4,
+    },
+    teamNameColumn: {
+        flex: 1,
+        marginRight: 4,
+    },
+    finalScoreColumn: {
+        width: 40,
+        justifyContent: "center",
+        alignItems: "center",
+        marginRight: 4,
+    },
+    setColumn: {
+        width: 30,
+        justifyContent: "center",
+        alignItems: "center",
+    },
+    teamLogoSmall: {
+        width: 36,
+        height: 36,
+    },
+    shortTeamName: {
+        fontWeight: "600",
+        fontSize: 14,
+    },
+    scoreBox: {
+        borderWidth: 1,
+        borderRadius: 6,
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+    },
+    setScoreText: {
+        fontSize: 16,
+    },
+    finalScoreTextSmall: {
+        fontSize: 16,
+        fontWeight: "700",
+    },
+});
 
 export default MatchScoreDetailsCard;

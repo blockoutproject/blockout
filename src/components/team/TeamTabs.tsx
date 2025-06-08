@@ -26,6 +26,7 @@ const TeamTabs: React.FC<TeamTabsProps> = ({ pools, team }) => {
                     teamIds={[team.id]}
                     status={MatchStatus.FINISHED}
                     contentContainerStyle={{
+                        paddingHorizontal: 4,
                         marginTop: 8,
                         paddingBottom: insets.bottom + 8,
                     }}
@@ -39,6 +40,7 @@ const TeamTabs: React.FC<TeamTabsProps> = ({ pools, team }) => {
                     teamIds={[team.id]}
                     status={MatchStatus.UPCOMING}
                     contentContainerStyle={{
+                        paddingHorizontal: 4,
                         marginTop: 8,
                         paddingBottom: insets.bottom + 8,
                     }}

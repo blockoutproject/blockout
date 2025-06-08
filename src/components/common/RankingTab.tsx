@@ -21,7 +21,7 @@ const RankingTab: React.FC<RankingTabProps> = ({ poolId }: RankingTabProps) => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        paddingHorizontal: 8,
+        paddingHorizontal: 4,
         paddingTop: 16,
     },
 });

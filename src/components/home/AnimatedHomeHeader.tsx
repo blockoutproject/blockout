@@ -96,7 +96,7 @@ const AnimatedHomeHeader: React.FC<HeaderProps> = ({ scrollY, onTitleLayout, onT
                     </Animated.View>
 
                     <LinearGradient
-                        colors={[theme.background, theme.backgroundSecondary]}
+                        colors={[theme.background, "transparent"]}
                         start={{ x: 0, y: 0.35 }}
                         end={{ x: 0, y: 1 }}
                         style={StyleSheet.absoluteFill}

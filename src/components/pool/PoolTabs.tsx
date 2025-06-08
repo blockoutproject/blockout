@@ -29,6 +29,7 @@ const PoolTabs: React.FC<PoolTabsProps> = ({ pool }) => {
                     poolIds={[pool.id]}
                     status={MatchStatus.FINISHED}
                     contentContainerStyle={{
+                        paddingHorizontal: 4,
                         marginTop: 8,
                         paddingBottom: insets.bottom + 8,
                     }}
@@ -43,6 +44,7 @@ const PoolTabs: React.FC<PoolTabsProps> = ({ pool }) => {
                     poolIds={[pool.id]}
                     status={MatchStatus.UPCOMING}
                     contentContainerStyle={{
+                        paddingHorizontal: 4,
                         marginTop: 8,
                         paddingBottom: insets.bottom + 8,
                     }}

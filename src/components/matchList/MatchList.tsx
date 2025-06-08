@@ -7,6 +7,7 @@ import {
     StyleProp,
     ViewStyle,
     ActivityIndicator,
+    StyleSheet
 } from "react-native";
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import { MatchStatus } from "@/src/types/Match";
@@ -19,7 +20,6 @@ import PoolContainer from "../pool/PoolContainer";
 import { useMatchList } from "@/src/hooks/match/useMatchList";
 import ErrorPrompt from "../common/feedback/ErrorPrompt";
 import MatchListSkeleton from "./components/MatchListSkeleton";
-import { matchListStyles } from "./matchListStyles";
 import PoolItem from "./components/PoolItem";
 
 type MatchListContainerProps = {
@@ -88,9 +88,9 @@ const MatchList: React.FC<MatchListContainerProps> = ({
     }, [dayMatches]);
 
     const renderSectionHeader = ({ section: { title } }: { section: { title: string } }) => (
-        <View style={matchListStyles.dateContainer}>
-            <View style={[matchListStyles.dateBackground, { backgroundColor: theme.background }]}>
-                <Text style={[matchListStyles.dateHeader, { color: theme.text }]}>{title}</Text>
+        <View style={styles.dateContainer}>
+            <View style={[styles.dateBackground, { backgroundColor: theme.background }]}>
+                <Text style={[styles.dateHeader, { color: theme.text }]}>{title}</Text>
             </View>
         </View>
     );
@@ -108,7 +108,7 @@ const MatchList: React.FC<MatchListContainerProps> = ({
 
     if (isLoading) {
         return (
-            <View style={[matchListStyles.loadingContainer, { backgroundColor: theme.background, paddingTop: headerOffset }]}>
+            <View style={[styles.loadingContainer, { backgroundColor: theme.background, paddingTop: headerOffset }]}>
                 <MatchListSkeleton />
             </View>
         );
@@ -148,8 +148,8 @@ const MatchList: React.FC<MatchListContainerProps> = ({
                 renderItem={renderItem}
                 onEndReached={handleLoadMore}
                 onEndReachedThreshold={0.3}
-                ItemSeparatorComponent={() => <View style={matchListStyles.itemSeparator} />}
-                SectionSeparatorComponent={() => <View style={matchListStyles.sectionSeparator} />}
+                ItemSeparatorComponent={() => <View style={styles.itemSeparator} />}
+                SectionSeparatorComponent={() => <View style={styles.sectionSeparator} />}
                 showsVerticalScrollIndicator={false}
                 refreshControl={
                     <RefreshControl
@@ -168,7 +168,7 @@ const MatchList: React.FC<MatchListContainerProps> = ({
                         )
                         : undefined
                 }
-                contentContainerStyle={[matchListStyles.sectionListContent, contentContainerStyle]}
+                contentContainerStyle={[styles.sectionListContent, contentContainerStyle]}
                 ListFooterComponent={
                     isFetchingNextPage && hasNextPage ? <ActivityIndicator /> : null
                 }
@@ -176,5 +176,37 @@ const MatchList: React.FC<MatchListContainerProps> = ({
         </View>
     );
 };
+
+const styles = StyleSheet.create({
+    loadingContainer: {
+        flex: 1,
+    },
+    sectionListContent: {
+        paddingBottom: 8,
+    },
+    itemSeparator: {
+        height: 16,
+    },
+    sectionSeparator: {
+        height: 6,
+    },
+    dateContainer: {
+        backgroundColor: "transparent",
+        alignItems: "center",
+    },
+    dateBackground: {
+        borderRadius: 14,
+        paddingVertical: 4,
+        paddingHorizontal: 4,
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.7,
+        shadowRadius: 5,
+        elevation: 5,
+    },
+    dateHeader: {
+        fontSize: 14,
+        fontWeight: "800",
+    },
+});
 
 export default MatchList;

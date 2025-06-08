@@ -30,7 +30,6 @@ export const useMatchList = (
     });
 
     const dayMatches: EnrichedDayMatchesDTO[] = queryResult.data?.pages.flat() ?? [];
-    console.log('dayMatches', dayMatches, 'status', status, 'poolIds', poolIds, 'teamIds', teamIds);
     return {
         ...queryResult,
         dayMatches,

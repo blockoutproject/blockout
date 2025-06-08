@@ -1,11 +1,10 @@
 import React from "react";
-import { Text, TouchableOpacity, View } from "react-native";
+import { Text, TouchableOpacity, View, StyleSheet } from "react-native";
 import FastImage from "react-native-fast-image";
 import GradientBorderView from "@/src/components/common/GradientBorderView";
 import MatchCard from "./MatchCard";
 import { EnrichedPoolMatchesDTO } from "@/src/types/Match";
 import { useAppTheme } from "@/src/context/ThemeProvider";
-import { matchListStyles } from "../matchListStyles";
 
 type Props = {
     pool: EnrichedPoolMatchesDTO;
@@ -29,18 +28,18 @@ const PoolItem: React.FC<Props> = ({
 
     return (
         <GradientBorderView
-            style={[matchListStyles.poolContainer, { backgroundColor: theme.surface }]}
+            style={[styles.poolContainer, { backgroundColor: theme.surfaceSecondary }]}
             colorsOverride={[theme.background, theme.background]}
         >
             <TouchableOpacity onPress={() => handlePoolPress(pool.poolId)}>
-                <View style={matchListStyles.poolHeader}>
+                <View style={styles.poolHeader}>
                     <FastImage
                         source={require("@/assets/leagues/msl.png")}
-                        style={matchListStyles.poolLogo}
+                        style={styles.poolLogo}
                         resizeMode="contain"
                     />
                     <Text
-                        style={[matchListStyles.poolTitle, { color: theme.text }]}
+                        style={[styles.poolTitle, { color: theme.text }]}
                         numberOfLines={1}
                     >
                         {pool.poolData?.name ?? "Chargement..."}
@@ -48,7 +47,7 @@ const PoolItem: React.FC<Props> = ({
                 </View>
             </TouchableOpacity>
 
-            <View style={matchListStyles.matchList}>
+            <View style={styles.matchList}>
                 {pool.matches.map((match) => (
                     <TouchableOpacity key={match.id} onPress={() => handleMatchPress(match.id)}>
                         <MatchCard
@@ -64,5 +63,31 @@ const PoolItem: React.FC<Props> = ({
         </GradientBorderView>
     );
 };
+
+const styles = StyleSheet.create({
+    poolContainer: {
+        borderRadius: 18,
+        padding: 8,
+    },
+    poolHeader: {
+        flexDirection: "row",
+        alignItems: "center",
+        marginBottom: 8,
+    },
+    poolLogo: {
+        width: 25,
+        height: 25,
+        marginRight: 8,
+        borderRadius: 12,
+    },
+    poolTitle: {
+        fontSize: 14,
+        fontWeight: "700",
+    },
+    matchList: {
+        flexDirection: "column",
+        gap: 12,
+    },
+});
 
 export default PoolItem;

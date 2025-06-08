@@ -11,7 +11,6 @@ import { MatchStatus } from "@/src/types/Match";
 import { Filter } from "@/src/types/Filter";
 import { useUserContext } from "@/src/hooks/user/useUserContext";
 import { EntityType } from "@/src/types/User";
-import * as Haptics from "expo-haptics";
 import AnimatedHomeHeader from "@/src/components/home/AnimatedHomeHeader";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -66,6 +65,7 @@ const HomeScreen: React.FC = () => {
                 scrollY={scrollY}
                 headerOffset={headerOffset}
                 contentContainerStyle={{
+                    paddingHorizontal: 4,
                     marginTop: insets.top + tabBarHeight + 8,
                     paddingTop: titleHeight,
                     paddingBottom: headerOffset + 8,
@@ -84,6 +84,7 @@ const HomeScreen: React.FC = () => {
                 scrollY={scrollY}
                 headerOffset={headerOffset}
                 contentContainerStyle={{
+                    paddingHorizontal: 4,
                     marginTop: insets.top + tabBarHeight + 8,
                     paddingTop: titleHeight,
                     paddingBottom: headerOffset + 8,

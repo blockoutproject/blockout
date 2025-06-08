@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Text, View } from 'react-native';
+import { Text, View, StyleSheet } from 'react-native';
 import { useMatchById } from '@/src/hooks/match/useMatchById';
 import { MatchStatus } from '@/src/types/Match';
 import { useAppTheme } from '@/src/context/ThemeProvider';
@@ -11,7 +11,6 @@ import MatchInfoCard from './components/MatchInfoCard';
 import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getLeagueLabel } from '@/src/utils/utils';
-import matchStyles from './matchStyles';
 
 type Props = { matchId: number };
 
@@ -37,7 +36,7 @@ const Match: React.FC<Props> = ({ matchId }) => {
                 <BottomSheetScrollView
                     showsVerticalScrollIndicator={false}
                     contentContainerStyle={[
-                        matchStyles.scrollContent,
+                        styles.scrollContent,
                         { paddingBottom: insets.bottom + 8 },
                     ]}
                 >
@@ -66,5 +65,12 @@ const Match: React.FC<Props> = ({ matchId }) => {
         </View>
     );
 };
+
+const styles = StyleSheet.create({
+    scrollContent: {
+        gap: 32,
+        paddingHorizontal: 4,
+    },
+});
 
 export default Match;

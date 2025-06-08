@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, Pressable } from "react-native";
+import { View, Text, Pressable, StyleSheet } from "react-native";
 import FastImage from "react-native-fast-image";
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import { Team } from "@/src/types/Team";
@@ -8,7 +8,6 @@ import { useGlobalBottomSheet } from "@/src/context/GlobalBottomSheetProvider";
 import * as Haptics from "expo-haptics";
 import TeamContainer from "../../team/Team";
 import GradientBorderView from "../../common/GradientBorderView";
-import matchStyles from "../matchStyles";
 
 export interface MatchScoreCardProps {
     leagueName: string;
@@ -43,36 +42,41 @@ const MatchScoreCard: React.FC<MatchScoreCardProps> = ({
         logo,
         role,
     }) => (
-        <Pressable onPress={() => handleTeamPress(team.id)} style={matchStyles.teamCard}>
-            <FastImage source={logo} style={matchStyles.teamLogoLarge} resizeMode="contain" />
-            <Text style={[matchStyles.teamLabel, { color: theme.text }]} numberOfLines={2}>
+        <Pressable onPress={() => handleTeamPress(team.id)} style={styles.teamCard}>
+            <FastImage source={logo} style={styles.teamLogoLarge} resizeMode="contain" />
+            <Text style={[styles.teamLabel, { color: theme.text }]} numberOfLines={2}>
                 {team.name}
             </Text>
-            <Text style={[matchStyles.teamRoleLabel, { color: theme.textInactive }]}>{role}</Text>
+            <Text style={[styles.teamRoleLabel, { color: theme.textInactive }]}>{role}</Text>
         </Pressable>
     );
 
     return (
-        <GradientBorderView style={matchStyles.scoreCard}>
-            <View style={matchStyles.verticalContainer}>
-                <Text style={[matchStyles.leagueLabel, { color: theme.text }]}>{leagueName}</Text>
+        <GradientBorderView 
+            style={styles.scoreCard}
+            start={{x: 0, y: 0}}
+            end={{x: 1, y: 1}}
+        >
+            <View style={styles.verticalContainer}>
+                <Text style={[styles.leagueLabel, { color: theme.text }]}>{leagueName}</Text>
 
-                <View style={matchStyles.teamRowContainer}>
+                <View style={styles.teamRowContainer}>
                     <TeamBlock team={homeTeam} logo={home} role="Home" />
 
-                    <View style={matchStyles.centerBlock}>
+                    <View style={styles.centerBlock}>
                         {finalScore ? (
                             <>
                                 <GradientBorderView
-                                    style={matchStyles.finalScoreBox}
+                                    style={styles.finalScoreBox}
+                                    borderRadius={12}
                                     colorsOverride={[theme.borderSecondary, theme.borderSecondary]}
                                 >
-                                    <Text style={[matchStyles.finalScoreTextLarge, { color: theme.text }]}>
+                                    <Text style={[styles.finalScoreTextLarge, { color: theme.text }]}>
                                         {finalScore}
                                     </Text>
                                 </GradientBorderView>
                                 {time && (
-                                    <Text style={[matchStyles.timeText, { color: theme.textInactive }]}>
+                                    <Text style={[styles.timeText, { color: theme.textInactive }]}>
                                         {time}
                                     </Text>
                                 )}
@@ -80,11 +84,11 @@ const MatchScoreCard: React.FC<MatchScoreCardProps> = ({
                         ) : (
                             <>
                                 {time && (
-                                    <Text style={[matchStyles.largeTimeText, { color: theme.text }]}>
+                                    <Text style={[styles.largeTimeText, { color: theme.text }]}>
                                         {time}
                                     </Text>
                                 )}
-                                <Text style={[matchStyles.upcomingLabel, { color: theme.textInactive }]}>À venir</Text>
+                                <Text style={[styles.upcomingLabel, { color: theme.textInactive }]}>À venir</Text>
                             </>
                         )}
                     </View>
@@ -92,10 +96,78 @@ const MatchScoreCard: React.FC<MatchScoreCardProps> = ({
                     <TeamBlock team={awayTeam} logo={away} role="Away" />
                 </View>
 
-                {date && <Text style={[matchStyles.dateText, { color: theme.text }]}>{date}</Text>}
+                {date && <Text style={[styles.dateText, { color: theme.text }]}>{date}</Text>}
             </View>
         </GradientBorderView>
     );
 };
+
+const styles = StyleSheet.create({
+    scoreCard: {
+        paddingVertical: 16,
+    },
+    verticalContainer: {
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: 4,
+    },
+    teamRowContainer: {
+        flexDirection: "row",
+    },
+    teamCard: {
+        flex: 1,
+        marginHorizontal: 12,
+        alignItems: "center",
+    },
+    teamLogoLarge: {
+        width: 90,
+        height: 90,
+        marginBottom: 4,
+    },
+    teamLabel: {
+        fontSize: 14,
+        fontWeight: "600",
+        textAlign: "center",
+    },
+    teamRoleLabel: {
+        fontSize: 12,
+        fontWeight: "600",
+        marginTop: 2,
+    },
+    centerBlock: {
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 8,
+    },
+    finalScoreBox: {
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+    },
+    finalScoreTextLarge: {
+        fontSize: 28,
+        fontWeight: "700",
+    },
+    timeText: {
+        fontSize: 14,
+        fontWeight: "600",
+    },
+    upcomingLabel: {
+        fontSize: 14,
+        fontWeight: "600",
+    },
+    dateText: {
+        fontWeight: "700",
+        fontSize: 14,
+    },
+    leagueLabel: {
+        fontWeight: "600",
+        fontSize: 14,
+    },
+    largeTimeText: {
+        fontSize: 36,
+        fontWeight: "700",
+    },
+});
 
 export default MatchScoreCard;

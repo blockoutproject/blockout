@@ -1,10 +1,9 @@
 import React from "react";
-import { Text, View } from "react-native";
+import { Text, View, StyleSheet } from "react-native";
 import FastImage from "react-native-fast-image";
 import { Match, MatchStatus } from "@/src/types/Match";
 import { Team } from "@/src/types/Team";
 import { useAppTheme } from "@/src/context/ThemeProvider";
-import { matchListStyles } from "../matchListStyles";
 
 type Props = {
     match: Match;
@@ -23,11 +22,11 @@ const MatchCard: React.FC<Props> = ({ match, teamA, teamB }) => {
         .padStart(2, "0")}`;
 
     return (
-        <View style={[matchListStyles.matchCard, { backgroundColor: theme.background }]}>
+        <View style={[styles.matchCard, { backgroundColor: theme.background }]}>
             {/* Team A */}
-            <View style={[matchListStyles.teamSide, matchListStyles.teamAlignRight]}>
-                <Text 
-                    style={[matchListStyles.teamName, { color: theme.text }]}
+            <View style={[styles.teamSide, styles.teamAlignRight]}>
+                <Text
+                    style={[styles.teamName, { color: theme.text }]}
                     numberOfLines={2}
                     ellipsizeMode="tail"
                     adjustsFontSizeToFit
@@ -37,25 +36,25 @@ const MatchCard: React.FC<Props> = ({ match, teamA, teamB }) => {
                 </Text>
                 <FastImage
                     source={require("@/assets/clubs/paris_volley.png")}
-                    style={matchListStyles.teamLogo}
+                    style={styles.teamLogo}
                     resizeMode="contain"
                 />
             </View>
 
             {/* Center */}
-            <View style={matchListStyles.centerBlock}>
+            <View style={styles.centerBlock}>
                 {match.status === MatchStatus.UPCOMING ? (
-                    <Text style={[matchListStyles.timeText, { color: theme.text }]}>
+                    <Text style={[styles.timeText, { color: theme.text }]}>
                         {matchTime}
                     </Text>
                 ) : (
                     <View
                         style={[
-                            matchListStyles.scoreBadge,
+                            styles.scoreBadge,
                             { borderColor: theme.borderSecondary },
                         ]}
                     >
-                        <Text style={[matchListStyles.scoreText, { color: theme.text }]}>
+                        <Text style={[styles.scoreText, { color: theme.text }]}>
                             {match.set || "-"}
                         </Text>
                     </View>
@@ -63,14 +62,14 @@ const MatchCard: React.FC<Props> = ({ match, teamA, teamB }) => {
             </View>
 
             {/* Team B */}
-            <View style={[matchListStyles.teamSide, matchListStyles.teamAlignLeft]}>
+            <View style={[styles.teamSide, styles.teamAlignLeft]}>
                 <FastImage
                     source={require("@/assets/clubs/as_cannes.png")}
-                    style={matchListStyles.teamLogo}
+                    style={styles.teamLogo}
                     resizeMode="contain"
                 />
-                <Text 
-                    style={[matchListStyles.teamName, { color: theme.text }]}
+                <Text
+                    style={[styles.teamName, { color: theme.text }]}
                     numberOfLines={2}
                     ellipsizeMode="tail"
                     adjustsFontSizeToFit
@@ -82,5 +81,54 @@ const MatchCard: React.FC<Props> = ({ match, teamA, teamB }) => {
         </View>
     );
 };
+
+const styles = StyleSheet.create({
+    matchCard: {
+        flexDirection: "row",
+        borderRadius: 12,
+        paddingVertical: 14,
+        paddingHorizontal: 8,
+        gap: 2,
+    },
+    teamSide: {
+        flex: 3,
+        flexDirection: "row",
+        alignItems: "center",
+    },
+    teamAlignRight: {
+        justifyContent: "flex-end",
+    },
+    teamAlignLeft: {
+        justifyContent: "flex-start",
+    },
+    teamLogo: {
+        width: 35,
+        height: 35,
+    },
+    teamName: {
+        fontSize: 14,
+        fontWeight: "600",
+        textAlign: "center",
+        flex: 1,
+    },
+    centerBlock: {
+        justifyContent: "center",
+        alignItems: "center",
+    },
+    scoreBadge: {
+        borderWidth: 2,
+        borderRadius: 12,
+        paddingVertical: 4,
+        paddingHorizontal: 6,
+    },
+    scoreText: {
+        fontSize: 22,
+        fontWeight: "700",
+    },
+    timeText: {
+        fontSize: 16,
+        fontWeight: "600",
+    },
+});
 
 export default MatchCard;

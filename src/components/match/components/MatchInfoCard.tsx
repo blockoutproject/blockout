@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import FastImage from 'react-native-fast-image';
 import { Pool } from '@/src/types/Pool';
@@ -8,7 +8,6 @@ import GradientBorderView from '../../common/GradientBorderView';
 import { useGlobalBottomSheet } from '@/src/context/GlobalBottomSheetProvider';
 import * as Haptics from "expo-haptics";
 import PoolContainer from '../../pool/PoolContainer';
-import matchStyles from '../matchStyles';
 
 type MatchInfoCardProps = {
     pool: Pool;
@@ -56,19 +55,19 @@ const MatchInfoCard: React.FC<MatchInfoCardProps> = ({
     ];
 
     return (
-        <GradientBorderView style={matchStyles.infoCard} colorsOverride={[theme.background, theme.background]}>
-            <Text style={[matchStyles.infoCardTitle, { color: theme.text }]}>Information</Text>
+        <GradientBorderView style={styles.infoCard} colorsOverride={[theme.background, theme.background]}>
+            <Text style={[styles.infoCardTitle, { color: theme.text }]}>Information</Text>
 
-            <View style={matchStyles.infoRowsWrapper}>
-                <TouchableOpacity onPress={() => handlePoolPress(pool.id)} style={matchStyles.infoRow}>
+            <View style={styles.infoRowsWrapper}>
+                <TouchableOpacity onPress={() => handlePoolPress(pool.id)} style={styles.infoRow}>
                     <FastImage
                         source={require('@/assets/leagues/msl.png')}
-                        style={matchStyles.poolLogo}
+                        style={styles.poolLogo}
                         resizeMode="contain"
                     />
-                    <View style={matchStyles.poolTitleWrapper}>
+                    <View style={styles.poolTitleWrapper}>
                         <Text
-                            style={[matchStyles.poolTitleText, { color: theme.text }]}
+                            style={[styles.poolTitleText, { color: theme.text }]}
                             numberOfLines={1}
                             ellipsizeMode="tail"
                             adjustsFontSizeToFit
@@ -80,15 +79,15 @@ const MatchInfoCard: React.FC<MatchInfoCardProps> = ({
                 </TouchableOpacity>
 
                 {infoData.filter(e => !!e).map((item, index) => (
-                    <View style={matchStyles.infoRow} key={index}>
+                    <View style={styles.infoRow} key={index}>
                         <Ionicons
                             name={item.icon as any}
                             size={20}
                             color={theme.text}
-                            style={matchStyles.icon}
+                            style={styles.icon}
                         />
                         <Text
-                            style={[matchStyles.infoText, { color: theme.text }]}
+                            style={[styles.infoText, { color: theme.text }]}
                             numberOfLines={1}
                             ellipsizeMode="tail"
                             adjustsFontSizeToFit
@@ -102,5 +101,44 @@ const MatchInfoCard: React.FC<MatchInfoCardProps> = ({
         </GradientBorderView>
     );
 };
+
+const styles = StyleSheet.create({
+    infoCard: {
+        paddingHorizontal: 4,
+    },
+    infoCardTitle: {
+        fontSize: 18,
+        fontWeight: "600",
+        marginBottom: 12,
+    },
+    infoRowsWrapper: {
+        flexDirection: "column",
+        gap: 10,
+    },
+    infoRow: {
+        flexDirection: "row",
+        alignItems: "center",
+    },
+    poolLogo: {
+        width: 20,
+        height: 20,
+        marginRight: 12,
+        borderRadius: 5,
+    },
+    poolTitleWrapper: {
+        flex: 1,
+    },
+    poolTitleText: {
+        fontSize: 14,
+        fontWeight: "700",
+    },
+    icon: {
+        marginRight: 12,
+    },
+    infoText: {
+        flex: 1,
+        fontSize: 14,
+    },
+});
 
 export default MatchInfoCard;
