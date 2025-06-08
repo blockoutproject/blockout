@@ -11,6 +11,7 @@ import com.blockout.mobilegateway.config.ApiClientProperties;
 import com.blockout.mobilegateway.models.dto.pool.PoolDTO;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
@@ -28,7 +29,7 @@ public class PoolClientService {
 
     public List<PoolDTO> getPoolsByIds(Set<Long> ids) {
         if (ids.isEmpty())
-            return List.of();
+            return Collections.emptyList();
 
         String poolApiUrl = apiClientProperties.getPool().getUrl();
         String url = UriComponentsBuilder
@@ -41,10 +42,10 @@ public class PoolClientService {
 
         try {
             ResponseEntity<PoolDTO[]> response = apiClientService.get(url, PoolDTO[].class);
-            return response.getBody() != null ? Arrays.asList(response.getBody()) : List.of();
+            return response.getBody() != null ? Arrays.asList(response.getBody()) : Collections.emptyList();
         } catch (Exception e) {
             logger.error("Failed to fetch pools", keyValue("error", e.getMessage()), e);
-            return List.of();
+            return Collections.emptyList();
         }
     }
 }

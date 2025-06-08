@@ -11,6 +11,7 @@ import com.blockout.mobilegateway.config.ApiClientProperties;
 import com.blockout.mobilegateway.models.dto.team.TeamDTO;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
@@ -27,7 +28,7 @@ public class TeamClientService {
 
     public List<TeamDTO> getTeamsByIds(Set<Long> ids) {
         if (ids.isEmpty())
-            return List.of();
+            return Collections.emptyList();
 
         String teamApiUrl = apiClientProperties.getTeam().getUrl();
         String url = UriComponentsBuilder
@@ -40,10 +41,10 @@ public class TeamClientService {
 
         try {
             ResponseEntity<TeamDTO[]> response = apiClientService.get(url, TeamDTO[].class);
-            return response.getBody() != null ? Arrays.asList(response.getBody()) : List.of();
+            return response.getBody() != null ? Arrays.asList(response.getBody()) : Collections.emptyList();
         } catch (Exception e) {
             logger.error("Failed to fetch teams", keyValue("error", e.getMessage()), e);
-            return List.of();
+            return Collections.emptyList();
         }
     }
 }
