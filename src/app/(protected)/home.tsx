@@ -6,7 +6,7 @@ import {
     SceneRendererProps,
     TabView,
 } from "react-native-tab-view";
-import MatchListTab from "@/src/components/match/matchList/MatchListContainer";
+import MatchListTab from "@/src/components/matchList/MatchList";
 import { MatchStatus } from "@/src/types/Match";
 import { Filter } from "@/src/types/Filter";
 import { useUserContext } from "@/src/hooks/user/useUserContext";

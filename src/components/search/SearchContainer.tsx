@@ -16,7 +16,7 @@ import { ErrorState } from '@/src/components/common/feedback/ErrorState';
 import TeamCard from '@/src/components/search/TeamCard';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import TeamContainer from '@/src/components/team/TeamContainer';
+import TeamContainer from '@/src/components/team/Team';
 import { useGlobalBottomSheet } from '@/src/context/GlobalBottomSheetProvider';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BottomSheetFlatList } from '@gorhom/bottom-sheet';

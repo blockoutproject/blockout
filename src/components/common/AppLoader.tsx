@@ -17,7 +17,7 @@ const AppLoader: React.FC = () => {
                     type: "timing",
                     duration: 1000,
                     easing: Easing.linear,
-                    repeatReverse: true,
+                    repeatReverse: false,
                 }}
                 style={styles.spinner}
             >

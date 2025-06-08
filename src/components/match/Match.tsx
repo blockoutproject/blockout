@@ -1,29 +1,26 @@
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, ScrollView, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 import { useMatchById } from '@/src/hooks/match/useMatchById';
 import { MatchStatus } from '@/src/types/Match';
-import { Confetti } from 'react-native-fast-confetti';
 import { useAppTheme } from '@/src/context/ThemeProvider';
-import MatchSkeleton from '@/src/components/match/MatchSkeleton';
-import MatchScoreCard from '@/src/components/match/MatchScoreCard';
-import RankingCard from '@/src/components/common/RankingCard';
-import MatchScoreDetailsCard from '@/src/components/match/MatchScoreDetailsCard';
-import MatchInfoCard from '@/src/components/match/MatchInfoCard';
+import MatchSkeleton from './components/MatchSkeleton';
+import MatchScoreCard from './components/MatchScoreCard';
+import RankingCard from '../common/RankingCard';
+import MatchScoreDetailsCard from './components/MatchScoreDetailsCard';
+import MatchInfoCard from './components/MatchInfoCard';
 import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getLeagueLabel } from '@/src/utils/utils';
+import matchStyles from './matchStyles';
 
-type Props = {
-    matchId: number;
-};
+type Props = { matchId: number };
 
-const MatchContainer: React.FC<Props> = ({ matchId }) => {
+const Match: React.FC<Props> = ({ matchId }) => {
     const { match, teamA, teamB, pool, isLoading } = useMatchById(matchId);
     const theme = useAppTheme();
-
-    const [showConfetti, setShowConfetti] = useState(false);
     const insets = useSafeAreaInsets();
-    
+    const [showConfetti, setShowConfetti] = useState(false);
+
     useEffect(() => {
         if (match?.status === MatchStatus.FINISHED) {
             setShowConfetti(true);
@@ -36,18 +33,13 @@ const MatchContainer: React.FC<Props> = ({ matchId }) => {
 
     return (
         <View style={{ backgroundColor: theme.background }}>
-            {/* {showConfetti && (
-                    <Confetti
-                        count={100}
-                        fallDuration={3000}
-                        fadeOutOnEnd
-                        colors={['#FF5733', '#FFC300', '#DAF7A6', '#FF33FF', '#33FF57', '#3357FF', '#C70039', '#900C3F', '#581845']}
-                    />
-                )} */}
             {teamA && teamB && match && pool ? (
                 <BottomSheetScrollView
                     showsVerticalScrollIndicator={false}
-                    contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 8}]}
+                    contentContainerStyle={[
+                        matchStyles.scrollContent,
+                        { paddingBottom: insets.bottom + 8 },
+                    ]}
                 >
                     <MatchScoreCard
                         leagueName={getLeagueLabel(pool)}
@@ -75,11 +67,4 @@ const MatchContainer: React.FC<Props> = ({ matchId }) => {
     );
 };
 
-const styles = StyleSheet.create({
-    scrollContent: {
-        gap: 32,
-        paddingHorizontal: 8,
-    },
-});
-
-export default MatchContainer;
+export default Match;

@@ -1,16 +1,17 @@
 import React from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { Text, View } from "react-native";
 import { useTeamById } from "@/src/hooks/team/useTeamById";
 import { useDetailedPoolsByTeam } from "@/src/hooks/pool/useDetailedPoolsByTeam";
 import { useAppTheme } from "@/src/context/ThemeProvider";
-import TeamProfile from "@/src/components/team/TeamProfile";
 import TeamTabs from "@/src/components/team/TeamTabs";
+import { teamStyles } from "./teamStyles";
+import TeamProfile from "./teamProfile/TeamProfile";
 
 type Props = {
     teamId: number;
 };
 
-const TeamContainer: React.FC<Props> = ({ teamId }) => {
+const Team: React.FC<Props> = ({ teamId }) => {
     const { data: team, isLoading: isTeamLoading, isError: isTeamError } = useTeamById(teamId);
     const { pools, isLoading: isPoolsLoading, isError: isPoolsError } = useDetailedPoolsByTeam(teamId);
     const theme = useAppTheme();
@@ -27,17 +28,11 @@ const TeamContainer: React.FC<Props> = ({ teamId }) => {
     }
 
     return (
-        <View style={[styles.container]}>
+        <View style={[teamStyles.container]}>
             <TeamProfile team={team!} />
             <TeamTabs pools={pools!} team={team!} />
         </View>
     );
 };
 
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-    },
-});
-
-export default TeamContainer;
+export default Team;

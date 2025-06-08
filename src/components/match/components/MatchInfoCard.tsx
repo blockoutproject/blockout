@@ -1,14 +1,14 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import FastImage from 'react-native-fast-image';
 import { Pool } from '@/src/types/Pool';
 import { useAppTheme } from '@/src/context/ThemeProvider';
-import GradientView from '../common/GradientView';
+import GradientBorderView from '../../common/GradientBorderView';
 import { useGlobalBottomSheet } from '@/src/context/GlobalBottomSheetProvider';
 import * as Haptics from "expo-haptics";
-import PoolContainer from '../pool/PoolContainer';
-import GradientBorderView from '../common/GradientBorderView';
+import PoolContainer from '../../pool/PoolContainer';
+import matchStyles from '../matchStyles';
 
 type MatchInfoCardProps = {
     pool: Pool;
@@ -56,19 +56,19 @@ const MatchInfoCard: React.FC<MatchInfoCardProps> = ({
     ];
 
     return (
-        <GradientBorderView style={[styles.container]} colorsOverride={[theme.background, theme.background]}>
-            <Text style={[styles.title, { color: theme.text }]}>Information</Text>
+        <GradientBorderView style={matchStyles.infoCard} colorsOverride={[theme.background, theme.background]}>
+            <Text style={[matchStyles.infoCardTitle, { color: theme.text }]}>Information</Text>
 
-            <View style={styles.infoList}>
-                <TouchableOpacity onPress={() => handlePoolPress(pool.id)} style={styles.infoRow}>
+            <View style={matchStyles.infoRowsWrapper}>
+                <TouchableOpacity onPress={() => handlePoolPress(pool.id)} style={matchStyles.infoRow}>
                     <FastImage
                         source={require('@/assets/leagues/msl.png')}
-                        style={styles.poolLogo}
+                        style={matchStyles.poolLogo}
                         resizeMode="contain"
                     />
-                    <View style={styles.poolTitleWrapper}>
+                    <View style={matchStyles.poolTitleWrapper}>
                         <Text
-                            style={[styles.poolTitle, { color: theme.text }]}
+                            style={[matchStyles.poolTitleText, { color: theme.text }]}
                             numberOfLines={1}
                             ellipsizeMode="tail"
                             adjustsFontSizeToFit
@@ -80,15 +80,15 @@ const MatchInfoCard: React.FC<MatchInfoCardProps> = ({
                 </TouchableOpacity>
 
                 {infoData.filter(e => !!e).map((item, index) => (
-                    <View style={styles.infoRow} key={index}>
+                    <View style={matchStyles.infoRow} key={index}>
                         <Ionicons
                             name={item.icon as any}
                             size={20}
                             color={theme.text}
-                            style={styles.icon}
+                            style={matchStyles.icon}
                         />
                         <Text
-                            style={[styles.infoText, { color: theme.text }]}
+                            style={[matchStyles.infoText, { color: theme.text }]}
                             numberOfLines={1}
                             ellipsizeMode="tail"
                             adjustsFontSizeToFit
@@ -102,44 +102,5 @@ const MatchInfoCard: React.FC<MatchInfoCardProps> = ({
         </GradientBorderView>
     );
 };
-
-const styles = StyleSheet.create({
-    container: {
-        paddingHorizontal: 8,
-    },
-    title: {
-        fontSize: 18,
-        fontWeight: '600',
-        marginBottom: 12,
-    },
-    infoList: {
-        flexDirection: 'column',
-        gap: 10,
-    },
-    infoRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    poolLogo: {
-        width: 20,
-        height: 20,
-        marginRight: 12,
-        borderRadius: 5,
-    },
-    poolTitleWrapper: {
-        flex: 1,
-    },
-    poolTitle: {
-        fontSize: 14,
-        fontWeight: '700',
-    },
-    icon: {
-        marginRight: 12,
-    },
-    infoText: {
-        flex: 1,
-        fontSize: 14,
-    },
-});
 
 export default MatchInfoCard;

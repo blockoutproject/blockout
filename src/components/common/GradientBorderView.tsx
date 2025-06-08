@@ -28,7 +28,7 @@ const GradientBorderView: React.FC<GradientBorderViewProps> = ({
     borderWidth = 2,
     colorsOverride,
     start = { x: 0, y: 0 },
-    end = { x: 0, y: 0.25 },
+    end = { x: 0, y: 0.5 },
 }) => {
     const theme = useAppTheme();
 

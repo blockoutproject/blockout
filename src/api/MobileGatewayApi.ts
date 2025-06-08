@@ -54,11 +54,13 @@ class MobileGatewayApi extends AbstractApi {
         status: MatchStatus;
     }): Promise<EnrichedDayMatchesDTO[]> {
         try {
-            return await this.request<EnrichedDayMatchesDTO[]>({
+            const response = await this.request<EnrichedDayMatchesDTO[]>({
                 method: 'get',
                 url: '/match-list',
                 params: { status, page, size, poolIds, teamIds },
             });
+            console.log('getEnrichedMatches response:', response);
+            return response;
         } catch (error) {
             throw error;
         }

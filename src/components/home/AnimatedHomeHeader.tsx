@@ -6,6 +6,7 @@ import {
     Animated,
     LayoutChangeEvent,
     Platform,
+    useColorScheme,
 } from "react-native";
 import FastImage from "react-native-fast-image";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
@@ -35,11 +36,11 @@ type HeaderProps = SceneRendererProps & {
 };
 
 const AnimatedHomeHeader: React.FC<HeaderProps> = ({ scrollY, onTitleLayout, onTabBarLayout, ...props }) => {
-    const router = useRouter();
     const { user } = useAuth0();
     const insets = useSafeAreaInsets();
     const theme = useAppTheme();
     const { openSheet } = useGlobalBottomSheet();
+    const colorSheme = useColorScheme();
 
     const [titleHeight, setTitleHeight] = useState(0);
 
@@ -95,7 +96,7 @@ const AnimatedHomeHeader: React.FC<HeaderProps> = ({ scrollY, onTitleLayout, onT
                     </Animated.View>
 
                     <LinearGradient
-                        colors={[theme.background, "transparent"]}
+                        colors={[theme.background, theme.backgroundSecondary]}
                         start={{ x: 0, y: 0.35 }}
                         end={{ x: 0, y: 1 }}
                         style={StyleSheet.absoluteFill}
@@ -116,7 +117,7 @@ const AnimatedHomeHeader: React.FC<HeaderProps> = ({ scrollY, onTitleLayout, onT
                 }}
             >
                 <FastImage
-                    source={require("@/assets/images/blockout-logo-with-title-light.png")}
+                    source={colorSheme === "dark" ? require("@/assets/images/blockout-logo-with-title-light.png") : require("@/assets/images/blockout-logo-with-title-dark.png")}
                     style={styles.teamLogo}
                     resizeMode="contain"
                 />

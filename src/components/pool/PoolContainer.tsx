@@ -4,7 +4,7 @@ import { useLocalSearchParams } from 'expo-router';
 import { usePoolById } from '@/src/hooks/pool/usePoolById';
 import PoolProfile from '@/src/components/pool/PoolProfile';
 import PoolTabs from '@/src/components/pool/PoolTabs';
-import MatchSkeleton from '@/src/components/match/MatchSkeleton';
+import MatchSkeleton from '@/src/components/match/components/MatchSkeleton';
 import { useAppTheme } from '@/src/context/ThemeProvider';
 
 type Props = {

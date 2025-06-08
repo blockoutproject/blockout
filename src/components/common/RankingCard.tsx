@@ -1,36 +1,28 @@
 import React from 'react';
-import { 
-    View, 
-    Text, 
-    ActivityIndicator, 
-    StyleSheet, 
-    TouchableOpacity 
+import {
+    View,
+    Text,
+    ActivityIndicator,
+    StyleSheet,
+    TouchableOpacity,
+    FlatList,
 } from 'react-native';
 import { useDetailedTeamsByPool } from '@/src/hooks/pool/useDetailedTeamsByPool';
 import FastImage from 'react-native-fast-image';
 import { useAppTheme } from '@/src/context/ThemeProvider';
 import { AppTheme } from '@/src/types/Theme';
-import GradientView from './GradientView';
-import { FlatList } from 'react-native-gesture-handler';
-import TeamContainer from '../team/TeamContainer';
 import { useGlobalBottomSheet } from '@/src/context/GlobalBottomSheetProvider';
 import * as Haptics from 'expo-haptics';
 import GradientBorderView from './GradientBorderView';
+import TeamContainer from '../team/Team';
 
 interface RankingCardProps {
     poolId: number;
     scrollable?: boolean;
 }
 
-function getRankColor(rank: number, theme: AppTheme): string {
-    if (rank === 1) return theme.gold;
-    if (rank === 2) return theme.silver;
-    if (rank === 3) return theme.bronze;
-    return theme.surfaceTertiary;
-}
-
 function getRankBackground(isEven: boolean, theme: AppTheme): string {
-    return isEven ? theme.surface : 'transparent';
+    return isEven ? theme.backgroundSecondary : 'transparent';
 }
 
 const RankingCard: React.FC<RankingCardProps> = ({ poolId, scrollable = true }) => {
@@ -62,12 +54,12 @@ const RankingCard: React.FC<RankingCardProps> = ({ poolId, scrollable = true }) 
 
     return (
         <GradientBorderView
-            style={[styles.container]}
+            outerStyle={styles.outer}
+            style={styles.container}
             colorsOverride={[theme.borderSecondary, theme.backgroundSecondary]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
         >
-            {/* HEADER */}
             <View style={styles.headerRow}>
                 <View style={styles.transparentRankIndicator} />
                 <Text style={[styles.headerText, styles.rankCell, { color: theme.text }]} numberOfLines={1}>#</Text>
@@ -78,7 +70,6 @@ const RankingCard: React.FC<RankingCardProps> = ({ poolId, scrollable = true }) 
                 <Text style={[styles.headerText, styles.statCell, { color: theme.text }]} numberOfLines={1}>PTS</Text>
             </View>
 
-            {/* LISTE DES ÉQUIPES */}
             <FlatList
                 data={teams.sort((a, b) =>
                     b.points - a.points ||
@@ -96,15 +87,8 @@ const RankingCard: React.FC<RankingCardProps> = ({ poolId, scrollable = true }) 
 
                     return (
                         <View style={[styles.row, { backgroundColor: getRankBackground(isEven, theme) }]}>
-                            <View
-                                style={[
-                                    styles.transparentRankIndicator,                                ]}
-                            />
-                            <Text
-                                style={[styles.cell, styles.rankCell, { color: theme.text }]}
-                                numberOfLines={1}
-                                ellipsizeMode="tail"
-                            >
+                            <View style={styles.transparentRankIndicator} />
+                            <Text style={[styles.cell, styles.rankCell, { color: theme.text }]}>
                                 {rank}
                             </Text>
                             <TouchableOpacity
@@ -151,6 +135,9 @@ const styles = StyleSheet.create({
         flexShrink: 1,
         padding: 8,
         paddingTop: -8,
+    },
+    outer: {
+        flexShrink: 1,
     },
     loadingText: {
         marginTop: 8,
