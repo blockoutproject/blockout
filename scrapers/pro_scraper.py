@@ -139,9 +139,9 @@ class ProScraper(Scraper):
                 message="Erreur critique lors du scraping des poules professionnelles."
             )
 
-    async def execute_task_chain(self, pool: Pool, existing_pool: Pool, season, lnv_url, lnv_xml_matches_url, lnv_xml_rank_url):
+    async def execute_task_chain(self, pool: Pool, existing_pool: Pool, raw_season, lnv_url, lnv_xml_matches_url, lnv_xml_rank_url):
         # 1) Télécharge et parse un éventuel CSV (FFVB)
-        await handle_csv_download_and_parse(self, pool, season, existing_pool=existing_pool)
+        await handle_csv_download_and_parse(self, pool, raw_season, existing_pool=existing_pool)
 
         # 2) Parsing du XML LNV
         await self.parse_and_update_matches(lnv_xml_matches_url, lnv_xml_rank_url, pool)

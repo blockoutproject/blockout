@@ -9,6 +9,10 @@ try:
 except Exception as e:
     logger.error(f"Erreur lors du chargement de 'team_aliases': {e}")
     team_aliases = {}
+    
+def normalize(name: str) -> str:
+    return name.lower().strip().replace("’", "'").replace("-", " ").replace(".", "")
+
 
 def get_full_name(name: str, gender: str) -> Optional[str]:
     """

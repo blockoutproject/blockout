@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 import aiohttp
 from config.env_config import TEAM_API_URL
 from config.logger_config import log_event
@@ -44,20 +44,33 @@ async def update_team(
 
 
 @handle_api_response(response_type=list[Team])
-async def get_teams_by_division_format_gender(
+async def get_teams(
     session: aiohttp.ClientSession,
-    division_name: str,
-    format: str,
-    gender: str
+    division_name: Optional[str] = None,
+    format: Optional[str] = None,
+    gender: Optional[str] = None,
+    club_id: Optional[str] = None,
+    name: Optional[str] = None,
+    ids: Optional[List[int]] = None
 ) -> List[Team]:
     """
-    Récupère les équipes par division_name, format et gender.
+    Récupère les équipes avec des filtres optionnels : name, division_name, format, gender, club_id, ids.
     """
     headers = _get_headers()
-    params = {
-        "division_name": division_name,
-        "format": format,
-        "gender": gender
-    }
+    params = {}
+
+    if name:
+        params["name"] = name
+    if division_name:
+        params["division_name"] = division_name
+    if format:
+        params["format"] = format
+    if gender:
+        params["gender"] = gender
+    if club_id:
+        params["club_id"] = club_id
+    if ids:
+        params["ids"] = ",".join(map(str, ids))
+
     url = f"{TEAM_API_URL}"
     return await session.get(url, params=params, headers=headers)

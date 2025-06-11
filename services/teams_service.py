@@ -1,6 +1,6 @@
 from typing import Optional
 import aiohttp
-from api.teams_api import create_team, get_teams_by_division_format_gender, update_team
+from api.teams_api import create_team, get_teams, update_team
 from models.team import Team
 
 async def add_or_update_team(session: aiohttp.ClientSession, team: Team, existing_team: Optional[Team]) -> Team:
@@ -42,7 +42,7 @@ async def find_team_by_name_in_division_format_gender(
     2) Filtre pour trouver celle dont name correspond à 'searched_name' (insensible à la casse).
     3) Retourne la première correspondante ou None si introuvable.
     """
-    teams = await get_teams_by_division_format_gender(session, division_name, format, gender)
+    teams = await get_teams(session, division_name, format, gender)
     if not teams:
         return None
     

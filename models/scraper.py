@@ -181,7 +181,6 @@ class Scraper(ABC):
                     )
                     raise Exception(f"Échec complet pour l'URL '{url}' après {retries} tentatives.")
 
-
     async def init_matches_cache(self, pool_id: int):
         """
         Charge tous les matchs existants en base (DB) pour la poule 'pool_id'

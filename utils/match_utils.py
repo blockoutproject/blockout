@@ -19,6 +19,13 @@ def validate_set_format(set: str) -> str:
     pattern = re.compile(r"^\d{1}-\d{1}$")
     return set if set and pattern.fullmatch(set) else "0-0"
 
+def is_anomalous_set_format(set_str: str) -> bool:
+    """
+    Vérifie si le score set contient des lettres, 
+    ce qui indique un match non standard.
+    """
+    return bool(re.search(r'[A-Za-z]', set_str))
+
 def parse_team_score(score: str) -> Tuple[Optional[int], str]:
     """
     Parse une chaîne de score qui contient exactement UN élément 

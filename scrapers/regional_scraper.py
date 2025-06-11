@@ -6,7 +6,6 @@ from api.pools_api import get_pools_by_league_and_season
 from models.category import Category
 from models.pool import Pool, PoolDivisionCode
 from models.scraper import Scraper
-from services.pools_service import add_or_update_pool
 from utils.scraper_logic import handle_csv_download_and_parse
 from utils.utils import parse_season, standardize_division_name
 from config.logger_config import log_event
@@ -127,6 +126,8 @@ class RegionalScraper(Scraper):
                 if season_match:
                     raw_season = season_match.group(1)
                     break
+                
+            print(f"Traitement de la poule : {a_tag}")
 
             if not raw_season:
                 log_event(
