@@ -36,7 +36,10 @@ public class TeamSearchService {
             );
 
             SearchResponse<TeamSearchDoc> response = elasticsearchClient.search(
-                    s -> s.index("teams").query(query),
+                    s -> s
+                        .index("teams")
+                        .query(query)
+                        .size(20),
                     TeamSearchDoc.class
             );
 
