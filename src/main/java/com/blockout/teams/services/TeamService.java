@@ -198,26 +198,6 @@ public class TeamService {
     }
 
     /**
-     * Récupère les équipes par division, format et genre
-     * 
-     * @param divisionName Le nom de la division
-     * @param format       Le format de l'équipe
-     * @param gender       Le genre de l'équipe
-     * @return Liste des équipes correspondantes
-     */
-    public List<Team> getTeamsByDivisionFormatGender(String divisionName, TeamFormat format, TeamGender gender) {
-        List<Team> teams = teamRepository.findByDivisionNameAndFormatAndGender(divisionName, format, gender);
-        if (teams.isEmpty()) {
-            logger.warn("No teams found for given divisionName, format, and gender",
-                    keyValue("action", "get_teams_by_division_format_gender"),
-                    keyValue("divisionName", divisionName),
-                    keyValue("format", format),
-                    keyValue("gender", gender));
-        }
-        return teams;
-    }
-
-    /**
      * Incrémente le compteur de followers pour l'équipe.
      * 
      * @param teamId Identifiant de l'équipe
