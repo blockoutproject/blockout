@@ -127,8 +127,6 @@ class RegionalScraper(Scraper):
                     raw_season = season_match.group(1)
                     break
                 
-            print(f"Traitement de la poule : {a_tag}")
-
             if not raw_season:
                 log_event(
                     action="missing_season",

@@ -78,8 +78,6 @@ class NationalScraper(Scraper):
                     name = a_tag.get_text(strip=True)
                     pool_code = href.split('_')[-1].replace('.htm', '').upper()
                     
-                    print(f"Traitement de la poule : {name} ({pool_code}) : {a_tag}")
-
                     # Extraction de la division
                     raw_division_name = extract_national_division(name)
 
