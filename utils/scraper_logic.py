@@ -26,17 +26,25 @@ async def handle_csv_download_and_parse(
     scraped_pool_ids: Optional[set[int]] = None
 ) -> None:
     if scraper.session.closed:
-        log_event("csv_download_session_closed", "error", pool_name=pool.name,
-                  message="Session fermée avant téléchargement CSV")
+        log_event(
+            "csv_download_session_closed", 
+            "error", 
+            pool_name=pool.name,
+            message="Session fermée avant téléchargement CSV"
+        )
         return
 
     try:
-        has_anomalous_match = False
         parsed_data = await download_and_parse_csv(scraper, pool, raw_season)
 
         if not parsed_data:
-            log_event("download_and_parse_csv_failed", "error", pool_name=pool.name,
-                      season=raw_season, message="Échec téléchargement CSV")
+            log_event(
+                "download_and_parse_csv_failed", 
+                "error", 
+                pool_name=pool.name,
+                season=raw_season, 
+                message="Échec téléchargement CSV"
+            )
             return
 
         valid_rows = [
@@ -64,6 +72,13 @@ async def handle_csv_download_and_parse(
 
         scraped_team_ids = set()
         scraped_match_codes = set()
+        
+        # Vérification des matchs anormaux pour savoir si on parse le classement avec un calcul ou avec la page HTML
+        for row in valid_rows:
+            set_str = row.get("set")
+            if set_str and is_anomalous_set_format(set_str):
+                has_anomalous_match = True
+                break 
 
         for row in valid_rows:
             match_datetime = parse_date(row.get('match_date'), row.get('match_time'))
@@ -138,24 +153,21 @@ async def handle_csv_download_and_parse(
                     active_team_ids.add(team_obj.id)
 
             # Association stats
-            if updated_match.status == MatchStatus.FINISHED and updated_match.set:
-                if is_anomalous_set_format(updated_match.set):
-                    has_anomalous_match = True
-                elif not has_anomalous_match:
-                    try:
-                        set_a, set_b = updated_match.set.split('-')
-                        team_a_stats, team_b_stats = compute_volleyball_match_stats(set_a, set_b, new_pool, updated_match.score)
-                        scraper.schedule_association_update(new_pool.id, new_team_a.id, team_stats=team_a_stats)
-                        scraper.schedule_association_update(new_pool.id, new_team_b.id, team_stats=team_b_stats)
-                    except Exception as e:
-                        log_event(
-                            "score_parsing_exception", 
-                            "error", 
-                            match_code=match_code, 
-                            set=updated_match.set,
-                            error=str(e), 
-                            message="Erreur parsing score pour calcul des stats"
-                        )
+            if not has_anomalous_match and updated_match.status == MatchStatus.FINISHED and updated_match.set:
+                try:
+                    set_a, set_b = updated_match.set.split('-')
+                    team_a_stats, team_b_stats = compute_volleyball_match_stats(set_a, set_b, new_pool, updated_match.score)
+                    scraper.schedule_association_update(new_pool.id, new_team_a.id, team_a_stats)
+                    scraper.schedule_association_update(new_pool.id, new_team_b.id, team_b_stats)
+                except Exception as e:
+                    log_event(
+                        "score_parsing_exception", 
+                        "error", 
+                        match_code=match_code, 
+                        set=updated_match.set,
+                        error=str(e), 
+                        message="Erreur parsing score pour calcul des stats"
+                    )
 
             scraper.schedule_match_changes(updated_match=updated_match, prefix="CSV", priority=DataSourcePriority.FFVB)
 
@@ -177,7 +189,7 @@ async def handle_csv_download_and_parse(
                         message="Aucune équipe existante ne correspond à ce nom de club"
                     )
                     continue
-                scraper.schedule_association_update(new_pool.id, matched_team.id, team_stats=stats)
+                scraper.schedule_association_update(new_pool.id, matched_team.id, stats)
 
         if not scraped_match_codes:
             return
