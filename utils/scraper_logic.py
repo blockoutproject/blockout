@@ -74,6 +74,7 @@ async def handle_csv_download_and_parse(
         scraped_match_codes = set()
         
         # Vérification des matchs anormaux pour savoir si on parse le classement avec un calcul ou avec la page HTML
+        has_anomalous_match = False
         for row in valid_rows:
             set_str = row.get("set")
             if set_str and is_anomalous_set_format(set_str):
