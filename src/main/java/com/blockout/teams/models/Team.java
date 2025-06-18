@@ -7,6 +7,9 @@ import lombok.Builder;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
+import com.blockout.teams.models.enums.TeamFormat;
+import com.blockout.teams.models.enums.TeamGender;
+
 @Data
 @Builder(toBuilder = true)
 @NoArgsConstructor

@@ -1,8 +1,8 @@
 package com.blockout.teams.repositories;
 
 import com.blockout.teams.models.Team;
-import com.blockout.teams.models.TeamFormat;
-import com.blockout.teams.models.TeamGender;
+import com.blockout.teams.models.enums.TeamFormat;
+import com.blockout.teams.models.enums.TeamGender;
 
 import java.util.List;
 

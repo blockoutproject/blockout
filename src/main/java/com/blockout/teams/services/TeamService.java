@@ -2,8 +2,8 @@ package com.blockout.teams.services;
 
 import com.blockout.teams.exceptions.TeamNotFoundException;
 import com.blockout.teams.models.Team;
-import com.blockout.teams.models.TeamFormat;
-import com.blockout.teams.models.TeamGender;
+import com.blockout.teams.models.enums.TeamFormat;
+import com.blockout.teams.models.enums.TeamGender;
 import com.blockout.teams.repositories.TeamRepository;
 import com.blockout.teams.utils.DiffUtils;
 

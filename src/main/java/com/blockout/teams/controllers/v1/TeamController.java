@@ -1,8 +1,8 @@
 package com.blockout.teams.controllers.v1;
 
 import com.blockout.teams.models.Team;
-import com.blockout.teams.models.TeamFormat;
-import com.blockout.teams.models.TeamGender;
+import com.blockout.teams.models.enums.TeamFormat;
+import com.blockout.teams.models.enums.TeamGender;
 import com.blockout.teams.services.TeamService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;

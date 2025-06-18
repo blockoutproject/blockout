@@ -2,7 +2,8 @@ package com.blockout.teams.models.events;
 
 import java.io.Serializable;
 
-import com.blockout.teams.models.EntityType;
+import com.blockout.teams.models.enums.EntityType;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

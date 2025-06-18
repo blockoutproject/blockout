@@ -1,7 +1,7 @@
 package com.blockout.teams.listeners;
 
 import com.blockout.teams.config.RabbitMQConfig;
-import com.blockout.teams.models.EntityType;
+import com.blockout.teams.models.enums.EntityType;
 import com.blockout.teams.models.events.ClubDeactivationEvent;
 import com.blockout.teams.models.events.TeamDeactivationEvent;
 import com.blockout.teams.models.events.UserFollowEvent;

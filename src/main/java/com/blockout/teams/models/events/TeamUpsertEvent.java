@@ -1,7 +1,7 @@
 package com.blockout.teams.models.events;
 
-import com.blockout.teams.models.TeamFormat;
-import com.blockout.teams.models.TeamGender;
+import com.blockout.teams.models.enums.TeamFormat;
+import com.blockout.teams.models.enums.TeamGender;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

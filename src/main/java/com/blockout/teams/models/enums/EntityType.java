@@ -1,4 +1,4 @@
-package com.blockout.teams.models;
+package com.blockout.teams.models.enums;
 
 public enum EntityType {
     TEAM,
