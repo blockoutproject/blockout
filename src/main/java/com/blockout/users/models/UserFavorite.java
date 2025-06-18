@@ -7,6 +7,8 @@ import lombok.Builder;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
+import com.blockout.users.models.enums.EntityType;
+
 @Data
 @Builder
 @NoArgsConstructor

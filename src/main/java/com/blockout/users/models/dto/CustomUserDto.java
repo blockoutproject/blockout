@@ -1,11 +1,12 @@
 package com.blockout.users.models.dto;
 
-import com.blockout.users.models.UserRole;
 import lombok.Builder;
 import lombok.Data;
 
 import java.time.LocalDateTime;
 import java.util.List;
+
+import com.blockout.users.models.enums.UserRole;
 
 @Data
 @Builder

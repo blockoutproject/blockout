@@ -6,8 +6,8 @@ import com.auth0.json.mgmt.users.User;
 import com.blockout.users.config.Auth0TokenManager;
 import com.blockout.users.models.CustomUser;
 import com.blockout.users.models.UserRegistrationRequest;
-import com.blockout.users.models.UserRole;
 import com.blockout.users.models.dto.CustomUserDto;
+import com.blockout.users.models.enums.UserRole;
 import com.blockout.users.models.mappers.CustomUserMapper;
 import com.blockout.users.repositories.UserRepository;
 

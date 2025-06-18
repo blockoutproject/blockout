@@ -8,6 +8,8 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import com.blockout.users.models.enums.UserRole;
+
 @Data
 @Builder(toBuilder = true)
 @NoArgsConstructor

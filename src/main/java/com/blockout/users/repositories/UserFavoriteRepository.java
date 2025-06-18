@@ -1,8 +1,9 @@
 package com.blockout.users.repositories;
 
 import com.blockout.users.models.UserFavorite;
+import com.blockout.users.models.enums.EntityType;
 import com.blockout.users.models.CustomUser;
-import com.blockout.users.models.EntityType;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import java.util.List;

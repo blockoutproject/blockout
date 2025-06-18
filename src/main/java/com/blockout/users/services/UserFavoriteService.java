@@ -1,8 +1,8 @@
 package com.blockout.users.services;
 
 import com.blockout.users.models.CustomUser;
-import com.blockout.users.models.EntityType;
 import com.blockout.users.models.UserFavorite;
+import com.blockout.users.models.enums.EntityType;
 import com.blockout.users.models.events.UserFollowEvent.EventType;
 import com.blockout.users.repositories.UserFavoriteRepository;
 import com.blockout.users.repositories.UserRepository;
