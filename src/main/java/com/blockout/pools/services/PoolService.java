@@ -118,7 +118,6 @@ public class PoolService {
             pool.setDivisionName(updatedPool.getDivisionName());
             pool.setFormat(updatedPool.getFormat());
             pool.setGender(updatedPool.getGender());
-            pool.setRawDivisionName(updatedPool.getRawDivisionName());
             pool.setActive(updatedPool.getActive());
 
             if (!before.getActive() && pool.getActive()) {

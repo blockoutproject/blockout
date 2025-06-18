@@ -22,9 +22,9 @@ public interface PoolRepository extends JpaRepository<Pool, Long> {
             SELECT p
             FROM Pool p
             WHERE (:leagueCode IS NULL OR p.leagueCode = :leagueCode)
-              AND (:season     IS NULL OR p.season     = :season)
-              AND (:active     IS NULL OR p.active     = :active)
-              AND (:idsSize = 0 OR p.id IN :ids)
+                AND (:season     IS NULL OR p.season     = :season)
+                AND (:active     IS NULL OR p.active     = :active)
+                AND (:idsSize = 0 OR p.id IN :ids)
             ORDER BY p.season DESC, p.name ASC
             """)
     List<Pool> findFiltered(@Param("leagueCode") String leagueCode,

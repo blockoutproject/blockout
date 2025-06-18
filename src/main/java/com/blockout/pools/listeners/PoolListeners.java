@@ -1,7 +1,7 @@
 package com.blockout.pools.listeners;
 
 import com.blockout.pools.config.RabbitMQConfig;
-import com.blockout.pools.models.EntityType;
+import com.blockout.pools.models.enums.EntityType;
 import com.blockout.pools.models.events.PoolDeactivationEvent;
 import com.blockout.pools.models.events.UserFollowEvent;
 import com.blockout.pools.services.PoolService;

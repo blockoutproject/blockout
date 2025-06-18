@@ -1,4 +1,4 @@
-package com.blockout.pools.models;
+package com.blockout.pools.models.enums;
 
 public enum EntityType {
     TEAM,
