@@ -35,9 +35,6 @@ public class PoolDTO {
     private String format;
     private String gender;
 
-    @JsonProperty("raw_division_name")
-    private String rawDivisionName;
-
     @JsonProperty("followers_count")
     private Long followersCount;
 
