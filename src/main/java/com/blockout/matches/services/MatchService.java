@@ -2,10 +2,10 @@ package com.blockout.matches.services;
 
 import com.blockout.matches.exceptions.MatchNotFoundException;
 import com.blockout.matches.models.Match;
-import com.blockout.matches.models.MatchStatus;
 import com.blockout.matches.models.dto.DayMatchesDTO;
 import com.blockout.matches.models.dto.DayPageDTO;
 import com.blockout.matches.models.dto.PoolMatchesDTO;
+import com.blockout.matches.models.enums.MatchStatus;
 import com.blockout.matches.repositories.MatchRepository;
 import com.blockout.matches.utils.DiffUtils;
 

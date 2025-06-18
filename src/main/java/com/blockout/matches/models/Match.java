@@ -8,6 +8,8 @@ import lombok.Builder;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
+import com.blockout.matches.models.enums.MatchStatus;
+
 @Data
 @Builder(toBuilder = true)
 @NoArgsConstructor

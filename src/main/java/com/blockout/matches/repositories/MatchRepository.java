@@ -1,7 +1,8 @@
 package com.blockout.matches.repositories;
 
 import com.blockout.matches.models.Match;
-import com.blockout.matches.models.MatchStatus;
+import com.blockout.matches.models.enums.MatchStatus;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;

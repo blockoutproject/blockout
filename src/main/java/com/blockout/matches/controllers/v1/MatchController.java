@@ -1,9 +1,9 @@
 package com.blockout.matches.controllers.v1;
 
 import com.blockout.matches.models.Match;
-import com.blockout.matches.models.MatchStatus;
 import com.blockout.matches.models.dto.BulkMatchesDeactivateRequest;
 import com.blockout.matches.models.dto.DayPageDTO;
+import com.blockout.matches.models.enums.MatchStatus;
 import com.blockout.matches.services.MatchService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
