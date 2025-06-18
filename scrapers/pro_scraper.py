@@ -13,7 +13,6 @@ from models.match import Match, MatchStatus
 from models.pool import Pool, PoolDivisionCode
 from models.scraper import Scraper
 from services.matchs_service import find_match_in_cache
-from services.pools_service import add_or_update_pool
 from services.teams_service import find_team_by_name_in_division_format_gender
 from utils.match_utils import validate_set_format, validate_set_score_format
 from utils.scraper_logic import handle_csv_download_and_parse
@@ -147,7 +146,7 @@ class ProScraper(Scraper):
         await self.parse_and_update_matches(lnv_xml_matches_url, lnv_xml_rank_url, pool)
 
         # 3) Compléter avec le live_code (HTML LNV)
-        await self.add_match_live_code(lnv_url, pool, pool.gender)
+        await self.add_match_live_code(lnv_url, pool)
 
     # --------------------------------------------------------------------------
     #  Parsing XML (LNV)
@@ -264,6 +263,7 @@ class ProScraper(Scraper):
         et met à jour les stats dans `_associations_cache`.
         """
         try:
+            print(f"Processing XML rank for pool: {pool.id} - {pool.name}")
             # On parcourt chaque <Equipe> dans le <Competition> (ou directement si c’est le root)
             for competition_el in rank_root.findall(".//Competition"):
                 # (Optionnel) vérifier CodeCompetition si nécessaire
@@ -329,7 +329,7 @@ class ProScraper(Scraper):
     # --------------------------------------------------------------------------
     #  Parsing HTML LNV pour le live_code
     # --------------------------------------------------------------------------
-    async def add_match_live_code(self, url, pool: Pool, gender):
+    async def add_match_live_code(self, url, pool: Pool):
         html_content = await self.fetch(url)
         if not html_content:
             log_event(
@@ -353,7 +353,7 @@ class ProScraper(Scraper):
             return
 
         # Parcours de toutes les journées
-        await self.process_all_days(soup, main_id, pool, gender)
+        await self.process_all_days(soup, main_id, pool)
 
     async def extract_main_id(self, soup: BeautifulSoup) -> Optional[str]:
         span = soup.find("span", id=re.compile(r"Content_Main_(\d+)_userControl_lbl_title"))
@@ -362,7 +362,7 @@ class ProScraper(Scraper):
             return match_.group(1) if match_ else None
         return None
 
-    async def process_all_days(self, soup: BeautifulSoup, main_id: str, pool: Pool, gender: str):
+    async def process_all_days(self, soup: BeautifulSoup, main_id: str, pool: Pool):
         total_days = 0
         
         while True:
@@ -373,10 +373,10 @@ class ProScraper(Scraper):
                 break
             
             # Au lieu d'appeler directement, on crée un task
-            await self.process_matches_in_day(soup, main_id, total_days, pool, gender)
+            await self.process_matches_in_day(soup, main_id, total_days, pool)
             total_days += 2
 
-    async def process_matches_in_day(self, soup: BeautifulSoup, main_id: str, total_days: int, pool: Pool, gender: str):
+    async def process_matches_in_day(self, soup: BeautifulSoup, main_id: str, total_days: int, pool: Pool):
         match_count = 0
         tasks = []  # Liste de tasks asynchrones
 
@@ -388,7 +388,7 @@ class ProScraper(Scraper):
                 break
 
             # Au lieu d'appeler directement, on crée un task
-            task = asyncio.create_task(self.process_match_block(match_block, pool, gender))
+            task = asyncio.create_task(self.process_match_block(match_block, pool))
             tasks.append(task)
 
             match_count += 2
@@ -396,14 +396,14 @@ class ProScraper(Scraper):
         # Une fois tous les match_block de cette journée récupérés, on exécute en parallèle
         await asyncio.gather(*tasks)
 
-    async def process_match_block(self, match_block, pool: Pool, gender: str):
+    async def process_match_block(self, match_block, pool: Pool):
         # Récupération du live code (mID=XXX)
         mID = self.extract_match_id(match_block)
 
         # Équipes
         home_name, guest_name = self.extract_teams(match_block)
-        home_team_full = get_full_name(home_name, gender)
-        guest_team_full = get_full_name(guest_name, gender)
+        home_team_full = get_full_name(home_name, pool.gender)
+        guest_team_full = get_full_name(guest_name, pool.gender)
 
         # Log si alias non trouvé
         if not home_team_full:

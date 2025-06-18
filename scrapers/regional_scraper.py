@@ -156,6 +156,8 @@ class RegionalScraper(Scraper):
 
                     if not mapping.is_mapped():
                         continue
+                    
+                    print("____________________")
 
                     pool_data = {
                         "pool_code": pool_code,

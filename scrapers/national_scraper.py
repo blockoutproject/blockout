@@ -77,6 +77,8 @@ class NationalScraper(Scraper):
 
                     if not mapping.is_mapped():
                         continue
+                    
+                    print("____________________")
 
                     pool_obj = Pool(
                         pool_code=pool_code,

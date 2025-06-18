@@ -220,6 +220,7 @@ class Scraper(ABC):
             active_assocs = await get_active_team_associations_by_pool(self.session, pool_id) or []
             for assoc in active_assocs:
                 key = (assoc.pool_id, assoc.team_id)
+                print(f"Initializing association cache for key: {key} with stats: {assoc}")
                 # On stocke l'association originale et une copie mutable
                 assocDto = AssociationStats(
                     played=assoc.played,
@@ -241,6 +242,8 @@ class Scraper(ABC):
                     coef_points=assoc.coef_points
                 )
                 self._associations_cache[key] = (assocDto, AssociationStats())
+            print("Cache initialized...", self._associations_cache)
+
         except Exception as e:
             log_event(
                 action="init_associations_cache_error",
@@ -343,6 +346,7 @@ class Scraper(ABC):
         Les valeurs sont cumulées sur tout le CSV.
         """
         key = (pool_id, team_id)
+        print(f"Scheduling association update for key: {key} with stats: {team_stats}")
         if key not in self._associations_cache:
             self._associations_cache[key] = (None, AssociationStats())
                 
@@ -386,6 +390,7 @@ class Scraper(ABC):
         dans l'association (pool_id, team_id) du _associations_cache.
         """
         key = (pool_id, team_id)
+        print(f"Scheduling association replace for key: {key} with points: {points}")
         if key not in self._associations_cache:
             self._associations_cache[key] = (None, AssociationStats())
         
@@ -401,6 +406,7 @@ class Scraper(ABC):
         Ensuite, le cache est vidé.
         """
         update_tasks = []
+        print("Finalizing associations updates...", self._associations_cache)
         for (pool_id, team_id), (original, updated) in self._associations_cache.items():
             updated.coef_sets = round(updated.won_sets / updated.lost_sets, 3) if updated.lost_sets > 0 else updated.won_sets
             updated.coef_points = round(updated.won_points / updated.lost_points, 3) if updated.lost_points > 0 else updated.won_points

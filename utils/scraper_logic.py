@@ -56,6 +56,7 @@ async def handle_csv_download_and_parse(
             return
 
         new_pool = await add_or_update_pool(scraper.session, pool, existing_pool, False)
+        pool.id = new_pool.id # Update the pool ID after creation or update for upcoming Pro Scraper functions
         await scraper.init_matches_cache(new_pool.id)
         await scraper.init_associations_cache(new_pool.id)
 
@@ -158,6 +159,7 @@ async def handle_csv_download_and_parse(
                 try:
                     set_a, set_b = updated_match.set.split('-')
                     team_a_stats, team_b_stats = compute_volleyball_match_stats(set_a, set_b, new_pool, updated_match.score)
+                    print(f"11111PoolId: {new_pool.id} {new_pool.name}, Computed stats for match {match_code}: Team A - {new_team_a.id}, Team B - {new_team_b.id}")
                     scraper.schedule_association_update(new_pool.id, new_team_a.id, team_a_stats)
                     scraper.schedule_association_update(new_pool.id, new_team_b.id, team_b_stats)
                 except Exception as e:
@@ -190,6 +192,8 @@ async def handle_csv_download_and_parse(
                         message="Aucune équipe existante ne correspond à ce nom de club"
                     )
                     continue
+                print(f"22222PoolId: {new_pool.id} {new_pool.name}, Computed stats for match {match_code}: Team A - {new_team_a.id}, Team B - {new_team_b.id}")
+
                 scraper.schedule_association_update(new_pool.id, matched_team.id, stats)
 
         if not scraped_match_codes:
