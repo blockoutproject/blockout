@@ -1,11 +1,11 @@
 import { ViewStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useAppTheme } from '@/src/context/ThemeProvider';
+import { GradientVariants } from '@/src/utils/utils';
 
 type GradientViewProps = {
     children: React.ReactNode;
     style?: ViewStyle | ViewStyle[];
-    colorsOverride?: readonly [string, string, ...string[]]; // Si tu veux forcer d'autres couleurs
+    gradient: GradientVariants;
     start?: { x: number; y: number };
     end?: { x: number; y: number };
 };
@@ -13,16 +13,13 @@ type GradientViewProps = {
 const GradientView: React.FC<GradientViewProps> = ({
     children,
     style,
-    colorsOverride,
-    start = { x: 0, y: 1 },
-    end = { x: 0, y: 0 },
+    gradient,
+    start = { x: 0, y: 0 },
+    end = { x: 1, y: 1 },
 }) => {
-    const theme = useAppTheme();
-    const colors = colorsOverride ?? [ theme.surface, theme.surfaceSecondary ];
-
     return (
         <LinearGradient
-            colors={colors}
+            colors={gradient.base}
             start={start}
             end={end}
             style={style}

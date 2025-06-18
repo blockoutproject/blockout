@@ -30,9 +30,8 @@ const GlobalBottomSheet: React.FC<Props> = ({ id, sheetRef, onClose, children })
             ]}
             handleIndicatorStyle={{ backgroundColor: theme.text }}
             backgroundStyle={{ backgroundColor: theme.background }}
-            style={styles.sheetShadow}
         >
-            <BottomSheetView style={styles.content}>
+            <BottomSheetView style={[styles.content]}>
                 {children}
             </BottomSheetView>
         </BottomSheet>
@@ -47,6 +46,7 @@ const styles = StyleSheet.create({
         
     },
     sheetShadow: {
+        backgroundColor: 'transparent',
         shadowColor: '#000',
         shadowOffset: {
             width: 0,

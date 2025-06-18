@@ -4,10 +4,11 @@ import { Ionicons } from '@expo/vector-icons';
 import FastImage from 'react-native-fast-image';
 import { Pool } from '@/src/types/Pool';
 import { useAppTheme } from '@/src/context/ThemeProvider';
-import GradientBorderView from '../../common/GradientBorderView';
 import { useGlobalBottomSheet } from '@/src/context/GlobalBottomSheetProvider';
 import * as Haptics from "expo-haptics";
 import PoolContainer from '../../pool/PoolContainer';
+import GradientView from '../../common/GradientView';
+import { GradientVariants } from '@/src/utils/utils';
 
 type MatchInfoCardProps = {
     pool: Pool;
@@ -55,7 +56,7 @@ const MatchInfoCard: React.FC<MatchInfoCardProps> = ({
     ];
 
     return (
-        <GradientBorderView style={styles.infoCard} colorsOverride={[theme.background, theme.background]}>
+        <View style={[styles.container, { backgroundColor: theme.surface }]} >
             <Text style={[styles.infoCardTitle, { color: theme.text }]}>Information</Text>
 
             <View style={styles.infoRowsWrapper}>
@@ -98,13 +99,15 @@ const MatchInfoCard: React.FC<MatchInfoCardProps> = ({
                     </View>
                 ))}
             </View>
-        </GradientBorderView>
+        </View>
     );
 };
 
 const styles = StyleSheet.create({
-    infoCard: {
-        paddingHorizontal: 4,
+    container: {
+        borderRadius: 18,
+        padding: 16,
+
     },
     infoCardTitle: {
         fontSize: 18,

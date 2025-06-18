@@ -26,7 +26,6 @@ export interface Pool {
     leagueName?: string;
     name?: string;
     divisionName?: string;
-    rawDivisionName?: string;
     followersCount: number;
     lastUpdate: string;
     active: boolean;

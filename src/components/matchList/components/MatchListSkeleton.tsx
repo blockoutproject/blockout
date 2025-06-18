@@ -27,6 +27,7 @@ const styles = StyleSheet.create({
         paddingBottom: 8,
     },
     dateContainer: {
+        padding: 4,
         backgroundColor: "transparent",
         alignItems: "center",
     },

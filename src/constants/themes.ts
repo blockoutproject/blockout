@@ -2,9 +2,9 @@ import { AppTheme } from "../types/Theme";
 
 export const darkTheme: AppTheme = {
     background: "#0b0c0d",
-    backgroundSecondary: "#141617",
-    surface: "#191a1d",
-    surfaceSecondary: "#26272a",
+    backgroundSecondary: "#131313",
+    surface: "#1c1c1c",
+    surfaceSecondary: "#2b2b2b",
     surfaceTertiary: "#393939",
     border: "#2e2f33",
     borderSecondary: "#444549",
@@ -45,3 +45,17 @@ export const lightTheme: AppTheme = {
     silver: "#C0C0C0",
     bronze: "#CD7F32",
 };
+
+export const poolBorderColorPalettes: readonly [string, string, ...string[]][] = [
+  ['#00c480', '#006fd5', '#00bcd4'], // cyber-aqua
+  ['#4800ff', '#9b00e8', '#e52e71'], // sunset
+  ['#e1af30', '#ff8100', '#e52e71'], // néon
+  // Ajoute d'autres palettes si besoin
+];
+
+export const poolColorPalettes: readonly [string, string, ...string[]][] = [
+  ['#213d57', '#213d57'], // cyber-aqua
+  ['#3e2c46', '#3e2c46'], // sunset
+  ['#4c3d32', '#4c3d32'], // néon
+  // Ajoute d'autres palettes si besoin
+];

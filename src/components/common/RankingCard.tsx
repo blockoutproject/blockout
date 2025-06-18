@@ -13,8 +13,9 @@ import { useAppTheme } from '@/src/context/ThemeProvider';
 import { AppTheme } from '@/src/types/Theme';
 import { useGlobalBottomSheet } from '@/src/context/GlobalBottomSheetProvider';
 import * as Haptics from 'expo-haptics';
-import GradientBorderView from './GradientBorderView';
 import TeamContainer from '../team/Team';
+import GradientView from './GradientView';
+import { GradientVariants } from '@/src/utils/utils';
 
 interface RankingCardProps {
     poolId: number;
@@ -53,13 +54,7 @@ const RankingCard: React.FC<RankingCardProps> = ({ poolId, scrollable = true }) 
     }
 
     return (
-        <GradientBorderView
-            outerStyle={styles.outer}
-            style={styles.container}
-            colorsOverride={[theme.borderSecondary, theme.backgroundSecondary]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-        >
+        <View style={[styles.container, { backgroundColor: theme.surface }]} >
             <View style={styles.headerRow}>
                 <View style={styles.transparentRankIndicator} />
                 <Text style={[styles.headerText, styles.rankCell, { color: theme.text }]} numberOfLines={1}>#</Text>
@@ -126,12 +121,13 @@ const RankingCard: React.FC<RankingCardProps> = ({ poolId, scrollable = true }) 
                     );
                 }}
             />
-        </GradientBorderView>
+        </View>
     );
 };
 
 const styles = StyleSheet.create({
     container: {
+        borderRadius: 18,
         flexShrink: 1,
         padding: 8,
         paddingTop: -8,

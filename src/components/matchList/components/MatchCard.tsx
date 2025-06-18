@@ -4,16 +4,17 @@ import FastImage from "react-native-fast-image";
 import { Match, MatchStatus } from "@/src/types/Match";
 import { Team } from "@/src/types/Team";
 import { useAppTheme } from "@/src/context/ThemeProvider";
+import GradientBorderView from "../../common/GradientBorderView";
+import { GradientVariants } from "@/src/utils/utils";
 
 type Props = {
     match: Match;
     teamA?: Team;
     teamB?: Team;
-    mainColor: string;
-    secondColor: string;
+    gradient: GradientVariants;
 };
 
-const MatchCard: React.FC<Props> = ({ match, teamA, teamB }) => {
+const MatchCard: React.FC<Props> = ({ match, teamA, teamB, gradient }) => {
     const theme = useAppTheme();
     const date = new Date(match.matchDate ?? "");
     const matchTime = `${date.getHours().toString().padStart(2, "0")}:${date
@@ -22,7 +23,7 @@ const MatchCard: React.FC<Props> = ({ match, teamA, teamB }) => {
         .padStart(2, "0")}`;
 
     return (
-        <View style={[styles.matchCard, { backgroundColor: theme.background }]}>
+        <View style={[styles.matchCard, { backgroundColor: theme.backgroundSecondary }]}>
             {/* Team A */}
             <View style={[styles.teamSide, styles.teamAlignRight]}>
                 <Text
@@ -48,16 +49,16 @@ const MatchCard: React.FC<Props> = ({ match, teamA, teamB }) => {
                         {matchTime}
                     </Text>
                 ) : (
-                    <View
-                        style={[
-                            styles.scoreBadge,
-                            { borderColor: theme.borderSecondary },
-                        ]}
+
+                    <GradientBorderView
+                        style={styles.finalScoreBox}
+                        borderRadius={12}
+                        gradient={gradient}
                     >
-                        <Text style={[styles.scoreText, { color: theme.text }]}>
+                        <Text style={[styles.finalScoreTextLarge, { color: theme.text }]}>
                             {match.set || "-"}
                         </Text>
-                    </View>
+                    </GradientBorderView>
                 )}
             </View>
 
@@ -111,6 +112,14 @@ const styles = StyleSheet.create({
         textAlign: "center",
         flex: 1,
     },
+    finalScoreBox: {
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+    },
+    finalScoreTextLarge: {
+        fontSize: 20,
+        fontWeight: "700",
+    },
     centerBlock: {
         justifyContent: "center",
         alignItems: "center",
@@ -120,10 +129,6 @@ const styles = StyleSheet.create({
         borderRadius: 12,
         paddingVertical: 4,
         paddingHorizontal: 6,
-    },
-    scoreText: {
-        fontSize: 22,
-        fontWeight: "700",
     },
     timeText: {
         fontSize: 16,

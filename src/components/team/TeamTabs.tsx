@@ -1,6 +1,6 @@
 import React from "react";
 import GenericTabView from "@/src/components/common/GenericTabView";
-import MatchListTab from "@/src/components/matchList/MatchList";
+import MatchList from "@/src/components/matchList/MatchList";
 import { MatchStatus } from "@/src/types/Match";
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import { Pool } from "@/src/types/Pool";
@@ -22,7 +22,7 @@ const TeamTabs: React.FC<TeamTabsProps> = ({ pools, team }) => {
             key: "finished",
             title: "Terminés",
             render: () =>
-                <MatchListTab
+                <MatchList
                     teamIds={[team.id]}
                     status={MatchStatus.FINISHED}
                     contentContainerStyle={{
@@ -36,7 +36,7 @@ const TeamTabs: React.FC<TeamTabsProps> = ({ pools, team }) => {
             key: "upcoming",
             title: "À Venir",
             render: () =>
-                <MatchListTab
+                <MatchList
                     teamIds={[team.id]}
                     status={MatchStatus.UPCOMING}
                     contentContainerStyle={{

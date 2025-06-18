@@ -3,7 +3,7 @@ import { View, Text, Pressable, StyleSheet } from "react-native";
 import FastImage from "react-native-fast-image";
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import { Team } from "@/src/types/Team";
-import { splitIsoDateFormatted } from "@/src/utils/utils";
+import { GradientVariants, splitIsoDateFormatted } from "@/src/utils/utils";
 import { useGlobalBottomSheet } from "@/src/context/GlobalBottomSheetProvider";
 import * as Haptics from "expo-haptics";
 import TeamContainer from "../../team/Team";
@@ -15,6 +15,7 @@ export interface MatchScoreCardProps {
     awayTeam: Team;
     finalScore?: string;
     matchDate: string;
+    gradient: GradientVariants;
 }
 
 const MatchScoreCard: React.FC<MatchScoreCardProps> = ({
@@ -23,6 +24,7 @@ const MatchScoreCard: React.FC<MatchScoreCardProps> = ({
     awayTeam,
     finalScore,
     matchDate,
+    gradient,
 }) => {
     const theme = useAppTheme();
     const { openSheet } = useGlobalBottomSheet();
@@ -52,11 +54,7 @@ const MatchScoreCard: React.FC<MatchScoreCardProps> = ({
     );
 
     return (
-        <GradientBorderView 
-            style={styles.scoreCard}
-            start={{x: 0, y: 0}}
-            end={{x: 1, y: 1}}
-        >
+        <View style={[styles.container, { backgroundColor: theme.surface }]} >
             <View style={styles.verticalContainer}>
                 <Text style={[styles.leagueLabel, { color: theme.text }]}>{leagueName}</Text>
 
@@ -69,7 +67,7 @@ const MatchScoreCard: React.FC<MatchScoreCardProps> = ({
                                 <GradientBorderView
                                     style={styles.finalScoreBox}
                                     borderRadius={12}
-                                    colorsOverride={[theme.borderSecondary, theme.borderSecondary]}
+                                    gradient={gradient}
                                 >
                                     <Text style={[styles.finalScoreTextLarge, { color: theme.text }]}>
                                         {finalScore}
@@ -98,13 +96,15 @@ const MatchScoreCard: React.FC<MatchScoreCardProps> = ({
 
                 {date && <Text style={[styles.dateText, { color: theme.text }]}>{date}</Text>}
             </View>
-        </GradientBorderView>
+        </View>
     );
 };
 
 const styles = StyleSheet.create({
-    scoreCard: {
+    container: {
+        borderRadius: 18,
         paddingVertical: 16,
+        paddingHorizontal: 8,
     },
     verticalContainer: {
         flexDirection: "column",

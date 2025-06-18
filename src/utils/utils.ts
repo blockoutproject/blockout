@@ -1,6 +1,27 @@
-import { parseISO, format, Locale } from 'date-fns';
+import { parseISO, format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Pool } from '../types/Pool';
+import tinycolor from 'tinycolor2';
+
+export type GradientVariants = {
+    base: readonly [string, string, ...string[]];
+    light: readonly [string, string, ...string[]];
+    lighter:  readonly[string, string, ...string[]];
+    dark: readonly [string, string, ...string[]];
+    darker: readonly [string, string, ...string[]];
+};
+
+export const getGradientVariants = (
+    colors: readonly [string, string, ...string[]]
+): GradientVariants => {
+    return {
+        base: colors.map((c) => tinycolor(c).toHexString()) as [string, string, ...string[]],
+        light: colors.map((c) => tinycolor(c).lighten(15).toHexString()) as [string, string, ...string[]],
+        lighter: colors.map((c) => tinycolor(c).lighten(30).toHexString()) as [string, string, ...string[]],
+        dark: colors.map((c) => tinycolor(c).darken(15).toHexString()) as [string, string, ...string[]],
+        darker: colors.map((c) => tinycolor(c).darken(20).toHexString()) as [string, string, ...string[]],
+    };
+};
 
 export function formatDateFrenchLocale(dateString: string): string {
     const date = new Date(dateString);

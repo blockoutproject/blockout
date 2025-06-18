@@ -8,32 +8,25 @@ const PoolItemSkeleton: React.FC = () => {
     const theme = useAppTheme();
 
     return (
-        <GradientView style={styles.skeletonContainer}>
+        <View style={[styles.skeletonContainer, { backgroundColor: theme.surfaceSecondary }]}>
             <View style={styles.skeletonHeader}>
-                <Skeleton width="70%" height={20} colors={[theme.background, theme.backgroundSecondary, theme.background]} />
+                <Skeleton radius={12} width="50%" height={25} colors={[theme.background, theme.backgroundSecondary, theme.background]} />
             </View>
-            <View style={styles.skeletonMatch}>
-                <Skeleton width="100%" height={120} colors={[theme.background, theme.backgroundSecondary, theme.background]} />
+            <View>
+                <Skeleton radius={12} width="100%" height={120} colors={[theme.background, theme.backgroundSecondary, theme.background]} />
             </View>
-        </GradientView>
+        </View>
     );
 };
 
 const styles = StyleSheet.create({
     skeletonContainer: {
-        borderRadius: 16,
-        padding: 12,
+        borderRadius: 18,
+        padding: 8,
         marginBottom: 16,
     },
     skeletonHeader: {
-        flexDirection: "row",
-        alignItems: "center",
-        marginBottom: 12,
-        gap: 8,
-    },
-    skeletonMatch: {
-        flexDirection: "column",
-        gap: 12,
+        marginBottom: 8,
     },
 });
 

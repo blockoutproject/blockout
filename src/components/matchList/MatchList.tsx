@@ -19,8 +19,8 @@ import MatchContainer from "@/src/components/match/Match";
 import PoolContainer from "../pool/PoolContainer";
 import { useMatchList } from "@/src/hooks/match/useMatchList";
 import ErrorPrompt from "../common/feedback/ErrorPrompt";
-import MatchListSkeleton from "./components/MatchListSkeleton";
 import PoolItem from "./components/PoolItem";
+import PoolItemSkeleton from "./components/PoolItemSkeleton";
 
 type MatchListContainerProps = {
     poolIds?: number[];
@@ -95,21 +95,38 @@ const MatchList: React.FC<MatchListContainerProps> = ({
         </View>
     );
 
-    const renderItem = ({ item, index }: any) => (
+    const renderItem = ({ item }: any) => (
         <PoolItem
             pool={item}
-            index={index}
             handlePoolPress={handlePoolPress}
             handleMatchPress={handleMatchPress}
-            mainLeagueColors={["#5a8d36", "#007d89", "#bf447d"]}
-            secondLeagueColors={["#2f362b", "#243335", "#3d3136"]}
         />
     );
 
     if (isLoading) {
+        const skeletonSections = [
+            { title: "Chargement ...", data: new Array(2).fill(null) }
+        ];
+
         return (
-            <View style={[styles.loadingContainer, { backgroundColor: theme.background, paddingTop: headerOffset }]}>
-                <MatchListSkeleton />
+            <View style={[styles.loadingContainer, { backgroundColor: theme.background }]}>
+                <Animated.SectionList
+                    sections={skeletonSections}
+                    keyExtractor={(_, i) => `skeleton-${i}`}
+                    stickySectionHeadersEnabled
+                    renderSectionHeader={({ section: { title } }) => (
+                        <View style={styles.dateContainer}>
+                            <View style={[styles.dateBackground, { backgroundColor: theme.background }]}>
+                                <Text style={[styles.dateHeader, { color: theme.text }]}>{title}</Text>
+                            </View>
+                        </View>
+                    )}
+                    renderItem={() => <PoolItemSkeleton />}
+                    ItemSeparatorComponent={() => <View style={styles.itemSeparator} />}
+                    SectionSeparatorComponent={() => <View style={styles.sectionSeparator} />}
+                    scrollEnabled={false}
+                    contentContainerStyle={[styles.sectionListContent, contentContainerStyle]}
+                />
             </View>
         );
     }
@@ -138,7 +155,7 @@ const MatchList: React.FC<MatchListContainerProps> = ({
     }
 
     return (
-        <View style={{ backgroundColor: theme.background }}>
+        <View style={[styles.container, { backgroundColor: theme.background }]}>
             <Animated.SectionList
                 sections={sections}
                 keyExtractor={(item, index) => `${item.poolId}-${index}`}
@@ -181,6 +198,9 @@ const styles = StyleSheet.create({
     loadingContainer: {
         flex: 1,
     },
+    container: {
+        flex: 1,
+    },
     sectionListContent: {
         paddingBottom: 8,
     },
@@ -196,15 +216,15 @@ const styles = StyleSheet.create({
     },
     dateBackground: {
         borderRadius: 14,
+        paddingHorizontal: 6,
         paddingVertical: 4,
-        paddingHorizontal: 4,
         shadowOffset: { width: 0, height: 0 },
         shadowOpacity: 0.7,
         shadowRadius: 5,
         elevation: 5,
     },
     dateHeader: {
-        fontSize: 14,
+        fontSize: 16,
         fontWeight: "800",
     },
 });

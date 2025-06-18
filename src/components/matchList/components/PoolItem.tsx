@@ -1,36 +1,30 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { Text, TouchableOpacity, View, StyleSheet } from "react-native";
 import FastImage from "react-native-fast-image";
-import GradientBorderView from "@/src/components/common/GradientBorderView";
 import MatchCard from "./MatchCard";
 import { EnrichedPoolMatchesDTO } from "@/src/types/Match";
 import { useAppTheme } from "@/src/context/ThemeProvider";
+import GradientView from "../../common/GradientView";
+import { usePoolGradient } from "@/src/hooks/utils/usePoolGradient";
+import { usePoolBorderGradient } from "@/src/hooks/utils/usePoolBorderGradient";
 
 type Props = {
     pool: EnrichedPoolMatchesDTO;
-    index: number;
     handlePoolPress: (id: number) => void;
     handleMatchPress: (id: number) => void;
-    mainLeagueColors: string[];
-    secondLeagueColors: string[];
 };
 
 const PoolItem: React.FC<Props> = ({
     pool,
-    index,
     handlePoolPress,
     handleMatchPress,
-    mainLeagueColors,
-    secondLeagueColors,
 }) => {
     const theme = useAppTheme();
-    const colorIndex = index % mainLeagueColors.length;
+    const gradientVariants = usePoolGradient(pool.poolId);
+    const borderGradientVariants = usePoolBorderGradient(pool.poolId);
 
     return (
-        <GradientBorderView
-            style={[styles.poolContainer, { backgroundColor: theme.surfaceSecondary }]}
-            colorsOverride={[theme.background, theme.background]}
-        >
+        <GradientView style={styles.poolContainer} gradient={gradientVariants}>
             <TouchableOpacity onPress={() => handlePoolPress(pool.poolId)}>
                 <View style={styles.poolHeader}>
                     <FastImage
@@ -54,13 +48,12 @@ const PoolItem: React.FC<Props> = ({
                             match={match}
                             teamA={match.teamA}
                             teamB={match.teamB}
-                            mainColor={mainLeagueColors[colorIndex]}
-                            secondColor={secondLeagueColors[colorIndex]}
+                            gradient={borderGradientVariants}
                         />
                     </TouchableOpacity>
                 ))}
             </View>
-        </GradientBorderView>
+        </GradientView>
     );
 };
 
@@ -81,6 +74,7 @@ const styles = StyleSheet.create({
         borderRadius: 12,
     },
     poolTitle: {
+        flex: 1,
         fontSize: 14,
         fontWeight: "700",
     },

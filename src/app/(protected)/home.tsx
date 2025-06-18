@@ -6,7 +6,7 @@ import {
     SceneRendererProps,
     TabView,
 } from "react-native-tab-view";
-import MatchListTab from "@/src/components/matchList/MatchList";
+import MatchList from "@/src/components/matchList/MatchList";
 import { MatchStatus } from "@/src/types/Match";
 import { Filter } from "@/src/types/Filter";
 import { useUserContext } from "@/src/hooks/user/useUserContext";
@@ -58,7 +58,7 @@ const HomeScreen: React.FC = () => {
 
     const finishedTab = useMemo(
         () => (
-            <MatchListTab
+            <MatchList
                 poolIds={userFavoritePools}
                 teamIds={userFavoriteTeams}
                 status={MatchStatus.FINISHED}
@@ -77,7 +77,7 @@ const HomeScreen: React.FC = () => {
 
     const upcomingTab = useMemo(
         () => (
-            <MatchListTab
+            <MatchList
                 poolIds={userFavoritePools}
                 teamIds={userFavoriteTeams}
                 status={MatchStatus.UPCOMING}

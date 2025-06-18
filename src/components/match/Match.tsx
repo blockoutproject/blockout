@@ -11,6 +11,8 @@ import MatchInfoCard from './components/MatchInfoCard';
 import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getLeagueLabel } from '@/src/utils/utils';
+import { usePoolGradient } from '@/src/hooks/utils/usePoolGradient';
+import { usePoolBorderGradient } from '@/src/hooks/utils/usePoolBorderGradient';
 
 type Props = { matchId: number };
 
@@ -19,6 +21,7 @@ const Match: React.FC<Props> = ({ matchId }) => {
     const theme = useAppTheme();
     const insets = useSafeAreaInsets();
     const [showConfetti, setShowConfetti] = useState(false);
+    const gradientVariants = usePoolBorderGradient(pool ? pool?.id : 1);
 
     useEffect(() => {
         if (match?.status === MatchStatus.FINISHED) {
@@ -46,8 +49,14 @@ const Match: React.FC<Props> = ({ matchId }) => {
                         awayTeam={teamB}
                         finalScore={match.set}
                         matchDate={match.matchDate}
+                        gradient={gradientVariants}
                     />
-                    <MatchScoreDetailsCard title="Score" homeTeam={teamA} awayTeam={teamB} match={match} />
+                    <MatchScoreDetailsCard 
+                        title="Score" 
+                        homeTeam={teamA} 
+                        awayTeam={teamB} 
+                        match={match}
+                    />
                     <MatchInfoCard
                         pool={pool}
                         date={match.matchDate}
@@ -57,7 +66,10 @@ const Match: React.FC<Props> = ({ matchId }) => {
                         referee1={match.referee1}
                         referee2={match.referee2}
                     />
-                    <RankingCard poolId={match.poolId} scrollable={false} />
+                    <RankingCard 
+                        poolId={match.poolId} 
+                        scrollable={false} 
+                    />
                 </BottomSheetScrollView>
             ) : (
                 <Text style={{ color: theme.text }}>Erreur de chargement du match</Text>
@@ -68,7 +80,7 @@ const Match: React.FC<Props> = ({ matchId }) => {
 
 const styles = StyleSheet.create({
     scrollContent: {
-        gap: 32,
+        gap: 20,
         paddingHorizontal: 4,
     },
 });
