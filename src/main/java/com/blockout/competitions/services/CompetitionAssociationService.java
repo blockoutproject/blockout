@@ -1,8 +1,8 @@
 package com.blockout.competitions.services;
 
-import com.blockout.competitions.models.Category;
 import com.blockout.competitions.models.CompetitionAssociation;
 import com.blockout.competitions.models.dto.TeamAssociationStatsRequest;
+import com.blockout.competitions.models.enums.Category;
 import com.blockout.competitions.repositories.CompetitionAssociationRepository;
 import com.blockout.competitions.utils.DiffUtils;
 

@@ -1,11 +1,11 @@
 package com.blockout.competitions.controllers.v1;
 
-import com.blockout.competitions.models.Category;
 import com.blockout.competitions.models.CompetitionAssociation;
 import com.blockout.competitions.models.dto.BulkClubsDeactivateRequest;
 import com.blockout.competitions.models.dto.BulkPoolsDeactivateRequest;
 import com.blockout.competitions.models.dto.BulkTeamsDeactivateRequest;
 import com.blockout.competitions.models.dto.TeamAssociationStatsRequest;
+import com.blockout.competitions.models.enums.Category;
 import com.blockout.competitions.services.CompetitionAssociationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
