@@ -1,4 +1,4 @@
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
 from typing import Optional
@@ -25,5 +25,4 @@ class Pool:
     division_name: Optional[str] = None
     format: Optional[Format] = Format.SIX
     gender: Optional[Gender] = None
-    raw_division_name: Optional[str] = None
     active: bool = True

@@ -2,9 +2,11 @@ import asyncio
 import re
 from bs4 import BeautifulSoup
 from api.competitions_api import bulk_deactivate_pools
+from api.config_api import create_raw_division_mapping, get_raw_division_mappings_by_league_and_season
 from api.pools_api import get_pools_by_league_and_season
 from models.category import Category
 from models.pool import Pool, PoolDivisionCode
+from models.raw_division_mapping import RawDivisionMapping
 from models.scraper import Scraper
 from utils.scraper_logic import handle_csv_download_and_parse
 from utils.utils import parse_season, standardize_division_name
@@ -96,85 +98,63 @@ class RegionalScraper(Scraper):
                 message="Erreur critique lors du scraping des poules régionales."
             )
 
-    async def scrape_pools_from_league(self, league_code, league_name, league_page_url):
-        """
-        Récupère la liste des poules de la ligue, crée/MAJ chaque Pool,
-        et lance le parsing CSV pour chacune.
-        """
+    async def scrape_pools_from_league(self, league_code: str, league_name: str, league_page_url: str):
         try:
             league_page_url = league_page_url.replace('https://', 'http://')
             html_content = await self.fetch(league_page_url)
             if not html_content:
-                log_event(
-                    action="fetch_html_error",
-                    level="error",
-                    league_name=league_name,
-                    league_code=league_code,
-                    message="Échec de la récupération du contenu HTML pour la ligue."
-                )
+                log_event(action="fetch_html_error", level="error", league_name=league_name, league_code=league_code)
                 return
 
             soup = BeautifulSoup(html_content, 'html.parser')
             pool_links = soup.select('ul#menu > li > ul > li > ul > li > a[href*="poule="]')
-            tasks = []
-
-            # On essaie de récupérer la saison depuis le premier lien
+            
             raw_season = None
             for a_tag in pool_links:
-                href = a_tag['href']
-                season_match = re.search(r'saison=([^&]+)', href)
+                season_match = re.search(r'saison=([^&]+)', a_tag['href'])
                 if season_match:
                     raw_season = season_match.group(1)
                     break
-                
             if not raw_season:
-                log_event(
-                    action="missing_season",
-                    level="warning",
-                    league_name=league_name,
-                    league_code=league_code,
-                    message="Aucune saison trouvée pour la ligue."
-                )
-                raise ValueError("Saison non trouvée.")
+                raise ValueError("Saison non trouvée")
 
             parsed_season = parse_season(raw_season)
+
             existing_pools = await get_pools_by_league_and_season(self.session, league_code, parsed_season)
-            existing_pools_dict = {
-                (p.pool_code, p.league_code, p.season): p
-                for p in existing_pools
-            }
-            
-            # Set local pour gérer la désactivation par league
+            existing_pools_dict = {(p.pool_code, p.league_code, p.season): p for p in existing_pools}
+
+            raw_mappings = await get_raw_division_mappings_by_league_and_season(self.session, league_code, parsed_season)
+            mapping_dict = {m.raw_division_name: m for m in raw_mappings}
+
             scraped_pool_ids = set()
-            
-            # Parcours des poules
+            tasks = []
+
             for a_tag in pool_links:
-                # Exclusion pour tester les desactivations
-                if league_code in ['LICO']:
-                    continue
                 try:
                     href = a_tag['href']
                     pool_code_match = re.search(r'poule=([^&]+)', href)
                     if not pool_code_match:
-                        log_event(
-                            action="missing_pool_code",
-                            level="warning",
-                            league_name=league_name,
-                            league_code=league_code,
-                            url=href
-                        )
                         continue
 
                     pool_code = pool_code_match.group(1)
                     name = a_tag.get_text(strip=True)
-
-                    # On essaie de déterminer la division depuis les balises parents
                     raw_division_tag = a_tag.find_parent('ul').find_previous_sibling('a')
                     raw_division_name = raw_division_tag.get_text(strip=True) if raw_division_tag else ""
 
-                    standardized = standardize_division_name(raw_division_name, PoolDivisionCode.REG)
-                    
-                    if standardized is None:
+                    mapping = mapping_dict.get(raw_division_name)
+
+                    # Enregistre un nouveau mapping vide en base si aucun n'existe pour standardiser la pool
+                    if not mapping:
+                        new_mapping = RawDivisionMapping(
+                            raw_division_name=raw_division_name,
+                            league_code=league_code,
+                            season=parsed_season
+                        )
+                        created_mapping = await create_raw_division_mapping(self.session, new_mapping)
+                        mapping_dict[raw_division_name] = created_mapping
+                        continue
+
+                    if not mapping.is_mapped():
                         continue
 
                     pool_data = {
@@ -183,12 +163,13 @@ class RegionalScraper(Scraper):
                         "season": parsed_season,
                         "league_name": league_name,
                         "name": name,
-                        "division_code": standardized["division_code"],
-                        "division_name": standardized["division_name"],
-                        "format": standardized["format"],
-                        "gender": standardized["gender"],
+                        "division_code": PoolDivisionCode.REG,
+                        "division_name": mapping.division_name,
+                        "format": mapping.format,
+                        "gender": mapping.gender,
                         "raw_division_name": raw_division_name
                     }
+
                     pool_obj = Pool(**pool_data)
                     key = (pool_obj.pool_code, pool_obj.league_code, pool_obj.season)
                     existing_pool = existing_pools_dict.get(key)
@@ -203,32 +184,16 @@ class RegionalScraper(Scraper):
                     tasks.append(task)
 
                 except Exception as e:
-                    log_event(
-                        action="pool_processing_error",
-                        level="error",
-                        league_name=league_name,
-                        league_code=league_code,
-                        error=str(e)
-                    )
+                    log_event(action="pool_processing_error", level="error", error=str(e))
 
-            # On attend que tous les CSV de toutes les poules soient gérés
             await asyncio.gather(*tasks)
-            
-            # Désactiver les poules non retrouvées
+
             missing_pool_ids = {
-                pool.id 
-                for pool in existing_pools 
-                if pool.active 
-                and pool.id not in scraped_pool_ids
+                pool.id for pool in existing_pools
+                if pool.active and pool.id not in scraped_pool_ids
             }
             if missing_pool_ids:
                 await bulk_deactivate_pools(self.session, missing_pool_ids)
 
         except Exception as e:
-            log_event(
-                action="critical_league_error",
-                level="error",
-                league_name=league_name,
-                league_code=league_code,
-                error=str(e)
-            )
+            log_event(action="critical_league_error", level="error", error=str(e))
