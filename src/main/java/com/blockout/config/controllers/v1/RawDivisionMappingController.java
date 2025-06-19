@@ -16,14 +16,14 @@ import java.util.Optional;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/v1/config/raw-pools")
+@RequestMapping("/api/v1/config/raw-divisions")
 public class RawDivisionMappingController {
 
     private final RawDivisionMappingService service;
 
-    @Operation(summary = "Create a raw pool mapping", description = "Creates a new raw pool mapping.")
+    @Operation(summary = "Create a raw division mapping", description = "Creates a new raw division mapping.")
     @ApiResponses({
-            @ApiResponse(responseCode = "201", description = "Raw pool mapping created"),
+            @ApiResponse(responseCode = "201", description = "Raw division mapping created"),
             @ApiResponse(responseCode = "400", description = "Invalid request")
     })
     @PostMapping
@@ -36,10 +36,10 @@ public class RawDivisionMappingController {
         return ResponseEntity.created(location).body(created);
     }
 
-    @Operation(summary = "List raw pool mappings", description = "Returns all raw pool mappings. Optional filters: leagueCode, season")
+    @Operation(summary = "List raw division mappings", description = "Returns all raw division mappings. Optional filters: leagueCode, season")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Raw pool mappings returned"),
-            @ApiResponse(responseCode = "204", description = "No raw pool mapping found")
+            @ApiResponse(responseCode = "200", description = "Raw division mappings returned"),
+            @ApiResponse(responseCode = "204", description = "No raw division mapping found")
     })
     @GetMapping
     public ResponseEntity<List<RawDivisionMapping>> list(
@@ -49,10 +49,10 @@ public class RawDivisionMappingController {
         return ResponseEntity.ok(mappings);
     }
 
-    @Operation(summary = "Get raw pool mapping by ID", description = "Returns a raw pool mapping by its ID.")
+    @Operation(summary = "Get raw division mapping by ID", description = "Returns a raw division mapping by its ID.")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Raw pool mapping found"),
-            @ApiResponse(responseCode = "404", description = "Raw pool mapping not found")
+            @ApiResponse(responseCode = "200", description = "Raw division mapping found"),
+            @ApiResponse(responseCode = "404", description = "Raw division mapping not found")
     })
     @GetMapping("/{id}")
     public ResponseEntity<RawDivisionMapping> getById(@PathVariable Long id) {
@@ -61,10 +61,10 @@ public class RawDivisionMappingController {
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
-    @Operation(summary = "Update raw pool mapping", description = "Updates a raw pool mapping.")
+    @Operation(summary = "Update raw division mapping", description = "Updates a raw division mapping.")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Raw pool mapping updated"),
-            @ApiResponse(responseCode = "404", description = "Raw pool mapping not found")
+            @ApiResponse(responseCode = "200", description = "Raw division mapping updated"),
+            @ApiResponse(responseCode = "404", description = "Raw division mapping not found")
     })
     @PutMapping("/{id}")
     public ResponseEntity<RawDivisionMapping> update(@PathVariable Long id, @RequestBody RawDivisionMapping updatedMapping) {

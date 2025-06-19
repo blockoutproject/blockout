@@ -37,7 +37,7 @@ public class RawDivisionMappingService {
      */
     public List<RawDivisionMapping> findByLeagueCodeAndSeason(String leagueCode, Integer season) {
         List<RawDivisionMapping> list = repository.findByLeagueCodeAndSeason(leagueCode, season);
-        logger.debug("Listing raw pool mappings",
+        logger.debug("Listing raw division mappings",
                 keyValue("action", "list_raw_division_mappings"),
                 keyValue("leagueCode", leagueCode),
                 keyValue("season", season),
