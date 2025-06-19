@@ -1,5 +1,5 @@
 package com.blockout.pools.models.enums;
 
-public enum PoolFormat {
+public enum Format {
     SIX, FOUR
 }

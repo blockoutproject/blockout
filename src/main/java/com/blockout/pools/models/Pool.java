@@ -7,9 +7,9 @@ import lombok.Builder;
 
 import java.time.LocalDateTime;
 
-import com.blockout.pools.models.enums.PoolDivisionCode;
-import com.blockout.pools.models.enums.PoolFormat;
-import com.blockout.pools.models.enums.PoolGender;
+import com.blockout.pools.models.enums.DivisionCode;
+import com.blockout.pools.models.enums.Format;
+import com.blockout.pools.models.enums.Gender;
 
 import jakarta.persistence.*;
 
@@ -44,18 +44,18 @@ public class Pool {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "division_code", nullable = false)
-    private PoolDivisionCode divisionCode;
+    private DivisionCode divisionCode;
 
     @Column(name = "division_name")
     private String divisionName;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "format")
-    private PoolFormat format;
+    private Format format;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "gender")
-    private PoolGender gender;
+    private Gender gender;
 
     @Builder.Default
     @Column(name = "followers_count", nullable = false)
