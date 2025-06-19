@@ -3,8 +3,9 @@ package com.blockout.config.models;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
-import com.blockout.config.models.enums.PoolFormat;
-import com.blockout.config.models.enums.PoolGender;
+import com.blockout.config.models.enums.Format;
+import com.blockout.config.models.enums.Gender;
+import com.blockout.config.models.enums.DivisionCode;
 
 @Data
 @Builder(toBuilder = true)
@@ -20,19 +21,20 @@ public class RawDivisionMapping {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "raw_division_name", nullable = false)
+    @Column(name = "raw_division_name")
     private String rawDivisionName;
 
-    @Column(name = "division_name")
-    private String divisionName;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "division_code")
+    private DivisionCode divisionCode;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "format")
-    private PoolFormat format;
+    private Format format;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "gender")
-    private PoolGender gender;
+    private Gender gender;
 
     @Column(name = "league_code", nullable = false)
     private String leagueCode;
@@ -58,6 +60,6 @@ public class RawDivisionMapping {
     }
 
     public boolean isMapped() {
-        return divisionName != null && format != null && gender != null;
+        return divisionCode != null && format != null && gender != null;
     }
 }

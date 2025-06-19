@@ -64,7 +64,7 @@ public class RawDivisionMappingService {
     @Transactional
     public Optional<RawDivisionMapping> update(Long id, RawDivisionMapping updated) {
         return repository.findById(id).map(existing -> {
-            existing.setDivisionName(updated.getDivisionName());
+            existing.setRawDivisionName(updated.getRawDivisionName());
             existing.setFormat(updated.getFormat());
             existing.setGender(updated.getGender());;
             RawDivisionMapping saved = repository.save(existing);
