@@ -5,11 +5,12 @@ from api.competitions_api import bulk_deactivate_pools
 from api.config_api import create_raw_division_mapping, get_raw_division_mappings_by_league_and_season
 from api.pools_api import get_pools_by_league_and_season
 from models.category import Category
-from models.pool import Pool, PoolDivisionCode
+from models.enums.division_code import DIVISION_CODE_LABELS, DivisionCode
+from models.pool import Pool
 from models.raw_division_mapping import RawDivisionMapping
 from models.scraper import Scraper
 from utils.scraper_logic import handle_csv_download_and_parse
-from utils.utils import parse_season, standardize_division_name
+from utils.utils import parse_season
 from config.logger_config import log_event
 
 class RegionalScraper(Scraper):
@@ -157,22 +158,18 @@ class RegionalScraper(Scraper):
                     if not mapping.is_mapped():
                         continue
                     
-                    print("____________________")
-
-                    pool_data = {
-                        "pool_code": pool_code,
-                        "league_code": league_code,
-                        "season": parsed_season,
-                        "league_name": league_name,
-                        "name": name,
-                        "division_code": PoolDivisionCode.REG,
-                        "division_name": mapping.division_name,
-                        "format": mapping.format,
-                        "gender": mapping.gender,
-                        "raw_division_name": raw_division_name
-                    }
-
-                    pool_obj = Pool(**pool_data)
+                    pool_obj = Pool(
+                        pool_code=pool_code,
+                        league_code=league_code,
+                        season=parsed_season,
+                        league_name=league_name,
+                        name=name,
+                        division_name=DIVISION_CODE_LABELS.get(mapping.division_code, DivisionCode.OTHER.value),
+                        division_code=mapping.division_code,
+                        format=mapping.format,
+                        gender=mapping.gender,
+                    )
+                    
                     key = (pool_obj.pool_code, pool_obj.league_code, pool_obj.season)
                     existing_pool = existing_pools_dict.get(key)
 

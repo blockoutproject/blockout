@@ -39,7 +39,6 @@ async def create_raw_division_mapping(
         action="create_raw_division_mapping",
         level="info",
         league_code=mapping.league_code,
-        raw_division_name=mapping.raw_division_name,
-        division_name=mapping.division_name
+        raw_division_name=mapping.raw_division_name
     )
     return response

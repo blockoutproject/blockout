@@ -1,6 +1,7 @@
 import re
 from typing import Tuple, Optional
-from models.pool import Pool, PoolDivisionCode
+from models.enums.division_code import DivisionCode
+from models.pool import Pool
 from models.association_stats import AssociationStats
 
 def validate_set_score_format(set_score: str) -> str:
@@ -204,7 +205,7 @@ def compute_volleyball_match_stats(
 
     # ------------------ 4) Gestion des lettres F/P selon la division ------------------
     #    Au lieu de soustraire immédiatement, on utilise "points_penalty".
-    if division in (PoolDivisionCode.REG, PoolDivisionCode.OTHER):
+    if division in (DivisionCode.REG, DivisionCode.PRENAT, DivisionCode.M21, DivisionCode.M18, DivisionCode.M15, DivisionCode.M13, DivisionCode.M11, DivisionCode.OTHER):
         if letter_a == "F" and letter_b == "F":
             stats_a.points_penalty += 2
             stats_b.points_penalty += 2
@@ -221,7 +222,7 @@ def compute_volleyball_match_stats(
             if letter_b == "P" and letter_a != "P":
                 stats_b.points_penalty += 2
 
-    elif division == PoolDivisionCode.NAT:
+    elif division in (DivisionCode.ELITE, DivisionCode.ELITEAVENIR, DivisionCode.N2, DivisionCode.N3):
         if letter_a == "F" and letter_b == "F":
             stats_a.points_penalty += 2
             stats_b.points_penalty += 2

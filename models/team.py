@@ -1,9 +1,8 @@
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from datetime import datetime
-from enum import Enum
 from typing import Optional
-from models.format import Format
-from models.gender import Gender
+from models.enums.format import Format
+from models.enums.gender import Gender
 
 @dataclass
 class Team:

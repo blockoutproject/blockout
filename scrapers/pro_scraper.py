@@ -8,9 +8,11 @@ from bs4 import BeautifulSoup
 from api.pools_api import get_pools_by_league_and_season
 from models.category import Category
 from models.datasource_priority import DataSourcePriority
-from models.format import Format
-from models.match import Match, MatchStatus
-from models.pool import Pool, PoolDivisionCode
+from models.enums.division_code import DivisionCode
+from models.enums.format import Format
+from models.enums.gender import Gender
+from models.match import MatchStatus
+from models.pool import Pool
 from models.scraper import Scraper
 from services.matchs_service import find_match_in_cache
 from services.teams_service import find_team_by_name_in_division_format_gender
@@ -31,28 +33,31 @@ class ProScraper(Scraper):
         # Définition des poules à traiter
         self.pools_json = [
             {
-                "code": "MSL",
+                "pool_code": "MSL",
                 "name": "Marmara SpikeLigue",
+                "division_code": DivisionCode.MSL,
                 "division_name": "Marmara SpikeLigue",
-                "gender": "M",
+                "gender": Gender.M,
                 "lnv_url": "http://lnv-web.dataproject.com/CompetitionMatches.aspx?ID=115",
                 "lnv_xml_matches_url": "https://www.lnv.fr/xml/calendrier-LAM.xml",
                 "lnv_xml_rank_url": "https://www.lnv.fr/xml/classement-LAM.xml"
             },
             {
-                "code": "LBM",
+                "pool_code": "LBM",
                 "name": "Ligue B Masculine",
+                "division_code": DivisionCode.LBM,
                 "division_name": "Ligue B Masculine",
-                "gender": "M",
+                "gender": Gender.M,
                 "lnv_url": "http://lnv-web.dataproject.com/CompetitionMatches.aspx?ID=116",
                 "lnv_xml_matches_url": "https://www.lnv.fr/xml/calendrier-LBM.xml",
                 "lnv_xml_rank_url": "https://www.lnv.fr/xml/classement-LBM.xml"
             },
             {
-                "code": "LAF",
+                "pool_code": "LAF",
                 "name": "Saforelle Power 6",
+                "division_code": DivisionCode.SP6,
                 "division_name": "Saforelle Power 6",
-                "gender": "F",
+                "gender": Gender.F,
                 "lnv_url": "http://lnv-web.dataproject.com/CompetitionMatches.aspx?ID=113",
                 "lnv_xml_matches_url": "https://www.lnv.fr/xml/calendrier-LAF.xml",                
                 "lnv_xml_rank_url": "https://www.lnv.fr/xml/classement-LAF.xml"
@@ -87,18 +92,17 @@ class ProScraper(Scraper):
             # Boucle de traitement de chaque poule configurée
             for pool_json in self.pools_json:
                 try:
-                    pool_data = {
-                        "pool_code": pool_json['code'],
-                        "league_code": self.league_code,
-                        "season": self.parsed_season,
-                        "league_name": self.league_name,
-                        "name": pool_json['name'],
-                        "division_code": PoolDivisionCode.PRO,
-                        "division_name": pool_json['division_name'],
-                        "format": Format.SIX.value,
-                        "gender": pool_json['gender']
-                    }
-                    pool_obj = Pool(**pool_data)
+                    pool_obj = Pool(
+                        pool_code=pool_json['pool_code'],
+                        league_code=self.league_code,
+                        season=self.parsed_season,
+                        league_name=self.league_name,
+                        name=pool_json['name'],
+                        division_code=DivisionCode(pool_json['division_code']),
+                        division_name=pool_json['division_name'],
+                        format=Format.SIX,
+                        gender=Gender(pool_json['gender'])
+                    )
 
                     # Clé d'identification pour le dict
                     key = (pool_obj.pool_code, pool_obj.league_code, pool_obj.season)
@@ -263,7 +267,6 @@ class ProScraper(Scraper):
         et met à jour les stats dans `_associations_cache`.
         """
         try:
-            print(f"Processing XML rank for pool: {pool.id} - {pool.name}")
             # On parcourt chaque <Equipe> dans le <Competition> (ou directement si c’est le root)
             for competition_el in rank_root.findall(".//Competition"):
                 # (Optionnel) vérifier CodeCompetition si nécessaire

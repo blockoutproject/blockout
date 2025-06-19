@@ -1,6 +1,7 @@
 import asyncio
 import aiohttp
 from bs4 import BeautifulSoup
+from config.logger_config import log_event
 from models.association_stats import AssociationStats
 from models.pool import Pool
 from models.scraper import Scraper
@@ -67,7 +68,12 @@ async def extract_club_stats_list(scraper: Scraper, raw_season: str, pool: Pool)
                 continue
             clubs_stats.append((name, stats))
         except Exception as e:
-            print(f"Erreur parsing ligne : {e}")
+            log_event(
+                action="extract_club_stats_list",
+                level="error",
+                message=f"Erreur lors de l'extraction des stats pour la ligne: {row}",
+                error=str(e)
+            )
             continue
 
     return clubs_stats

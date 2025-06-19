@@ -1,11 +1,9 @@
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from enum import Enum
 from typing import Optional
 from datetime import datetime
 
-class MatchStatus(Enum):
-    UPCOMING = "UPCOMING"
-    FINISHED = "FINISHED"
+from models.enums.match_status import MatchStatus
 
 @dataclass
 class Match:

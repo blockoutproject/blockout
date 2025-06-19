@@ -6,10 +6,6 @@ import re
 from typing import Optional
 import uuid
 from config.logger_config import log_event
-from models.format import Format
-from models.gender import Gender
-from models.pool import PoolDivisionCode
-from contextvars import ContextVar
 
 # Charger le fichier JSON avec gestion des erreurs
 try:
@@ -23,44 +19,6 @@ except Exception as e:
         error=str(e)
     )
     standardized_divisions = {}
-
-def is_junior_pool(string):
-    """
-    Vérifie si une chaîne contient une catégorie junior (M11, M13, M15, M18, M21).
-    """
-    categories = ["11", "13", "15", "18", "21"]
-    for category in categories:
-        if category in string:
-            return PoolDivisionCode.JNR
-    return PoolDivisionCode.REG
-
-def standardize_division_name(raw_division_name: str, default_division_code: PoolDivisionCode) -> Optional[dict]:
-    """
-    Standardise le nom d'une division en fonction des variations prédéfinies.
-    """
-    try:
-        for format, divisions in standardized_divisions.items():
-            for division_name, genders in divisions.items():
-                for gender, variations in genders.items():
-                    if raw_division_name in variations:
-                        division_code = PoolDivisionCode.NAT
-                        if default_division_code == PoolDivisionCode.REG: # Seule les poule REG sont susceptibles d'être JNR
-                            division_code = is_junior_pool(raw_division_name)
-                        return {"format": format, "division_name": division_name, "division_code": division_code, "gender": gender}
-        log_event(
-            action="standardize_division_name",
-            level="warning",
-            name_to_standardize=raw_division_name
-        )
-        return None # Si aucune correspondance n'est trouvée, renvoie None
-    except Exception as e:
-        log_event(
-            action="standardize_division_name",
-            level="error",
-            message=f"Erreur lors de la standardisation de '{raw_division_name}'",
-            error=str(e)
-        )
-        raise
 
 def parse_season(season_str: str) -> int:
     """

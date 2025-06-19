@@ -1,6 +1,8 @@
 from typing import Optional
 import aiohttp
 from api.teams_api import create_team, get_teams, update_team
+from models.enums.format import Format
+from models.enums.gender import Gender
 from models.team import Team
 
 async def add_or_update_team(session: aiohttp.ClientSession, team: Team, existing_team: Optional[Team]) -> Team:
@@ -33,8 +35,8 @@ async def add_or_update_team(session: aiohttp.ClientSession, team: Team, existin
 async def find_team_by_name_in_division_format_gender(
     session,
     division_name: str,
-    format: str,
-    gender: str,
+    format: Format,
+    gender: Gender,
     searched_name: str
 ) -> Optional[Team]:
     """

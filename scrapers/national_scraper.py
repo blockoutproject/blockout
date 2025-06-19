@@ -5,7 +5,8 @@ from api.config_api import create_raw_division_mapping, get_raw_division_mapping
 from config.logger_config import log_event
 from api.pools_api import get_pools_by_league_and_season
 from models.category import Category
-from models.pool import Pool, PoolDivisionCode
+from models.enums.division_code import DIVISION_CODE_LABELS, DivisionCode
+from models.pool import Pool
 from models.scraper import Scraper
 from models.raw_division_mapping import RawDivisionMapping
 from utils.scraper_logic import handle_csv_download_and_parse
@@ -60,7 +61,7 @@ class NationalScraper(Scraper):
             for a_tag in soup.find_all('a', href=lambda href: href and href.endswith('.htm')):
                 try:
                     href = a_tag['href']
-                    name = a_tag.get_text(strip=True) # == raw_division_name pour les pools nationales
+                    name = a_tag.get_text(strip=True)
                     pool_code = href.split('_')[-1].replace('.htm', '').upper()
 
                     mapping = mapping_dict.get(name)
@@ -78,19 +79,16 @@ class NationalScraper(Scraper):
                     if not mapping.is_mapped():
                         continue
                     
-                    print("____________________")
-
                     pool_obj = Pool(
                         pool_code=pool_code,
                         league_code=self.league_code,
                         season=parsed_season,
                         league_name=self.league_name,
                         name=name,
-                        division_code=PoolDivisionCode.NAT,
-                        division_name=mapping.division_name,
+                        division_name=DIVISION_CODE_LABELS.get(mapping.division_code, DivisionCode.OTHER.value),
+                        division_code=mapping.division_code,
                         format=mapping.format,
                         gender=mapping.gender,
-                        raw_division_name=name #, Peut être enlever ce champ de l'objet pool maintenant qu'il y a mapping
                     )
 
                     existing_pool = existing_pools_dict.get((pool_obj.pool_code, pool_obj.league_code, pool_obj.season))
