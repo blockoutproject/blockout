@@ -6,6 +6,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import com.blockout.workersearch.models.docs.TeamDoc;
+import com.blockout.workersearch.models.enums.DivisionCode;
+import com.blockout.workersearch.models.enums.Format;
+import com.blockout.workersearch.models.enums.Gender;
 import com.blockout.workersearch.models.events.ClubUpsertEvent;
 import com.blockout.workersearch.models.events.TeamUpsertEvent;
 import com.blockout.workersearch.repositories.TeamRepository;
@@ -63,14 +66,12 @@ public class TeamIndexService {
         String name = e.getName();
         String clubName = club != null ? club.getName() : null;
         String clubCity = club != null ? club.getCity() : null;
-        String divisionName = e.getDivisionName();
-        String format = e.getFormat();
-        String gender = e.getGender();
+        DivisionCode divisionCode = e.getDivisionCode();
+        Format format = e.getFormat();
+        Gender gender = e.getGender();
 
         // Contenu brut
-        String raw = String.join(" ",
-                name, clubName, clubCity, divisionName, format, gender
-        );
+        String raw = String.join(" ", name, clubName, clubCity, divisionCode.getLabel(), format.getLabel(), gender.getLabel());
 
         // Contenu simplifié
         String simplified = TextNormalizer.simplify(raw);
@@ -81,9 +82,9 @@ public class TeamIndexService {
                 .clubId(e.getClubId())
                 .clubName(clubName)
                 .clubCity(clubCity)
-                .divisionName(divisionName)
-                .format(format)
-                .gender(gender)
+                .divisionName(divisionCode.getLabel())
+                .format(format.getLabel())
+                .gender(gender.getLabel())
                 .keywordsAutocomplete(raw)
                 .keywordsAutocompleteSimplified(simplified)
                 .build();

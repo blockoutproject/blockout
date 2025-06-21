@@ -1,5 +1,9 @@
 package com.blockout.workersearch.models.events;
 
+import com.blockout.workersearch.models.enums.DivisionCode;
+import com.blockout.workersearch.models.enums.Format;
+import com.blockout.workersearch.models.enums.Gender;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -13,7 +17,7 @@ public class TeamUpsertEvent {
     private Long id;
     private String name;
     private String clubId;
-    private String divisionName;
-    private String format;
-    private String gender;
+    private DivisionCode divisionCode;
+    private Format format;
+    private Gender gender;
 }

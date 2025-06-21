@@ -52,14 +52,14 @@ public class PoolIndexService {
         PoolDoc doc = PoolDoc.builder()
                 .id(e.getId())
                 .name(e.getName())
-                .divisionName(e.getDivisionName())
+                .divisionName(e.getDivisionCode().getLabel()) // Traduction de divisionCode en divisionName pour l'index
                 .leagueName(e.getLeagueName())
                 .nameSimplified(TextNormalizer.simplify(e.getName()))
-                .divisionNameSimplified(TextNormalizer.simplify(e.getDivisionName()))
+                .divisionNameSimplified(TextNormalizer.simplify(e.getDivisionCode().getLabel()))
                 .leagueNameSimplified(TextNormalizer.simplify(e.getLeagueName()))
                 .keywords(TextNormalizer.simplify(
                         e.getName() + " " +
-                                e.getDivisionName() + " " +
+                                e.getDivisionCode().getLabel() + " " +
                                 e.getLeagueName()))
                 .build();
         return doc;
