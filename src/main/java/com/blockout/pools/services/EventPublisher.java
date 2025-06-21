@@ -25,7 +25,7 @@ public class EventPublisher {
         PoolUpsertEvent event = PoolUpsertEvent.builder()
                 .id(pool.getId())
                 .name(pool.getName())
-                .divisionName(pool.getDivisionName())
+                .divisionCode(pool.getDivisionCode())
                 .leagueName(pool.getLeagueName())
                 .build();
 

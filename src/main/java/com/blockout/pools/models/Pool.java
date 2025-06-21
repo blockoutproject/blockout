@@ -46,9 +46,6 @@ public class Pool {
     @Column(name = "division_code", nullable = false)
     private DivisionCode divisionCode;
 
-    @Column(name = "division_name")
-    private String divisionName;
-
     @Enumerated(EnumType.STRING)
     @Column(name = "format")
     private Format format;

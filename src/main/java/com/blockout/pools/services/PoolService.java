@@ -115,7 +115,7 @@ public class PoolService {
             pool.setLeagueName(updatedPool.getLeagueName());
             pool.setName(updatedPool.getName());
             pool.setDivisionCode(updatedPool.getDivisionCode());
-            pool.setDivisionName(updatedPool.getDivisionName());
+            pool.setDivisionCode(updatedPool.getDivisionCode());
             pool.setFormat(updatedPool.getFormat());
             pool.setGender(updatedPool.getGender());
             pool.setActive(updatedPool.getActive());
