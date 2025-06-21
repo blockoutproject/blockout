@@ -2,6 +2,7 @@ from typing import Optional
 from api.matches_api import bulk_deactivate_matches
 from api.pools_api import update_pool
 from config.logger_config import log_event
+from models.enums.division_code import DivisionCode
 from models.match import Match, MatchStatus
 from models.pool import Pool
 from models.scraper import Scraper
@@ -15,7 +16,7 @@ from utils.html_utils import extract_club_stats_list
 from utils.match_utils import compute_volleyball_match_stats, is_anomalous_set_format
 from utils.team_utils import get_full_name, get_short_name, normalize
 from utils.utils import parse_date
-from models.datasource_priority import DataSourcePriority
+from models.enums.datasource_priority import DataSourcePriority
 
 
 async def handle_csv_download_and_parse(
@@ -60,14 +61,14 @@ async def handle_csv_download_and_parse(
         await scraper.init_matches_cache(new_pool.id)
         await scraper.init_associations_cache(new_pool.id)
 
-        existing_teams = await get_teams(scraper.session, new_pool.division_name, new_pool.format, new_pool.gender) or []
+        existing_teams = await get_teams(scraper.session, new_pool.division_code, new_pool.format, new_pool.gender) or []
         active_team_ids = {
             t_id for (p_id, t_id), (original, _) in scraper._associations_cache.items()
             if p_id == new_pool.id and original is not None
         }
 
         existing_teams_dict = {
-            (t.club_id, t.division_name, t.format, t.gender, normalize(t.name)): t
+            (t.club_id, t.division_code, t.format, t.gender, normalize(t.name)): t
             for t in existing_teams
         }
 
@@ -90,7 +91,7 @@ async def handle_csv_download_and_parse(
             # Team A
             team_a_full = get_full_name(row['team_a_name'], new_pool.gender)
             team_a_short = get_short_name(row['team_a_name'], new_pool.gender)
-            team_a_key = (row['club_a_id'], new_pool.division_name, new_pool.format, new_pool.gender, normalize(team_a_full))
+            team_a_key = (row['club_a_id'], new_pool.division_code, new_pool.format, new_pool.gender, normalize(team_a_full))
             existing_team_a = existing_teams_dict.get(team_a_key)
 
             new_team_a = await add_or_update_team(scraper.session, Team(
@@ -98,7 +99,7 @@ async def handle_csv_download_and_parse(
                 short_name=team_a_short,
                 club_id=row['club_a_id'],
                 league_code=new_pool.league_code,
-                division_name=new_pool.division_name,
+                division_code=new_pool.division_code,
                 format=new_pool.format,
                 gender=new_pool.gender
             ), existing_team_a)
@@ -108,7 +109,7 @@ async def handle_csv_download_and_parse(
             # Team B
             team_b_full = get_full_name(row['team_b_name'], new_pool.gender)
             team_b_short = get_short_name(row['team_b_name'], new_pool.gender)
-            team_b_key = (row['club_b_id'], new_pool.division_name, new_pool.format, new_pool.gender, normalize(team_b_full))
+            team_b_key = (row['club_b_id'], new_pool.division_code, new_pool.format, new_pool.gender, normalize(team_b_full))
             existing_team_b = existing_teams_dict.get(team_b_key)
 
             new_team_b = await add_or_update_team(scraper.session, Team(
@@ -116,7 +117,7 @@ async def handle_csv_download_and_parse(
                 short_name=team_b_short,
                 club_id=row['club_b_id'],
                 league_code=new_pool.league_code,
-                division_name=new_pool.division_name,
+                division_code=new_pool.division_code,
                 format=new_pool.format,
                 gender=new_pool.gender
             ), existing_team_b)

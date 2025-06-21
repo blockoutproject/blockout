@@ -1,9 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional
-from models.enums.division_code import DivisionCode
-from models.enums.format import Format
-from models.enums.gender import Gender
 
 @dataclass
 class RawDivisionMapping:
@@ -11,9 +8,9 @@ class RawDivisionMapping:
     league_code: str
     season: int
     id: Optional[int] = None
-    division_code: Optional[DivisionCode] = None
-    format: Optional[Format] = None
-    gender: Optional[Gender] = None
+    division_code: Optional[str] = None
+    format: Optional[str] = None
+    gender: Optional[str] = None
     created_at: datetime = datetime.now()
     updated_at: Optional[datetime] = None
 

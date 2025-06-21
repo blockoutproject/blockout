@@ -2,8 +2,6 @@ from typing import List, Optional
 import aiohttp
 from config.env_config import TEAM_API_URL
 from config.logger_config import log_event
-from models.enums.format import Format
-from models.enums.gender import Gender
 from utils.handlers.api_handler import handle_api_response
 from models.team import Team
 from api.auth0 import _get_headers
@@ -48,27 +46,27 @@ async def update_team(
 @handle_api_response(response_type=list[Team])
 async def get_teams(
     session: aiohttp.ClientSession,
-    division_name: Optional[str] = None,
-    format: Optional[Format] = None,
-    gender: Optional[Gender] = None,
+    division_code: Optional[str] = None,
+    format: Optional[str] = None,
+    gender: Optional[str] = None,
     club_id: Optional[str] = None,
     name: Optional[str] = None,
     ids: Optional[List[int]] = None
 ) -> List[Team]:
     """
-    Récupère les équipes avec des filtres optionnels : name, division_name, format, gender, club_id, ids.
+    Récupère les équipes avec des filtres optionnels : name, division_code, format, gender, club_id, ids.
     """
     headers = _get_headers()
     params = {}
 
     if name:
         params["name"] = name
-    if division_name:
-        params["division_name"] = division_name
+    if division_code:
+        params["division_code"] = division_code
     if format:
-        params["format"] = format.value
+        params["format"] = format
     if gender:
-        params["gender"] = gender.value
+        params["gender"] = gender
     if club_id:
         params["club_id"] = club_id
     if ids:

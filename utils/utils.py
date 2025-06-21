@@ -61,22 +61,6 @@ def extract_season_from_url(url: str) -> Optional[str]:
         )
         raise
 
-def extract_national_division(name: str) -> str:
-    """
-    Extrait la division nationale du nom de la poule.
-    """
-    try:
-        division_name = name.split('Poule')[0].strip()
-        return division_name
-    except Exception as e:
-        log_event(
-            action="extract_national_division",
-            level="error",
-            message=f"Erreur inattendue lors de l'extraction de la division pour '{name}'",
-            error=str(e)
-        )
-        raise
-
 def parse_date(date_str: str, time_str: str) -> Optional[datetime]:
     """
     Convertit des chaînes de date et d'heure en objet datetime.

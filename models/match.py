@@ -13,7 +13,7 @@ class Match:
     team_id_a: int
     team_id_b: int
     match_date: datetime
-    status: MatchStatus
+    status: str
     last_update: Optional[datetime] = None
     id: Optional[int] = None
     set: Optional[str] = None

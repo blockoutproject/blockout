@@ -6,8 +6,8 @@ from typing import Optional, Tuple
 import xml.etree.ElementTree as ET
 from bs4 import BeautifulSoup
 from api.pools_api import get_pools_by_league_and_season
-from models.category import Category
-from models.datasource_priority import DataSourcePriority
+from models.enums.category import Category
+from models.enums.datasource_priority import DataSourcePriority
 from models.enums.division_code import DivisionCode
 from models.enums.format import Format
 from models.enums.gender import Gender
@@ -24,7 +24,11 @@ from config.logger_config import log_event
 
 class ProScraper(Scraper):
     def __init__(self, session):
-        super().__init__(session, name="pro_scraper", category=Category.PRO, priority_validation_enabled=True)
+        super().__init__(
+            session, name="pro_scraper", 
+            category=Category.PRO, 
+            priority_validation_enabled=True
+        )
         self.raw_season = "2024/2025"
         self.parsed_season = parse_season(self.raw_season)
         self.league_code = "AALNV"
@@ -35,9 +39,8 @@ class ProScraper(Scraper):
             {
                 "pool_code": "MSL",
                 "name": "Marmara SpikeLigue",
-                "division_code": DivisionCode.MSL,
-                "division_name": "Marmara SpikeLigue",
-                "gender": Gender.M,
+                "division_code": DivisionCode.MSL.value,
+                "gender": Gender.M.value,
                 "lnv_url": "http://lnv-web.dataproject.com/CompetitionMatches.aspx?ID=115",
                 "lnv_xml_matches_url": "https://www.lnv.fr/xml/calendrier-LAM.xml",
                 "lnv_xml_rank_url": "https://www.lnv.fr/xml/classement-LAM.xml"
@@ -45,9 +48,8 @@ class ProScraper(Scraper):
             {
                 "pool_code": "LBM",
                 "name": "Ligue B Masculine",
-                "division_code": DivisionCode.LBM,
-                "division_name": "Ligue B Masculine",
-                "gender": Gender.M,
+                "division_code": DivisionCode.LBM.value,
+                "gender": Gender.M.value,
                 "lnv_url": "http://lnv-web.dataproject.com/CompetitionMatches.aspx?ID=116",
                 "lnv_xml_matches_url": "https://www.lnv.fr/xml/calendrier-LBM.xml",
                 "lnv_xml_rank_url": "https://www.lnv.fr/xml/classement-LBM.xml"
@@ -55,9 +57,8 @@ class ProScraper(Scraper):
             {
                 "pool_code": "LAF",
                 "name": "Saforelle Power 6",
-                "division_code": DivisionCode.SP6,
-                "division_name": "Saforelle Power 6",
-                "gender": Gender.F,
+                "division_code": DivisionCode.SP6.value,
+                "gender": Gender.F.value,
                 "lnv_url": "http://lnv-web.dataproject.com/CompetitionMatches.aspx?ID=113",
                 "lnv_xml_matches_url": "https://www.lnv.fr/xml/calendrier-LAF.xml",                
                 "lnv_xml_rank_url": "https://www.lnv.fr/xml/classement-LAF.xml"
@@ -65,7 +66,6 @@ class ProScraper(Scraper):
             # {
             #     "code": "FAZ",
             #     "name": "Saforelle Power 6 - Playoffs",
-            #     "division_name": "Saforelle Power 6 - Playoffs",
             #     "gender": "F",
             #     "lnv_url": "http://lnv-web.dataproject.com/CompetitionMatches.aspx?ID=113",
             #     "lnv_xml_matches_url": "https://www.lnv.fr/xml/calendrier-LAF.xml",                
@@ -98,10 +98,9 @@ class ProScraper(Scraper):
                         season=self.parsed_season,
                         league_name=self.league_name,
                         name=pool_json['name'],
-                        division_code=DivisionCode(pool_json['division_code']),
-                        division_name=pool_json['division_name'],
-                        format=Format.SIX,
-                        gender=Gender(pool_json['gender'])
+                        division_code=pool_json['division_code'],
+                        format=Format.SIX.value,
+                        gender=pool_json['gender']
                     )
 
                     # Clé d'identification pour le dict
@@ -298,7 +297,7 @@ class ProScraper(Scraper):
 
                     team = await find_team_by_name_in_division_format_gender(
                         self.session,
-                        pool.division_name,
+                        pool.division_code,
                         pool.format,
                         pool.gender,
                         full_name
@@ -435,14 +434,14 @@ class ProScraper(Scraper):
             if home_team_full and guest_team_full:
                 team_a = await find_team_by_name_in_division_format_gender(
                     self.session,
-                    pool.division_name,
+                    pool.division_code,
                     pool.format,
                     pool.gender,
                     home_team_full
                 )
                 team_b = await find_team_by_name_in_division_format_gender(
                     self.session,
-                    pool.division_name,
+                    pool.division_code,
                     pool.format,
                     pool.gender,
                     guest_team_full

@@ -1,15 +1,13 @@
 from typing import Optional
 import aiohttp
 from api.teams_api import create_team, get_teams, update_team
-from models.enums.format import Format
-from models.enums.gender import Gender
 from models.team import Team
 
 async def add_or_update_team(session: aiohttp.ClientSession, team: Team, existing_team: Optional[Team]) -> Team:
     """
     Vérifie l'existence d'une équipe et la met à jour ou la crée selon les besoins.
     """
-    required_fields = ['league_code', 'division_name', 'name']
+    required_fields = ['league_code', 'division_code', 'name']
     missing_fields = [field for field in required_fields if not getattr(team, field, None)]
     if missing_fields:
         raise ValueError(f"Les champs obligatoires suivants sont manquants : {', '.join(missing_fields)}.")
@@ -18,7 +16,7 @@ async def add_or_update_team(session: aiohttp.ClientSession, team: Team, existin
         changes_list = []
         team.id = existing_team.id
         
-        for field in ['club_id', 'division_name', 'format', 'gender']:
+        for field in ['club_id', 'division_code', 'format', 'gender']:
             if getattr(existing_team, field, None) != getattr(team, field, None):
                 changes_list.append(f"{field}: {getattr(existing_team, field)} -> {getattr(team, field)}")
 
@@ -34,17 +32,17 @@ async def add_or_update_team(session: aiohttp.ClientSession, team: Team, existin
     
 async def find_team_by_name_in_division_format_gender(
     session,
-    division_name: str,
-    format: Format,
-    gender: Gender,
+    division_code: str,
+    format: str,
+    gender: str,
     searched_name: str
 ) -> Optional[Team]:
     """
-    1) Récupère toutes les équipes correspondant à (division_name, format, gender).
+    1) Récupère toutes les équipes correspondant à (division_code, format, gender).
     2) Filtre pour trouver celle dont name correspond à 'searched_name' (insensible à la casse).
     3) Retourne la première correspondante ou None si introuvable.
     """
-    teams = await get_teams(session, division_name, format, gender)
+    teams = await get_teams(session, division_code, format, gender)
     if not teams:
         return None
     

@@ -4,8 +4,7 @@ from bs4 import BeautifulSoup
 from api.competitions_api import bulk_deactivate_pools
 from api.config_api import create_raw_division_mapping, get_raw_division_mappings_by_league_and_season
 from api.pools_api import get_pools_by_league_and_season
-from models.category import Category
-from models.enums.division_code import DIVISION_CODE_LABELS, DivisionCode
+from models.enums.category import Category
 from models.pool import Pool
 from models.raw_division_mapping import RawDivisionMapping
 from models.scraper import Scraper
@@ -164,7 +163,6 @@ class RegionalScraper(Scraper):
                         season=parsed_season,
                         league_name=league_name,
                         name=name,
-                        division_name=DIVISION_CODE_LABELS.get(mapping.division_code, DivisionCode.OTHER.value),
                         division_code=mapping.division_code,
                         format=mapping.format,
                         gender=mapping.gender,

@@ -1,4 +1,4 @@
-from typing import Optional, List
+from typing import List
 import aiohttp
 from config.env_config import POOL_API_URL
 from config.logger_config import log_event
@@ -39,7 +39,7 @@ async def create_pool(
         action="create_pool",
         level="info",
         pool_code=pool.pool_code,
-        division_name=pool.division_name
+        division_code=pool.division_code
     )
     return response
 

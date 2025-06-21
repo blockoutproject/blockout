@@ -8,8 +8,8 @@ from api.competitions_api import get_active_team_associations_by_pool, update_te
 from api.matches_api import create_match, update_match, get_matches_by_pool
 from config.logger_config import log_event, current_scraper
 from models.association_stats import AssociationStats
-from models.category import Category
-from models.datasource_priority import DataSourcePriority
+from models.enums.category import Category
+from models.enums.datasource_priority import DataSourcePriority
 from models.match import Match
 from dataclasses import replace
 

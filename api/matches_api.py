@@ -1,10 +1,9 @@
 from typing import Optional, List
 import aiohttp
-from datetime import datetime
 from api.auth0 import _get_headers
 from config.env_config import MATCH_API_URL
 from config.logger_config import log_event
-from models.match import Match, MatchStatus
+from models.match import Match
 from utils.handlers.api_handler import handle_api_response
 from utils.utils import to_dict
 

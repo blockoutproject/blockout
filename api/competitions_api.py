@@ -1,13 +1,12 @@
 from typing import Optional, List
 import aiohttp
 from config.env_config import COMPETITION_API_URL
-from config.logger_config import log_event
 from models.association_stats import AssociationStats
-from models.category import Category
+from models.enums.category import Category
 from models.competition_association import CompetitionAssociation
 from utils.handlers.api_handler import handle_api_response
 from api.auth0 import _get_headers
-from utils.utils import generate_correlation_id, to_dict
+from utils.utils import to_dict
 
 
 @handle_api_response(response_type=list[CompetitionAssociation])

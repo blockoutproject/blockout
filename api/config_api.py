@@ -19,7 +19,7 @@ async def get_raw_division_mappings_by_league_and_season(
     """
     headers = _get_headers()
     params = {"league_code": league_code, "season": season}
-    url = f"{CONFIG_API_URL}/raw-pools"
+    url = f"{CONFIG_API_URL}/raw-divisions"
     return await session.get(url, params=params, headers=headers)
 
 
@@ -33,7 +33,7 @@ async def create_raw_division_mapping(
     """
     headers = _get_headers()
     mapping_dict = to_dict(mapping)
-    url = f"{CONFIG_API_URL}/raw-pools"
+    url = f"{CONFIG_API_URL}/raw-divisions"
     response = await session.post(url, json=mapping_dict, headers=headers)
     log_event(
         action="create_raw_division_mapping",
