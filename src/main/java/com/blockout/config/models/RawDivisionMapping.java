@@ -21,7 +21,7 @@ public class RawDivisionMapping {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "raw_division_name")
+    @Column(name = "raw_division_name", nullable = false)
     private String rawDivisionName;
 
     @Enumerated(EnumType.STRING)
