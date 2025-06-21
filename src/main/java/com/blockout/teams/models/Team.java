@@ -7,8 +7,9 @@ import lombok.Builder;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
-import com.blockout.teams.models.enums.TeamFormat;
-import com.blockout.teams.models.enums.TeamGender;
+import com.blockout.teams.models.enums.DivisionCode;
+import com.blockout.teams.models.enums.Format;
+import com.blockout.teams.models.enums.Gender;
 
 @Data
 @Builder(toBuilder = true)
@@ -16,7 +17,7 @@ import com.blockout.teams.models.enums.TeamGender;
 @AllArgsConstructor
 @Entity
 @Table(name = "teams", uniqueConstraints = {
-        @UniqueConstraint(columnNames = { "club_id", "division_name", "format", "gender", "name" }, name = "uix_team")
+        @UniqueConstraint(columnNames = { "club_id", "division_code", "format", "gender", "name" }, name = "uix_team")
 })
 public class Team {
 
@@ -43,16 +44,17 @@ public class Team {
     @Column(name = "league_code", nullable = false)
     private String leagueCode;
 
-    @Column(name = "division_name", nullable = false)
-    private String divisionName;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "division_code", nullable = false)
+    private DivisionCode divisionCode;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "format", nullable = false)
-    private TeamFormat format;
+    private Format format;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "gender", nullable = false)
-    private TeamGender gender;
+    private Gender gender;
 
     @Builder.Default
     @Column(name = "followers_count", nullable = false)

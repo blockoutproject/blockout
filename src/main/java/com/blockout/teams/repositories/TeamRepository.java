@@ -1,8 +1,9 @@
 package com.blockout.teams.repositories;
 
 import com.blockout.teams.models.Team;
-import com.blockout.teams.models.enums.TeamFormat;
-import com.blockout.teams.models.enums.TeamGender;
+import com.blockout.teams.models.enums.DivisionCode;
+import com.blockout.teams.models.enums.Format;
+import com.blockout.teams.models.enums.Gender;
 
 import java.util.List;
 
@@ -13,8 +14,6 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface TeamRepository extends JpaRepository<Team, Long> {
-    List<Team> findByDivisionNameAndFormatAndGender(String divisionName, TeamFormat format, TeamGender gender);
-
     List<Team> findByClubIdAndActiveTrue(String clubId);
 
     @Query("SELECT DISTINCT t.clubId FROM Team t WHERE t.clubId IS NOT NULL")
@@ -24,17 +23,17 @@ public interface TeamRepository extends JpaRepository<Team, Long> {
             SELECT t
             FROM Team t
             WHERE (:name IS NULL OR t.name = :name)
-              AND (:divisionName IS NULL OR t.divisionName = :divisionName)
-              AND (:format IS NULL OR t.format = :format)
-              AND (:gender IS NULL OR t.gender = :gender)
-              AND (:clubId IS NULL OR t.clubId = :clubId)
-              AND (:idsSize = 0 OR t.id IN :ids)
+                AND (:divisionCode IS NULL OR t.divisionCode = :divisionCode)
+                AND (:format IS NULL OR t.format = :format)
+                AND (:gender IS NULL OR t.gender = :gender)
+                AND (:clubId IS NULL OR t.clubId = :clubId)
+                AND (:idsSize = 0 OR t.id IN :ids)
             ORDER BY t.name ASC
             """)
     List<Team> findFiltered(@Param("name") String name,
-            @Param("divisionName") String divisionName,
-            @Param("format") TeamFormat format,
-            @Param("gender") TeamGender gender,
+            @Param("divisionCode") DivisionCode divisionCode,
+            @Param("format") Format format,
+            @Param("gender") Gender gender,
             @Param("clubId") String clubId,
             @Param("ids") List<Long> ids,
             @Param("idsSize") int idsSize);

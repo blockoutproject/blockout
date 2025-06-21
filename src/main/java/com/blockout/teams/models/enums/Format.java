@@ -1,5 +1,5 @@
 package com.blockout.teams.models.enums;
 
-public enum TeamFormat {
+public enum Format {
     SIX, FOUR
 }

@@ -1,5 +1,5 @@
 package com.blockout.teams.models.enums;
 
-public enum TeamGender {
+public enum Gender {
     M, F, O
 }

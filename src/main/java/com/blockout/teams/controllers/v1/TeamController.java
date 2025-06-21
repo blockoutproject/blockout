@@ -1,8 +1,9 @@
 package com.blockout.teams.controllers.v1;
 
 import com.blockout.teams.models.Team;
-import com.blockout.teams.models.enums.TeamFormat;
-import com.blockout.teams.models.enums.TeamGender;
+import com.blockout.teams.models.enums.DivisionCode;
+import com.blockout.teams.models.enums.Format;
+import com.blockout.teams.models.enums.Gender;
 import com.blockout.teams.services.TeamService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -39,7 +40,7 @@ public class TeamController {
         return ResponseEntity.created(location).body(created);
     }
 
-    @Operation(summary = "List teams", description = "Returns teams. Optional filters: name, divisionName, format, gender, clubId, ids.")
+    @Operation(summary = "List teams", description = "Returns teams. Optional filters: name, divisionCode, format, gender, clubId, ids.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Teams returned"),
             @ApiResponse(responseCode = "204", description = "No team found")
@@ -47,13 +48,13 @@ public class TeamController {
     @GetMapping
     public ResponseEntity<List<Team>> listTeams(
             @RequestParam(required = false) String name,
-            @RequestParam(required = false, name = "division_name") String divisionName,
-            @RequestParam(required = false) TeamFormat format,
-            @RequestParam(required = false) TeamGender gender,
+            @RequestParam(required = false, name = "division_code") DivisionCode divisionCode,
+            @RequestParam(required = false) Format format,
+            @RequestParam(required = false) Gender gender,
             @RequestParam(required = false, name = "club_id") String clubId,
             @RequestParam(required = false) List<Long> ids) {
 
-        List<Team> teams = teamService.findTeams(name, divisionName, format, gender, clubId, ids);
+        List<Team> teams = teamService.findTeams(name, divisionCode, format, gender, clubId, ids);
         return ResponseEntity.ok(teams);
     }
 

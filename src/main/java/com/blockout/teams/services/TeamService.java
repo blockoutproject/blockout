@@ -2,8 +2,9 @@ package com.blockout.teams.services;
 
 import com.blockout.teams.exceptions.TeamNotFoundException;
 import com.blockout.teams.models.Team;
-import com.blockout.teams.models.enums.TeamFormat;
-import com.blockout.teams.models.enums.TeamGender;
+import com.blockout.teams.models.enums.DivisionCode;
+import com.blockout.teams.models.enums.Format;
+import com.blockout.teams.models.enums.Gender;
 import com.blockout.teams.repositories.TeamRepository;
 import com.blockout.teams.utils.DiffUtils;
 
@@ -54,16 +55,16 @@ public class TeamService {
      * Récupère les équipes en appliquant des filtres facultatifs.
      *
      * @param name         fragment de nom (null pour ignorer)
-     * @param divisionName nom de division exact (null pour ignorer)
+     * @param divisionCode nom de division exact (null pour ignorer)
      * @param format       format de l'équipe (null pour ignorer)
      * @param gender       genre de l'équipe (null pour ignorer)
      * @param ids          liste d'IDs (null ou vide pour ignorer)
      * @return liste des équipes correspondant aux critères
      */
     public List<Team> findTeams(String name,
-            String divisionName,
-            TeamFormat format,
-            TeamGender gender,
+            DivisionCode divisionCode,
+            Format format,
+            Gender gender,
             String clubId,
             List<Long> ids) {
 
@@ -71,7 +72,7 @@ public class TeamService {
 
         List<Team> teams = teamRepository.findFiltered(
                 name,
-                divisionName,
+                divisionCode,
                 format,
                 gender,
                 clubId,
@@ -81,7 +82,7 @@ public class TeamService {
         logger.debug("findTeams executed",
                 keyValue("action", "find_teams"),
                 keyValue("name", name),
-                keyValue("divisionName", divisionName),
+                keyValue("divisionCode", divisionCode),
                 keyValue("format", format),
                 keyValue("gender", gender),
                 keyValue("ids", safeIds),
@@ -148,7 +149,7 @@ public class TeamService {
             team.setClubId(updatedTeam.getClubId());
             team.setName(updatedTeam.getName());
             team.setShortName(updatedTeam.getShortName());
-            team.setDivisionName(updatedTeam.getDivisionName());
+            team.setDivisionCode(updatedTeam.getDivisionCode());
             team.setFormat(updatedTeam.getFormat());
             team.setGender(updatedTeam.getGender());
             team.setActive(updatedTeam.getActive());

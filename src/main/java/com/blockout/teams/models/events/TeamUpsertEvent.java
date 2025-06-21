@@ -1,7 +1,8 @@
 package com.blockout.teams.models.events;
 
-import com.blockout.teams.models.enums.TeamFormat;
-import com.blockout.teams.models.enums.TeamGender;
+import com.blockout.teams.models.enums.DivisionCode;
+import com.blockout.teams.models.enums.Format;
+import com.blockout.teams.models.enums.Gender;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -16,7 +17,7 @@ public class TeamUpsertEvent {
     private Long id;
     private String name;
     private String clubId;
-    private String divisionName;
-    private TeamFormat format;
-    private TeamGender gender;
+    private DivisionCode divisionCode;
+    private Format format;
+    private Gender gender;
 }
