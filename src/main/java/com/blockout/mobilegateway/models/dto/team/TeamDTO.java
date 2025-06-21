@@ -5,6 +5,9 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import com.blockout.mobilegateway.models.enums.DivisionCode;
+import com.blockout.mobilegateway.models.enums.Format;
+import com.blockout.mobilegateway.models.enums.Gender;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 @Data
@@ -30,12 +33,12 @@ public class TeamDTO {
     @JsonProperty("league_code")
     private String leagueCode;
 
-    @JsonProperty("division_name")
-    private String divisionName;
+    @JsonProperty("division_code")
+    private DivisionCode divisionCode;
 
-    private String format;
+    private Format format;
     
-    private String gender;
+    private Gender gender;
 
     @JsonProperty("followers_count")
     private Long followersCount;

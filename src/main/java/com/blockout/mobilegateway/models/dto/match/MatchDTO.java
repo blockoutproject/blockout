@@ -36,8 +36,11 @@ public class MatchDTO {
     private String matchDate;
 
     private String set;
+
     private String score;
+
     private String status;
+    
     private String venue;
 
     @JsonProperty("referee_1")

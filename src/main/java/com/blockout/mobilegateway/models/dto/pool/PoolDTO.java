@@ -1,5 +1,8 @@
 package com.blockout.mobilegateway.models.dto.pool;
 
+import com.blockout.mobilegateway.models.enums.DivisionCode;
+import com.blockout.mobilegateway.models.enums.Format;
+import com.blockout.mobilegateway.models.enums.Gender;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -29,13 +32,11 @@ public class PoolDTO {
     private String name;
 
     @JsonProperty("division_code")
-    private String divisionCode;
+    private DivisionCode divisionCode;
 
-    @JsonProperty("division_name")
-    private String divisionName;
+    private Format format;
 
-    private String format;
-    private String gender;
+    private Gender gender;
 
     @JsonProperty("followers_count")
     private Long followersCount;
