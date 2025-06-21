@@ -1,9 +1,6 @@
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from datetime import datetime
-from enum import Enum
 from typing import Optional
-from models.format import Format
-from models.gender import Gender
 
 @dataclass
 class Team:
@@ -11,9 +8,9 @@ class Team:
     name: str
     short_name: str
     league_code: str
-    division_name: str
-    gender: Optional[Gender] = None
-    format: Optional[Format] = None
+    division_code: str
+    gender: Optional[str] = None
+    format: Optional[str] = None
     last_update: Optional[datetime] = None
     id: Optional[int] = None
     active: bool = True
