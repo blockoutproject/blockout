@@ -1,6 +1,7 @@
 package com.blockout.config.controllers.v1;
 
 import com.blockout.config.models.RawDivisionMapping;
+import com.blockout.config.models.dto.RawDivisionMappingUpdateDTO;
 import com.blockout.config.services.RawDivisionMappingService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -63,13 +64,16 @@ public class RawDivisionMappingController {
 
     @Operation(summary = "Update raw division mapping", description = "Updates a raw division mapping.")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Raw division mapping updated"),
-            @ApiResponse(responseCode = "404", description = "Raw division mapping not found")
+        @ApiResponse(responseCode = "200", description = "Raw division mapping updated"),
+        @ApiResponse(responseCode = "404", description = "Raw division mapping not found")
     })
     @PutMapping("/{id}")
-    public ResponseEntity<RawDivisionMapping> update(@PathVariable Long id, @RequestBody RawDivisionMapping updatedMapping) {
-        Optional<RawDivisionMapping> updated = service.update(id, updatedMapping);
+    public ResponseEntity<RawDivisionMapping> update(
+            @PathVariable Long id,
+            @RequestBody RawDivisionMappingUpdateDTO dto
+    ) {
+        Optional<RawDivisionMapping> updated = service.update(id, dto);
         return updated.map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.notFound().build());
+                    .orElseGet(() -> ResponseEntity.notFound().build());
     }
 }

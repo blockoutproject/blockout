@@ -1,6 +1,7 @@
 package com.blockout.config.services;
 
 import com.blockout.config.models.RawDivisionMapping;
+import com.blockout.config.models.dto.RawDivisionMappingUpdateDTO;
 import com.blockout.config.repositories.RawDivisionMappingRepository;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -62,11 +63,18 @@ public class RawDivisionMappingService {
      * Met à jour un RawDivisionMapping existant
      */
     @Transactional
-    public Optional<RawDivisionMapping> update(Long id, RawDivisionMapping updated) {
+    public Optional<RawDivisionMapping> update(Long id, RawDivisionMappingUpdateDTO dto) {
         return repository.findById(id).map(existing -> {
-            existing.setRawDivisionName(updated.getRawDivisionName());
-            existing.setFormat(updated.getFormat());
-            existing.setGender(updated.getGender());;
+            if (dto.getDivisionCode() != null) {
+                existing.setDivisionCode(dto.getDivisionCode());
+            }
+            if (dto.getFormat() != null) {
+                existing.setFormat(dto.getFormat());
+            }
+            if (dto.getGender() != null) {
+                existing.setGender(dto.getGender());
+            }
+
             RawDivisionMapping saved = repository.save(existing);
             logger.info("RawDivisionMapping updated",
                     keyValue("action", "update_raw_division_mapping"),
