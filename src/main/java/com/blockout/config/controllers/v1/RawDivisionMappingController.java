@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
@@ -27,6 +28,7 @@ public class RawDivisionMappingController {
             @ApiResponse(responseCode = "201", description = "Raw division mapping created"),
             @ApiResponse(responseCode = "400", description = "Invalid request")
     })
+    @PreAuthorize("hasAuthority('SCOPE_create:raw_division_mapping')")
     @PostMapping
     public ResponseEntity<RawDivisionMapping> create(@RequestBody RawDivisionMapping rawPoolMapping) {
         RawDivisionMapping created = service.create(rawPoolMapping);
@@ -42,6 +44,7 @@ public class RawDivisionMappingController {
             @ApiResponse(responseCode = "200", description = "Raw division mappings returned"),
             @ApiResponse(responseCode = "204", description = "No raw division mapping found")
     })
+    @PreAuthorize("hasAuthority('SCOPE_read:raw_division_mapping')")
     @GetMapping
     public ResponseEntity<List<RawDivisionMapping>> list(
             @RequestParam(required = false, name = "league_code") String leagueCode,
@@ -67,6 +70,7 @@ public class RawDivisionMappingController {
         @ApiResponse(responseCode = "200", description = "Raw division mapping updated"),
         @ApiResponse(responseCode = "404", description = "Raw division mapping not found")
     })
+    @PreAuthorize("hasAuthority('SCOPE_update:raw_division_mapping')")
     @PutMapping("/{id}")
     public ResponseEntity<RawDivisionMapping> update(
             @PathVariable Long id,
