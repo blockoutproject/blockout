@@ -10,7 +10,7 @@ type Props = {
     teamId: number;
 };
 
-const Team: React.FC<Props> = ({ teamId }) => {
+const TeamScreen: React.FC<Props> = ({ teamId }) => {
     const { data: team, isLoading: isTeamLoading, isError: isTeamError } = useTeamById(teamId);
     const { pools, isLoading: isPoolsLoading, isError: isPoolsError } = useDetailedPoolsByTeam(teamId);
     const theme = useAppTheme();
@@ -64,4 +64,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default Team;
+export default TeamScreen;

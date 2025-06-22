@@ -1,6 +1,6 @@
 import React from "react";
 import GenericTabView from "@/src/components/common/GenericTabView";
-import MatchList from "@/src/components/matchList/MatchList";
+import MatchList from "@/src/components/matchList/MatchListContainer";
 import { MatchStatus } from "@/src/types/Match";
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import { Pool } from "@/src/types/Pool";

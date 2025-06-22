@@ -15,8 +15,8 @@ import { formatDateFrenchLocale } from "@/src/utils/utils";
 import * as Haptics from "expo-haptics";
 import EmptyPrompt from "../common/feedback/EmptyPrompt";
 import { useGlobalBottomSheet } from "@/src/context/GlobalBottomSheetProvider";
-import MatchContainer from "@/src/components/match/Match";
-import PoolContainer from "../pool/PoolContainer";
+import MatchContainer from "@/src/components/match/MatchScreen";
+import PoolContainer from "../pool/PoolScreen";
 import { useMatchList } from "@/src/hooks/match/useMatchList";
 import ErrorPrompt from "../common/feedback/ErrorPrompt";
 import PoolItem from "./components/PoolItem";
@@ -31,7 +31,7 @@ type MatchListContainerProps = {
     contentContainerStyle?: StyleProp<ViewStyle>;
 };
 
-const MatchList: React.FC<MatchListContainerProps> = ({
+const MatchListContainer: React.FC<MatchListContainerProps> = ({
     poolIds,
     teamIds,
     status,
@@ -229,4 +229,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default MatchList;
+export default MatchListContainer;

@@ -1,17 +1,16 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
 import { usePoolById } from '@/src/hooks/pool/usePoolById';
-import PoolProfile from '@/src/components/pool/PoolProfile';
-import PoolTabs from '@/src/components/pool/PoolTabs';
 import MatchSkeleton from '@/src/components/match/components/MatchSkeleton';
 import { useAppTheme } from '@/src/context/ThemeProvider';
+import PoolProfile from './components/PoolProfile';
+import PoolTabs from './components/PoolTabs';
 
 type Props = {
     poolId: number;
 };
 
-const PoolContainer: React.FC<Props> = ({ poolId }) => {
+const PoolScreen: React.FC<Props> = ({ poolId }) => {
     const { data: pool, isLoading } = usePoolById(poolId);
     const theme = useAppTheme();
 
@@ -38,4 +37,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default PoolContainer;
+export default PoolScreen;

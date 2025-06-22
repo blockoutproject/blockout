@@ -11,12 +11,11 @@ import MatchInfoCard from './components/MatchInfoCard';
 import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getLeagueLabel } from '@/src/utils/utils';
-import { usePoolGradient } from '@/src/hooks/utils/usePoolGradient';
 import { usePoolBorderGradient } from '@/src/hooks/utils/usePoolBorderGradient';
 
 type Props = { matchId: number };
 
-const Match: React.FC<Props> = ({ matchId }) => {
+const MatchScreen: React.FC<Props> = ({ matchId }) => {
     const { match, teamA, teamB, pool, isLoading } = useMatchById(matchId);
     const theme = useAppTheme();
     const insets = useSafeAreaInsets();
@@ -85,4 +84,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default Match;
+export default MatchScreen;

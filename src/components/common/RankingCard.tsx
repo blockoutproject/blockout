@@ -13,7 +13,7 @@ import { useAppTheme } from '@/src/context/ThemeProvider';
 import { AppTheme } from '@/src/types/Theme';
 import { useGlobalBottomSheet } from '@/src/context/GlobalBottomSheetProvider';
 import * as Haptics from 'expo-haptics';
-import TeamContainer from '../team/Team';
+import TeamContainer from '../team/TeamScreen';
 import GradientView from './GradientView';
 import { GradientVariants } from '@/src/utils/utils';
 

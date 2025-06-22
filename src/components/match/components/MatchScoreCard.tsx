@@ -6,7 +6,7 @@ import { Team } from "@/src/types/Team";
 import { GradientVariants, splitIsoDateFormatted } from "@/src/utils/utils";
 import { useGlobalBottomSheet } from "@/src/context/GlobalBottomSheetProvider";
 import * as Haptics from "expo-haptics";
-import TeamContainer from "../../team/Team";
+import TeamContainer from "../../team/TeamScreen";
 import GradientBorderView from "../../common/GradientBorderView";
 
 export interface MatchScoreCardProps {

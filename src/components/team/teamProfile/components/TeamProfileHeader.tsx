@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import FastImage from 'react-native-fast-image';
-import TeamStatsCard from '../../TeamStatsCard';
+import TeamStatsCard from './TeamStatsCard';
 import { useAppTheme } from '@/src/context/ThemeProvider';
 import { Team } from '@/src/types/Team';
 

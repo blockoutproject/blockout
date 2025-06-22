@@ -5,8 +5,8 @@ import FastImage from 'react-native-fast-image';
 import UsersApi from '@/src/api/UsersApi';
 import { EntityType } from '@/src/types/User';
 import { useUserContext } from '@/src/hooks/user/useUserContext';
-import FollowButton from '../common/FollowButton';
-import FollowersCounter from '../common/FollowersCount';
+import FollowButton from '../../common/FollowButton';
+import FollowersCounter from '../../common/FollowersCount';
 import { useAppTheme } from '@/src/context/ThemeProvider';
 
 type PoolProfileProps = {

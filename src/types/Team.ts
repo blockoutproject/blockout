@@ -1,13 +1,6 @@
-export enum EnumTeamFormat {
-    SIX = "SIX",
-    FOUR = "FOUR",
-}
-
-export enum EnumTeamGender {
-    M = "M",
-    F = "F",
-    O = "O",
-}
+import { EnumDivisionCode } from "./enums/DivisionCode";
+import { EnumFormat } from "./enums/Format";
+import { EnumGender } from "./enums/Gender";
 
 export interface Team {
     id: number;
@@ -16,9 +9,9 @@ export interface Team {
     name: string;
     shortName: string;
     leagueCode: string;
-    divisionName: string;
-    format: EnumTeamFormat;
-    gender: EnumTeamGender;
+    divisionCode: EnumDivisionCode;
+    format: EnumFormat;
+    gender: EnumGender;
     followersCount: number;
     lastUpdate: string;
     active: boolean;

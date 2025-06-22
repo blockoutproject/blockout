@@ -5,15 +5,19 @@ import FastImage from 'react-native-fast-image';
 import { useAppTheme } from '@/src/context/ThemeProvider';
 import { router } from 'expo-router';
 import { useUserContext } from '@/src/hooks/user/useUserContext';
+import { useGlobalBottomSheet } from '@/src/context/GlobalBottomSheetProvider';
 
-const ProfileContainer: React.FC = () => {
+const ProfileScreen: React.FC = () => {
     const { user, clearSession } = useAuth0();
     const { customUser } = useUserContext();
     const theme = useAppTheme();
+    const { closeAllSheets } = useGlobalBottomSheet();
+
 
     const handleLogout = async () => {
         try {
             await clearSession();
+            closeAllSheets();
         } catch (error) {
             console.log('Erreur lors de la déconnexion :', error);
         }
@@ -150,4 +154,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default ProfileContainer;
+export default ProfileScreen;

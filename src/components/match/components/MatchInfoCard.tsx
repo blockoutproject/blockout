@@ -6,7 +6,7 @@ import { Pool } from '@/src/types/Pool';
 import { useAppTheme } from '@/src/context/ThemeProvider';
 import { useGlobalBottomSheet } from '@/src/context/GlobalBottomSheetProvider';
 import * as Haptics from "expo-haptics";
-import PoolContainer from '../../pool/PoolContainer';
+import PoolContainer from '../../pool/PoolScreen';
 import GradientView from '../../common/GradientView';
 import { GradientVariants } from '@/src/utils/utils';
 

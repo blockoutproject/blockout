@@ -16,13 +16,13 @@ import { ErrorState } from '@/src/components/common/feedback/ErrorState';
 import TeamCard from '@/src/components/search/TeamCard';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import TeamContainer from '@/src/components/team/Team';
+import TeamContainer from '@/src/components/team/TeamScreen';
 import { useGlobalBottomSheet } from '@/src/context/GlobalBottomSheetProvider';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BottomSheetFlatList } from '@gorhom/bottom-sheet';
 import { SearchPrompt } from '../common/feedback/SearchPrompt';
 
-const SearchContainer = () => {
+const SearchScreen = () => {
     const theme = useAppTheme();
     const { openSheet } = useGlobalBottomSheet();
     const insets = useSafeAreaInsets();
@@ -142,4 +142,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default SearchContainer;
+export default SearchScreen;

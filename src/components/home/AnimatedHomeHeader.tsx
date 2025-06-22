@@ -25,8 +25,10 @@ import { useAppTheme } from "@/src/context/ThemeProvider";
 import { Extrapolation } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
 import { useGlobalBottomSheet } from "@/src/context/GlobalBottomSheetProvider";
-import SearchContainer from "../search/SearchContainer";
-import ProfileContainer from "../profile/ProfileContainer";
+import SearchContainer from "../search/SearchScreen";
+import ProfileScreen from "../profile/ProfileScreen";
+import RawDivisionMappingsScreen from "../rawDivisionMapping/RawDivisionMappingScreen";
+import { useHasScopes } from "@/src/hooks/user/useHasScope";
 
 type HeaderProps = SceneRendererProps & {
     navigationState: NavigationState<Route>;
@@ -43,6 +45,11 @@ const AnimatedHomeHeader: React.FC<HeaderProps> = ({ scrollY, onTitleLayout, onT
     const colorSheme = useColorScheme();
 
     const [titleHeight, setTitleHeight] = useState(0);
+
+    const canAccessRawDivision = useHasScopes([
+        "read:raw_division_mapping",
+        "update:raw_division_mapping",
+    ]);
 
     const translateY = scrollY.interpolate({
         inputRange: [0, titleHeight],
@@ -73,9 +80,14 @@ const AnimatedHomeHeader: React.FC<HeaderProps> = ({ scrollY, onTitleLayout, onT
         openSheet(<SearchContainer />);
     };
 
+    const handleNotificationPress = () => {
+        Haptics.selectionAsync();
+        openSheet(<RawDivisionMappingsScreen />);
+    };
+
     const handleProfilePress = () => {
         Haptics.selectionAsync();
-        openSheet(<ProfileContainer />);
+        openSheet(<ProfileScreen />);
     };
 
     return (
@@ -143,9 +155,11 @@ const AnimatedHomeHeader: React.FC<HeaderProps> = ({ scrollY, onTitleLayout, onT
                         <MaterialCommunityIcons name="magnify" size={25} color={theme.text} />
                     </TouchableOpacity>
 
-                    <TouchableOpacity>
-                        <MaterialCommunityIcons name="whistle" size={25} color={theme.text} />
-                    </TouchableOpacity>
+                    {canAccessRawDivision && (
+                        <TouchableOpacity onPress={handleNotificationPress}>
+                            <MaterialCommunityIcons name="whistle" size={25} color={theme.text} />
+                        </TouchableOpacity>
+                    )}
 
                     <TouchableOpacity onPress={handleProfilePress}>
                         <FastImage style={styles.avatar} source={{ uri: user?.picture }} />

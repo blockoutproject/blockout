@@ -1,7 +1,7 @@
 import React from 'react';
 import GenericTabView from '@/src/components/common/GenericTabView';
-import MatchList from '../matchList/MatchList';
-import RankingTab from '../common/RankingTab';
+import MatchList from '../../matchList/MatchListContainer';
+import RankingTab from '../../common/RankingTab';
 import { MatchStatus } from '@/src/types/Match';
 import { Pool } from '@/src/types/Pool';
 import { useAppTheme } from '@/src/context/ThemeProvider';
