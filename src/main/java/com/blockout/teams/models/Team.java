@@ -38,9 +38,6 @@ public class Team {
     @Column(name = "active", nullable = false)
     private Boolean active = true;
 
-    @Column(name = "last_update")
-    private LocalDateTime lastUpdate;
-
     @Column(name = "league_code", nullable = false)
     private String leagueCode;
 
@@ -60,7 +57,18 @@ public class Team {
     @Column(name = "followers_count", nullable = false)
     private Long followersCount = 0L;
 
+    @Column(name = "created_at")
+    private LocalDateTime createdAt;
+
+    @Column(name = "last_update")
+    private LocalDateTime lastUpdate;
+
     @PrePersist
+    public void prePersist() {
+        createdAt = LocalDateTime.now();
+        lastUpdate = LocalDateTime.now();
+    }
+
     @PreUpdate
     public void preUpdate() {
         lastUpdate = LocalDateTime.now();
