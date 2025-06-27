@@ -48,28 +48,14 @@ public class DivisionService {
     }
 
     /**
-     * Crée une nouvelle division ou met à jour une division désactivée existante
+     * Crée une nouvelle division
      */
     @Transactional
-    public Division createOrUpdateDivision(Division incoming) {
-        Optional<Division> existingOpt = divisionRepository.findByNameIgnoreCase(incoming.getName());
+    public Division createDivision(Division incoming) {
+        Optional<Division> existing = divisionRepository.findByNameIgnoreCase(incoming.getName());
 
-        if (existingOpt.isPresent()) {
-            Division existing = existingOpt.get();
-            Division before = existing.toBuilder().build();
-
-            existing.setMainColor(incoming.getMainColor());
-            existing.setFirstGradientColor(incoming.getFirstGradientColor());
-            existing.setSecondGradientColor(incoming.getSecondGradientColor());
-            existing.setThirdGradientColor(incoming.getThirdGradientColor());
-            existing.setProfileImageUrl(incoming.getProfileImageUrl());
-            existing.setActive(true);
-
-            Division updated = divisionRepository.save(existing);
-
-            DiffUtils.logChanges(before, updated, logger, "upsert_division", updated.getId());
-
-            return updated;
+        if (existing.isPresent()) {
+            throw new IllegalStateException("Une division avec ce nom existe déjà.");
         }
 
         Division created = divisionRepository.save(incoming);
@@ -92,15 +78,24 @@ public class DivisionService {
         return divisionRepository.findById(id).map(existing -> {
             Division before = existing.toBuilder().build();
 
-            if (dto.getName() != null) existing.setName(dto.getName());
-            if (dto.getMainColor() != null) existing.setMainColor(dto.getMainColor());
-            if (dto.getFirstGradientColor() != null) existing.setFirstGradientColor(dto.getFirstGradientColor());
-            if (dto.getSecondGradientColor() != null) existing.setSecondGradientColor(dto.getSecondGradientColor());
-            if (dto.getThirdGradientColor() != null) existing.setThirdGradientColor(dto.getThirdGradientColor());
-            if (dto.getDivisionImageUrl() != null) existing.setProfileImageUrl(dto.getDivisionImageUrl());
+            if (dto.getName() != null)
+                existing.setName(dto.getName());
+            if (dto.getMainColor() != null)
+                existing.setMainColor(dto.getMainColor());
+            if (dto.getFirstGradientColor() != null)
+                existing.setFirstGradientColor(dto.getFirstGradientColor());
+            if (dto.getSecondGradientColor() != null)
+                existing.setSecondGradientColor(dto.getSecondGradientColor());
+            if (dto.getThirdGradientColor() != null)
+                existing.setThirdGradientColor(dto.getThirdGradientColor());
+            if (dto.getDivisionImageUrl() != null)
+                existing.setProfileImageUrl(dto.getDivisionImageUrl());
+
+            if (!existing.getActive()) {
+                existing.setActive(true);
+            }
 
             Division updated = divisionRepository.save(existing);
-
             DiffUtils.logChanges(before, updated, logger, "update_division", updated.getId());
             return updated;
 

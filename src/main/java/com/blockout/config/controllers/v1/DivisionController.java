@@ -21,21 +21,18 @@ public class DivisionController {
 
     private final DivisionService divisionService;
 
-    @Operation(summary = "Créer ou mettre à jour une division", description = """
-            Crée une nouvelle division ou met à jour une division existante (même désactivée).
-            Si une division du même nom existe déjà, elle sera réactivée et ses valeurs mises à jour.
-            """)
+    @Operation(summary = "Créer une division", description = "Crée une nouvelle division.")
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Division créée ou réactivée"),
             @ApiResponse(responseCode = "400", description = "Requête invalide")
     })
     @PostMapping
-    public ResponseEntity<Division> createOrUpdate(@RequestBody Division division) {
-        Division saved = divisionService.createOrUpdateDivision(division);
+    public ResponseEntity<Division> create(@RequestBody Division division) {
+        Division saved = divisionService.createDivision(division);
         URI location = ServletUriComponentsBuilder.fromCurrentRequest()
-                .path("/{id}")
-                .buildAndExpand(saved.getId())
-                .toUri();
+            .path("/{id}")
+            .buildAndExpand(saved.getId())
+            .toUri();
         return ResponseEntity.created(location).body(saved);
     }
 
