@@ -12,6 +12,8 @@ class Pool:
     name: str
     format: str
     gender: str
+    followers_count: Optional[int] = 0
     active: bool = True
-    last_update: Optional[datetime] = None
     id: Optional[int] = None
+    created_at: Optional[datetime] = None
+    last_update: Optional[datetime] = None

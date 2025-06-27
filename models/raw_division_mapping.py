@@ -11,7 +11,7 @@ class RawDivisionMapping:
     division_code: Optional[str] = None
     format: Optional[str] = None
     gender: Optional[str] = None
-    created_at: datetime = datetime.now()
+    created_at: Optional[datetime] = None
     last_update: Optional[datetime] = None
 
     def is_mapped(self) -> bool:

@@ -11,6 +11,8 @@ class Team:
     division_code: str
     gender: Optional[str] = None
     format: Optional[str] = None
-    last_update: Optional[datetime] = None
     id: Optional[int] = None
+    followers_count: Optional[int] = 0
     active: bool = True
+    created_at: Optional[datetime] = None
+    last_update: Optional[datetime] = None
