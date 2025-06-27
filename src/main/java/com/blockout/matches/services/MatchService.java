@@ -13,10 +13,6 @@ import lombok.RequiredArgsConstructor;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,7 +24,6 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
@@ -216,77 +211,29 @@ public class MatchService {
     }
 
     /**
-     * Récupère tous les matchs avec pagination
-     * 
-     * @param pageable L'objet Pageable pour la pagination
-     * @return Une page de matchs
+     * Récupère un match par son identifiant.
+     *
+     * @param id L'identifiant du match à récupérer
+     * @return Le match correspondant
+     * @throws MatchNotFoundException Si aucun match n'est trouvé avec cet ID
      */
-    public Page<Match> getAllMatches(Pageable pageable) {
-        LocalDateTime today = LocalDateTime.now();
-
-        // Construction d'un Sort multiple (jour -> pool -> date/time exact)
-        Sort sort = Sort.by(
-                // 1. On trie par la date/time ascendante
-                Sort.Order.desc("matchDate"),
-                // 2. On trie ensuite par pool.id (assure-toi que ta propriété s'appelle "pool"
-                // et non "poolId" si c'est un objet)
-                Sort.Order.asc("poolId"),
-                // 3. Pour forcer l'ordre chronologique, on reste sur la date/time ascendante
-                // (souvent redondant, car le tri par date/time est déjà fait, mais tu peux le
-                // conserver)
-                Sort.Order.asc("matchDate"));
-
-        // On "fusionne" ce sort avec le pageable d'entrée.
-        Pageable pageableWithSort = PageRequest.of(
-                pageable.getPageNumber(),
-                pageable.getPageSize(),
-                sort);
-
-        return matchRepository.findAllByMatchDateLessThanEqual(today, pageableWithSort);
+    public Match getMatchById(Long id) {
+        return matchRepository.findById(id).orElseThrow(() -> {
+            logger.warn("Match non trouvé", keyValue("matchId", id));
+            return new MatchNotFoundException(id);
+        });
     }
 
     /**
-     * Récupère un match par son ID
-     * 
-     * @param id L'identifiant du match
-     * @return Optional contenant le match s'il existe
-     */
-    public Optional<Match> getMatchById(Long id) {
-        Optional<Match> matchOpt = matchRepository.findById(id);
-        if (!matchOpt.isPresent()) {
-            logger.warn("No match found with given ID",
-                    keyValue("action", "get_match_by_id"),
-                    keyValue("matchId", id));
-        }
-        return matchOpt;
-    }
-
-    /**
-     * Récupère les matchs par pool
-     * 
-     * @param poolId L'identifiant de la pool
-     * @return Liste des matchs de la pool
-     */
-    public List<Match> getMatchesByPool(Long poolId) {
-        List<Match> matches = matchRepository.findByPoolId(poolId);
-        if (matches.isEmpty()) {
-            logger.warn("No matches found for pool ID",
-                    keyValue("action", "get_matches_by_pool"),
-                    keyValue("poolId", poolId));
-        }
-        return matches;
-    }
-
-    /**
-     * Met à jour un match existant
+     * Met à jour un match existant.
      *
      * @param id           L'identifiant du match à mettre à jour
-     * @param updatedMatch Les nouvelles données du match
+     * @param updatedMatch L'objet contenant les nouvelles données du match
      * @return Le match mis à jour
-     * @throws MatchNotFoundException Si le match n'existe pas
+     * @throws MatchNotFoundException Si le match à mettre à jour n'existe pas
      */
     @Transactional
-    public Optional<Match> updateMatch(Long id, Match updatedMatch) {
+    public Match updateMatch(Long id, Match updatedMatch) {
         return matchRepository.findById(id).map(match -> {
             Match before = match.toBuilder().build();
 
@@ -306,16 +253,15 @@ public class MatchService {
             match.setActive(true);
 
             if (!before.getActive() && match.getActive()) {
-                logger.info("Match réactivé",
-                        keyValue("action", "reactivate_match"),
-                        keyValue("matchId", id),
-                        keyValue("league_code", updatedMatch.getLeagueCode()));
+                logger.info("Match réactivé", keyValue("matchId", id));
             }
 
-            Match savedMatch = matchRepository.save(match);
-
-            DiffUtils.logChanges(before, savedMatch, logger, "update_match", savedMatch.getId());
-            return savedMatch;
+            Match saved = matchRepository.save(match);
+            DiffUtils.logChanges(before, saved, logger, "update_match", saved.getId());
+            return saved;
+        }).orElseThrow(() -> {
+            logger.error("Impossible de mettre à jour, match non trouvé", keyValue("matchId", id));
+            return new MatchNotFoundException(id);
         });
     }
 
@@ -359,152 +305,5 @@ public class MatchService {
                 keyValue("action", "bulk_deactivate_matches"),
                 keyValue("poolId", poolId),
                 keyValue("nombreMatches", matchesToDeactivate.size()));
-    }
-
-    /**
-     * Désactive tous les matchs d'une pool
-     * 
-     * @param poolId L'identifiant de la pool
-     */
-    @Transactional
-    public void deactivateMatchesByPoolId(Long poolId) {
-        List<Match> matches = matchRepository.findByPoolId(poolId);
-        if (matches.isEmpty()) {
-            logger.warn("No matches found for pool ID. No deactivation performed.",
-                    keyValue("action", "deactivate_matches_by_pool"),
-                    keyValue("poolId", poolId));
-        } else {
-            matches.forEach(match -> {
-                match.setActive(false);
-                matchRepository.save(match);
-                logger.info("Match deactivated as part of pool deactivation",
-                        keyValue("action", "deactivate_matches_by_pool"),
-                        keyValue("matchId", match.getId()),
-                        keyValue("poolId", poolId));
-            });
-        }
-    }
-
-    /**
-     * Désactive tous les matchs d'une équipe
-     * 
-     * @param teamId L'identifiant de l'équipe
-     */
-    @Transactional
-    public void deactivateMatchesByTeamId(Long teamId) {
-        List<Match> matches = matchRepository.findByActiveAndTeamId(true, teamId);
-        if (matches.isEmpty()) {
-            logger.warn("No actives matches found for team ID. No deactivation performed.",
-                    keyValue("action", "deactivate_matches_by_team"),
-                    keyValue("teamId", teamId));
-        } else {
-            matches.forEach(match -> {
-                match.setActive(false);
-                matchRepository.save(match);
-                logger.info("Match deactivated as part of team deactivation",
-                        keyValue("action", "deactivate_matches_by_team"),
-                        keyValue("matchId", match.getId()),
-                        keyValue("poolId", match.getPoolId()),
-                        keyValue("teamId", teamId));
-            });
-        }
-    }
-
-    /**
-     * Désactive tous les matchs d'une équipe dans une poule
-     * 
-     * @param teamId L'identifiant de l'équipe
-     * @param poolId L'identifiant de la poule
-     */
-    @Transactional
-    public void deactivateMatchesByTeamAndPool(Long teamId, Long poolId) {
-        List<Match> matches = matchRepository.findByActiveAndPoolIdAndTeamId(true, poolId, teamId);
-        if (matches.isEmpty()) {
-            logger.warn("No actives matches found for team ID and pool ID. No deactivation performed.",
-                    keyValue("action", "deactivate_matches_by_team_and_pool"),
-                    keyValue("teamId", teamId),
-                    keyValue("poolId", poolId));
-        } else {
-            matches.forEach(match -> {
-                match.setActive(false);
-                matchRepository.save(match);
-                logger.info("Match deactivated as part of team and pool deactivation",
-                        keyValue("action", "deactivate_matches_by_team_and_pool"),
-                        keyValue("matchId", match.getId()),
-                        keyValue("teamId", teamId),
-                        keyValue("poolId", poolId));
-            });
-        }
-    }
-
-    /**
-     * Récupère un match par code de ligue et code de match
-     * 
-     * @param leagueCode Le code de la ligue
-     * @param matchCode  Le code du match
-     * @return Optional contenant le match s'il existe
-     */
-    public Optional<Match> getMatchByLeagueCodeAndMatchCode(String leagueCode, String matchCode) {
-        Optional<Match> matchOpt = matchRepository.findByLeagueCodeAndMatchCode(leagueCode, matchCode);
-        if (!matchOpt.isPresent()) {
-            logger.warn("No match found for given leagueCode and matchCode",
-                    keyValue("action", "get_match_by_league_and_code"),
-                    keyValue("leagueCode", leagueCode),
-                    keyValue("matchCode", matchCode));
-        }
-        return matchOpt;
-    }
-
-    /**
-     * Récupère les matchs actifs d'une pool
-     * 
-     * @param poolId L'identifiant de la pool
-     * @return Liste des matchs actifs de la pool
-     */
-    public List<Match> getActiveMatchesByPoolId(Long poolId) {
-        List<Match> matches = matchRepository.findByPoolIdAndActive(poolId, true);
-        return matches;
-    }
-
-    /**
-     * Récupère les matchs commencés selon le statut et l'état d'activation
-     * 
-     * @param status      Le statut des matchs
-     * @param active      L'état d'activation des matchs
-     * @param currentTime La date/heure actuelle
-     * @return Liste des matchs correspondants
-     */
-    public List<Match> getStartedMatches(MatchStatus status, boolean active, LocalDateTime currentTime) {
-        List<Match> matches = matchRepository.findByStatusAndActiveAndMatchDateLessThanEqual(status, active,
-                currentTime);
-        logger.info("Started matches retrieved",
-                keyValue("action", "get_started_matches"),
-                keyValue("status", status),
-                keyValue("active", active),
-                keyValue("count", matches.size()));
-        return matches;
-    }
-
-    /**
-     * Récupère un match par pool, équipes et date
-     * 
-     * @param poolId    L'identifiant de la pool
-     * @param teamIdA   L'identifiant de la première équipe
-     * @param teamIdB   L'identifiant de la deuxième équipe
-     * @param matchDate La date du match
-     * @return Optional contenant le match s'il existe
-     */
-    public Optional<Match> getMatchByPoolAndTeamsAndDate(Long poolId, Long teamIdA, Long teamIdB, LocalDate matchDate) {
-        Optional<Match> matchOpt = matchRepository.findByPoolIdAndTeamIdAAndTeamIdBAndMatchDate(poolId, teamIdA,
-                teamIdB, matchDate);
-        if (!matchOpt.isPresent()) {
-            logger.warn("No match found for given pool, teams and date",
-                    keyValue("action", "get_match_by_pool_teams_date"),
-                    keyValue("poolId", poolId),
-                    keyValue("teamIdA", teamIdA),
-                    keyValue("teamIdB", teamIdB),
-                    keyValue("matchDate", matchDate.toString()));
-        }
-        return matchOpt;
     }
 }

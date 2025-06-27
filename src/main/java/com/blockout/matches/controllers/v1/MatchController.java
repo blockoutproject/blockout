@@ -9,15 +9,12 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.RequiredArgsConstructor;
-
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.net.URI;
-import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 
 @RestController
 @RequiredArgsConstructor
@@ -26,10 +23,10 @@ public class MatchController {
 
     private final MatchService matchService;
 
-    @Operation(summary = "Create match")
+    @Operation(summary = "Créer un match", description = "Crée un nouveau match.")
     @ApiResponses({
-            @ApiResponse(responseCode = "201", description = "Match created"),
-            @ApiResponse(responseCode = "400", description = "Invalid request")
+            @ApiResponse(responseCode = "201", description = "Match créé"),
+            @ApiResponse(responseCode = "400", description = "Requête invalide")
     })
     @PostMapping
     public ResponseEntity<Match> createMatch(@RequestBody Match match) {
@@ -41,13 +38,9 @@ public class MatchController {
         return ResponseEntity.created(location).body(created);
     }
 
-    @Operation(summary = "List matches", description = """
-            Returns matches with optional filters:
-            poolId, teamIds, status, active.
-            """)
+    @Operation(summary = "Lister les matchs", description = "Retourne les matchs avec filtres optionnels : poolId, teamIds, status, active.")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Matches returned"),
-            @ApiResponse(responseCode = "204", description = "No match found")
+            @ApiResponse(responseCode = "200", description = "Liste des matchs")
     })
     @GetMapping
     public ResponseEntity<List<Match>> listMatches(
@@ -55,14 +48,37 @@ public class MatchController {
             @RequestParam(required = false, name = "team_ids") List<Long> teamIds,
             @RequestParam(required = false) MatchStatus status,
             @RequestParam(required = false) Boolean active) {
-
         List<Match> matches = matchService.findMatches(poolId, teamIds, status, active);
         return ResponseEntity.ok(matches);
     }
 
-    @Operation(summary = "Paginated day groups")
+    @Operation(summary = "Récupérer un match par ID", description = "Renvoie un match par son identifiant.")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Day groups returned"),
+            @ApiResponse(responseCode = "200", description = "Match trouvé"),
+            @ApiResponse(responseCode = "404", description = "Match introuvable")
+    })
+    @GetMapping("/{id}")
+    public ResponseEntity<Match> getMatchById(@PathVariable Long id) {
+        Match match = matchService.getMatchById(id);
+        return ResponseEntity.ok(match);
+    }
+
+    @Operation(summary = "Mettre à jour un match", description = "Met à jour un match existant.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Match mis à jour"),
+            @ApiResponse(responseCode = "404", description = "Match introuvable")
+    })
+    @PutMapping("/{id}")
+    public ResponseEntity<Match> updateMatch(
+            @PathVariable Long id,
+            @RequestBody Match updated) {
+        Match result = matchService.updateMatch(id, updated);
+        return ResponseEntity.ok(result);
+    }
+
+    @Operation(summary = "Groupes de matchs par jour", description = "Retourne les groupes de matchs par jour avec pagination.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Groupes de jours retournés")
     })
     @GetMapping("/day-groups")
     public ResponseEntity<DayPageDTO> dayGroups(
@@ -71,53 +87,18 @@ public class MatchController {
             @RequestParam(required = false, name = "pool_ids") List<Long> poolIds,
             @RequestParam(required = false, name = "team_ids") List<Long> teamIds,
             @RequestParam(required = false) MatchStatus status) {
-
-        DayPageDTO dto = matchService.getMatchesByDay(
-                poolIds == null ? Collections.emptyList() : poolIds,
-                teamIds == null ? Collections.emptyList() : teamIds,
-                status,
-                page,
-                size);
-
+        DayPageDTO dto = matchService.getMatchesByDay(poolIds, teamIds, status, page, size);
         return ResponseEntity.ok(dto);
     }
 
-    @Operation(summary = "Get match by ID")
+    @Operation(summary = "Désactiver des matchs par pool", description = "Désactive les matchs d'une pool via leurs matchCodes.")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Match found"),
-            @ApiResponse(responseCode = "404", description = "Match not found")
-    })
-    @GetMapping("/{id}")
-    public ResponseEntity<Match> getMatchById(@PathVariable Long id) {
-        return matchService.getMatchById(id)
-                .map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.notFound().build());
-    }
-
-    @Operation(summary = "Update match")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Match updated"),
-            @ApiResponse(responseCode = "404", description = "Match not found")
-    })
-    @PutMapping("/{id}")
-    public ResponseEntity<Match> updateMatch(
-            @PathVariable Long id,
-            @RequestBody Match updated) {
-
-        Optional<Match> result = matchService.updateMatch(id, updated);
-        return result.map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.notFound().build());
-    }
-
-    @Operation(summary = "Bulk deactivate matches in a pool")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Matches deactivated")
+            @ApiResponse(responseCode = "200", description = "Matches désactivés")
     })
     @PutMapping("/pools/{poolId}/bulk-deactivate")
     public ResponseEntity<Void> bulkDeactivateMatches(
             @PathVariable Long poolId,
             @RequestBody BulkMatchesDeactivateRequest request) {
-
         matchService.bulkDeactivateMatches(poolId, request.getMissingMatchCodes());
         return ResponseEntity.ok().build();
     }
