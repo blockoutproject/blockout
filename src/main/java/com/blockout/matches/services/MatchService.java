@@ -105,11 +105,6 @@ public class MatchService {
 
         LocalDateTime now = LocalDateTime.now();
 
-        if (poolIds == null && teamIds == null) {
-            logger.debug("No poolIds or teamIds provided, returning empty result");
-            return new DayPageDTO(Collections.emptyList(), false, null);
-        }
-
         // Récupère la liste de jours distincts
         List<LocalDate> allDays;
         if (status == MatchStatus.UPCOMING) {

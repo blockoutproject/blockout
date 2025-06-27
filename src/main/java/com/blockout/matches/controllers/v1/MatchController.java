@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.net.URI;
+import java.util.Collections;
 import java.util.List;
 
 @RestController
@@ -87,7 +88,13 @@ public class MatchController {
             @RequestParam(required = false, name = "pool_ids") List<Long> poolIds,
             @RequestParam(required = false, name = "team_ids") List<Long> teamIds,
             @RequestParam(required = false) MatchStatus status) {
-        DayPageDTO dto = matchService.getMatchesByDay(poolIds, teamIds, status, page, size);
+        DayPageDTO dto = matchService.getMatchesByDay(
+            poolIds == null ? Collections.emptyList() : poolIds,
+            teamIds == null ? Collections.emptyList() : teamIds,
+            status, 
+            page, 
+            size
+        );
         return ResponseEntity.ok(dto);
     }
 
