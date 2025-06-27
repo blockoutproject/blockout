@@ -15,7 +15,6 @@ import org.springframework.transaction.annotation.Transactional;
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
 import java.util.List;
-import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -28,43 +27,59 @@ public class ClubService {
 
     /**
      * Récupère tous les clubs
-     * 
+     *
      * @return Liste de tous les clubs
      */
     public List<Club> getAllClubs() {
         List<Club> clubs = clubRepository.findAll();
+        logger.debug("All clubs fetched",
+                keyValue("action", "list_clubs"),
+                keyValue("count", clubs.size()));
         return clubs;
     }
 
     /**
+     * Récupère un club par son ID
+     *
+     * @param id L'identifiant du club
+     * @return Le club correspondant
+     * @throws ClubNotFoundException si le club est introuvable
+     */
+    public Club getClubById(String id) {
+        return clubRepository.findById(id).orElseThrow(() -> {
+            logger.warn("Club not found",
+                    keyValue("action", "get_club_by_id"),
+                    keyValue("clubId", id));
+            return new ClubNotFoundException(id);
+        });
+    }
+
+    /**
      * Crée un nouveau club
-     * 
+     *
      * @param club L'objet Club à créer
-     * @return La club créé avec son ID généré
+     * @return Le club créé avec son ID généré
      */
     @Transactional
     public Club createClub(Club club) {
-        Club createdClub = clubRepository.save(club);
+        Club created = clubRepository.save(club);
         logger.info("Club created successfully",
                 keyValue("action", "create_club"),
-                keyValue("clubId", createdClub.getId()));
-
-        // Publie l'événement de création de club
-        eventPublisher.publishClubUpsert(createdClub);
-
-        return createdClub;
+                keyValue("clubId", created.getId()));
+        eventPublisher.publishClubUpsert(created);
+        return created;
     }
 
     /**
      * Met à jour un club existant
      *
-     * @param id L'identifiant du club à mettre à jour
-     * @param updatedClub Les nouvelles données du club
+     * @param id          L'identifiant du club
+     * @param updatedClub Les nouvelles données
      * @return Le club mis à jour
-     * @throws ClubNotFoundException Si le club n'existe pas
+     * @throws ClubNotFoundException si le club est introuvable
      */
     @Transactional
-    public Optional<Club> updateClub(String id, Club updatedClub) {
+    public Club updateClub(String id, Club updatedClub) {
         return clubRepository.findById(id).map(club -> {
             Club before = club.toBuilder().build();
 
@@ -83,36 +98,38 @@ public class ClubService {
                         keyValue("club_name", updatedClub.getName()));
             }
 
-            Club savedClub = clubRepository.save(club);
+            Club saved = clubRepository.save(club);
 
-            DiffUtils.logChanges(before, savedClub, logger,
-                    "update_club", savedClub.getId());
+            DiffUtils.logChanges(before, saved, logger,
+                    "update_club", saved.getId());
 
-            // Publisher l'événement de mise à jour de club
-            eventPublisher.publishClubUpsert(savedClub);
-                    
-            return savedClub;
+            eventPublisher.publishClubUpsert(saved);
+
+            return saved;
+        }).orElseThrow(() -> {
+            logger.error("Club not found. Cannot update.",
+                    keyValue("action", "update_club"),
+                    keyValue("clubId", id));
+            return new ClubNotFoundException(id);
         });
     }
 
     /**
      * Désactive un club
-     * 
-     * @param clubId L'identifiant du club à désactiver
+     *
+     * @param clubId L'identifiant du club
      * @return Le club désactivé
-     * @throws ClubNotFoundException Si le club n'existe pas
+     * @throws ClubNotFoundException si le club est introuvable
      */
     @Transactional
     public Club deactivateClub(String clubId) {
         return clubRepository.findById(clubId).map(club -> {
             club.setActive(false);
-            Club updatedClub = clubRepository.save(club);
-
+            Club updated = clubRepository.save(club);
             logger.info("Club successfully deactivated",
                     keyValue("action", "deactivate_club"),
                     keyValue("clubId", clubId));
-
-            return updatedClub;
+            return updated;
         }).orElseThrow(() -> {
             logger.error("Club not found. Cannot deactivate.",
                     keyValue("action", "deactivate_club"),
