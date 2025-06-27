@@ -14,7 +14,6 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.net.URI;
 import java.util.List;
-import java.util.Optional;
 
 @RestController
 @RequiredArgsConstructor
@@ -23,10 +22,10 @@ public class RawDivisionMappingController {
 
     private final RawDivisionMappingService service;
 
-    @Operation(summary = "Create a raw division mapping", description = "Creates a new raw division mapping.")
+    @Operation(summary = "Créer un RawDivisionMapping")
     @ApiResponses({
-            @ApiResponse(responseCode = "201", description = "Raw division mapping created"),
-            @ApiResponse(responseCode = "400", description = "Invalid request")
+            @ApiResponse(responseCode = "201", description = "Créé avec succès"),
+            @ApiResponse(responseCode = "400", description = "Requête invalide")
     })
     @PreAuthorize("hasAuthority('SCOPE_create:raw_division_mapping')")
     @PostMapping
@@ -39,10 +38,9 @@ public class RawDivisionMappingController {
         return ResponseEntity.created(location).body(created);
     }
 
-    @Operation(summary = "List raw division mappings", description = "Returns all raw division mappings. Optional filters: leagueCode, season")
+    @Operation(summary = "Lister les RawDivisionMappings", description = "Filtres possibles : leagueCode, season")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Raw division mappings returned"),
-            @ApiResponse(responseCode = "204", description = "No raw division mapping found")
+            @ApiResponse(responseCode = "200", description = "Liste renvoyée")
     })
     @PreAuthorize("hasAuthority('SCOPE_read:raw_division_mapping')")
     @GetMapping
@@ -53,22 +51,22 @@ public class RawDivisionMappingController {
         return ResponseEntity.ok(mappings);
     }
 
-    @Operation(summary = "Get raw division mapping by ID", description = "Returns a raw division mapping by its ID.")
+    @Operation(summary = "Récupérer un RawDivisionMapping par ID")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Raw division mapping found"),
-            @ApiResponse(responseCode = "404", description = "Raw division mapping not found")
+            @ApiResponse(responseCode = "200", description = "Ressource trouvée"),
+            @ApiResponse(responseCode = "404", description = "Introuvable")
     })
+    @PreAuthorize("hasAuthority('SCOPE_read:raw_division_mapping')")
     @GetMapping("/{id}")
     public ResponseEntity<RawDivisionMapping> getById(@PathVariable Long id) {
-        return service.getById(id)
-                .map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.notFound().build());
+        RawDivisionMapping result = service.getById(id);
+        return ResponseEntity.ok(result);
     }
 
-    @Operation(summary = "Update raw division mapping", description = "Updates a raw division mapping.")
+    @Operation(summary = "Mettre à jour un RawDivisionMapping")
     @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "Raw division mapping updated"),
-        @ApiResponse(responseCode = "404", description = "Raw division mapping not found")
+            @ApiResponse(responseCode = "200", description = "Mise à jour réussie"),
+            @ApiResponse(responseCode = "404", description = "Introuvable")
     })
     @PreAuthorize("hasAuthority('SCOPE_update:raw_division_mapping')")
     @PutMapping("/{id}")
@@ -76,8 +74,7 @@ public class RawDivisionMappingController {
             @PathVariable Long id,
             @RequestBody RawDivisionMappingUpdateDTO dto
     ) {
-        Optional<RawDivisionMapping> updated = service.update(id, dto);
-        return updated.map(ResponseEntity::ok)
-                    .orElseGet(() -> ResponseEntity.notFound().build());
+        RawDivisionMapping updated = service.update(id, dto);
+        return ResponseEntity.ok(updated);
     }
 }

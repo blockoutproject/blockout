@@ -42,21 +42,21 @@ public class RawDivisionMapping {
     @Column(name = "season", nullable = false)
     private Integer season;
 
-    @Builder.Default
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt = LocalDateTime.now();
+    @Column(name = "created_at")
+    private LocalDateTime createdAt;
 
-    @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
+    @Column(name = "last_update")
+    private LocalDateTime lastUpdate;
 
     @PrePersist
-    public void onCreate() {
-        this.updatedAt = this.createdAt;
+    public void prePersist() {
+        createdAt = LocalDateTime.now();
+        lastUpdate = LocalDateTime.now();
     }
 
     @PreUpdate
-    public void onUpdate() {
-        this.updatedAt = LocalDateTime.now();
+    public void preUpdate() {
+        lastUpdate = LocalDateTime.now();
     }
 
     public boolean isMapped() {
