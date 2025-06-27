@@ -105,10 +105,18 @@ public class CompetitionAssociation {
     @Column(name = "coef_points", nullable = false)
     private Double coefPoints = 0.0;
 
+    @Column(name = "created_at")
+    private LocalDateTime createdAt;
+
     @Column(name = "last_update")
     private LocalDateTime lastUpdate;
 
     @PrePersist
+    public void prePersist() {
+        createdAt = LocalDateTime.now();
+        lastUpdate = LocalDateTime.now();
+    }
+
     @PreUpdate
     public void preUpdate() {
         lastUpdate = LocalDateTime.now();
