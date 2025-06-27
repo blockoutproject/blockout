@@ -6,8 +6,8 @@ import com.auth0.json.mgmt.users.User;
 import com.blockout.users.config.Auth0TokenManager;
 import com.blockout.users.exceptions.CustomUserNotFoundException;
 import com.blockout.users.models.CustomUser;
-import com.blockout.users.models.UserRegistrationRequest;
 import com.blockout.users.models.dto.CustomUserDto;
+import com.blockout.users.models.dto.UserRegistrationRequestDTO;
 import com.blockout.users.models.enums.UserRole;
 import com.blockout.users.models.mappers.CustomUserMapper;
 import com.blockout.users.repositories.UserRepository;
@@ -55,7 +55,7 @@ public class UserService {
      * @throws Auth0Exception si la récupération de l'utilisateur Auth0 échoue
      */
     @Transactional
-    public CustomUser registerUser(String auth0Id, UserRegistrationRequest registrationRequest) throws Auth0Exception {
+    public CustomUser registerUser(String auth0Id, UserRegistrationRequestDTO registrationRequest) throws Auth0Exception {
         ManagementAPI managementAPI = tokenManager.getManagementAPI();
         User auth0User = managementAPI.users().get(auth0Id, null).execute().getBody();
 

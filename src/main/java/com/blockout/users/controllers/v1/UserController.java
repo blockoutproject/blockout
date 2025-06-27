@@ -2,8 +2,8 @@ package com.blockout.users.controllers.v1;
 
 import com.auth0.exception.Auth0Exception;
 import com.blockout.users.models.CustomUser;
-import com.blockout.users.models.UserRegistrationRequest;
 import com.blockout.users.models.dto.CustomUserDto;
+import com.blockout.users.models.dto.UserRegistrationRequestDTO;
 import com.blockout.users.services.UserService;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -45,7 +45,7 @@ public class UserController {
     })
     @PostMapping
     public ResponseEntity<CustomUser> registerUser(
-            @RequestBody UserRegistrationRequest body,
+            @RequestBody UserRegistrationRequestDTO body,
             @AuthenticationPrincipal Jwt jwt) throws Auth0Exception {
 
         String auth0Id = jwt.getSubject();
