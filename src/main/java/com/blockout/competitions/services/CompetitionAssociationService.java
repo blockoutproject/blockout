@@ -31,7 +31,7 @@ public class CompetitionAssociationService {
 
     /**
      * Crée ou réactive l'association entre une pool et une team
-     * 
+     *
      * @param poolId   L'identifiant de la pool
      * @param teamId   L'identifiant de la team
      * @param category La catégorie de l'association
@@ -39,48 +39,45 @@ public class CompetitionAssociationService {
      */
     @Transactional
     public CompetitionAssociation addOrReactivateAssociation(Long poolId, Long teamId, String clubId, Category category) {
-        Optional<CompetitionAssociation> existingAssoc = associationRepository.findByPoolIdAndTeamId(poolId, teamId);
+        return associationRepository.findByPoolIdAndTeamId(poolId, teamId)
+                .map(existing -> {
+                    if (!Boolean.TRUE.equals(existing.getActive())) {
+                        existing.setActive(true);
+                        logger.info("Association reactivated",
+                                keyValue("action", "reactivate_association"),
+                                keyValue("poolId", poolId),
+                                keyValue("teamId", teamId),
+                                keyValue("clubId", clubId));
+                        return associationRepository.save(existing);
+                    }
+                    return existing;
+                })
+                .orElseGet(() -> {
+                    CompetitionAssociation newAssoc = CompetitionAssociation.builder()
+                            .poolId(poolId)
+                            .teamId(teamId)
+                            .clubId(clubId)
+                            .category(category)
+                            .active(true)
+                            .points(0)
+                            .build();
 
-        if (existingAssoc.isPresent()) {
-            CompetitionAssociation a = existingAssoc.get();
-            if (!Boolean.TRUE.equals(a.getActive())) {
-                a.setActive(true);
+                    CompetitionAssociation saved = associationRepository.save(newAssoc);
 
-                logger.info("Association reactivated",
-                        keyValue("action", "reactivate_association"),
-                        keyValue("poolId", poolId),
-                        keyValue("teamId", teamId),
-                        keyValue("clubId", clubId));
+                    logger.info("New association created",
+                            keyValue("action", "create_association"),
+                            keyValue("poolId", poolId),
+                            keyValue("teamId", teamId),
+                            keyValue("clubId", clubId),
+                            keyValue("category", category));
 
-                return associationRepository.save(a);
-            }
-            return a;
-        } else {
-            CompetitionAssociation newAssoc = CompetitionAssociation.builder()
-                    .poolId(poolId)
-                    .teamId(teamId)
-                    .clubId(clubId)
-                    .category(category)
-                    .active(true)
-                    .points(0)
-                    .build();
-
-            CompetitionAssociation saved = associationRepository.save(newAssoc);
-
-            logger.info("New association created",
-                    keyValue("action", "create_association"),
-                    keyValue("poolId", poolId),
-                    keyValue("teamId", teamId),
-                    keyValue("clubId", clubId),
-                    keyValue("category", category));
-
-            return saved;
-        }
+                    return saved;
+                });
     }
 
     /**
      * Récupère toutes les associations actives pour une pool donnée
-     * 
+     *
      * @param poolId L'identifiant de la pool
      * @return Liste des associations actives de la pool
      */
@@ -90,7 +87,7 @@ public class CompetitionAssociationService {
 
     /**
      * Récupère toutes les associations pour une pool donnée
-     * 
+     *
      * @param poolId L'identifiant de la pool
      * @return Liste des associations de la pool
      */
@@ -100,7 +97,7 @@ public class CompetitionAssociationService {
 
     /**
      * Récupère toutes les associations actives pour une team donnée
-     * 
+     *
      * @param teamId L'identifiant de la team
      * @return Liste des associations actives de la team
      */
@@ -122,16 +119,13 @@ public class CompetitionAssociationService {
                 keyValue("poolId", poolId),
                 keyValue("teamIdsToDeactivate", toDeactivate));
 
-        var associations = associationRepository
-                .findByPoolIdAndActiveTrueAndTeamIdIn(poolId, toDeactivate);
+        var associations = associationRepository.findByPoolIdAndActiveTrueAndTeamIdIn(poolId, toDeactivate);
 
         if (associations.isEmpty()) {
-            logger.info("Aucune association trouvée à désactiver pour la pool",
-                    keyValue("poolId", poolId));
+            logger.info("Aucune association trouvée à désactiver pour la pool", keyValue("poolId", poolId));
             return;
         }
 
-        // désactivation + log par association
         associations.forEach(a -> {
             a.setActive(false);
             logger.info("Association désactivée par teams et pool",
@@ -142,9 +136,7 @@ public class CompetitionAssociationService {
 
         associationRepository.saveAll(associations);
 
-        var deactivatedTeams = associations.stream()
-                .map(CompetitionAssociation::getTeamId)
-                .collect(Collectors.toSet());
+        var deactivatedTeams = associations.stream().map(CompetitionAssociation::getTeamId).collect(Collectors.toSet());
 
         for (Long teamId : deactivatedTeams) {
             eventPublisher.publishTeamDeactivationByPoolEvent(teamId, poolId);
@@ -169,8 +161,7 @@ public class CompetitionAssociationService {
                 keyValue("action", "bulk_deactivate_pools"),
                 keyValue("poolIdsToDeactivate", toDeactivate));
 
-        var associations = associationRepository
-                .findByActiveTrueAndPoolIdIn(toDeactivate);
+        var associations = associationRepository.findByActiveTrueAndPoolIdIn(toDeactivate);
 
         if (associations.isEmpty()) {
             logger.warn("Aucune association trouvée à désactiver pour les pools",
@@ -189,9 +180,7 @@ public class CompetitionAssociationService {
 
         associationRepository.saveAll(associations);
 
-        Set<Long> affectedTeams = associations.stream()
-                .map(CompetitionAssociation::getTeamId)
-                .collect(Collectors.toSet());
+        Set<Long> affectedTeams = associations.stream().map(CompetitionAssociation::getTeamId).collect(Collectors.toSet());
 
         cascadeDeactivation(toDeactivate, affectedTeams, Collections.emptySet());
     }
@@ -208,8 +197,7 @@ public class CompetitionAssociationService {
                 keyValue("action", "bulk_deactivate_clubs"),
                 keyValue("clubIdsToDeactivate", toDeactivate));
 
-        var associations = associationRepository
-                .findByActiveTrueAndClubIdIn(toDeactivate);
+        var associations = associationRepository.findByActiveTrueAndClubIdIn(toDeactivate);
 
         if (associations.isEmpty()) {
             logger.warn("Aucune association trouvée à désactiver pour les clubs",
@@ -228,12 +216,8 @@ public class CompetitionAssociationService {
 
         associationRepository.saveAll(associations);
 
-        Set<Long> pools = associations.stream()
-                .map(CompetitionAssociation::getPoolId)
-                .collect(Collectors.toSet());
-        Set<Long> teams = associations.stream()
-                .map(CompetitionAssociation::getTeamId)
-                .collect(Collectors.toSet());
+        Set<Long> pools = associations.stream().map(CompetitionAssociation::getPoolId).collect(Collectors.toSet());
+        Set<Long> teams = associations.stream().map(CompetitionAssociation::getTeamId).collect(Collectors.toSet());
 
         cascadeDeactivation(pools, teams, toDeactivate);
     }
@@ -251,8 +235,7 @@ public class CompetitionAssociationService {
     public CompetitionAssociation updateTeamAssociationStats(Long poolId,
             Long teamId,
             TeamAssociationStatsRequest request) {
-        return associationRepository
-                .findByPoolIdAndTeamId(poolId, teamId)
+        return associationRepository.findByPoolIdAndTeamId(poolId, teamId)
                 .map(assoc -> {
                     CompetitionAssociation before = assoc.toBuilder().build();
 
@@ -274,8 +257,6 @@ public class CompetitionAssociationService {
                     assoc.setCoefSets(request.getCoefSets());
                     assoc.setCoefPoints(request.getCoefPoints());
 
-                    // Ici pas de réactivation, on ne fait que mettre à jour les stats
-
                     CompetitionAssociation savedAssoc = associationRepository.save(assoc);
 
                     DiffUtils.logChanges(before, savedAssoc, logger,
@@ -296,7 +277,6 @@ public class CompetitionAssociationService {
         Set<Long> teams = new HashSet<>(candidateTeamIds);
         Set<String> clubs = new HashSet<>(candidateClubIds);
 
-        // Pools
         for (Long poolId : pools) {
             if (!associationRepository.existsByPoolIdAndActiveTrue(poolId)) {
                 eventPublisher.publishPoolDeactivationEvent(poolId);
@@ -306,7 +286,6 @@ public class CompetitionAssociationService {
             }
         }
 
-        // Teams
         if (teams.isEmpty() && !pools.isEmpty()) {
             teams.addAll(associationRepository.findDistinctTeamIdByActiveTrueAndPoolIdIn(pools));
         }
@@ -319,7 +298,6 @@ public class CompetitionAssociationService {
             }
         }
 
-        // Clubs
         if (clubs.isEmpty() && !teams.isEmpty()) {
             clubs.addAll(associationRepository.findDistinctClubIdByActiveTrueAndTeamIdIn(teams));
         }
