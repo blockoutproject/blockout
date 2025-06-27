@@ -21,13 +21,13 @@ import static net.logstash.logback.argument.StructuredArguments.keyValue;
 public class DivisionService {
 
     private static final Logger logger = LoggerFactory.getLogger(DivisionService.class);
-    private final DivisionRepository repository;
+    private final DivisionRepository divisionRepository;
 
     /**
      * Récupère toutes les divisions, actives ou non
      */
     public List<Division> findAll() {
-        List<Division> list = repository.findAll();
+        List<Division> list = divisionRepository.findAll();
         logger.debug("Listing all divisions",
                 keyValue("action", "list_all_divisions"),
                 keyValue("count", list.size()));
@@ -38,7 +38,7 @@ public class DivisionService {
      * Récupère une division par ID
      */
     public Optional<Division> getById(Long id) {
-        Optional<Division> division = repository.findById(id);
+        Optional<Division> division = divisionRepository.findById(id);
         if (division.isEmpty()) {
             logger.warn("Division not found",
                     keyValue("action", "get_division_by_id"),
@@ -52,7 +52,7 @@ public class DivisionService {
      */
     @Transactional
     public Division createOrUpdateDivision(Division incoming) {
-        Optional<Division> existingOpt = repository.findByNameIgnoreCase(incoming.getName());
+        Optional<Division> existingOpt = divisionRepository.findByNameIgnoreCase(incoming.getName());
 
         if (existingOpt.isPresent()) {
             Division existing = existingOpt.get();
@@ -65,14 +65,14 @@ public class DivisionService {
             existing.setProfileImageUrl(incoming.getProfileImageUrl());
             existing.setActive(true);
 
-            Division updated = repository.save(existing);
+            Division updated = divisionRepository.save(existing);
 
             DiffUtils.logChanges(before, updated, logger, "upsert_division", updated.getId());
 
             return updated;
         }
 
-        Division created = repository.save(incoming);
+        Division created = divisionRepository.save(incoming);
         logger.info("New division created",
                 keyValue("action", "create_division"),
                 keyValue("divisionId", created.getId()));
@@ -89,7 +89,7 @@ public class DivisionService {
      */
     @Transactional
     public Division updateDivision(Long id, DivisionUpdateDTO dto) {
-        return repository.findById(id).map(existing -> {
+        return divisionRepository.findById(id).map(existing -> {
             Division before = existing.toBuilder().build();
 
             if (dto.getName() != null) existing.setName(dto.getName());
@@ -99,7 +99,7 @@ public class DivisionService {
             if (dto.getThirdGradientColor() != null) existing.setThirdGradientColor(dto.getThirdGradientColor());
             if (dto.getDivisionImageUrl() != null) existing.setProfileImageUrl(dto.getDivisionImageUrl());
 
-            Division updated = repository.save(existing);
+            Division updated = divisionRepository.save(existing);
 
             DiffUtils.logChanges(before, updated, logger, "update_division", updated.getId());
             return updated;
@@ -121,9 +121,9 @@ public class DivisionService {
      */
     @Transactional
     public Division deactivateDivision(Long id) {
-        return repository.findById(id).map(existing -> {
+        return divisionRepository.findById(id).map(existing -> {
             existing.setActive(false);
-            Division updated = repository.save(existing);
+            Division updated = divisionRepository.save(existing);
 
             logger.info("Division deactivated",
                     keyValue("action", "deactivate_division"),

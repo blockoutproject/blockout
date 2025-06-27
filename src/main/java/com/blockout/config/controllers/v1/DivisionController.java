@@ -19,7 +19,7 @@ import java.util.List;
 @RequestMapping("/api/v1/config/divisions")
 public class DivisionController {
 
-    private final DivisionService service;
+    private final DivisionService divisionService;
 
     @Operation(summary = "Créer ou mettre à jour une division", description = """
             Crée une nouvelle division ou met à jour une division existante (même désactivée).
@@ -31,7 +31,7 @@ public class DivisionController {
     })
     @PostMapping
     public ResponseEntity<Division> createOrUpdate(@RequestBody Division division) {
-        Division saved = service.createOrUpdateDivision(division);
+        Division saved = divisionService.createOrUpdateDivision(division);
         URI location = ServletUriComponentsBuilder.fromCurrentRequest()
                 .path("/{id}")
                 .buildAndExpand(saved.getId())
@@ -45,7 +45,7 @@ public class DivisionController {
     })
     @GetMapping
     public ResponseEntity<List<Division>> listAll() {
-        List<Division> divisions = service.findAll();
+        List<Division> divisions = divisionService.findAll();
         return ResponseEntity.ok(divisions);
     }
 
@@ -56,7 +56,7 @@ public class DivisionController {
     })
     @GetMapping("/{id}")
     public ResponseEntity<Division> getById(@PathVariable Long id) {
-        return service.getById(id)
+        return divisionService.getById(id)
                 .map(ResponseEntity::ok)
                 .orElseThrow(); // laisser gérer par handler global si vide
     }
@@ -71,7 +71,7 @@ public class DivisionController {
             @PathVariable Long id,
             @RequestBody DivisionUpdateDTO dto
     ) {
-        Division updated = service.updateDivision(id, dto);
+        Division updated = divisionService.updateDivision(id, dto);
         return ResponseEntity.ok(updated);
     }
 
@@ -82,7 +82,7 @@ public class DivisionController {
     })
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deactivate(@PathVariable Long id) {
-        service.deactivateDivision(id);
+        divisionService.deactivateDivision(id);
         return ResponseEntity.noContent().build();
     }
 }

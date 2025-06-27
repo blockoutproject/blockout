@@ -20,7 +20,7 @@ import java.util.List;
 @RequestMapping("/api/v1/config/raw-divisions")
 public class RawDivisionMappingController {
 
-    private final RawDivisionMappingService service;
+    private final RawDivisionMappingService rawDivisionMappingService;
 
     @Operation(summary = "Créer un RawDivisionMapping")
     @ApiResponses({
@@ -30,7 +30,7 @@ public class RawDivisionMappingController {
     @PreAuthorize("hasAuthority('SCOPE_create:raw_division_mapping')")
     @PostMapping
     public ResponseEntity<RawDivisionMapping> create(@RequestBody RawDivisionMapping rawPoolMapping) {
-        RawDivisionMapping created = service.create(rawPoolMapping);
+        RawDivisionMapping created = rawDivisionMappingService.create(rawPoolMapping);
         URI location = ServletUriComponentsBuilder.fromCurrentRequest()
                 .path("/{id}")
                 .buildAndExpand(created.getId())
@@ -47,7 +47,7 @@ public class RawDivisionMappingController {
     public ResponseEntity<List<RawDivisionMapping>> list(
             @RequestParam(required = false, name = "league_code") String leagueCode,
             @RequestParam(required = false) Integer season) {
-        List<RawDivisionMapping> mappings = service.findByLeagueCodeAndSeason(leagueCode, season);
+        List<RawDivisionMapping> mappings = rawDivisionMappingService.findByLeagueCodeAndSeason(leagueCode, season);
         return ResponseEntity.ok(mappings);
     }
 
@@ -59,7 +59,7 @@ public class RawDivisionMappingController {
     @PreAuthorize("hasAuthority('SCOPE_read:raw_division_mapping')")
     @GetMapping("/{id}")
     public ResponseEntity<RawDivisionMapping> getById(@PathVariable Long id) {
-        RawDivisionMapping result = service.getById(id);
+        RawDivisionMapping result = rawDivisionMappingService.getById(id);
         return ResponseEntity.ok(result);
     }
 
@@ -74,7 +74,7 @@ public class RawDivisionMappingController {
             @PathVariable Long id,
             @RequestBody RawDivisionMappingUpdateDTO dto
     ) {
-        RawDivisionMapping updated = service.update(id, dto);
+        RawDivisionMapping updated = rawDivisionMappingService.update(id, dto);
         return ResponseEntity.ok(updated);
     }
 }

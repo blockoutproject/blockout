@@ -19,7 +19,7 @@ import static net.logstash.logback.argument.StructuredArguments.keyValue;
 public class RawDivisionMappingService {
 
     private static final Logger logger = LoggerFactory.getLogger(RawDivisionMappingService.class);
-    private final RawDivisionMappingRepository repository;
+    private final RawDivisionMappingRepository rawDivisionMappingRepository;
 
     /**
      * Crée un nouveau RawDivisionMapping
@@ -29,7 +29,7 @@ public class RawDivisionMappingService {
      */
     @Transactional
     public RawDivisionMapping create(RawDivisionMapping mapping) {
-        RawDivisionMapping saved = repository.save(mapping);
+        RawDivisionMapping saved = rawDivisionMappingRepository.save(mapping);
         logger.info("RawDivisionMapping created",
                 keyValue("action", "create_raw_division_mapping"),
                 keyValue("id", saved.getId()));
@@ -44,7 +44,7 @@ public class RawDivisionMappingService {
      * @return liste filtrée
      */
     public List<RawDivisionMapping> findByLeagueCodeAndSeason(String leagueCode, Integer season) {
-        List<RawDivisionMapping> list = repository.findByLeagueCodeAndSeason(leagueCode, season);
+        List<RawDivisionMapping> list = rawDivisionMappingRepository.findByLeagueCodeAndSeason(leagueCode, season);
         logger.debug("Listing raw division mappings",
                 keyValue("action", "list_raw_division_mappings"),
                 keyValue("leagueCode", leagueCode),
@@ -61,7 +61,7 @@ public class RawDivisionMappingService {
      * @throws RawDivisionMappingNotFoundException si absent
      */
     public RawDivisionMapping getById(Long id) {
-        return repository.findById(id).orElseThrow(() -> {
+        return rawDivisionMappingRepository.findById(id).orElseThrow(() -> {
             logger.warn("RawDivisionMapping not found",
                     keyValue("action", "get_raw_division_mapping"),
                     keyValue("id", id));
@@ -79,12 +79,12 @@ public class RawDivisionMappingService {
      */
     @Transactional
     public RawDivisionMapping update(Long id, RawDivisionMappingUpdateDTO dto) {
-        return repository.findById(id).map(existing -> {
+        return rawDivisionMappingRepository.findById(id).map(existing -> {
             if (dto.getDivisionCode() != null) existing.setDivisionCode(dto.getDivisionCode());
             if (dto.getFormat() != null) existing.setFormat(dto.getFormat());
             if (dto.getGender() != null) existing.setGender(dto.getGender());
 
-            RawDivisionMapping saved = repository.save(existing);
+            RawDivisionMapping saved = rawDivisionMappingRepository.save(existing);
 
             logger.info("RawDivisionMapping updated",
                     keyValue("action", "update_raw_division_mapping"),

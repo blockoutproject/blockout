@@ -16,7 +16,6 @@ public interface RawDivisionMappingRepository extends JpaRepository<RawDivisionM
             FROM RawDivisionMapping r
             WHERE (:leagueCode IS NULL OR r.leagueCode = :leagueCode)
                 AND (:season IS NULL OR r.season = :season)
-            ORDER BY r.updatedAt DESC
             """)
     List<RawDivisionMapping> findByLeagueCodeAndSeason(
             @Param("leagueCode") String leagueCode,
