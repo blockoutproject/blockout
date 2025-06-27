@@ -38,14 +38,22 @@ public class Club {
     @Column(name = "website")
     private String website;
 
-    @Column(name = "last_update")
-    private LocalDateTime lastUpdate;
-
     @Builder.Default
     @Column(name = "active", nullable = false)
     private Boolean active = true;
 
+    @Column(name = "created_at")
+    private LocalDateTime createdAt;
+
+    @Column(name = "last_update")
+    private LocalDateTime lastUpdate;
+
     @PrePersist
+    public void prePersist() {
+        createdAt = LocalDateTime.now();
+        lastUpdate = LocalDateTime.now();
+    }
+
     @PreUpdate
     public void preUpdate() {
         lastUpdate = LocalDateTime.now();
