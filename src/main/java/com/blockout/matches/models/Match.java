@@ -31,16 +31,16 @@ public class Match {
     private String leagueCode;
 
     @Column(name = "pool_id", nullable = false)
-    private Long poolId; // Référence à la Pool par son ID (microservice Pool)
+    private Long poolId;
 
     @Column(name = "live_code", nullable = true)
     private Long liveCode;
 
     @Column(name = "team_id_a", nullable = false)
-    private Long teamIdA; // Référence à l'équipe A (microservice Team)
+    private Long teamIdA;
 
     @Column(name = "team_id_b", nullable = false)
-    private Long teamIdB; // Référence à l'équipe B (microservice Team)
+    private Long teamIdB;
 
     @Column(name = "match_date", nullable = false)
     private LocalDateTime matchDate;
@@ -68,10 +68,18 @@ public class Match {
     @Column(name = "active", nullable = false)
     private Boolean active = true;
 
+    @Column(name = "created_at")
+    private LocalDateTime createdAt;
+
     @Column(name = "last_update")
     private LocalDateTime lastUpdate;
 
     @PrePersist
+    public void prePersist() {
+        createdAt = LocalDateTime.now();
+        lastUpdate = LocalDateTime.now();
+    }
+
     @PreUpdate
     public void preUpdate() {
         lastUpdate = LocalDateTime.now();
