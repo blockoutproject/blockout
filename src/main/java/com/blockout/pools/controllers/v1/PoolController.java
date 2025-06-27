@@ -2,18 +2,18 @@ package com.blockout.pools.controllers.v1;
 
 import com.blockout.pools.models.Pool;
 import com.blockout.pools.services.PoolService;
+
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
-import lombok.RequiredArgsConstructor;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.net.URI;
 import java.util.List;
-import java.util.Optional;
 
 @RestController
 @RequiredArgsConstructor
@@ -22,10 +22,10 @@ public class PoolController {
 
     private final PoolService poolService;
 
-    @Operation(summary = "Create a pool", description = "Creates a new pool.")
+    @Operation(summary = "Créer une pool", description = "Crée une nouvelle pool.")
     @ApiResponses({
-            @ApiResponse(responseCode = "201", description = "Pool created"),
-            @ApiResponse(responseCode = "400", description = "Invalid request")
+            @ApiResponse(responseCode = "201", description = "Pool créée"),
+            @ApiResponse(responseCode = "400", description = "Requête invalide")
     })
     @PostMapping
     public ResponseEntity<Pool> createPool(@RequestBody Pool pool) {
@@ -37,13 +37,9 @@ public class PoolController {
         return ResponseEntity.created(location).body(created);
     }
 
-    @Operation(summary = "List pools", description = """
-            Returns all pools.
-            Optional filters: leagueCode, season, active, poolCode.
-            """)
+    @Operation(summary = "Lister les pools", description = "Renvoie toutes les pools. Filtres possibles : leagueCode, season, active, ids.")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Pools returned"),
-            @ApiResponse(responseCode = "204", description = "No pool found")
+            @ApiResponse(responseCode = "200", description = "Liste des pools")
     })
     @GetMapping
     public ResponseEntity<List<Pool>> listPools(
@@ -51,35 +47,42 @@ public class PoolController {
             @RequestParam(required = false) Integer season,
             @RequestParam(required = false) Boolean active,
             @RequestParam(required = false) List<Long> ids) {
-
         List<Pool> pools = poolService.findPools(leagueCode, season, active, ids);
         return ResponseEntity.ok(pools);
     }
 
-    @Operation(summary = "Get pool by ID", description = "Returns a pool by its database ID.")
+    @Operation(summary = "Récupérer une pool par ID", description = "Renvoie une pool par son identifiant.")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Pool found"),
-            @ApiResponse(responseCode = "404", description = "Pool not found")
+            @ApiResponse(responseCode = "200", description = "Pool trouvée"),
+            @ApiResponse(responseCode = "404", description = "Pool introuvable")
     })
     @GetMapping("/{id}")
     public ResponseEntity<Pool> getPoolById(@PathVariable Long id) {
-        return poolService.getPoolById(id)
-                .map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.notFound().build());
+        Pool pool = poolService.getPoolById(id);
+        return ResponseEntity.ok(pool);
     }
 
-    @Operation(summary = "Update pool", description = "Updates a pool.")
+    @Operation(summary = "Mettre à jour une pool", description = "Met à jour une pool existante.")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Pool updated"),
-            @ApiResponse(responseCode = "404", description = "Pool not found")
+            @ApiResponse(responseCode = "200", description = "Pool mise à jour"),
+            @ApiResponse(responseCode = "404", description = "Pool introuvable")
     })
     @PutMapping("/{id}")
     public ResponseEntity<Pool> updatePool(
             @PathVariable Long id,
             @RequestBody Pool updatedPool) {
+        Pool result = poolService.updatePool(id, updatedPool);
+        return ResponseEntity.ok(result);
+    }
 
-        Optional<Pool> updated = poolService.updatePool(id, updatedPool);
-        return updated.map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.notFound().build());
+    @Operation(summary = "Désactiver une pool", description = "Désactive (soft delete) une pool.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "Pool désactivée"),
+            @ApiResponse(responseCode = "404", description = "Pool introuvable")
+    })
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deactivatePool(@PathVariable Long id) {
+        poolService.deactivatePool(id);
+        return ResponseEntity.noContent().build();
     }
 }
