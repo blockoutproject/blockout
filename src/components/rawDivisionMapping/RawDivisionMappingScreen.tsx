@@ -2,13 +2,11 @@ import React, { useState, useMemo } from "react";
 import { View, Text, FlatList, StyleSheet, ActivityIndicator, TextInput } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAppTheme } from "@/src/context/ThemeProvider";
-import { useRawDivisionMappings } from "../../hooks/rawDivisionMapping/useRawDivisionMapping";
 import RawDivisionMappingItem from "./RawDivisionMappingItem";
 import { RawDivisionMapping } from "@/src/types/RawDivisionMapping";
 import { Filter } from "@/src/types/Filter";
 import Filters from "../home/Filters";
-
-// ...imports identiques...
+import { useRawDivisionMappings } from "@/src/hooks/config/rawDivisionMapping/useRawDivisionMapping";
 
 const RawDivisionMappingsScreen = () => {
     const { data, isLoading, error, refetch } = useRawDivisionMappings();

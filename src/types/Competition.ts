@@ -20,5 +20,6 @@ export interface CompetitionAssociation {
     pointsPenalty: number;
     coefSets: number;
     coefPoints: number;
+    createdAt: string;
     lastUpdate: string;
 }

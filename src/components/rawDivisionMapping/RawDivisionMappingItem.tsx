@@ -57,7 +57,7 @@ const RawDivisionMappingItem: React.FC<Props> = ({ mapping, onUpdated }) => {
                             setFormat(val);
                             updateField('format', val);
                         }}
-                        style={{ color: theme.text }}
+                        itemStyle={{ color: theme.text, fontSize: 16 }}
                     >
                         <Picker.Item label="Format" value="" color={theme.textInactive} />
                         {Object.values(EnumFormat).map((val) => (
@@ -76,7 +76,7 @@ const RawDivisionMappingItem: React.FC<Props> = ({ mapping, onUpdated }) => {
                             setGender(val);
                             updateField('gender', val);
                         }}
-                        style={{ color: theme.text }}
+                        itemStyle={{ color: theme.text, fontSize: 16 }}
                     >
                         <Picker.Item label="Genre" value="" color={theme.textInactive} />
                         {Object.values(EnumGender).map((val) => (
@@ -97,7 +97,7 @@ const RawDivisionMappingItem: React.FC<Props> = ({ mapping, onUpdated }) => {
                             setDivisionCode(val);
                             updateField('divisionCode', val);
                         }}
-                        style={{ color: theme.text }}
+                        itemStyle={{ color: theme.text, fontSize: 16 }}
                     >
                         <Picker.Item label="Division" value="" color={theme.textInactive} />
                         {Object.values(EnumDivisionCode).map((val) => (
@@ -131,17 +131,15 @@ const styles = StyleSheet.create({
     row: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        gap: 12,
         marginBottom: 12,
+        paddingHorizontal: 24,
     },
     singleRow: {
         flexDirection: 'row',
+        paddingHorizontal: 24,
     },
     pickerWrapper: {
         flex: 1,
-        borderWidth: 1,
-        borderColor: '#ccc',
-        borderRadius: 8,
         overflow: 'hidden',
         height: 40,
         justifyContent: 'center',

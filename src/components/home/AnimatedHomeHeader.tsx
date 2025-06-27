@@ -29,6 +29,7 @@ import SearchContainer from "../search/SearchScreen";
 import ProfileScreen from "../profile/ProfileScreen";
 import RawDivisionMappingsScreen from "../rawDivisionMapping/RawDivisionMappingScreen";
 import { useHasScopes } from "@/src/hooks/user/useHasScope";
+import DivisionScreen from "../division/DivisionScreen";
 
 type HeaderProps = SceneRendererProps & {
     navigationState: NavigationState<Route>;
@@ -41,14 +42,19 @@ const AnimatedHomeHeader: React.FC<HeaderProps> = ({ scrollY, onTitleLayout, onT
     const { user } = useAuth0();
     const insets = useSafeAreaInsets();
     const theme = useAppTheme();
-    const { openSheet } = useGlobalBottomSheet();
+    const { openSheetPage } = useGlobalBottomSheet();
     const colorSheme = useColorScheme();
 
     const [titleHeight, setTitleHeight] = useState(0);
 
-    const canAccessRawDivision = useHasScopes([
+    const canAccessRawDivisionMapping = useHasScopes([
         "read:raw_division_mapping",
         "update:raw_division_mapping",
+    ]);
+
+    const canAccessDivision = useHasScopes([
+        "read:divisions",
+        "update:division",
     ]);
 
     const translateY = scrollY.interpolate({
@@ -77,17 +83,22 @@ const AnimatedHomeHeader: React.FC<HeaderProps> = ({ scrollY, onTitleLayout, onT
 
     const handleSearchPress = () => {
         Haptics.selectionAsync();
-        openSheet(<SearchContainer />);
+        openSheetPage(<SearchContainer />);
     };
 
     const handleNotificationPress = () => {
         Haptics.selectionAsync();
-        openSheet(<RawDivisionMappingsScreen />);
+        openSheetPage(<RawDivisionMappingsScreen />);
+    };
+
+    const handleDivisionPress = () => {
+        Haptics.selectionAsync();
+        openSheetPage(<DivisionScreen />);
     };
 
     const handleProfilePress = () => {
         Haptics.selectionAsync();
-        openSheet(<ProfileScreen />);
+        openSheetPage(<ProfileScreen />);
     };
 
     return (
@@ -155,9 +166,15 @@ const AnimatedHomeHeader: React.FC<HeaderProps> = ({ scrollY, onTitleLayout, onT
                         <MaterialCommunityIcons name="magnify" size={25} color={theme.text} />
                     </TouchableOpacity>
 
-                    {canAccessRawDivision && (
+                    {canAccessRawDivisionMapping && (
                         <TouchableOpacity onPress={handleNotificationPress}>
                             <MaterialCommunityIcons name="whistle" size={25} color={theme.text} />
+                        </TouchableOpacity>
+                    )}
+
+                    {canAccessDivision && (
+                        <TouchableOpacity onPress={handleDivisionPress}>
+                            <MaterialCommunityIcons name="alpha-d-circle" size={25} color={theme.text} />
                         </TouchableOpacity>
                     )}
 

@@ -24,7 +24,7 @@ import { SearchPrompt } from '../common/feedback/SearchPrompt';
 
 const SearchScreen = () => {
     const theme = useAppTheme();
-    const { openSheet } = useGlobalBottomSheet();
+    const { openSheetPage } = useGlobalBottomSheet();
     const insets = useSafeAreaInsets();
 
     const [query, setQuery] = useState('');
@@ -34,7 +34,7 @@ const SearchScreen = () => {
 
     const handleTeamPress = (teamId: number) => {
         Haptics.selectionAsync();
-        openSheet(<TeamContainer teamId={teamId} />);
+        openSheetPage(<TeamContainer teamId={teamId} />);
     };
 
     const renderEmpty = () => {

@@ -27,7 +27,7 @@ const MatchScoreCard: React.FC<MatchScoreCardProps> = ({
     gradient,
 }) => {
     const theme = useAppTheme();
-    const { openSheet } = useGlobalBottomSheet();
+    const { openSheetPage } = useGlobalBottomSheet();
 
     const home = require("@/assets/clubs/paris_volley.png");
     const away = require("@/assets/clubs/as_cannes.png");
@@ -36,7 +36,7 @@ const MatchScoreCard: React.FC<MatchScoreCardProps> = ({
 
     const handleTeamPress = (teamId: number) => {
         Haptics.selectionAsync();
-        openSheet(<TeamContainer teamId={teamId} />);
+        openSheetPage(<TeamContainer teamId={teamId} />);
     };
 
     const TeamBlock: React.FC<{ team: Team; logo: any; role: "Home" | "Away" }> = ({

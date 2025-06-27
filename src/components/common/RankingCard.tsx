@@ -29,11 +29,11 @@ function getRankBackground(isEven: boolean, theme: AppTheme): string {
 const RankingCard: React.FC<RankingCardProps> = ({ poolId, scrollable = true }) => {
     const { teams, isLoading, isError } = useDetailedTeamsByPool(poolId);
     const theme = useAppTheme();
-    const { openSheet } = useGlobalBottomSheet();
+    const { openSheetPage } = useGlobalBottomSheet();
 
     const handleTeamPress = (teamId: number) => {
         Haptics.selectionAsync();
-        openSheet(<TeamContainer teamId={teamId} />);
+        openSheetPage(<TeamContainer teamId={teamId} />);
     };
 
     if (isLoading) {

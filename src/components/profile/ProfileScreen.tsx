@@ -6,6 +6,7 @@ import { useAppTheme } from '@/src/context/ThemeProvider';
 import { router } from 'expo-router';
 import { useUserContext } from '@/src/hooks/user/useUserContext';
 import { useGlobalBottomSheet } from '@/src/context/GlobalBottomSheetProvider';
+import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 
 const ProfileScreen: React.FC = () => {
     const { user, clearSession } = useAuth0();
@@ -32,7 +33,7 @@ const ProfileScreen: React.FC = () => {
     }
 
     return (
-        <ScrollView
+        <BottomSheetScrollView
             style={[styles.scrollContainer, { backgroundColor: theme.background }]}
             contentContainerStyle={styles.contentContainer}
             showsVerticalScrollIndicator={false}
@@ -93,7 +94,7 @@ const ProfileScreen: React.FC = () => {
                     <Text style={[styles.logoutButtonText, { color: theme.text }]}>Se déconnecter</Text>
                 </Pressable>
             </View>
-        </ScrollView>
+        </BottomSheetScrollView>
     );
 };
 

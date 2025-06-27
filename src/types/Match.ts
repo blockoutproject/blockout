@@ -15,14 +15,15 @@ export interface Match {
     teamIdB: number;
     matchDate: string;
     status: MatchStatus;
-    set?: string;
-    score?: string;
-    venue?: string;
-    referee1?: string;
-    referee2?: string;
-    liveCode?: number;
-    lastUpdate: string;
+    set: string | null;
+    score: string | null;
+    venue: string | null;
+    referee1: string | null;
+    referee2: string | null;
+    liveCode: number | null;
     active: boolean;
+    createdAt: string;
+    lastUpdate: string;
 }
 
 export interface PoolMatchesDTO {
@@ -42,12 +43,12 @@ export interface DayPageDTO {
 }
 
 export interface EnrichedMatch extends Match {
-    teamA?: Team;
-    teamB?: Team;
+    teamA: Team;
+    teamB: Team;
 }
 
 export interface EnrichedPoolMatchesDTO extends PoolMatchesDTO {
-    poolData?: Pool;
+    poolData: Pool;
     matches: EnrichedMatch[];
 }
 

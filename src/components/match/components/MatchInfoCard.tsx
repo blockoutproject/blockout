@@ -30,11 +30,11 @@ const MatchInfoCard: React.FC<MatchInfoCardProps> = ({
     referee2,
 }) => {
     const theme = useAppTheme();
-    const { openSheet } = useGlobalBottomSheet();
+    const { openSheetPage } = useGlobalBottomSheet();
 
     const handlePoolPress = (poolId: number) => {
         Haptics.selectionAsync();
-        openSheet(<PoolContainer poolId={poolId} />);
+        openSheetPage(<PoolContainer poolId={poolId} />);
     };
 
     const infoData = [

@@ -13,8 +13,9 @@ export interface Team {
     format: EnumFormat;
     gender: EnumGender;
     followersCount: number;
-    lastUpdate: string;
     active: boolean;
+    createdAt: string;
+    lastUpdate: string;
 }
 
 export interface TeamWithPoints extends Team {

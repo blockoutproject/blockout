@@ -40,7 +40,7 @@ const MatchListContainer: React.FC<MatchListContainerProps> = ({
     contentContainerStyle,
 }) => {
     const theme = useAppTheme();
-    const { openSheet } = useGlobalBottomSheet();
+    const { openSheetPage } = useGlobalBottomSheet();
 
     const {
         dayMatches,
@@ -72,12 +72,12 @@ const MatchListContainer: React.FC<MatchListContainerProps> = ({
 
     const handlePoolPress = (poolId: number) => {
         Haptics.selectionAsync();
-        openSheet(<PoolContainer poolId={poolId} />);
+        openSheetPage(<PoolContainer poolId={poolId} />);
     };
 
     const handleMatchPress = (matchId: number) => {
         Haptics.selectionAsync();
-        openSheet(<MatchContainer matchId={matchId} />);
+        openSheetPage(<MatchContainer matchId={matchId} />);
     };
 
     const sections = useMemo(() => {

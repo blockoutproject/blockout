@@ -11,5 +11,5 @@ export interface RawDivisionMapping {
     leagueCode: string;
     season: number;
     createdAt: string;
-    updatedAt: string;
+    lastUpdate: string;
 }

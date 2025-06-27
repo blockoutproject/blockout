@@ -24,7 +24,7 @@ const TeamProfileHeader: React.FC<{ team: Team }> = ({ team }) => {
 
             <View style={styles.infoLine}>
                 <MaterialCommunityIcons name="trophy-outline" size={18} color={theme.text} />
-                <Text style={[styles.infoText, { color: theme.text }]}>{team.divisionName}</Text>
+                <Text style={[styles.infoText, { color: theme.text }]}>{team.divisionCode}</Text>
             </View>
 
             <View style={styles.infoLine}>

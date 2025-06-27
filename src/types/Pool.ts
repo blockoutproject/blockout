@@ -14,6 +14,7 @@ export interface Pool {
     name?: string;
     divisionName?: string;
     followersCount: number;
-    lastUpdate: string;
     active: boolean;
+    createdAt: string;
+    lastUpdate: string;
 }

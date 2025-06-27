@@ -1,6 +1,7 @@
 import { CONFIG } from '@/src/config/config';
 import AbstractApi from './AbstractApi';
 import { RawDivisionMapping } from '../types/RawDivisionMapping';
+import { Division } from '../types/Division';
 
 class ConfigApi extends AbstractApi {
     private static instance: ConfigApi | null = null;
@@ -51,6 +52,63 @@ class ConfigApi extends AbstractApi {
             method: 'put',
             url: `/raw-divisions/${id}`,
             data
+        });
+    }
+
+    /**
+     * Récupère la liste complète des divisions (actives et inactives).
+     */
+    public async listDivisions(): Promise<Division[]> {
+        return this.request<Division[]>({
+            method: 'get',
+            url: '/divisions'
+        });
+    }
+
+    /**
+     * Récupère une division par son identifiant.
+     * @param id ID de la division.
+     */
+    public async getDivisionById(id: number): Promise<Division> {
+        return this.request<Division>({
+            method: 'get',
+            url: `/divisions/${id}`
+        });
+    }
+
+    /**
+     * Crée ou réactive une division.
+     * @param division Données de la division.
+     */
+    public async createOrUpdateDivision(division: Partial<Division>): Promise<Division> {
+        return this.request<Division>({
+            method: 'post',
+            url: '/divisions',
+            data: division
+        });
+    }
+
+    /**
+     * Met à jour une division existante.
+     * @param id ID de la division.
+     * @param data Données à mettre à jour.
+     */
+    public async updateDivision(id: number, data: Partial<Division>): Promise<Division> {
+        return this.request<Division>({
+            method: 'put',
+            url: `/divisions/${id}`,
+            data
+        });
+    }
+
+    /**
+     * Désactive (soft delete) une division.
+     * @param id ID de la division.
+     */
+    public async deactivateDivision(id: number): Promise<void> {
+        await this.request<void>({
+            method: 'delete',
+            url: `/divisions/${id}`
         });
     }
 }
