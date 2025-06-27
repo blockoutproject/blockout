@@ -17,9 +17,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
@@ -34,115 +31,74 @@ public class TeamService {
 
     /**
      * Crée une nouvelle équipe
-     * 
+     *
      * @param team L'objet Team à créer
      * @return L'équipe créée avec son ID généré
      */
     @Transactional
     public Team createTeam(Team team) {
-        Team createdTeam = teamRepository.save(team);
+        Team created = teamRepository.save(team);
         logger.info("Team created successfully",
                 keyValue("action", "create_team"),
-                keyValue("teamId", createdTeam.getId()));
-
-        // Publier l'événement de création de l'équipe
-        eventPublisher.publishTeamUpsert(createdTeam);
-
-        return createdTeam;
-    }
-
-    /**
-     * Récupère les équipes en appliquant des filtres facultatifs.
-     *
-     * @param name         fragment de nom (null pour ignorer)
-     * @param divisionCode nom de division exact (null pour ignorer)
-     * @param format       format de l'équipe (null pour ignorer)
-     * @param gender       genre de l'équipe (null pour ignorer)
-     * @param ids          liste d'IDs (null ou vide pour ignorer)
-     * @return liste des équipes correspondant aux critères
-     */
-    public List<Team> findTeams(String name,
-            DivisionCode divisionCode,
-            Format format,
-            Gender gender,
-            String clubId,
-            List<Long> ids) {
-
-        List<Long> safeIds = (ids == null) ? Collections.emptyList() : ids;
-
-        List<Team> teams = teamRepository.findFiltered(
-                name,
-                divisionCode,
-                format,
-                gender,
-                clubId,
-                safeIds,
-                safeIds.size());
-
-        logger.debug("findTeams executed",
-                keyValue("action", "find_teams"),
-                keyValue("name", name),
-                keyValue("divisionCode", divisionCode),
-                keyValue("format", format),
-                keyValue("gender", gender),
-                keyValue("ids", safeIds),
-                keyValue("resultCount", teams.size()));
-
-        return teams;
-    }
-
-    /**
-     * Récupère les équipes par leurs IDs
-     * 
-     * @param ids Liste d'identifiants d'équipes
-     * @return Liste des équipes correspondantes
-     */
-    public List<Team> getTeamsByIds(List<Long> ids) {
-        List<Team> teams = teamRepository.findAllById(ids);
-
-        Set<Long> foundIds = teams.stream()
-                .map(Team::getId)
-                .collect(Collectors.toSet());
-
-        List<Long> missingIds = ids.stream()
-                .filter(id -> !foundIds.contains(id))
-                .collect(Collectors.toList());
-
-        if (!missingIds.isEmpty()) {
-            logger.warn("Some teams not found for given IDs",
-                    keyValue("action", "get_teams_by_ids"),
-                    keyValue("missingIds", missingIds));
-        }
-
-        return teams;
+                keyValue("teamId", created.getId()));
+        eventPublisher.publishTeamUpsert(created);
+        return created;
     }
 
     /**
      * Récupère une équipe par son ID
-     * 
+     *
      * @param id L'identifiant de l'équipe
-     * @return Optional contenant l'équipe si elle existe
+     * @return L'équipe correspondante
+     * @throws TeamNotFoundException si l'équipe est introuvable
      */
-    public Optional<Team> getTeamById(Long id) {
-        Optional<Team> teamOpt = teamRepository.findById(id);
-        if (!teamOpt.isPresent()) {
-            logger.warn("No team found with given ID",
+    public Team getTeamById(Long id) {
+        return teamRepository.findById(id).orElseThrow(() -> {
+            logger.warn("Team not found",
                     keyValue("action", "get_team_by_id"),
                     keyValue("teamId", id));
-        }
-        return teamOpt;
+            return new TeamNotFoundException(id);
+        });
+    }
+
+    /**
+     * Récupère les équipes en appliquant des filtres facultatifs
+     *
+     * @param name         fragment du nom (null pour ignorer)
+     * @param divisionCode code de division (null pour ignorer)
+     * @param format       format (null pour ignorer)
+     * @param gender       genre (null pour ignorer)
+     * @param clubId       identifiant du club (null pour ignorer)
+     * @param ids          liste d'IDs (null pour ignorer)
+     * @return Liste des équipes correspondantes
+     */
+    public List<Team> findTeams(String name, DivisionCode divisionCode, Format format, Gender gender, String clubId, List<Long> ids) {
+        List<Long> safeIds = (ids == null) ? Collections.emptyList() : ids;
+
+        List<Team> teams = teamRepository.findFiltered(name, divisionCode, format, gender, clubId, safeIds, safeIds.size());
+
+        logger.debug("Listing teams",
+                keyValue("action", "list_teams"),
+                keyValue("name", name),
+                keyValue("divisionCode", divisionCode),
+                keyValue("format", format),
+                keyValue("gender", gender),
+                keyValue("clubId", clubId),
+                keyValue("ids", safeIds),
+                keyValue("resultCount", teams.size()));
+        return teams;
     }
 
     /**
      * Met à jour une équipe existante
      *
-     * @param id          L'identifiant de l'équipe à mettre à jour
-     * @param updatedTeam Les nouvelles données de l'équipe
+     * @param id          L'identifiant de l'équipe
+     * @param updatedTeam Les nouvelles données
      * @return L'équipe mise à jour
-     * @throws TeamNotFoundException Si l'équipe n'existe pas
+     * @throws TeamNotFoundException si l'équipe est introuvable
      */
     @Transactional
-    public Optional<Team> updateTeam(Long id, Team updatedTeam) {
+    public Team updateTeam(Long id, Team updatedTeam) {
         return teamRepository.findById(id).map(team -> {
             Team before = team.toBuilder().build();
 
@@ -155,71 +111,77 @@ public class TeamService {
             team.setActive(updatedTeam.getActive());
 
             if (!before.getActive() && team.getActive()) {
-                logger.info("Équipe réactivée",
+                logger.info("Team réactivée",
                         keyValue("action", "reactivate_team"),
                         keyValue("teamId", id));
             }
 
-            Team savedTeam = teamRepository.save(team);
+            Team saved = teamRepository.save(team);
 
-            DiffUtils.logChanges(before, savedTeam, logger,
-                    "update_team", savedTeam.getId());
+            DiffUtils.logChanges(before, saved, logger, "update_team", saved.getId());
+            eventPublisher.publishTeamUpsert(saved);
 
-            // Publier l'événement de mise à jour de l'équipe
-            eventPublisher.publishTeamUpsert(savedTeam);
-                    
-            return savedTeam;
+            return saved;
+        }).orElseThrow(() -> {
+            logger.error("Team not found. Cannot update.",
+                    keyValue("action", "update_team"),
+                    keyValue("teamId", id));
+            return new TeamNotFoundException(id);
         });
     }
 
     /**
      * Désactive une équipe
-     * 
-     * @param teamId L'identifiant de l'équipe à désactiver
+     *
+     * @param id L'identifiant de l'équipe
      * @return L'équipe désactivée
-     * @throws TeamNotFoundException Si l'équipe n'existe pas
+     * @throws TeamNotFoundException si l'équipe est introuvable
      */
     @Transactional
-    public Team deactivateTeam(Long teamId) {
-        return teamRepository.findById(teamId).map(team -> {
+    public Team deactivateTeam(Long id) {
+        return teamRepository.findById(id).map(team -> {
             team.setActive(false);
-            Team updatedTeam = teamRepository.save(team);
-
+            Team updated = teamRepository.save(team);
             logger.info("Team successfully deactivated",
                     keyValue("action", "deactivate_team"),
-                    keyValue("teamId", teamId));
-
-            return updatedTeam;
+                    keyValue("teamId", id));
+            return updated;
         }).orElseThrow(() -> {
             logger.error("Team not found. Cannot deactivate.",
                     keyValue("action", "deactivate_team"),
-                    keyValue("teamId", teamId));
-            return new TeamNotFoundException(teamId);
+                    keyValue("teamId", id));
+            return new TeamNotFoundException(id);
         });
     }
 
     /**
-     * Incrémente le compteur de followers pour l'équipe.
-     * 
-     * @param teamId Identifiant de l'équipe
-     * @param userId Identifiant de l'utilisateur qui follow
-     * @return L'équipe mise à jour
-     * @throws TeamNotFoundException Si l'équipe n'existe pas
+     * Récupère les IDs uniques de clubs
+     *
+     * @return Liste des IDs uniques
+     */
+    public List<String> getUniqueClubIds() {
+        return teamRepository.findDistinctClubIds();
+    }
+
+    /**
+     * Incrémente le compteur de followers
+     *
+     * @param teamId ID de l'équipe
+     * @param userId ID de l'utilisateur
+     * @return Équipe mise à jour
+     * @throws TeamNotFoundException si l'équipe est introuvable
      */
     @Transactional
     public Team incrementFollowersCount(Long teamId, Long userId) {
         return teamRepository.findById(teamId).map(team -> {
-            long currentCount = team.getFollowersCount();
-            team.setFollowersCount(currentCount + 1);
-
-            Team updatedTeam = teamRepository.save(team);
-            logger.info("Team followers count incremented",
+            team.setFollowersCount(team.getFollowersCount() + 1);
+            Team updated = teamRepository.save(team);
+            logger.info("Team followers incremented",
                     keyValue("action", "increment_followers_count"),
                     keyValue("teamId", teamId),
                     keyValue("userId", userId),
-                    keyValue("newFollowersCount", updatedTeam.getFollowersCount()));
-
-            return updatedTeam;
+                    keyValue("newFollowersCount", updated.getFollowersCount()));
+            return updated;
         }).orElseThrow(() -> {
             logger.error("Team not found. Cannot increment followers count.",
                     keyValue("action", "increment_followers_count"),
@@ -230,28 +192,25 @@ public class TeamService {
     }
 
     /**
-     * Décrémente le compteur de followers pour l'équipe.
-     * 
-     * @param teamId Identifiant de l'équipe
-     * @param userId Identifiant de l'utilisateur qui unfollow
-     * @return L'équipe mise à jour
-     * @throws TeamNotFoundException Si l'équipe n'existe pas
+     * Décrémente le compteur de followers
+     *
+     * @param teamId ID de l'équipe
+     * @param userId ID de l'utilisateur
+     * @return Équipe mise à jour
+     * @throws TeamNotFoundException si l'équipe est introuvable
      */
     @Transactional
     public Team decrementFollowersCount(Long teamId, Long userId) {
         return teamRepository.findById(teamId).map(team -> {
-            long currentCount = team.getFollowersCount();
-            long newCount = (currentCount > 0) ? currentCount - 1 : 0;
+            long newCount = Math.max(0, team.getFollowersCount() - 1);
             team.setFollowersCount(newCount);
-
-            Team updatedTeam = teamRepository.save(team);
-            logger.info("Team followers count decremented",
+            Team updated = teamRepository.save(team);
+            logger.info("Team followers decremented",
                     keyValue("action", "decrement_followers_count"),
                     keyValue("teamId", teamId),
                     keyValue("userId", userId),
-                    keyValue("newFollowersCount", updatedTeam.getFollowersCount()));
-
-            return updatedTeam;
+                    keyValue("newFollowersCount", updated.getFollowersCount()));
+            return updated;
         }).orElseThrow(() -> {
             logger.error("Team not found. Cannot decrement followers count.",
                     keyValue("action", "decrement_followers_count"),
@@ -262,15 +221,15 @@ public class TeamService {
     }
 
     /**
-     * Désactive toutes les équipes d'un club donné.
+     * Désactive toutes les équipes d’un club donné
      *
-     * @param clubId L'identifiant du club
+     * @param clubId Identifiant du club
      */
     @Transactional
     public void deactivateTeamsByClubId(String clubId) {
         List<Team> teams = teamRepository.findByClubIdAndActiveTrue(clubId);
         if (teams.isEmpty()) {
-            logger.warn("No active teams found for club ID. No deactivation performed.",
+            logger.warn("No active teams found for club",
                     keyValue("action", "deactivate_teams_by_club"),
                     keyValue("clubId", clubId));
         } else {
@@ -283,14 +242,5 @@ public class TeamService {
                         keyValue("clubId", clubId));
             });
         }
-    }
-
-    /**
-     * Récupère les IDs de clubs uniques
-     * 
-     * @return Liste des IDs de clubs uniques
-     */
-    public List<String> getUniqueClubIds() {
-        return teamRepository.findDistinctClubIds();
     }
 }
