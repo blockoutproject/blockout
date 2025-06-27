@@ -9,8 +9,9 @@ class Team:
     short_name: str
     league_code: str
     division_code: str
+    id: Optional[int] = None
     gender: Optional[str] = None
     format: Optional[str] = None
-    last_update: Optional[datetime] = None
-    id: Optional[int] = None
     active: bool = True
+    created_at: Optional[datetime] = None
+    last_update: Optional[datetime] = None

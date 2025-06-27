@@ -29,7 +29,7 @@ class CompetitionAssociation:
     lost_points: int = 0
     points_penalty: int = 0
     coef_sets: float = 0.0
-    coef_points: float = 0.0
-    last_update: Optional[datetime] = None
-    
+    coef_points: float = 0.0  
+    created_at: Optional[datetime] = None
+    last_update: Optional[datetime] = None 
     

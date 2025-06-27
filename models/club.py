@@ -11,5 +11,6 @@ class Club:
     email: Optional[str] = None
     phone_number: Optional[str] = None
     website: Optional[str] = None
-    last_update: datetime = field(default_factory=datetime.now)
     active: bool = True
+    created_at: Optional[datetime] = None
+    last_update: Optional[datetime] = None
