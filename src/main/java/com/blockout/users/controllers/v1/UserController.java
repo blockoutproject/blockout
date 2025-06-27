@@ -5,9 +5,11 @@ import com.blockout.users.models.CustomUser;
 import com.blockout.users.models.UserRegistrationRequest;
 import com.blockout.users.models.dto.CustomUserDto;
 import com.blockout.users.services.UserService;
+
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.http.ResponseEntity;
@@ -17,7 +19,6 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.net.URI;
-import java.util.Optional;
 
 @RestController
 @RequiredArgsConstructor
@@ -26,22 +27,21 @@ public class UserController {
 
     private final UserService userService;
 
-    @Operation(summary = "Get user by Auth0 ID")
+    @Operation(summary = "Récupérer un utilisateur", description = "Récupère un utilisateur à partir de son ID Auth0.")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "User found"),
-            @ApiResponse(responseCode = "404", description = "User not found")
+            @ApiResponse(responseCode = "200", description = "Utilisateur trouvé"),
+            @ApiResponse(responseCode = "404", description = "Utilisateur non trouvé")
     })
     @GetMapping("/{auth0Id}")
     public ResponseEntity<CustomUserDto> getUserByAuth0Id(@PathVariable String auth0Id) {
-        Optional<CustomUserDto> user = userService.getUserByAuth0Id(auth0Id);
-        return user.map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.notFound().build());
+        CustomUserDto user = userService.getUserByAuth0Id(auth0Id);
+        return ResponseEntity.ok(user);
     }
 
-    @Operation(summary = "Register user", description = "Registers a user based on Auth0 token subject.")
+    @Operation(summary = "Enregistrer un utilisateur", description = "Crée un nouvel utilisateur à partir du token Auth0.")
     @ApiResponses({
-            @ApiResponse(responseCode = "201", description = "User created"),
-            @ApiResponse(responseCode = "400", description = "Invalid request")
+            @ApiResponse(responseCode = "201", description = "Utilisateur créé"),
+            @ApiResponse(responseCode = "400", description = "Requête invalide")
     })
     @PostMapping
     public ResponseEntity<CustomUser> registerUser(
@@ -50,10 +50,12 @@ public class UserController {
 
         String auth0Id = jwt.getSubject();
         CustomUser created = userService.registerUser(auth0Id, body);
+
         URI location = ServletUriComponentsBuilder.fromCurrentRequest()
                 .path("/{id}")
                 .buildAndExpand(created.getId())
                 .toUri();
+
         return ResponseEntity.created(location).body(created);
     }
 }

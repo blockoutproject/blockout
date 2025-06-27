@@ -3,9 +3,11 @@ package com.blockout.users.controllers.v1;
 import com.blockout.users.models.UserFavorite;
 import com.blockout.users.models.enums.EntityType;
 import com.blockout.users.services.UserFavoriteService;
+
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.http.ResponseEntity;
@@ -22,10 +24,10 @@ public class UserFavoriteController {
 
     private final UserFavoriteService favoriteService;
 
-    @Operation(summary = "List favorites for a user")
+    @Operation(summary = "Lister les favoris", description = "Retourne les entités suivies par un utilisateur.")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Favorites returned"),
-            @ApiResponse(responseCode = "404", description = "User not found")
+            @ApiResponse(responseCode = "200", description = "Favoris retournés"),
+            @ApiResponse(responseCode = "404", description = "Utilisateur introuvable")
     })
     @GetMapping("/{userId}/favorites")
     public ResponseEntity<List<UserFavorite>> listFavorites(
@@ -39,10 +41,10 @@ public class UserFavoriteController {
         return ResponseEntity.ok(list);
     }
 
-    @Operation(summary = "Follow an entity")
+    @Operation(summary = "Suivre une entité", description = "Ajoute une entité aux favoris de l'utilisateur.")
     @ApiResponses({
-            @ApiResponse(responseCode = "204", description = "Follow updated"),
-            @ApiResponse(responseCode = "404", description = "User not found")
+            @ApiResponse(responseCode = "204", description = "Suivi effectué"),
+            @ApiResponse(responseCode = "404", description = "Utilisateur introuvable")
     })
     @PostMapping("/favorites/follow")
     public ResponseEntity<Void> follow(
@@ -54,10 +56,10 @@ public class UserFavoriteController {
         return ResponseEntity.noContent().build();
     }
 
-    @Operation(summary = "Unfollow an entity")
+    @Operation(summary = "Ne plus suivre une entité", description = "Supprime une entité des favoris de l'utilisateur.")
     @ApiResponses({
-            @ApiResponse(responseCode = "204", description = "Follow removed"),
-            @ApiResponse(responseCode = "404", description = "User not found")
+            @ApiResponse(responseCode = "204", description = "Suivi supprimé"),
+            @ApiResponse(responseCode = "404", description = "Utilisateur introuvable")
     })
     @DeleteMapping("/favorites/follow")
     public ResponseEntity<Void> unfollow(

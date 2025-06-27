@@ -4,6 +4,7 @@ import com.auth0.client.mgmt.ManagementAPI;
 import com.auth0.exception.Auth0Exception;
 import com.auth0.json.mgmt.users.User;
 import com.blockout.users.config.Auth0TokenManager;
+import com.blockout.users.exceptions.CustomUserNotFoundException;
 import com.blockout.users.models.CustomUser;
 import com.blockout.users.models.UserRegistrationRequest;
 import com.blockout.users.models.dto.CustomUserDto;
@@ -12,16 +13,12 @@ import com.blockout.users.models.mappers.CustomUserMapper;
 import com.blockout.users.repositories.UserRepository;
 
 import lombok.RequiredArgsConstructor;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
-
-import java.time.LocalDateTime;
-import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -34,29 +31,36 @@ public class UserService {
     private final CustomUserMapper customUserMapper;
 
     /**
-     * Récupère un utilisateur par son ID Auth0
-     * 
-     * @param auth0Id L'identifiant Auth0 de l'utilisateur
-     * @return Optional contenant l'utilisateur s'il existe
+     * Récupère un utilisateur par son ID Auth0.
+     *
+     * @param auth0Id L'identifiant Auth0
+     * @return L'utilisateur mappé en DTO
+     * @throws CustomUserNotFoundException si aucun utilisateur n'est trouvé
      */
-    public Optional<CustomUserDto> getUserByAuth0Id(String auth0Id) {
+    public CustomUserDto getUserByAuth0Id(String auth0Id) {
         return userRepository.findByAuth0IdWithFavorites(auth0Id)
-            .map(customUserMapper::toDto);
+                .map(customUserMapper::toDto)
+                .orElseThrow(() -> {
+                    logger.warn("Utilisateur introuvable", keyValue("auth0Id", auth0Id));
+                    return new CustomUserNotFoundException(auth0Id);
+                });
     }
 
     /**
-     * Enregistre un nouvel utilisateur
-     * 
-     * @param user L'utilisateur à enregistrer
-     * @return L'utilisateur enregistré avec son ID généré
-     * @throws Auth0Exception
+     * Enregistre un nouvel utilisateur à partir des informations Auth0.
+     *
+     * @param auth0Id             Le subject du token Auth0
+     * @param registrationRequest L'objet contenant les infos d'enregistrement
+     * @return L'utilisateur persisté
+     * @throws Auth0Exception si la récupération de l'utilisateur Auth0 échoue
      */
     @Transactional
     public CustomUser registerUser(String auth0Id, UserRegistrationRequest registrationRequest) throws Auth0Exception {
         ManagementAPI managementAPI = tokenManager.getManagementAPI();
         User auth0User = managementAPI.users().get(auth0Id, null).execute().getBody();
+
         if (auth0User == null) {
-            throw new Auth0Exception("Utilisateur non trouvé dans Auth0 pour l'id: " + auth0Id);
+            throw new Auth0Exception("Utilisateur non trouvé dans Auth0 pour l'ID: " + auth0Id);
         }
 
         CustomUser user = CustomUser.builder()
@@ -71,19 +75,10 @@ public class UserService {
                 .active(true)
                 .build();
 
-        logger.info("Enregistrement d'un nouvel utilisateur",
-                keyValue("action", "register_user"),
-                keyValue("email", user.getEmail()));
+        logger.info("Enregistrement d'un nouvel utilisateur", keyValue("email", user.getEmail()));
+        CustomUser created = userRepository.save(user);
+        logger.info("Utilisateur créé avec succès", keyValue("userId", created.getId()));
 
-        LocalDateTime now = LocalDateTime.now();
-        user.setCreatedAt(now);
-        user.setLastUpdate(now);
-
-        CustomUser createdUser = userRepository.save(user);
-        logger.info("Utilisateur créé avec succès",
-                keyValue("action", "register_user"),
-                keyValue("userId", createdUser.getId()));
-
-        return createdUser;
+        return created;
     }
 }

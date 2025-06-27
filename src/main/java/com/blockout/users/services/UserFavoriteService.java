@@ -1,5 +1,6 @@
 package com.blockout.users.services;
 
+import com.blockout.users.exceptions.CustomUserNotFoundException;
 import com.blockout.users.models.CustomUser;
 import com.blockout.users.models.UserFavorite;
 import com.blockout.users.models.enums.EntityType;
@@ -29,28 +30,32 @@ public class UserFavoriteService {
     private final UserRepository userRepository;
     private final EventPublisher eventPublisher;
 
+    /**
+     * Permet à un utilisateur de suivre une entité.
+     *
+     * @param auth0Id    Identifiant Auth0 de l'utilisateur
+     * @param entityType Type d'entité à suivre (POOL, TEAM, etc.)
+     * @param entityId   Identifiant de l'entité à suivre
+     * @throws CustomUserNotFoundException si l'utilisateur n'existe pas
+     */
     @Transactional
     public void follow(String auth0Id, EntityType entityType, Long entityId) {
         CustomUser user = userRepository.findByAuth0Id(auth0Id)
                 .orElseThrow(() -> {
-                    logger.error("User not found when trying to follow entity",
-                            keyValue("action", "follow"),
+                    logger.error("Utilisateur introuvable pour follow",
                             keyValue("auth0Id", auth0Id),
                             keyValue("entityType", entityType),
                             keyValue("entityId", entityId));
-                    return new IllegalArgumentException("Utilisateur inexistant (id=" + auth0Id + ")");
+                    return new CustomUserNotFoundException(auth0Id);
                 });
-
-        Long userId = user.getId();
 
         boolean alreadyFollowed = userFavoriteRepository
                 .findByUserAndEntityTypeAndEntityId(user, entityType, entityId)
                 .isPresent();
 
         if (alreadyFollowed) {
-            logger.info("Follow already exists",
-                    keyValue("action", "follow"),
-                    keyValue("userId", userId),
+            logger.info("Suivi déjà existant",
+                    keyValue("userId", user.getId()),
                     keyValue("entityType", entityType),
                     keyValue("entityId", entityId));
             return;
@@ -64,86 +69,89 @@ public class UserFavoriteService {
 
         UserFavorite saved = userFavoriteRepository.save(favorite);
 
-        logger.info("Follow created successfully",
-                keyValue("action", "follow"),
-                keyValue("userId", userId),
+        logger.info("Suivi enregistré",
+                keyValue("userId", user.getId()),
                 keyValue("entityType", entityType),
                 keyValue("entityId", entityId),
                 keyValue("favoriteId", saved.getId()));
 
-        eventPublisher.publishFollowEvent(userId, entityType, entityId, EventType.CREATED);
+        eventPublisher.publishFollowEvent(user.getId(), entityType, entityId, EventType.CREATED);
     }
 
+    /**
+     * Permet à un utilisateur d'arrêter de suivre une entité.
+     *
+     * @param auth0Id    Identifiant Auth0 de l'utilisateur
+     * @param entityType Type d'entité suivie
+     * @param entityId   Identifiant de l'entité suivie
+     * @throws CustomUserNotFoundException si l'utilisateur n'existe pas
+     */
     @Transactional
     public void unfollow(String auth0Id, EntityType entityType, Long entityId) {
         CustomUser user = userRepository.findByAuth0Id(auth0Id)
                 .orElseThrow(() -> {
-                    logger.error("User not found when trying to unfollow entity",
-                            keyValue("action", "unfollow"),
+                    logger.error("Utilisateur introuvable pour unfollow",
                             keyValue("auth0Id", auth0Id),
                             keyValue("entityType", entityType),
                             keyValue("entityId", entityId));
-                    return new IllegalArgumentException(
-                            "Utilisateur inexistant (id=" + auth0Id + ")");
+                    return new CustomUserNotFoundException(auth0Id);
                 });
-
-        Long userId = user.getId();
 
         Optional<UserFavorite> favoriteOpt = userFavoriteRepository
                 .findByUserAndEntityTypeAndEntityId(user, entityType, entityId);
 
-        if (favoriteOpt.isPresent()) {
-            userFavoriteRepository.delete(favoriteOpt.get());
-
-            logger.info("Follow deleted successfully",
-                    keyValue("action", "unfollow"),
-                    keyValue("userId", userId),
+        favoriteOpt.ifPresent(fav -> {
+            userFavoriteRepository.delete(fav);
+            logger.info("Suivi supprimé",
+                    keyValue("userId", user.getId()),
                     keyValue("entityType", entityType),
                     keyValue("entityId", entityId));
-
-            eventPublisher.publishFollowEvent(userId, entityType, entityId, EventType.DELETED);
-        }
+            eventPublisher.publishFollowEvent(user.getId(), entityType, entityId, EventType.DELETED);
+        });
     }
 
+    /**
+     * Récupère tous les favoris d’un utilisateur.
+     *
+     * @param userId Identifiant de l'utilisateur
+     * @return Liste des entités suivies
+     * @throws CustomUserNotFoundException si l'utilisateur n'existe pas
+     */
     public List<UserFavorite> getUserFavorites(Long userId) {
         CustomUser user = userRepository.findById(userId)
                 .orElseThrow(() -> {
-                    logger.error("User not found when fetching favorites",
-                            keyValue("action", "get_user_favorites"),
+                    logger.error("Utilisateur introuvable lors de la récupération des favoris",
                             keyValue("userId", userId));
-                    return new IllegalArgumentException(
-                            "Utilisateur inexistant (id=" + userId + ")");
+                    return new CustomUserNotFoundException(userId.toString());
                 });
 
         List<UserFavorite> favorites = userFavoriteRepository.findByUser(user);
-
-        logger.info("User favorites fetched",
-                keyValue("action", "get_user_favorites"),
-                keyValue("userId", userId),
-                keyValue("favoritesCount", favorites.size()));
-
+        logger.info("Favoris récupérés", keyValue("userId", userId), keyValue("count", favorites.size()));
         return favorites;
     }
 
+    /**
+     * Récupère les favoris d’un utilisateur filtrés par type d’entité.
+     *
+     * @param userId     Identifiant de l'utilisateur
+     * @param entityType Type d'entité (POOL, TEAM, etc.)
+     * @return Liste des entités suivies du type donné
+     * @throws CustomUserNotFoundException si l'utilisateur n'existe pas
+     */
     public List<UserFavorite> getUserFavoritesByType(Long userId, EntityType entityType) {
         CustomUser user = userRepository.findById(userId)
                 .orElseThrow(() -> {
-                    logger.error("User not found when fetching favorites by type",
-                            keyValue("action", "get_user_favorites_by_type"),
+                    logger.error("Utilisateur introuvable lors de la récupération des favoris par type",
                             keyValue("userId", userId),
                             keyValue("entityType", entityType));
-                    return new IllegalArgumentException(
-                            "Utilisateur inexistant (id=" + userId + ")");
+                    return new CustomUserNotFoundException(userId.toString());
                 });
 
         List<UserFavorite> favorites = userFavoriteRepository.findByUserAndEntityType(user, entityType);
-
-        logger.info("User favorites by type fetched",
-                keyValue("action", "get_user_favorites_by_type"),
+        logger.info("Favoris par type récupérés",
                 keyValue("userId", userId),
                 keyValue("entityType", entityType),
-                keyValue("favoritesCount", favorites.size()));
-
+                keyValue("count", favorites.size()));
         return favorites;
     }
 }
