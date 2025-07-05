@@ -243,8 +243,8 @@ public class MatchService {
             match.setStatus(updatedMatch.getStatus());
             match.setLiveCode(updatedMatch.getLiveCode());
             match.setVenue(updatedMatch.getVenue());
-            match.setReferee1(updatedMatch.getReferee1());
-            match.setReferee2(updatedMatch.getReferee2());
+            match.setFirstReferee(updatedMatch.getFirstReferee());
+            match.setSecondReferee(updatedMatch.getSecondReferee());
             match.setActive(true);
 
             if (!before.getActive() && match.getActive()) {

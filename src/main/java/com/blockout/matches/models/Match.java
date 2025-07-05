@@ -58,11 +58,11 @@ public class Match {
     @Column(name = "venue")
     private String venue;
 
-    @Column(name = "referee1")
-    private String referee1;
+    @Column(name = "first_referee")
+    private String firstReferee;
 
-    @Column(name = "referee2")
-    private String referee2;
+    @Column(name = "second_referee")
+    private String secondReferee;
 
     @Builder.Default
     @Column(name = "active", nullable = false)
