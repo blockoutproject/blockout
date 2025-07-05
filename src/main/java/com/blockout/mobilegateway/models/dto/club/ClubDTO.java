@@ -27,8 +27,11 @@ public class ClubDTO {
 
     private String website;
 
+    private Boolean active;
+
+    @JsonProperty("created_at")
+    private LocalDateTime createdAt;
+
     @JsonProperty("last_update")
     private LocalDateTime lastUpdate;
-
-    private Boolean active;
 }

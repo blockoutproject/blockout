@@ -47,4 +47,21 @@ public class TeamClientService {
             return Collections.emptyList();
         }
     }
+
+    public TeamDTO getTeamById(Long id) {
+        String teamApiUrl = apiClientProperties.getTeam().getUrl();
+        String url = teamApiUrl + "/" + id;
+
+        logger.info("Calling getTeamById", keyValue("id", id), keyValue("url", url));
+
+        try {
+            ResponseEntity<TeamDTO> response = apiClientService.get(url, TeamDTO.class);
+            return response.getBody();
+        } catch (Exception e) {
+            logger.error("Failed to fetch team",
+                    keyValue("id", id),
+                    keyValue("error", e.getMessage()), e);
+            return null;
+        }
+    }
 }

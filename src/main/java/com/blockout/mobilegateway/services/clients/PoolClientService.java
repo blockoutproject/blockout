@@ -48,4 +48,21 @@ public class PoolClientService {
             return Collections.emptyList();
         }
     }
+
+    public PoolDTO getPoolById(Long id) {
+        String poolApiUrl = apiClientProperties.getPool().getUrl();
+        String url = poolApiUrl + "/" + id;
+
+        logger.info("Calling getPoolById", keyValue("id", id), keyValue("url", url));
+
+        try {
+            ResponseEntity<PoolDTO> response = apiClientService.get(url, PoolDTO.class);
+            return response.getBody();
+        } catch (Exception e) {
+            logger.error("Failed to fetch pool",
+                    keyValue("id", id),
+                    keyValue("error", e.getMessage()), e);
+            return null;
+        }
+    }
 }

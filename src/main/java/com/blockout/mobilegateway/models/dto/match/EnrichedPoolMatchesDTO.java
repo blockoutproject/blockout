@@ -2,8 +2,7 @@ package com.blockout.mobilegateway.models.dto.match;
 
 import java.util.List;
 
-import com.blockout.mobilegateway.models.dto.pool.PoolDTO;
-import com.fasterxml.jackson.annotation.JsonProperty;
+import com.blockout.mobilegateway.models.dto.pool.EnrichedPoolDTO;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -15,11 +14,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class EnrichedPoolMatchesDTO {
-    @JsonProperty("pool_id")
-    private Long poolId;
-
-    @JsonProperty("pool_data")
-    private PoolDTO poolData;
+    private EnrichedPoolDTO pool;
     
     private List<EnrichedMatchDTO> matches;
 }

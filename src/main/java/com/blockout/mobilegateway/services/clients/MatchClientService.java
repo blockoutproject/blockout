@@ -9,6 +9,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import com.blockout.mobilegateway.config.ApiClientProperties;
 import com.blockout.mobilegateway.models.dto.match.DayPageDTO;
+import com.blockout.mobilegateway.models.dto.match.MatchDTO;
 
 import java.util.List;
 import java.util.Optional;
@@ -48,6 +49,26 @@ public class MatchClientService {
         } catch (Exception e) {
             logger.error("Failed to fetch matches", keyValue("url", url), keyValue("error", e.getMessage()), e);
             return new DayPageDTO(); // avec liste vide
+        }
+    }
+
+    public MatchDTO getMatchById(Long matchId) {
+        String matchApiUrl = apiClientProperties.getMatch().getUrl();
+        String url = matchApiUrl + "/" + matchId;
+
+        logger.info("Calling getMatchById",
+                keyValue("url", url),
+                keyValue("matchId", matchId));
+
+        try {
+            ResponseEntity<MatchDTO> response = apiClientService.get(url, MatchDTO.class);
+            return response.getBody();
+        } catch (Exception e) {
+            logger.error("Failed to fetch match by ID",
+                    keyValue("url", url),
+                    keyValue("matchId", matchId),
+                    keyValue("error", e.getMessage()), e);
+            return null;
         }
     }
 }

@@ -2,13 +2,13 @@ package com.blockout.mobilegateway.models.dto.match;
 
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 @Data
-@Builder
+@SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
 public class MatchDTO {
@@ -43,13 +43,16 @@ public class MatchDTO {
     
     private String venue;
 
-    @JsonProperty("referee_1")
-    private String referee1;
+    @JsonProperty("first_referee")
+    private String firstReferee;
 
-    @JsonProperty("referee_2")
-    private String referee2;
+    @JsonProperty("second_referee")
+    private String secondReferee;
     
     private Boolean active;
+
+    @JsonProperty("created_at")
+    private String createdAt;
 
     @JsonProperty("last_update")
     private String lastUpdate;

@@ -1,18 +1,19 @@
 package com.blockout.mobilegateway.models.dto.pool;
 
-import com.blockout.mobilegateway.models.enums.DivisionCode;
 import com.blockout.mobilegateway.models.enums.Format;
 import com.blockout.mobilegateway.models.enums.Gender;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 
 import java.time.LocalDateTime;
 
+@JsonInclude(JsonInclude.Include.NON_NULL)
 @Data
-@Builder
+@SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
 public class PoolDTO {
@@ -31,8 +32,8 @@ public class PoolDTO {
 
     private String name;
 
-    @JsonProperty("division_code")
-    private DivisionCode divisionCode;
+    @JsonProperty("division_id")
+    private Long divisionId;
 
     private Format format;
 
@@ -42,6 +43,9 @@ public class PoolDTO {
     private Long followersCount;
 
     private Boolean active;
+
+    @JsonProperty("created_at")
+    private LocalDateTime createdAt;
 
     @JsonProperty("last_update")
     private LocalDateTime lastUpdate;

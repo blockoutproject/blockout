@@ -28,3 +28,5 @@ api:
     url: ${TEAM_API_URL}
   pool:
     url: ${POOL_API_URL}
+  config:
+    url: ${CONFIG_API_URL}
