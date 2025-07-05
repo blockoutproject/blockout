@@ -30,7 +30,7 @@ public class RawDivisionMappingController {
     @PreAuthorize("hasAuthority('SCOPE_create:raw_division_mapping')")
     @PostMapping
     public ResponseEntity<RawDivisionMapping> create(@RequestBody RawDivisionMapping rawPoolMapping) {
-        RawDivisionMapping created = rawDivisionMappingService.create(rawPoolMapping);
+        RawDivisionMapping created = rawDivisionMappingService.createRawDivisionMapping(rawPoolMapping);
         URI location = ServletUriComponentsBuilder.fromCurrentRequest()
                 .path("/{id}")
                 .buildAndExpand(created.getId())
@@ -47,7 +47,7 @@ public class RawDivisionMappingController {
     public ResponseEntity<List<RawDivisionMapping>> list(
             @RequestParam(required = false, name = "league_code") String leagueCode,
             @RequestParam(required = false) Integer season) {
-        List<RawDivisionMapping> mappings = rawDivisionMappingService.findByLeagueCodeAndSeason(leagueCode, season);
+        List<RawDivisionMapping> mappings = rawDivisionMappingService.findRawDivisionMappingByLeagueCodeAndSeason(leagueCode, season);
         return ResponseEntity.ok(mappings);
     }
 
@@ -59,7 +59,7 @@ public class RawDivisionMappingController {
     @PreAuthorize("hasAuthority('SCOPE_read:raw_division_mapping')")
     @GetMapping("/{id}")
     public ResponseEntity<RawDivisionMapping> getById(@PathVariable Long id) {
-        RawDivisionMapping result = rawDivisionMappingService.getById(id);
+        RawDivisionMapping result = rawDivisionMappingService.getRawDivisionMappingById(id);
         return ResponseEntity.ok(result);
     }
 
@@ -74,7 +74,7 @@ public class RawDivisionMappingController {
             @PathVariable Long id,
             @RequestBody RawDivisionMappingUpdateDTO dto
     ) {
-        RawDivisionMapping updated = rawDivisionMappingService.update(id, dto);
+        RawDivisionMapping updated = rawDivisionMappingService.updateRawDivisionMapping(id, dto);
         return ResponseEntity.ok(updated);
     }
 }

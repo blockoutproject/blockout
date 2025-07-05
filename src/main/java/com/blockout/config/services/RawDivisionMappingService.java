@@ -28,7 +28,7 @@ public class RawDivisionMappingService {
      * @return L'objet persisté
      */
     @Transactional
-    public RawDivisionMapping create(RawDivisionMapping mapping) {
+    public RawDivisionMapping createRawDivisionMapping(RawDivisionMapping mapping) {
         RawDivisionMapping saved = rawDivisionMappingRepository.save(mapping);
         logger.info("RawDivisionMapping created",
                 keyValue("action", "create_raw_division_mapping"),
@@ -43,7 +43,7 @@ public class RawDivisionMappingService {
      * @param season      saison (optionnel)
      * @return liste filtrée
      */
-    public List<RawDivisionMapping> findByLeagueCodeAndSeason(String leagueCode, Integer season) {
+    public List<RawDivisionMapping> findRawDivisionMappingByLeagueCodeAndSeason(String leagueCode, Integer season) {
         List<RawDivisionMapping> list = rawDivisionMappingRepository.findByLeagueCodeAndSeason(leagueCode, season);
         logger.debug("Listing raw division mappings",
                 keyValue("action", "list_raw_division_mappings"),
@@ -60,7 +60,7 @@ public class RawDivisionMappingService {
      * @return RawDivisionMapping trouvé
      * @throws RawDivisionMappingNotFoundException si absent
      */
-    public RawDivisionMapping getById(Long id) {
+    public RawDivisionMapping getRawDivisionMappingById(Long id) {
         return rawDivisionMappingRepository.findById(id).orElseThrow(() -> {
             logger.warn("RawDivisionMapping not found",
                     keyValue("action", "get_raw_division_mapping"),
@@ -78,11 +78,11 @@ public class RawDivisionMappingService {
      * @throws RawDivisionMappingNotFoundException si absent
      */
     @Transactional
-    public RawDivisionMapping update(Long id, RawDivisionMappingUpdateDTO dto) {
+    public RawDivisionMapping updateRawDivisionMapping(Long id, RawDivisionMappingUpdateDTO dto) {
         return rawDivisionMappingRepository.findById(id).map(existing -> {
-            if (dto.getDivisionId() != null) existing.setDivisionId(dto.getDivisionId());
-            if (dto.getFormat() != null) existing.setFormat(dto.getFormat());
-            if (dto.getGender() != null) existing.setGender(dto.getGender());
+            existing.setDivisionId(dto.getDivisionId());
+            existing.setFormat(dto.getFormat());
+            existing.setGender(dto.getGender());
 
             RawDivisionMapping saved = rawDivisionMappingRepository.save(existing);
 
