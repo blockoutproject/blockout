@@ -12,7 +12,7 @@ import lombok.NoArgsConstructor;
 public class DivisionUpdateDTO {
     private String name;
 
-    @JsonProperty("division_code")
+    @JsonProperty("main_color")
     private String mainColor;
 
     @JsonProperty("first_gradient_color")
