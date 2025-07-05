@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { Slot, useRouter } from 'expo-router';
 import { ActivityIndicator, View } from 'react-native';
-import { useUserContext } from '@/src/hooks/user/useUserContext';
+import { useUserContext } from '@/src/context/UserProvider';
 import { useAuthGuard } from '@/src/hooks/auth/useAuthGuard';
 import AppLoader from '@/src/components/common/AppLoader';
 

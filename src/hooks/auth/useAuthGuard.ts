@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useRouter, useSegments } from 'expo-router';
-import { useUserContext } from '@/src/hooks/user/useUserContext';
+import { useUserContext } from '@/src/context/UserProvider';
 
 export const useAuthGuard = () => {
     const router = useRouter();

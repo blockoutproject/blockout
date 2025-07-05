@@ -1,6 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from "react";
 import {
-    TextInput,
     ActivityIndicator,
     KeyboardAvoidingView,
     Platform,
@@ -8,37 +7,39 @@ import {
     View,
     Text,
     Keyboard,
-} from 'react-native';
-import { useDebounce } from 'use-debounce';
-import { useSearchTeams } from '@/src/hooks/team/useSearchTeams';
-import { useAppTheme } from '@/src/context/ThemeProvider';
-import { ErrorState } from '@/src/components/common/feedback/ErrorState';
-import TeamCard from '@/src/components/search/TeamCard';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import * as Haptics from 'expo-haptics';
-import TeamContainer from '@/src/components/team/TeamScreen';
-import { useGlobalBottomSheet } from '@/src/context/GlobalBottomSheetProvider';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { BottomSheetFlatList } from '@gorhom/bottom-sheet';
-import { SearchPrompt } from '../common/feedback/SearchPrompt';
+} from "react-native";
+import { useDebounce } from "use-debounce";
+import { useSearchTeams } from "@/src/hooks/team/useSearchTeams";
+import { useAppTheme } from "@/src/context/ThemeProvider";
+import { ErrorState } from "@/src/components/common/feedback/ErrorState";
+import TeamCard from "@/src/components/search/components/TeamCard";
+import * as Haptics from "expo-haptics";
+import TeamContainer from "@/src/components/team/TeamScreen";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { BottomSheetFlatList, BottomSheetView, BottomSheetModal } from "@gorhom/bottom-sheet";
+import { SearchPrompt } from "../common/feedback/SearchPrompt";
+import BottomSheetCustomPage from "../common/BottomSheetCustomPage";
+import SearchBar from "../common/SearchBar";
 
-const SearchScreen = () => {
+const SearchScreen: React.FC = () => {
     const theme = useAppTheme();
-    const { openSheetPage } = useGlobalBottomSheet();
     const insets = useSafeAreaInsets();
 
-    const [query, setQuery] = useState('');
-    const [debouncedQuery] = useDebounce(query, 300);
-
+    const [search, setSearch] = useState("");
+    const [debouncedQuery] = useDebounce(search, 300);
     const { data: teams, isLoading, isError } = useSearchTeams(debouncedQuery);
 
-    const handleTeamPress = (teamId: number) => {
+    const teamSheetRef = useRef<BottomSheetModal>(null);
+    const [selectedTeamId, setSelectedTeamId] = useState<number | null>(null);
+
+    const openTeamSheet = (id: number) => {
         Haptics.selectionAsync();
-        openSheetPage(<TeamContainer teamId={teamId} />);
+        setSelectedTeamId(id);
+        teamSheetRef.current?.present();
     };
 
     const renderEmpty = () => {
-        if (!query) return <SearchPrompt />;
+        if (!search) return <SearchPrompt />;
         if (debouncedQuery.length > 1 && !isLoading && !isError) {
             return (
                 <View style={styles.emptyContainer}>
@@ -52,55 +53,48 @@ const SearchScreen = () => {
     };
 
     return (
-        <KeyboardAvoidingView
-            style={[styles.container, { backgroundColor: theme.background }]}
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        >
-            <View style={styles.topRow}>
-                <View style={[styles.searchBar, { backgroundColor: theme.surface }]}>
-                    <MaterialCommunityIcons
-                        name="magnify"
-                        size={20}
-                        color={theme.textInactive}
-                        style={styles.icon}
-                    />
-                    <TextInput
-                        value={query}
-                        onChangeText={setQuery}
+        <>
+            <KeyboardAvoidingView
+                style={[styles.container, { backgroundColor: theme.background }]}
+                behavior={Platform.OS === "ios" ? "padding" : undefined}
+            >
+                <View style={styles.searchRow}>
+                    <SearchBar
+                        value={search}
+                        onChangeText={setSearch}
                         placeholder="Rechercher une équipe..."
-                        placeholderTextColor={theme.textInactive}
-                        style={[styles.input, { color: theme.text }]}
-                        returnKeyType="search"
-                        autoFocus
-                        clearButtonMode="while-editing"
                     />
                 </View>
-            </View>
 
-            {isLoading && (
-                <ActivityIndicator
-                    size="small"
-                    color={theme.text}
-                    style={styles.loader}
-                />
-            )}
-
-            {isError && <ErrorState message="Une erreur est survenue. Réessaie plus tard." />}
-
-            <BottomSheetFlatList
-                data={teams}
-                keyExtractor={(item) => item.id.toString()}
-                scrollEnabled={!!(query && teams?.length)}
-                showsVerticalScrollIndicator={false}
-                renderItem={({ item }) => (
-                    <TeamCard team={item} onPress={() => handleTeamPress(item.id)} />
+                {isLoading && (
+                    <ActivityIndicator size="small" color={theme.text} style={styles.loader} />
                 )}
-                ListEmptyComponent={renderEmpty}
-                keyboardShouldPersistTaps="handled"
-                onScrollBeginDrag={Keyboard.dismiss}
-                contentContainerStyle={{ paddingBottom: insets.bottom }}
-            />
-        </KeyboardAvoidingView>
+
+                {isError && (
+                    <ErrorState message="Une erreur est survenue. Réessaie plus tard." />
+                )}
+
+                <BottomSheetFlatList
+                    data={teams}
+                    keyExtractor={(item) => item.id.toString()}
+                    scrollEnabled={!!(search && teams?.length)}
+                    showsVerticalScrollIndicator={false}
+                    renderItem={({ item }) => (
+                        <TeamCard team={item} onPress={() => openTeamSheet(item.id)} />
+                    )}
+                    ListEmptyComponent={renderEmpty}
+                    keyboardShouldPersistTaps="handled"
+                    onScrollBeginDrag={Keyboard.dismiss}
+                    contentContainerStyle={{ paddingBottom: insets.bottom }}
+                />
+            </KeyboardAvoidingView>
+
+            <BottomSheetCustomPage ref={teamSheetRef}>
+                <BottomSheetView style={{ flex: 1 }}>
+                    {selectedTeamId && <TeamContainer teamId={selectedTeamId} />}
+                </BottomSheetView>
+            </BottomSheetCustomPage>
+        </>
     );
 };
 
@@ -109,36 +103,20 @@ const styles = StyleSheet.create({
         flex: 1,
         paddingHorizontal: 16,
     },
-    topRow: {
+    searchRow: {
         marginVertical: 16,
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    searchBar: {
-        flex: 1,
-        flexDirection: 'row',
-        alignItems: 'center',
-        borderRadius: 20,
-        paddingHorizontal: 4,
-        paddingVertical: 8,
-    },
-    input: {
-        flex: 1,
-        paddingVertical: 0,
-        fontSize: 14,
-    },
-    icon: {
-        marginHorizontal: 6,
+        flexDirection: "row",
+        alignItems: "center",
     },
     loader: {
         marginTop: 24,
     },
     emptyContainer: {
-        alignItems: 'center',
+        alignItems: "center",
     },
     emptyText: {
         fontSize: 14,
-        textAlign: 'center',
+        textAlign: "center",
     },
 });
 

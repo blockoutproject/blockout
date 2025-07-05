@@ -1,6 +1,6 @@
 import React from 'react';
 import { Stack } from 'expo-router';
-import { useUserContext } from '@/src/hooks/user/useUserContext';
+import { useUserContext } from '@/src/context/UserProvider';
 import { useAuthGuard } from '@/src/hooks/auth/useAuthGuard';
 import AppLoader from '@/src/components/common/AppLoader';
 

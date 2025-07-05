@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, Button, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import UsersApi from '@/src/api/UsersApi';
-import { useUserContext } from '@/src/hooks/user/useUserContext';
+import { useUserContext } from '@/src/context/UserProvider';
 import { useAppTheme } from '@/src/context/ThemeProvider';
 
 export default function PseudoScreen() {

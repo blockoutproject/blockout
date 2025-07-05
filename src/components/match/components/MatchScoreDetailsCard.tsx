@@ -1,7 +1,7 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import FastImage from "react-native-fast-image";
-import { Match } from "@/src/types/Match";
+import { EnrichedMatchDTO, Match } from "@/src/types/Match";
 import { Team } from "@/src/types/Team";
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import GradientBorderView from "../../common/GradientBorderView";
@@ -9,21 +9,17 @@ import GradientView from "../../common/GradientView";
 import { GradientVariants } from "@/src/utils/utils";
 
 type MatchScoreDetailsCardProps = {
-    title?: string;
-    homeTeam: Team;
-    awayTeam: Team;
-    match: Match;
+    title: string;
+    enrichedMatch: EnrichedMatchDTO;
 };
 
 const MatchScoreDetailsCard: React.FC<MatchScoreDetailsCardProps> = ({
     title = "Score",
-    homeTeam,
-    awayTeam,
-    match,
+    enrichedMatch
 }) => {
     const theme = useAppTheme();
-    const setsArray = match.score?.split(",").map((s) => s.split("-")) || [];
-    const [homeFinal, awayFinal] = match.set?.split("-") || ["0", "0"];
+    const setsArray = enrichedMatch.score?.split(",").map((s) => s.split("-")) || [];
+    const [homeFinal, awayFinal] = enrichedMatch.set?.split("-") || ["0", "0"];
 
     const homeSets = setsArray.map((set) => parseInt(set[0], 10));
     const awaySets = setsArray.map((set) => parseInt(set[1], 10));
@@ -55,10 +51,10 @@ const MatchScoreDetailsCard: React.FC<MatchScoreDetailsCardProps> = ({
                     <Text style={[styles.finalScoreTextSmall, { color: theme.text }]}>{finalScore}</Text>
                 </View>
             </View>
-            {sets.map((setScore, idx) => {
-                const isWinner = setScore > opponentSets[idx];
+            {sets.map((setScore, index) => {
+                const isWinner = setScore > opponentSets[index];
                 return (
-                    <View style={styles.setColumn} key={`set-${idx}`}>
+                    <View style={styles.setColumn} key={`set-${index}`}>
                         <Text
                             style={[
                                 styles.setScoreText,
@@ -78,14 +74,14 @@ const MatchScoreDetailsCard: React.FC<MatchScoreDetailsCardProps> = ({
             <Text style={[styles.scoreDetailsTitle, { color: theme.text }]}>{title}</Text>
             <View style={styles.scoreDetailsWrapper}>
                 <TeamRow
-                    team={homeTeam}
+                    team={enrichedMatch.teamA}
                     finalScore={homeFinal}
                     sets={homeSets}
                     opponentSets={awaySets}
                     logo={require("@/assets/clubs/paris_volley.png")}
                 />
                 <TeamRow
-                    team={awayTeam}
+                    team={enrichedMatch.teamB}
                     finalScore={awayFinal}
                     sets={awaySets}
                     opponentSets={homeSets}
@@ -151,6 +147,7 @@ const styles = StyleSheet.create({
     },
     setScoreText: {
         fontSize: 16,
+        fontWeight: "600",
     },
     finalScoreTextSmall: {
         fontSize: 16,

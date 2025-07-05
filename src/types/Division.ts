@@ -5,7 +5,7 @@ export interface Division {
     firstGradientColor: string;
     secondGradientColor: string;
     thirdGradientColor: string;
-    profileImageUrl: string | null;
+    logoUrl: string | null;
     active: boolean;
     createdAt: string;
     lastUpdate: string;

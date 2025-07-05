@@ -1,8 +1,8 @@
 import React from 'react';
 import { Slot } from 'expo-router';
-import { useUserContext } from '@/src/hooks/user/useUserContext';
 import { useAuthGuard } from '@/src/hooks/auth/useAuthGuard';
 import AppLoader from '@/src/components/common/AppLoader';
+import { useUserContext } from '@/src/context/UserProvider';
 
 export default function AuthLayout() {
     useAuthGuard();

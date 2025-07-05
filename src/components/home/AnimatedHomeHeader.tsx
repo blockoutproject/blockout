@@ -1,16 +1,15 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import {
     TouchableOpacity,
-    View,
     StyleSheet,
     Animated,
     LayoutChangeEvent,
     Platform,
     useColorScheme,
+    View,
 } from "react-native";
 import FastImage from "react-native-fast-image";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import { useRouter } from "expo-router";
 import { useAuth0 } from "react-native-auth0";
 import {
     TabBar,
@@ -24,12 +23,17 @@ import { BlurView } from "expo-blur";
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import { Extrapolation } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
-import { useGlobalBottomSheet } from "@/src/context/GlobalBottomSheetProvider";
 import SearchContainer from "../search/SearchScreen";
 import ProfileScreen from "../profile/ProfileScreen";
 import RawDivisionMappingsScreen from "../rawDivisionMapping/RawDivisionMappingScreen";
-import { useHasScopes } from "@/src/hooks/user/useHasScope";
 import DivisionScreen from "../division/DivisionScreen";
+import { useHasScopes } from "@/src/hooks/user/useHasScope";
+
+import {
+    BottomSheetModal,
+    BottomSheetView,
+} from "@gorhom/bottom-sheet";
+import BottomSheetCustomPage from "../common/BottomSheetCustomPage";
 
 type HeaderProps = SceneRendererProps & {
     navigationState: NavigationState<Route>;
@@ -38,14 +42,22 @@ type HeaderProps = SceneRendererProps & {
     onTabBarLayout: (height: number) => void;
 };
 
-const AnimatedHomeHeader: React.FC<HeaderProps> = ({ scrollY, onTitleLayout, onTabBarLayout, ...props }) => {
+const AnimatedHomeHeader: React.FC<HeaderProps> = ({
+    scrollY,
+    onTitleLayout,
+    onTabBarLayout,
+    ...props
+}) => {
     const { user } = useAuth0();
     const insets = useSafeAreaInsets();
     const theme = useAppTheme();
-    const { openSheetPage } = useGlobalBottomSheet();
-    const colorSheme = useColorScheme();
-
+    const colorScheme = useColorScheme();
     const [titleHeight, setTitleHeight] = useState(0);
+
+    const searchSheetRef = useRef<BottomSheetModal>(null);
+    const mappingSheetRef = useRef<BottomSheetModal>(null);
+    const divisionSheetRef = useRef<BottomSheetModal>(null);
+    const profileSheetRef = useRef<BottomSheetModal>(null);
 
     const canAccessRawDivisionMapping = useHasScopes([
         "read:raw_division_mapping",
@@ -54,7 +66,8 @@ const AnimatedHomeHeader: React.FC<HeaderProps> = ({ scrollY, onTitleLayout, onT
 
     const canAccessDivision = useHasScopes([
         "read:divisions",
-        "update:division",
+        "update:divisions",
+        "create:divisions",
     ]);
 
     const translateY = scrollY.interpolate({
@@ -81,109 +94,128 @@ const AnimatedHomeHeader: React.FC<HeaderProps> = ({ scrollY, onTitleLayout, onT
         extrapolate: Extrapolation.CLAMP,
     });
 
-    const handleSearchPress = () => {
+    const open = (ref: React.RefObject<BottomSheetModal>) => () => {
         Haptics.selectionAsync();
-        openSheetPage(<SearchContainer />);
-    };
-
-    const handleNotificationPress = () => {
-        Haptics.selectionAsync();
-        openSheetPage(<RawDivisionMappingsScreen />);
-    };
-
-    const handleDivisionPress = () => {
-        Haptics.selectionAsync();
-        openSheetPage(<DivisionScreen />);
-    };
-
-    const handleProfilePress = () => {
-        Haptics.selectionAsync();
-        openSheetPage(<ProfileScreen />);
+        ref.current?.present();
     };
 
     return (
-        <Animated.View
-            style={[styles.container, { paddingTop: insets.top, transform: [{ translateY }] }]}
-        >
-            {Platform.OS === "ios" && (
-                <View style={StyleSheet.absoluteFill}>
-                    <Animated.View
-                        style={[
-                            StyleSheet.absoluteFill,
-                            {
-                                opacity: blurOpacity
-                            },
-                        ]}
-                    >
-                        <BlurView intensity={50} tint="default" style={StyleSheet.absoluteFill} />
-                    </Animated.View>
-
-                    <LinearGradient
-                        colors={[theme.background, "transparent"]}
-                        start={{ x: 0, y: 0.35 }}
-                        end={{ x: 0, y: 1 }}
-                        style={StyleSheet.absoluteFill}
-                    />
-                </View>
-            )}
-
+        <>
             <Animated.View
-                onLayout={(e: LayoutChangeEvent) => {
-                    const height = e.nativeEvent.layout.height;
-                    setTitleHeight(height);
-                    onTitleLayout(height);
-                }}
-                style={{
-                    paddingVertical: 10,
-                    opacity: titleOpacity,
-                    transform: [{ scale: titleScale }],
-                }}
+                style={[
+                    styles.container,
+                    { paddingTop: insets.top, transform: [{ translateY }] },
+                ]}
             >
-                <FastImage
-                    source={colorSheme === "dark" ? require("@/assets/images/blockout-logo-with-title-light.png") : require("@/assets/images/blockout-logo-with-title-dark.png")}
-                    style={styles.teamLogo}
-                    resizeMode="contain"
-                />
+                {Platform.OS === "ios" && (
+                    <View style={StyleSheet.absoluteFill}>
+                        <Animated.View
+                            style={[StyleSheet.absoluteFill, { opacity: blurOpacity }]}
+                        >
+                            <BlurView intensity={50} tint="default" style={StyleSheet.absoluteFill} />
+                        </Animated.View>
+
+                        <LinearGradient
+                            colors={[theme.background, "transparent"]}
+                            start={{ x: 0, y: 0.35 }}
+                            end={{ x: 0, y: 1 }}
+                            style={StyleSheet.absoluteFill}
+                        />
+                    </View>
+                )}
+
+                <Animated.View
+                    onLayout={(e: LayoutChangeEvent) => {
+                        const h = e.nativeEvent.layout.height;
+                        setTitleHeight(h);
+                        onTitleLayout(h);
+                    }}
+                    style={{
+                        paddingVertical: 10,
+                        opacity: titleOpacity,
+                        transform: [{ scale: titleScale }],
+                    }}
+                >
+                    <FastImage
+                        source={
+                            colorScheme === "dark"
+                                ? require("@/assets/images/blockout-logo-with-title-light.png")
+                                : require("@/assets/images/blockout-logo-with-title-dark.png")
+                        }
+                        style={styles.teamLogo}
+                        resizeMode="contain"
+                    />
+                </Animated.View>
+
+                <View
+                    style={[
+                        styles.tabBarContainer,
+                        {
+                            backgroundColor:
+                                Platform.OS === "android" ? theme.background : "transparent",
+                        },
+                    ]}
+                    onLayout={(e: LayoutChangeEvent) => onTabBarLayout(e.nativeEvent.layout.height)}
+                >
+                    <TabBar
+                        {...props}
+                        onTabPress={Haptics.selectionAsync}
+                        indicatorStyle={[styles.indicator, { backgroundColor: theme.text }]}
+                        tabStyle={styles.tabStyle}
+                        style={styles.tabBar}
+                        activeColor={theme.text}
+                        inactiveColor={theme.textInactive}
+                        android_ripple={{ color: "transparent" }}
+                    />
+
+                    <View style={styles.actions}>
+                        <TouchableOpacity onPress={open(searchSheetRef)}>
+                            <MaterialCommunityIcons name="magnify" size={25} color={theme.text} />
+                        </TouchableOpacity>
+
+                        {canAccessRawDivisionMapping && (
+                            <TouchableOpacity onPress={open(mappingSheetRef)}>
+                                <MaterialCommunityIcons name="alpha-m-circle" size={25} color={theme.text} />
+                            </TouchableOpacity>
+                        )}
+
+                        {canAccessDivision && (
+                            <TouchableOpacity onPress={open(divisionSheetRef)}>
+                                <MaterialCommunityIcons name="alpha-d-circle" size={25} color={theme.text} />
+                            </TouchableOpacity>
+                        )}
+
+                        <TouchableOpacity onPress={open(profileSheetRef)}>
+                            <FastImage style={styles.avatar} source={{ uri: user?.picture }} />
+                        </TouchableOpacity>
+                    </View>
+                </View>
             </Animated.View>
 
-            <View
-                style={[styles.tabBarContainer, { backgroundColor: Platform.OS === "android" ? theme.background : "transparent" }]}
-                onLayout={(e: LayoutChangeEvent) => onTabBarLayout(e.nativeEvent.layout.height)}
-            >
-                <TabBar
-                    {...props}
-                    onTabPress={Haptics.selectionAsync}
-                    indicatorStyle={[styles.indicator, { backgroundColor: theme.text }]}
-                    tabStyle={styles.tabStyle}
-                    style={styles.tabBar}
-                    activeColor={theme.text}
-                    inactiveColor={theme.textInactive}
-                    android_ripple={{ color: "transparent" }}
-                />
+            <BottomSheetCustomPage ref={searchSheetRef}>
+                <BottomSheetView style={styles.sheetContent}>
+                    <SearchContainer />
+                </BottomSheetView>
+            </BottomSheetCustomPage>
 
-                <View style={styles.actions}>
-                    <TouchableOpacity onPress={handleSearchPress}>
-                        <MaterialCommunityIcons name="magnify" size={25} color={theme.text} />
-                    </TouchableOpacity>
+            <BottomSheetCustomPage ref={mappingSheetRef}>
+                <BottomSheetView style={styles.sheetContent}>
+                    <RawDivisionMappingsScreen />
+                </BottomSheetView>
+            </BottomSheetCustomPage>
 
-                    {canAccessRawDivisionMapping && (
-                        <TouchableOpacity onPress={handleNotificationPress}>
-                            <MaterialCommunityIcons name="whistle" size={25} color={theme.text} />
-                        </TouchableOpacity>
-                    )}
+            <BottomSheetCustomPage ref={divisionSheetRef}>
+                <BottomSheetView style={styles.sheetContent}>
+                    <DivisionScreen />
+                </BottomSheetView>
+            </BottomSheetCustomPage>
 
-                    {canAccessDivision && (
-                        <TouchableOpacity onPress={handleDivisionPress}>
-                            <MaterialCommunityIcons name="alpha-d-circle" size={25} color={theme.text} />
-                        </TouchableOpacity>
-                    )}
-
-                    <TouchableOpacity onPress={handleProfilePress}>
-                        <FastImage style={styles.avatar} source={{ uri: user?.picture }} />
-                    </TouchableOpacity>
-                </View>
-            </View>
-        </Animated.View>
+            <BottomSheetCustomPage ref={profileSheetRef}>
+                <BottomSheetView style={styles.sheetContent}>
+                    <ProfileScreen />
+                </BottomSheetView>
+            </BottomSheetCustomPage>
+        </>
     );
 };
 
@@ -203,34 +235,17 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "space-between",
     },
-    title: {
-        paddingHorizontal: 16,
-        paddingTop: 10,
-        fontSize: 26,
-        fontWeight: "bold",
-    },
-    tabBar: {
-        backgroundColor: "transparent",
-    },
-    tabStyle: {
-        width: "auto",
-        paddingHorizontal: 16,
-    },
-    indicator: {
-        width: 0.5,
-        height: 3,
-    },
+    tabBar: { backgroundColor: "transparent" },
+    tabStyle: { width: "auto", paddingHorizontal: 16 },
+    indicator: { width: 0.5, height: 3 },
     actions: {
         flexDirection: "row",
         alignItems: "center",
         gap: 10,
         paddingRight: 10,
     },
-    avatar: {
-        height: 30,
-        width: 30,
-        borderRadius: 100,
-    },
+    avatar: { height: 30, width: 30, borderRadius: 100 },
+    sheetContent: { flex: 1 },
 });
 
 export default AnimatedHomeHeader;

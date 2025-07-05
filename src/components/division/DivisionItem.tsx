@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useAppTheme } from '@/src/context/ThemeProvider';
 import { Division } from '@/src/types/Division';
@@ -26,13 +26,22 @@ const DivisionItem: React.FC<DivisionItemProps> = ({ division, onPress, onDeacti
 
     return (
         <TouchableOpacity
-            style={[styles.container, { backgroundColor: theme.backgroundSecondary }]}
+            style={[styles.container, { backgroundColor: theme.surface }]}
             onPress={onPress}
             activeOpacity={0.8}
         >
             <Text style={[styles.id, { color: theme.textInactive }]}>#{division.id}</Text>
 
-            {/* Name & status */}
+            {division.logoUrl ? (
+                <Image
+                    source={{ uri: division.logoUrl }}
+                    style={styles.avatar}
+                    resizeMode="cover"
+                />
+            ) : (
+                <View style={[styles.avatar, { backgroundColor: theme.border }]} />
+            )}
+
             <View style={styles.textContainer}>
                 <Text style={[styles.name, { color: theme.text }]} numberOfLines={1}>
                     {division.name}
@@ -47,25 +56,17 @@ const DivisionItem: React.FC<DivisionItemProps> = ({ division, onPress, onDeacti
                 </Text>
             </View>
 
-            {/* Main color circle */}
             <View
-                style={[
-                    styles.colorCircle,
-                    {
-                        backgroundColor: division.mainColor || '#ccc',
-                        borderColor: theme.border,
-                    },
-                ]}
+                style={[styles.colorCircle, { backgroundColor: division.mainColor, borderColor: theme.border }]}
             />
 
-            {/* Gradient circle */}
             <LinearGradient
                 colors={[
-                    division.firstGradientColor || '#000',
-                    division.secondGradientColor || '#000',
-                    division.thirdGradientColor || '#000',
+                    division.firstGradientColor,
+                    division.secondGradientColor,
+                    division.thirdGradientColor,
                 ]}
-                style={[styles.colorCircle, { marginRight: 8 }]}
+                style={[styles.colorCircle, { marginRight: 8, borderColor: theme.border }]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
             />
@@ -90,13 +91,21 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         borderRadius: 18,
-        padding: 12,
+        paddingHorizontal: 12,
+        paddingVertical: 16,
         marginBottom: 8,
     },
     id: {
         fontSize: 12,
-        width: 40,
+        width: 20,
         textAlign: 'left',
+    },
+    avatar: {
+        width: 30,
+        height: 30,
+        borderRadius: 18,
+        marginHorizontal: 8,
+        backgroundColor: '#ccc',
     },
     textContainer: {
         flex: 1,

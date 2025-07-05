@@ -1,4 +1,4 @@
-import { EnumDivisionCode } from "./enums/DivisionCode";
+import { Division } from "./Division";
 import { EnumFormat } from "./enums/Format";
 import { EnumGender } from "./enums/Gender";
 
@@ -7,14 +7,24 @@ export interface Pool {
     poolCode: string;
     leagueCode: string;
     season: number;
-    division_code: EnumDivisionCode;
+    divisionId: number;
     gender: EnumGender;
     format: EnumFormat;
-    leagueName?: string;
-    name?: string;
-    divisionName?: string;
+    leagueName: string;
+    name: string;
     followersCount: number;
     active: boolean;
     createdAt: string;
     lastUpdate: string;
+}
+
+export interface EnrichedPoolDTO {
+    id: number;
+    season: number;
+    leagueName: string;
+    name: string;
+    format: EnumFormat;
+    gender: EnumGender;
+    followersCount: number;
+    division: Division;
 }

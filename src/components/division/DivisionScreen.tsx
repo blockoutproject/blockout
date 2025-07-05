@@ -1,104 +1,176 @@
-import React, { useState, useMemo } from 'react';
-import { View, Text, TextInput, FlatList, TouchableOpacity, StyleSheet } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useAppTheme } from '@/src/context/ThemeProvider';
-import { useDivisions } from '@/src/hooks/config/division/useDivisions';
-import { Division } from '@/src/types/Division';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import DivisionForm from './DivisionForm';
-import { useGlobalBottomSheet } from '@/src/context/GlobalBottomSheetProvider';
-import DivisionItem from './DivisionItem';
-import { BottomSheetFlatList } from '@gorhom/bottom-sheet';
+import React, { useState, useMemo, useEffect, useRef } from "react";
+import {
+    View,
+    Text,
+    TouchableOpacity,
+    StyleSheet,
+    ActivityIndicator,
+    Keyboard,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useAppTheme } from "@/src/context/ThemeProvider";
+import { useDivisions } from "@/src/hooks/config/division/useDivisions";
+import { Division } from "@/src/types/Division";
+import { Filter } from "@/src/types/Filter";
+import Filters from "../home/Filters";
+import DivisionItem from "./DivisionItem";
+import DivisionForm from "./DivisionForm";
+
+import {
+    BottomSheetFlatList,
+    BottomSheetModal,
+} from "@gorhom/bottom-sheet";
+import BottomSheetCustomModal from "../common/BottomSheetCustomModal";
+import SearchBar from "../common/SearchBar";
 
 const DivisionScreen = () => {
-    const insets = useSafeAreaInsets();
     const theme = useAppTheme();
+    const insets = useSafeAreaInsets();
     const { data, isLoading, refetch } = useDivisions();
-    const { openPopup, closeSheetById } = useGlobalBottomSheet();
 
-    const [search, setSearch] = useState('');
-
-    const filtered = useMemo(() => {
-        return (data || []).filter((d) =>
-            d.name.toLowerCase().includes(search.toLowerCase())
-        );
-    }, [data, search]);
-
-    const handleOpenForm = (division: Division | null) => {
-        const sheetId = openPopup(
-            <DivisionForm
-                division={division}
-                onSuccess={() => {
-                    refetch();
-                    closeSheetById(sheetId);
-                }}
-            />
-        );
+    const formSheetRef = useRef<BottomSheetModal>(null);
+    const [editedDivision, setEditedDivision] = useState<Division | null>(null);
+    const openForm = (division: Division | null) => {
+        setEditedDivision(division);
+        formSheetRef.current?.present();
     };
+    const closeForm = () => formSheetRef.current?.dismiss();
+
+    const [search, setSearch] = useState("");
+    const [statusFilters, setStatusFilters] = useState<Filter[]>([
+        { name: "Actives", isActive: false },
+        { name: "Inactives", isActive: false },
+    ]);
+
+    const activeStatus = statusFilters.find((f) => f.isActive)?.name ?? "";
+
+    const filteredData = useMemo(() => {
+        if (!data) return [];
+        return data.filter((d) => {
+            const matchSearch = d.name.toLowerCase().includes(search.toLowerCase());
+            const matchStatus =
+                activeStatus === "" ||
+                (activeStatus === "Actives" && d.active) ||
+                (activeStatus === "Inactives" && !d.active);
+            return matchSearch && matchStatus;
+        });
+    }, [data, search, activeStatus]);
+
+    const sorted = useMemo(
+        () => [...filteredData].sort((a, b) => a.id - b.id),
+        [filteredData]
+    );
+
+    if (isLoading || !data) {
+        return (
+            <View style={[styles.center, { backgroundColor: theme.background }]}>
+                <ActivityIndicator size="large" color={theme.text} />
+            </View>
+        );
+    }
 
     return (
-        <View style={[styles.container, { backgroundColor: theme.background }]}>
-            <View style={styles.headerRow}>
-                <TextInput
-                    placeholder="Rechercher une division"
-                    value={search}
-                    onChangeText={setSearch}
-                    style={[styles.searchInput, { borderColor: theme.border, color: theme.text }]}
-                    placeholderTextColor={theme.textInactive}
+        <>
+            <View style={[styles.container, { backgroundColor: theme.background }]}>
+                <View style={styles.searchRow}>
+                    <SearchBar
+                        value={search}
+                        onChangeText={setSearch}
+                        placeholder="Rechercher une division..."
+                    />
+                    <TouchableOpacity
+                        onPress={() => openForm(null)}
+                        style={[styles.addButton, { backgroundColor: theme.success }]}
+                    >
+                        <Text style={styles.addButtonText}>Ajouter</Text>
+                    </TouchableOpacity>
+                </View>
+
+                <View style={styles.filtersWrapper}>
+                    <View style={styles.filterGroup}>
+                        <Filters
+                            filters={statusFilters}
+                            setFilters={setStatusFilters}
+                            singleSelect
+                        />
+                    </View>
+                </View>
+
+                <BottomSheetFlatList
+                    style={styles.flatList}
+                    data={sorted}
+                    keyExtractor={(item) => item.id.toString()}
+                    renderItem={({ item }) => (
+                        <DivisionItem
+                            division={item}
+                            onPress={() => openForm(item)}
+                            onDeactivated={refetch}
+                        />
+                    )}
+                    contentContainerStyle={{ paddingBottom: insets.bottom + 16 }}
+                    ListEmptyComponent={
+                        <View style={styles.emptyState}>
+                            <Text style={{ color: theme.textInactive }}>
+                                Aucun résultat trouvé.
+                            </Text>
+                        </View>
+                    }
+                    onScrollBeginDrag={Keyboard.dismiss}
+                    showsVerticalScrollIndicator={false}
                 />
-                <TouchableOpacity onPress={() => handleOpenForm(null)}>
-                    <MaterialCommunityIcons name="plus" size={28} color={theme.primary} />
-                </TouchableOpacity>
             </View>
 
-            <BottomSheetFlatList
-                data={filtered}
-                keyExtractor={(item) => item.id.toString()}
-                contentContainerStyle={{ paddingBottom: insets.bottom + 16 }}
-                renderItem={({ item }) => (
-                    <DivisionItem
-                        division={item}
-                        onPress={() => handleOpenForm(item)}
-                        onDeactivated={refetch}
-                    />
-                )}
-            />
-        </View>
+            <BottomSheetCustomModal ref={formSheetRef}>
+                <DivisionForm
+                    division={editedDivision}
+                    onSuccess={() => {
+                        refetch();
+                        closeForm();
+                    }}
+                />
+            </BottomSheetCustomModal>
+        </>
     );
 };
 
 const styles = StyleSheet.create({
-    container: { flex: 1, padding: 16 },
-    headerRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
+    container: {
+        flex: 1,
+    },
+    center: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+    },
+    searchRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        marginHorizontal: 8,
+        marginVertical: 16,
+        gap: 12,
+    },
+    addButton: {
+        paddingVertical: 10,
+        paddingHorizontal: 16,
+        borderRadius: 18,
+    },
+    addButtonText: {
+        flex: 1,
+        color: "white",
+        fontWeight: "bold",
+    },
+    filtersWrapper: {
+        paddingHorizontal: 8,
+    },
+    filterGroup: {
         marginBottom: 12,
     },
-    searchInput: {
-        flex: 1,
-        borderWidth: 1,
-        borderRadius: 12,
-        padding: 10,
-        fontSize: 14,
+    flatList: {
+        paddingHorizontal: 8,
     },
-    item: {
-        padding: 16,
-        borderBottomWidth: 1,
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-    },
-    itemText: {
-        fontSize: 16,
-        fontWeight: '600',
-    },
-    itemSub: {
-        fontSize: 12,
-    },
-    modalTitle: {
-        fontSize: 18,
-        fontWeight: 'bold',
+    emptyState: {
+        alignItems: "center",
+        marginTop: 32,
     },
 });
 

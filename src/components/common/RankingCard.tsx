@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useMemo } from "react";
 import {
     View,
     Text,
@@ -6,41 +6,60 @@ import {
     StyleSheet,
     TouchableOpacity,
     FlatList,
-} from 'react-native';
-import { useDetailedTeamsByPool } from '@/src/hooks/pool/useDetailedTeamsByPool';
-import FastImage from 'react-native-fast-image';
-import { useAppTheme } from '@/src/context/ThemeProvider';
-import { AppTheme } from '@/src/types/Theme';
-import { useGlobalBottomSheet } from '@/src/context/GlobalBottomSheetProvider';
-import * as Haptics from 'expo-haptics';
-import TeamContainer from '../team/TeamScreen';
-import GradientView from './GradientView';
-import { GradientVariants } from '@/src/utils/utils';
+} from "react-native";
+import { useDetailedTeamsByPool } from "@/src/hooks/pool/useDetailedTeamsByPool";
+import FastImage from "react-native-fast-image";
+import { useAppTheme } from "@/src/context/ThemeProvider";
+import { AppTheme } from "@/src/types/Theme";
+import * as Haptics from "expo-haptics";
+import TeamContainer from "../team/TeamScreen";
+
+import { BottomSheetFlatList, BottomSheetModal, BottomSheetView } from "@gorhom/bottom-sheet";
+import BottomSheetCustomPage from "./BottomSheetCustomPage";
 
 interface RankingCardProps {
     poolId: number;
     scrollable?: boolean;
 }
 
-function getRankBackground(isEven: boolean, theme: AppTheme): string {
-    return isEven ? theme.backgroundSecondary : 'transparent';
+function getRowBg(isEven: boolean, theme: AppTheme) {
+    return isEven ? theme.backgroundSecondary : "transparent";
 }
 
-const RankingCard: React.FC<RankingCardProps> = ({ poolId, scrollable = true }) => {
+const RankingCard: React.FC<RankingCardProps> = ({
+    poolId,
+    scrollable = true,
+}) => {
     const { teams, isLoading, isError } = useDetailedTeamsByPool(poolId);
     const theme = useAppTheme();
-    const { openSheetPage } = useGlobalBottomSheet();
 
-    const handleTeamPress = (teamId: number) => {
+    const teamSheetRef = useRef<BottomSheetModal>(null);
+    const openTeamSheet = (teamId: number) => {
         Haptics.selectionAsync();
-        openSheetPage(<TeamContainer teamId={teamId} />);
+        setSelectedTeam(teamId);
+        teamSheetRef.current?.present();
     };
+    const [selectedTeam, setSelectedTeam] = React.useState<number | null>(null);
+
+    const sorted = useMemo(() => {
+        if (!teams) return [];
+        return [...teams].sort(
+            (a, b) =>
+                b.points - a.points ||
+                a.pointsPenalty - b.pointsPenalty ||
+                b.wins - a.wins ||
+                b.coefSets - a.coefSets ||
+                b.coefPoints - a.coefPoints
+        );
+    }, [teams]);
 
     if (isLoading) {
         return (
             <View style={[styles.container, { backgroundColor: theme.background }]}>
                 <ActivityIndicator size="large" color={theme.text} />
-                <Text style={[styles.loadingText, { color: theme.text }]}>Chargement du classement...</Text>
+                <Text style={[styles.loadingText, { color: theme.text }]}>
+                    Chargement du classement…
+                </Text>
             </View>
         );
     }
@@ -48,80 +67,97 @@ const RankingCard: React.FC<RankingCardProps> = ({ poolId, scrollable = true }) 
     if (isError || !teams) {
         return (
             <View style={[styles.container, { backgroundColor: theme.background }]}>
-                <Text style={[styles.errorText, { color: theme.error }]}>Erreur lors du chargement du classement.</Text>
+                <Text style={[styles.errorText, { color: theme.error }]}>
+                    Erreur lors du chargement du classement.
+                </Text>
             </View>
         );
     }
 
     return (
-        <View style={[styles.container, { backgroundColor: theme.surface }]} >
-            <View style={styles.headerRow}>
-                <View style={styles.transparentRankIndicator} />
-                <Text style={[styles.headerText, styles.rankCell, { color: theme.text }]} numberOfLines={1}>#</Text>
-                <Text style={[styles.headerText, styles.teamCell, { color: theme.text }]} numberOfLines={1}>Team</Text>
-                <Text style={[styles.headerText, styles.statCell, { color: theme.text }]} numberOfLines={1}>MJ</Text>
-                <Text style={[styles.headerText, styles.statCell, { color: theme.text }]} numberOfLines={1}>V</Text>
-                <Text style={[styles.headerText, styles.statCell, { color: theme.text }]} numberOfLines={1}>D</Text>
-                <Text style={[styles.headerText, styles.statCell, { color: theme.text }]} numberOfLines={1}>PTS</Text>
+        <>
+            <View style={[styles.container, { backgroundColor: theme.surface }]}>
+                <View style={styles.headerRow}>
+                    <View style={styles.transparentIndicator} />
+                    {["#", "Team", "MJ", "V", "D", "PTS"].map((h, i) => (
+                        <Text
+                            key={h}
+                            numberOfLines={1}
+                            style={[
+                                styles.headerText,
+                                i === 1 ? styles.teamCell : i === 0 ? styles.rankCell : styles.statCell,
+                                { color: theme.text },
+                            ]}
+                        >
+                            {h}
+                        </Text>
+                    ))}
+                </View>
+
+                <BottomSheetFlatList
+                    data={sorted}
+                    keyExtractor={(item) => item.id.toString()}
+                    scrollEnabled={scrollable}
+                    showsVerticalScrollIndicator={false}
+                    renderItem={({ item, index }) => {
+                        const rank = index + 1;
+                        return (
+                            <View
+                                style={[
+                                    styles.row,
+                                    { backgroundColor: getRowBg(index % 2 === 0, theme) },
+                                ]}
+                            >
+                                <View style={styles.transparentIndicator} />
+
+                                <Text
+                                    style={[styles.cell, styles.rankCell, { color: theme.text }]}
+                                >
+                                    {rank}
+                                </Text>
+
+                                <TouchableOpacity
+                                    style={[styles.teamCell, styles.teamContainer]}
+                                    onPress={() => openTeamSheet(item.id)}
+                                >
+                                    <FastImage
+                                        source={require("@/assets/clubs/paris_volley.png")}
+                                        style={styles.logo}
+                                        resizeMode="contain"
+                                    />
+                                    <Text
+                                        style={[styles.name, { color: theme.text }]}
+                                        numberOfLines={1}
+                                        ellipsizeMode="tail"
+                                        adjustsFontSizeToFit
+                                        minimumFontScale={0.9}
+                                    >
+                                        {item.shortName}
+                                    </Text>
+                                </TouchableOpacity>
+
+                                {[item.played, item.wins, item.losses, item.points].map(
+                                    (v, idx) => (
+                                        <Text
+                                            key={idx}
+                                            style={[styles.cell, styles.statCell, { color: theme.text }]}
+                                        >
+                                            {v}
+                                        </Text>
+                                    )
+                                )}
+                            </View>
+                        );
+                    }}
+                />
             </View>
 
-            <FlatList
-                data={teams.sort((a, b) =>
-                    b.points - a.points ||
-                    a.pointsPenalty - b.pointsPenalty ||
-                    b.wins - a.wins ||
-                    b.coefSets - a.coefSets ||
-                    b.coefPoints - a.coefPoints
-                )}
-                keyExtractor={(item) => item.id.toString()}
-                scrollEnabled={scrollable}
-                showsVerticalScrollIndicator={false}
-                renderItem={({ item, index }) => {
-                    const rank = index + 1;
-                    const isEven = index % 2 === 0;
-
-                    return (
-                        <View style={[styles.row, { backgroundColor: getRankBackground(isEven, theme) }]}>
-                            <View style={styles.transparentRankIndicator} />
-                            <Text style={[styles.cell, styles.rankCell, { color: theme.text }]}>
-                                {rank}
-                            </Text>
-                            <TouchableOpacity
-                                style={[styles.teamCell, styles.teamContainer]}
-                                onPress={() => handleTeamPress(item.id)}
-                            >
-                                <FastImage
-                                    source={require("@/assets/clubs/paris_volley.png")}
-                                    style={styles.logo}
-                                    resizeMode="contain"
-                                />
-                                <Text
-                                    style={[styles.name, { color: theme.text }]}
-                                    numberOfLines={1}
-                                    ellipsizeMode="tail"
-                                    adjustsFontSizeToFit
-                                    minimumFontScale={0.9}
-                                >
-                                    {item.shortName}
-                                </Text>
-                            </TouchableOpacity>
-                            <Text style={[styles.cell, styles.statCell, { color: theme.text }]}>
-                                {item.played}
-                            </Text>
-                            <Text style={[styles.cell, styles.statCell, { color: theme.text }]}>
-                                {item.wins}
-                            </Text>
-                            <Text style={[styles.cell, styles.statCell, { color: theme.text }]}>
-                                {item.losses}
-                            </Text>
-                            <Text style={[styles.cell, styles.statCell, { color: theme.text }]}>
-                                {item.points}
-                            </Text>
-                        </View>
-                    );
-                }}
-            />
-        </View>
+            <BottomSheetCustomPage ref={teamSheetRef}>
+                <BottomSheetView style={{ flex: 1 }}>
+                    {selectedTeam && <TeamContainer teamId={selectedTeam} />}
+                </BottomSheetView>
+            </BottomSheetCustomPage>
+        </>
     );
 };
 
@@ -130,64 +166,29 @@ const styles = StyleSheet.create({
         borderRadius: 18,
         flexShrink: 1,
         padding: 8,
-        paddingTop: -8,
     },
-    outer: {
-        flexShrink: 1,
-    },
-    loadingText: {
-        marginTop: 8,
-    },
-    errorText: {
-        fontSize: 14,
-    },
+    loadingText: { marginTop: 8 },
+    errorText: { fontSize: 14 },
     headerRow: {
         height: 40,
-        flexDirection: 'row',
-        alignItems: 'center',
+        flexDirection: "row",
+        alignItems: "center",
     },
     row: {
-        flexDirection: 'row',
-        alignItems: 'center',
+        flexDirection: "row",
+        alignItems: "center",
         borderRadius: 10,
         height: 50,
     },
-    transparentRankIndicator: {
-        marginRight: 8,
-    },
-    headerText: {
-        fontSize: 14,
-        fontWeight: '700',
-        textAlign: 'center',
-    },
-    cell: {
-        fontSize: 14,
-        textAlign: 'center',
-    },
-    rankCell: {
-        flex: 0.4,
-        textAlign: 'left',
-    },
-    teamCell: {
-        flex: 2.5,
-        textAlign: 'left',
-    },
-    statCell: {
-        flex: 0.5,
-    },
-    teamContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    name: {
-        marginLeft: 8,
-        marginRight: 24,
-        fontSize: 14,
-    },
-    logo: {
-        width: 30,
-        height: 30,
-    },
+    transparentIndicator: { marginRight: 8 },
+    headerText: { fontSize: 14, fontWeight: "700", textAlign: "center" },
+    cell: { fontSize: 14, textAlign: "center" },
+    rankCell: { flex: 0.4, textAlign: "left" },
+    teamCell: { flex: 2.5, textAlign: "left" },
+    statCell: { flex: 0.5 },
+    teamContainer: { flexDirection: "row", alignItems: "center" },
+    name: { marginLeft: 8, marginRight: 24, fontSize: 14 },
+    logo: { width: 30, height: 30 },
 });
 
 export default RankingCard;

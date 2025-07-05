@@ -10,7 +10,7 @@ type GradientBorderViewProps = {
     outerStyle?: StyleProp<ViewStyle>;
     borderRadius?: number;
     borderWidth?: number;
-    gradient: GradientVariants;
+    gradient: readonly [string, string, ...string[]];
     start?: { x: number; y: number };
     end?: { x: number; y: number };
 };
@@ -29,7 +29,7 @@ const GradientBorderView: React.FC<GradientBorderViewProps> = ({
 
     return (
         <LinearGradient
-            colors={gradient.base}
+            colors={gradient}
             start={start}
             end={end}
             style={[

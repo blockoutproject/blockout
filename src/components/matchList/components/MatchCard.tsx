@@ -1,22 +1,21 @@
 import React from "react";
 import { Text, View, StyleSheet } from "react-native";
 import FastImage from "react-native-fast-image";
-import { Match, MatchStatus } from "@/src/types/Match";
+import { EnrichedMatchDTO, Match, MatchStatus } from "@/src/types/Match";
 import { Team } from "@/src/types/Team";
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import GradientBorderView from "../../common/GradientBorderView";
 import { GradientVariants } from "@/src/utils/utils";
+import { Division } from "@/src/types/Division";
 
 type Props = {
-    match: Match;
-    teamA?: Team;
-    teamB?: Team;
-    gradient: GradientVariants;
+    enrichedMatch: EnrichedMatchDTO
+    gradient: readonly [string, string, ...string[]];
 };
 
-const MatchCard: React.FC<Props> = ({ match, teamA, teamB, gradient }) => {
+const MatchCard: React.FC<Props> = ({ enrichedMatch, gradient }) => {
     const theme = useAppTheme();
-    const date = new Date(match.matchDate ?? "");
+    const date = new Date(enrichedMatch.matchDate ?? "");
     const matchTime = `${date.getHours().toString().padStart(2, "0")}:${date
         .getMinutes()
         .toString()
@@ -33,7 +32,7 @@ const MatchCard: React.FC<Props> = ({ match, teamA, teamB, gradient }) => {
                     adjustsFontSizeToFit
                     minimumFontScale={0.8}
                 >
-                    {teamA?.shortName || "Équipe inconnue"}
+                    {enrichedMatch.teamA.shortName || "Équipe inconnue"}
                 </Text>
                 <FastImage
                     source={require("@/assets/clubs/paris_volley.png")}
@@ -44,7 +43,7 @@ const MatchCard: React.FC<Props> = ({ match, teamA, teamB, gradient }) => {
 
             {/* Center */}
             <View style={styles.centerBlock}>
-                {match.status === MatchStatus.UPCOMING ? (
+                {enrichedMatch.status === MatchStatus.UPCOMING ? (
                     <Text style={[styles.timeText, { color: theme.text }]}>
                         {matchTime}
                     </Text>
@@ -56,7 +55,7 @@ const MatchCard: React.FC<Props> = ({ match, teamA, teamB, gradient }) => {
                         gradient={gradient}
                     >
                         <Text style={[styles.finalScoreTextLarge, { color: theme.text }]}>
-                            {match.set || "-"}
+                            {enrichedMatch.set || "-"}
                         </Text>
                     </GradientBorderView>
                 )}
@@ -76,7 +75,7 @@ const MatchCard: React.FC<Props> = ({ match, teamA, teamB, gradient }) => {
                     adjustsFontSizeToFit
                     minimumFontScale={0.8}
                 >
-                    {teamB?.shortName || "Équipe inconnue"}
+                    {enrichedMatch.teamB.shortName || "Équipe inconnue"}
                 </Text>
             </View>
         </View>

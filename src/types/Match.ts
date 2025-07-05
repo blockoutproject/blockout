@@ -1,4 +1,4 @@
-import { Pool } from "./Pool";
+import { EnrichedPoolDTO } from "./Pool";
 import { Team } from "./Team";
 
 export enum MatchStatus {
@@ -18,8 +18,8 @@ export interface Match {
     set: string | null;
     score: string | null;
     venue: string | null;
-    referee1: string | null;
-    referee2: string | null;
+    firstReferee: string | null;
+    secondReferee: string | null;
     liveCode: number | null;
     active: boolean;
     createdAt: string;
@@ -42,16 +42,27 @@ export interface DayPageDTO {
     nextPage: number | null;
 }
 
-export interface EnrichedMatch extends Match {
+export interface EnrichedMatchDTO {
+    id: number;
+    matchDate: string;
+    status: MatchStatus;
+    set: string | null;
+    score: string | null;
+    venue: string | null;
+    firstReferee: string | null;
+    secondReferee: string | null;
+    liveCode: number | null;
     teamA: Team;
     teamB: Team;
+    pool: EnrichedPoolDTO;
 }
 
-export interface EnrichedPoolMatchesDTO extends PoolMatchesDTO {
-    poolData: Pool;
-    matches: EnrichedMatch[];
+export interface EnrichedPoolMatchesDTO {
+    pool: EnrichedPoolDTO;
+    matches: EnrichedMatchDTO[];
 }
 
-export interface EnrichedDayMatchesDTO extends DayMatchesDTO {
+export interface EnrichedDayMatchesDTO {
+    date: string;
     pools: EnrichedPoolMatchesDTO[];
 }

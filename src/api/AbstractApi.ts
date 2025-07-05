@@ -47,7 +47,7 @@ export default abstract class AbstractApi {
 
         // Middleware manuel de conversion des keys
         baseAxios.interceptors.request.use((config) => {
-            if (config.data && typeof config.data === 'object') {
+            if (config.data && typeof config.data === 'object' && !(config.data instanceof FormData)) {
                 config.data = snakecaseKeys(config.data, { deep: true });
             }
             if (config.params && typeof config.params === 'object') {

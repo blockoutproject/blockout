@@ -12,7 +12,7 @@ const FollowersCounter: React.FC<Props> = ({ count }) => {
 
     return (
         <View style={styles.container}>
-            <Ionicons name="people-outline" size={18} color={theme.text} style={{ marginRight: 4 }} />
+            <Ionicons name="people-outline" size={22} color={theme.text} style={{ marginRight: 6 }} />
             <Text style={[styles.counterText, { color: theme.text }]}>{count}</Text>
         </View>
     );
@@ -24,7 +24,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     counterText: {
-        fontSize: 14,
+        fontSize: 16,
     },
 });
 

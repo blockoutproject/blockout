@@ -1,105 +1,105 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import FastImage from 'react-native-fast-image';
-import { Pool } from '@/src/types/Pool';
-import { useAppTheme } from '@/src/context/ThemeProvider';
-import { useGlobalBottomSheet } from '@/src/context/GlobalBottomSheetProvider';
+import React, { useRef, useState } from "react";
+import {
+    View,
+    Text,
+    TouchableOpacity,
+    StyleSheet,
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import FastImage from "react-native-fast-image";
 import * as Haptics from "expo-haptics";
-import PoolContainer from '../../pool/PoolScreen';
-import GradientView from '../../common/GradientView';
-import { GradientVariants } from '@/src/utils/utils';
+import { BottomSheetModal, BottomSheetView } from "@gorhom/bottom-sheet";
+
+import { Pool } from "@/src/types/Pool";
+import { useAppTheme } from "@/src/context/ThemeProvider";
+import PoolContainer from "../../pool/PoolScreen";
+import BottomSheetCustomPage from "../../common/BottomSheetCustomPage";
+import { EnrichedMatchDTO } from "@/src/types/Match";
 
 type MatchInfoCardProps = {
-    pool: Pool;
-    date: string;
-    leagueName?: string;
-    duration?: string;
-    venue?: string;
-    referee1?: string;
-    referee2?: string;
+    enrichedMatch: EnrichedMatchDTO
 };
 
 const MatchInfoCard: React.FC<MatchInfoCardProps> = ({
-    pool,
-    date,
-    leagueName,
-    duration,
-    venue,
-    referee1,
-    referee2,
+    enrichedMatch
 }) => {
     const theme = useAppTheme();
-    const { openSheetPage } = useGlobalBottomSheet();
+    const poolSheetRef = useRef<BottomSheetModal>(null);
+    const [selectedPoolId, setSelectedPoolId] = useState<number | null>(null);
 
-    const handlePoolPress = (poolId: number) => {
+    const openPoolSheet = (id: number) => {
         Haptics.selectionAsync();
-        openSheetPage(<PoolContainer poolId={poolId} />);
+        setSelectedPoolId(id);
+        poolSheetRef.current?.present();
     };
 
-    const infoData = [
-        leagueName && { icon: 'trophy-outline', text: leagueName },
-        {
-            icon: 'calendar-outline',
-            text: new Date(date).toLocaleString('fr-FR', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit',
-            }),
-        },
-        duration && { icon: 'time-outline', text: duration },
-        venue && { icon: 'location-outline', text: venue },
-        referee1 && { icon: 'eye-outline', text: referee1 },
-        referee2 && { icon: 'eye-outline', text: referee2 },
-    ];
+    const InfoRow = ({
+        icon,
+        text,
+    }: {
+        icon: keyof typeof Ionicons.glyphMap;
+        text: string | null;
+    }) =>
+        text ? (
+            <View style={styles.row}>
+                <Ionicons name={icon} size={22} color={theme.text} style={styles.icon} />
+                <Text
+                    style={[styles.infoText, { color: theme.text }]}
+                    numberOfLines={1}
+                    ellipsizeMode="tail"
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.8}
+                >
+                    {text}
+                </Text>
+            </View>
+        ) : null;
 
     return (
-        <View style={[styles.container, { backgroundColor: theme.surface }]} >
-            <Text style={[styles.infoCardTitle, { color: theme.text }]}>Information</Text>
+        <>
+            <View style={[styles.container, { backgroundColor: theme.surface }]}>
+                <Text style={[styles.title, { color: theme.text }]}>Information</Text>
 
-            <View style={styles.infoRowsWrapper}>
-                <TouchableOpacity onPress={() => handlePoolPress(pool.id)} style={styles.infoRow}>
+                <TouchableOpacity onPress={() => openPoolSheet(enrichedMatch.pool.id)} style={styles.row}>
                     <FastImage
-                        source={require('@/assets/leagues/msl.png')}
+                        source={{ uri: enrichedMatch.pool.division.logoUrl || "" }}
                         style={styles.poolLogo}
                         resizeMode="contain"
                     />
-                    <View style={styles.poolTitleWrapper}>
-                        <Text
-                            style={[styles.poolTitleText, { color: theme.text }]}
-                            numberOfLines={1}
-                            ellipsizeMode="tail"
-                            adjustsFontSizeToFit
-                            minimumFontScale={0.8}
-                        >
-                            {pool.name ?? 'Chargement...'}
-                        </Text>
-                    </View>
+                    <Text
+                        style={[styles.poolTitleText, { color: theme.text }]}
+                        numberOfLines={1}
+                        ellipsizeMode="tail"
+                        adjustsFontSizeToFit
+                        minimumFontScale={0.8}
+                    >
+                        {enrichedMatch.pool.name}
+                    </Text>
                 </TouchableOpacity>
 
-                {infoData.filter(e => !!e).map((item, index) => (
-                    <View style={styles.infoRow} key={index}>
-                        <Ionicons
-                            name={item.icon as any}
-                            size={20}
-                            color={theme.text}
-                            style={styles.icon}
-                        />
-                        <Text
-                            style={[styles.infoText, { color: theme.text }]}
-                            numberOfLines={1}
-                            ellipsizeMode="tail"
-                            adjustsFontSizeToFit
-                            minimumFontScale={0.8}
-                        >
-                            {item.text}
-                        </Text>
-                    </View>
-                ))}
+                <InfoRow icon="trophy-outline" text={enrichedMatch.pool.leagueName} />
+                <InfoRow
+                    icon="calendar-outline"
+                    text={new Date(enrichedMatch.matchDate).toLocaleString("fr-FR", {
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                    })}
+                />
+                <InfoRow icon="time-outline" text={"1h30"} />
+                <InfoRow icon="location-outline" text={enrichedMatch.venue} />
+                <InfoRow icon="eye-outline" text={enrichedMatch.firstReferee} />
+                <InfoRow icon="eye-outline" text={enrichedMatch.secondReferee} />
             </View>
-        </View>
+
+            <BottomSheetCustomPage ref={poolSheetRef}>
+                <BottomSheetView style={{ flex: 1 }}>
+                    {selectedPoolId && <PoolContainer poolId={selectedPoolId} />}
+                </BottomSheetView>
+            </BottomSheetCustomPage>
+        </>
     );
 };
 
@@ -107,31 +107,25 @@ const styles = StyleSheet.create({
     container: {
         borderRadius: 18,
         padding: 16,
-
     },
-    infoCardTitle: {
+    title: {
         fontSize: 18,
         fontWeight: "600",
         marginBottom: 12,
     },
-    infoRowsWrapper: {
-        flexDirection: "column",
-        gap: 10,
-    },
-    infoRow: {
+    row: {
         flexDirection: "row",
         alignItems: "center",
+        marginBottom: 10,
     },
     poolLogo: {
-        width: 20,
-        height: 20,
+        width: 22,
+        height: 22,
         marginRight: 12,
         borderRadius: 5,
     },
-    poolTitleWrapper: {
-        flex: 1,
-    },
     poolTitleText: {
+        flex: 1,
         fontSize: 14,
         fontWeight: "700",
     },

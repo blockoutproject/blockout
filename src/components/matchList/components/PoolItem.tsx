@@ -1,34 +1,35 @@
-import React, { useMemo } from "react";
+import React from "react";
 import { Text, TouchableOpacity, View, StyleSheet } from "react-native";
 import FastImage from "react-native-fast-image";
 import MatchCard from "./MatchCard";
 import { EnrichedPoolMatchesDTO } from "@/src/types/Match";
 import { useAppTheme } from "@/src/context/ThemeProvider";
-import GradientView from "../../common/GradientView";
-import { usePoolGradient } from "@/src/hooks/utils/usePoolGradient";
-import { usePoolBorderGradient } from "@/src/hooks/utils/usePoolBorderGradient";
 
 type Props = {
-    pool: EnrichedPoolMatchesDTO;
+    enrichedPoolMatches: EnrichedPoolMatchesDTO;
     handlePoolPress: (id: number) => void;
     handleMatchPress: (id: number) => void;
 };
 
 const PoolItem: React.FC<Props> = ({
-    pool,
+    enrichedPoolMatches,
     handlePoolPress,
     handleMatchPress,
 }) => {
     const theme = useAppTheme();
-    const gradientVariants = usePoolGradient(pool.poolId);
-    const borderGradientVariants = usePoolBorderGradient(pool.poolId);
+
+    const gradient: readonly [string, string, ...string[]] = [
+        enrichedPoolMatches.pool.division.firstGradientColor,
+        enrichedPoolMatches.pool.division.secondGradientColor,
+        enrichedPoolMatches.pool.division.thirdGradientColor,
+    ];
 
     return (
-        <GradientView style={styles.poolContainer} gradient={gradientVariants}>
-            <TouchableOpacity onPress={() => handlePoolPress(pool.poolId)}>
+        <View style={[styles.poolContainer, { backgroundColor: enrichedPoolMatches.pool.division.mainColor }]}>
+            <TouchableOpacity onPress={() => handlePoolPress(enrichedPoolMatches.pool.id)}>
                 <View style={styles.poolHeader}>
                     <FastImage
-                        source={require("@/assets/leagues/msl.png")}
+                        source={{ uri: enrichedPoolMatches.pool.division.logoUrl || "" }}
                         style={styles.poolLogo}
                         resizeMode="contain"
                     />
@@ -36,24 +37,22 @@ const PoolItem: React.FC<Props> = ({
                         style={[styles.poolTitle, { color: theme.text }]}
                         numberOfLines={1}
                     >
-                        {pool.poolData?.name ?? "Chargement..."}
+                        {enrichedPoolMatches.pool.name}
                     </Text>
                 </View>
             </TouchableOpacity>
 
             <View style={styles.matchList}>
-                {pool.matches.map((match) => (
-                    <TouchableOpacity key={match.id} onPress={() => handleMatchPress(match.id)}>
+                {enrichedPoolMatches.matches.map((enrichedMatch) => (
+                    <TouchableOpacity key={enrichedMatch.id} onPress={() => handleMatchPress(enrichedMatch.id)}>
                         <MatchCard
-                            match={match}
-                            teamA={match.teamA}
-                            teamB={match.teamB}
-                            gradient={borderGradientVariants}
+                            enrichedMatch={enrichedMatch}
+                            gradient={gradient}
                         />
                     </TouchableOpacity>
                 ))}
             </View>
-        </GradientView>
+        </View>
     );
 };
 

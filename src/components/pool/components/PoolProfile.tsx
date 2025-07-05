@@ -1,91 +1,64 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { Pool } from '@/src/types/Pool';
-import FastImage from 'react-native-fast-image';
-import UsersApi from '@/src/api/UsersApi';
-import { EntityType } from '@/src/types/User';
-import { useUserContext } from '@/src/hooks/user/useUserContext';
-import FollowButton from '../../common/FollowButton';
-import FollowersCounter from '../../common/FollowersCount';
-import { useAppTheme } from '@/src/context/ThemeProvider';
+import React from "react";
+import { View, Text, StyleSheet } from "react-native";
+import FastImage from "react-native-fast-image";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import { useAppTheme } from "@/src/context/ThemeProvider";
+import { Pool } from "@/src/types/Pool";
+import { Division } from "@/src/types/Division";
+import FollowButton from "@/src/components/common/FollowButton";
+import FollowersCounter from "@/src/components/common/FollowersCount";
+import { usePoolFollowState } from "@/src/hooks/pool/usePoolFollowState";
 
-type PoolProfileProps = {
-    pool: Pool;
-};
+type Props = { pool: Pool; division: Division };
 
-const PoolProfile: React.FC<PoolProfileProps> = ({ pool }) => {
-    const { customUser, refetch } = useUserContext();
-    const [isProcessing, setIsProcessing] = useState(false);
-    const [followersCount, setFollowersCount] = useState(pool.followersCount);
-    const [isFollowing, setIsFollowing] = useState(false);
+const PoolProfile: React.FC<Props> = ({ pool, division }) => {
     const theme = useAppTheme();
+    const { isFollowing, isProcessing, followersCount, onToggleFollow } =
+        usePoolFollowState(pool);
 
-    useEffect(() => {
-        setFollowersCount(pool.followersCount);
-    }, [pool.followersCount]);
-
-    useEffect(() => {
-        if (customUser?.favorites) {
-            const isFav = customUser.favorites.some(
-                (fav) => fav.entityId === pool.id && fav.entityType === EntityType.POOL
-            );
-            setIsFollowing(isFav);
-        }
-    }, [customUser, pool.id]);
-
-    const handleFollowToggle = async () => {
-        if (!customUser || isProcessing) return;
-
-        const newFollowState = !isFollowing;
-        const newCount = newFollowState ? followersCount + 1 : followersCount - 1;
-
-        setIsFollowing(newFollowState);
-        setFollowersCount(newCount);
-        setIsProcessing(true);
-
-        try {
-            if (newFollowState) {
-                await UsersApi.getInstance().follow(EntityType.POOL, pool.id);
-            } else {
-                await UsersApi.getInstance().unfollow(EntityType.POOL, pool.id);
-            }
-            refetch();
-        } catch (error) {
-            console.error('Erreur follow/unfollow :', error);
-            setIsFollowing(!newFollowState);
-            setFollowersCount(followersCount);
-        } finally {
-            setIsProcessing(false);
-        }
-    };
+    const gradient: readonly [string, string, ...string[]] = [
+        division.firstGradientColor,
+        division.secondGradientColor,
+        division.thirdGradientColor,
+    ];
 
     return (
         <View style={[styles.container, { backgroundColor: theme.background }]}>
-            <FastImage
-                source={require('@/assets/leagues/msl_profile.png')}
-                style={styles.leagueLogo}
-                resizeMode="contain"
-            />
-            <View style={styles.infoContainer}>
-                <Text
-                    style={[styles.leagueTitle, { color: theme.text }]}
-                    numberOfLines={2}
-                    ellipsizeMode="tail"
-                    adjustsFontSizeToFit
-                    minimumFontScale={0.8}
-                >
-                    {pool.name}
-                </Text>
-                <Text style={[styles.leagueLink, { color: theme.textInactive }]}>ligue-b-masculine.com</Text>
+            <View style={styles.row}>
+                <FastImage
+                    source={{ uri: division.logoUrl || "" }}
+                    style={styles.logo}
+                    resizeMode="contain"
+                />
 
-                <View style={styles.actionsRow}>
-                    <FollowButton
-                        isFollowing={isFollowing}
-                        onPress={handleFollowToggle}
-                        disabled={isProcessing}
-                    />
-                    <FollowersCounter count={followersCount} />
+                <View style={styles.info}>
+                    <Text style={[styles.title, { color: theme.text }]}>{pool.name}</Text>
+
+                    <View style={styles.infoLine}>
+                        <MaterialCommunityIcons name="trophy-outline" size={18} color={theme.text} />
+                        <Text style={[styles.infoText, { color: theme.text }]}>{division.name}</Text>
+                    </View>
+
+                    <View style={styles.infoLine}>
+                        <MaterialCommunityIcons name="gender-male-female" size={18} color={theme.text} />
+                        <Text style={[styles.infoText, { color: theme.text }]}>{pool.gender}</Text>
+                    </View>
+
+                    <View style={styles.infoLine}>
+                        <MaterialCommunityIcons name="link-variant" size={18} color={theme.text} />
+                        <Text style={[styles.linkText, { color: theme.text }]}>ligue-b-masculine.com</Text>
+                    </View>
                 </View>
+            </View>
+
+            <View style={styles.actionsRow}>
+                <FollowButton
+                    isFollowing={isFollowing}
+                    onPress={onToggleFollow}
+                    disabled={isProcessing}
+                    gradient={gradient}
+                />
+                <FollowersCounter count={followersCount} />
             </View>
         </View>
     );
@@ -95,31 +68,43 @@ export default PoolProfile;
 
 const styles = StyleSheet.create({
     container: {
-        flexDirection: 'row',
-        paddingHorizontal: 26,
+        paddingHorizontal: 16,
         paddingVertical: 20,
-        alignItems: 'flex-end',
     },
-    leagueLogo: {
-        width: 70,
-        height: 126,
-        borderRadius: 12,
-        marginRight: 16,
+    row: {
+        flexDirection: "row",
+        gap: 16,
     },
-    infoContainer: {
+    logo: {
+        width: 100,
+        aspectRatio: 1,
+        borderRadius: 16,
+    },
+    info: {
         flex: 1,
+        justifyContent: "center",
     },
-    leagueTitle: {
-        fontSize: 24,
-        fontWeight: '700',
-        marginBottom: 4,
+    title: {
+        fontWeight: "700",
+        fontSize: 20,
+        marginBottom: 10,
     },
-    leagueLink: {
-        fontSize: 13,
-        marginBottom: 16,
+    infoLine: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 10,
+        marginBottom: 2,
+    },
+    infoText: {
+        fontSize: 14,
+    },
+    linkText: {
+        fontSize: 14,
     },
     actionsRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 0,
+        marginTop: 16,
     },
 });

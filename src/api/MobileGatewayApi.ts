@@ -1,6 +1,6 @@
 import { CONFIG } from '@/src/config/config';
-import AbstractApi, { ApiError } from './AbstractApi';
-import { EnrichedDayMatchesDTO, MatchStatus } from '@/src/types/Match';
+import AbstractApi from './AbstractApi';
+import { EnrichedDayMatchesDTO, EnrichedMatchDTO, MatchStatus } from '@/src/types/Match';
 
 type MatchListParams = {
     status: string;
@@ -58,6 +58,21 @@ class MobileGatewayApi extends AbstractApi {
                 method: 'get',
                 url: '/match-list',
                 params: { status, page, size, poolIds, teamIds },
+            });
+            return response;
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    /**
+     * Récupère un match enrichi par son ID
+     */
+    public async getEnrichedMatchById(id: number): Promise<EnrichedMatchDTO> {
+        try {
+            const response = await this.request<EnrichedMatchDTO>({
+                method: 'get',
+                url: `/enriched-match/${id}`,
             });
             return response;
         } catch (error) {

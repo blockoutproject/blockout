@@ -47,7 +47,6 @@ class ConfigApi extends AbstractApi {
      * @param data Données à mettre à jour (divisionName, format, gender).
      */
     public async updateRawDivisionMapping(id: number, data: Partial<RawDivisionMapping>): Promise<RawDivisionMapping> {
-        console.log('Updating raw division mapping:', id, data);
         return this.request<RawDivisionMapping>({
             method: 'put',
             url: `/raw-divisions/${id}`,
@@ -77,32 +76,60 @@ class ConfigApi extends AbstractApi {
     }
 
     /**
-     * Crée ou réactive une division.
-     * @param division Données de la division.
+     * Crée une division avec image (optionnelle).
      */
-    public async createOrUpdateDivision(division: Partial<Division>): Promise<Division> {
+    public async createOrUpdateDivision(
+        data: Partial<Division>,
+        image?: File
+    ): Promise<Division> {
+        const formData = new FormData();
+
+        Object.entries(data).forEach(([key, value]) => {
+            if (value !== undefined && value !== null) {
+                formData.append(key, String(value));
+            }
+        });
+
+        if (image) {
+            formData.append('image', image);
+        }
+
         return this.request<Division>({
             method: 'post',
             url: '/divisions',
-            data: division
+            data: formData,
         });
     }
 
     /**
-     * Met à jour une division existante.
-     * @param id ID de la division.
-     * @param data Données à mettre à jour.
+     * Met à jour une division avec une image (optionnelle).
      */
-    public async updateDivision(id: number, data: Partial<Division>): Promise<Division> {
+    public async updateDivision(
+        id: number,
+        data: Partial<Division>,
+        image?: File
+    ): Promise<Division> {
+        const formData = new FormData();
+
+        Object.entries(data).forEach(([key, value]) => {
+            if (value !== undefined && value !== null) {
+                formData.append(key, String(value));
+            }
+        });
+
+        if (image) {
+            formData.append('image', image);
+        }
+
         return this.request<Division>({
             method: 'put',
             url: `/divisions/${id}`,
-            data
+            data: formData,
         });
     }
 
     /**
-     * Désactive (soft delete) une division.
+     * Désactive une division.
      * @param id ID de la division.
      */
     public async deactivateDivision(id: number): Promise<void> {

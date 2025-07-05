@@ -9,10 +9,10 @@ import {
 import MatchList from "@/src/components/matchList/MatchListContainer";
 import { MatchStatus } from "@/src/types/Match";
 import { Filter } from "@/src/types/Filter";
-import { useUserContext } from "@/src/hooks/user/useUserContext";
 import { EntityType } from "@/src/types/User";
 import AnimatedHomeHeader from "@/src/components/home/AnimatedHomeHeader";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useUserContext } from "@/src/context/UserProvider";
 
 const HomeScreen: React.FC = () => {
     const insets = useSafeAreaInsets();
@@ -41,15 +41,6 @@ const HomeScreen: React.FC = () => {
             ?.filter((fav) => fav.entityType === EntityType.TEAM)
             .map((fav) => fav.entityId) || [];
     }, [customUser.favorites]);
-
-    const [filters, setFilters] = useState<Filter[]>([
-        { name: "Pro", dbValue: "PRO", isActive: false },
-        { name: "Nationale", dbValue: "NAT", isActive: false },
-        { name: "Régionale", dbValue: "REG", isActive: false },
-        { name: "Masc", dbValue: "M", isActive: false },
-        { name: "Fem", dbValue: "F", isActive: false },
-        { name: "Mixte", dbValue: "O", isActive: false },
-    ]);
 
     const routes = [
         { key: "finished", title: "Terminés" },

@@ -1,15 +1,18 @@
 import React from 'react';
-import { Text, TouchableOpacity, StyleSheet, GestureResponderEvent } from 'react-native';
+import { Text, TouchableOpacity, StyleSheet, GestureResponderEvent, ViewStyle } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { useAppTheme } from '@/src/context/ThemeProvider';
+import GradientView from './GradientView'; // adapte les chemins si besoin
+import GradientBorderView from './GradientBorderView';
 
 type Props = {
     isFollowing: boolean;
     onPress: (event: GestureResponderEvent) => void;
     disabled?: boolean;
+    gradient: readonly [string, string, ...string[]];
 };
 
-const FollowButton: React.FC<Props> = ({ isFollowing, onPress, disabled }) => {
+const FollowButton: React.FC<Props> = ({ isFollowing, onPress, disabled, gradient }) => {
     const theme = useAppTheme();
 
     const handlePress = (e: GestureResponderEvent) => {
@@ -17,44 +20,57 @@ const FollowButton: React.FC<Props> = ({ isFollowing, onPress, disabled }) => {
         onPress(e);
     };
 
-    return (
+    const buttonContent = (
         <TouchableOpacity
             style={[
-                styles.followButton,
-                {
-                    backgroundColor: isFollowing ? theme.background : theme.success,
-                    borderColor: isFollowing ? theme.text : theme.success,
-                },
+                styles.button,
+                { backgroundColor: 'transparent' },
             ]}
             onPress={handlePress}
             disabled={disabled}
+            activeOpacity={0.9}
         >
-            <Text
-                style={[
-                    styles.followText,
-                    { color: theme.text },
-                ]}
-            >
+            <Text style={[styles.text, { color: isFollowing ? theme.text : 'white' }]}>
                 {isFollowing ? 'Suivie' : 'Suivre'}
             </Text>
         </TouchableOpacity>
     );
+
+    return isFollowing ? (
+        <GradientBorderView
+            gradient={gradient}
+            borderRadius={12}
+            borderWidth={2}
+            outerStyle={{ marginRight: 12 }}
+        >
+            {buttonContent}
+        </GradientBorderView>
+    ) : (
+        <GradientView
+            gradient={gradient}
+            style={[styles.gradientFilled, { marginRight: 12 }]}
+        >
+            {buttonContent}
+        </GradientView>
+    );
 };
 
 const styles = StyleSheet.create({
-    followButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        borderWidth: 1,
+    button: {
         paddingVertical: 6,
         paddingHorizontal: 20,
-        borderRadius: 12,
-        marginRight: 12,
+        borderRadius: 10,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
-    followText: {
+    text: {
         fontSize: 14,
         fontWeight: '600',
+    },
+    gradientFilled: {
+        borderRadius: 12,
+        paddingVertical: 2,
+        paddingHorizontal: 1,
     },
 });
 

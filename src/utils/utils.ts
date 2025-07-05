@@ -2,6 +2,7 @@ import { parseISO, format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Pool } from '../types/Pool';
 import tinycolor from 'tinycolor2';
+import { Division } from '../types/Division';
 
 export type GradientVariants = {
     base: readonly [string, string, ...string[]];
@@ -52,4 +53,4 @@ export function splitIsoDateFormatted(
     return { date, time };
 }
 
-export const getLeagueLabel = (pool: Pool) => `${pool.divisionName} - ${pool.gender}`;
+export const getLeagueLabel = (division: Division, pool: Pool) => `${division.name} - ${pool.gender}`;

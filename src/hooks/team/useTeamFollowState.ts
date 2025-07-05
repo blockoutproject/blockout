@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useUserContext } from '@/src/hooks/user/useUserContext';
+import { useUserContext } from '@/src/context/UserProvider';
 import UsersApi from '@/src/api/UsersApi';
 import { EntityType } from '@/src/types/User';
 import { Team } from '@/src/types/Team';
@@ -22,6 +22,15 @@ export function useTeamFollowState(team: Team) {
                 )
             );
         }
+    }, [customUser, team.id]);
+
+    useEffect(() => {
+        console.log('[useTeamFollowState] followersCount reçu:', team.followersCount);
+    }, [team.followersCount]);
+
+    useEffect(() => {
+        console.log('[useTeamFollowState] customUser ou teamId changé');
+        console.log('[useTeamFollowState] customUser.favorites:', customUser?.favorites);
     }, [customUser, team.id]);
 
     const onToggleFollow = async () => {

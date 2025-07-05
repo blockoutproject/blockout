@@ -1,11 +1,10 @@
 import { ViewStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { GradientVariants } from '@/src/utils/utils';
 
 type GradientViewProps = {
     children: React.ReactNode;
     style?: ViewStyle | ViewStyle[];
-    gradient: GradientVariants;
+    gradient: readonly [string, string, ...string[]];
     start?: { x: number; y: number };
     end?: { x: number; y: number };
 };
@@ -19,7 +18,7 @@ const GradientView: React.FC<GradientViewProps> = ({
 }) => {
     return (
         <LinearGradient
-            colors={gradient.base}
+            colors={gradient}
             start={start}
             end={end}
             style={style}

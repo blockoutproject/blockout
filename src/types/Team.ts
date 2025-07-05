@@ -1,4 +1,3 @@
-import { EnumDivisionCode } from "./enums/DivisionCode";
 import { EnumFormat } from "./enums/Format";
 import { EnumGender } from "./enums/Gender";
 
@@ -9,7 +8,7 @@ export interface Team {
     name: string;
     shortName: string;
     leagueCode: string;
-    divisionCode: EnumDivisionCode;
+    divisionId: number;
     format: EnumFormat;
     gender: EnumGender;
     followersCount: number;

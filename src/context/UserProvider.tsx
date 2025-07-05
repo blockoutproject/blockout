@@ -1,4 +1,4 @@
-import { createContext, useMemo } from "react";
+import { createContext, useContext, useEffect, useMemo } from "react";
 import { useCustomUser } from "../hooks/user/useUser";
 import { useAuth0 } from "react-native-auth0";
 import { UserContextValue } from "../types/User";
@@ -13,6 +13,10 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         error,
         refetch
     } = useCustomUser(auth0User?.sub);
+
+    useEffect(() => {
+        console.log('[UserContext] customUser mis à jour:', customUser);
+    }, [customUser]);
 
     const isLoading = isAuth0Loading || isCustomUserLoading;
 
@@ -30,3 +34,11 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         </UserContext.Provider>
     );
 };
+
+export const useUserContext = () => {
+    const context = useContext(UserContext);
+    if (!context) {
+        throw new Error('useUserContext must be used within a UserProvider');
+    }
+    return context;
+}
