@@ -16,6 +16,7 @@ public class ApiClientProperties {
     private final Endpoint club = new Endpoint();
     private final Endpoint team = new Endpoint();
     private final Endpoint pool = new Endpoint();
+    private final Endpoint config = new Endpoint();
 
     @Data
     public static class Endpoint {

@@ -9,8 +9,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import com.blockout.workersearch.models.docs.PoolDoc;
+import com.blockout.workersearch.models.dto.config.DivisionDTO;
 import com.blockout.workersearch.models.events.PoolUpsertEvent;
 import com.blockout.workersearch.repositories.PoolRepository;
+import com.blockout.workersearch.services.caches.ConfigCacheService;
 import com.blockout.workersearch.utils.TextNormalizer;
 
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
@@ -22,6 +24,7 @@ public class PoolIndexService {
     private static final Logger logger = LoggerFactory.getLogger(PoolIndexService.class);
 
     private final PoolRepository poolRepository;
+    private final ConfigCacheService configCacheService;
 
     public void upsert(PoolUpsertEvent e) {
         PoolDoc doc = map(e);
@@ -49,19 +52,21 @@ public class PoolIndexService {
     }
 
     private PoolDoc map(PoolUpsertEvent e) {
-        PoolDoc doc = PoolDoc.builder()
+        DivisionDTO division = configCacheService.getDivisionById(e.getDivisionId());
+        String divisionName = division != null ? division.getName() : "Division inconnue";
+
+        return PoolDoc.builder()
                 .id(e.getId())
                 .name(e.getName())
-                .divisionName(e.getDivisionCode().getLabel()) // Traduction de divisionCode en divisionName pour l'index
+                .divisionName(divisionName)
                 .leagueName(e.getLeagueName())
                 .nameSimplified(TextNormalizer.simplify(e.getName()))
-                .divisionNameSimplified(TextNormalizer.simplify(e.getDivisionCode().getLabel()))
+                .divisionNameSimplified(TextNormalizer.simplify(divisionName))
                 .leagueNameSimplified(TextNormalizer.simplify(e.getLeagueName()))
                 .keywords(TextNormalizer.simplify(
                         e.getName() + " " +
-                                e.getDivisionCode().getLabel() + " " +
+                                divisionName + " " +
                                 e.getLeagueName()))
                 .build();
-        return doc;
     }
 }

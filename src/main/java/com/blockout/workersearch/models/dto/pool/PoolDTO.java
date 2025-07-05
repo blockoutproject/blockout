@@ -1,6 +1,5 @@
 package com.blockout.workersearch.models.dto.pool;
 
-import com.blockout.workersearch.models.enums.DivisionCode;
 import com.blockout.workersearch.models.enums.Format;
 import com.blockout.workersearch.models.enums.Gender;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -29,8 +28,8 @@ public class PoolDTO {
 
     private String name;
 
-    @JsonProperty("division_code")
-    private DivisionCode divisionCode;
+    @JsonProperty("division_id")
+    private Long divisionId;
 
     private Format format;
     

@@ -69,7 +69,7 @@ public class IndexerJob {
                         .id(team.getId())
                         .name(team.getName())
                         .clubId(team.getClubId())
-                        .divisionCode(team.getDivisionCode())
+                        .divisionId(team.getDivisionId())
                         .format(team.getFormat())
                         .gender(team.getGender())
                         .build())
@@ -85,7 +85,7 @@ public class IndexerJob {
                 .map(pool -> PoolUpsertEvent.builder()
                         .id(pool.getId())
                         .name(pool.getName())
-                        .divisionCode(pool.getDivisionCode())
+                        .divisionId(pool.getDivisionId())
                         .leagueName(pool.getLeagueName())
                         .build())
                 .toList();

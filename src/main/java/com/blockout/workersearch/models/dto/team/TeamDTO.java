@@ -5,7 +5,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import com.blockout.workersearch.models.enums.DivisionCode;
 import com.blockout.workersearch.models.enums.Format;
 import com.blockout.workersearch.models.enums.Gender;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -33,8 +32,8 @@ public class TeamDTO {
     @JsonProperty("league_code")
     private String leagueCode;
 
-    @JsonProperty("division_code")
-    private DivisionCode divisionCode;
+    @JsonProperty("division_id")
+    private Long divisionId;
 
     private Format format;
     
