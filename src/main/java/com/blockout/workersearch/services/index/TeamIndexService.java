@@ -65,7 +65,11 @@ public class TeamIndexService {
     private TeamDoc map(TeamUpsertEvent e) {
         ClubUpsertEvent club = clubCacheService.getClubById(e.getClubId());
         DivisionDTO division = configCacheService.getDivisionById(e.getDivisionId());
-
+        logger.info("Division found",
+                keyValue("action", "get_division_by_id"),
+                keyValue("divisionId", e.getDivisionId()),
+                keyValue("grtadient", division.getFirstGradientColor()),
+                keyValue("divisionName", division != null ? division.getName() : "Inconnue"));
         String name = e.getName();
         String clubName = club != null ? club.getName() : null;
         String clubCity = club != null ? club.getCity() : null;
