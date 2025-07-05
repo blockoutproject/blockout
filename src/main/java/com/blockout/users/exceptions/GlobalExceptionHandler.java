@@ -16,7 +16,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(CustomUserNotFoundException.class)
     public ResponseEntity<Map<String, Object>> handleUserNotFound(
             CustomUserNotFoundException ex, HttpServletRequest request) {
-
+        ex.printStackTrace();
         return buildErrorResponse(
                 ex.getMessage(),
                 HttpStatus.NOT_FOUND,
@@ -26,7 +26,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Auth0Exception.class)
     public ResponseEntity<Map<String, Object>> handleAuth0UserNotFound(
             Auth0Exception ex, HttpServletRequest request) {
-
+        ex.printStackTrace();
         return buildErrorResponse(
                 ex.getMessage(),
                 HttpStatus.NOT_FOUND,
@@ -36,7 +36,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(IllegalStateException.class)
     public ResponseEntity<Map<String, Object>> handleIllegalState(
             IllegalStateException ex, HttpServletRequest request) {
-
+        ex.printStackTrace();
         return buildErrorResponse(
                 ex.getMessage(),
                 HttpStatus.BAD_REQUEST,
@@ -46,7 +46,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleGeneric(
             Exception ex, HttpServletRequest request) {
-
+        ex.printStackTrace();
         return buildErrorResponse(
                 "Une erreur interne est survenue.",
                 HttpStatus.INTERNAL_SERVER_ERROR,
