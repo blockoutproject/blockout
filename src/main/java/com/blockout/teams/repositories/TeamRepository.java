@@ -1,7 +1,6 @@
 package com.blockout.teams.repositories;
 
 import com.blockout.teams.models.Team;
-import com.blockout.teams.models.enums.DivisionCode;
 import com.blockout.teams.models.enums.Format;
 import com.blockout.teams.models.enums.Gender;
 
@@ -23,7 +22,7 @@ public interface TeamRepository extends JpaRepository<Team, Long> {
             SELECT t
             FROM Team t
             WHERE (:name IS NULL OR t.name = :name)
-                AND (:divisionCode IS NULL OR t.divisionCode = :divisionCode)
+                AND (:divisionId IS NULL OR t.divisionId = :divisionId)
                 AND (:format IS NULL OR t.format = :format)
                 AND (:gender IS NULL OR t.gender = :gender)
                 AND (:clubId IS NULL OR t.clubId = :clubId)
@@ -31,7 +30,7 @@ public interface TeamRepository extends JpaRepository<Team, Long> {
             ORDER BY t.name ASC
             """)
     List<Team> findFiltered(@Param("name") String name,
-            @Param("divisionCode") DivisionCode divisionCode,
+            @Param("divisionId") Long divisionId,
             @Param("format") Format format,
             @Param("gender") Gender gender,
             @Param("clubId") String clubId,

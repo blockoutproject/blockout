@@ -1,6 +1,5 @@
 package com.blockout.teams.models.events;
 
-import com.blockout.teams.models.enums.DivisionCode;
 import com.blockout.teams.models.enums.Format;
 import com.blockout.teams.models.enums.Gender;
 
@@ -17,7 +16,7 @@ public class TeamUpsertEvent {
     private Long id;
     private String name;
     private String clubId;
-    private DivisionCode divisionCode;
+    private Long divisionId;
     private Format format;
     private Gender gender;
 }

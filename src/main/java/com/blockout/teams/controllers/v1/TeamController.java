@@ -1,7 +1,6 @@
 package com.blockout.teams.controllers.v1;
 
 import com.blockout.teams.models.Team;
-import com.blockout.teams.models.enums.DivisionCode;
 import com.blockout.teams.models.enums.Format;
 import com.blockout.teams.models.enums.Gender;
 import com.blockout.teams.services.TeamService;
@@ -47,12 +46,12 @@ public class TeamController {
     @GetMapping
     public ResponseEntity<List<Team>> listTeams(
             @RequestParam(required = false) String name,
-            @RequestParam(required = false, name = "division_code") DivisionCode divisionCode,
+            @RequestParam(required = false, name = "division_id") Long divisionId,
             @RequestParam(required = false) Format format,
             @RequestParam(required = false) Gender gender,
             @RequestParam(required = false, name = "club_id") String clubId,
             @RequestParam(required = false) List<Long> ids) {
-        List<Team> teams = teamService.findTeams(name, divisionCode, format, gender, clubId, ids);
+        List<Team> teams = teamService.findTeams(name, divisionId, format, gender, clubId, ids);
         return ResponseEntity.ok(teams);
     }
 

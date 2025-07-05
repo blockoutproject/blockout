@@ -7,7 +7,6 @@ import lombok.Builder;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
-import com.blockout.teams.models.enums.DivisionCode;
 import com.blockout.teams.models.enums.Format;
 import com.blockout.teams.models.enums.Gender;
 
@@ -17,7 +16,7 @@ import com.blockout.teams.models.enums.Gender;
 @AllArgsConstructor
 @Entity
 @Table(name = "teams", uniqueConstraints = {
-        @UniqueConstraint(columnNames = { "club_id", "division_code", "format", "gender", "name" }, name = "uix_team")
+        @UniqueConstraint(columnNames = { "club_id", "division_id", "format", "gender", "name" }, name = "uix_team")
 })
 public class Team {
 
@@ -41,9 +40,8 @@ public class Team {
     @Column(name = "league_code", nullable = false)
     private String leagueCode;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "division_code", nullable = false)
-    private DivisionCode divisionCode;
+    @Column(name = "division_id", nullable = false)
+    private Long divisionId;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "format", nullable = false)

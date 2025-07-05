@@ -27,7 +27,7 @@ public class EventPublisher {
                 .id(team.getId())
                 .name(team.getName())
                 .clubId(team.getClubId())
-                .divisionCode(team.getDivisionCode())
+                .divisionId(team.getDivisionId())
                 .format(team.getFormat())
                 .gender(team.getGender())
                 .build();
