@@ -7,7 +7,6 @@ import lombok.Builder;
 
 import java.time.LocalDateTime;
 
-import com.blockout.pools.models.enums.DivisionCode;
 import com.blockout.pools.models.enums.Format;
 import com.blockout.pools.models.enums.Gender;
 
@@ -42,9 +41,8 @@ public class Pool {
     @Column(name = "name")
     private String name;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "division_code", nullable = false)
-    private DivisionCode divisionCode;
+    @Column(name = "division_id", nullable = false)
+    private Long divisionId;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "format")

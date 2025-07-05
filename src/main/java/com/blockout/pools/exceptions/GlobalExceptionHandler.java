@@ -1,6 +1,5 @@
-package com.blockout.pools.config;
+package com.blockout.pools.exceptions;
 
-import com.blockout.pools.exceptions.PoolNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -15,7 +14,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(PoolNotFoundException.class)
     public ResponseEntity<Map<String, Object>> handlePoolNotFound(
             PoolNotFoundException ex, HttpServletRequest request) {
-
+        ex.printStackTrace();
         return buildErrorResponse(
                 ex.getMessage(),
                 HttpStatus.NOT_FOUND,
@@ -25,7 +24,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(IllegalStateException.class)
     public ResponseEntity<Map<String, Object>> handleIllegalState(
             IllegalStateException ex, HttpServletRequest request) {
-
+        ex.printStackTrace();
         return buildErrorResponse(
                 ex.getMessage(),
                 HttpStatus.BAD_REQUEST,
@@ -35,7 +34,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleGeneric(
             Exception ex, HttpServletRequest request) {
-
+        ex.printStackTrace();
         return buildErrorResponse(
                 "Une erreur interne est survenue.",
                 HttpStatus.INTERNAL_SERVER_ERROR,
