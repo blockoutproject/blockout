@@ -2,7 +2,6 @@ package com.blockout.competitions.services;
 
 import com.blockout.competitions.models.CompetitionAssociation;
 import com.blockout.competitions.models.dto.TeamAssociationStatsRequest;
-import com.blockout.competitions.models.enums.Category;
 import com.blockout.competitions.repositories.CompetitionAssociationRepository;
 import com.blockout.competitions.utils.DiffUtils;
 
@@ -34,11 +33,10 @@ public class CompetitionAssociationService {
      *
      * @param poolId   L'identifiant de la pool
      * @param teamId   L'identifiant de la team
-     * @param category La catégorie de l'association
      * @return L'association créée ou réactivée
      */
     @Transactional
-    public CompetitionAssociation addOrReactivateAssociation(Long poolId, Long teamId, String clubId, Category category) {
+    public CompetitionAssociation addOrReactivateAssociation(Long poolId, Long teamId, String clubId) {
         return associationRepository.findByPoolIdAndTeamId(poolId, teamId)
                 .map(existing -> {
                     if (!Boolean.TRUE.equals(existing.getActive())) {
@@ -57,7 +55,6 @@ public class CompetitionAssociationService {
                             .poolId(poolId)
                             .teamId(teamId)
                             .clubId(clubId)
-                            .category(category)
                             .active(true)
                             .points(0)
                             .build();
@@ -68,8 +65,7 @@ public class CompetitionAssociationService {
                             keyValue("action", "create_association"),
                             keyValue("poolId", poolId),
                             keyValue("teamId", teamId),
-                            keyValue("clubId", clubId),
-                            keyValue("category", category));
+                            keyValue("clubId", clubId));
 
                     return saved;
                 });

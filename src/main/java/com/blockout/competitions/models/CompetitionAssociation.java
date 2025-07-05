@@ -4,11 +4,10 @@ import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
 
-import com.blockout.competitions.models.enums.Category;
 
 @Entity
 @Table(name = "competition_association", uniqueConstraints = {
-    @UniqueConstraint(columnNames = { "pool_id", "team_id", "category" }, name = "uix_pool_team_category")
+    @UniqueConstraint(columnNames = { "pool_id", "team_id" }, name = "uix_pool_team")
 })
 @Data
 @Builder(toBuilder = true)
@@ -28,10 +27,6 @@ public class CompetitionAssociation {
 
     @Column(name = "club_id", nullable = false)
     private String clubId;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "category", nullable = false)
-    private Category category;
 
     @Builder.Default
     @Column(name = "active", nullable = false)
