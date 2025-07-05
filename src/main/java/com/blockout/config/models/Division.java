@@ -33,8 +33,8 @@ public class Division {
     @Column(name = "third_gradient_color", nullable = false)
     private String thirdGradientColor;
 
-    @Column(name = "profile_image_url")
-    private String profileImageUrl; 
+    @Column(name = "logo_url")
+    private String logoUrl; 
 
     @Builder.Default
     @Column(name = "active", nullable = false)

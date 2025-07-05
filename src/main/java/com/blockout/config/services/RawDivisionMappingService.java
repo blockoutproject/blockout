@@ -80,7 +80,7 @@ public class RawDivisionMappingService {
     @Transactional
     public RawDivisionMapping update(Long id, RawDivisionMappingUpdateDTO dto) {
         return rawDivisionMappingRepository.findById(id).map(existing -> {
-            if (dto.getDivisionCode() != null) existing.setDivisionCode(dto.getDivisionCode());
+            if (dto.getDivisionId() != null) existing.setDivisionId(dto.getDivisionId());
             if (dto.getFormat() != null) existing.setFormat(dto.getFormat());
             if (dto.getGender() != null) existing.setGender(dto.getGender());
 

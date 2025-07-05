@@ -1,5 +1,7 @@
 package com.blockout.config.models.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -9,9 +11,16 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class DivisionUpdateDTO {
     private String name;
+
+    @JsonProperty("division_code")
     private String mainColor;
+
+    @JsonProperty("first_gradient_color")
     private String firstGradientColor;
+
+    @JsonProperty("second_gradient_color")
     private String secondGradientColor;
+
+    @JsonProperty("third_gradient_color")
     private String thirdGradientColor;
-    private String divisionImageUrl;
 }

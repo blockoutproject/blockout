@@ -5,7 +5,6 @@ import lombok.*;
 import java.time.LocalDateTime;
 import com.blockout.config.models.enums.Format;
 import com.blockout.config.models.enums.Gender;
-import com.blockout.config.models.enums.DivisionCode;
 
 @Data
 @Builder(toBuilder = true)
@@ -24,9 +23,8 @@ public class RawDivisionMapping {
     @Column(name = "raw_division_name", nullable = false)
     private String rawDivisionName;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "division_code")
-    private DivisionCode divisionCode;
+    @Column(name = "division_id")
+    private Long divisionId;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "format")
@@ -60,6 +58,6 @@ public class RawDivisionMapping {
     }
 
     public boolean isMapped() {
-        return divisionCode != null && format != null && gender != null;
+        return divisionId != null && format != null && gender != null;
     }
 }
