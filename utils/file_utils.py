@@ -71,8 +71,8 @@ def parse_csv_from_content(content: str) -> Iterator[dict]:
                 'set': row['Set'].strip() or None,
                 'score': row['Score'].strip() or None,
                 'venue': row['Salle'].strip() or None,
-                'referee1': row['Arb1'].strip() or None,
-                'referee2': row['Arb2'].strip() or None,
+                'first_referee': row['Arb1'].strip() or None,
+                'second_referee': row['Arb2'].strip() or None,
             }
         except KeyError as e:
             log_event(

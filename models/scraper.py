@@ -8,7 +8,6 @@ from api.competitions_api import get_active_team_associations_by_pool, update_te
 from api.matches_api import create_match, update_match, get_matches_by_pool
 from config.logger_config import log_event, current_scraper
 from models.association_stats import AssociationStats
-from models.enums.category import Category
 from models.enums.datasource_priority import DataSourcePriority
 from models.match import Match
 from dataclasses import replace
@@ -20,13 +19,11 @@ class Scraper(ABC):
         self, 
         session: aiohttp.ClientSession, 
         name: str, 
-        category: Category, 
         url: str = None, 
         priority_validation_enabled: bool = False
     ):
         self.session = session
         self.name = name
-        self.category = category
         self.url = url
         self.priority_validation_enabled = priority_validation_enabled
 
@@ -278,7 +275,7 @@ class Scraper(ABC):
             live_code_field = "live_code"
             general_fields = [
                 "pool_id", "team_id_a", "team_id_b",
-                "venue", "referee1", "referee2", "status"
+                "venue", "first_referee", "second_referee", "status"
             ]
 
             if self.priority_validation_enabled:

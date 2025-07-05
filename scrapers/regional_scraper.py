@@ -4,7 +4,6 @@ from bs4 import BeautifulSoup
 from api.competitions_api import bulk_deactivate_pools
 from api.config_api import create_raw_division_mapping, get_raw_division_mappings_by_league_and_season
 from api.pools_api import get_pools_by_league_and_season
-from models.enums.category import Category
 from models.pool import Pool
 from models.raw_division_mapping import RawDivisionMapping
 from models.scraper import Scraper
@@ -17,7 +16,6 @@ class RegionalScraper(Scraper):
         super().__init__(
             session, 
             name="regional_scraper", 
-            category=Category.REG, 
             url="http://www.ffvb.org/120-37-1-Championnats-Regionaux", 
             priority_validation_enabled=False,
         )
@@ -163,7 +161,7 @@ class RegionalScraper(Scraper):
                         season=parsed_season,
                         league_name=league_name,
                         name=name,
-                        division_code=mapping.division_code,
+                        division_id=mapping.division_id,
                         format=mapping.format,
                         gender=mapping.gender,
                     )

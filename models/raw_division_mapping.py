@@ -8,11 +8,11 @@ class RawDivisionMapping:
     league_code: str
     season: int
     id: Optional[int] = None
-    division_code: Optional[str] = None
+    division_id: Optional[str] = None
     format: Optional[str] = None
     gender: Optional[str] = None
     created_at: Optional[datetime] = None
     last_update: Optional[datetime] = None
 
     def is_mapped(self) -> bool:
-        return self.division_code is not None and self.format is not None and self.gender is not None
+        return self.division_id is not None and self.format is not None and self.gender is not None

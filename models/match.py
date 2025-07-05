@@ -1,9 +1,6 @@
 from dataclasses import dataclass
-from enum import Enum
 from typing import Optional
 from datetime import datetime
-
-from models.enums.match_status import MatchStatus
 
 @dataclass
 class Match:
@@ -18,8 +15,8 @@ class Match:
     set: Optional[str] = None
     score: Optional[str] = None
     venue: Optional[str] = None
-    referee1: Optional[str] = None
-    referee2: Optional[str] = None
+    first_referee: Optional[str] = None
+    second_referee: Optional[str] = None
     live_code: Optional[int] = None
     active: bool = True
     created_at: Optional[datetime] = None

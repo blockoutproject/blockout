@@ -12,7 +12,7 @@ async def add_or_update_pool(
     """
     Vérifie si une pool existe et la met à jour ou la crée selon les besoins.
     """
-    required_fields = ['pool_code', 'league_code', 'season', 'name', 'division_code']
+    required_fields = ['pool_code', 'league_code', 'season', 'name', 'division_id']
     missing_fields = [field for field in required_fields if not getattr(pool, field, None)]
     if missing_fields:
         raise ValueError(f"Les champs obligatoires suivants sont manquants : {', '.join(missing_fields)}.")
@@ -21,7 +21,7 @@ async def add_or_update_pool(
         changes_list = []
         pool.id = existing_pool.id
 
-        for field in ['name', 'division_code', 'format', 'gender']:
+        for field in ['name', 'division_id', 'format', 'gender']:
             if getattr(existing_pool, field, None) != getattr(pool, field, None):
                 changes_list.append(f"{field}: {getattr(existing_pool, field)} -> {getattr(pool, field)}")
 

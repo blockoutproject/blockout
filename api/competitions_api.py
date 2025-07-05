@@ -2,7 +2,6 @@ from typing import Optional, List
 import aiohttp
 from config.env_config import COMPETITION_API_URL
 from models.association_stats import AssociationStats
-from models.enums.category import Category
 from models.competition_association import CompetitionAssociation
 from utils.handlers.api_handler import handle_api_response
 from api.auth0 import _get_headers
@@ -26,7 +25,6 @@ async def get_active_team_associations_by_pool(
 @handle_api_response(response_type=CompetitionAssociation)
 async def add_team_to_pool(
     session: aiohttp.ClientSession,
-    category: Category,
     pool_id: int,
     team_id: int,
     club_id: str
@@ -36,7 +34,7 @@ async def add_team_to_pool(
     """
     headers = _get_headers()
     url = f"{COMPETITION_API_URL}/pools/{pool_id}/teams/{team_id}"
-    params = { "club_id": club_id, "category": category.value }
+    params = { "club_id": club_id }
     response = await session.post(url, params=params, headers=headers)
     return response
 

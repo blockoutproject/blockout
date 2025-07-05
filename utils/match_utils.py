@@ -1,6 +1,5 @@
 import re
 from typing import Tuple, Optional
-from models.enums.division_code import DivisionCode
 from models.pool import Pool
 from models.association_stats import AssociationStats
 
@@ -27,27 +26,15 @@ def is_anomalous_set_format(set_str: str) -> bool:
     """
     return bool(re.search(r'[A-Za-z]', set_str))
 
-def parse_team_score(score: str) -> Tuple[Optional[int], str]:
+def parse_team_score(score: str) -> int:
     """
     Parse une chaîne de score qui contient exactement UN élément 
     (un chiffre non nul, ou la lettre 'F' ou 'P').
-
-    Renvoie (nombre, "") si c'est un chiffre (ex: "3" -> (3, "")).
-    Renvoie (None, "F") ou (None, "P") si c'est une lettre.
-    Renvoie (None, "") si c'est un format inattendu.
-
-    Exemple : 
-        "3" -> (3, "")
-        "F" -> (None, "F")
-        "P" -> (None, "P")
     """
     if score.isdigit():
-        return int(score), ""
-    elif score in ("F", "P"):
-        return None, score
+        return int(score)
     else:
-        return None, ""  # Pas levé d'exception ici, libre à toi de logguer
-
+        return ValueError(f"Invalid score format: {score}")
 
 def compute_volleyball_match_stats(
     sets_a: str,
@@ -56,9 +43,9 @@ def compute_volleyball_match_stats(
     score_detail: str
 ) -> Tuple[AssociationStats, AssociationStats]:
     """
-    Calcule les stats de volley-ball en tenant compte :
+    Calcule les stats en tenant compte :
         - Des champs sets_a et sets_b (ex: "3", "1", "F", "P"), pour déterminer 
-            le gagnant du match, les points de classement, et gérer les lettres F/P.
+            le gagnant du match, les points de classement, et gérer les lettres F/P (plus d'actualité).
         - D'un score détaillé (score_detail), ex: "20-25,20-25,25-17,23-25"
             qui décrit chaque set et permet de connaître le total de points et de sets réellement gagnés.
     """
@@ -103,10 +90,8 @@ def compute_volleyball_match_stats(
         stats_b.lost_points = stats_a.won_points
 
     # ------------------ 3) Parse sets_a / sets_b comme avant -------------------
-    num_a, letter_a = parse_team_score(sets_a)
-    num_b, letter_b = parse_team_score(sets_b)
-
-    division = pool.division_code  # Par ex. NAT, REG, etc.
+    num_a = parse_team_score(sets_a)
+    num_b = parse_team_score(sets_b)
 
     # Cas particulier : si les deux côtés sont "lettres" => scores = 0
     if num_a is None and num_b is None:
@@ -202,45 +187,5 @@ def compute_volleyball_match_stats(
                 stats_a.points = 0
                 stats_b.wins_three_to_zero = 1
                 stats_a.losses_zero_to_three = 1
-
-    # ------------------ 4) Gestion des lettres F/P selon la division ------------------
-    #    Au lieu de soustraire immédiatement, on utilise "points_penalty".
-    if division in (DivisionCode.REG, DivisionCode.PRENAT, DivisionCode.M21, DivisionCode.M18, DivisionCode.M15, DivisionCode.M13, DivisionCode.M11, DivisionCode.OTHER):
-        if letter_a == "F" and letter_b == "F":
-            stats_a.points_penalty += 2
-            stats_b.points_penalty += 2
-        elif letter_a == "P" and letter_b == "P":
-            stats_a.points_penalty += 1
-            stats_b.points_penalty += 1
-        else:
-            if letter_a == "F" and letter_b != "F":
-                stats_a.points_penalty += 3
-            if letter_b == "F" and letter_a != "F":
-                stats_b.points_penalty += 3
-            if letter_a == "P" and letter_b != "P":
-                stats_a.points_penalty += 2
-            if letter_b == "P" and letter_a != "P":
-                stats_b.points_penalty += 2
-
-    elif division in (DivisionCode.ELITE, DivisionCode.ELITEAVENIR, DivisionCode.N2, DivisionCode.N3):
-        if letter_a == "F" and letter_b == "F":
-            stats_a.points_penalty += 2
-            stats_b.points_penalty += 2
-        elif letter_a == "P" and letter_b == "P":
-            stats_a.points_penalty += 1
-            stats_b.points_penalty += 1
-        else:
-            if letter_a == "F" and letter_b != "F":
-                stats_a.points_penalty += 2
-            if letter_b == "F" and letter_a != "F":
-                stats_b.points_penalty += 2
-            if letter_a == "P" and letter_b != "P":
-                stats_a.points_penalty += 1
-            if letter_b == "P" and letter_a != "P":
-                stats_b.points_penalty += 1
-
-    # ------------------ 5) Application finale des pénalités ------------------
-    stats_a.points -= stats_a.points_penalty
-    stats_b.points -= stats_b.points_penalty
 
     return stats_a, stats_b

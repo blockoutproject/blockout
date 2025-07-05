@@ -39,7 +39,7 @@ async def create_pool(
         action="create_pool",
         level="info",
         pool_code=pool.pool_code,
-        division_code=pool.division_code
+        division_id=pool.division_id
     )
     return response
 

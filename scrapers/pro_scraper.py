@@ -5,14 +5,14 @@ import re
 from typing import Optional, Tuple
 import xml.etree.ElementTree as ET
 from bs4 import BeautifulSoup
+from api.config_api import create_raw_division_mapping, get_raw_division_mappings_by_league_and_season
 from api.pools_api import get_pools_by_league_and_season
-from models.enums.category import Category
 from models.enums.datasource_priority import DataSourcePriority
-from models.enums.division_code import DivisionCode
 from models.enums.format import Format
 from models.enums.gender import Gender
-from models.match import MatchStatus
+from models.enums.match_status import MatchStatus
 from models.pool import Pool
+from models.raw_division_mapping import RawDivisionMapping
 from models.scraper import Scraper
 from services.matchs_service import find_match_in_cache
 from services.teams_service import find_team_by_name_in_division_format_gender
@@ -26,7 +26,6 @@ class ProScraper(Scraper):
     def __init__(self, session):
         super().__init__(
             session, name="pro_scraper", 
-            category=Category.PRO, 
             priority_validation_enabled=True
         )
         self.raw_season = "2024/2025"
@@ -39,8 +38,6 @@ class ProScraper(Scraper):
             {
                 "pool_code": "MSL",
                 "name": "Marmara SpikeLigue",
-                "division_code": DivisionCode.MSL.value,
-                "gender": Gender.M.value,
                 "lnv_url": "http://lnv-web.dataproject.com/CompetitionMatches.aspx?ID=115",
                 "lnv_xml_matches_url": "https://www.lnv.fr/xml/calendrier-LAM.xml",
                 "lnv_xml_rank_url": "https://www.lnv.fr/xml/classement-LAM.xml"
@@ -48,8 +45,6 @@ class ProScraper(Scraper):
             {
                 "pool_code": "LBM",
                 "name": "Ligue B Masculine",
-                "division_code": DivisionCode.LBM.value,
-                "gender": Gender.M.value,
                 "lnv_url": "http://lnv-web.dataproject.com/CompetitionMatches.aspx?ID=116",
                 "lnv_xml_matches_url": "https://www.lnv.fr/xml/calendrier-LBM.xml",
                 "lnv_xml_rank_url": "https://www.lnv.fr/xml/classement-LBM.xml"
@@ -57,20 +52,10 @@ class ProScraper(Scraper):
             {
                 "pool_code": "LAF",
                 "name": "Saforelle Power 6",
-                "division_code": DivisionCode.SP6.value,
-                "gender": Gender.F.value,
                 "lnv_url": "http://lnv-web.dataproject.com/CompetitionMatches.aspx?ID=113",
                 "lnv_xml_matches_url": "https://www.lnv.fr/xml/calendrier-LAF.xml",                
                 "lnv_xml_rank_url": "https://www.lnv.fr/xml/classement-LAF.xml"
             },
-            # {
-            #     "code": "FAZ",
-            #     "name": "Saforelle Power 6 - Playoffs",
-            #     "gender": "F",
-            #     "lnv_url": "http://lnv-web.dataproject.com/CompetitionMatches.aspx?ID=113",
-            #     "lnv_xml_matches_url": "https://www.lnv.fr/xml/calendrier-LAF.xml",                
-            #     "lnv_xml_rank_url": "https://www.lnv.fr/xml/classement-LAF.xml"
-            # },
         ]
 
     async def run_scraping(self):
@@ -88,19 +73,39 @@ class ProScraper(Scraper):
                 (pool.pool_code, pool.league_code, pool.season): pool
                 for pool in existing_pools
             }
+            
+            raw_mappings = await get_raw_division_mappings_by_league_and_season(self.session, self.league_code, self.parsed_season)
+            mapping_dict = {m.raw_division_name: m for m in raw_mappings}
 
             # Boucle de traitement de chaque poule configurée
             for pool_json in self.pools_json:
                 try:
+                    name = pool_json['name']
+                    pool_code = pool_json['pool_code']
+                    mapping = mapping_dict.get(name)
+
+                    if not mapping:
+                        new_mapping = RawDivisionMapping(
+                            raw_division_name=name,
+                            league_code=self.league_code,
+                            season=self.parsed_season
+                        )
+                        created_mapping = await create_raw_division_mapping(self.session, new_mapping)
+                        mapping_dict[name] = created_mapping
+                        continue
+
+                    if not mapping.is_mapped():
+                        continue
+                    
                     pool_obj = Pool(
-                        pool_code=pool_json['pool_code'],
+                        pool_code=pool_code,
                         league_code=self.league_code,
                         season=self.parsed_season,
                         league_name=self.league_name,
-                        name=pool_json['name'],
-                        division_code=pool_json['division_code'],
-                        format=Format.SIX.value,
-                        gender=pool_json['gender']
+                        name=name,
+                        division_id=mapping.division_id,
+                        format=mapping.format,
+                        gender=mapping.gender
                     )
 
                     # Clé d'identification pour le dict
@@ -242,7 +247,7 @@ class ProScraper(Scraper):
                 if set_value != "0-0":
                     updated_match.set = set_value
                     if "3" in set_value:
-                        updated_match.status = MatchStatus.FINISHED
+                        updated_match.status = MatchStatus.FINISHED.value
                 if score_str:
                     updated_match.score = score_str
 
@@ -297,7 +302,7 @@ class ProScraper(Scraper):
 
                     team = await find_team_by_name_in_division_format_gender(
                         self.session,
-                        pool.division_code,
+                        pool.division_id,
                         pool.format,
                         pool.gender,
                         full_name
@@ -434,14 +439,14 @@ class ProScraper(Scraper):
             if home_team_full and guest_team_full:
                 team_a = await find_team_by_name_in_division_format_gender(
                     self.session,
-                    pool.division_code,
+                    pool.division_id,
                     pool.format,
                     pool.gender,
                     home_team_full
                 )
                 team_b = await find_team_by_name_in_division_format_gender(
                     self.session,
-                    pool.division_code,
+                    pool.division_id,
                     pool.format,
                     pool.gender,
                     guest_team_full

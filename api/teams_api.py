@@ -46,7 +46,7 @@ async def update_team(
 @handle_api_response(response_type=list[Team])
 async def get_teams(
     session: aiohttp.ClientSession,
-    division_code: Optional[str] = None,
+    division_id: Optional[str] = None,
     format: Optional[str] = None,
     gender: Optional[str] = None,
     club_id: Optional[str] = None,
@@ -54,15 +54,15 @@ async def get_teams(
     ids: Optional[List[int]] = None
 ) -> List[Team]:
     """
-    Récupère les équipes avec des filtres optionnels : name, division_code, format, gender, club_id, ids.
+    Récupère les équipes avec des filtres optionnels : name, division_id, format, gender, club_id, ids.
     """
     headers = _get_headers()
     params = {}
 
     if name:
         params["name"] = name
-    if division_code:
-        params["division_code"] = division_code
+    if division_id:
+        params["division_id"] = division_id
     if format:
         params["format"] = format
     if gender:
