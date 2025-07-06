@@ -1,13 +1,13 @@
 package com.blockout.workersearch.services.clients;
 
+import com.blockout.workersearch.config.ApiClientProperties;
+import com.blockout.workersearch.models.dto.pool.PoolDTO;
+
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-
-import com.blockout.workersearch.config.ApiClientProperties;
-import com.blockout.workersearch.models.dto.pool.PoolDTO;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -32,18 +32,12 @@ public class PoolClientService {
 
         try {
             ResponseEntity<PoolDTO[]> response = apiClientService.get(url, PoolDTO[].class);
-            PoolDTO[] body = response.getBody();
-            List<PoolDTO> pools = body != null ? Arrays.asList(body) : Collections.emptyList();
-
-            logger.info("Successfully fetched pools",
-                    keyValue("count", pools.size()));
-
-            return pools;
+            return response.getBody() != null ? Arrays.asList(response.getBody()) : Collections.emptyList();
         } catch (Exception e) {
             logger.error("Failed to fetch pools from Pool API",
                     keyValue("url", url),
                     keyValue("error", e.getMessage()), e);
-            return Collections.emptyList();
+            throw new RuntimeException("Erreur lors de la récupération des poules", e);
         }
     }
 }
