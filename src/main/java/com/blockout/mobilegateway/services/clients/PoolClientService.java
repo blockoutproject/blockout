@@ -2,7 +2,6 @@ package com.blockout.mobilegateway.services.clients;
 
 import com.blockout.mobilegateway.config.ApiClientProperties;
 import com.blockout.mobilegateway.models.dto.pool.PoolDTO;
-import com.blockout.mobilegateway.exceptions.PoolNotFoundException;
 
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -10,7 +9,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.util.UriComponentsBuilder;
-import org.springframework.web.client.HttpClientErrorException;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -27,21 +25,12 @@ public class PoolClientService {
     private final ApiClientService apiClientService;
 
     public PoolDTO getPoolById(Long id) {
-        String baseUrl = apiClientProperties.getPool().getUrl();
-        String url = baseUrl + "/" + id;
+        String url = apiClientProperties.getPool().getUrl() + "/" + id;
 
         logger.info("Calling getPoolById", keyValue("id", id), keyValue("url", url));
 
-        try {
-            ResponseEntity<PoolDTO> response = apiClientService.get(url, PoolDTO.class);
-            return response.getBody();
-        } catch (HttpClientErrorException.NotFound e) {
-            logger.warn("Pool not found", keyValue("id", id), keyValue("url", url));
-            throw new PoolNotFoundException(id);
-        } catch (Exception e) {
-            logger.error("Failed to fetch pool", keyValue("id", id), keyValue("url", url), keyValue("error", e.getMessage()), e);
-            throw new RuntimeException("Erreur lors de la récupération de la pool", e);
-        }
+        ResponseEntity<PoolDTO> response = apiClientService.get(url, PoolDTO.class);
+        return response.getBody();
     }
 
     public List<PoolDTO> getPoolsByIds(Set<Long> ids) {
@@ -49,21 +38,16 @@ public class PoolClientService {
             return Collections.emptyList();
         }
 
-        String baseUrl = apiClientProperties.getPool().getUrl();
         String url = UriComponentsBuilder
-                .fromUriString(baseUrl)
+                .fromUriString(apiClientProperties.getPool().getUrl())
                 .queryParam("ids", ids.stream().map(String::valueOf).collect(Collectors.joining(",")))
                 .build()
                 .toUriString();
 
         logger.info("Calling getPoolsByIds", keyValue("ids", ids), keyValue("url", url));
 
-        try {
-            ResponseEntity<PoolDTO[]> response = apiClientService.get(url, PoolDTO[].class);
-            return response.getBody() != null ? Arrays.asList(response.getBody()) : Collections.emptyList();
-        } catch (Exception e) {
-            logger.error("Failed to fetch pools", keyValue("ids", ids), keyValue("error", e.getMessage()), e);
-            throw new RuntimeException("Erreur lors de la récupération de la pool", e);
-        }
+        ResponseEntity<PoolDTO[]> response = apiClientService.get(url, PoolDTO[].class);
+        PoolDTO[] body = response.getBody();
+        return body != null ? Arrays.asList(body) : Collections.emptyList();
     }
 }

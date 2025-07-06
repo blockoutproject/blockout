@@ -3,9 +3,8 @@ package com.blockout.mobilegateway.exceptions;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.HttpClientErrorException;
 
 import java.time.Instant;
 import java.util.Map;
@@ -13,67 +12,28 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(AccessDeniedException.class)
-    public ResponseEntity<Map<String, Object>> handleAccessDenied(
-            AccessDeniedException ex, HttpServletRequest request) {
-        return buildErrorResponse(
-                "Accès refusé : vous n’avez pas les permissions nécessaires.",
-                HttpStatus.FORBIDDEN,
-                request.getRequestURI());
-    }
+    @ExceptionHandler(HttpClientErrorException.class)
+    public ResponseEntity<Map<String, Object>> handleHttpClientError(
+            HttpClientErrorException ex, HttpServletRequest request) {
 
-    @ExceptionHandler(AuthenticationException.class)
-    public ResponseEntity<Map<String, Object>> handleAuthenticationException(
-            AuthenticationException ex, HttpServletRequest request) {
-        return buildErrorResponse(
-                "Authentification requise ou invalide.",
-                HttpStatus.UNAUTHORIZED,
-                request.getRequestURI());
-    }
-    @ExceptionHandler(DivisionNotFoundException.class)
-    public ResponseEntity<Map<String, Object>> handleDivisionNotFound(
-            DivisionNotFoundException ex, HttpServletRequest request) {
-        ex.printStackTrace();
-        return buildErrorResponse(
-                ex.getMessage(),
-                HttpStatus.NOT_FOUND,
-                request.getRequestURI());
-    }
+        HttpStatus status = HttpStatus.resolve(ex.getStatusCode().value());
+        if (status == null) {
+            status = HttpStatus.BAD_REQUEST;
+        }
 
-    @ExceptionHandler(PoolNotFoundException.class)
-    public ResponseEntity<Map<String, Object>> handlePoolNotFound(
-            PoolNotFoundException ex, HttpServletRequest request) {
-        ex.printStackTrace();
-        return buildErrorResponse(
-                ex.getMessage(),
-                HttpStatus.NOT_FOUND,
-                request.getRequestURI());
-    }
+        String message = switch (status) {
+            case UNAUTHORIZED -> "Authentification requise ou invalide.";
+            case FORBIDDEN -> "Accès refusé : vous n’avez pas les permissions nécessaires.";
+            case NOT_FOUND -> ex.getMessage();
+            default -> "Erreur client (" + status.value() + ") lors de l’appel à un service distant.";
+        };
 
-    @ExceptionHandler(MatchNotFoundException.class)
-    public ResponseEntity<Map<String, Object>> handleMatchNotFound(
-            MatchNotFoundException ex, HttpServletRequest request) {
-        ex.printStackTrace();
-        return buildErrorResponse(
-                ex.getMessage(),
-                HttpStatus.NOT_FOUND,
-                request.getRequestURI());
-    }
-
-    @ExceptionHandler(TeamNotFoundException.class)
-    public ResponseEntity<Map<String, Object>> handleTeamNotFound(
-            TeamNotFoundException ex, HttpServletRequest request) {
-        ex.printStackTrace();
-        return buildErrorResponse(
-                ex.getMessage(),
-                HttpStatus.NOT_FOUND,
-                request.getRequestURI());
+        return buildErrorResponse(message, status, request.getRequestURI());
     }
 
     @ExceptionHandler(IllegalStateException.class)
     public ResponseEntity<Map<String, Object>> handleIllegalState(
             IllegalStateException ex, HttpServletRequest request) {
-        ex.printStackTrace();
         return buildErrorResponse(
                 ex.getMessage(),
                 HttpStatus.BAD_REQUEST,
@@ -83,7 +43,6 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleGeneric(
             Exception ex, HttpServletRequest request) {
-        ex.printStackTrace();
         return buildErrorResponse(
                 "Une erreur interne est survenue.",
                 HttpStatus.INTERNAL_SERVER_ERROR,
@@ -100,7 +59,6 @@ public class GlobalExceptionHandler {
                 "status", status.value(),
                 "error", status.getReasonPhrase(),
                 "message", message,
-                "path", path
-        ));
+                "path", path));
     }
 }
