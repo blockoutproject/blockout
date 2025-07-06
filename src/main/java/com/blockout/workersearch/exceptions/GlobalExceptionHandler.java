@@ -1,5 +1,6 @@
 package com.blockout.workersearch.exceptions;
 
+import com.blockout.workersearch.utils.ApiErrorUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -17,16 +18,18 @@ public class GlobalExceptionHandler {
             HttpClientErrorException ex, HttpServletRequest request) {
 
         HttpStatus status = HttpStatus.resolve(ex.getStatusCode().value());
-        if (status == null) {
-            status = HttpStatus.BAD_REQUEST;
-        }
+        if (status == null) status = HttpStatus.BAD_REQUEST;
 
-        String message = switch (status) {
+        String extracted = ApiErrorUtils.extractMessage(ex.getResponseBodyAsString());
+
+        String fallback = switch (status) {
             case UNAUTHORIZED -> "Authentication is required or invalid.";
             case FORBIDDEN -> "Access denied: you do not have the required permissions.";
-            case NOT_FOUND -> ex.getMessage();
+            case NOT_FOUND -> "The requested resource was not found.";
             default -> "Client error (" + status.value() + ") occurred when calling an external service.";
         };
+
+        String message = (extracted != null && !extracted.isBlank()) ? extracted : fallback;
 
         return buildErrorResponse(message, status, request.getRequestURI());
     }
