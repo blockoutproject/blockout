@@ -25,26 +25,16 @@ public class EnrichedMatchService {
 
     public EnrichedMatchDTO getEnrichedMatchById(Long matchId) {
         MatchDTO match = matchClientService.getMatchById(matchId);
-        if (match == null)
-            return null;
-
         TeamDTO teamA = teamClientService.getTeamById(match.getTeamIdA());
         TeamDTO teamB = teamClientService.getTeamById(match.getTeamIdB());
-
         PoolDTO rawPool = poolClientService.getPoolById(match.getPoolId());
-        EnrichedPoolDTO enrichedPool = null;
-
-        if (rawPool != null) {
-            DivisionDTO division = null;
-            if (rawPool.getDivisionId() != null) {
-                division = configClientService.getDivisionById(rawPool.getDivisionId());
-            }
-            enrichedPool = EnrichedPoolDTO.builder()
-                    .id(rawPool.getId())
-                    .name(rawPool.getName())
-                    .division(division)
-                    .build();
-        }
+        DivisionDTO division = configClientService.getDivisionById(rawPool.getDivisionId());
+        
+        EnrichedPoolDTO enrichedPool = EnrichedPoolDTO.builder()
+                .id(rawPool.getId())
+                .name(rawPool.getName())
+                .division(division)
+                .build();
 
         return EnrichedMatchDTO.builder()
                 .id(match.getId())
