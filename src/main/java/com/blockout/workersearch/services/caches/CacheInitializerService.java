@@ -10,6 +10,7 @@ import com.blockout.workersearch.models.dto.club.ClubDTO;
 import com.blockout.workersearch.models.dto.config.DivisionDTO;
 import com.blockout.workersearch.models.dto.team.TeamDTO;
 import com.blockout.workersearch.models.events.ClubUpsertEvent;
+import com.blockout.workersearch.models.events.DivisionUpsertEvent;
 import com.blockout.workersearch.models.events.TeamUpsertEvent;
 import com.blockout.workersearch.services.clients.ClubClientService;
 import com.blockout.workersearch.services.clients.ConfigClientService;
@@ -74,10 +75,15 @@ public class CacheInitializerService {
                 keyValue("teamCount", teamCacheService.getAllTeamCache().size()));
 
         // Initialisation du cache des divisions
-
         List<DivisionDTO> divisions = configClientService.listDivisions();
+        List<DivisionUpsertEvent> divisionEvents = divisions.stream()
+                .map(division -> DivisionUpsertEvent.builder()
+                        .id(division.getId())
+                        .name(division.getName())
+                        .build())
+                .toList();
 
-        configCacheService.replaceDivisions(divisions);
+        configCacheService.replaceDivisions(divisionEvents);
 
         logger.info("Division cache initialized",
                 keyValue("action", "initialize_division_cache"),

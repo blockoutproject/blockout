@@ -9,7 +9,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import com.blockout.workersearch.models.docs.PoolDoc;
-import com.blockout.workersearch.models.dto.config.DivisionDTO;
+import com.blockout.workersearch.models.events.DivisionUpsertEvent;
 import com.blockout.workersearch.models.events.PoolUpsertEvent;
 import com.blockout.workersearch.repositories.PoolRepository;
 import com.blockout.workersearch.services.caches.ConfigCacheService;
@@ -52,7 +52,7 @@ public class PoolIndexService {
     }
 
     private PoolDoc map(PoolUpsertEvent e) {
-        DivisionDTO division = configCacheService.getDivisionById(e.getDivisionId());
+        DivisionUpsertEvent division = configCacheService.getDivisionById(e.getDivisionId());
         String divisionName = division != null ? division.getName() : "Division inconnue";
 
         return PoolDoc.builder()

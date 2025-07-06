@@ -6,10 +6,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import com.blockout.workersearch.models.docs.TeamDoc;
-import com.blockout.workersearch.models.dto.config.DivisionDTO;
 import com.blockout.workersearch.models.enums.Format;
 import com.blockout.workersearch.models.enums.Gender;
 import com.blockout.workersearch.models.events.ClubUpsertEvent;
+import com.blockout.workersearch.models.events.DivisionUpsertEvent;
 import com.blockout.workersearch.models.events.TeamUpsertEvent;
 import com.blockout.workersearch.repositories.TeamRepository;
 import com.blockout.workersearch.services.caches.ClubCacheService;
@@ -64,11 +64,8 @@ public class TeamIndexService {
 
     private TeamDoc map(TeamUpsertEvent e) {
         ClubUpsertEvent club = clubCacheService.getClubById(e.getClubId());
-        DivisionDTO division = configCacheService.getDivisionById(e.getDivisionId());
-        logger.info("Division found",
-                keyValue("action", "get_division_by_id"),
-                keyValue("divisionId", e.getDivisionId()),
-                keyValue("divisionName", division != null ? division.getName() : "Inconnue"));
+        DivisionUpsertEvent division = configCacheService.getDivisionById(e.getDivisionId());
+
         String name = e.getName();
         String clubName = club != null ? club.getName() : null;
         String clubCity = club != null ? club.getCity() : null;

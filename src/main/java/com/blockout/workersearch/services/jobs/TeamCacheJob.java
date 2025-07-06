@@ -24,7 +24,6 @@ public class TeamCacheJob {
     public void refreshTeamCache() {
         try {
             var teams = teamClientService.listAllTeams();
-
             var events = teams.stream()
                     .map(team -> TeamUpsertEvent.builder()
                             .id(team.getId())

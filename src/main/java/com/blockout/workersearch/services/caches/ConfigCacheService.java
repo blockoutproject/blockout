@@ -1,6 +1,7 @@
 package com.blockout.workersearch.services.caches;
 
-import com.blockout.workersearch.models.dto.config.DivisionDTO;
+import com.blockout.workersearch.models.events.DivisionUpsertEvent;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -11,21 +12,21 @@ import java.util.concurrent.ConcurrentHashMap;
 @RequiredArgsConstructor
 public class ConfigCacheService {
 
-    private final Map<Long, DivisionDTO> divisionCache = new ConcurrentHashMap<>();
+    private final Map<Long, DivisionUpsertEvent> divisionCache = new ConcurrentHashMap<>();
 
-    public DivisionDTO getDivisionById(Long id) {
+    public DivisionUpsertEvent getDivisionById(Long id) {
         return divisionCache.get(id);
     }
 
-    public Collection<DivisionDTO> getDivisions() {
+    public Collection<DivisionUpsertEvent> getDivisions() {
         return divisionCache.values();
     }
 
-    public void putDivision(DivisionDTO dto) {
+    public void putDivision(DivisionUpsertEvent dto) {
         divisionCache.put(dto.getId(), dto);
     }
 
-    public void replaceDivisions(List<DivisionDTO> dtos) {
+    public void replaceDivisions(List<DivisionUpsertEvent> dtos) {
         divisionCache.clear();
         dtos.forEach(this::putDivision);
     }
