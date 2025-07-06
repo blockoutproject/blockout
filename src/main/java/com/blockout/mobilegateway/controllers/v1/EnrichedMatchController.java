@@ -25,9 +25,6 @@ public class EnrichedMatchController {
     @GetMapping("/{id}")
     public ResponseEntity<EnrichedMatchDTO> getEnrichedMatch(@PathVariable("id") Long matchId) {
         EnrichedMatchDTO match = enrichedMatchService.getEnrichedMatchById(matchId);
-        if (match == null) {
-            return ResponseEntity.notFound().build();
-        }
         return ResponseEntity.ok(match);
     }
 }

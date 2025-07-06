@@ -26,9 +26,6 @@ public class EnrichedPoolController {
     @GetMapping("/{id}")
     public ResponseEntity<EnrichedPoolDTO> getEnrichedPool(@PathVariable("id") Long poolId) {
         EnrichedPoolDTO pool = enrichedPoolService.getEnrichedPoolById(poolId);
-        if (pool == null) {
-            return ResponseEntity.notFound().build();
-        }
         return ResponseEntity.ok(pool);
     }
 }
