@@ -3,6 +3,8 @@ package com.blockout.matches.exceptions;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
@@ -11,6 +13,23 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<Map<String, Object>> handleAccessDenied(
+            AccessDeniedException ex, HttpServletRequest request) {
+        return buildErrorResponse(
+                "Accès refusé : vous n’avez pas les permissions nécessaires.",
+                HttpStatus.FORBIDDEN,
+                request.getRequestURI());
+    }
+
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<Map<String, Object>> handleAuthenticationException(
+            AuthenticationException ex, HttpServletRequest request) {
+        return buildErrorResponse(
+                "Authentification requise ou invalide.",
+                HttpStatus.UNAUTHORIZED,
+                request.getRequestURI());
+    }
     @ExceptionHandler(MatchNotFoundException.class)
     public ResponseEntity<Map<String, Object>> handlePoolNotFound(
             MatchNotFoundException ex, HttpServletRequest request) {
