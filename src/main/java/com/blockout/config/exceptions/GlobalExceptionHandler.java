@@ -3,6 +3,8 @@ package com.blockout.config.exceptions;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
@@ -11,9 +13,36 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(EntityNotFoundException.class)
-    public ResponseEntity<Map<String, Object>> handlePoolNotFound(
-            EntityNotFoundException ex, HttpServletRequest request) {
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<Map<String, Object>> handleAccessDenied(
+            AccessDeniedException ex, HttpServletRequest request) {
+        return buildErrorResponse(
+                "Accès refusé : vous n’avez pas les permissions nécessaires.",
+                HttpStatus.FORBIDDEN,
+                request.getRequestURI());
+    }
+
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<Map<String, Object>> handleAuthenticationException(
+            AuthenticationException ex, HttpServletRequest request) {
+        return buildErrorResponse(
+                "Authentification requise ou invalide.",
+                HttpStatus.UNAUTHORIZED,
+                request.getRequestURI());
+    }
+    @ExceptionHandler(RawDivisionMappingNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleRawDivisionMappingNotFound(
+            RawDivisionMappingNotFoundException ex, HttpServletRequest request) {
+        ex.printStackTrace();
+        return buildErrorResponse(
+                ex.getMessage(),
+                HttpStatus.NOT_FOUND,
+                request.getRequestURI());
+    }
+
+    @ExceptionHandler(DivisionNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleDivisionNotFound(
+            DivisionNotFoundException ex, HttpServletRequest request) {
         ex.printStackTrace();
         return buildErrorResponse(
                 ex.getMessage(),
@@ -51,7 +80,6 @@ public class GlobalExceptionHandler {
                 "status", status.value(),
                 "error", status.getReasonPhrase(),
                 "message", message,
-                "path", path
-        ));
+                "path", path));
     }
 }
