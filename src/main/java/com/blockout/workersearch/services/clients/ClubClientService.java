@@ -31,15 +31,21 @@ public class ClubClientService {
                 keyValue("action", "call_club_list_endpoint"),
                 keyValue("url", url));
 
-        try {
-            ResponseEntity<ClubDTO[]> response = apiClientService.get(url, ClubDTO[].class);
-            return response.getBody() != null ? Arrays.asList(response.getBody()) : Collections.emptyList();
+        ResponseEntity<ClubDTO[]> response = apiClientService.get(url, ClubDTO[].class);
+        ClubDTO[] body = response.getBody();
 
-        } catch (Exception e) {
-            logger.error("Failed to fetch clubs from Club API",
-                    keyValue("url", url),
-                    keyValue("error", e.getMessage()), e);
-            throw new RuntimeException("Erreur lors de la récupération des clubs", e);
-        }
+        return body != null ? Arrays.asList(body) : Collections.emptyList();
+    }
+
+    public ClubDTO getClubById(Long id) {
+        String url = apiClientProperties.getClub().getUrl() + "/" + id;
+
+        logger.info("Calling getClubById",
+                keyValue("action", "call_club_get_by_id"),
+                keyValue("id", id),
+                keyValue("url", url));
+
+        ResponseEntity<ClubDTO> response = apiClientService.get(url, ClubDTO.class);
+        return response.getBody();
     }
 }

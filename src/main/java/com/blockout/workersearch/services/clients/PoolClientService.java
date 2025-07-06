@@ -26,18 +26,14 @@ public class PoolClientService {
 
     public List<PoolDTO> listPools() {
         String url = apiClientProperties.getPool().getUrl();
+
         logger.info("Calling listPools endpoint",
                 keyValue("action", "call_pool_list_endpoint"),
                 keyValue("url", url));
 
-        try {
-            ResponseEntity<PoolDTO[]> response = apiClientService.get(url, PoolDTO[].class);
-            return response.getBody() != null ? Arrays.asList(response.getBody()) : Collections.emptyList();
-        } catch (Exception e) {
-            logger.error("Failed to fetch pools from Pool API",
-                    keyValue("url", url),
-                    keyValue("error", e.getMessage()), e);
-            throw new RuntimeException("Erreur lors de la récupération des poules", e);
-        }
+        ResponseEntity<PoolDTO[]> response = apiClientService.get(url, PoolDTO[].class);
+        PoolDTO[] body = response.getBody();
+
+        return body != null ? Arrays.asList(body) : Collections.emptyList();
     }
 }

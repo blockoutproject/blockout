@@ -9,6 +9,8 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.server.ResponseStatusException;
+
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
 @Service
@@ -39,11 +41,19 @@ public class ApiClientService {
             logger.warn("Unauthorized GET request", keyValue("url", url));
             throw new AuthenticationException("Authentification requise ou invalide pour " + url) {};
 
+        } catch (HttpClientErrorException.NotFound e) {
+            logger.warn("Resource not found on GET request", keyValue("url", url));
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Ressource non trouvée à l’URL " + url, e);
+
+        } catch (HttpClientErrorException e) {
+            logger.error("Client error on GET request", keyValue("url", url), keyValue("status", e.getStatusCode()));
+            throw new ResponseStatusException(e.getStatusCode(), "Erreur client HTTP sur " + url, e);
+
         } catch (Exception e) {
             logger.error("GET request failed",
                     keyValue("url", url),
                     keyValue("error", e.getMessage()), e);
-            throw e;
+            throw new RuntimeException("Erreur lors de l'appel GET sur " + url, e);
         }
     }
 
@@ -73,11 +83,19 @@ public class ApiClientService {
             logger.warn("Unauthorized POST request", keyValue("url", url));
             throw new AuthenticationException("Authentification requise ou invalide pour " + url) {};
 
+        } catch (HttpClientErrorException.NotFound e) {
+            logger.warn("Resource not found on POST request", keyValue("url", url));
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Ressource non trouvée à l’URL " + url, e);
+
+        } catch (HttpClientErrorException e) {
+            logger.error("Client error on POST request", keyValue("url", url), keyValue("status", e.getStatusCode()));
+            throw new ResponseStatusException(e.getStatusCode(), "Erreur client HTTP sur " + url, e);
+
         } catch (Exception e) {
             logger.error("POST request failed",
                     keyValue("url", url),
                     keyValue("error", e.getMessage()), e);
-            throw e;
+            throw new RuntimeException("Erreur lors de l'appel POST sur " + url, e);
         }
     }
 }

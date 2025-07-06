@@ -1,7 +1,6 @@
 package com.blockout.workersearch.services.clients;
 
 import com.blockout.workersearch.config.ApiClientProperties;
-import com.blockout.workersearch.exceptions.DivisionNotFoundException;
 import com.blockout.workersearch.models.dto.config.DivisionDTO;
 
 import lombok.RequiredArgsConstructor;
@@ -9,7 +8,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.HttpClientErrorException;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -33,15 +31,10 @@ public class ConfigClientService {
                 keyValue("action", "call_config_list_divisions"),
                 keyValue("url", url));
 
-        try {
-            ResponseEntity<DivisionDTO[]> response = apiClientService.get(url, DivisionDTO[].class);
-            return response.getBody() != null ? Arrays.asList(response.getBody()) : Collections.emptyList();
-        } catch (Exception e) {
-            logger.error("Failed to fetch divisions from Config API",
-                    keyValue("url", url),
-                    keyValue("error", e.getMessage()), e);
-            throw new RuntimeException("Erreur lors de la récupération des divisions", e);
-        }
+        ResponseEntity<DivisionDTO[]> response = apiClientService.get(url, DivisionDTO[].class);
+        DivisionDTO[] body = response.getBody();
+
+        return body != null ? Arrays.asList(body) : Collections.emptyList();
     }
 
     public DivisionDTO getDivisionById(Long id) {
@@ -52,18 +45,7 @@ public class ConfigClientService {
                 keyValue("id", id),
                 keyValue("url", url));
 
-        try {
-            ResponseEntity<DivisionDTO> response = apiClientService.get(url, DivisionDTO.class);
-            return response.getBody();
-        } catch (HttpClientErrorException.NotFound e) {
-            logger.warn("Division not found", keyValue("id", id), keyValue("url", url));
-            throw new DivisionNotFoundException(id);
-        } catch (Exception e) {
-            logger.error("Failed to fetch division by ID from Config API",
-                    keyValue("id", id),
-                    keyValue("url", url),
-                    keyValue("error", e.getMessage()), e);
-            throw new RuntimeException("Erreur lors de la récupération de la division " + id, e);
-        }
+        ResponseEntity<DivisionDTO> response = apiClientService.get(url, DivisionDTO.class);
+        return response.getBody();
     }
 }

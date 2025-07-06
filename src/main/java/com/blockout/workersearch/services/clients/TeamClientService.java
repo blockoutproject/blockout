@@ -27,20 +27,15 @@ public class TeamClientService {
 
     public List<TeamDTO> listAllTeams() {
         String url = apiClientProperties.getTeam().getUrl();
+
         logger.info("Calling listAllTeams endpoint",
                 keyValue("action", "call_team_list_all"),
                 keyValue("url", url));
 
-        try {
-            ResponseEntity<TeamDTO[]> response = apiClientService.get(url, TeamDTO[].class);
-            return response.getBody() != null ? Arrays.asList(response.getBody()) : Collections.emptyList();
+        ResponseEntity<TeamDTO[]> response = apiClientService.get(url, TeamDTO[].class);
+        TeamDTO[] body = response.getBody();
 
-        } catch (Exception e) {
-            logger.error("Failed to fetch all teams from Team API",
-                    keyValue("url", url),
-                    keyValue("error", e.getMessage()), e);
-            throw new RuntimeException("Erreur lors de la récupération des équipes", e);
-        }
+        return body != null ? Arrays.asList(body) : Collections.emptyList();
     }
 
     public List<TeamDTO> listTeamsByClubId(String clubId) {
@@ -56,14 +51,9 @@ public class TeamClientService {
                 keyValue("url", url),
                 keyValue("clubId", clubId));
 
-        try {
-            ResponseEntity<TeamDTO[]> response = apiClientService.get(url, TeamDTO[].class);
-            return response.getBody() != null ? Arrays.asList(response.getBody()) : Collections.emptyList();
-        } catch (Exception e) {
-            logger.error("Failed to fetch teams from Team API",
-                    keyValue("url", url),
-                    keyValue("error", e.getMessage()), e);
-            throw new RuntimeException("Erreur lors de la récupération des équipes pour club " + clubId, e);
-        }
+        ResponseEntity<TeamDTO[]> response = apiClientService.get(url, TeamDTO[].class);
+        TeamDTO[] body = response.getBody();
+
+        return body != null ? Arrays.asList(body) : Collections.emptyList();
     }
 }
