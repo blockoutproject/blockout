@@ -22,10 +22,10 @@ public class GlobalExceptionHandler {
         }
 
         String message = switch (status) {
-            case UNAUTHORIZED -> "Authentification requise ou invalide.";
-            case FORBIDDEN -> "Accès refusé : vous n’avez pas les permissions nécessaires.";
+            case UNAUTHORIZED -> "Authentication is required or invalid.";
+            case FORBIDDEN -> "Access denied: you do not have the required permissions.";
             case NOT_FOUND -> ex.getMessage();
-            default -> "Erreur client (" + status.value() + ") lors de l’appel à un service distant.";
+            default -> "Client error (" + status.value() + ") occurred when calling an external service.";
         };
 
         return buildErrorResponse(message, status, request.getRequestURI());
@@ -44,7 +44,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, Object>> handleGeneric(
             Exception ex, HttpServletRequest request) {
         return buildErrorResponse(
-                "Une erreur interne est survenue.",
+                "An internal server error occurred.",
                 HttpStatus.INTERNAL_SERVER_ERROR,
                 request.getRequestURI());
     }
@@ -59,6 +59,7 @@ public class GlobalExceptionHandler {
                 "status", status.value(),
                 "error", status.getReasonPhrase(),
                 "message", message,
-                "path", path));
+                "path", path
+        ));
     }
 }
