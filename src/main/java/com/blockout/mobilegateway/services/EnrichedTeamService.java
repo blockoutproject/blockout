@@ -66,10 +66,8 @@ public class EnrichedTeamService {
                     }
                     return TeamWithStatsDTO.builder()
                             .id(t.getId())
-                            .clubId(t.getClubId())
                             .name(t.getName())
                             .shortName(t.getShortName())
-                            .leagueCode(t.getLeagueCode())
                             .format(t.getFormat())
                             .gender(t.getGender())
                             .followersCount(t.getFollowersCount())
