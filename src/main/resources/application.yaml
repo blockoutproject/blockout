@@ -30,3 +30,5 @@ api:
     url: ${POOL_API_URL}
   config:
     url: ${CONFIG_API_URL}
+  competition:
+    url: ${COMPETITION_API_URL}

@@ -13,6 +13,11 @@ services:
       RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
       AUTH0_ISSUER: ${AUTH0_ISSUER}
       AUTH0_AUDIENCE: ${AUTH0_AUDIENCE}
+      MATCH_API_URL: ${MATCH_API_URL}
+      TEAM_API_URL: ${TEAM_API_URL}
+      POOL_API_URL: ${POOL_API_URL}
+      CONFIG_API_URL: ${CONFIG_API_URL}
+      COMPETITION_API_URL: ${COMPETITION_API_URL}
     depends_on:
       postgres:
         condition: service_healthy
