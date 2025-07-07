@@ -6,18 +6,38 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
-import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
-import lombok.experimental.SuperBuilder;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @Data
-@SuperBuilder
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@EqualsAndHashCode(callSuper = true)
-public class EnrichedMatchDTO extends MatchDTO {
+public class EnrichedMatchDTO {
+    private Long id;
+
+    @JsonProperty("live_code")
+    private Long liveCode;
+
+    @JsonProperty("match_date")
+    private String matchDate;
+
+    private String set;
+
+    private String score;
+
+    private String status;
+    
+    private String venue;
+
+    @JsonProperty("first_referee")
+    private String firstReferee;
+
+    @JsonProperty("second_referee")
+    private String secondReferee;
+    
     @JsonProperty("team_a")
     private TeamDTO teamA;
 

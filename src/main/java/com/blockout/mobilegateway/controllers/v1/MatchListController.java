@@ -26,7 +26,7 @@ public class MatchListController {
     @GetMapping
     public ResponseEntity<List<EnrichedDayMatchesDTO>> getMatchList(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "3") int size,
+            @RequestParam int size,
             @RequestParam(required = false, name = "pool_ids") List<Long> poolIds,
             @RequestParam(required = false, name = "team_ids") List<Long> teamIds,
             @RequestParam String status) {

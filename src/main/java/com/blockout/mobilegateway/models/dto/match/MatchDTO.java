@@ -2,13 +2,13 @@ package com.blockout.mobilegateway.models.dto.match;
 
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.experimental.SuperBuilder;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 @Data
-@SuperBuilder
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class MatchDTO {
