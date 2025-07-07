@@ -1,5 +1,6 @@
 package com.blockout.mobilegateway.models.dto.team;
 
+import com.blockout.mobilegateway.models.dto.config.DivisionDTO;
 import com.blockout.mobilegateway.models.dto.pool.EnrichedPoolDTO;
 import com.blockout.mobilegateway.models.enums.Format;
 import com.blockout.mobilegateway.models.enums.Gender;
@@ -15,16 +16,10 @@ import java.util.List;
 public class EnrichedTeamDTO {
     private Long id;
 
-    @JsonProperty("club_id")
-    private String clubId;
-
     private String name;
 
     @JsonProperty("short_name")
     private String shortName;
-
-    @JsonProperty("league_code")
-    private String leagueCode;
 
     private Format format;
 
@@ -32,6 +27,8 @@ public class EnrichedTeamDTO {
 
     @JsonProperty("followers_count")
     private Long followersCount;
+
+    private DivisionDTO division;
 
     private List<EnrichedPoolDTO> pools;
 }

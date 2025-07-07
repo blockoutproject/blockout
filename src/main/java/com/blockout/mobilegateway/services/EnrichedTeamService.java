@@ -105,14 +105,13 @@ public class EnrichedTeamService {
 
         return EnrichedTeamDTO.builder()
                 .id(team.getId())
-                .clubId(team.getClubId())
                 .name(team.getName())
                 .shortName(team.getShortName())
-                .leagueCode(team.getLeagueCode())
                 .format(team.getFormat())
                 .gender(team.getGender())
                 .followersCount(team.getFollowersCount())
                 .pools(enrichedPools)
+                .division(division)
                 .build();
     }
 }
