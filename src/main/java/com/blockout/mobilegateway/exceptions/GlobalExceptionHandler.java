@@ -13,12 +13,22 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    @ExceptionHandler(InconsistentStateException.class)
+    public ResponseEntity<Map<String, Object>> handleInconsistentState(
+            InconsistentStateException ex, HttpServletRequest request) {
+        return buildErrorResponse(
+                ex.getMessage(),
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                request.getRequestURI());
+    }
+
     @ExceptionHandler(HttpClientErrorException.class)
     public ResponseEntity<Map<String, Object>> handleHttpClientError(
             HttpClientErrorException ex, HttpServletRequest request) {
 
         HttpStatus status = HttpStatus.resolve(ex.getStatusCode().value());
-        if (status == null) status = HttpStatus.BAD_REQUEST;
+        if (status == null)
+            status = HttpStatus.BAD_REQUEST;
 
         String extracted = ApiErrorUtils.extractMessage(ex.getResponseBodyAsString());
 
@@ -62,7 +72,6 @@ public class GlobalExceptionHandler {
                 "status", status.value(),
                 "error", status.getReasonPhrase(),
                 "message", message,
-                "path", path
-        ));
+                "path", path));
     }
 }

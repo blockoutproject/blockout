@@ -24,10 +24,21 @@ public class CompetitionClientService {
     private final ApiClientService apiClientService;
     private final ApiClientProperties apiClientProperties;
 
-    public List<CompetitionAssociationDTO> getPoolsAssocByTeam(Long teamId) {
+    public List<CompetitionAssociationDTO> getActiveAssociationsByTeam(Long teamId) {
         String url = apiClientProperties.getCompetition().getUrl() + "/teams/" + teamId + "/pools";
 
-        logger.info("Calling getPoolsAssocByTeam", keyValue("teamId", teamId), keyValue("url", url));
+        logger.info("Calling getActiveAssociationsByTeam", keyValue("teamId", teamId), keyValue("url", url));
+
+        ResponseEntity<CompetitionAssociationDTO[]> response = apiClientService.get(url, CompetitionAssociationDTO[].class);
+
+        CompetitionAssociationDTO[] body = response.getBody();
+        return body != null ? Arrays.asList(body) : Collections.emptyList();
+    }
+
+    public List<CompetitionAssociationDTO> getActiveAssociationsByPool(Long poolId) {
+        String url = apiClientProperties.getCompetition().getUrl() + "/pools/" + poolId + "/teams";
+
+        logger.info("Calling getActiveAssociationsByPool", keyValue("poolId", poolId), keyValue("url", url));
 
         ResponseEntity<CompetitionAssociationDTO[]> response = apiClientService.get(url, CompetitionAssociationDTO[].class);
 

@@ -1,15 +1,40 @@
 package com.blockout.mobilegateway.models.dto.pool;
 
 import com.blockout.mobilegateway.models.dto.config.DivisionDTO;
+import com.blockout.mobilegateway.models.dto.team.TeamWithStatsDTO;
+import com.blockout.mobilegateway.models.enums.Format;
+import com.blockout.mobilegateway.models.enums.Gender;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import lombok.*;
-import lombok.experimental.SuperBuilder;
+
+import java.util.List;
 
 @Data
-@SuperBuilder
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@EqualsAndHashCode(callSuper = true)
-public class EnrichedPoolDTO extends PoolDTO {
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public class EnrichedPoolDTO {
+
+    private Long id;
+
+    private Integer season;
+
+    @JsonProperty("league_name")
+    private String leagueName;
+
+    private String name;
+
+    private Format format;
+
+    private Gender gender;
+
+    @JsonProperty("followers_count")
+    private Long followersCount;
+
+    private List<TeamWithStatsDTO> ranking;
+
     private DivisionDTO division;
 }
