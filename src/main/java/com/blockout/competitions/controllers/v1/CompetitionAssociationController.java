@@ -37,19 +37,16 @@ public class CompetitionAssociationController {
         return ResponseEntity.ok(assoc);
     }
 
-    @Operation(summary = "List associations for a pool")
+    @Operation(summary = "List active associations for a pool")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Associations returned"),
             @ApiResponse(responseCode = "204", description = "No association found")
     })
     @GetMapping("/pools/{poolId}/teams")
     public ResponseEntity<List<CompetitionAssociation>> listPoolTeams(
-            @PathVariable Long poolId,
-            @RequestParam(required = false, defaultValue = "false", name = "active_only") boolean activeOnly) {
+            @PathVariable Long poolId) {
 
-        List<CompetitionAssociation> list = activeOnly
-                ? associationService.getActiveAssociationsByPool(poolId)
-                : associationService.getAssociationsByPool(poolId);
+        List<CompetitionAssociation> list = associationService.getActiveAssociationsByPool(poolId);
         return ResponseEntity.ok(list);
     }
 
@@ -59,8 +56,8 @@ public class CompetitionAssociationController {
             @ApiResponse(responseCode = "204", description = "No association found")
     })
     @GetMapping("/teams/{teamId}/pools")
-    public ResponseEntity<List<CompetitionAssociation>> listPoolsForTeam(@PathVariable Long teamId) {
-        List<CompetitionAssociation> list = associationService.getActivePoolsByTeam(teamId);
+    public ResponseEntity<List<CompetitionAssociation>> listAssociationsByTeam(@PathVariable Long teamId) {
+        List<CompetitionAssociation> list = associationService.getActiveAssociationsByTeam(teamId);
         return ResponseEntity.ok(list);
     }
 

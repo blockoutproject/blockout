@@ -31,8 +31,8 @@ public class CompetitionAssociationService {
     /**
      * Crée ou réactive l'association entre une pool et une team
      *
-     * @param poolId   L'identifiant de la pool
-     * @param teamId   L'identifiant de la team
+     * @param poolId L'identifiant de la pool
+     * @param teamId L'identifiant de la team
      * @return L'association créée ou réactivée
      */
     @Transactional
@@ -82,22 +82,12 @@ public class CompetitionAssociationService {
     }
 
     /**
-     * Récupère toutes les associations pour une pool donnée
-     *
-     * @param poolId L'identifiant de la pool
-     * @return Liste des associations de la pool
-     */
-    public List<CompetitionAssociation> getAssociationsByPool(Long poolId) {
-        return associationRepository.findByPoolId(poolId);
-    }
-
-    /**
      * Récupère toutes les associations actives pour une team donnée
      *
      * @param teamId L'identifiant de la team
      * @return Liste des associations actives de la team
      */
-    public List<CompetitionAssociation> getActivePoolsByTeam(Long teamId) {
+    public List<CompetitionAssociation> getActiveAssociationsByTeam(Long teamId) {
         return associationRepository.findByTeamIdAndActive(teamId, true);
     }
 
@@ -176,7 +166,8 @@ public class CompetitionAssociationService {
 
         associationRepository.saveAll(associations);
 
-        Set<Long> affectedTeams = associations.stream().map(CompetitionAssociation::getTeamId).collect(Collectors.toSet());
+        Set<Long> affectedTeams = associations.stream().map(CompetitionAssociation::getTeamId)
+                .collect(Collectors.toSet());
 
         cascadeDeactivation(toDeactivate, affectedTeams, Collections.emptySet());
     }
