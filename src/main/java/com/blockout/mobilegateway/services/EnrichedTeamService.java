@@ -92,6 +92,7 @@ public class EnrichedTeamService {
                     .id(basePool.getId())
                     .season(basePool.getSeason())
                     .leagueName(basePool.getLeagueName())
+                    .division(division)
                     .name(basePool.getName())
                     .format(basePool.getFormat())
                     .gender(basePool.getGender())
@@ -111,7 +112,6 @@ public class EnrichedTeamService {
                 .format(team.getFormat())
                 .gender(team.getGender())
                 .followersCount(team.getFollowersCount())
-                .division(division)
                 .pools(enrichedPools)
                 .build();
     }

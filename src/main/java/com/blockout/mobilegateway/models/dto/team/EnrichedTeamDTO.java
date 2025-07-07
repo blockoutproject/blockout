@@ -1,6 +1,5 @@
 package com.blockout.mobilegateway.models.dto.team;
 
-import com.blockout.mobilegateway.models.dto.config.DivisionDTO;
 import com.blockout.mobilegateway.models.dto.pool.EnrichedPoolDTO;
 import com.blockout.mobilegateway.models.enums.Format;
 import com.blockout.mobilegateway.models.enums.Gender;
@@ -33,8 +32,6 @@ public class EnrichedTeamDTO {
 
     @JsonProperty("followers_count")
     private Long followersCount;
-
-    private DivisionDTO division;
 
     private List<EnrichedPoolDTO> pools;
 }
