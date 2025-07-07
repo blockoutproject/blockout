@@ -31,6 +31,7 @@ const SearchScreen: React.FC = () => {
 
     const teamSheetRef = useRef<BottomSheetModal>(null);
     const [selectedTeamId, setSelectedTeamId] = useState<number | null>(null);
+    const [isInputFocused, setIsInputFocused] = useState(false);
 
     const openTeamSheet = (id: number) => {
         Haptics.selectionAsync();
@@ -39,7 +40,7 @@ const SearchScreen: React.FC = () => {
     };
 
     const renderEmpty = () => {
-        if (!search) return <SearchPrompt />;
+        if (!search && !isInputFocused) return <SearchPrompt />;
         if (debouncedQuery.length > 1 && !isLoading && !isError) {
             return (
                 <View style={styles.emptyContainer}>
@@ -63,6 +64,8 @@ const SearchScreen: React.FC = () => {
                         value={search}
                         onChangeText={setSearch}
                         placeholder="Rechercher une équipe..."
+                        onFocus={() => setIsInputFocused(true)}
+                        onBlur={() => setIsInputFocused(false)}
                     />
                 </View>
 

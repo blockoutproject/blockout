@@ -8,10 +8,10 @@ const MatchSkeleton: React.FC = () => {
 
     return (
         <View style={[styles.skeletonContainer, { backgroundColor: theme.background }]}>
-            <Skeleton colors={[theme.background, theme.surface, theme.background]} width="100%" height={200} />
-            <Skeleton colors={[theme.background, theme.surface, theme.background]} width="100%" height={150} />
-            <Skeleton colors={[theme.background, theme.surface, theme.background]} width="100%" height={200} />
-            <Skeleton colors={[theme.background, theme.surface, theme.background]} width="100%" height={250} />
+            <Skeleton colors={[theme.surface, theme.backgroundSecondary, theme.surface]} width="100%" height={200} />
+            <Skeleton colors={[theme.surface, theme.backgroundSecondary, theme.surface]} width="100%" height={150} />
+            <Skeleton colors={[theme.surface, theme.backgroundSecondary, theme.surface]} width="100%" height={200} />
+            <Skeleton colors={[theme.surface, theme.backgroundSecondary, theme.surface]} width="100%" height={250} />
         </View>
     );
 };

@@ -99,7 +99,7 @@ const styles = StyleSheet.create({
         borderRadius: 18,
         paddingHorizontal: 12,
         paddingVertical: 16,
-        marginBottom: 8,
+        marginBottom: 12,
     },
     id: {
         fontSize: 12,

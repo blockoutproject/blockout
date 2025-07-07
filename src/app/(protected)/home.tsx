@@ -119,7 +119,7 @@ const HomeScreen: React.FC = () => {
 
     return (
         <TabView
-            lazy
+            lazy={false}
             navigationState={{ index, routes }}
             onIndexChange={onTabChange}
             renderScene={renderScene}

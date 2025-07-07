@@ -44,7 +44,7 @@ class MobileGatewayApi extends AbstractApi {
      */
     public async getEnrichedMatches({
         page = 0,
-        size = 3,
+        size,
         poolIds,
         teamIds,
         status
@@ -58,7 +58,7 @@ class MobileGatewayApi extends AbstractApi {
         try {
             const response = await this.request<EnrichedDayMatchesDTO[]>({
                 method: 'get',
-                url: '/match-list',
+                url: ',
                 params: { status, page, size, poolIds, teamIds },
             });
             return response;

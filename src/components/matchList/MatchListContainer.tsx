@@ -22,6 +22,7 @@ import PoolContainer from "../pool/PoolScreen";
 import { useMatchList } from "@/src/hooks/match/useMatchList";
 import {
     BottomSheetModal,
+    BottomSheetSectionList,
     BottomSheetView,
 } from "@gorhom/bottom-sheet";
 import BottomSheetCustomPage from "../common/BottomSheetCustomPage";
@@ -117,6 +118,10 @@ const MatchListContainer: React.FC<Props> = ({
         />
     );
 
+    const getSectionListComponent = () => {
+        return scrollY ? Animated.SectionList : BottomSheetSectionList;
+    };
+
     const body = () => {
         if (isLoading) {
             const skeletonSections = home
@@ -163,11 +168,13 @@ const MatchListContainer: React.FC<Props> = ({
                 />
             );
 
+        const SectionList = getSectionListComponent();
+
         return (
-            <Animated.SectionList
+            <SectionList
                 sections={sections}
                 keyExtractor={(it, i) => `${it.pool.id}-${i}`}
-                initialNumToRender={5}
+                initialNumToRender={10}
                 stickySectionHeadersEnabled
                 renderSectionHeader={renderSectionHeader}
                 renderItem={renderItem}

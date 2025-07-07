@@ -22,6 +22,7 @@ type MatchInfoCardProps = {
 
 const MatchInfoCard: React.FC<MatchInfoCardProps> = ({ enrichedMatch }) => {
     const theme = useAppTheme();
+
     const poolSheetRef = useRef<BottomSheetModal>(null);
     const [selectedPoolId, setSelectedPoolId] = useState<number | null>(null);
 
@@ -76,7 +77,7 @@ const MatchInfoCard: React.FC<MatchInfoCardProps> = ({ enrichedMatch }) => {
                     </Text>
                 </TouchableOpacity>
 
-                <InfoRow icon="trophy-outline" text={enrichedMatch.pool.leagueName} />
+                <InfoRow icon="trophy-outline" text={enrichedMatch.pool.leagueName === 'PRO' ? 'Professionnel' : enrichedMatch.pool.division.name} />
                 <InfoRow
                     icon="calendar-month"
                     text={new Date(enrichedMatch.matchDate).toLocaleString("fr-FR", {

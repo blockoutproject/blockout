@@ -7,7 +7,7 @@ export const useMatchList = (
     status: MatchStatus,
     poolIds?: number[],
     teamIds?: number[],
-    pageSize = 6
+    pageSize = 10
 ) => {
     const queryKey = useMemo(
         () => ['match-list', { poolIds, teamIds, status }],

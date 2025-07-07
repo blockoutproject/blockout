@@ -61,7 +61,7 @@ const styles = StyleSheet.create({
     container: {
         padding: 16,
         borderRadius: 16,
-        marginBottom: 8,
+        marginBottom: 12,
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',

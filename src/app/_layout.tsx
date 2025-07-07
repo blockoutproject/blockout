@@ -19,7 +19,6 @@ export function ErrorBoundary(props: ErrorBoundaryProps) {
 
 const RootLayout: React.FC = () => {
     const queryClient = new QueryClient();
-    const colorScheme = useColorScheme();
     const theme = useAppTheme();
 
     const onCopy = async (text: string) => {
@@ -36,7 +35,7 @@ const RootLayout: React.FC = () => {
             <QueryClientProvider client={queryClient}>
                 <ThemeProvider>
                     <StatusBar
-                        barStyle={colorScheme === "dark" ? "light-content" : "dark-content"}
+                        barStyle={"light-content"}
                         backgroundColor={theme.background}
                     />
                     <Auth0Provider domain={AUTH0_CONFIG.domain} clientId={AUTH0_CONFIG.clientId}>

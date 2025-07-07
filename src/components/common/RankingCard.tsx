@@ -24,8 +24,8 @@ interface RankingCardProps {
     scrollable?: boolean;
 }
 
-function getRowBg(isEven: boolean, theme: AppTheme) {
-    return isEven ? theme.backgroundSecondary : "transparent";
+function getRowBg(isEven: boolean, mainColor: string) {
+    return isEven ? mainColor + '30' : "transparent";
 }
 
 const RankingCard: React.FC<RankingCardProps> = ({
@@ -79,7 +79,7 @@ const RankingCard: React.FC<RankingCardProps> = ({
                             <View
                                 style={[
                                     styles.row,
-                                    { backgroundColor: getRowBg(index % 2 === 0, theme) },
+                                    { backgroundColor: getRowBg(index % 2 === 0, enrichedPool.division.mainColor) },
                                 ]}
                             >
                                 <View style={styles.transparentIndicator} />

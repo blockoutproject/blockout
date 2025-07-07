@@ -8,17 +8,21 @@ type SearchBarProps = {
     value: string;
     onChangeText: (text: string) => void;
     placeholder?: string;
+    onFocus?: () => void;
+    onBlur?: () => void;
 };
 
 const SearchBar: React.FC<SearchBarProps> = ({
     value,
     onChangeText,
     placeholder = "Rechercher...",
+    onFocus,
+    onBlur,
 }) => {
     const theme = useAppTheme();
 
     return (
-        <View style={[styles.container, { backgroundColor: theme.surface }]} >
+        <View style={[styles.container, { backgroundColor: theme.surface }]}>
             <Ionicons
                 name="search"
                 size={18}
@@ -30,6 +34,8 @@ const SearchBar: React.FC<SearchBarProps> = ({
                 onChangeText={onChangeText}
                 placeholder={placeholder}
                 placeholderTextColor={theme.textInactive}
+                onFocus={onFocus}
+                onBlur={onBlur}
                 style={[
                     styles.input,
                     {

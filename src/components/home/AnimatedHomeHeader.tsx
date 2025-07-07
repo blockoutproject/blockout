@@ -51,7 +51,6 @@ const AnimatedHomeHeader: React.FC<HeaderProps> = ({
     const { user } = useAuth0();
     const insets = useSafeAreaInsets();
     const theme = useAppTheme();
-    const colorScheme = useColorScheme();
     const [titleHeight, setTitleHeight] = useState(0);
 
     const searchSheetRef = useRef<BottomSheetModal>(null);
@@ -137,11 +136,7 @@ const AnimatedHomeHeader: React.FC<HeaderProps> = ({
                     }}
                 >
                     <FastImage
-                        source={
-                            colorScheme === "dark"
-                                ? require("@/assets/images/blockout-logo-with-title-light.png")
-                                : require("@/assets/images/blockout-logo-with-title-dark.png")
-                        }
+                        source={require("@/assets/images/blockout-logo-with-title-light.png")}
                         style={styles.teamLogo}
                         resizeMode="contain"
                     />

@@ -71,6 +71,7 @@ const MatchScreen: React.FC<Props> = ({ matchId }) => {
 const styles = StyleSheet.create({
     scrollContent: {
         gap: 20,
+        paddingTop: 8,
         paddingHorizontal: 4,
     },
 });

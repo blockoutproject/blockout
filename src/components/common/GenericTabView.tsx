@@ -57,7 +57,7 @@ const GenericTabView: React.FC<GenericTabViewProps> = ({
 
     return (
         <TabView
-            lazy
+            lazy={false}
             navigationState={{ index, routes }}
             onIndexChange={setIndex}
             renderScene={renderScene}
