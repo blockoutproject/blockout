@@ -16,20 +16,24 @@ type Props = {
 
 const PoolProfile: React.FC<Props> = ({ enrichedPool }) => {
     const theme = useAppTheme();
-    const { isFollowing, isProcessing, followersCount, onToggleFollow } =
-        usePoolFollowState(enrichedPool);
+    const { isFollowing, isProcessing, followersCount, onToggleFollow } = usePoolFollowState(enrichedPool);
+
+    const division = enrichedPool.division;
+    if (!division) {
+        throw new Error("EnrichedPoolDTO.division is required but was undefined.");
+    }
 
     const gradient: readonly [string, string, ...string[]] = [
-        enrichedPool.division.firstGradientColor,
-        enrichedPool.division.secondGradientColor,
-        enrichedPool.division.thirdGradientColor,
+        division.firstGradientColor,
+        division.secondGradientColor,
+        division.thirdGradientColor,
     ];
 
     return (
         <View style={[styles.container, { backgroundColor: theme.background }]}>
             <View style={styles.row}>
                 <FastImage
-                    source={{ uri: enrichedPool.division.logoUrl || "" }}
+                    source={{ uri: division.logoUrl || "" }}
                     style={styles.logo}
                     resizeMode="contain"
                 />
@@ -39,7 +43,7 @@ const PoolProfile: React.FC<Props> = ({ enrichedPool }) => {
 
                     <View style={styles.infoLine}>
                         <MaterialCommunityIcons name="trophy-outline" size={18} color={theme.text} />
-                        <Text style={[styles.infoText, { color: theme.text }]}>{enrichedPool.division.name}</Text>
+                        <Text style={[styles.infoText, { color: theme.text }]}>{division.name}</Text>
                     </View>
 
                     <View style={styles.infoLine}>
@@ -72,7 +76,7 @@ export default PoolProfile;
 const styles = StyleSheet.create({
     container: {
         paddingHorizontal: 16,
-        paddingVertical: 8,
+        paddingTop: 8,
     },
     row: {
         flexDirection: "row",

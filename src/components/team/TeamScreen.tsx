@@ -1,11 +1,8 @@
-import React, { useEffect } from "react";
+import React from "react";
 import { Text, View, StyleSheet } from "react-native";
-import { useTeamById } from "@/src/hooks/team/useTeamById";
-import { useDetailedPoolsByTeam } from "@/src/hooks/pool/useDetailedPoolsByTeam";
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import TeamTabs from "./components/TeamTabs";
 import TeamProfile from "./components/TeamProfile";
-import { useDivisionById } from "@/src/hooks/config/division/useDivisionById";
 import { useEnrichedTeamById } from "@/src/hooks/team/useEnrichedTeamById";
 
 type Props = {

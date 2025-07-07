@@ -20,7 +20,7 @@ const PoolTabs: React.FC<PoolTabsProps> = ({ enrichedPool }) => {
         {
             key: 'ranking',
             title: 'Classement',
-            render: () => <RankingTab poolId={enrichedPool.id} division={enrichedPool.division} />,
+            render: () => <RankingTab enrichedPool={enrichedPool} />,
         },
         {
             key: 'finished',

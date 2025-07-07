@@ -20,8 +20,7 @@ import { EnrichedPoolDTO, Pool } from "@/src/types/Pool";
 import { Division } from "@/src/types/Division";
 
 interface RankingCardProps {
-    poolId: number;
-    division: Division;
+    enrichedPool: EnrichedPoolDTO;
     scrollable?: boolean;
 }
 
@@ -30,53 +29,24 @@ function getRowBg(isEven: boolean, theme: AppTheme) {
 }
 
 const RankingCard: React.FC<RankingCardProps> = ({
-    poolId,
-    division,
+    enrichedPool,
     scrollable = true,
 }) => {
-    const { teams, isLoading, isError } = useDetailedTeamsByPool(poolId);
     const theme = useAppTheme();
 
+    const division = enrichedPool.division;
+    if (!division) {
+        throw new Error("EnrichedPoolDTO.division is required but was undefined.");
+    }
+
     const teamSheetRef = useRef<BottomSheetModal>(null);
+
     const openTeamSheet = (teamId: number) => {
         Haptics.selectionAsync();
         setSelectedTeam(teamId);
         teamSheetRef.current?.present();
     };
     const [selectedTeam, setSelectedTeam] = React.useState<number | null>(null);
-
-    const sorted = useMemo(() => {
-        if (!teams) return [];
-        return [...teams].sort(
-            (a, b) =>
-                b.points - a.points ||
-                a.pointsPenalty - b.pointsPenalty ||
-                b.wins - a.wins ||
-                b.coefSets - a.coefSets ||
-                b.coefPoints - a.coefPoints
-        );
-    }, [teams]);
-
-    if (isLoading) {
-        return (
-            <View style={[styles.container, { backgroundColor: theme.background }]}>
-                <ActivityIndicator size="large" color={theme.text} />
-                <Text style={[styles.loadingText, { color: theme.text }]}>
-                    Chargement du classement…
-                </Text>
-            </View>
-        );
-    }
-
-    if (isError || !teams) {
-        return (
-            <View style={[styles.container, { backgroundColor: theme.background }]}>
-                <Text style={[styles.errorText, { color: theme.error }]}>
-                    Erreur lors du chargement du classement.
-                </Text>
-            </View>
-        );
-    }
 
     return (
         <>
@@ -99,7 +69,7 @@ const RankingCard: React.FC<RankingCardProps> = ({
                 </View>
 
                 <BottomSheetFlatList
-                    data={sorted}
+                    data={enrichedPool.ranking}
                     keyExtractor={(item) => item.id.toString()}
                     scrollEnabled={scrollable}
                     showsVerticalScrollIndicator={false}

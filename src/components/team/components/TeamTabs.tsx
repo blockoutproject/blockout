@@ -48,10 +48,10 @@ const TeamTabs: React.FC<TeamTabsProps> = ({ enrichedTeam }) => {
         },
     ];
 
-    const dynamicTabs = enrichedTeam.pools.map((pool) => ({
-        key: `pool-${pool.id}`,
-        title: `${pool.name}`,
-        render: () => <RankingTab key={pool.id} poolId={pool.id} division={enrichedTeam.division}/>,
+    const dynamicTabs = enrichedTeam.pools.map((enrichedPool) => ({
+        key: `pool-${enrichedPool.id}`,
+        title: `${enrichedPool.name}`,
+        render: () => <RankingTab key={enrichedPool.id} enrichedPool={enrichedPool}/>,
     }));
 
     const tabs = [...staticTabs, ...dynamicTabs];

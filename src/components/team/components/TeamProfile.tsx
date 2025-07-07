@@ -4,7 +4,6 @@ import FastImage from 'react-native-fast-image';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useAppTheme } from '@/src/context/ThemeProvider';
 import { EnrichedTeamDTO, Team } from '@/src/types/Team';
-import { Division } from '@/src/types/Division';
 import { useTeamFollowState } from '@/src/hooks/team/useTeamFollowState';
 import FollowButton from '@/src/components/common/FollowButton';
 import FollowersCounter from '@/src/components/common/FollowersCount';
@@ -70,7 +69,7 @@ export default TeamProfile;
 
 const styles = StyleSheet.create({
     container: {
-        paddingVertical: 8,
+        paddingTop: 8,
         paddingHorizontal: 16,
     },
     row: {

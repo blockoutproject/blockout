@@ -28,10 +28,15 @@ const MatchScreen: React.FC<Props> = ({ matchId }) => {
         );
     }
 
+    const division = enrichedMatch.pool.division;
+    if (!division) {
+        throw new Error("EnrichedPoolDTO.division is required but was undefined.");
+    }
+
     const gradient: readonly [string, string, ...string[]] = [
-        enrichedMatch.pool.division.firstGradientColor,
-        enrichedMatch.pool.division.secondGradientColor,
-        enrichedMatch.pool.division.thirdGradientColor,
+        division.firstGradientColor,
+        division.secondGradientColor,
+        division.thirdGradientColor,
     ];
 
     return (
@@ -55,8 +60,7 @@ const MatchScreen: React.FC<Props> = ({ matchId }) => {
                     enrichedMatch={enrichedMatch}
                 />
                 <RankingCard
-                    poolId={enrichedMatch.pool.id}
-                    division={enrichedMatch.pool.division}
+                    enrichedPool={enrichedMatch.pool}
                     scrollable={false}
                 />
             </BottomSheetScrollView>

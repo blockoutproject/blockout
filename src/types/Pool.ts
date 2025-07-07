@@ -1,6 +1,7 @@
 import { Division } from "./Division";
 import { EnumFormat } from "./enums/Format";
 import { EnumGender } from "./enums/Gender";
+import { TeamWithStats } from "./Team";
 
 export interface Pool {
     id: number;
@@ -26,5 +27,6 @@ export interface EnrichedPoolDTO {
     format: EnumFormat;
     gender: EnumGender;
     followersCount: number;
+    ranking: TeamWithStats[];
     division: Division;
 }
