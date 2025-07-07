@@ -2,6 +2,7 @@ package com.blockout.mobilegateway.services.clients;
 
 import com.blockout.mobilegateway.config.ApiClientProperties;
 import com.blockout.mobilegateway.models.dto.competition.CompetitionAssociationDTO;
+import com.blockout.mobilegateway.models.dto.competition.PoolWithRankingDTO;
 
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -29,7 +30,8 @@ public class CompetitionClientService {
 
         logger.info("Calling getActiveAssociationsByTeam", keyValue("teamId", teamId), keyValue("url", url));
 
-        ResponseEntity<CompetitionAssociationDTO[]> response = apiClientService.get(url, CompetitionAssociationDTO[].class);
+        ResponseEntity<CompetitionAssociationDTO[]> response = apiClientService.get(url,
+                CompetitionAssociationDTO[].class);
 
         CompetitionAssociationDTO[] body = response.getBody();
         return body != null ? Arrays.asList(body) : Collections.emptyList();
@@ -40,9 +42,21 @@ public class CompetitionClientService {
 
         logger.info("Calling getActiveAssociationsByPool", keyValue("poolId", poolId), keyValue("url", url));
 
-        ResponseEntity<CompetitionAssociationDTO[]> response = apiClientService.get(url, CompetitionAssociationDTO[].class);
+        ResponseEntity<CompetitionAssociationDTO[]> response = apiClientService.get(url,
+                CompetitionAssociationDTO[].class);
 
         CompetitionAssociationDTO[] body = response.getBody();
+        return body != null ? Arrays.asList(body) : Collections.emptyList();
+    }
+
+    public List<PoolWithRankingDTO> getPoolsWithRankingByTeam(Long teamId) {
+        String url = apiClientProperties.getCompetition().getUrl() + "/teams/" + teamId + "/pools-with-ranking";
+
+        logger.info("Calling getPoolsWithRankingByTeam", keyValue("teamId", teamId), keyValue("url", url));
+
+        ResponseEntity<PoolWithRankingDTO[]> response = apiClientService.get(url, PoolWithRankingDTO[].class);
+
+        PoolWithRankingDTO[] body = response.getBody();
         return body != null ? Arrays.asList(body) : Collections.emptyList();
     }
 }

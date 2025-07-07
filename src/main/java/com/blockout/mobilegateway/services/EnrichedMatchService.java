@@ -68,11 +68,11 @@ public class EnrichedMatchService {
                             .build();
                 })
                 .sorted(Comparator
-                        .comparingInt(TeamWithStatsDTO::getPoints).reversed()
-                        .thenComparingInt(TeamWithStatsDTO::getPointsPenalty)
-                        .thenComparingInt(TeamWithStatsDTO::getWins).reversed()
-                        .thenComparingDouble(TeamWithStatsDTO::getCoefSets).reversed()
-                        .thenComparingDouble(TeamWithStatsDTO::getCoefPoints).reversed())
+                        .comparingInt(TeamWithStatsDTO::getPoints)
+                        .thenComparingInt(TeamWithStatsDTO::getPointsPenalty).reversed()
+                        .thenComparingInt(TeamWithStatsDTO::getWins)
+                        .thenComparingDouble(TeamWithStatsDTO::getCoefSets)
+                        .thenComparingDouble(TeamWithStatsDTO::getCoefPoints))
                 .toList();
 
         EnrichedPoolDTO enrichedPool = EnrichedPoolDTO.builder()
