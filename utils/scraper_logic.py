@@ -142,15 +142,15 @@ async def handle_csv_download_and_parse(
             )
             scraped_match_codes.add(match_code)
 
-            for team_obj, club_id in [(new_team_a, row['club_a_id']), (new_team_b, row['club_b_id'])]:
+            for team_obj in [new_team_a, new_team_b]:
                 if team_obj.id not in active_team_ids:
-                    await add_team_to_pool(scraper.session, new_pool.id, team_obj.id, club_id)
+                    await add_team_to_pool(scraper.session, new_pool.id, team_obj.id, team_obj.club_id)
                     log_event(
                         "add_team_to_pool", 
                         "info", 
                         pool_id=new_pool.id, 
                         team_id=team_obj.id, 
-                        club_id=club_id
+                        club_id=team_obj.club_id
                     )
                     active_team_ids.add(team_obj.id)
 

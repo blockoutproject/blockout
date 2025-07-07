@@ -18,7 +18,7 @@ async def get_active_team_associations_by_pool(
     """
     headers = _get_headers()
     url = f"{COMPETITION_API_URL}/pools/{pool_id}/teams"
-    response = await session.get(url, params={"active_only": "true"}, headers=headers)
+    response = await session.get(url, headers=headers)
     return response
 
 
