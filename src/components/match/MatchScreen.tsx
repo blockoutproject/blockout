@@ -1,6 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Text, View, StyleSheet } from 'react-native';
-import { MatchStatus } from '@/src/types/Match';
 import { useAppTheme } from '@/src/context/ThemeProvider';
 import MatchSkeleton from './components/MatchSkeleton';
 import MatchScoreCard from './components/MatchScoreCard';
@@ -9,8 +8,7 @@ import MatchScoreDetailsCard from './components/MatchScoreDetailsCard';
 import MatchInfoCard from './components/MatchInfoCard';
 import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { getLeagueLabel } from '@/src/utils/utils';
-import { useEnrichedMatchById } from '@/src/hooks/match/useMatchById';
+import { useEnrichedMatchById } from '@/src/hooks/match/useEnrichedMatchById';
 
 type Props = { matchId: number };
 
@@ -58,6 +56,7 @@ const MatchScreen: React.FC<Props> = ({ matchId }) => {
                 />
                 <RankingCard
                     poolId={enrichedMatch.pool.id}
+                    division={enrichedMatch.pool.division}
                     scrollable={false}
                 />
             </BottomSheetScrollView>

@@ -5,6 +5,7 @@ import { useAppTheme } from '@/src/context/ThemeProvider';
 import { Division } from '@/src/types/Division';
 import ConfigApi from '@/src/api/ConfigApi';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as Haptics from 'expo-haptics';
 
 interface DivisionItemProps {
     division: Division;
@@ -15,7 +16,13 @@ interface DivisionItemProps {
 const DivisionItem: React.FC<DivisionItemProps> = ({ division, onPress, onDeactivated }) => {
     const theme = useAppTheme();
 
+    const handlePress = async () => {
+        await Haptics.selectionAsync();
+        onPress();
+    };
+
     const handleDeactivate = async () => {
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
         try {
             await ConfigApi.getInstance().deactivateDivision(division.id);
             onDeactivated();
@@ -27,7 +34,7 @@ const DivisionItem: React.FC<DivisionItemProps> = ({ division, onPress, onDeacti
     return (
         <TouchableOpacity
             style={[styles.container, { backgroundColor: theme.surface }]}
-            onPress={onPress}
+            onPress={handlePress}
             activeOpacity={0.8}
         >
             <Text style={[styles.id, { color: theme.textInactive }]}>#{division.id}</Text>
@@ -71,7 +78,6 @@ const DivisionItem: React.FC<DivisionItemProps> = ({ division, onPress, onDeacti
                 end={{ x: 1, y: 1 }}
             />
 
-            {/* Deactivate button */}
             {division.active && (
                 <TouchableOpacity onPress={handleDeactivate}>
                     <MaterialCommunityIcons

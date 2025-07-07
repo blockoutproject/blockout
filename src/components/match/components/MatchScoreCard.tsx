@@ -49,7 +49,7 @@ const MatchScoreCard: React.FC<MatchScoreCardProps> = ({
 
     return (
         <>
-            <View style={[styles.container, { backgroundColor: theme.surface }]}>
+            <View style={[styles.container, { backgroundColor: theme.background, borderColor: enrichedMatch.pool.division.mainColor }]}>
                 <View style={styles.verticalContainer}>
                     <Text style={[styles.leagueLabel, { color: theme.text }]}>
                         {enrichedMatch.pool.division.name}
@@ -66,7 +66,7 @@ const MatchScoreCard: React.FC<MatchScoreCardProps> = ({
                             {enrichedMatch.set ? (
                                 <>
                                     <GradientBorderView
-                                        style={styles.finalScoreBox}
+                                        style={[styles.finalScoreBox, { backgroundColor: theme.background }]}
                                         borderRadius={12}
                                         gradient={gradient}
                                     >
@@ -124,6 +124,7 @@ const MatchScoreCard: React.FC<MatchScoreCardProps> = ({
 
 const styles = StyleSheet.create({
     container: {
+        borderWidth: 2,
         borderRadius: 18,
         paddingVertical: 16,
         paddingHorizontal: 8,
@@ -133,59 +134,61 @@ const styles = StyleSheet.create({
         alignItems: "center",
         gap: 4,
     },
-    teamRowContainer: { flexDirection: "row" },
-    teamCard: { 
-        flex: 1, 
-        marginHorizontal: 12, 
-        alignItems: "center" 
+    teamRowContainer: {
+        flexDirection: "row"
     },
-    teamLogoLarge: { 
-        width: 90, 
-        height: 90, 
-        marginBottom: 4 
+    teamCard: {
+        flex: 1,
+        marginHorizontal: 12,
+        alignItems: "center"
     },
-    teamLabel: { 
-        fontSize: 14, 
-        fontWeight: "600", 
-        textAlign: "center" 
+    teamLogoLarge: {
+        width: 90,
+        aspectRatio: 1,
+        marginBottom: 4
     },
-    teamRoleLabel: { 
-        fontSize: 12, 
-        fontWeight: "600", 
-        marginTop: 2 
+    teamLabel: {
+        fontSize: 14,
+        fontWeight: "600",
+        textAlign: "center"
     },
-    centerBlock: { 
-        alignItems: "center", 
+    teamRoleLabel: {
+        fontSize: 12,
+        fontWeight: "600",
+        marginTop: 2
+    },
+    centerBlock: {
+        alignItems: "center",
         justifyContent: "center",
-        gap: 8 
+        gap: 8
     },
-    finalScoreBox: { 
-        paddingHorizontal: 10, 
-        paddingVertical: 6 
+    finalScoreBox: {
+        paddingHorizontal: 10,
+        paddingVertical: 6
     },
-    finalScoreTextLarge: { 
-        fontSize: 28, 
-        fontWeight: "700" 
+    finalScoreTextLarge: {
+        fontSize: 28,
+        fontWeight: "700"
     },
-    timeText: { 
-        fontSize: 14, 
-        fontWeight: "600" 
+    timeText: {
+        fontSize: 14,
+        fontWeight: "600"
     },
-    upcomingLabel: { 
-        fontSize: 14, 
-        fontWeight: "600" 
+    upcomingLabel: {
+        fontSize: 14,
+        fontWeight: "600"
     },
-    dateText: { 
-        fontWeight: "700", 
-        fontSize: 14 
+    dateText: {
+        fontWeight: "700",
+        fontSize: 14
     },
-    leagueLabel: { 
-        fontWeight: "600", 
-        fontSize: 14 
+    leagueLabel: {
+        fontWeight: "600",
+        fontSize: 14
     },
-    largeTimeText: { 
-        fontSize: 36, 
-        fontWeight: "700" 
+    largeTimeText: {
+        fontSize: 36,
+        fontWeight: "700"
     },
 });
 

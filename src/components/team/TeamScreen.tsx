@@ -6,40 +6,28 @@ import { useAppTheme } from "@/src/context/ThemeProvider";
 import TeamTabs from "./components/TeamTabs";
 import TeamProfile from "./components/TeamProfile";
 import { useDivisionById } from "@/src/hooks/config/division/useDivisionById";
+import { useEnrichedTeamById } from "@/src/hooks/team/useEnrichedTeamById";
 
 type Props = {
     teamId: number;
 };
 
 const TeamScreen: React.FC<Props> = ({ teamId }) => {
-    const { data: team, isLoading: isTeamLoading, isError: isTeamError } = useTeamById(teamId);
-    const { pools, isLoading: isPoolsLoading, isError: isPoolsError } = useDetailedPoolsByTeam(teamId);
-    const { data: division, isLoading: isDivisionLoading, isError: isDivisionError } = useDivisionById(team?.divisionId);
-
+    const { data: enrichedTeam, isLoading, isError } = useEnrichedTeamById(teamId);
     const theme = useAppTheme();
 
-    console.log('[TeamScreen] render');
-    console.log('[TeamScreen] team:', team);
-    console.log('[TeamScreen] division:', division);
-    console.log('[TeamScreen] pools:', pools);
-
-    useEffect(() => {
-        console.log('[TeamScreen] teamId changé:', teamId);
-    }, [teamId]);
-
-    if (isTeamLoading || isPoolsLoading || isDivisionLoading) {
+    if (isLoading) {
         return <Text style={{ color: theme.text, padding: 16 }}>Chargement...</Text>;
     }
 
-    if (isTeamError || isPoolsError || isDivisionError) {
+    if (isError || !enrichedTeam) {
         return <Text style={{ color: theme.error, padding: 16 }}>Erreur de chargement</Text>;
     }
 
-
     return (
         <View style={[styles.container]}>
-            <TeamProfile team={team!} division={division!} />
-            <TeamTabs pools={pools!} team={team!} />
+            <TeamProfile enrichedTeam={enrichedTeam} />
+            <TeamTabs enrichedTeam={enrichedTeam} />
         </View>
     );
 };

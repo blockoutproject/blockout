@@ -3,15 +3,16 @@ import GenericTabView from '@/src/components/common/GenericTabView';
 import MatchList from '../../matchList/MatchListContainer';
 import RankingTab from '../../common/RankingTab';
 import { MatchStatus } from '@/src/types/Match';
-import { Pool } from '@/src/types/Pool';
+import { EnrichedPoolDTO, Pool } from '@/src/types/Pool';
 import { useAppTheme } from '@/src/context/ThemeProvider';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Division } from '@/src/types/Division';
 
 type PoolTabsProps = {
-    pool: Pool;
+    enrichedPool: EnrichedPoolDTO;
 };
 
-const PoolTabs: React.FC<PoolTabsProps> = ({ pool }) => {
+const PoolTabs: React.FC<PoolTabsProps> = ({ enrichedPool }) => {
     const theme = useAppTheme();
     const insets = useSafeAreaInsets();
 
@@ -19,14 +20,14 @@ const PoolTabs: React.FC<PoolTabsProps> = ({ pool }) => {
         {
             key: 'ranking',
             title: 'Classement',
-            render: () => <RankingTab poolId={pool.id} />,
+            render: () => <RankingTab poolId={enrichedPool.id} division={enrichedPool.division} />,
         },
         {
             key: 'finished',
             title: 'Terminés',
             render: () => (
                 <MatchList
-                    poolIds={[pool.id]}
+                    poolIds={[enrichedPool.id]}
                     status={MatchStatus.FINISHED}
                     contentContainerStyle={{
                         paddingHorizontal: 4,
@@ -41,7 +42,7 @@ const PoolTabs: React.FC<PoolTabsProps> = ({ pool }) => {
             title: 'À Venir',
             render: () => (
                 <MatchList
-                    poolIds={[pool.id]}
+                    poolIds={[enrichedPool.id]}
                     status={MatchStatus.UPCOMING}
                     contentContainerStyle={{
                         paddingHorizontal: 4,

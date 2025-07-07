@@ -1,10 +1,11 @@
+import { Division } from "./Division";
 import { EnumFormat } from "./enums/Format";
 import { EnumGender } from "./enums/Gender";
+import { Pool } from "./Pool";
 
 export interface Team {
     id: number;
     clubId: string;
-    poolId: number;
     name: string;
     shortName: string;
     leagueCode: string;
@@ -25,4 +26,17 @@ export interface TeamWithPoints extends Team {
     pointsPenalty: number;
     coefPoints: number;
     coefSets: number;
+}
+
+export interface EnrichedTeamDTO {
+    id: number;
+    clubId: string;
+    name: string;
+    shortName: string;
+    leagueCode: string;
+    division: Division;
+    format: EnumFormat;
+    gender: EnumGender;
+    followersCount: number;
+    pools: Pool[];
 }

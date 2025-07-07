@@ -5,10 +5,10 @@ import {
     TouchableOpacity,
     StyleSheet,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
 import FastImage from "react-native-fast-image";
 import * as Haptics from "expo-haptics";
 import { BottomSheetModal, BottomSheetView } from "@gorhom/bottom-sheet";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 
 import { Pool } from "@/src/types/Pool";
 import { useAppTheme } from "@/src/context/ThemeProvider";
@@ -20,9 +20,7 @@ type MatchInfoCardProps = {
     enrichedMatch: EnrichedMatchDTO
 };
 
-const MatchInfoCard: React.FC<MatchInfoCardProps> = ({
-    enrichedMatch
-}) => {
+const MatchInfoCard: React.FC<MatchInfoCardProps> = ({ enrichedMatch }) => {
     const theme = useAppTheme();
     const poolSheetRef = useRef<BottomSheetModal>(null);
     const [selectedPoolId, setSelectedPoolId] = useState<number | null>(null);
@@ -37,12 +35,12 @@ const MatchInfoCard: React.FC<MatchInfoCardProps> = ({
         icon,
         text,
     }: {
-        icon: keyof typeof Ionicons.glyphMap;
+        icon: keyof typeof MaterialCommunityIcons.glyphMap;
         text: string | null;
     }) =>
         text ? (
             <View style={styles.row}>
-                <Ionicons name={icon} size={22} color={theme.text} style={styles.icon} />
+                <MaterialCommunityIcons name={icon} size={22} color={theme.text} style={styles.icon} />
                 <Text
                     style={[styles.infoText, { color: theme.text }]}
                     numberOfLines={1}
@@ -57,9 +55,10 @@ const MatchInfoCard: React.FC<MatchInfoCardProps> = ({
 
     return (
         <>
-            <View style={[styles.container, { backgroundColor: theme.surface }]}>
+            <View style={[styles.container, { backgroundColor: theme.background, borderColor: enrichedMatch.pool.division.mainColor }]}>
                 <Text style={[styles.title, { color: theme.text }]}>Information</Text>
 
+                <View style={styles.infoRow}>
                 <TouchableOpacity onPress={() => openPoolSheet(enrichedMatch.pool.id)} style={styles.row}>
                     <FastImage
                         source={{ uri: enrichedMatch.pool.division.logoUrl || "" }}
@@ -79,7 +78,7 @@ const MatchInfoCard: React.FC<MatchInfoCardProps> = ({
 
                 <InfoRow icon="trophy-outline" text={enrichedMatch.pool.leagueName} />
                 <InfoRow
-                    icon="calendar-outline"
+                    icon="calendar-month"
                     text={new Date(enrichedMatch.matchDate).toLocaleString("fr-FR", {
                         year: "numeric",
                         month: "long",
@@ -88,10 +87,10 @@ const MatchInfoCard: React.FC<MatchInfoCardProps> = ({
                         minute: "2-digit",
                     })}
                 />
-                <InfoRow icon="time-outline" text={"1h30"} />
-                <InfoRow icon="location-outline" text={enrichedMatch.venue} />
-                <InfoRow icon="eye-outline" text={enrichedMatch.firstReferee} />
-                <InfoRow icon="eye-outline" text={enrichedMatch.secondReferee} />
+                <InfoRow icon="map-marker" text={enrichedMatch.venue} />
+                <InfoRow icon="whistle" text={enrichedMatch.firstReferee} />
+                <InfoRow icon="whistle" text={enrichedMatch.secondReferee} />
+                </View>
             </View>
 
             <BottomSheetCustomPage ref={poolSheetRef}>
@@ -105,18 +104,21 @@ const MatchInfoCard: React.FC<MatchInfoCardProps> = ({
 
 const styles = StyleSheet.create({
     container: {
+        borderWidth: 2,
         borderRadius: 18,
         padding: 16,
+    },
+    infoRow: {
+        gap: 10,
     },
     title: {
         fontSize: 18,
         fontWeight: "600",
-        marginBottom: 12,
+        marginBottom: 16,
     },
     row: {
         flexDirection: "row",
         alignItems: "center",
-        marginBottom: 10,
     },
     poolLogo: {
         width: 22,

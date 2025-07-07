@@ -48,9 +48,6 @@ const styles = StyleSheet.create({
         padding: 16,
         marginBottom: 12,
         borderRadius: 20,
-        shadowOpacity: 1,
-        shadowRadius: 4,
-        shadowOffset: { width: 0, height: 2 },
     },
     teamLogo: {
         aspectRatio: 1,

@@ -3,45 +3,48 @@ import { View, Text, StyleSheet } from "react-native";
 import FastImage from "react-native-fast-image";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useAppTheme } from "@/src/context/ThemeProvider";
-import { Pool } from "@/src/types/Pool";
+import { EnrichedPoolDTO, Pool } from "@/src/types/Pool";
 import { Division } from "@/src/types/Division";
 import FollowButton from "@/src/components/common/FollowButton";
 import FollowersCounter from "@/src/components/common/FollowersCount";
 import { usePoolFollowState } from "@/src/hooks/pool/usePoolFollowState";
+import { GenderLabels } from "@/src/types/enums/Gender";
 
-type Props = { pool: Pool; division: Division };
+type Props = {
+    enrichedPool: EnrichedPoolDTO
+};
 
-const PoolProfile: React.FC<Props> = ({ pool, division }) => {
+const PoolProfile: React.FC<Props> = ({ enrichedPool }) => {
     const theme = useAppTheme();
     const { isFollowing, isProcessing, followersCount, onToggleFollow } =
-        usePoolFollowState(pool);
+        usePoolFollowState(enrichedPool);
 
     const gradient: readonly [string, string, ...string[]] = [
-        division.firstGradientColor,
-        division.secondGradientColor,
-        division.thirdGradientColor,
+        enrichedPool.division.firstGradientColor,
+        enrichedPool.division.secondGradientColor,
+        enrichedPool.division.thirdGradientColor,
     ];
 
     return (
         <View style={[styles.container, { backgroundColor: theme.background }]}>
             <View style={styles.row}>
                 <FastImage
-                    source={{ uri: division.logoUrl || "" }}
+                    source={{ uri: enrichedPool.division.logoUrl || "" }}
                     style={styles.logo}
                     resizeMode="contain"
                 />
 
                 <View style={styles.info}>
-                    <Text style={[styles.title, { color: theme.text }]}>{pool.name}</Text>
+                    <Text style={[styles.title, { color: theme.text }]}>{enrichedPool.name}</Text>
 
                     <View style={styles.infoLine}>
                         <MaterialCommunityIcons name="trophy-outline" size={18} color={theme.text} />
-                        <Text style={[styles.infoText, { color: theme.text }]}>{division.name}</Text>
+                        <Text style={[styles.infoText, { color: theme.text }]}>{enrichedPool.division.name}</Text>
                     </View>
 
                     <View style={styles.infoLine}>
                         <MaterialCommunityIcons name="gender-male-female" size={18} color={theme.text} />
-                        <Text style={[styles.infoText, { color: theme.text }]}>{pool.gender}</Text>
+                        <Text style={[styles.infoText, { color: theme.text }]}>{GenderLabels[enrichedPool.gender]}</Text>
                     </View>
 
                     <View style={styles.infoLine}>
@@ -69,7 +72,7 @@ export default PoolProfile;
 const styles = StyleSheet.create({
     container: {
         paddingHorizontal: 16,
-        paddingVertical: 20,
+        paddingVertical: 8,
     },
     row: {
         flexDirection: "row",

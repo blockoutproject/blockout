@@ -61,6 +61,7 @@ const HomeScreen: React.FC = () => {
                     paddingTop: titleHeight,
                     paddingBottom: headerOffset + 8,
                 }}
+                home
             />
         ),
         [userFavoritePools, userFavoriteTeams, headerOffset]
@@ -80,6 +81,7 @@ const HomeScreen: React.FC = () => {
                     paddingTop: titleHeight,
                     paddingBottom: headerOffset + 8,
                 }}
+                home
             />
         ),
         [userFavoritePools, userFavoriteTeams, headerOffset]

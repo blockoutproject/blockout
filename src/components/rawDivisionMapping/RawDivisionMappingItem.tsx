@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useAppTheme } from '@/src/context/ThemeProvider';
 import { RawDivisionMapping } from '@/src/types/RawDivisionMapping';
+import * as Haptics from 'expo-haptics';
 
 type Props = {
     mapping: RawDivisionMapping;
@@ -15,10 +16,15 @@ const RawDivisionMappingItem: React.FC<Props> = ({ mapping, onPress }) => {
     const statusColor = isMapped ? theme.success : theme.error;
     const statusLabel = isMapped ? 'Mappé' : 'Non mappé';
 
+    const handlePress = () => {
+        Haptics.selectionAsync();
+        onPress();
+    };
+
     return (
         <TouchableOpacity
             style={[styles.container, { backgroundColor: theme.surface }]}
-            onPress={onPress}
+            onPress={handlePress}
             activeOpacity={0.85}
         >
             <View style={styles.leftContent}>

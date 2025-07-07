@@ -16,6 +16,7 @@ import { EnumFormat, FormatLabels } from '@/src/types/enums/Format';
 import { EnumGender, GenderLabels } from '@/src/types/enums/Gender';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BottomSheetView } from '@gorhom/bottom-sheet';
+import * as Haptics from 'expo-haptics';
 
 type Props = {
     mapping: RawDivisionMapping;
@@ -34,16 +35,20 @@ const RawDivisionMappingForm: React.FC<Props> = ({ mapping, onSuccess }) => {
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
     const handleSubmit = async () => {
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
         setIsSubmitting(true);
         setErrorMessage(null);
+
         try {
             await ConfigApi.getInstance().updateRawDivisionMapping(mapping.id, {
                 divisionId: divisionId === '' ? null : divisionId,
                 format: format === '' ? null : format,
                 gender: gender === '' ? null : gender,
             });
+            await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
             onSuccess();
         } catch (error) {
+            await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
             Alert.alert("Erreur", "Impossible d'enregistrer les données.");
             setErrorMessage("Une erreur est survenue lors de la sauvegarde.");
         } finally {
@@ -70,7 +75,10 @@ const RawDivisionMappingForm: React.FC<Props> = ({ mapping, onSuccess }) => {
                 <View style={styles.pickerWrapper}>
                     <Picker
                         selectedValue={format}
-                        onValueChange={setFormat}
+                        onValueChange={(value) => {
+                            Haptics.selectionAsync();
+                            setFormat(value);
+                        }}
                         itemStyle={{
                             color: theme.text,
                             fontSize: 18,
@@ -86,7 +94,10 @@ const RawDivisionMappingForm: React.FC<Props> = ({ mapping, onSuccess }) => {
                 <View style={styles.pickerWrapper}>
                     <Picker
                         selectedValue={gender}
-                        onValueChange={setGender}
+                        onValueChange={(value) => {
+                            Haptics.selectionAsync();
+                            setGender(value);
+                        }}
                         itemStyle={{
                             color: theme.text,
                             fontSize: 18,
@@ -105,7 +116,10 @@ const RawDivisionMappingForm: React.FC<Props> = ({ mapping, onSuccess }) => {
                 <View style={styles.pickerWrapper}>
                     <Picker
                         selectedValue={divisionId}
-                        onValueChange={setDivisionId}
+                        onValueChange={(value) => {
+                            Haptics.selectionAsync();
+                            setDivisionId(value);
+                        }}
                         enabled={!loadingDivisions}
                         itemStyle={{
                             color: theme.text,

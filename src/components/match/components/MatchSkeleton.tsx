@@ -8,10 +8,10 @@ const MatchSkeleton: React.FC = () => {
 
     return (
         <View style={[styles.skeletonContainer, { backgroundColor: theme.background }]}>
-            <Skeleton colors={[theme.backgroundSecondary, theme.surfaceSecondary, theme.backgroundSecondary]} width="100%" height={200} />
-            <Skeleton colors={[theme.backgroundSecondary, theme.surfaceSecondary, theme.backgroundSecondary]} width="100%" height={150} />
-            <Skeleton colors={[theme.backgroundSecondary, theme.surfaceSecondary, theme.backgroundSecondary]} width="100%" height={200} />
-            <Skeleton colors={[theme.backgroundSecondary, theme.surfaceSecondary, theme.backgroundSecondary]} width="100%" height={250} />
+            <Skeleton colors={[theme.background, theme.surface, theme.background]} width="100%" height={200} />
+            <Skeleton colors={[theme.background, theme.surface, theme.background]} width="100%" height={150} />
+            <Skeleton colors={[theme.background, theme.surface, theme.background]} width="100%" height={200} />
+            <Skeleton colors={[theme.background, theme.surface, theme.background]} width="100%" height={250} />
         </View>
     );
 };
@@ -19,6 +19,8 @@ const MatchSkeleton: React.FC = () => {
 const styles = StyleSheet.create({
     skeletonContainer: {
         flex: 1,
+        gap: 20,
+        paddingHorizontal: 4,
     },
 });
 

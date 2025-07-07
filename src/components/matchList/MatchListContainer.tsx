@@ -33,6 +33,7 @@ type Props = {
     scrollY?: Animated.Value;
     headerOffset?: number;
     contentContainerStyle?: StyleProp<ViewStyle>;
+    home?: boolean
 };
 
 const MatchListContainer: React.FC<Props> = ({
@@ -42,6 +43,7 @@ const MatchListContainer: React.FC<Props> = ({
     scrollY,
     headerOffset = 0,
     contentContainerStyle,
+    home = false,
 }) => {
     const theme = useAppTheme();
     const poolSheetRef = useRef<BottomSheetModal>(null);
@@ -116,20 +118,29 @@ const MatchListContainer: React.FC<Props> = ({
     );
 
     const body = () => {
-        if (isLoading)
+        if (isLoading) {
+            const skeletonSections = home
+                ? [
+                    { title: "Chargement…", data: new Array(4).fill(null).map(() => Math.floor(Math.random() * 3) + 1) }
+                ]
+                : new Array(4).fill(null).flatMap(() => [
+                    { title: "Chargement…", data: [1] }
+                ]);
+
             return (
                 <Animated.SectionList
-                    sections={[{ title: "Chargement…", data: new Array(2).fill(null) }]}
+                    sections={skeletonSections}
                     keyExtractor={(_, i) => `skeleton-${i}`}
                     stickySectionHeadersEnabled
                     renderSectionHeader={renderSectionHeader}
-                    renderItem={() => <PoolItemSkeleton />}
+                    renderItem={({ item }) => <PoolItemSkeleton itemCount={item} />}
                     ItemSeparatorComponent={() => <View style={styles.itemSeparator} />}
                     SectionSeparatorComponent={() => <View style={styles.sectionSeparator} />}
                     scrollEnabled={false}
                     contentContainerStyle={[styles.sectionListContent, contentContainerStyle]}
                 />
             );
+        }
 
         if (isError)
             return (
@@ -221,10 +232,6 @@ const styles = StyleSheet.create({
         borderRadius: 14,
         paddingHorizontal: 6,
         paddingVertical: 4,
-        shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 0.7,
-        shadowRadius: 5,
-        elevation: 5,
     },
     dateHeader: { fontSize: 16, fontWeight: "800" },
 });

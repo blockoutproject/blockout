@@ -1,26 +1,26 @@
 import { useEffect, useState } from "react";
-import { Pool } from "@/src/types/Pool";
+import { EnrichedPoolDTO, Pool } from "@/src/types/Pool";
 import { useUserContext } from "@/src/context/UserProvider";
 import UsersApi from "@/src/api/UsersApi";
 import { EntityType } from "@/src/types/User";
 
-export function usePoolFollowState(pool: Pool) {
+export function usePoolFollowState(enrichedPool: EnrichedPoolDTO) {
     const { customUser, refetch } = useUserContext();
-    const [followersCount, setFollowersCount] = useState(pool.followersCount);
+    const [followersCount, setFollowersCount] = useState(enrichedPool.followersCount);
     const [isFollowing, setIsFollowing] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
 
     /* garde le compteur à jour si le pool change */
-    useEffect(() => setFollowersCount(pool.followersCount), [pool.followersCount]);
+    useEffect(() => setFollowersCount(enrichedPool.followersCount), [enrichedPool.followersCount]);
 
     /* calcule le suivi courant */
     useEffect(() => {
         setIsFollowing(
             !!customUser?.favorites?.some(
-                (f) => f.entityId === pool.id && f.entityType === EntityType.POOL,
+                (f) => f.entityId === enrichedPool.id && f.entityType === EntityType.POOL,
             ),
         );
-    }, [customUser, pool.id]);
+    }, [customUser, enrichedPool.id]);
 
     const onToggleFollow = async () => {
         if (!customUser || isProcessing) return;
@@ -33,8 +33,8 @@ export function usePoolFollowState(pool: Pool) {
         try {
             const api = UsersApi.getInstance();
             next
-                ? await api.follow(EntityType.POOL, pool.id)
-                : await api.unfollow(EntityType.POOL, pool.id);
+                ? await api.follow(EntityType.POOL, enrichedPool.id)
+                : await api.unfollow(EntityType.POOL, enrichedPool.id);
             refetch();
         } catch {
             setIsFollowing(!next);

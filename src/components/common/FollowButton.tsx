@@ -42,6 +42,7 @@ const FollowButton: React.FC<Props> = ({ isFollowing, onPress, disabled, gradien
             borderRadius={12}
             borderWidth={2}
             outerStyle={{ marginRight: 12 }}
+            style={{ backgroundColor: theme.background }}
         >
             {buttonContent}
         </GradientBorderView>

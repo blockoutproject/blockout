@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useRef } from "react";
+import React, { useState, useMemo, useRef } from "react";
 import {
     View,
     Text,
@@ -15,13 +15,10 @@ import { Filter } from "@/src/types/Filter";
 import Filters from "../home/Filters";
 import DivisionItem from "./DivisionItem";
 import DivisionForm from "./DivisionForm";
-
-import {
-    BottomSheetFlatList,
-    BottomSheetModal,
-} from "@gorhom/bottom-sheet";
+import { BottomSheetFlatList, BottomSheetModal } from "@gorhom/bottom-sheet";
 import BottomSheetCustomModal from "../common/BottomSheetCustomModal";
 import SearchBar from "../common/SearchBar";
+import * as Haptics from "expo-haptics"; // ← import haptic
 
 const DivisionScreen = () => {
     const theme = useAppTheme();
@@ -30,10 +27,13 @@ const DivisionScreen = () => {
 
     const formSheetRef = useRef<BottomSheetModal>(null);
     const [editedDivision, setEditedDivision] = useState<Division | null>(null);
+
     const openForm = (division: Division | null) => {
+        Haptics.selectionAsync(); // ← haptic feedback
         setEditedDivision(division);
         formSheetRef.current?.present();
     };
+
     const closeForm = () => formSheetRef.current?.dismiss();
 
     const [search, setSearch] = useState("");
@@ -81,6 +81,7 @@ const DivisionScreen = () => {
                     <TouchableOpacity
                         onPress={() => openForm(null)}
                         style={[styles.addButton, { backgroundColor: theme.success }]}
+                        activeOpacity={0.8}
                     >
                         <Text style={styles.addButtonText}>Ajouter</Text>
                     </TouchableOpacity>

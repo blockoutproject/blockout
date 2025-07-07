@@ -2,7 +2,6 @@ import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
     View,
     Text,
-    FlatList,
     StyleSheet,
     ActivityIndicator,
     Keyboard,
@@ -18,6 +17,7 @@ import RawDivisionMappingForm from "./RawDivisionMappingForm";
 import { BottomSheetFlatList, BottomSheetModal } from "@gorhom/bottom-sheet";
 import BottomSheetCustomModal from "../common/BottomSheetCustomModal";
 import SearchBar from "../common/SearchBar";
+import * as Haptics from "expo-haptics";
 
 type FilterName = string;
 
@@ -39,6 +39,7 @@ const RawDivisionMappingScreen: React.FC = () => {
 
     const openForm = (mapping: RawDivisionMapping) => {
         Keyboard.dismiss();
+        Haptics.selectionAsync(); // <- haptic feedback ici
         setEditing(mapping);
         formSheetRef.current?.present();
     };

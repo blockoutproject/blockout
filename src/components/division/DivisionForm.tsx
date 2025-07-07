@@ -20,6 +20,7 @@ import * as ImageManipulator from 'expo-image-manipulator';
 import FastImage from 'react-native-fast-image';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import * as FileSystem from 'expo-file-system';
+import * as Haptics from 'expo-haptics';
 
 interface DivisionFormProps {
     division: Division | null;
@@ -38,6 +39,8 @@ const DivisionForm: React.FC<DivisionFormProps> = ({ division, onSuccess }) => {
 
     const handlePickImage = async () => {
         try {
+            await Haptics.selectionAsync();
+
             const { granted } = await ImagePicker.requestMediaLibraryPermissionsAsync();
             if (!granted) {
                 Alert.alert("Permission refusée", "Accès à la bibliothèque requis.");
@@ -50,18 +53,15 @@ const DivisionForm: React.FC<DivisionFormProps> = ({ division, onSuccess }) => {
                 aspect: [1, 1],
                 quality: 1,
             });
+
             if (pickerResult.canceled) return;
 
             const selected = pickerResult.assets[0];
             if (!selected.uri) return;
 
-            // Crée un contexte de manipulation
             const manipContext = ImageManipulator.ImageManipulator.manipulate(selected.uri);
+            manipContext.resize({ width: 512 });
 
-            // Applique les transformations
-            manipContext.resize({ width: 512 })
-
-            // Rends et enregistre l'image
             const rendered = await manipContext.renderAsync();
             const saved = await rendered.saveAsync({
                 format: ImageManipulator.SaveFormat.JPEG,
@@ -73,6 +73,7 @@ const DivisionForm: React.FC<DivisionFormProps> = ({ division, onSuccess }) => {
                 name: `division.jpg`,
                 type: 'image/jpeg',
             };
+
             setPreviewUri(saved.uri);
             setImageFile(fileObj);
         } catch (e) {
@@ -100,6 +101,8 @@ const DivisionForm: React.FC<DivisionFormProps> = ({ division, onSuccess }) => {
 
         onSubmit: async (values) => {
             try {
+                await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
                 setLoading(true);
                 setErrorMessage(null);
 
@@ -196,7 +199,7 @@ const DivisionForm: React.FC<DivisionFormProps> = ({ division, onSuccess }) => {
             )}
 
             <TouchableOpacity
-                style={[styles.submitButton, { backgroundColor: theme.success, opacity: loading ? 0.7 : 1 }]}
+                style={[styles.submitButton, { backgroundColor: division?.mainColor || theme.primary, opacity: loading ? 0.7 : 1 }]}
                 onPress={() => formik.handleSubmit()}
                 disabled={loading}
                 activeOpacity={0.8}
@@ -218,12 +221,8 @@ const DivisionForm: React.FC<DivisionFormProps> = ({ division, onSuccess }) => {
 };
 
 const styles = StyleSheet.create({
-    container: {
-        padding: 12,
-    },
-    fieldBlock: {
-        marginBottom: 20,
-    },
+    container: { padding: 12 },
+    fieldBlock: { marginBottom: 20 },
     label: {
         fontSize: 14,
         fontWeight: '600',

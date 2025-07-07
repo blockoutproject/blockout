@@ -16,9 +16,12 @@ import TeamContainer from "../team/TeamScreen";
 
 import { BottomSheetFlatList, BottomSheetModal, BottomSheetView } from "@gorhom/bottom-sheet";
 import BottomSheetCustomPage from "./BottomSheetCustomPage";
+import { EnrichedPoolDTO, Pool } from "@/src/types/Pool";
+import { Division } from "@/src/types/Division";
 
 interface RankingCardProps {
     poolId: number;
+    division: Division;
     scrollable?: boolean;
 }
 
@@ -28,6 +31,7 @@ function getRowBg(isEven: boolean, theme: AppTheme) {
 
 const RankingCard: React.FC<RankingCardProps> = ({
     poolId,
+    division,
     scrollable = true,
 }) => {
     const { teams, isLoading, isError } = useDetailedTeamsByPool(poolId);
@@ -76,7 +80,7 @@ const RankingCard: React.FC<RankingCardProps> = ({
 
     return (
         <>
-            <View style={[styles.container, { backgroundColor: theme.surface }]}>
+            <View style={[styles.container, { backgroundColor: theme.background, borderColor: division.mainColor }]}>
                 <View style={styles.headerRow}>
                     <View style={styles.transparentIndicator} />
                     {["#", "Team", "MJ", "V", "D", "PTS"].map((h, i) => (
@@ -163,6 +167,7 @@ const RankingCard: React.FC<RankingCardProps> = ({
 
 const styles = StyleSheet.create({
     container: {
+        borderWidth: 2,
         borderRadius: 18,
         flexShrink: 1,
         padding: 8,

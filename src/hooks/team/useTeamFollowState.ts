@@ -2,36 +2,27 @@ import { useEffect, useState } from 'react';
 import { useUserContext } from '@/src/context/UserProvider';
 import UsersApi from '@/src/api/UsersApi';
 import { EntityType } from '@/src/types/User';
-import { Team } from '@/src/types/Team';
+import { EnrichedTeamDTO, Team } from '@/src/types/Team';
 
-export function useTeamFollowState(team: Team) {
+export function useTeamFollowState(enrichedTeam: EnrichedTeamDTO) {
     const { customUser, refetch } = useUserContext();
     const [isProcessing, setIsProcessing] = useState(false);
-    const [followersCount, setFollowersCount] = useState(team.followersCount);
+    const [followersCount, setFollowersCount] = useState(enrichedTeam.followersCount);
     const [isFollowing, setIsFollowing] = useState(false);
 
     useEffect(() => {
-        setFollowersCount(team.followersCount);
-    }, [team.followersCount]);
+        setFollowersCount(enrichedTeam.followersCount);
+    }, [enrichedTeam.followersCount]);
 
     useEffect(() => {
         if (customUser?.favorites) {
             setIsFollowing(
                 customUser.favorites.some(
-                    (f) => f.entityId === team.id && f.entityType === EntityType.TEAM
+                    (f) => f.entityId === enrichedTeam.id && f.entityType === EntityType.TEAM
                 )
             );
         }
-    }, [customUser, team.id]);
-
-    useEffect(() => {
-        console.log('[useTeamFollowState] followersCount reçu:', team.followersCount);
-    }, [team.followersCount]);
-
-    useEffect(() => {
-        console.log('[useTeamFollowState] customUser ou teamId changé');
-        console.log('[useTeamFollowState] customUser.favorites:', customUser?.favorites);
-    }, [customUser, team.id]);
+    }, [customUser, enrichedTeam.id]);
 
     const onToggleFollow = async () => {
         if (!customUser || isProcessing) return;
@@ -44,9 +35,9 @@ export function useTeamFollowState(team: Team) {
         try {
             const api = UsersApi.getInstance();
             if (next) {
-                await api.follow(EntityType.TEAM, team.id);
+                await api.follow(EntityType.TEAM, enrichedTeam.id);
             } else {
-                await api.unfollow(EntityType.TEAM, team.id);
+                await api.unfollow(EntityType.TEAM, enrichedTeam.id);
             }
             refetch();
         } catch (error) {

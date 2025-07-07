@@ -14,10 +14,6 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         refetch
     } = useCustomUser(auth0User?.sub);
 
-    useEffect(() => {
-        console.log('[UserContext] customUser mis à jour:', customUser);
-    }, [customUser]);
-
     const isLoading = isAuth0Loading || isCustomUserLoading;
 
     const value = useMemo(() => ({

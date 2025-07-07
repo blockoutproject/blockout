@@ -4,16 +4,16 @@ import MatchList from "@/src/components/matchList/MatchListContainer";
 import { MatchStatus } from "@/src/types/Match";
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import { Pool } from "@/src/types/Pool";
-import { Team } from "@/src/types/Team";
+import { EnrichedTeamDTO, Team } from "@/src/types/Team";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import RankingTab from "../../common/RankingTab";
+import { Division } from "@/src/types/Division";
 
 type TeamTabsProps = {
-    pools: Pool[];
-    team: Team;
+    enrichedTeam: EnrichedTeamDTO;
 };
 
-const TeamTabs: React.FC<TeamTabsProps> = ({ pools, team }) => {
+const TeamTabs: React.FC<TeamTabsProps> = ({ enrichedTeam }) => {
     const theme = useAppTheme();
     const insets = useSafeAreaInsets();
 
@@ -23,7 +23,7 @@ const TeamTabs: React.FC<TeamTabsProps> = ({ pools, team }) => {
             title: "Terminés",
             render: () =>
                 <MatchList
-                    teamIds={[team.id]}
+                    teamIds={[enrichedTeam.id]}
                     status={MatchStatus.FINISHED}
                     contentContainerStyle={{
                         paddingHorizontal: 4,
@@ -37,7 +37,7 @@ const TeamTabs: React.FC<TeamTabsProps> = ({ pools, team }) => {
             title: "À Venir",
             render: () =>
                 <MatchList
-                    teamIds={[team.id]}
+                    teamIds={[enrichedTeam.id]}
                     status={MatchStatus.UPCOMING}
                     contentContainerStyle={{
                         paddingHorizontal: 4,
@@ -48,10 +48,10 @@ const TeamTabs: React.FC<TeamTabsProps> = ({ pools, team }) => {
         },
     ];
 
-    const dynamicTabs = pools.map((pool) => ({
+    const dynamicTabs = enrichedTeam.pools.map((pool) => ({
         key: `pool-${pool.id}`,
         title: `${pool.name}`,
-        render: () => <RankingTab key={pool.id} poolId={pool.id} />,
+        render: () => <RankingTab key={pool.id} poolId={pool.id} division={enrichedTeam.division}/>,
     }));
 
     const tabs = [...staticTabs, ...dynamicTabs];
