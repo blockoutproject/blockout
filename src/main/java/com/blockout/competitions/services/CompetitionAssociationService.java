@@ -289,11 +289,11 @@ public class CompetitionAssociationService {
                                     .coefPoints(assoc.getCoefPoints())
                                     .build())
                             .sorted(Comparator
-                                    .comparingInt(TeamRankingDTO::getPoints).reversed()
-                                    .thenComparingInt(TeamRankingDTO::getPointsPenalty)
-                                    .thenComparingInt(TeamRankingDTO::getWins).reversed()
-                                    .thenComparingDouble(TeamRankingDTO::getCoefSets).reversed()
-                                    .thenComparingDouble(TeamRankingDTO::getCoefPoints).reversed())
+                                    .comparingInt(TeamRankingDTO::getPoints)
+                                    .thenComparingInt(TeamRankingDTO::getPointsPenalty).reversed()
+                                    .thenComparingInt(TeamRankingDTO::getWins)
+                                    .thenComparingDouble(TeamRankingDTO::getCoefSets)
+                                    .thenComparingDouble(TeamRankingDTO::getCoefPoints))
                             .toList();
 
                     return PoolWithRankingDTO.builder()
