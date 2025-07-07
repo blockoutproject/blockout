@@ -17,7 +17,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, Object>> handleAccessDenied(
             AccessDeniedException ex, HttpServletRequest request) {
         return buildErrorResponse(
-                "Accès refusé : vous n’avez pas les permissions nécessaires.",
+                "Access denied: you do not have the required permissions.",
                 HttpStatus.FORBIDDEN,
                 request.getRequestURI());
     }
@@ -26,12 +26,13 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, Object>> handleAuthenticationException(
             AuthenticationException ex, HttpServletRequest request) {
         return buildErrorResponse(
-                "Authentification requise ou invalide.",
+                "Authentication is required or invalid.",
                 HttpStatus.UNAUTHORIZED,
                 request.getRequestURI());
     }
+
     @ExceptionHandler(MatchNotFoundException.class)
-    public ResponseEntity<Map<String, Object>> handlePoolNotFound(
+    public ResponseEntity<Map<String, Object>> handleMatchNotFound(
             MatchNotFoundException ex, HttpServletRequest request) {
         ex.printStackTrace();
         return buildErrorResponse(
@@ -55,7 +56,7 @@ public class GlobalExceptionHandler {
             Exception ex, HttpServletRequest request) {
         ex.printStackTrace();
         return buildErrorResponse(
-                "Une erreur interne est survenue.",
+                "An internal server error occurred.",
                 HttpStatus.INTERNAL_SERVER_ERROR,
                 request.getRequestURI());
     }
