@@ -1,8 +1,7 @@
 package com.blockout.mobilegateway.services;
 
 import com.blockout.mobilegateway.exceptions.InconsistentStateException;
-import com.blockout.mobilegateway.models.dto.competition.PoolWithRankingDTO;
-import com.blockout.mobilegateway.models.dto.competition.TeamRankingDTO;
+import com.blockout.mobilegateway.models.dto.competition.CompetitionAssociationDTO;
 import com.blockout.mobilegateway.models.dto.config.DivisionDTO;
 import com.blockout.mobilegateway.models.dto.pool.EnrichedPoolDTO;
 import com.blockout.mobilegateway.models.dto.pool.PoolDTO;
@@ -34,39 +33,44 @@ public class EnrichedTeamService {
         TeamDTO team = teamClientService.getTeamById(teamId);
         DivisionDTO division = configClientService.getDivisionById(team.getDivisionId());
 
-        List<PoolWithRankingDTO> poolsWithRankings = competitionClientService.getPoolsWithRankingByTeam(teamId);
-
-        // Récupérer tous les teamIds impliqués
-        Set<Long> allTeamIds = poolsWithRankings.stream()
-                .flatMap(p -> p.getRanking().stream())
-                .map(TeamRankingDTO::getTeamId)
+        // 1. Récupère toutes les associations du team ciblé pour obtenir ses pools
+        List<CompetitionAssociationDTO> teamAssocs = competitionClientService.getActiveAssociationsByTeam(teamId);
+        Set<Long> poolIds = teamAssocs.stream()
+                .map(CompetitionAssociationDTO::getPoolId)
                 .collect(Collectors.toSet());
 
-        // Récupérer toutes les équipes une seule fois
+        // 2. Récupère les infos de pool
+        List<PoolDTO> rawPools = poolClientService.getPoolsByIds(poolIds);
+        Map<Long, PoolDTO> poolMap = rawPools.stream()
+                .collect(Collectors.toMap(PoolDTO::getId, Function.identity()));
+
+        // 3. Récupère les associations de toutes les équipes dans ces pools
+        Map<Long, List<CompetitionAssociationDTO>> poolToAssocs = new HashMap<>();
+        Set<Long> allTeamIds = new HashSet<>();
+        for (Long poolId : poolIds) {
+            List<CompetitionAssociationDTO> assocs = competitionClientService.getActiveAssociationsByPool(poolId);
+            poolToAssocs.put(poolId, assocs);
+            assocs.forEach(a -> allTeamIds.add(a.getTeamId()));
+        }
+
+        // 4. Récupère tous les TeamDTO nécessaires
         Map<Long, TeamDTO> teamsMap = teamClientService.getTeamsByIds(allTeamIds).stream()
                 .collect(Collectors.toMap(TeamDTO::getId, Function.identity()));
 
-        // Récupérer tous les pools une seule fois
-        Set<Long> poolIds = poolsWithRankings.stream()
-                .map(PoolWithRankingDTO::getPoolId)
-                .collect(Collectors.toSet());
-
-        Map<Long, PoolDTO> poolMap = poolClientService.getPoolsByIds(poolIds).stream()
-                .collect(Collectors.toMap(PoolDTO::getId, Function.identity()));
-
-        // Mapper les EnrichedPoolDTO
-        List<EnrichedPoolDTO> enrichedPools = poolsWithRankings.stream()
-                .map(p -> {
-                    PoolDTO basePool = poolMap.get(p.getPoolId());
+        // 5. Construit les EnrichedPoolDTO avec ranking complet
+        List<EnrichedPoolDTO> enrichedPools = poolToAssocs.entrySet().stream()
+                .map(entry -> {
+                    Long poolId = entry.getKey();
+                    PoolDTO basePool = poolMap.get(poolId);
                     if (basePool == null) {
-                        throw new InconsistentStateException("Missing pool with ID " + p.getPoolId());
+                        throw new InconsistentStateException("Missing pool with ID " + poolId + " for team " + teamId);
                     }
 
-                    List<TeamWithStatsDTO> ranking = p.getRanking().stream()
-                            .map(r -> {
-                                TeamDTO t = teamsMap.get(r.getTeamId());
+                    List<TeamWithStatsDTO> ranking = entry.getValue().stream()
+                            .map(assoc -> {
+                                TeamDTO t = teamsMap.get(assoc.getTeamId());
                                 if (t == null) {
-                                    throw new InconsistentStateException("Missing team with ID " + r.getTeamId());
+                                    throw new InconsistentStateException("Missing team with ID " + assoc.getTeamId() + " in pool " + poolId);
                                 }
                                 return TeamWithStatsDTO.builder()
                                         .id(t.getId())
@@ -75,15 +79,22 @@ public class EnrichedTeamService {
                                         .format(t.getFormat())
                                         .gender(t.getGender())
                                         .followersCount(t.getFollowersCount())
-                                        .points(r.getPoints())
-                                        .played(r.getPlayed())
-                                        .wins(r.getWins())
-                                        .losses(r.getLosses())
-                                        .pointsPenalty(r.getPointsPenalty())
-                                        .coefSets(r.getCoefSets())
-                                        .coefPoints(r.getCoefPoints())
+                                        .points(assoc.getPoints())
+                                        .played(assoc.getPlayed())
+                                        .wins(assoc.getWins())
+                                        .losses(assoc.getLosses())
+                                        .pointsPenalty(assoc.getPointsPenalty())
+                                        .coefSets(assoc.getCoefSets())
+                                        .coefPoints(assoc.getCoefPoints())
                                         .build();
-                            }).toList();
+                            })
+                            .sorted(
+                                    Comparator.comparingInt(TeamWithStatsDTO::getPoints).reversed()
+                                            .thenComparingInt(TeamWithStatsDTO::getPointsPenalty)
+                                            .thenComparingInt(TeamWithStatsDTO::getWins).reversed()
+                                            .thenComparingDouble(TeamWithStatsDTO::getCoefSets).reversed()
+                                            .thenComparingDouble(TeamWithStatsDTO::getCoefPoints).reversed())
+                            .toList();
 
                     return EnrichedPoolDTO.builder()
                             .id(basePool.getId())
@@ -93,10 +104,11 @@ public class EnrichedTeamService {
                             .format(basePool.getFormat())
                             .gender(basePool.getGender())
                             .followersCount(basePool.getFollowersCount())
-                            .division(division)
                             .ranking(ranking)
+                            .division(division)
                             .build();
-                }).toList();
+                })
+                .toList();
 
         return EnrichedTeamDTO.builder()
                 .id(team.getId())
