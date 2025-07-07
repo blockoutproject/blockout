@@ -4,6 +4,7 @@ import com.blockout.competitions.models.CompetitionAssociation;
 import com.blockout.competitions.models.dto.BulkClubsDeactivateRequest;
 import com.blockout.competitions.models.dto.BulkPoolsDeactivateRequest;
 import com.blockout.competitions.models.dto.BulkTeamsDeactivateRequest;
+import com.blockout.competitions.models.dto.PoolWithRankingDTO;
 import com.blockout.competitions.models.dto.TeamAssociationStatsRequest;
 import com.blockout.competitions.services.CompetitionAssociationService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -114,5 +115,16 @@ public class CompetitionAssociationController {
 
         CompetitionAssociation updated = associationService.updateTeamAssociationStats(poolId, teamId, body);
         return ResponseEntity.ok(updated);
+    }
+
+    @Operation(summary = "Lister les pools avec le classement d’une équipe", description = "Retourne toutes les pools liées à une équipe, avec le classement (ranking) de chaque pool")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Pools et rankings retournés"),
+            @ApiResponse(responseCode = "204", description = "Aucune association trouvée pour cette équipe"),
+    })
+    @GetMapping("/teams/{teamId}/pools-with-ranking")
+    public ResponseEntity<List<PoolWithRankingDTO>> getPoolsAndRankingsByTeam(@PathVariable Long teamId) {
+        List<PoolWithRankingDTO> result = associationService.getPoolsAndRankingsByTeam(teamId);
+        return ResponseEntity.ok(result);
     }
 }

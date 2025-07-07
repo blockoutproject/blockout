@@ -1,7 +1,9 @@
 package com.blockout.competitions.services;
 
 import com.blockout.competitions.models.CompetitionAssociation;
+import com.blockout.competitions.models.dto.PoolWithRankingDTO;
 import com.blockout.competitions.models.dto.TeamAssociationStatsRequest;
+import com.blockout.competitions.models.dto.TeamRankingDTO;
 import com.blockout.competitions.repositories.CompetitionAssociationRepository;
 import com.blockout.competitions.utils.DiffUtils;
 
@@ -252,6 +254,56 @@ public class CompetitionAssociationService {
                 })
                 .orElseThrow(() -> new EntityNotFoundException(
                         "Association introuvable pour poolId " + poolId + " et teamId " + teamId));
+    }
+
+    public List<PoolWithRankingDTO> getPoolsAndRankingsByTeam(Long teamId) {
+        List<CompetitionAssociation> teamAssocs = associationRepository.findByTeamIdAndActive(teamId, true);
+
+        Set<Long> poolIds = teamAssocs.stream()
+                .map(CompetitionAssociation::getPoolId)
+                .collect(Collectors.toSet());
+
+        if (poolIds.isEmpty()) {
+            return List.of();
+        }
+
+        List<CompetitionAssociation> allAssocs = associationRepository.findByActiveTrueAndPoolIdIn(poolIds);
+
+        Map<Long, List<CompetitionAssociation>> groupedByPool = allAssocs.stream()
+                .collect(Collectors.groupingBy(CompetitionAssociation::getPoolId));
+
+        List<PoolWithRankingDTO> result = groupedByPool.entrySet().stream()
+                .map(entry -> {
+                    Long poolId = entry.getKey();
+                    List<CompetitionAssociation> assocs = entry.getValue();
+
+                    List<TeamRankingDTO> ranking = assocs.stream()
+                            .map(assoc -> TeamRankingDTO.builder()
+                                    .teamId(assoc.getTeamId())
+                                    .points(assoc.getPoints())
+                                    .pointsPenalty(assoc.getPointsPenalty())
+                                    .played(assoc.getPlayed())
+                                    .wins(assoc.getWins())
+                                    .losses(assoc.getLosses())
+                                    .coefSets(assoc.getCoefSets())
+                                    .coefPoints(assoc.getCoefPoints())
+                                    .build())
+                            .sorted(Comparator
+                                    .comparingInt(TeamRankingDTO::getPoints).reversed()
+                                    .thenComparingInt(TeamRankingDTO::getPointsPenalty)
+                                    .thenComparingInt(TeamRankingDTO::getWins).reversed()
+                                    .thenComparingDouble(TeamRankingDTO::getCoefSets).reversed()
+                                    .thenComparingDouble(TeamRankingDTO::getCoefPoints).reversed())
+                            .toList();
+
+                    return PoolWithRankingDTO.builder()
+                            .poolId(poolId)
+                            .ranking(ranking)
+                            .build();
+                })
+                .toList();
+
+        return result;
     }
 
     /**
