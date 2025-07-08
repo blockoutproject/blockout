@@ -76,7 +76,6 @@ const RawDivisionMappingForm: React.FC<Props> = ({ mapping, onSuccess }) => {
                     <Picker
                         selectedValue={format}
                         onValueChange={(value) => {
-                            Haptics.selectionAsync();
                             setFormat(value);
                         }}
                         itemStyle={{
@@ -95,7 +94,6 @@ const RawDivisionMappingForm: React.FC<Props> = ({ mapping, onSuccess }) => {
                     <Picker
                         selectedValue={gender}
                         onValueChange={(value) => {
-                            Haptics.selectionAsync();
                             setGender(value);
                         }}
                         itemStyle={{
@@ -117,7 +115,6 @@ const RawDivisionMappingForm: React.FC<Props> = ({ mapping, onSuccess }) => {
                     <Picker
                         selectedValue={divisionId}
                         onValueChange={(value) => {
-                            Haptics.selectionAsync();
                             setDivisionId(value);
                         }}
                         enabled={!loadingDivisions}

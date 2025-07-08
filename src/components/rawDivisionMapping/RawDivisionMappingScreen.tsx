@@ -155,7 +155,8 @@ const RawDivisionMappingScreen: React.FC = () => {
                 {editing && (
                     <RawDivisionMappingForm
                         mapping={editing}
-                        onSuccess={() => {
+                        onSuccess={async () => {
+                            await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
                             refetch();
                             closeForm();
                         }}

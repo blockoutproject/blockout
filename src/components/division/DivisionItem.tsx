@@ -107,9 +107,9 @@ const styles = StyleSheet.create({
         textAlign: 'left',
     },
     avatar: {
-        width: 30,
-        height: 30,
-        borderRadius: 18,
+        width: 40,
+        aspectRatio: 1,
+        borderRadius: 12,
         marginHorizontal: 8,
         backgroundColor: '#ccc',
     },

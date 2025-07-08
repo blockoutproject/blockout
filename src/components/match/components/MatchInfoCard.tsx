@@ -77,7 +77,7 @@ const MatchInfoCard: React.FC<MatchInfoCardProps> = ({ enrichedMatch }) => {
                     </Text>
                 </TouchableOpacity>
 
-                <InfoRow icon="trophy-outline" text={enrichedMatch.pool.leagueName === 'PRO' ? 'Professionnel' : enrichedMatch.pool.division.name} />
+                <InfoRow icon="trophy" text={enrichedMatch.pool.leagueName === 'PRO' ? 'Professionnel' : enrichedMatch.pool.division.name} />
                 <InfoRow
                     icon="calendar-month"
                     text={new Date(enrichedMatch.matchDate).toLocaleString("fr-FR", {

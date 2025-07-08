@@ -90,7 +90,7 @@ const CircleColorPicker: React.FC<Props> = ({
 const styles = StyleSheet.create({
     circle: {
         borderRadius: 999,
-        borderWidth: 1,
+        borderWidth: 2,
     },
     buttonRow: {
         borderRadius: 10,

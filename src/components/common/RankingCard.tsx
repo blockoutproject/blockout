@@ -1,23 +1,17 @@
-import React, { useRef, useMemo } from "react";
+import React, { useRef } from "react";
 import {
     View,
     Text,
-    ActivityIndicator,
     StyleSheet,
     TouchableOpacity,
-    FlatList,
 } from "react-native";
-import { useDetailedTeamsByPool } from "@/src/hooks/pool/useDetailedTeamsByPool";
 import FastImage from "react-native-fast-image";
 import { useAppTheme } from "@/src/context/ThemeProvider";
-import { AppTheme } from "@/src/types/Theme";
 import * as Haptics from "expo-haptics";
 import TeamContainer from "../team/TeamScreen";
-
 import { BottomSheetFlatList, BottomSheetModal, BottomSheetView } from "@gorhom/bottom-sheet";
 import BottomSheetCustomPage from "./BottomSheetCustomPage";
-import { EnrichedPoolDTO, Pool } from "@/src/types/Pool";
-import { Division } from "@/src/types/Division";
+import { EnrichedPoolDTO } from "@/src/types/Pool";
 
 interface RankingCardProps {
     enrichedPool: EnrichedPoolDTO;
@@ -34,11 +28,6 @@ const RankingCard: React.FC<RankingCardProps> = ({
 }) => {
     const theme = useAppTheme();
 
-    const division = enrichedPool.division;
-    if (!division) {
-        throw new Error("EnrichedPoolDTO.division is required but was undefined.");
-    }
-
     const teamSheetRef = useRef<BottomSheetModal>(null);
 
     const openTeamSheet = (teamId: number) => {
@@ -50,7 +39,7 @@ const RankingCard: React.FC<RankingCardProps> = ({
 
     return (
         <>
-            <View style={[styles.container, { backgroundColor: theme.background, borderColor: division.mainColor }]}>
+            <View style={[styles.container, { backgroundColor: theme.background, borderColor: enrichedPool.division.mainColor }]}>
                 <View style={styles.headerRow}>
                     <View style={styles.transparentIndicator} />
                     {["#", "Team", "MJ", "V", "D", "PTS"].map((h, i) => (

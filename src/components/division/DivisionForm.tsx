@@ -19,7 +19,6 @@ import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
 import FastImage from 'react-native-fast-image';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import * as FileSystem from 'expo-file-system';
 import * as Haptics from 'expo-haptics';
 
 interface DivisionFormProps {
@@ -199,7 +198,7 @@ const DivisionForm: React.FC<DivisionFormProps> = ({ division, onSuccess }) => {
             )}
 
             <TouchableOpacity
-                style={[styles.submitButton, { backgroundColor: division?.mainColor || theme.primary, opacity: loading ? 0.7 : 1 }]}
+                style={[styles.submitButton, { backgroundColor: formik.values.mainColor || theme.primary, opacity: loading ? 0.7 : 1 }]}
                 onPress={() => formik.handleSubmit()}
                 disabled={loading}
                 activeOpacity={0.8}
@@ -221,8 +220,12 @@ const DivisionForm: React.FC<DivisionFormProps> = ({ division, onSuccess }) => {
 };
 
 const styles = StyleSheet.create({
-    container: { padding: 12 },
-    fieldBlock: { marginBottom: 20 },
+    container: { 
+        padding: 12 
+    },
+    fieldBlock: { 
+        marginBottom: 20 
+    },
     label: {
         fontSize: 14,
         fontWeight: '600',
@@ -255,9 +258,9 @@ const styles = StyleSheet.create({
     },
     imagePreview: {
         width: 80,
-        height: 80,
-        borderRadius: 40,
-        borderWidth: 1.5,
+        aspectRatio: 1,
+        borderRadius: 18,
+        borderWidth: 2,
     },
     imagePlaceholder: {
         justifyContent: 'center',

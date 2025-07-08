@@ -124,7 +124,8 @@ const DivisionScreen = () => {
             <BottomSheetCustomModal ref={formSheetRef}>
                 <DivisionForm
                     division={editedDivision}
-                    onSuccess={() => {
+                    onSuccess={async () => {
+                        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
                         refetch();
                         closeForm();
                     }}
