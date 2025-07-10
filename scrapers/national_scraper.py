@@ -14,7 +14,7 @@ class NationalScraper(Scraper):
     def __init__(self, session):
         super().__init__(
             session, name="national_scraper",
-            url="http://www.ffvb.org/index.php?lvlid=119&dsgtypid=37&artid=1151&pos=1",
+            url="http://www.ffvb.org/119-37-1-Championnats-Nationaux",
             priority_validation_enabled=False
         )
         self.league_code = "ABCCS"
