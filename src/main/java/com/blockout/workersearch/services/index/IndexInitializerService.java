@@ -37,15 +37,15 @@ public class IndexInitializerService {
                 .exists(ExistsRequest.of(e -> e.index(indexName)));
 
         if (exists.value()) {
-            logger.info("Deleting existing index",
-                    keyValue("action", "delete_index"),
+            logger.info("Deleting existing teams index",
+                    keyValue("action", "delete_teams_index"),
                     keyValue("index", indexName));
             elasticsearchClient.indices()
                     .delete(DeleteIndexRequest.of(d -> d.index(indexName)));
         }
 
-        logger.info("Creating index from JSON config",
-                keyValue("action", "create_index"),
+        logger.info("Creating teams index from JSON config",
+                keyValue("action", "create_teams_index"),
                 keyValue("index", indexName),
                 keyValue("source", jsonPath));
 
@@ -61,7 +61,46 @@ public class IndexInitializerService {
         elasticsearchClient.indices().create(createIndexRequest);
 
         logger.info("Index created successfully",
-                keyValue("action", "index_created"),
+                keyValue("action", "index_teams_created"),
+                keyValue("index", indexName));
+    }
+
+    @PostConstruct
+    @SneakyThrows
+    public void initializeClubIndex() {
+        String indexName = "clubs";
+        String jsonPath = "elasticsearch/clubs-index.json";
+
+        // Check if index exists
+        BooleanResponse exists = elasticsearchClient.indices()
+                .exists(ExistsRequest.of(e -> e.index(indexName)));
+
+        if (exists.value()) {
+            logger.info("Deleting existing clubs index",
+                    keyValue("action", "delete_clubs_index"),
+                    keyValue("index", indexName));
+            elasticsearchClient.indices()
+                    .delete(DeleteIndexRequest.of(d -> d.index(indexName)));
+        }
+
+        logger.info("Creating clubs index from JSON config",
+                keyValue("action", "create_clubs_index"),
+                keyValue("index", indexName),
+                keyValue("source", jsonPath));
+
+        // Load JSON config
+        InputStream jsonStream = new ClassPathResource(jsonPath).getInputStream();
+
+        // Create the index
+        CreateIndexRequest createIndexRequest = CreateIndexRequest.of(b -> b
+                .index(indexName)
+                .withJson(jsonStream)
+        );
+
+        elasticsearchClient.indices().create(createIndexRequest);
+
+        logger.info("Index clubs created successfully",
+                keyValue("action", "index_clubs_created"),
                 keyValue("index", indexName));
     }
 }

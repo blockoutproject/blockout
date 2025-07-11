@@ -67,13 +67,23 @@ public class ClubIndexService {
     }
 
     private ClubDoc map(ClubUpsertEvent e) {
+        String name = e.getName();
+        String city = e.getCity();
+
+        // Contenu brut
+        String raw = String.join(" ",
+                name != null ? name : "",
+                city != null ? city : "");
+
+        // Contenu simplifié
+        String simplified = TextNormalizer.simplify(raw);
+
         ClubDoc doc = ClubDoc.builder()
                 .id(e.getId())
                 .name(e.getName())
                 .city(e.getCity())
-                .nameSimplified(TextNormalizer.simplify(e.getName()))
-                .citySimplified(TextNormalizer.simplify(e.getCity()))
-                .keywords(TextNormalizer.simplify(e.getName() + " " + e.getCity()))
+                .keywordsAutocomplete(raw)
+                .keywordsAutocompleteSimplified(simplified)
                 .build();
         return doc;
     }
