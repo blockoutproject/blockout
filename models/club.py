@@ -11,6 +11,7 @@ class Club:
     email: Optional[str] = None
     phone_number: Optional[str] = None
     website: Optional[str] = None
+    logo_url: Optional[str] = None
     active: bool = True
     created_at: Optional[datetime] = None
     last_update: Optional[datetime] = None

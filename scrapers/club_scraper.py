@@ -1,5 +1,6 @@
 import asyncio
 import re
+from typing import Optional
 import aiohttp
 from bs4 import BeautifulSoup
 from api.competitions_api import bulk_deactivate_clubs
@@ -67,8 +68,17 @@ class ClubScraper(Scraper):
             
             # On parse le HTML
             club = self.parse_club_page(html_content, club_id)
-            club_key = (club.id)
+            if club is None:
+                return
+
+            club_key = club.id
             existing_obj, updated_obj = self._clubs_cache.get(club_key, (None, club))
+
+            # Si le club existe déjà en cache (donc cloné via replace), on met à jour le clone avec les nouvelles données scrapées
+            if existing_obj:
+                for field in ['name', 'city', 'postal_code', 'email', 'phone_number', 'website']:
+                    setattr(updated_obj, field, getattr(club, field, None))
+
             new_club = await add_or_update_club(self.session, updated_obj, existing_obj)
             self.scraped_club_ids.add(new_club.id)
         except Exception as e:
@@ -80,7 +90,7 @@ class ClubScraper(Scraper):
                 message=f"{url} - Erreur lors du scraping d'un club."
             )
             
-    def parse_club_page(self, html_content: str, club_id: str) -> Club:
+    def parse_club_page(self, html_content: str, club_id: str) -> Optional[Club]:
         try:
             soup = BeautifulSoup(html_content, 'html.parser')
 
