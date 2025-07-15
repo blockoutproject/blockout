@@ -1,6 +1,6 @@
-import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import MobileGatewayApi from "@/src/api/MobileGatewayApi";
-import { EnrichedDayMatchesDTO, MatchStatus } from "@/src/types/Match";
+import { EnrichedDayMatchesDTO, EnrichedDayPageDTO, MatchStatus } from "@/src/types/Match";
 import { useMemo } from "react";
 
 export const useMatchList = (
@@ -25,11 +25,11 @@ export const useMatchList = (
                 status,
             }),
         initialPageParam: 0,
-        getNextPageParam: (_last, _pages, current) => current + 1,
+        getNextPageParam: (lastPage) => lastPage.nextPage,
         staleTime: 1000 * 60 * 5,
     });
 
-    const dayMatches: EnrichedDayMatchesDTO[] = queryResult.data?.pages.flat() ?? [];
+    const dayMatches: EnrichedDayMatchesDTO[] = queryResult.data?.pages.map(day => day.dayMatches).flat() ?? [];
     return {
         ...queryResult,
         dayMatches,

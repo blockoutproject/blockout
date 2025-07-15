@@ -58,13 +58,13 @@ const FollowButton: React.FC<Props> = ({ isFollowing, onPress, disabled, gradien
 
 const styles = StyleSheet.create({
     button: {
-        paddingVertical: 6,
-        paddingHorizontal: 20,
         borderRadius: 10,
         justifyContent: 'center',
         alignItems: 'center',
     },
     text: {
+        paddingVertical: 6,
+        paddingHorizontal: 20,
         fontSize: 14,
         fontWeight: '600',
     },

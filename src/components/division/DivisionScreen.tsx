@@ -12,7 +12,7 @@ import { useAppTheme } from "@/src/context/ThemeProvider";
 import { useDivisions } from "@/src/hooks/config/division/useDivisions";
 import { Division } from "@/src/types/Division";
 import { Filter } from "@/src/types/Filter";
-import Filters from "../home/Filters";
+import Filters from "../common/Filters";
 import DivisionItem from "./DivisionItem";
 import DivisionForm from "./DivisionForm";
 import { BottomSheetFlatList, BottomSheetModal } from "@gorhom/bottom-sheet";

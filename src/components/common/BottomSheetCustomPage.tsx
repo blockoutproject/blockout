@@ -8,7 +8,7 @@ import {
 } from "@gorhom/bottom-sheet";
 
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { StyleSheet } from "react-native";
+import { StyleSheet, View } from "react-native";
 import { useAppTheme } from "@/src/context/ThemeProvider";
 
 export type BottomSheetPageProps = Omit<

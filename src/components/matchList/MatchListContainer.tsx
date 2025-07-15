@@ -9,23 +9,20 @@ import {
     StyleProp,
     ViewStyle,
 } from "react-native";
-import { useAppTheme } from "@/src/context/ThemeProvider";
 import { MatchStatus } from "@/src/types/Match";
 import { formatDateFrenchLocale } from "@/src/utils/utils";
 import * as Haptics from "expo-haptics";
 import EmptyPrompt from "../common/feedback/EmptyPrompt";
 import ErrorPrompt from "../common/feedback/ErrorPrompt";
-import PoolItemSkeleton from "./components/PoolItemSkeleton";
 import PoolItem from "./components/PoolItem";
 import MatchContainer from "@/src/components/match/MatchScreen";
 import PoolContainer from "../pool/PoolScreen";
 import { useMatchList } from "@/src/hooks/match/useMatchList";
 import {
-    BottomSheetModal,
-    BottomSheetSectionList,
-    BottomSheetView,
+    BottomSheetModal
 } from "@gorhom/bottom-sheet";
 import BottomSheetCustomPage from "../common/BottomSheetCustomPage";
+import { useThemeColor } from "@/src/hooks/useThemeColor";
 
 type Props = {
     poolIds?: number[];
@@ -46,7 +43,9 @@ const MatchListContainer: React.FC<Props> = ({
     contentContainerStyle,
     home = false,
 }) => {
-    const theme = useAppTheme();
+    const background = useThemeColor({}, "background");
+    const text = useThemeColor({}, "text");
+
     const poolSheetRef = useRef<BottomSheetModal>(null);
     const matchSheetRef = useRef<BottomSheetModal>(null);
     const [selectedPoolId, setSelectedPoolId] = useState<number | null>(null);
@@ -103,9 +102,9 @@ const MatchListContainer: React.FC<Props> = ({
     }) => (
         <View style={styles.dateContainer}>
             <View
-                style={[styles.dateBackground, { backgroundColor: theme.background }]}
+                style={[styles.dateBackground, { backgroundColor: background }]}
             >
-                <Text style={[styles.dateHeader, { color: theme.text }]}>{title}</Text>
+                <Text style={[styles.dateHeader, { color: text }]}>{title}</Text>
             </View>
         </View>
     );
@@ -118,33 +117,37 @@ const MatchListContainer: React.FC<Props> = ({
         />
     );
 
-    const getSectionListComponent = () => {
-        return scrollY ? Animated.SectionList : BottomSheetSectionList;
-    };
-
     const body = () => {
         if (isLoading) {
-            const skeletonSections = home
-                ? [
-                    { title: "Chargement…", data: new Array(4).fill(null).map(() => Math.floor(Math.random() * 3) + 1) }
-                ]
-                : new Array(4).fill(null).flatMap(() => [
-                    { title: "Chargement…", data: [1] }
-                ]);
+            // const skeletonSections = home
+            //     ? [
+            //         { title: "Chargement…", data: new Array(4).fill(null).map(() => Math.floor(Math.random() * 3) + 1) }
+            //     ]
+            //     : new Array(4).fill(null).flatMap(() => [
+            //         { title: "Chargement…", data: [1] }
+            //     ]);
+
+            // return (
+            //     <Animated.SectionList
+            //         sections={skeletonSections}
+            //         keyExtractor={(_, i) => `skeleton-${i}`}
+            //         stickySectionHeadersEnabled
+            //         renderSectionHeader={renderSectionHeader}
+            //         renderItem={({ item }) => <PoolItemSkeleton itemCount={item} />}
+            //         ItemSeparatorComponent={() => <View style={styles.itemSeparator} />}
+            //         SectionSeparatorComponent={() => <View style={styles.sectionSeparator} />}
+            //         scrollEnabled={false}
+            //         contentContainerStyle={[styles.sectionListContent, contentContainerStyle]}
+            //     />
+            // );
 
             return (
-                <Animated.SectionList
-                    sections={skeletonSections}
-                    keyExtractor={(_, i) => `skeleton-${i}`}
-                    stickySectionHeadersEnabled
-                    renderSectionHeader={renderSectionHeader}
-                    renderItem={({ item }) => <PoolItemSkeleton itemCount={item} />}
-                    ItemSeparatorComponent={() => <View style={styles.itemSeparator} />}
-                    SectionSeparatorComponent={() => <View style={styles.sectionSeparator} />}
-                    scrollEnabled={false}
-                    contentContainerStyle={[styles.sectionListContent, contentContainerStyle]}
+                <ActivityIndicator
+                    size="large"
+                    color={text}
+                    style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
                 />
-            );
+            )
         }
 
         if (isError)
@@ -153,6 +156,7 @@ const MatchListContainer: React.FC<Props> = ({
                     title="Erreur de chargement"
                     subtitle="Impossible de récupérer les données. Vérifie ta connexion."
                     onRetry={refetch}
+                    home
                 />
             );
 
@@ -165,13 +169,12 @@ const MatchListContainer: React.FC<Props> = ({
                             ? "Aucun match à venir pour les équipes ou poules sélectionnées."
                             : "Commence par suivre une équipe ou une poule pour voir les matchs ici !"
                     }
+                    home
                 />
             );
 
-        const SectionList = getSectionListComponent();
-
         return (
-            <SectionList
+            <Animated.SectionList
                 sections={sections}
                 keyExtractor={(it, i) => `${it.pool.id}-${i}`}
                 initialNumToRender={10}
@@ -187,7 +190,7 @@ const MatchListContainer: React.FC<Props> = ({
                     <RefreshControl
                         refreshing={isRefreshing}
                         onRefresh={handleRefresh}
-                        tintColor={theme.text}
+                        tintColor={text}
                         progressViewOffset={headerOffset + 6}
                     />
                 }
@@ -210,20 +213,16 @@ const MatchListContainer: React.FC<Props> = ({
 
     return (
         <>
-            <View style={[styles.container, { backgroundColor: theme.background }]}>
+            <View style={[styles.container, { backgroundColor: background }]}>
                 {body()}
             </View>
 
             <BottomSheetCustomPage ref={poolSheetRef}>
-                <BottomSheetView style={{ flex: 1 }}>
-                    {selectedPoolId && <PoolContainer poolId={selectedPoolId} />}
-                </BottomSheetView>
+                {selectedPoolId && <PoolContainer poolId={selectedPoolId} />}
             </BottomSheetCustomPage>
 
             <BottomSheetCustomPage ref={matchSheetRef}>
-                <BottomSheetView style={{ flex: 1 }}>
-                    {selectedMatchId && <MatchContainer matchId={selectedMatchId} />}
-                </BottomSheetView>
+                {selectedMatchId && <MatchContainer matchId={selectedMatchId} />}
             </BottomSheetCustomPage>
         </>
     );

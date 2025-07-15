@@ -95,9 +95,7 @@ const MatchInfoCard: React.FC<MatchInfoCardProps> = ({ enrichedMatch }) => {
             </View>
 
             <BottomSheetCustomPage ref={poolSheetRef}>
-                <BottomSheetView style={{ flex: 1 }}>
                     {selectedPoolId && <PoolContainer poolId={selectedPoolId} />}
-                </BottomSheetView>
             </BottomSheetCustomPage>
         </>
     );

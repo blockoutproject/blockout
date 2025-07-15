@@ -180,7 +180,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     submitButton: {
-        borderRadius: 10,
+        borderRadius: 999,
         paddingVertical: 14,
         marginHorizontal: 12,
         alignItems: 'center',

@@ -114,9 +114,7 @@ const MatchScoreCard: React.FC<MatchScoreCardProps> = ({
             </View>
 
             <BottomSheetCustomPage ref={teamSheetRef}>
-                <BottomSheetView style={{ flex: 1 }}>
-                    {selectedTeamId && <TeamContainer teamId={selectedTeamId} />}
-                </BottomSheetView>
+                {selectedTeamId && <TeamContainer teamId={selectedTeamId} />}
             </BottomSheetCustomPage>
         </>
     );

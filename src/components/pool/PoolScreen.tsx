@@ -1,11 +1,9 @@
 import React from 'react';
 import { View, StyleSheet, Text } from 'react-native';
-import { usePoolById } from '@/src/hooks/pool/usePoolById';
 import MatchSkeleton from '@/src/components/match/components/MatchSkeleton';
 import { useAppTheme } from '@/src/context/ThemeProvider';
 import PoolProfile from './components/PoolProfile';
 import PoolTabs from './components/PoolTabs';
-import { useDivisionById } from '@/src/hooks/config/division/useDivisionById';
 import { useEnrichedPoolById } from '@/src/hooks/pool/useEnrichedPoolById';
 
 type Props = {
@@ -27,18 +25,13 @@ const PoolScreen: React.FC<Props> = ({ poolId }) => {
     return (
         <View style={[styles.container, { backgroundColor: theme.background }]}>
             <PoolProfile enrichedPool={enrichedPool} />
-            <View style={styles.tabsContainer}>
-                <PoolTabs enrichedPool={enrichedPool} />
-            </View>
+            <PoolTabs enrichedPool={enrichedPool} />
         </View>
     );
 };
 
 const styles = StyleSheet.create({
     container: {
-        flex: 1,
-    },
-    tabsContainer: {
         flex: 1,
     },
 });

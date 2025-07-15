@@ -9,6 +9,7 @@ export const CONFIG = {
     API_SEARCH_BASE_URL: process.env.EXPO_PUBLIC_API_SEARCH_BASE_URL || '',
     API_GATEWAY_BASE_URL: process.env.EXPO_PUBLIC_API_GATEWAY_BASE_URL || '',
     API_CONFIG_BASE_URL: process.env.EXPO_PUBLIC_API_CONFIG_BASE_URL || '',
+    API_CLUBS_BASE_URL: process.env.EXPO_PUBLIC_API_CLUBS_BASE_URL || '',
 };
 
 export const AUTH0_CONFIG = {

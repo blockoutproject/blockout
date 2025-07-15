@@ -66,3 +66,9 @@ export interface EnrichedDayMatchesDTO {
     date: string;
     pools: EnrichedPoolMatchesDTO[];
 }
+
+export interface EnrichedDayPageDTO {
+    dayMatches: EnrichedDayMatchesDTO[];
+    hasNext: boolean;
+    nextPage: number | null;
+}

@@ -30,10 +30,7 @@ const CircleColorPicker: React.FC<Props> = ({
 
     const sheetRef = useRef<BottomSheetModal>(null);
 
-    const safeColor = useMemo(
-        () => (isValidHex(value) ? value : theme.surface),
-        [value]
-    );
+    const safeColor = useMemo(() => (isValidHex(value) ? value : theme.surface), [value]);
 
     const [tempColor, setTempColor] = useState(safeColor);
 
@@ -51,7 +48,6 @@ const CircleColorPicker: React.FC<Props> = ({
 
     return (
         <>
-            {/* ------ Bouton rond ------ */}
             <TouchableOpacity
                 style={[
                     styles.circle,
@@ -65,23 +61,22 @@ const CircleColorPicker: React.FC<Props> = ({
                 onPress={open}
             />
 
-            {/* ------ Sheet ------ */}
-            <BottomSheetCustomModal ref={sheetRef} >
-                <BottomSheetView style={{ padding: 8, paddingBottom: insets.bottom }}>
-                    <ColorPicker
-                        value={tempColor}
-                        onCompleteJS={(c) => setTempColor(c.hex)}
-                        boundedThumb
-                    >
-                        <Preview style={{marginBottom: 16}}/>
-                        <Panel1 style={{marginBottom: 16}}/>
-                        <HueSlider style={{marginBottom: 40}}/>
-                    </ColorPicker>
+            <BottomSheetCustomModal ref={sheetRef}  >
+                <View style={{ padding: 8, paddingBottom: insets.bottom }}>
+                <ColorPicker
+                    value={tempColor}
+                    onCompleteJS={(c) => setTempColor(c.hex)}
+                    boundedThumb
+                >
+                    <Preview style={{ marginBottom: 16 }} />
+                    <Panel1 style={{ marginBottom: 16 }} />
+                    <HueSlider style={{ marginBottom: 40 }} />
+                </ColorPicker>
 
-                    <View style={[styles.buttonRow, { backgroundColor: theme.success }]}>
-                        <Button title="Valider" onPress={handleValidate} color={theme.text} />
-                    </View>
-                </BottomSheetView>
+                <View style={[styles.buttonRow, { backgroundColor: theme.success }]}>
+                    <Button title="Valider" onPress={handleValidate} color={theme.text} />
+                </View>
+            </View>
             </BottomSheetCustomModal>
         </>
     );
@@ -93,7 +88,7 @@ const styles = StyleSheet.create({
         borderWidth: 2,
     },
     buttonRow: {
-        borderRadius: 10,
+        borderRadius: 999,
         padding: 4,
         marginHorizontal: 10,
     },

@@ -188,27 +188,19 @@ const AnimatedHomeHeader: React.FC<HeaderProps> = ({
             </Animated.View>
 
             <BottomSheetCustomPage ref={searchSheetRef}>
-                <BottomSheetView style={styles.sheetContent}>
-                    <SearchContainer />
-                </BottomSheetView>
+                <SearchContainer />
             </BottomSheetCustomPage>
 
             <BottomSheetCustomPage ref={mappingSheetRef}>
-                <BottomSheetView style={styles.sheetContent}>
-                    <RawDivisionMappingsScreen />
-                </BottomSheetView>
+                <RawDivisionMappingsScreen />
             </BottomSheetCustomPage>
 
             <BottomSheetCustomPage ref={divisionSheetRef}>
-                <BottomSheetView style={styles.sheetContent}>
-                    <DivisionScreen />
-                </BottomSheetView>
+                <DivisionScreen />
             </BottomSheetCustomPage>
 
             <BottomSheetCustomPage ref={profileSheetRef}>
-                <BottomSheetView style={styles.sheetContent}>
-                    <ProfileScreen />
-                </BottomSheetView>
+                <ProfileScreen />
             </BottomSheetCustomPage>
         </>
     );
@@ -240,7 +232,6 @@ const styles = StyleSheet.create({
         paddingRight: 10,
     },
     avatar: { height: 30, width: 30, borderRadius: 100 },
-    sheetContent: { flex: 1 },
 });
 
 export default AnimatedHomeHeader;

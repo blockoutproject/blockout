@@ -7,6 +7,7 @@ import { useAppTheme } from "@/src/context/ThemeProvider";
 import GradientBorderView from "../../common/GradientBorderView";
 import { GradientVariants } from "@/src/utils/utils";
 import { Division } from "@/src/types/Division";
+import { useThemeColor } from "@/src/hooks/useThemeColor";
 
 type Props = {
     enrichedMatch: EnrichedMatchDTO
@@ -14,7 +15,9 @@ type Props = {
 };
 
 const MatchCard: React.FC<Props> = ({ enrichedMatch, gradient }) => {
-    const theme = useAppTheme();
+    const card = useThemeColor({}, "card");
+    const text = useThemeColor({}, "text");
+
     const date = new Date(enrichedMatch.matchDate ?? "");
     const matchTime = `${date.getHours().toString().padStart(2, "0")}:${date
         .getMinutes()
@@ -22,11 +25,11 @@ const MatchCard: React.FC<Props> = ({ enrichedMatch, gradient }) => {
         .padStart(2, "0")}`;
 
     return (
-        <View style={[styles.matchCard, { backgroundColor: theme.backgroundSecondary }]}>
+        <View style={[styles.matchCard, { backgroundColor: card }]}>
             {/* Team A */}
             <View style={[styles.teamSide, styles.teamAlignRight]}>
                 <Text
-                    style={[styles.teamName, { color: theme.text }]}
+                    style={[styles.teamName, { color: text }]}
                     numberOfLines={2}
                     ellipsizeMode="tail"
                     adjustsFontSizeToFit
@@ -44,7 +47,7 @@ const MatchCard: React.FC<Props> = ({ enrichedMatch, gradient }) => {
             {/* Center */}
             <View style={styles.centerBlock}>
                 {enrichedMatch.status === MatchStatus.UPCOMING ? (
-                    <Text style={[styles.timeText, { color: theme.text }]}>
+                    <Text style={[styles.timeText, { color: text }]}>
                         {matchTime}
                     </Text>
                 ) : (
@@ -54,7 +57,7 @@ const MatchCard: React.FC<Props> = ({ enrichedMatch, gradient }) => {
                         borderRadius={12}
                         gradient={gradient}
                     >
-                        <Text style={[styles.finalScoreTextLarge, { color: theme.text }]}>
+                        <Text style={[styles.finalScoreTextLarge, { color: text }]}>
                             {enrichedMatch.set || "-"}
                         </Text>
                     </GradientBorderView>
@@ -69,7 +72,7 @@ const MatchCard: React.FC<Props> = ({ enrichedMatch, gradient }) => {
                     resizeMode="contain"
                 />
                 <Text
-                    style={[styles.teamName, { color: theme.text }]}
+                    style={[styles.teamName, { color: text }]}
                     numberOfLines={2}
                     ellipsizeMode="tail"
                     adjustsFontSizeToFit

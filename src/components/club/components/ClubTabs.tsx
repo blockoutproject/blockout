@@ -3,6 +3,7 @@ import GenericTabView from "@/src/components/common/GenericTabView";
 import MatchList from "@/src/components/matchList/MatchListContainer";
 import { MatchStatus } from "@/src/types/Match";
 import { useAppTheme } from "@/src/context/ThemeProvider";
+import { Pool } from "@/src/types/Pool";
 import { EnrichedTeamDTO } from "@/src/types/Team";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import RankingTab from "../../common/RankingTab";

@@ -57,7 +57,6 @@ const PoolTabs: React.FC<PoolTabsProps> = ({ enrichedPool }) => {
     return (
         <GenericTabView
             tabs={tabs}
-            indicatorColor={theme.text}
         />
     );
 };

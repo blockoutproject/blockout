@@ -57,6 +57,7 @@ const Filters: React.FC<FiltersProps> = ({ filters, setFilters, singleSelect = f
                 </Pressable>
             )}
             horizontal
+            keyboardShouldPersistTaps="always"
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.filterRow}
         />
@@ -67,7 +68,7 @@ const styles = StyleSheet.create({
     filterItem: {
         borderRadius: 100,
         borderWidth: 1,
-        paddingVertical: 4,
+        paddingVertical: 6,
         paddingHorizontal: 14,
     },
     filterRow: {

@@ -40,31 +40,30 @@ const MatchScreen: React.FC<Props> = ({ matchId }) => {
     ];
 
     return (
-        <View style={{ backgroundColor: theme.background }}>
-            <BottomSheetScrollView
-                showsVerticalScrollIndicator={false}
-                contentContainerStyle={[
-                    styles.scrollContent,
-                    { paddingBottom: insets.bottom + 8 },
-                ]}
-            >
-                <MatchScoreCard
-                    enrichedMatch={enrichedMatch}
-                    gradient={gradient}
-                />
-                <MatchScoreDetailsCard
-                    title="Score"
-                    enrichedMatch={enrichedMatch}
-                />
-                <MatchInfoCard
-                    enrichedMatch={enrichedMatch}
-                />
-                <RankingCard
-                    enrichedPool={enrichedMatch.pool}
-                    scrollable={false}
-                />
-            </BottomSheetScrollView>
-        </View>
+        <BottomSheetScrollView
+            scrollEnabled={true}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={[
+                styles.scrollContent,
+                { paddingBottom: insets.bottom + 8 },
+            ]}
+        >
+            <MatchScoreCard
+                enrichedMatch={enrichedMatch}
+                gradient={gradient}
+            />
+            <MatchScoreDetailsCard
+                title="Score"
+                enrichedMatch={enrichedMatch}
+            />
+            <MatchInfoCard
+                enrichedMatch={enrichedMatch}
+            />
+            <RankingCard
+                enrichedPool={enrichedMatch.pool}
+                scrollable={false}
+            />
+        </BottomSheetScrollView>
     );
 };
 

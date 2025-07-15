@@ -8,7 +8,7 @@ export const useSearchTeams = (query: string) => {
         queryFn: async () => {
             return SearchApi.getInstance().searchTeams(query);
         },
-        enabled: query.length > 1,
+        enabled: query.length > 0,
         staleTime: 1000 * 60,
     });
 };

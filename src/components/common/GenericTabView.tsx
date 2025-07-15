@@ -9,6 +9,7 @@ import {
 } from "react-native-tab-view";
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import * as Haptics from "expo-haptics";
+import BottomSheet, { BottomSheetView } from "@gorhom/bottom-sheet";
 
 type TabDefinition = {
     key: string;
@@ -18,12 +19,10 @@ type TabDefinition = {
 
 type GenericTabViewProps = {
     tabs: TabDefinition[];
-    indicatorColor?: string;
 };
 
 const GenericTabView: React.FC<GenericTabViewProps> = ({
     tabs,
-    indicatorColor,
 }) => {
     const [index, setIndex] = useState(0);
     const theme = useAppTheme();

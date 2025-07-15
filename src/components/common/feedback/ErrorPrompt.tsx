@@ -7,12 +7,14 @@ import {
     TouchableOpacity,
 } from "react-native";
 import { useAppTheme } from "@/src/context/ThemeProvider";
+import { BottomSheetScrollView } from "@gorhom/bottom-sheet";
 
 type ErrorPromptProps = {
     title?: string;
     subtitle?: string;
     onRetry?: () => void;
     retryLabel?: string;
+    home?: boolean;
 };
 
 const ErrorPrompt: React.FC<ErrorPromptProps> = ({
@@ -20,11 +22,14 @@ const ErrorPrompt: React.FC<ErrorPromptProps> = ({
     subtitle = "Quelque chose s’est mal passé. Réessaie plus tard.",
     onRetry,
     retryLabel = "Réessayer",
+    home = false,
 }) => {
     const theme = useAppTheme();
 
+    const CustomView = home ? View : BottomSheetScrollView;
+
     return (
-        <View style={[styles.container, { backgroundColor: theme.background }]}>
+        <CustomView style={[styles.container, { backgroundColor: theme.background }]}>
             <Image
                 source={{ uri: "https://cdn-icons-png.flaticon.com/512/564/564619.png" }}
                 style={[styles.image, { tintColor: theme.error }]}
@@ -41,7 +46,7 @@ const ErrorPrompt: React.FC<ErrorPromptProps> = ({
                     </Text>
                 </TouchableOpacity>
             )}
-        </View>
+        </CustomView>
     );
 };
 

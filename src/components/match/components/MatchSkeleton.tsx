@@ -1,17 +1,17 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import { Skeleton } from 'moti/skeleton';
 import { useAppTheme } from '@/src/context/ThemeProvider';
+import { Skeleton } from '../../common/Skeleton';
 
 const MatchSkeleton: React.FC = () => {
     const theme = useAppTheme();
 
     return (
         <View style={[styles.skeletonContainer, { backgroundColor: theme.background }]}>
-            <Skeleton colors={[theme.surface, theme.backgroundSecondary, theme.surface]} width="100%" height={200} />
-            <Skeleton colors={[theme.surface, theme.backgroundSecondary, theme.surface]} width="100%" height={150} />
-            <Skeleton colors={[theme.surface, theme.backgroundSecondary, theme.surface]} width="100%" height={200} />
-            <Skeleton colors={[theme.surface, theme.backgroundSecondary, theme.surface]} width="100%" height={250} />
+            <Skeleton width="100%" height={200} style={{ borderRadius: 18 }} />
+            <Skeleton width="100%" height={150} style={{ borderRadius: 18 }} />
+            <Skeleton width="100%" height={200} style={{ borderRadius: 18 }} />
+            <Skeleton width="100%" height={250} style={{ borderRadius: 18 }} />
         </View>
     );
 };

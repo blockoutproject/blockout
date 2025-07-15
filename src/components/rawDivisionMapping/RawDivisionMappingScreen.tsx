@@ -11,7 +11,7 @@ import { useAppTheme } from "@/src/context/ThemeProvider";
 import { useRawDivisionMappings } from "@/src/hooks/config/rawDivisionMapping/useRawDivisionMapping";
 import { RawDivisionMapping } from "@/src/types/RawDivisionMapping";
 import { Filter } from "@/src/types/Filter";
-import Filters from "../home/Filters";
+import Filters from "../common/Filters";
 import RawDivisionMappingItem from "./RawDivisionMappingItem";
 import RawDivisionMappingForm from "./RawDivisionMappingForm";
 import { BottomSheetFlatList, BottomSheetModal } from "@gorhom/bottom-sheet";

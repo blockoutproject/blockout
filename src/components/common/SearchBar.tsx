@@ -53,14 +53,13 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         borderRadius: 20,
-        paddingHorizontal: 12,
-        paddingVertical: 10,
     },
     icon: {
-        marginRight: 8,
+        marginHorizontal: 8,
     },
     input: {
         flex: 1,
+        paddingVertical: 10,
         fontSize: 14,
     },
 });

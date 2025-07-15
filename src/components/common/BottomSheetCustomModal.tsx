@@ -40,7 +40,7 @@ const BottomSheetCustomModal = forwardRef<BottomSheetModal, BottomSheetModalProp
                 enableDynamicSizing
                 {...rest}
             >
-                <BottomSheetView>{children}</BottomSheetView>
+                <BottomSheetView style={{ flex: 1 }}>{children}</BottomSheetView>
             </BottomSheetModal>
         );
     }

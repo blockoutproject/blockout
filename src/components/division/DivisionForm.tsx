@@ -125,7 +125,7 @@ const DivisionForm: React.FC<DivisionFormProps> = ({ division, onSuccess }) => {
     const imageUri = previewUri ?? formik.values.logoUrl;
 
     return (
-        <BottomSheetView style={[styles.container, { backgroundColor: theme.backgroundSecondary, paddingBottom: insets.bottom }]}>
+        <View style={[styles.container, { backgroundColor: theme.backgroundSecondary, paddingBottom: insets.bottom }]}>
             <View style={styles.fieldBlock}>
                 <Text style={[styles.label, { color: theme.text }]}>Nom</Text>
                 <BottomSheetTextInput
@@ -215,7 +215,7 @@ const DivisionForm: React.FC<DivisionFormProps> = ({ division, onSuccess }) => {
                     </Text>
                 )}
             </TouchableOpacity>
-        </BottomSheetView>
+        </View>
     );
 };
 
@@ -267,7 +267,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     submitButton: {
-        borderRadius: 12,
+        borderRadius: 999,
         paddingVertical: 14,
         marginHorizontal: 12,
         alignItems: 'center',

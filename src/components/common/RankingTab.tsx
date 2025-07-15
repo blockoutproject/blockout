@@ -2,7 +2,6 @@ import { View, StyleSheet } from "react-native";
 import RankingCard from "./RankingCard";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAppTheme } from "@/src/context/ThemeProvider";
-import { Division } from "@/src/types/Division";
 import { EnrichedPoolDTO } from "@/src/types/Pool";
 
 type RankingTabProps = {
