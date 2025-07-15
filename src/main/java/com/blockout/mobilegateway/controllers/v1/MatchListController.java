@@ -1,6 +1,6 @@
 package com.blockout.mobilegateway.controllers.v1;
 
-import com.blockout.mobilegateway.models.dto.match.EnrichedDayMatchesDTO;
+import com.blockout.mobilegateway.models.dto.match.EnrichedDayPageDTO;
 import com.blockout.mobilegateway.services.MatchListService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -24,14 +24,14 @@ public class MatchListController {
             @ApiResponse(responseCode = "204", description = "Aucun match trouvé pour les critères fournis")
     })
     @GetMapping
-    public ResponseEntity<List<EnrichedDayMatchesDTO>> getMatchList(
+    public ResponseEntity<EnrichedDayPageDTO> getMatchList(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam int size,
             @RequestParam(required = false, name = "pool_ids") List<Long> poolIds,
             @RequestParam(required = false, name = "team_ids") List<Long> teamIds,
             @RequestParam String status) {
 
-        List<EnrichedDayMatchesDTO> matches = matchListService.getMatchList(status, page, size, poolIds, teamIds);
+        EnrichedDayPageDTO matches = matchListService.getMatchList(status, page, size, poolIds, teamIds);
         return ResponseEntity.ok(matches);
     }
 }

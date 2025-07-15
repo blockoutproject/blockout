@@ -15,6 +15,5 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class EnrichedPoolMatchesDTO {
     private EnrichedPoolDTO pool;
-    
     private List<EnrichedMatchDTO> matches;
 }

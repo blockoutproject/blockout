@@ -13,10 +13,10 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class DayPageDTO {
+public class EnrichedDayPageDTO {
 
     @JsonProperty("day_matches")
-    private List<DayMatchesDTO> dayMatches;
+    private List<EnrichedDayMatchesDTO> dayMatches;
 
     @JsonProperty("has_next")
     private boolean hasNext;

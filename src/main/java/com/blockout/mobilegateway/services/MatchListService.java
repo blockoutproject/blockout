@@ -31,7 +31,7 @@ public class MatchListService {
     private final TeamClientService teamClientService;
     private final ConfigClientService configClientService;
 
-    public List<EnrichedDayMatchesDTO> getMatchList(
+    public EnrichedDayPageDTO getMatchList(
             String status,
             int page,
             int size,
@@ -50,7 +50,12 @@ public class MatchListService {
         DayPageDTO dayPage = matchClientService.getMatchesByDay(page, size, poolFilterIds, teamFilterIds, status);
         if (dayPage == null || dayPage.getDayMatches() == null) {
             logger.warn("No match data returned", keyValue("page", page));
-            return Collections.emptyList();
+            return EnrichedDayPageDTO.builder()
+                    .dayMatches(Collections.emptyList())
+                    .hasNext(false)
+                    .nextPage(null)
+                    .build(
+            );
         }
 
         List<DayMatchesDTO> dayGroups = dayPage.getDayMatches();
@@ -138,7 +143,11 @@ public class MatchListService {
         logger.info("Built enriched day matches list",
                 keyValue("enrichedDayMatchesCount", enrichedDayMatches.size()));
 
-        return enrichedDayMatches;
+        return EnrichedDayPageDTO.builder()
+                .dayMatches(enrichedDayMatches)
+                .hasNext(dayPage.isHasNext())
+                .nextPage(dayPage.getNextPage())
+                .build();
     }
 
     private EnrichedMatchDTO enrichMatch(MatchDTO match, Map<Long, TeamDTO> teamMap) {
