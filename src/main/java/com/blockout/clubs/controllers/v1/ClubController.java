@@ -1,6 +1,7 @@
 package com.blockout.clubs.controllers.v1;
 
 import com.blockout.clubs.models.Club;
+import com.blockout.clubs.models.dto.ClubUpdateDTO;
 import com.blockout.clubs.services.ClubService;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -11,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.net.URI;
@@ -23,14 +25,13 @@ public class ClubController {
 
     private final ClubService clubService;
 
-    @Operation(summary = "Lister les clubs", description = "Renvoie tous les clubs.")
+    @Operation(summary = "Lister les clubs", description = "Renvoie les clubs avec des filtres facultatifs.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Liste des clubs"),
-            @ApiResponse(responseCode = "204", description = "Aucun club trouvé")
     })
     @GetMapping
-    public ResponseEntity<List<Club>> listClubs() {
-        List<Club> clubs = clubService.getAllClubs();
+    public ResponseEntity<List<Club>> listClubs(@RequestParam(required = false) List<String> ids) {
+        List<Club> clubs = clubService.findClubs(ids);
         return ResponseEntity.ok(clubs);
     }
 
@@ -68,8 +69,9 @@ public class ClubController {
     @PutMapping("/{id}")
     public ResponseEntity<Club> updateClub(
             @PathVariable String id,
-            @RequestBody Club updated) {
-        Club result = clubService.updateClub(id, updated);
+            @RequestBody ClubUpdateDTO dto,
+            @RequestPart(value = "image", required = false) MultipartFile image) {
+        Club result = clubService.updateClub(id, dto, image);
         return ResponseEntity.ok(result);
     }
 

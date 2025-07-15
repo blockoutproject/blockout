@@ -38,6 +38,9 @@ public class Club {
     @Column(name = "website")
     private String website;
 
+    @Column(name = "logo_url")
+    private String logoUrl;
+
     @Builder.Default
     @Column(name = "active", nullable = false)
     private Boolean active = true;
