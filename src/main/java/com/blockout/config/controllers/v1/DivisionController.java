@@ -59,14 +59,14 @@ public class DivisionController {
             @RequestPart("data") DivisionDTO dto,
             @RequestPart(value = "image", required = false) MultipartFile image) {
 
-        Division created = divisionService.createDivision(dto, image);
+        Division saved = divisionService.createDivision(dto, image);
 
         URI location = ServletUriComponentsBuilder.fromCurrentRequest()
                 .path("/{id}")
-                .buildAndExpand(created.getId())
+                .buildAndExpand(saved.getId())
                 .toUri();
 
-        return ResponseEntity.created(location).body(created);
+        return ResponseEntity.created(location).body(saved);
     }
 
     @Operation(summary = "Met à jour une division", description = "Met à jour les informations d'une division existante.")
