@@ -3,6 +3,7 @@ package com.blockout.config.controllers.v1;
 import com.blockout.config.models.Division;
 import com.blockout.config.models.dto.DivisionDTO;
 import com.blockout.config.services.DivisionService;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -17,7 +18,6 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
-import java.io.IOException;
 import java.net.URI;
 import java.util.List;
 
@@ -27,6 +27,7 @@ import java.util.List;
 public class DivisionController {
 
     private final DivisionService divisionService;
+    private final ObjectMapper objectMapper;
 
     @Operation(summary = "Liste toutes les divisions", description = "Renvoie la liste complète des divisions actives et inactives.")
     @ApiResponses({
@@ -81,11 +82,10 @@ public class DivisionController {
     @PutMapping(path = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Division> updateDivision(
             @PathVariable Long id,
-            @RequestPart("data") MultipartFile data, // ← on récupère le fichier brut
-            @RequestPart(value = "image", required = false) MultipartFile image) throws IOException {
+            @RequestPart("data") String json,
+            @RequestPart(value = "image", required = false) MultipartFile image) throws JsonProcessingException {
 
-        DivisionDTO dto = new ObjectMapper().readValue(data.getBytes(), DivisionDTO.class);
-
+        DivisionDTO dto = objectMapper.readValue(json, DivisionDTO.class);
         Division updated = divisionService.updateDivision(id, dto, image);
         return ResponseEntity.ok(updated);
     }
