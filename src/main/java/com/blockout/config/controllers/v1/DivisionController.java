@@ -3,6 +3,8 @@ package com.blockout.config.controllers.v1;
 import com.blockout.config.models.Division;
 import com.blockout.config.models.dto.DivisionDTO;
 import com.blockout.config.services.DivisionService;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -15,6 +17,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
+import java.io.IOException;
 import java.net.URI;
 import java.util.List;
 
@@ -78,8 +81,10 @@ public class DivisionController {
     @PutMapping(path = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Division> updateDivision(
             @PathVariable Long id,
-            @RequestPart("data") DivisionDTO dto,
-            @RequestPart(value = "image", required = false) MultipartFile image) {
+            @RequestPart("data") MultipartFile data, // ← on récupère le fichier brut
+            @RequestPart(value = "image", required = false) MultipartFile image) throws IOException {
+
+        DivisionDTO dto = new ObjectMapper().readValue(data.getBytes(), DivisionDTO.class);
 
         Division updated = divisionService.updateDivision(id, dto, image);
         return ResponseEntity.ok(updated);
