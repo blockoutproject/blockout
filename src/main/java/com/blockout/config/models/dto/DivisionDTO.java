@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class DivisionUpdateDTO {
+public class DivisionDTO {
     private String name;
 
     @JsonProperty("main_color")

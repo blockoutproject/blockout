@@ -2,7 +2,7 @@ package com.blockout.config.services;
 
 import com.blockout.config.exceptions.DivisionNotFoundException;
 import com.blockout.config.models.Division;
-import com.blockout.config.models.dto.DivisionUpdateDTO;
+import com.blockout.config.models.dto.DivisionDTO;
 import com.blockout.config.repositories.DivisionRepository;
 import com.blockout.config.services.clients.S3StorageClient;
 import com.blockout.config.utils.DiffUtils;
@@ -53,11 +53,20 @@ public class DivisionService {
      * Crée une nouvelle division
      */
     @Transactional
-    public Division createDivision(Division division, MultipartFile image) {
-        divisionRepository.findByNameIgnoreCase(division.getName())
+    public Division createDivision(DivisionDTO dto, MultipartFile image) {
+        divisionRepository.findByNameIgnoreCase(dto.getName())
                 .ifPresent(existing -> {
                     throw new IllegalStateException("Une division avec ce nom existe déjà.");
                 });
+
+        Division division = Division.builder()
+                .name(dto.getName())
+                .mainColor(dto.getMainColor())
+                .firstGradientColor(dto.getFirstGradientColor())
+                .secondGradientColor(dto.getSecondGradientColor())
+                .thirdGradientColor(dto.getThirdGradientColor())
+                .active(true)
+                .build();
 
         if (image != null && !image.isEmpty()) {
             ImageUtils.validateImage(image);
@@ -88,7 +97,7 @@ public class DivisionService {
      * @throws DivisionNotFoundException si la division n'existe pas
      */
     @Transactional
-    public Division updateDivision(Long id, DivisionUpdateDTO dto, MultipartFile image) {
+    public Division updateDivision(Long id, DivisionDTO dto, MultipartFile image) {
         return divisionRepository.findById(id).map(existing -> {
             Division before = existing.toBuilder().build();
 
@@ -104,7 +113,6 @@ public class DivisionService {
             if (dto.getThirdGradientColor() != null)
                 existing.setThirdGradientColor(dto.getThirdGradientColor());
 
-            // Nouvelle image ? Supprimer l'ancienne proprement
             if (image != null && !image.isEmpty()) {
                 ImageUtils.validateImage(image);
                 try {
@@ -121,7 +129,6 @@ public class DivisionService {
                 }
             }
 
-            // Réactivation ?
             if (!existing.getActive()) {
                 existing.setActive(true);
             }

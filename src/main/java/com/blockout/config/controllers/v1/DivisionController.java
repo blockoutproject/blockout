@@ -1,7 +1,7 @@
 package com.blockout.config.controllers.v1;
 
 import com.blockout.config.models.Division;
-import com.blockout.config.models.dto.DivisionUpdateDTO;
+import com.blockout.config.models.dto.DivisionDTO;
 import com.blockout.config.services.DivisionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -47,7 +47,7 @@ public class DivisionController {
         Division division = divisionService.getDivisionById(id);
         return ResponseEntity.ok(division);
     }
-    
+
     @Operation(summary = "Créer une division", description = "Crée une nouvelle division.")
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Division créée ou réactivée"),
@@ -56,17 +56,17 @@ public class DivisionController {
     @PreAuthorize("hasAuthority('SCOPE_create:divisions')")
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Division> createDivision(
-            @ModelAttribute Division dto,
+            @RequestPart("data") DivisionDTO dto,
             @RequestPart(value = "image", required = false) MultipartFile image) {
 
-        Division saved = divisionService.createDivision(dto, image);
+        Division created = divisionService.createDivision(dto, image);
 
         URI location = ServletUriComponentsBuilder.fromCurrentRequest()
                 .path("/{id}")
-                .buildAndExpand(saved.getId())
+                .buildAndExpand(created.getId())
                 .toUri();
 
-        return ResponseEntity.created(location).body(saved);
+        return ResponseEntity.created(location).body(created);
     }
 
     @Operation(summary = "Met à jour une division", description = "Met à jour les informations d'une division existante.")
@@ -78,7 +78,7 @@ public class DivisionController {
     @PutMapping(path = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Division> updateDivision(
             @PathVariable Long id,
-            @ModelAttribute DivisionUpdateDTO dto,
+            @RequestPart("data") DivisionDTO dto,
             @RequestPart(value = "image", required = false) MultipartFile image) {
 
         Division updated = divisionService.updateDivision(id, dto, image);
