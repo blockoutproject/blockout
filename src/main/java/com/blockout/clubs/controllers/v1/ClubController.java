@@ -100,4 +100,21 @@ public class ClubController {
         clubService.deactivateClub(id);
         return ResponseEntity.noContent().build();
     }
+
+    @Operation(summary = "Récupérer le logo d’un club", description = "Retourne l’URL du logo pour un club donné.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Logo trouvé"),
+            @ApiResponse(responseCode = "204", description = "Aucun logo défini"),
+            @ApiResponse(responseCode = "404", description = "Club introuvable")
+    })
+    @GetMapping("/{id}/logo")
+    public ResponseEntity<String> getClubLogo(@PathVariable String id) {
+        Club club = clubService.getClubById(id);
+
+        if (club.getLogoUrl() == null || club.getLogoUrl().isBlank()) {
+            return ResponseEntity.noContent().build();
+        }
+
+        return ResponseEntity.ok(club.getLogoUrl());
+    }
 }
