@@ -9,8 +9,14 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
+
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -51,5 +57,22 @@ public class ClubClientService {
         }
 
         return response.getBody();
+    }
+
+    public List<ClubDTO> getClubsByIds(Set<String> ids) {
+        if (ids == null || ids.isEmpty())
+            return Collections.emptyList();
+
+        String url = UriComponentsBuilder
+                .fromUriString(apiClientProperties.getClub().getUrl())
+                .queryParam("ids", ids)
+                .build()
+                .toUriString();
+
+        logger.info("Calling getClubsByIds", keyValue("ids", ids), keyValue("url", url));
+
+        ResponseEntity<ClubDTO[]> response = apiClientService.get(url, ClubDTO[].class);
+        ClubDTO[] body = response.getBody();
+        return body != null ? Arrays.asList(body) : Collections.emptyList();
     }
 }

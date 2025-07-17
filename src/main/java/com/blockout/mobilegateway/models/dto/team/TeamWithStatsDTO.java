@@ -18,16 +18,26 @@ public class TeamWithStatsDTO {
     private String shortName;
 
     private Format format;
+
     private Gender gender;
 
     @JsonProperty("followers_count")
     private Long followersCount;
 
+    @JsonProperty("logo_url")
+    private String logoUrl;
+
     private Integer points;
+
     private Integer played;
+
     private Integer wins;
+
     private Integer losses;
+
     private Integer pointsPenalty;
+
     private Double coefSets;
+
     private Double coefPoints;
 }

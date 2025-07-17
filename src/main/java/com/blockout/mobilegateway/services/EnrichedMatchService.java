@@ -1,6 +1,7 @@
 package com.blockout.mobilegateway.services;
 
 import com.blockout.mobilegateway.exceptions.InconsistentStateException;
+import com.blockout.mobilegateway.models.dto.club.ClubDTO;
 import com.blockout.mobilegateway.models.dto.competition.CompetitionAssociationDTO;
 import com.blockout.mobilegateway.models.dto.config.DivisionDTO;
 import com.blockout.mobilegateway.models.dto.match.EnrichedMatchDTO;
@@ -35,79 +36,104 @@ public class EnrichedMatchService {
     private final ClubClientService clubClientService;
 
     public EnrichedMatchDTO getEnrichedMatchById(Long matchId) {
-        MatchDTO match = matchClientService.getMatchById(matchId);
-        TeamDTO teamA = teamClientService.getTeamById(match.getTeamIdA());
-        TeamDTO teamB = teamClientService.getTeamById(match.getTeamIdB());
-        String teamALogoUrl = clubClientService.getClubLogoUrl(teamA.getClubId());
-        String teamBLogoUrl = clubClientService.getClubLogoUrl(teamB.getClubId());
-        PoolDTO rawPool = poolClientService.getPoolById(match.getPoolId());
-        DivisionDTO division = configClientService.getDivisionById(rawPool.getDivisionId());
+    MatchDTO match = matchClientService.getMatchById(matchId);
+    TeamDTO teamA = teamClientService.getTeamById(match.getTeamIdA());
+    TeamDTO teamB = teamClientService.getTeamById(match.getTeamIdB());
 
-        // Enrich teams with logos
-        teamA.setLogoUrl(teamALogoUrl);
-        teamB.setLogoUrl(teamBLogoUrl);
+    PoolDTO rawPool = poolClientService.getPoolById(match.getPoolId());
+    DivisionDTO division = configClientService.getDivisionById(rawPool.getDivisionId());
 
-        // Classement : associations + teams
-        List<CompetitionAssociationDTO> associations = competitionClientService.getActiveAssociationsByPool(rawPool.getId());
-        Set<Long> teamIds = associations.stream().map(CompetitionAssociationDTO::getTeamId).collect(Collectors.toSet());
-        Map<Long, TeamDTO> teamsMap = teamClientService.getTeamsByIds(teamIds).stream()
-                .collect(Collectors.toMap(TeamDTO::getId, Function.identity()));
+    // Associations & équipes concernées
+    List<CompetitionAssociationDTO> associations = competitionClientService.getActiveAssociationsByPool(rawPool.getId());
+    Set<Long> teamIds = associations.stream().map(CompetitionAssociationDTO::getTeamId).collect(Collectors.toSet());
+    teamIds.add(teamA.getId());
+    teamIds.add(teamB.getId());
 
-        List<TeamWithStatsDTO> ranking = associations.stream()
-                .map(assoc -> {
-                    TeamDTO team = teamsMap.get(assoc.getTeamId());
-                    if (team == null) {
-                        throw new InconsistentStateException("Missing team with ID " + assoc.getTeamId() + " for pool " + rawPool.getId());
-                    }
-                    return TeamWithStatsDTO.builder()
-                            .id(team.getId())
-                            .name(team.getName())
-                            .shortName(team.getShortName())
-                            .format(team.getFormat())
-                            .gender(team.getGender())
-                            .followersCount(team.getFollowersCount())
-                            .points(assoc.getPoints())
-                            .played(assoc.getPlayed())
-                            .wins(assoc.getWins())
-                            .losses(assoc.getLosses())
-                            .pointsPenalty(assoc.getPointsPenalty())
-                            .coefSets(assoc.getCoefSets())
-                            .coefPoints(assoc.getCoefPoints())
-                            .build();
-                })
-                .sorted(Comparator
-                        .comparingInt(TeamWithStatsDTO::getPoints)
-                        .thenComparingInt(TeamWithStatsDTO::getPointsPenalty).reversed()
-                        .thenComparingInt(TeamWithStatsDTO::getWins)
-                        .thenComparingDouble(TeamWithStatsDTO::getCoefSets)
-                        .thenComparingDouble(TeamWithStatsDTO::getCoefPoints))
-                .toList();
+    // Fetch de toutes les équipes concernées
+    Map<Long, TeamDTO> teamsMap = teamClientService.getTeamsByIds(teamIds).stream()
+            .collect(Collectors.toMap(TeamDTO::getId, Function.identity()));
 
-        EnrichedPoolDTO enrichedPool = EnrichedPoolDTO.builder()
-                .id(rawPool.getId())
-                .season(rawPool.getSeason())
-                .leagueName(rawPool.getLeagueName())
-                .name(rawPool.getName())
-                .format(rawPool.getFormat())
-                .gender(rawPool.getGender())
-                .followersCount(rawPool.getFollowersCount())
-                .division(division)
-                .ranking(ranking)
-                .build();
+    // Collecte de tous les clubIds nécessaires
+    Set<String> clubIds = teamsMap.values().stream()
+            .map(TeamDTO::getClubId)
+            .filter(Objects::nonNull)
+            .collect(Collectors.toSet());
 
-        return EnrichedMatchDTO.builder()
-                .id(match.getId())
-                .matchDate(match.getMatchDate())
-                .status(match.getStatus())
-                .set(match.getSet())
-                .score(match.getScore())
-                .venue(match.getVenue())
-                .firstReferee(match.getFirstReferee())
-                .secondReferee(match.getSecondReferee())
-                .liveCode(match.getLiveCode())
-                .teamA(teamA)
-                .teamB(teamB)
-                .pool(enrichedPool)
-                .build();
-    }
+    // Fetch des clubs en une seule requête
+    Map<String, String> clubLogoMap = clubClientService.getClubsByIds(clubIds).stream()
+            .collect(Collectors.toMap(
+                    ClubDTO::getId,
+                    club -> club.getLogoUrl() != null && !club.getLogoUrl().isBlank() ? club.getLogoUrl() : null
+            ));
+
+    // Injection des logos dans les TeamDTO
+    teamsMap.values().forEach(team -> {
+        String logo = clubLogoMap.get(team.getClubId());
+        team.setLogoUrl(logo);
+    });
+
+    // Enrichissement du ranking
+    List<TeamWithStatsDTO> ranking = associations.stream()
+            .map(assoc -> {
+                TeamDTO team = teamsMap.get(assoc.getTeamId());
+                if (team == null) {
+                    throw new InconsistentStateException("Missing team with ID " + assoc.getTeamId() + " for pool " + rawPool.getId());
+                }
+                return TeamWithStatsDTO.builder()
+                        .id(team.getId())
+                        .name(team.getName())
+                        .shortName(team.getShortName())
+                        .format(team.getFormat())
+                        .gender(team.getGender())
+                        .followersCount(team.getFollowersCount())
+                        .logoUrl(team.getLogoUrl()) // 💡 logo injecté !
+                        .points(assoc.getPoints())
+                        .played(assoc.getPlayed())
+                        .wins(assoc.getWins())
+                        .losses(assoc.getLosses())
+                        .pointsPenalty(assoc.getPointsPenalty())
+                        .coefSets(assoc.getCoefSets())
+                        .coefPoints(assoc.getCoefPoints())
+                        .build();
+            })
+            .sorted(Comparator
+                    .comparingInt(TeamWithStatsDTO::getPoints)
+                    .thenComparingInt(TeamWithStatsDTO::getPointsPenalty).reversed()
+                    .thenComparingInt(TeamWithStatsDTO::getWins)
+                    .thenComparingDouble(TeamWithStatsDTO::getCoefSets)
+                    .thenComparingDouble(TeamWithStatsDTO::getCoefPoints))
+            .toList();
+
+    // Construction de l’objet pool enrichi
+    EnrichedPoolDTO enrichedPool = EnrichedPoolDTO.builder()
+            .id(rawPool.getId())
+            .season(rawPool.getSeason())
+            .leagueName(rawPool.getLeagueName())
+            .name(rawPool.getName())
+            .format(rawPool.getFormat())
+            .gender(rawPool.getGender())
+            .followersCount(rawPool.getFollowersCount())
+            .division(division)
+            .ranking(ranking)
+            .build();
+
+    // Enrichissement final : teamA et teamB (logo déjà injecté dans teamsMap)
+    teamA.setLogoUrl(teamsMap.get(teamA.getId()).getLogoUrl());
+    teamB.setLogoUrl(teamsMap.get(teamB.getId()).getLogoUrl());
+
+    return EnrichedMatchDTO.builder()
+            .id(match.getId())
+            .matchDate(match.getMatchDate())
+            .status(match.getStatus())
+            .set(match.getSet())
+            .score(match.getScore())
+            .venue(match.getVenue())
+            .firstReferee(match.getFirstReferee())
+            .secondReferee(match.getSecondReferee())
+            .liveCode(match.getLiveCode())
+            .teamA(teamA)
+            .teamB(teamB)
+            .pool(enrichedPool)
+            .build();
+}
 }
