@@ -44,6 +44,9 @@
             "clubCity": {
                 "type": "keyword"
             },
+            "logoUrl": {
+                "type": "keyword"
+            },
             "divisionName": {
                 "type": "keyword"
             },

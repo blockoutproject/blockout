@@ -12,6 +12,7 @@ import org.springframework.data.elasticsearch.annotations.Document;
 public class ClubDoc {
     @Id
     private String id;
+    private String logoUrl;
     private String name;
     private String city;
     

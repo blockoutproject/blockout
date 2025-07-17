@@ -81,6 +81,7 @@ public class ClubIndexService {
         ClubDoc doc = ClubDoc.builder()
                 .id(e.getId())
                 .name(e.getName())
+                .logoUrl(e.getLogoUrl())
                 .city(e.getCity())
                 .keywordsAutocomplete(raw)
                 .keywordsAutocompleteSimplified(simplified)

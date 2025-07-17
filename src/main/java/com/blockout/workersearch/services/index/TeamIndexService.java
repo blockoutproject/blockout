@@ -69,6 +69,7 @@ public class TeamIndexService {
         String name = e.getName();
         String clubName = club != null ? club.getName() : null;
         String clubCity = club != null ? club.getCity() : null;
+        String logoUrl = club != null ? club.getLogoUrl() : null;
         String divisionName = division != null ? division.getName() : "Division inconnue";
         Format format = e.getFormat();
         Gender gender = e.getGender();
@@ -91,6 +92,7 @@ public class TeamIndexService {
                 .clubId(e.getClubId())
                 .clubName(clubName)
                 .clubCity(clubCity)
+                .logoUrl(logoUrl)
                 .divisionName(divisionName)
                 .format(format != null ? format.getLabel() : null)
                 .gender(gender != null ? gender.getLabel() : null)

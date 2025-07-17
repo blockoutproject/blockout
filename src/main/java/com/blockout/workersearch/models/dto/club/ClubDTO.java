@@ -13,6 +13,9 @@ import lombok.NoArgsConstructor;
 public class ClubDTO {
     private String id;
 
+    @JsonProperty("raw_name")
+    private String rawName;
+
     private String name;
     
     private String city;
@@ -26,6 +29,9 @@ public class ClubDTO {
     private String phoneNumber;
 
     private String website;
+
+    @JsonProperty("logo_url")
+    private String logoUrl;
 
     @JsonProperty("last_update")
     private String lastUpdate;

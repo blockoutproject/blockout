@@ -12,5 +12,6 @@ import lombok.NoArgsConstructor;
 public class ClubUpsertEvent {
     private String id;
     private String name;
+    private String logoUrl;
     private String city;
 }

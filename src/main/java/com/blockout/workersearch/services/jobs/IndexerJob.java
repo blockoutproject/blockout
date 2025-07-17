@@ -54,6 +54,7 @@ public class IndexerJob {
                 .map(club -> ClubUpsertEvent.builder()
                         .id(club.getId())
                         .name(club.getName())
+                        .logoUrl(club.getLogoUrl())
                         .city(club.getCity())
                         .build())
                 .toList();
