@@ -20,6 +20,9 @@ public class Club {
     @Column(name = "id", nullable = false, unique = true)
     private String id;
 
+    @Column(name = "raw_name", nullable = false)
+    private String rawName;
+
     @Column(name = "name", nullable = false)
     private String name;
 

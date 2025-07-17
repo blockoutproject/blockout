@@ -12,7 +12,12 @@ import lombok.Builder;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class ClubUpdateDTO {
+public class ClubDTO {
+
+    private String id;
+
+    @JsonProperty("raw_name")
+    private String rawName;
 
     private String name;
 
@@ -27,7 +32,4 @@ public class ClubUpdateDTO {
     private String phoneNumber;
 
     private String website;
-    
-    private Boolean active;
-
 }

@@ -2,7 +2,7 @@ package com.blockout.clubs.services;
 
 import com.blockout.clubs.exceptions.ClubNotFoundException;
 import com.blockout.clubs.models.Club;
-import com.blockout.clubs.models.dto.ClubUpdateDTO;
+import com.blockout.clubs.models.dto.ClubDTO;
 import com.blockout.clubs.repositories.ClubRepository;
 import com.blockout.clubs.services.clients.S3StorageClient;
 import com.blockout.clubs.utils.DiffUtils;
@@ -19,6 +19,7 @@ import org.springframework.web.multipart.MultipartFile;
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
 
 @Service
@@ -38,7 +39,7 @@ public class ClubService {
      * @return Liste des clubs correspondants
      */
     public List<Club> findClubs(List<String> ids) {
-        List<String> safeIds = (ids == null) ? List.of() : ids;
+        List<String> safeIds = (ids == null) ? Collections.emptyList() : ids;
         List<Club> clubs = clubRepository.findFiltered(safeIds, safeIds.size());
 
         logger.debug("Filtered clubs by IDs",
@@ -65,19 +66,48 @@ public class ClubService {
     }
 
     /**
-     * Crée un nouveau club
+     * Crée un nouveau club (logo facultatif).
      *
-     * @param club L'objet Club à créer
-     * @return Le club créé avec son ID généré
+     * @param club  Entité Club à persister (nom, ville, etc.)
+     * @param image Fichier image optionnel pour le logo
+     * @return Le club créé avec son ID généré et, le cas échéant, son logoUrl
+     *         rempli
      */
     @Transactional
-    public Club createClub(Club club) {
-        Club created = clubRepository.save(club);
-        logger.info("Club created successfully",
+    public Club createClub(ClubDTO dto, MultipartFile image) {
+
+        Club club = Club.builder()
+                .id(dto.getId())
+                .name(dto.getName())
+                .city(dto.getCity())
+                .email(dto.getEmail())
+                .phoneNumber(dto.getPhoneNumber())
+                .postalCode(dto.getPostalCode())
+                .website(dto.getWebsite())
+                .active(true)
+                .build();
+
+        if (image != null && !image.isEmpty()) {
+            ImageUtils.validateImage(image);
+
+            try {
+                String imageUrl = s3StorageClient.uploadProfileImage(image, "clubs");
+                club.setLogoUrl(imageUrl);
+            } catch (IOException e) {
+                logger.error("Erreur lors de l'upload du logo",
+                        keyValue("fileName", image.getOriginalFilename()), e);
+                throw new RuntimeException("Échec de l’upload de l’image");
+            }
+        }
+
+        Club saved = clubRepository.save(club);
+        logger.info("New club created",
                 keyValue("action", "create_club"),
-                keyValue("clubId", created.getId()));
-        eventPublisher.publishClubUpsert(created);
-        return created;
+                keyValue("clubId", saved.getId()));
+
+        eventPublisher.publishClubUpsert(saved);
+
+        return saved;
     }
 
     /**
@@ -90,11 +120,12 @@ public class ClubService {
      * @throws ClubNotFoundException si le club est introuvable
      */
     @Transactional
-    public Club updateClub(String id, ClubUpdateDTO dto, MultipartFile image) {
+    public Club updateClub(String id, ClubDTO dto, MultipartFile image) {
         return clubRepository.findById(id).map(existing -> {
             Club before = existing.toBuilder().build();
 
-            // Mise à jour conditionnelle des champs
+            if (dto.getRawName() != null)
+                existing.setRawName(dto.getRawName());
             if (dto.getName() != null)
                 existing.setName(dto.getName());
             if (dto.getCity() != null)
@@ -107,10 +138,7 @@ public class ClubService {
                 existing.setPhoneNumber(dto.getPhoneNumber());
             if (dto.getWebsite() != null)
                 existing.setWebsite(dto.getWebsite());
-            if (dto.getActive() != null)
-                existing.setActive(dto.getActive());
 
-            // Image / logo
             if (image != null && !image.isEmpty()) {
                 ImageUtils.validateImage(image);
                 try {
@@ -127,12 +155,12 @@ public class ClubService {
                 }
             }
 
-            // Log de réactivation
-            if (!before.getActive() && existing.getActive()) {
+            if (!existing.getActive()) {
+                existing.setActive(true);
                 logger.info("Club réactivé",
                         keyValue("action", "reactivate_club"),
                         keyValue("clubId", id),
-                        keyValue("club_name", existing.getName()));
+                        keyValue("clubName", existing.getName()));
             }
 
             Club updated = clubRepository.save(existing);

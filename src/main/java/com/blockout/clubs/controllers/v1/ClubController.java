@@ -1,8 +1,10 @@
 package com.blockout.clubs.controllers.v1;
 
 import com.blockout.clubs.models.Club;
-import com.blockout.clubs.models.dto.ClubUpdateDTO;
+import com.blockout.clubs.models.dto.ClubDTO;
 import com.blockout.clubs.services.ClubService;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -10,7 +12,9 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 
 import lombok.RequiredArgsConstructor;
 
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
@@ -24,6 +28,7 @@ import java.util.List;
 public class ClubController {
 
     private final ClubService clubService;
+    private final ObjectMapper objectMapper;
 
     @Operation(summary = "Lister les clubs", description = "Renvoie les clubs avec des filtres facultatifs.")
     @ApiResponses({
@@ -51,14 +56,21 @@ public class ClubController {
             @ApiResponse(responseCode = "201", description = "Club créé"),
             @ApiResponse(responseCode = "400", description = "Requête invalide")
     })
-    @PostMapping
-    public ResponseEntity<Club> createClub(@RequestBody Club club) {
-        Club created = clubService.createClub(club);
+    @PreAuthorize("hasAuthority('SCOPE_create:clubs')")
+    @PostMapping(consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<Club> createClub(
+            @RequestPart("data") String json,
+            @RequestPart(value = "image", required = false) MultipartFile image) throws JsonProcessingException {
+
+        ClubDTO dto = objectMapper.readValue(json, ClubDTO.class);
+        Club saved = clubService.createClub(dto, image);
+
         URI location = ServletUriComponentsBuilder.fromCurrentRequest()
                 .path("/{id}")
-                .buildAndExpand(created.getId())
+                .buildAndExpand(saved.getId())
                 .toUri();
-        return ResponseEntity.created(location).body(created);
+
+        return ResponseEntity.created(location).body(saved);
     }
 
     @Operation(summary = "Mettre à jour un club", description = "Met à jour un club existant.")
@@ -66,13 +78,16 @@ public class ClubController {
             @ApiResponse(responseCode = "200", description = "Club mis à jour"),
             @ApiResponse(responseCode = "404", description = "Club introuvable")
     })
-    @PutMapping("/{id}")
+    @PreAuthorize("hasAuthority('SCOPE_update:clubs')")
+    @PutMapping(path = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Club> updateClub(
             @PathVariable String id,
-            @RequestBody ClubUpdateDTO dto,
-            @RequestPart(value = "image", required = false) MultipartFile image) {
-        Club result = clubService.updateClub(id, dto, image);
-        return ResponseEntity.ok(result);
+            @RequestPart("data") String json,
+            @RequestPart(value = "image", required = false) MultipartFile image) throws JsonProcessingException {
+
+        ClubDTO dto = objectMapper.readValue(json, ClubDTO.class);
+        Club updated = clubService.updateClub(id, dto, image);
+        return ResponseEntity.ok(updated);
     }
 
     @Operation(summary = "Désactiver un club", description = "Désactive (soft delete) un club.")
