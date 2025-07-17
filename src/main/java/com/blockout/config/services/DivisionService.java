@@ -80,11 +80,11 @@ public class DivisionService {
             }
         }
 
-        Division created = divisionRepository.save(division);
+        Division saved = divisionRepository.save(division);
         logger.info("New division created",
                 keyValue("action", "create_division"),
-                keyValue("divisionId", created.getId()));
-        return created;
+                keyValue("divisionId", saved.getId()));
+        return saved;
     }
 
     /**
@@ -101,7 +101,6 @@ public class DivisionService {
         return divisionRepository.findById(id).map(existing -> {
             Division before = existing.toBuilder().build();
 
-            // Champs de base
             if (dto.getName() != null)
                 existing.setName(dto.getName());
             if (dto.getMainColor() != null)
@@ -131,6 +130,10 @@ public class DivisionService {
 
             if (!existing.getActive()) {
                 existing.setActive(true);
+                logger.info("Division réactivé",
+                        keyValue("action", "reactivate_division"),
+                        keyValue("divisionId", id),
+                        keyValue("divisionName", existing.getName()));
             }
 
             Division updated = divisionRepository.save(existing);

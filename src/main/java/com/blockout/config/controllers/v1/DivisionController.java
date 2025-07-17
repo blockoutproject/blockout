@@ -60,9 +60,10 @@ public class DivisionController {
     @PreAuthorize("hasAuthority('SCOPE_create:divisions')")
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Division> createDivision(
-            @RequestPart("data") DivisionDTO dto,
-            @RequestPart(value = "image", required = false) MultipartFile image) {
+            @RequestPart("data") String json,
+            @RequestPart(value = "image", required = false) MultipartFile image) throws JsonProcessingException {
 
+        DivisionDTO dto = objectMapper.readValue(json, DivisionDTO.class);
         Division saved = divisionService.createDivision(dto, image);
 
         URI location = ServletUriComponentsBuilder.fromCurrentRequest()
