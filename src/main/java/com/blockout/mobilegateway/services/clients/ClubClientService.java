@@ -25,7 +25,7 @@ public class ClubClientService {
      * Récupère un club entier via son ID.
      */
     public ClubDTO getClubById(String id) {
-        String url = apiClientProperties.getClub().getUrl() + "/clubs/" + id;
+        String url = apiClientProperties.getClub().getUrl() + "/" + id;
 
         logger.info("Calling getClubById",
                 keyValue("action", "call_club_get_by_id"),
@@ -40,7 +40,7 @@ public class ClubClientService {
      * Récupère (si présent) l'URL du logo d'un club.
      */
     public String getClubLogoUrl(String id) {
-        String url = apiClientProperties.getClub().getUrl() + "/clubs/" + id + "/logo";
+        String url = apiClientProperties.getClub().getUrl() + "/" + id + "/logo";
 
         ResponseEntity<String> response = apiClientService.get(url, String.class);
 
