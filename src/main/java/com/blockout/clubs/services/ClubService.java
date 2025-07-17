@@ -78,6 +78,7 @@ public class ClubService {
 
         Club club = Club.builder()
                 .id(dto.getId())
+                .rawName(dto.getRawName())
                 .name(dto.getName())
                 .city(dto.getCity())
                 .email(dto.getEmail())
