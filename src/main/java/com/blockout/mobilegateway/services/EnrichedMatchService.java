@@ -13,7 +13,6 @@ import com.blockout.mobilegateway.models.dto.team.TeamWithStatsDTO;
 import com.blockout.mobilegateway.services.clients.MatchClientService;
 import com.blockout.mobilegateway.services.clients.PoolClientService;
 import com.blockout.mobilegateway.services.clients.TeamClientService;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.blockout.mobilegateway.services.clients.ConfigClientService;
 import com.blockout.mobilegateway.services.clients.ClubClientService;
 import com.blockout.mobilegateway.services.clients.CompetitionClientService;
@@ -23,6 +22,8 @@ import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+
+import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
 import java.util.*;
 import java.util.function.Function;
@@ -69,11 +70,25 @@ public class EnrichedMatchService {
 
         List<ClubDTO> clubs = clubClientService.getClubsByIds(clubIds);
 
-        try {
-            logger.info("Raw clubs response: {}", new ObjectMapper().writeValueAsString(clubs));
-        } catch (Exception e) {
-            logger.warn("Échec de sérialisation JSON des clubs", e);
-        }
+        logger.info("Clubs récupérés pour enrichissement", 
+    keyValue("requestedIds", clubIds),
+    keyValue("receivedCount", clubs.size())
+);
+
+for (int i = 0; i < clubs.size(); i++) {
+    ClubDTO club = clubs.get(i);
+    if (club == null) {
+        logger.warn("Club null à l’index {}", i);
+    } else if (club.getId() == null) {
+        logger.warn("Club sans ID : {}", club);
+    } else {
+        logger.debug("Club reçu", 
+            keyValue("index", i),
+            keyValue("id", club.getId()),
+            keyValue("logoUrl", club.getLogoUrl())
+        );
+    }
+}
 
         // Fetch des clubs en une seule requête
         Map<String, String> clubLogoMap = clubs.stream()
