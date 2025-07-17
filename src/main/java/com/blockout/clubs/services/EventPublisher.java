@@ -27,6 +27,7 @@ public class EventPublisher {
         ClubUpsertEvent event = ClubUpsertEvent.builder()
                 .id(club.getId())
                 .name(club.getName())
+                .logoUrl(club.getLogoUrl())
                 .city(club.getCity())
                 .build();
 
