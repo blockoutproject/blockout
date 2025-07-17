@@ -14,6 +14,7 @@ public class TeamSearchDoc {
     private String clubId;
     private String clubName;
     private String clubCity;
+    private String logoUrl;
     private String divisionName;
     private String format;
     private String gender;
