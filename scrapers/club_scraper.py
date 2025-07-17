@@ -96,9 +96,9 @@ class ClubScraper(Scraper):
 
             # 1) Nom du club
             name_tag = soup.find('td', class_='titreblanc_gd')
-            club_name = None
+            raw_club_name = None
             if name_tag:
-                club_name = name_tag.get_text(strip=True).split(maxsplit=1)[-1]
+                raw_club_name = name_tag.get_text(strip=True).split(maxsplit=1)[-1]
 
             # 2) Téléphone portable
             phone_number = None
@@ -159,7 +159,8 @@ class ClubScraper(Scraper):
             # 6) Construire l’objet Club
             return Club(
                 id=club_id,
-                name=club_name,
+                raw_name=raw_club_name,
+                name=raw_club_name,
                 phone_number=phone_number,
                 email=email,
                 website=website,

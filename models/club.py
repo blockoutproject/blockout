@@ -5,6 +5,7 @@ from typing import Optional
 @dataclass
 class Club:
     id: str
+    raw_name: str   
     name: str
     city: Optional[str] = None
     postal_code: Optional[str] = None
