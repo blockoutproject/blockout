@@ -32,3 +32,5 @@ api:
     url: ${CONFIG_API_URL}
   competition:
     url: ${COMPETITION_API_URL}
+  club:
+    url: ${CLUB_API_URL}

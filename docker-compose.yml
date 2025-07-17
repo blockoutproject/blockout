@@ -18,6 +18,7 @@ services:
       POOL_API_URL: ${POOL_API_URL}
       CONFIG_API_URL: ${CONFIG_API_URL}
       COMPETITION_API_URL: ${COMPETITION_API_URL}
+      CLUB_API_URL: ${CLUB_API_URL}
     depends_on:
       postgres:
         condition: service_healthy

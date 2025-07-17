@@ -18,6 +18,7 @@ public class ApiClientProperties {
     private final Endpoint match = new Endpoint();
     private final Endpoint config = new Endpoint();
     private final Endpoint competition = new Endpoint();
+    private final Endpoint club = new Endpoint();
 
     @Data
     public static class Endpoint {

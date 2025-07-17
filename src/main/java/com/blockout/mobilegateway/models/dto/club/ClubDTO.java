@@ -14,7 +14,12 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class ClubDTO {
     private String id;
+
+    @JsonProperty("raw_name")
+    private String rawName;
+
     private String name;
+
     private String city;
 
     @JsonProperty("postal_code")
@@ -26,6 +31,9 @@ public class ClubDTO {
     private String phoneNumber;
 
     private String website;
+
+    @JsonProperty("logo_url")
+    private String logoUrl;
 
     private Boolean active;
 

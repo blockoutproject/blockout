@@ -13,6 +13,7 @@ import com.blockout.mobilegateway.services.clients.MatchClientService;
 import com.blockout.mobilegateway.services.clients.PoolClientService;
 import com.blockout.mobilegateway.services.clients.TeamClientService;
 import com.blockout.mobilegateway.services.clients.ConfigClientService;
+import com.blockout.mobilegateway.services.clients.ClubClientService;
 import com.blockout.mobilegateway.services.clients.CompetitionClientService;
 
 import lombok.RequiredArgsConstructor;
@@ -31,13 +32,20 @@ public class EnrichedMatchService {
     private final TeamClientService teamClientService;
     private final ConfigClientService configClientService;
     private final CompetitionClientService competitionClientService;
+    private final ClubClientService clubClientService;
 
     public EnrichedMatchDTO getEnrichedMatchById(Long matchId) {
         MatchDTO match = matchClientService.getMatchById(matchId);
         TeamDTO teamA = teamClientService.getTeamById(match.getTeamIdA());
         TeamDTO teamB = teamClientService.getTeamById(match.getTeamIdB());
+        String teamALogoUrl = clubClientService.getClubLogoUrl(teamA.getClubId());
+        String teamBLogoUrl = clubClientService.getClubLogoUrl(teamB.getClubId());
         PoolDTO rawPool = poolClientService.getPoolById(match.getPoolId());
         DivisionDTO division = configClientService.getDivisionById(rawPool.getDivisionId());
+
+        // Enrich teams with logos
+        teamA.setLogoUrl(teamALogoUrl);
+        teamB.setLogoUrl(teamBLogoUrl);
 
         // Classement : associations + teams
         List<CompetitionAssociationDTO> associations = competitionClientService.getActiveAssociationsByPool(rawPool.getId());
