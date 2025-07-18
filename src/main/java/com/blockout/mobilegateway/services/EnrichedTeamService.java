@@ -41,8 +41,6 @@ public class EnrichedTeamService {
         if (club == null) {
             throw new InconsistentStateException("Club not found for team with ID " + teamId);
         }
-
-        team.setLogoUrl(club.getLogoUrl());
         
         DivisionDTO division = configClientService.getDivisionById(team.getDivisionId());
 
@@ -122,6 +120,7 @@ public class EnrichedTeamService {
                 .gender(team.getGender())
                 .followersCount(team.getFollowersCount())
                 .division(division)
+                .club(club)
                 .pools(enrichedPools)
                 .build();
     }
