@@ -31,7 +31,16 @@ public class EnrichedPoolService {
     public EnrichedPoolDTO getEnrichedPoolById(Long poolId) {
         // Récupération de la pool et de sa division
         PoolDTO rawPool = poolClientService.getPoolById(poolId);
+
+        if (rawPool == null) {
+            throw new InconsistentStateException("Pool not found with ID " + poolId);
+        }
+
         DivisionDTO division = configClientService.getDivisionById(rawPool.getDivisionId());
+
+        if (division == null) {
+            throw new InconsistentStateException("Division not found for pool with ID " + poolId);
+        }
 
         // Récupération des associations actives pour cette pool
         List<CompetitionAssociationDTO> associations = competitionClientService.getActiveAssociationsByPool(poolId);

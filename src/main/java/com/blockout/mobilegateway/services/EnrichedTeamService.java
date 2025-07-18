@@ -1,6 +1,7 @@
 package com.blockout.mobilegateway.services;
 
 import com.blockout.mobilegateway.exceptions.InconsistentStateException;
+import com.blockout.mobilegateway.models.dto.club.ClubDTO;
 import com.blockout.mobilegateway.models.dto.competition.PoolWithRankingDTO;
 import com.blockout.mobilegateway.models.dto.competition.TeamRankingDTO;
 import com.blockout.mobilegateway.models.dto.config.DivisionDTO;
@@ -9,6 +10,7 @@ import com.blockout.mobilegateway.models.dto.pool.PoolDTO;
 import com.blockout.mobilegateway.models.dto.team.EnrichedTeamDTO;
 import com.blockout.mobilegateway.models.dto.team.TeamDTO;
 import com.blockout.mobilegateway.models.dto.team.TeamWithStatsDTO;
+import com.blockout.mobilegateway.services.clients.ClubClientService;
 import com.blockout.mobilegateway.services.clients.CompetitionClientService;
 import com.blockout.mobilegateway.services.clients.ConfigClientService;
 import com.blockout.mobilegateway.services.clients.PoolClientService;
@@ -29,10 +31,24 @@ public class EnrichedTeamService {
     private final ConfigClientService configClientService;
     private final CompetitionClientService competitionClientService;
     private final PoolClientService poolClientService;
+    private final ClubClientService clubClientService;
 
     public EnrichedTeamDTO getEnrichedTeamById(Long teamId) {
         TeamDTO team = teamClientService.getTeamById(teamId);
+
+        ClubDTO club = clubClientService.getClubById(team.getClubId());
+
+        if (club == null) {
+            throw new InconsistentStateException("Club not found for team with ID " + teamId);
+        }
+
+        team.setLogoUrl(club.getLogoUrl());
+        
         DivisionDTO division = configClientService.getDivisionById(team.getDivisionId());
+
+        if (division == null) {
+            throw new InconsistentStateException("Division not found for team with ID " + teamId);
+        }
 
         List<PoolWithRankingDTO> poolsWithRankings = competitionClientService.getPoolsWithRankingByTeam(teamId);
 

@@ -37,11 +37,34 @@ public class EnrichedMatchService {
 
     public EnrichedMatchDTO getEnrichedMatchById(Long matchId) {
         MatchDTO match = matchClientService.getMatchById(matchId);
+
+        if (match == null) {
+            throw new InconsistentStateException("Match not found with ID " + matchId);
+        }
+
         TeamDTO teamA = teamClientService.getTeamById(match.getTeamIdA());
+
+        if (teamA == null) {
+            throw new InconsistentStateException("Team A not found with ID " + match.getTeamIdA());
+        }
+
         TeamDTO teamB = teamClientService.getTeamById(match.getTeamIdB());
 
+        if (teamB == null) {
+            throw new InconsistentStateException("Team B not found with ID " + match.getTeamIdB());
+        }
+
         PoolDTO rawPool = poolClientService.getPoolById(match.getPoolId());
+
+        if (rawPool == null) {
+            throw new InconsistentStateException("Pool not found with ID " + match.getPoolId());
+        }
+
         DivisionDTO division = configClientService.getDivisionById(rawPool.getDivisionId());
+
+        if (division == null) {
+            throw new InconsistentStateException("Division not found for pool with ID " + match.getPoolId());
+        }
 
         // Associations & équipes concernées
         List<CompetitionAssociationDTO> associations = competitionClientService
