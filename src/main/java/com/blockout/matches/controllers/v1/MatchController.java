@@ -10,6 +10,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
@@ -23,21 +24,6 @@ import java.util.List;
 public class MatchController {
 
     private final MatchService matchService;
-
-    @Operation(summary = "Créer un match", description = "Crée un nouveau match.")
-    @ApiResponses({
-            @ApiResponse(responseCode = "201", description = "Match créé"),
-            @ApiResponse(responseCode = "400", description = "Requête invalide")
-    })
-    @PostMapping
-    public ResponseEntity<Match> createMatch(@RequestBody Match match) {
-        Match created = matchService.createMatch(match);
-        URI location = ServletUriComponentsBuilder.fromCurrentRequest()
-                .path("/{id}")
-                .buildAndExpand(created.getId())
-                .toUri();
-        return ResponseEntity.created(location).body(created);
-    }
 
     @Operation(summary = "Lister les matchs", description = "Retourne les matchs avec filtres optionnels : poolId, teamIds, status, active.")
     @ApiResponses({
@@ -64,11 +50,28 @@ public class MatchController {
         return ResponseEntity.ok(match);
     }
 
+    @Operation(summary = "Créer un match", description = "Crée un nouveau match.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "Match créé"),
+            @ApiResponse(responseCode = "400", description = "Requête invalide")
+    })
+    @PreAuthorize("hasAuthority('SCOPE_create:matches')")
+    @PostMapping
+    public ResponseEntity<Match> createMatch(@RequestBody Match match) {
+        Match created = matchService.createMatch(match);
+        URI location = ServletUriComponentsBuilder.fromCurrentRequest()
+                .path("/{id}")
+                .buildAndExpand(created.getId())
+                .toUri();
+        return ResponseEntity.created(location).body(created);
+    }
+
     @Operation(summary = "Mettre à jour un match", description = "Met à jour un match existant.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Match mis à jour"),
             @ApiResponse(responseCode = "404", description = "Match introuvable")
     })
+    @PreAuthorize("hasAuthority('SCOPE_update:matches')")
     @PutMapping("/{id}")
     public ResponseEntity<Match> updateMatch(
             @PathVariable Long id,
@@ -89,12 +92,11 @@ public class MatchController {
             @RequestParam(required = false, name = "team_ids") List<Long> teamIds,
             @RequestParam(required = false) MatchStatus status) {
         DayPageDTO dto = matchService.getMatchesByDay(
-            poolIds == null ? Collections.emptyList() : poolIds,
-            teamIds == null ? Collections.emptyList() : teamIds,
-            status, 
-            page, 
-            size
-        );
+                poolIds == null ? Collections.emptyList() : poolIds,
+                teamIds == null ? Collections.emptyList() : teamIds,
+                status,
+                page,
+                size);
         return ResponseEntity.ok(dto);
     }
 
@@ -102,6 +104,7 @@ public class MatchController {
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Matches désactivés")
     })
+    @PreAuthorize("hasAuthority('SCOPE_delete:matches')")
     @PutMapping("/pools/{poolId}/bulk-deactivate")
     public ResponseEntity<Void> bulkDeactivateMatches(
             @PathVariable Long poolId,
