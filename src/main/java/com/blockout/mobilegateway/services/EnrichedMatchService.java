@@ -59,12 +59,11 @@ public class EnrichedMatchService {
                 .map(TeamDTO::getClubId)
                 .collect(Collectors.toSet());
 
+        // Fetch des clubs en une seule requête
         List<ClubDTO> clubs = clubClientService.getClubsByIds(clubIds);
 
-        // Fetch des clubs en une seule requête
         Map<String, String> clubLogoMap = new HashMap<>();
         for (ClubDTO club : clubs) {
-            // Accepte value null
             clubLogoMap.put(club.getId(), club.getLogoUrl());
         }
 

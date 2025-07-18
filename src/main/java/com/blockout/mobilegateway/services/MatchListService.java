@@ -1,10 +1,12 @@
 package com.blockout.mobilegateway.services;
 
+import com.blockout.mobilegateway.models.dto.club.ClubDTO;
 import com.blockout.mobilegateway.models.dto.config.DivisionDTO;
 import com.blockout.mobilegateway.models.dto.match.*;
 import com.blockout.mobilegateway.models.dto.pool.EnrichedPoolDTO;
 import com.blockout.mobilegateway.models.dto.pool.PoolDTO;
 import com.blockout.mobilegateway.models.dto.team.TeamDTO;
+import com.blockout.mobilegateway.services.clients.ClubClientService;
 import com.blockout.mobilegateway.services.clients.ConfigClientService;
 import com.blockout.mobilegateway.services.clients.MatchClientService;
 import com.blockout.mobilegateway.services.clients.PoolClientService;
@@ -30,22 +32,21 @@ public class MatchListService {
     private final PoolClientService poolClientService;
     private final TeamClientService teamClientService;
     private final ConfigClientService configClientService;
+    private final ClubClientService clubClientService;
 
     public EnrichedDayPageDTO getMatchList(
             String status,
             int page,
             int size,
             List<Long> poolFilterIds,
-            List<Long> teamFilterIds
-    ) {
+            List<Long> teamFilterIds) {
         logger.info("Fetching match list",
                 keyValue("action", "fetch_match_list"),
                 keyValue("status", status),
                 keyValue("page", page),
                 keyValue("size", size),
                 keyValue("poolFilterIds", poolFilterIds),
-                keyValue("teamFilterIds", teamFilterIds)
-        );
+                keyValue("teamFilterIds", teamFilterIds));
 
         DayPageDTO dayPage = matchClientService.getMatchesByDay(page, size, poolFilterIds, teamFilterIds, status);
         if (dayPage == null || dayPage.getDayMatches() == null) {
@@ -54,8 +55,7 @@ public class MatchListService {
                     .dayMatches(Collections.emptyList())
                     .hasNext(false)
                     .nextPage(null)
-                    .build(
-            );
+                    .build();
         }
 
         List<DayMatchesDTO> dayGroups = dayPage.getDayMatches();
@@ -65,7 +65,8 @@ public class MatchListService {
         Set<Long> divisionIds = new HashSet<>();
 
         for (DayMatchesDTO day : dayGroups) {
-            if (day.getPools() == null) continue;
+            if (day.getPools() == null)
+                continue;
             for (PoolMatchesDTO pool : day.getPools()) {
                 poolIds.add(pool.getPoolId());
                 if (pool.getMatches() != null) {
@@ -85,6 +86,27 @@ public class MatchListService {
         rawPools.forEach(pool -> divisionIds.add(pool.getDivisionId()));
 
         List<TeamDTO> teams = teamClientService.getTeamsByIds(teamIds);
+
+        Set<String> clubIds = teams.stream()
+                .map(TeamDTO::getClubId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        logger.info("Fetching logos for clubs", keyValue("clubIds", clubIds));
+
+        // Fetch des clubs en une seule requête
+        List<ClubDTO> clubs = clubClientService.getClubsByIds(clubIds);
+
+        Map<String, String> clubLogoMap = new HashMap<>();
+        for (ClubDTO club : clubs) {
+            clubLogoMap.put(club.getId(), club.getLogoUrl());
+        }
+
+        teams.forEach(team -> {
+            String logoUrl = clubLogoMap.get(team.getClubId());
+            team.setLogoUrl(logoUrl);
+        });
+
         List<DivisionDTO> divisions = configClientService.listDivisions().stream()
                 .filter(d -> divisionIds.contains(d.getId()))
                 .toList();
@@ -129,15 +151,13 @@ public class MatchListService {
                         EnrichedPoolMatchesDTO.builder()
                                 .pool(enrichedPoolMap.get(pool.getPoolId()))
                                 .matches(enrichedMatches)
-                                .build()
-                );
+                                .build());
             }
             enrichedDayMatches.add(
                     EnrichedDayMatchesDTO.builder()
                             .date(day.getDate())
                             .pools(enrichedPoolMatches)
-                            .build()
-            );
+                            .build());
         }
 
         logger.info("Built enriched day matches list",
