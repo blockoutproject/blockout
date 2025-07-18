@@ -61,7 +61,7 @@ public class EnrichedTeamService {
         // Injection des logos dans les TeamDTO
         teamsMap.values().forEach(t -> {
             ClubDTO club = clubMap.get(t.getClubId());
-            team.setLogoUrl(club.getLogoUrl());
+            t.setLogoUrl(club.getLogoUrl());
         });
 
         // Récupérer tous les pools une seule fois
