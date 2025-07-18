@@ -111,7 +111,7 @@ public class EnrichedMatchService {
                             .format(team.getFormat())
                             .gender(team.getGender())
                             .followersCount(team.getFollowersCount())
-                            .logoUrl(team.getLogoUrl()) // 💡 logo injecté !
+                            .logoUrl(team.getLogoUrl())
                             .points(assoc.getPoints())
                             .played(assoc.getPlayed())
                             .wins(assoc.getWins())

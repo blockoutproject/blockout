@@ -10,11 +10,7 @@ import com.blockout.mobilegateway.models.dto.pool.PoolDTO;
 import com.blockout.mobilegateway.models.dto.team.EnrichedTeamDTO;
 import com.blockout.mobilegateway.models.dto.team.TeamDTO;
 import com.blockout.mobilegateway.models.dto.team.TeamWithStatsDTO;
-import com.blockout.mobilegateway.services.clients.ClubClientService;
-import com.blockout.mobilegateway.services.clients.CompetitionClientService;
-import com.blockout.mobilegateway.services.clients.ConfigClientService;
-import com.blockout.mobilegateway.services.clients.PoolClientService;
-import com.blockout.mobilegateway.services.clients.TeamClientService;
+import com.blockout.mobilegateway.services.clients.*;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -36,29 +32,37 @@ public class EnrichedTeamService {
     public EnrichedTeamDTO getEnrichedTeamById(Long teamId) {
         TeamDTO team = teamClientService.getTeamById(teamId);
 
-        ClubDTO club = clubClientService.getClubById(team.getClubId());
-
-        if (club == null) {
-            throw new InconsistentStateException("Club not found for team with ID " + teamId);
-        }
-        
         DivisionDTO division = configClientService.getDivisionById(team.getDivisionId());
-
         if (division == null) {
             throw new InconsistentStateException("Division not found for team with ID " + teamId);
         }
 
         List<PoolWithRankingDTO> poolsWithRankings = competitionClientService.getPoolsWithRankingByTeam(teamId);
 
-        // Récupérer tous les teamIds impliqués
+        // Récupérer tous les teamIds impliqués (y compris l’équipe elle-même)
         Set<Long> allTeamIds = poolsWithRankings.stream()
                 .flatMap(p -> p.getRanking().stream())
                 .map(TeamRankingDTO::getTeamId)
                 .collect(Collectors.toSet());
+        allTeamIds.add(teamId);
 
-        // Récupérer toutes les équipes une seule fois
         Map<Long, TeamDTO> teamsMap = teamClientService.getTeamsByIds(allTeamIds).stream()
                 .collect(Collectors.toMap(TeamDTO::getId, Function.identity()));
+
+        // Collecte de tous les clubIds nécessaires
+        Set<String> clubIds = teamsMap.values().stream()
+                .map(TeamDTO::getClubId)
+                .collect(Collectors.toSet());
+
+        List<ClubDTO> clubs = clubClientService.getClubsByIds(clubIds);
+        Map<String, ClubDTO> clubMap = clubs.stream()
+                .collect(Collectors.toMap(ClubDTO::getId, Function.identity()));
+
+        // Injection des logos dans les TeamDTO
+        teamsMap.values().forEach(t -> {
+            ClubDTO club = clubMap.get(t.getClubId());
+            team.setLogoUrl(club.getLogoUrl());
+        });
 
         // Récupérer tous les pools une seule fois
         Set<Long> poolIds = poolsWithRankings.stream()
@@ -68,7 +72,6 @@ public class EnrichedTeamService {
         Map<Long, PoolDTO> poolMap = poolClientService.getPoolsByIds(poolIds).stream()
                 .collect(Collectors.toMap(PoolDTO::getId, Function.identity()));
 
-        // Mapper les EnrichedPoolDTO
         List<EnrichedPoolDTO> enrichedPools = poolsWithRankings.stream()
                 .map(p -> {
                     PoolDTO basePool = poolMap.get(p.getPoolId());
@@ -89,6 +92,7 @@ public class EnrichedTeamService {
                                         .format(t.getFormat())
                                         .gender(t.getGender())
                                         .followersCount(t.getFollowersCount())
+                                        .logoUrl(t.getLogoUrl())
                                         .points(r.getPoints())
                                         .played(r.getPlayed())
                                         .wins(r.getWins())
@@ -112,6 +116,8 @@ public class EnrichedTeamService {
                             .build();
                 }).toList();
 
+        ClubDTO enrichedClub = clubMap.get(team.getClubId());
+
         return EnrichedTeamDTO.builder()
                 .id(team.getId())
                 .name(team.getName())
@@ -120,7 +126,7 @@ public class EnrichedTeamService {
                 .gender(team.getGender())
                 .followersCount(team.getFollowersCount())
                 .division(division)
-                .club(club)
+                .club(enrichedClub)
                 .pools(enrichedPools)
                 .build();
     }
