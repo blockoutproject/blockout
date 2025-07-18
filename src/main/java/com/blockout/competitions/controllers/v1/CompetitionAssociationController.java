@@ -13,6 +13,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -28,6 +29,7 @@ public class CompetitionAssociationController {
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Association created or reactivated")
     })
+    @PreAuthorize("hasAuthority('SCOPE_create:competitions') and hasAuthority('SCOPE_update:competitions')")    
     @PostMapping("/pools/{poolId}/teams/{teamId}")
     public ResponseEntity<CompetitionAssociation> addTeamToPool(
             @PathVariable Long poolId,
@@ -66,6 +68,7 @@ public class CompetitionAssociationController {
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Teams deactivated")
     })
+    @PreAuthorize("hasAuthority('SCOPE_delete:competitions')")
     @PutMapping("/pools/{poolId}/teams/bulk-deactivate")
     public ResponseEntity<Void> bulkDeactivateTeams(
             @PathVariable Long poolId,
@@ -79,6 +82,7 @@ public class CompetitionAssociationController {
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Pools deactivated")
     })
+    @PreAuthorize("hasAuthority('SCOPE_delete:competitions')")
     @PutMapping("/pools/bulk-deactivate")
     public ResponseEntity<Void> bulkDeactivatePools(@RequestBody BulkPoolsDeactivateRequest request) {
         associationService.bulkDeactivatePools(request.getMissingPoolIds());
@@ -89,17 +93,11 @@ public class CompetitionAssociationController {
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Clubs deactivated")
     })
+    @PreAuthorize("hasAuthority('SCOPE_delete:competitions')")
     @PutMapping("/clubs/bulk-deactivate")
     public ResponseEntity<Void> bulkDeactivateClubs(@RequestBody BulkClubsDeactivateRequest request) {
         associationService.bulkDeactivateClubs(request.getMissingClubIds());
         return ResponseEntity.ok().build();
-    }
-
-    @PostMapping("/stats")
-    public String testStats(@RequestBody TeamAssociationStatsRequest request) {
-        System.out.println("📦 Classe réelle : " + request.getClass().getName());
-        System.out.println("🎯 winsThreeToZero = " + request.getWinsThreeToZero());
-        return "OK";
     }
 
     @Operation(summary = "Update stats for a team–pool association")
@@ -107,6 +105,7 @@ public class CompetitionAssociationController {
             @ApiResponse(responseCode = "200", description = "Stats updated"),
             @ApiResponse(responseCode = "404", description = "Association not found")
     })
+    @PreAuthorize("hasAuthority('SCOPE_update:competitions')")
     @PutMapping("/pools/{poolId}/teams/{teamId}/stats")
     public ResponseEntity<CompetitionAssociation> updateStats(
             @PathVariable Long poolId,
