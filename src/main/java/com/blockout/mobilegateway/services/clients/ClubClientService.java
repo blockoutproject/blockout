@@ -59,29 +59,20 @@ public class ClubClientService {
         return response.getBody();
     }
 
-public List<ClubDTO> getClubsByIds(Set<String> ids) {
-    if (ids == null || ids.isEmpty())
-        return Collections.emptyList();
+    public List<ClubDTO> getClubsByIds(Set<String> ids) {
+        if (ids == null || ids.isEmpty())
+            return Collections.emptyList();
 
-    String url = UriComponentsBuilder
-            .fromUriString(apiClientProperties.getClub().getUrl())
-            .queryParam("ids", ids)
-            .build()
-            .toUriString();
+        String url = UriComponentsBuilder
+                .fromUriString(apiClientProperties.getClub().getUrl())
+                .queryParam("ids", ids)
+                .build()
+                .toUriString();
 
-    logger.info("Calling getClubsByIds", keyValue("ids", ids), keyValue("url", url));
+        logger.info("Calling getClubsByIds", keyValue("ids", ids), keyValue("url", url));
 
-    // 🔍 Appel en parallèle pour log brut
-    try {
-        ResponseEntity<String> raw = apiClientService.get(url, String.class);
-        logger.warn("Réponse JSON brute du service Club: {}", raw.getBody());
-    } catch (Exception e) {
-        logger.warn("Impossible de récupérer la réponse brute du service Club", e);
+        ResponseEntity<ClubDTO[]> response = apiClientService.get(url, ClubDTO[].class);
+        ClubDTO[] body = response.getBody();
+        return body != null ? Arrays.asList(body) : Collections.emptyList();
     }
-
-    // 💡 Appel réel avec mapping vers ClubDTO[]
-    ResponseEntity<ClubDTO[]> response = apiClientService.get(url, ClubDTO[].class);
-    ClubDTO[] body = response.getBody();
-    return body != null ? Arrays.asList(body) : Collections.emptyList();
-}
 }
