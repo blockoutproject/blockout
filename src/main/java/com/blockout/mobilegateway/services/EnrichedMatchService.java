@@ -68,7 +68,7 @@ public class EnrichedMatchService {
     Map<String, String> clubLogoMap = clubs.stream()
             .collect(Collectors.toMap(
                     ClubDTO::getId,
-                    club -> club.getLogoUrl()
+                    ClubDTO::getLogoUrl
             ));
 
     System.out.println("------------Fetched clubssss: " + clubLogoMap.keySet() + " (total: " + clubLogoMap.size() + ")");

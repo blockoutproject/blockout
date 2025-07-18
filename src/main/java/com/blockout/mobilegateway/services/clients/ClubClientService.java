@@ -2,6 +2,7 @@ package com.blockout.mobilegateway.services.clients;
 
 import com.blockout.mobilegateway.config.ApiClientProperties;
 import com.blockout.mobilegateway.models.dto.club.ClubDTO;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -73,6 +74,14 @@ public class ClubClientService {
 
         ResponseEntity<ClubDTO[]> response = apiClientService.get(url, ClubDTO[].class);
         ClubDTO[] body = response.getBody();
+        if (body != null) {
+            try {
+                String rawJson = new ObjectMapper().writeValueAsString(body);
+                logger.info("Réponse brute du service Club: {}", rawJson);
+            } catch (Exception e) {
+                logger.warn("Erreur lors de la sérialisation JSON de la réponse ClubDTO[]", e);
+            }
+        }
         return body != null ? Arrays.asList(body) : Collections.emptyList();
     }
 }
