@@ -11,6 +11,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
@@ -23,21 +24,6 @@ import java.util.List;
 public class TeamController {
 
     private final TeamService teamService;
-
-    @Operation(summary = "Créer une équipe", description = "Crée une nouvelle équipe.")
-    @ApiResponses({
-            @ApiResponse(responseCode = "201", description = "Équipe créée"),
-            @ApiResponse(responseCode = "400", description = "Requête invalide")
-    })
-    @PostMapping
-    public ResponseEntity<Team> createTeam(@RequestBody Team team) {
-        Team created = teamService.createTeam(team);
-        URI location = ServletUriComponentsBuilder.fromCurrentRequest()
-                .path("/{id}")
-                .buildAndExpand(created.getId())
-                .toUri();
-        return ResponseEntity.created(location).body(created);
-    }
 
     @Operation(summary = "Lister les équipes", description = "Renvoie toutes les équipes avec filtres facultatifs.")
     @ApiResponses({
@@ -66,11 +52,28 @@ public class TeamController {
         return ResponseEntity.ok(team);
     }
 
+    @Operation(summary = "Créer une équipe", description = "Crée une nouvelle équipe.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "Équipe créée"),
+            @ApiResponse(responseCode = "400", description = "Requête invalide")
+    })
+    @PreAuthorize("hasAuthority('SCOPE_create:teams')")
+    @PostMapping
+    public ResponseEntity<Team> createTeam(@RequestBody Team team) {
+        Team created = teamService.createTeam(team);
+        URI location = ServletUriComponentsBuilder.fromCurrentRequest()
+                .path("/{id}")
+                .buildAndExpand(created.getId())
+                .toUri();
+        return ResponseEntity.created(location).body(created);
+    }
+
     @Operation(summary = "Mettre à jour une équipe", description = "Met à jour une équipe existante.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Équipe mise à jour"),
             @ApiResponse(responseCode = "404", description = "Équipe introuvable")
     })
+    @PreAuthorize("hasAuthority('SCOPE_update:teams')")
     @PutMapping("/{id}")
     public ResponseEntity<Team> updateTeam(@PathVariable Long id, @RequestBody Team updated) {
         Team result = teamService.updateTeam(id, updated);
@@ -82,6 +85,7 @@ public class TeamController {
             @ApiResponse(responseCode = "204", description = "Équipe désactivée"),
             @ApiResponse(responseCode = "404", description = "Équipe introuvable")
     })
+    @PreAuthorize("hasAuthority('SCOPE_delete:teams')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deactivateTeam(@PathVariable Long id) {
         teamService.deactivateTeam(id);
