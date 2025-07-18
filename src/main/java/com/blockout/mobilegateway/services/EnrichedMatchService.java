@@ -68,10 +68,10 @@ public class EnrichedMatchService {
     Map<String, String> clubLogoMap = clubs.stream()
             .collect(Collectors.toMap(
                     ClubDTO::getId,
-                    club -> club.getLogoUrl() != null && !club.getLogoUrl().isBlank() ? club.getLogoUrl() : null
+                    club -> club.getLogoUrl()
             ));
 
-    System.out.println("------------Fetched clubs: " + clubLogoMap.keySet() + " (total: " + clubLogoMap.size() + ")");
+    System.out.println("------------Fetched clubssss: " + clubLogoMap.keySet() + " (total: " + clubLogoMap.size() + ")");
 
     // Injection des logos dans les TeamDTO
     teamsMap.values().forEach(team -> {
