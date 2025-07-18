@@ -13,6 +13,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
@@ -43,6 +44,7 @@ public class UserController {
             @ApiResponse(responseCode = "201", description = "Utilisateur créé"),
             @ApiResponse(responseCode = "400", description = "Requête invalide")
     })
+    @PreAuthorize("hasAuthority('SCOPE_create:users')")
     @PostMapping
     public ResponseEntity<CustomUser> registerUser(
             @RequestBody UserRegistrationRequestDTO body,
