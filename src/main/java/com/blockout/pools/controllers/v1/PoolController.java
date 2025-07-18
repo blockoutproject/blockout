@@ -9,6 +9,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
@@ -21,21 +22,6 @@ import java.util.List;
 public class PoolController {
 
     private final PoolService poolService;
-
-    @Operation(summary = "Créer une pool", description = "Crée une nouvelle pool.")
-    @ApiResponses({
-            @ApiResponse(responseCode = "201", description = "Pool créée"),
-            @ApiResponse(responseCode = "400", description = "Requête invalide")
-    })
-    @PostMapping
-    public ResponseEntity<Pool> createPool(@RequestBody Pool pool) {
-        Pool created = poolService.createPool(pool);
-        URI location = ServletUriComponentsBuilder.fromCurrentRequest()
-                .path("/{id}")
-                .buildAndExpand(created.getId())
-                .toUri();
-        return ResponseEntity.created(location).body(created);
-    }
 
     @Operation(summary = "Lister les pools", description = "Renvoie toutes les pools. Filtres possibles : leagueCode, season, active, ids.")
     @ApiResponses({
@@ -62,11 +48,28 @@ public class PoolController {
         return ResponseEntity.ok(pool);
     }
 
+    @Operation(summary = "Créer une pool", description = "Crée une nouvelle pool.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "Pool créée"),
+            @ApiResponse(responseCode = "400", description = "Requête invalide")
+    })
+    @PreAuthorize("hasAuthority('SCOPE_create:pools')")
+    @PostMapping
+    public ResponseEntity<Pool> createPool(@RequestBody Pool pool) {
+        Pool created = poolService.createPool(pool);
+        URI location = ServletUriComponentsBuilder.fromCurrentRequest()
+                .path("/{id}")
+                .buildAndExpand(created.getId())
+                .toUri();
+        return ResponseEntity.created(location).body(created);
+    }
+
     @Operation(summary = "Mettre à jour une pool", description = "Met à jour une pool existante.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Pool mise à jour"),
             @ApiResponse(responseCode = "404", description = "Pool introuvable")
     })
+    @PreAuthorize("hasAuthority('SCOPE_update:pools')")
     @PutMapping("/{id}")
     public ResponseEntity<Pool> updatePool(
             @PathVariable Long id,
@@ -80,6 +83,7 @@ public class PoolController {
             @ApiResponse(responseCode = "204", description = "Pool désactivée"),
             @ApiResponse(responseCode = "404", description = "Pool introuvable")
     })
+    @PreAuthorize("hasAuthority('SCOPE_delete:pools')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deactivatePool(@PathVariable Long id) {
         poolService.deactivatePool(id);
