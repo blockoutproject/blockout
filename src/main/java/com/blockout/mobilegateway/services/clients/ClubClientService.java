@@ -2,7 +2,6 @@ package com.blockout.mobilegateway.services.clients;
 
 import com.blockout.mobilegateway.config.ApiClientProperties;
 import com.blockout.mobilegateway.models.dto.club.ClubDTO;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -60,28 +59,29 @@ public class ClubClientService {
         return response.getBody();
     }
 
-    public List<ClubDTO> getClubsByIds(Set<String> ids) {
-        if (ids == null || ids.isEmpty())
-            return Collections.emptyList();
+public List<ClubDTO> getClubsByIds(Set<String> ids) {
+    if (ids == null || ids.isEmpty())
+        return Collections.emptyList();
 
-        String url = UriComponentsBuilder
-                .fromUriString(apiClientProperties.getClub().getUrl())
-                .queryParam("ids", ids)
-                .build()
-                .toUriString();
+    String url = UriComponentsBuilder
+            .fromUriString(apiClientProperties.getClub().getUrl())
+            .queryParam("ids", ids)
+            .build()
+            .toUriString();
 
-        logger.info("Calling getClubsByIds", keyValue("ids", ids), keyValue("url", url));
+    logger.info("Calling getClubsByIds", keyValue("ids", ids), keyValue("url", url));
 
-        ResponseEntity<ClubDTO[]> response = apiClientService.get(url, ClubDTO[].class);
-        ClubDTO[] body = response.getBody();
-        if (body != null) {
-            try {
-                String rawJson = new ObjectMapper().writeValueAsString(body);
-                logger.info("Réponse brute du service Club: {}", rawJson);
-            } catch (Exception e) {
-                logger.warn("Erreur lors de la sérialisation JSON de la réponse ClubDTO[]", e);
-            }
-        }
-        return body != null ? Arrays.asList(body) : Collections.emptyList();
+    // 🔍 Appel en parallèle pour log brut
+    try {
+        ResponseEntity<String> raw = apiClientService.get(url, String.class);
+        logger.warn("Réponse JSON brute du service Club: {}", raw.getBody());
+    } catch (Exception e) {
+        logger.warn("Impossible de récupérer la réponse brute du service Club", e);
     }
+
+    // 💡 Appel réel avec mapping vers ClubDTO[]
+    ResponseEntity<ClubDTO[]> response = apiClientService.get(url, ClubDTO[].class);
+    ClubDTO[] body = response.getBody();
+    return body != null ? Arrays.asList(body) : Collections.emptyList();
+}
 }
