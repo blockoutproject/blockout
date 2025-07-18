@@ -95,6 +95,7 @@ public class ClubController {
             @ApiResponse(responseCode = "204", description = "Club désactivé"),
             @ApiResponse(responseCode = "404", description = "Club introuvable")
     })
+    @PreAuthorize("hasAuthority('SCOPE_delete:clubs')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deactivateClub(@PathVariable String id) {
         clubService.deactivateClub(id);
