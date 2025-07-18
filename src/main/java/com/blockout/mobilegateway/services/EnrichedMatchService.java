@@ -60,8 +60,12 @@ public class EnrichedMatchService {
 
     System.out.println("-----------Fetching clubs for IDs: " + clubIds + " (total: " + clubIds.size() + ")");
 
+    List<ClubDTO> clubs = clubClientService.getClubsByIds(clubIds);
+
+    System.out.println("------------Fetched clubs: " + clubs.stream().map(ClubDTO::getId).collect(Collectors.toSet()) + " (total: " + clubs.size() + ")");
+
     // Fetch des clubs en une seule requête
-    Map<String, String> clubLogoMap = clubClientService.getClubsByIds(clubIds).stream()
+    Map<String, String> clubLogoMap = clubs.stream()
             .collect(Collectors.toMap(
                     ClubDTO::getId,
                     club -> club.getLogoUrl() != null && !club.getLogoUrl().isBlank() ? club.getLogoUrl() : null
