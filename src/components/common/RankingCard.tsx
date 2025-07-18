@@ -6,7 +6,7 @@ import {
     TouchableOpacity,
     ListRenderItemInfo,
 } from "react-native";
-import { BottomSheetFlatList, BottomSheetModal } from "@gorhom/bottom-sheet";
+import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import FastImage from "react-native-fast-image";
 import * as Haptics from "expo-haptics";
 import { useAppTheme } from "@/src/context/ThemeProvider";
@@ -14,7 +14,6 @@ import TeamContainer from "../team/TeamScreen";
 import BottomSheetCustomPage from "./BottomSheetCustomPage";
 import { EnrichedPoolDTO } from "@/src/types/Pool";
 import { FlatList } from "react-native-gesture-handler";
-import { useFocusEffect } from "@react-navigation/native";
 
 interface RankingCardProps {
     enrichedPool: EnrichedPoolDTO;
@@ -88,8 +87,12 @@ const RankingCard: React.FC<RankingCardProps> = ({
                     onPress={() => openTeamSheet(item.id)}
                 >
                     <FastImage
-                        source={require("@/assets/clubs/paris_volley.png")}
-                        style={styles.logo}
+                        source={
+                            item.logoUrl
+                                ? { uri: item.logoUrl }
+                                : require('@/assets/clubs/default_club_logo.png')
+                        }
+                        style={[styles.logo, { backgroundColor: theme.text }]}
                         resizeMode="contain"
                     />
                     <Text
@@ -142,10 +145,10 @@ const RankingCard: React.FC<RankingCardProps> = ({
 };
 
 const styles = StyleSheet.create({
-    container: { 
-        borderWidth: 2, 
-        borderRadius: 18, 
-        flexShrink: 1, 
+    container: {
+        borderWidth: 2,
+        borderRadius: 18,
+        flexShrink: 1,
         overflow: "hidden",
     },
     headerRow: {
@@ -153,47 +156,48 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
     },
-    row: { 
-        flexDirection: "row", 
-        alignItems: "center", 
-        borderRadius: 10, 
-        height: 50 
+    row: {
+        flexDirection: "row",
+        alignItems: "center",
+        borderRadius: 10,
+        height: 50
     },
-    transparentIndicator: { 
-        marginRight: 8 
+    transparentIndicator: {
+        marginRight: 8
     },
-    headerText: { 
-        fontSize: 14, 
-        fontWeight: "700", 
-        textAlign: "center" 
+    headerText: {
+        fontSize: 14,
+        fontWeight: "700",
+        textAlign: "center"
     },
-    cell: { 
-        fontSize: 14, 
-        textAlign: "center" 
+    cell: {
+        fontSize: 14,
+        textAlign: "center"
     },
-    rankCell: { 
-        flex: 0.4, 
-        textAlign: "left" 
+    rankCell: {
+        flex: 0.4,
+        textAlign: "left"
     },
-    teamCell: { 
-        flex: 2.5, 
-        textAlign: "left" 
+    teamCell: {
+        flex: 2.5,
+        textAlign: "left"
     },
-    statCell: { 
-        flex: 0.5 
+    statCell: {
+        flex: 0.5
     },
-    teamContainer: { 
-        flexDirection: "row", 
-        alignItems: "center" 
+    teamContainer: {
+        flexDirection: "row",
+        alignItems: "center"
     },
-    name: { 
-        marginLeft: 8, 
-        marginRight: 24, 
-        fontSize: 14 
+    name: {
+        marginLeft: 8,
+        marginRight: 24,
+        fontSize: 14
     },
-    logo: { 
-        width: 30, 
-        height: 30 
+    logo: {
+        width: 30,
+        aspectRatio: 1,
+        borderRadius: 10,
     },
 });
 

@@ -73,7 +73,7 @@ const CircleColorPicker: React.FC<Props> = ({
                     <HueSlider style={{ marginBottom: 40 }} />
                 </ColorPicker>
 
-                <View style={[styles.buttonRow, { backgroundColor: theme.success }]}>
+                <View style={[styles.buttonRow, { backgroundColor: tempColor }]}>
                     <Button title="Valider" onPress={handleValidate} color={theme.text} />
                 </View>
             </View>

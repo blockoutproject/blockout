@@ -7,12 +7,11 @@ import {
 } from "react-native";
 import FastImage from "react-native-fast-image";
 import * as Haptics from "expo-haptics";
-import { BottomSheetModal, BottomSheetView } from "@gorhom/bottom-sheet";
+import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 
-import { Pool } from "@/src/types/Pool";
 import { useAppTheme } from "@/src/context/ThemeProvider";
-import PoolContainer from "../../pool/PoolScreen";
+import PoolScreen from "../../pool/PoolScreen";
 import BottomSheetCustomPage from "../../common/BottomSheetCustomPage";
 import { EnrichedMatchDTO } from "@/src/types/Match";
 
@@ -63,7 +62,7 @@ const MatchInfoCard: React.FC<MatchInfoCardProps> = ({ enrichedMatch }) => {
                 <TouchableOpacity onPress={() => openPoolSheet(enrichedMatch.pool.id)} style={styles.row}>
                     <FastImage
                         source={{ uri: enrichedMatch.pool.division.logoUrl || "" }}
-                        style={styles.poolLogo}
+                        style={[styles.poolLogo, { backgroundColor: theme.text }]}
                         resizeMode="contain"
                     />
                     <Text
@@ -95,7 +94,7 @@ const MatchInfoCard: React.FC<MatchInfoCardProps> = ({ enrichedMatch }) => {
             </View>
 
             <BottomSheetCustomPage ref={poolSheetRef}>
-                    {selectedPoolId && <PoolContainer poolId={selectedPoolId} />}
+                    {selectedPoolId && <PoolScreen poolId={selectedPoolId} />}
             </BottomSheetCustomPage>
         </>
     );
@@ -121,7 +120,7 @@ const styles = StyleSheet.create({
     },
     poolLogo: {
         width: 22,
-        height: 22,
+        aspectRatio: 1,
         marginRight: 12,
         borderRadius: 5,
     },

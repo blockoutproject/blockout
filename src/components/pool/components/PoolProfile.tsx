@@ -33,7 +33,7 @@ const PoolProfile: React.FC<Props> = ({ enrichedPool }) => {
             <View style={styles.row}>
                 <FastImage
                     source={{ uri: division.logoUrl || "" }}
-                    style={styles.logo}
+                    style={[styles.logo, { backgroundColor: theme.text }]}
                     resizeMode="contain"
                 />
 
@@ -84,7 +84,7 @@ const styles = StyleSheet.create({
     logo: {
         width: 100,
         aspectRatio: 1,
-        borderRadius: 16,
+        borderRadius: 24
     },
     info: {
         flex: 1,

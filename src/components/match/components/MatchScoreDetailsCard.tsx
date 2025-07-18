@@ -22,15 +22,22 @@ const MatchScoreDetailsCard: React.FC<MatchScoreDetailsCardProps> = ({
     const awaySets = setsArray.map((set) => parseInt(set[1], 10));
 
     const TeamRow: React.FC<{
-        team: Team;
+        team: Team & { logoUrl: string | null };
         finalScore: string;
         sets: number[];
         opponentSets: number[];
-        logo: any;
-    }> = ({ team, finalScore, sets, opponentSets, logo }) => (
+    }> = ({ team, finalScore, sets, opponentSets }) => (
         <View style={styles.scoreDetailsTeamRow}>
             <View style={styles.teamLogoColumn}>
-                <FastImage source={logo} style={styles.teamLogoSmall} resizeMode="contain" />
+                <FastImage
+                source={
+                    team.logoUrl
+                        ? { uri: team.logoUrl }
+                        : require('@/assets/clubs/default_club_logo.png')
+                }
+                style={[styles.teamLogoSmall, { backgroundColor: theme.text }]}
+                resizeMode="contain"
+            />
             </View>
             <View style={styles.teamNameColumn}>
                 <Text
@@ -75,14 +82,12 @@ const MatchScoreDetailsCard: React.FC<MatchScoreDetailsCardProps> = ({
                     finalScore={homeFinal}
                     sets={homeSets}
                     opponentSets={awaySets}
-                    logo={require("@/assets/clubs/paris_volley.png")}
                 />
                 <TeamRow
                     team={enrichedMatch.teamB}
                     finalScore={awayFinal}
                     sets={awaySets}
                     opponentSets={homeSets}
-                    logo={require("@/assets/clubs/as_cannes.png")}
                 />
             </View>
         </View>
@@ -131,7 +136,9 @@ const styles = StyleSheet.create({
     },
     teamLogoSmall: {
         width: 36,
-        height: 36,
+        aspectRatio: 1,
+        borderRadius: 10,
+
     },
     shortTeamName: {
         fontWeight: "600",

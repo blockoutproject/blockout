@@ -1,8 +1,7 @@
 import React from "react";
 import { View, Text, Image, StyleSheet } from "react-native";
-import { useAppTheme } from "@/src/context/ThemeProvider"; // 🌈 Hook thème
-import { BottomSheetScrollView, BottomSheetView } from "@gorhom/bottom-sheet";
-import { useFocusEffect } from "@react-navigation/native";
+import { useAppTheme } from "@/src/context/ThemeProvider";
+import { BottomSheetScrollView } from "@gorhom/bottom-sheet";
 
 type EmptyPromptProps = {
     title: string;
@@ -17,10 +16,8 @@ const EmptyPrompt: React.FC<EmptyPromptProps> = ({
 }) => {
     const theme = useAppTheme();
 
-    const CustomView = home ? View : BottomSheetScrollView;
-
     return (
-        <BottomSheetView focusHook={useFocusEffect} style={[styles.container, { backgroundColor: theme.background }]}>
+        <View style={[styles.container, { backgroundColor: theme.background }]}>
             <Image
                 source={{ uri: "https://cdn-icons-png.flaticon.com/512/4076/4076549.png" }}
                 style={[styles.image, { tintColor: theme.textInactive }]}
@@ -28,15 +25,14 @@ const EmptyPrompt: React.FC<EmptyPromptProps> = ({
             />
             <Text style={[styles.title, { color: theme.text }]}>{title}</Text>
             <Text style={[styles.subtitle, { color: theme.textInactive }]}>{subtitle}</Text>
-        </BottomSheetView>
+        </View>
     );
 };
 
 const styles = StyleSheet.create({
     container: {
-        flex: 1,
-        justifyContent: "center",
         alignItems: "center",
+        paddingTop: "30%",
     },
     image: {
         width: 120,

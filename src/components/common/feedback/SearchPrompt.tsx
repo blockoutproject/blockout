@@ -1,5 +1,4 @@
 import { useAppTheme } from '@/src/context/ThemeProvider';
-import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import React from 'react';
 import { View, Text, Image, StyleSheet } from 'react-native';
 
@@ -7,7 +6,7 @@ export const SearchPrompt = () => {
     const theme = useAppTheme();
 
     return (
-        <BottomSheetScrollView style={styles.container}>
+        <View style={styles.container}>
             <Image
                 source={{ uri: 'https://cdn-icons-png.flaticon.com/512/4076/4076549.png' }}
                 style={[styles.image, { tintColor: theme.textInactive }]}
@@ -21,13 +20,14 @@ export const SearchPrompt = () => {
             <Text style={[styles.subtitle, { color: theme.textInactive }]}>
                 Tape quelque chose pour commencer ta recherche !
             </Text>
-        </BottomSheetScrollView>
+        </View>
     );
 };
 
 const styles = StyleSheet.create({
     container: {
-       
+        alignItems: 'center',
+        paddingTop: '30%',
     },
     image: {
         width: 120,

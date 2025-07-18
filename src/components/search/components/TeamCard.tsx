@@ -25,15 +25,19 @@ const TeamCard: React.FC<Props> = ({ team, onPress }) => {
         >
             {/* Logo */}
             <FastImage
-                source={require("@/assets/clubs/as_cannes.png")}
-                style={styles.teamLogo}
+                source={
+                    team.logoUrl
+                        ? { uri: team.logoUrl }
+                        : require('@/assets/clubs/default_club_logo.png')
+                }
+                style={[styles.logo, { backgroundColor: theme.text }]}
                 resizeMode="contain"
             />
 
             {/* Infos de l'équipe */}
             <View style={{ flex: 1 }}>
-                <Text style={[styles.teamName, { color: theme.text }]}>{team.name}</Text>
-                <Text style={[styles.teamDetails, { color: theme.textInactive }]}>
+                <Text style={[styles.name, { color: theme.text }]}>{team.name}</Text>
+                <Text style={[styles.details, { color: theme.textInactive }]}>
                     {team.divisionName} • {team.gender}
                 </Text>
             </View>
@@ -49,16 +53,16 @@ const styles = StyleSheet.create({
         marginBottom: 12,
         borderRadius: 20,
     },
-    teamLogo: {
+    logo: {
         aspectRatio: 1,
         marginEnd: 16,
         height: 50,
     },
-    teamName: {
+    name: {
         fontSize: 18,
         fontWeight: '600',
     },
-    teamDetails: {
+    details: {
         marginTop: 4,
     },
 });

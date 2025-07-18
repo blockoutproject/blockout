@@ -1,12 +1,8 @@
 import React from "react";
 import { Text, View, StyleSheet } from "react-native";
 import FastImage from "react-native-fast-image";
-import { EnrichedMatchDTO, Match, MatchStatus } from "@/src/types/Match";
-import { Team } from "@/src/types/Team";
-import { useAppTheme } from "@/src/context/ThemeProvider";
+import { EnrichedMatchDTO, MatchStatus } from "@/src/types/Match";
 import GradientBorderView from "../../common/GradientBorderView";
-import { GradientVariants } from "@/src/utils/utils";
-import { Division } from "@/src/types/Division";
 import { useThemeColor } from "@/src/hooks/useThemeColor";
 
 type Props = {
@@ -38,8 +34,12 @@ const MatchCard: React.FC<Props> = ({ enrichedMatch, gradient }) => {
                     {enrichedMatch.teamA.shortName || "Équipe inconnue"}
                 </Text>
                 <FastImage
-                    source={require("@/assets/clubs/paris_volley.png")}
-                    style={styles.teamLogo}
+                    source={
+                        enrichedMatch.teamA.logoUrl
+                            ? { uri: enrichedMatch.teamA.logoUrl }
+                            : require('@/assets/clubs/default_club_logo.png')
+                    }
+                    style={[styles.teamLogo, { backgroundColor: text }]}
                     resizeMode="contain"
                 />
             </View>
@@ -67,8 +67,12 @@ const MatchCard: React.FC<Props> = ({ enrichedMatch, gradient }) => {
             {/* Team B */}
             <View style={[styles.teamSide, styles.teamAlignLeft]}>
                 <FastImage
-                    source={require("@/assets/clubs/as_cannes.png")}
-                    style={styles.teamLogo}
+                    source={
+                        enrichedMatch.teamB.logoUrl
+                            ? { uri: enrichedMatch.teamB.logoUrl }
+                            : require('@/assets/clubs/default_club_logo.png')
+                    }
+                    style={[styles.teamLogo, { backgroundColor: text }]}
                     resizeMode="contain"
                 />
                 <Text
@@ -90,7 +94,7 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         borderRadius: 12,
         paddingVertical: 14,
-        paddingHorizontal: 8,
+        paddingHorizontal: 4,
         gap: 2,
     },
     teamSide: {
@@ -105,8 +109,9 @@ const styles = StyleSheet.create({
         justifyContent: "flex-start",
     },
     teamLogo: {
-        width: 35,
-        height: 35,
+        width: 33,
+        aspectRatio: 1,
+        borderRadius: 10,
     },
     teamName: {
         fontSize: 14,
@@ -125,6 +130,7 @@ const styles = StyleSheet.create({
     centerBlock: {
         justifyContent: "center",
         alignItems: "center",
+        paddingHorizontal: 6,
     },
     scoreBadge: {
         borderWidth: 2,
@@ -133,8 +139,8 @@ const styles = StyleSheet.create({
         paddingHorizontal: 6,
     },
     timeText: {
-        fontSize: 16,
-        fontWeight: "600",
+        fontSize: 18,
+        fontWeight: "700",
     },
 });
 

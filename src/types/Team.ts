@@ -1,3 +1,4 @@
+import { Club } from "./Club";
 import { Division } from "./Division";
 import { EnumFormat } from "./enums/Format";
 import { EnumGender } from "./enums/Gender";
@@ -25,6 +26,7 @@ export interface TeamWithStats {
     format: EnumFormat;
     gender: EnumGender;
     followersCount: number;
+    logoUrl: string | null;
     points: number;
     played: number;
     wins: number;
@@ -41,6 +43,7 @@ export interface EnrichedTeamDTO {
     format: EnumFormat;
     gender: EnumGender;
     followersCount: number;
-    pools: EnrichedPoolDTO[];
     division: Division;
+    club: Club
+    pools: EnrichedPoolDTO[];
 }

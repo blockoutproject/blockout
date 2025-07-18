@@ -12,6 +12,8 @@ interface Props {
 const ClubCard: React.FC<Props> = ({ club, onPress }) => {
     const theme = useAppTheme();
 
+    console.log('ClubCard rendered with club:', club); 
+
     return (
         <Pressable
             onPress={onPress}
@@ -23,17 +25,19 @@ const ClubCard: React.FC<Props> = ({ club, onPress }) => {
                 },
             ]}
         >
-            {/* Logo */}
             <FastImage
-                source={require("@/assets/clubs/as_cannes.png")}
-                style={styles.clubLogo}
+                source={
+                    club.logoUrl
+                        ? { uri: club.logoUrl }
+                        : require('@/assets/clubs/default_club_logo.png')
+                }
+                style={[styles.logo, { backgroundColor: theme.text }]}
                 resizeMode="contain"
             />
 
-            {/* Infos de l'équipe */}
             <View style={{ flex: 1 }}>
-                <Text style={[styles.clubName, { color: theme.text }]}>{club.name}</Text>
-                <Text style={[styles.clubDetails, { color: theme.textInactive }]}>
+                <Text style={[styles.name, { color: theme.text }]}>{club.name}</Text>
+                <Text style={[styles.details, { color: theme.textInactive }]}>
                     {club.city}
                 </Text>
             </View>
@@ -49,16 +53,16 @@ const styles = StyleSheet.create({
         marginBottom: 12,
         borderRadius: 20,
     },
-    clubLogo: {
+    logo: {
         aspectRatio: 1,
         marginEnd: 16,
         height: 50,
     },
-    clubName: {
+    name: {
         fontSize: 18,
         fontWeight: '600',
     },
-    clubDetails: {
+    details: {
         marginTop: 4,
     },
 });

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { StyleSheet, Animated } from "react-native";
+import { StyleSheet, Animated, Button, View } from "react-native";
 import {
     NavigationState,
     Route,
@@ -13,6 +13,8 @@ import { EntityType } from "@/src/types/User";
 import AnimatedHomeHeader from "@/src/components/home/AnimatedHomeHeader";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useUserContext } from "@/src/context/UserProvider";
+import ExampleBottomSheet from "@/src/components/Test";
+import BottomSheet from "@gorhom/bottom-sheet";
 
 const HomeScreen: React.FC = () => {
     const insets = useSafeAreaInsets();
@@ -117,6 +119,12 @@ const HomeScreen: React.FC = () => {
         );
     };
 
+      const bottomSheetRef = useRef<BottomSheet>(null);
+
+  const openSheet = () => {
+    bottomSheetRef.current?.expand();
+  };
+
     return (
         <TabView
             lazy={false}
@@ -126,6 +134,10 @@ const HomeScreen: React.FC = () => {
             renderTabBar={renderTabBar}
             commonOptions={{ labelStyle: styles.tabItem }}
         />
+    //         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+    //   <Button title="Open Bottom Sheet" onPress={openSheet} />
+    //   <ExampleBottomSheet ref={bottomSheetRef} />
+    // </View>
     );
 };
 

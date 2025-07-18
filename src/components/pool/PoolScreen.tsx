@@ -5,6 +5,7 @@ import { useAppTheme } from '@/src/context/ThemeProvider';
 import PoolProfile from './components/PoolProfile';
 import PoolTabs from './components/PoolTabs';
 import { useEnrichedPoolById } from '@/src/hooks/pool/useEnrichedPoolById';
+import PoolSkeleton from './components/PoolSkeleton';
 
 type Props = {
     poolId: number;
@@ -14,18 +15,20 @@ const PoolScreen: React.FC<Props> = ({ poolId }) => {
     const { data: enrichedPool, isLoading, isError } = useEnrichedPoolById(poolId);
     const theme = useAppTheme();
 
-    if (isLoading) {
-        return <MatchSkeleton />;
-    }
-
-    if (isError || !enrichedPool) {
+    if (isError) {
         return <Text style={{ color: theme.error, padding: 16 }}>Erreur de chargement</Text>;
     }
 
     return (
         <View style={[styles.container, { backgroundColor: theme.background }]}>
-            <PoolProfile enrichedPool={enrichedPool} />
-            <PoolTabs enrichedPool={enrichedPool} />
+            {isLoading || !enrichedPool ? (
+                <PoolSkeleton />
+            ) : (
+                <>
+                    <PoolProfile enrichedPool={enrichedPool} />
+                    <PoolTabs enrichedPool={enrichedPool} />
+                </>
+            )}
         </View>
     );
 };

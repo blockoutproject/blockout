@@ -52,8 +52,8 @@ export interface EnrichedMatchDTO {
     firstReferee: string | null;
     secondReferee: string | null;
     liveCode: number | null;
-    teamA: Team;
-    teamB: Team;
+    teamA: Team & { logoUrl: string | null };
+    teamB: Team & { logoUrl: string | null };
     pool: EnrichedPoolDTO;
 }
 

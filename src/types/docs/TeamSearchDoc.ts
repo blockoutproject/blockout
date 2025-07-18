@@ -4,6 +4,7 @@ export interface TeamSearchDoc {
     clubId: string;
     clubName: string;
     clubCity: string;
+    logoUrl: string | null;
     divisionName: string;
     format: string;
     gender: string;

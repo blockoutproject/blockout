@@ -1,5 +1,6 @@
 export interface Club {
     id: string;
+    rawName: string;
     name: string;
     city: string | null;
     postalCode: string | null;

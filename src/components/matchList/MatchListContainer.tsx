@@ -23,6 +23,7 @@ import {
 } from "@gorhom/bottom-sheet";
 import BottomSheetCustomPage from "../common/BottomSheetCustomPage";
 import { useThemeColor } from "@/src/hooks/useThemeColor";
+import PoolItemSkeleton from "./components/PoolItemSkeleton";
 
 type Props = {
     poolIds?: number[];
@@ -57,6 +58,7 @@ const MatchListContainer: React.FC<Props> = ({
         hasNextPage,
         isFetchingNextPage,
         isLoading,
+        isRefetching,
         isError,
         refetch,
     } = useMatchList(status, poolIds, teamIds);
@@ -117,30 +119,20 @@ const MatchListContainer: React.FC<Props> = ({
         />
     );
 
+    const renderEmpty = () => (
+        <EmptyPrompt
+            title="Aucun match trouvé"
+            subtitle={
+                poolIds?.length || teamIds?.length
+                    ? "Aucun match à venir pour les équipes ou poules sélectionnées."
+                    : "Commence par suivre une équipe ou une poule pour voir les matchs ici !"
+            }
+            home
+        />
+    );
+
     const body = () => {
         if (isLoading) {
-            // const skeletonSections = home
-            //     ? [
-            //         { title: "Chargement…", data: new Array(4).fill(null).map(() => Math.floor(Math.random() * 3) + 1) }
-            //     ]
-            //     : new Array(4).fill(null).flatMap(() => [
-            //         { title: "Chargement…", data: [1] }
-            //     ]);
-
-            // return (
-            //     <Animated.SectionList
-            //         sections={skeletonSections}
-            //         keyExtractor={(_, i) => `skeleton-${i}`}
-            //         stickySectionHeadersEnabled
-            //         renderSectionHeader={renderSectionHeader}
-            //         renderItem={({ item }) => <PoolItemSkeleton itemCount={item} />}
-            //         ItemSeparatorComponent={() => <View style={styles.itemSeparator} />}
-            //         SectionSeparatorComponent={() => <View style={styles.sectionSeparator} />}
-            //         scrollEnabled={false}
-            //         contentContainerStyle={[styles.sectionListContent, contentContainerStyle]}
-            //     />
-            // );
-
             return (
                 <ActivityIndicator
                     size="large"
@@ -160,19 +152,6 @@ const MatchListContainer: React.FC<Props> = ({
                 />
             );
 
-        if (!dayMatches.length)
-            return (
-                <EmptyPrompt
-                    title="Aucun match trouvé"
-                    subtitle={
-                        poolIds?.length || teamIds?.length
-                            ? "Aucun match à venir pour les équipes ou poules sélectionnées."
-                            : "Commence par suivre une équipe ou une poule pour voir les matchs ici !"
-                    }
-                    home
-                />
-            );
-
         return (
             <Animated.SectionList
                 sections={sections}
@@ -182,7 +161,6 @@ const MatchListContainer: React.FC<Props> = ({
                 renderSectionHeader={renderSectionHeader}
                 renderItem={renderItem}
                 onEndReached={handleLoadMore}
-                onEndReachedThreshold={0.3}
                 ItemSeparatorComponent={() => <View style={styles.itemSeparator} />}
                 SectionSeparatorComponent={() => <View style={styles.sectionSeparator} />}
                 showsVerticalScrollIndicator={false}
@@ -194,7 +172,8 @@ const MatchListContainer: React.FC<Props> = ({
                         progressViewOffset={headerOffset + 6}
                     />
                 }
-                scrollEventThrottle={16}
+                ListEmptyComponent={renderEmpty}
+                scrollEnabled={sections.length > 0}
                 onScroll={
                     scrollY
                         ? Animated.event(

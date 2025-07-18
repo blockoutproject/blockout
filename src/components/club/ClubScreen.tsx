@@ -1,53 +1,77 @@
-import React from "react";
-import { Text, View, StyleSheet } from "react-native";
-import { useAppTheme } from "@/src/context/ThemeProvider";
-import ClubTabs from "./components/ClubTabs";
-import ClubProfile from "./components/ClubProfile";
+import React, { useRef, useState } from 'react';
+import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { BottomSheetModal } from '@gorhom/bottom-sheet';
+import * as Haptics from 'expo-haptics';
 
-type Props = {
-    clubId: string;
-};
+import { useAppTheme } from '@/src/context/ThemeProvider';
+import { useClubById } from '@/src/hooks/club/useClubById';
+import PoolSkeleton from '../pool/components/PoolSkeleton';
+import BottomSheetCustomModal from '../common/BottomSheetCustomModal';
+import ClubProfile from './components/ClubProfile';
+import ClubForm from './components/ClubForm';   // ← composant d’édition
+
+type Props = { clubId: string };
 
 const ClubScreen: React.FC<Props> = ({ clubId }) => {
     const theme = useAppTheme();
+    const insets = useSafeAreaInsets();
+    const formSheetRef = useRef<BottomSheetModal>(null);
 
+    const { data: club, isLoading, isError, refetch } = useClubById(clubId);
 
+    const openForm = () => {
+        if (!club) return;
+        Haptics.selectionAsync();
+        formSheetRef.current?.present();
+    };
+    const closeForm = () => formSheetRef.current?.dismiss();
+
+    if (isError) {
+        return (
+            <View style={{ padding: 16 }}>
+                <Text style={{ color: theme.error }}>Erreur de chargement</Text>
+            </View>
+        );
+    }
+
+    if (isLoading || !club) {
+        return (
+            <View style={[styles.center, { backgroundColor: theme.background }]}>
+                <PoolSkeleton />
+            </View>
+        );
+    }
 
     return (
-        <View style={[styles.container]}>
-            
-        </View>
+        <>
+            <View style={[styles.container, { backgroundColor: theme.background }]}>
+                <ClubProfile club={club} onEdit={openForm} />
+            </View>
+
+            <BottomSheetCustomModal ref={formSheetRef}>
+                <ClubForm
+                    club={club}
+                    onSuccess={async () => {
+                        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                        refetch();
+                        closeForm();
+                    }}
+                />
+            </BottomSheetCustomModal>
+        </>
     );
 };
 
+export default ClubScreen;
+
 const styles = StyleSheet.create({
-    container: {
+    container: { 
+        flex: 1 
+    },
+    center: {
         flex: 1,
-    },
-    sectionTitle: {
-        fontSize: 18,
-        fontWeight: '600',
-        marginBottom: 8,
-    },
-    statRow: {
-        flexDirection: "row",
-        gap: 16,
-        alignItems: "center",
-        marginBottom: 12,
-    },
-    badge: {
-        paddingVertical: 4,
-        paddingHorizontal: 10,
-        borderRadius: 8,
-    },
-    badgeText: {
-        fontWeight: "600",
-        fontSize: 14,
-    },
-    tabContainer: {
-        marginTop: 8,
-        paddingBottom: 16,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
 });
-
-export default ClubScreen;

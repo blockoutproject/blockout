@@ -3,12 +3,12 @@ import { View, Text, Pressable, StyleSheet } from "react-native";
 import FastImage from "react-native-fast-image";
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import { Team } from "@/src/types/Team";
-import { GradientVariants, splitIsoDateFormatted } from "@/src/utils/utils";
+import { splitIsoDateFormatted } from "@/src/utils/utils";
 import * as Haptics from "expo-haptics";
 import TeamContainer from "../../team/TeamScreen";
 import GradientBorderView from "../../common/GradientBorderView";
 
-import { BottomSheetModal, BottomSheetView } from "@gorhom/bottom-sheet";
+import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import BottomSheetCustomPage from "../../common/BottomSheetCustomPage";
 import { EnrichedMatchDTO } from "@/src/types/Match";
 
@@ -34,12 +34,19 @@ const MatchScoreCard: React.FC<MatchScoreCardProps> = ({
     };
 
     const TeamBlock: React.FC<{
-        team: Team;
-        logo: any;
+        team: Team & { logoUrl: string | null };
         role: "Home" | "Away";
-    }> = ({ team, logo, role }) => (
+    }> = ({ team, role }) => (
         <Pressable onPress={() => openTeamSheet(team.id)} style={styles.teamCard}>
-            <FastImage source={logo} style={styles.teamLogoLarge} resizeMode="contain" />
+            <FastImage
+                source={
+                    team.logoUrl
+                        ? { uri: team.logoUrl }
+                        : require('@/assets/clubs/default_club_logo.png')
+                }
+                style={[styles.teamLogoLarge, { backgroundColor: theme.text }]}
+                resizeMode="contain"
+            />
             <Text style={[styles.teamLabel, { color: theme.text }]} numberOfLines={2}>
                 {team.name}
             </Text>
@@ -58,7 +65,6 @@ const MatchScoreCard: React.FC<MatchScoreCardProps> = ({
                     <View style={styles.teamRowContainer}>
                         <TeamBlock
                             team={enrichedMatch.teamA}
-                            logo={require("@/assets/clubs/paris_volley.png")}
                             role="Home"
                         />
 
@@ -102,7 +108,6 @@ const MatchScoreCard: React.FC<MatchScoreCardProps> = ({
 
                         <TeamBlock
                             team={enrichedMatch.teamB}
-                            logo={require("@/assets/clubs/as_cannes.png")}
                             role="Away"
                         />
                     </View>
@@ -143,6 +148,7 @@ const styles = StyleSheet.create({
     teamLogoLarge: {
         width: 90,
         aspectRatio: 1,
+        borderRadius: 22,
         marginBottom: 4
     },
     teamLabel: {

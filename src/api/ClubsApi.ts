@@ -66,20 +66,14 @@ class ClubsApi extends AbstractApi {
      */
     public async updateClub(
         id: string,
-        data: Partial<Club>,
+        payload: Partial<Club>,
         image?: File
     ): Promise<Club> {
         const formData = new FormData();
 
-        Object.entries(data).forEach(([key, value]) => {
-            if (value !== undefined && value !== null) {
-                formData.append(key, String(value));
-            }
-        });
+        formData.append('data', JSON.stringify(payload));
 
-        if (image) {
-            formData.append('image', image);
-        }
+        if (image) formData.append('image', image);
 
         return this.request<Club>({
             method: 'put',

@@ -10,17 +10,14 @@ class ConfigApi extends AbstractApi {
         super(url, token);
     }
 
-    /** Initialise l'instance de l'API Config avec le token d'accès. */
+    /** Initialise l'instance de l'API avec le token d'accès */
     public static initInstance(token: string): void {
         if (!ConfigApi.instance) {
-            ConfigApi.instance = new ConfigApi(
-                CONFIG.API_CONFIG_BASE_URL,
-                token
-            );
+            ConfigApi.instance = new ConfigApi(CONFIG.API_CONFIG_BASE_URL, token);
         }
     }
 
-    /** Retourne l'instance de l'API Config. */
+    /** Retourne l'instance de l'API */
     public static getInstance(): ConfigApi {
         if (!ConfigApi.instance) {
             throw new Error('Initialisez l’instance avant d’appeler getInstance().');
@@ -28,71 +25,55 @@ class ConfigApi extends AbstractApi {
         return ConfigApi.instance;
     }
 
-    /**
-     * Récupère les mappings non complétés (ou tous les mappings si filtres non précisés).
-     * @param leagueCode Code de la ligue.
-     * @param season Saison concernée.
-     */
-    public async listRawDivisionMappings(leagueCode?: string, season?: number): Promise<RawDivisionMapping[]> {
+
+    public async listRawDivisionMappings(
+        leagueCode?: string,
+        season?: number,
+    ): Promise<RawDivisionMapping[]> {
         return this.request<RawDivisionMapping[]>({
             method: 'get',
             url: '/raw-divisions',
-            params: { league_code: leagueCode, season }
+            params: { leagueCode, season },
         });
     }
 
-    /**
-     * Met à jour un mapping de poule.
-     * @param id Identifiant du mapping.
-     * @param data Données à mettre à jour (divisionName, format, gender).
-     */
-    public async updateRawDivisionMapping(id: number, data: Partial<RawDivisionMapping>): Promise<RawDivisionMapping> {
+    public async updateRawDivisionMapping(
+        id: number,
+        data: Partial<RawDivisionMapping>,
+    ): Promise<RawDivisionMapping> {
         return this.request<RawDivisionMapping>({
             method: 'put',
             url: `/raw-divisions/${id}`,
-            data
+            data,
         });
     }
 
-    /**
-     * Récupère la liste complète des divisions (actives et inactives).
-     */
     public async listDivisions(): Promise<Division[]> {
         return this.request<Division[]>({
             method: 'get',
-            url: '/divisions'
+            url: '/divisions',
         });
     }
 
-    /**
-     * Récupère une division par son identifiant.
-     * @param id ID de la division.
-     */
     public async getDivisionById(id: number): Promise<Division> {
         return this.request<Division>({
             method: 'get',
-            url: `/divisions/${id}`
+            url: `/divisions/${id}`,
         });
     }
 
     /**
-     * Crée une division avec image (optionnelle).
+     * Crée une division (image optionnelle).
      */
     public async createOrUpdateDivision(
-        data: Partial<Division>,
-        image?: File
+        payload: Partial<Division>,
+        image?: File,
     ): Promise<Division> {
         const formData = new FormData();
 
-        Object.entries(data).forEach(([key, value]) => {
-            if (value !== undefined && value !== null) {
-                formData.append(key, String(value));
-            }
-        });
+        formData.append('data', JSON.stringify(payload));
 
-        if (image) {
-            formData.append('image', image);
-        }
+        if (image) formData.append('image', image, image.name);
 
         return this.request<Division>({
             method: 'post',
@@ -102,24 +83,18 @@ class ConfigApi extends AbstractApi {
     }
 
     /**
-     * Met à jour une division avec une image (optionnelle).
+     * Met à jour une division (image optionnelle).
      */
     public async updateDivision(
         id: number,
-        data: Partial<Division>,
-        image?: File
+        payload: Partial<Division>,
+        image?: File,
     ): Promise<Division> {
         const formData = new FormData();
 
-        Object.entries(data).forEach(([key, value]) => {
-            if (value !== undefined && value !== null) {
-                formData.append(key, String(value));
-            }
-        });
+        formData.append('data', JSON.stringify(payload));
 
-        if (image) {
-            formData.append('image', image);
-        }
+        if (image) formData.append('image', image, image.name);
 
         return this.request<Division>({
             method: 'put',
@@ -130,12 +105,11 @@ class ConfigApi extends AbstractApi {
 
     /**
      * Désactive une division.
-     * @param id ID de la division.
      */
     public async deactivateDivision(id: number): Promise<void> {
         await this.request<void>({
             method: 'delete',
-            url: `/divisions/${id}`
+            url: `/divisions/${id}`,
         });
     }
 }

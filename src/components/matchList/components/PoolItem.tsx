@@ -30,7 +30,7 @@ const PoolItem: React.FC<Props> = ({
                 <View style={styles.poolHeader}>
                     <FastImage
                         source={{ uri: enrichedPoolMatches.pool.division.logoUrl || "" }}
-                        style={styles.poolLogo}
+                        style={[styles.poolLogo, { backgroundColor: theme.text }]}
                         resizeMode="contain"
                     />
                     <Text

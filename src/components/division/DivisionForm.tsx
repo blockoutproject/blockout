@@ -184,7 +184,7 @@ const DivisionForm: React.FC<DivisionFormProps> = ({ division, onSuccess }) => {
                 <Text style={[styles.label, { color: theme.text }]}>Image de profil</Text>
                 <TouchableOpacity onPress={handlePickImage} activeOpacity={0.8} style={styles.imageTouch}>
                     {imageUri ? (
-                        <FastImage source={{ uri: imageUri }} style={[styles.imagePreview, { borderColor: theme.border }]} />
+                        <FastImage source={{ uri: imageUri }} style={[styles.imagePreview, { borderColor: theme.border, backgroundColor: theme.text }]} />
                     ) : (
                         <View style={[styles.imagePreview, styles.imagePlaceholder, { backgroundColor: theme.surface, borderColor: theme.border }]}>
                             <MaterialIcons name="photo-camera" size={28} color={theme.textInactive} />

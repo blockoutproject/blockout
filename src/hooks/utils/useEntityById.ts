@@ -1,16 +1,15 @@
-// src/utils/useEntityById.ts
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 export const useEntityById = <T>(
     key: string,
-    fetchOneFn: (id: number) => Promise<T | null>,
-    id?: number
+    fetchOneFn: (id: any) => Promise<T | null>,
+    id?: any
 ) => {
     const qc = useQueryClient();
 
     return useQuery<T | null, Error>({
         queryKey: [key, id],
-        queryFn: () => fetchOneFn(id as number),
+        queryFn: () => fetchOneFn(id),
         enabled: !!id,
         staleTime: 0,
         initialData: () => {
