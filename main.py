@@ -30,7 +30,7 @@ async def main():
                     if not status.enabled:
                         log_event(
                             action="scraper_skipped",
-                            level="info",
+                            level="warning",
                             message=f"Scraper 'SCRAPER' désactivé via API config."
                         )
                         return
