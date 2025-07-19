@@ -3,6 +3,7 @@ import aiohttp
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from datetime import datetime, timezone
 from api.auth0 import refresh_token_task
+from api.config_api import get_scraper_status
 from config.logger_config import log_event
 from scrapers.scraper_factory import ScraperFactory
 from prometheus_client import Gauge, start_http_server
@@ -19,32 +20,44 @@ lock = asyncio.Lock()
 execution_duration_gauge = Gauge('scraper_execution_duration_seconds', 'Duration of the scraper execution in seconds')
 
 async def main():
-    """
-    Fonction principale exécutant le scraping pour les pools nationales, régionales, et pro.
-    """
     start_time = datetime.now(timezone.utc)
+
     async with lock:
         try:
             async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=60)) as session:
-                
+                try:
+                    status = await get_scraper_status(session, 'SCRAPER') # Récupérer le statut du scraper 'SCRAPER'
+                    if not status.enabled:
+                        log_event(
+                            action="scraper_skipped",
+                            level="info",
+                            message=f"Scraper 'SCRAPER' désactivé via API config."
+                        )
+                        return
+                except Exception as e:
+                    log_event(
+                        action="scraper_status_fetch_failed",
+                        level="error",
+                        message=f"Impossible de récupérer le statut du scraper 'SCRAPER'.",
+                        error=str(e)
+                    )
+                    return
+
                 scraper_types = ['pro', 'national', 'regional']
                 tasks = []
 
                 for scraper_type in scraper_types:
-                    # Met à jour le contexte pour le scraper actuel
                     current_scraper.set(scraper_type)
-                    
+
                     scraper = ScraperFactory.create_scraper(scraper_type, session)
                     tasks.append(scraper.scrape())
 
                 await asyncio.gather(*tasks)
-            
+
             end_time = datetime.now(timezone.utc)
             duration = (end_time - start_time).total_seconds()
-
-            # Mettre à jour la métrique Prometheus
             execution_duration_gauge.set(duration)
-                    
+
         except Exception as e:
             log_event(
                 action="scraping_error",
