@@ -3,6 +3,7 @@ import aiohttp
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from datetime import datetime, timezone
 from api.auth0 import refresh_token_task
+from api.config_api import get_scraper_status
 from config.logger_config import log_event
 from scrapers.scraper_factory import ScraperFactory
 from prometheus_client import Gauge, start_http_server
@@ -26,6 +27,23 @@ async def main():
     async with lock:
         try:
             async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=60)) as session:
+                try:
+                    status = await get_scraper_status(session, 'SCRAPER_CLUBS') # Récupérer le statut du scraper 'SCRAPER_CLUBS'
+                    if not status.enabled:
+                        log_event(
+                            action="scraper_skipped",
+                            level="info",
+                            message=f"Scraper 'SCRAPER_CLUBS' désactivé via API config."
+                        )
+                        return
+                except Exception as e:
+                    log_event(
+                        action="scraper_status_fetch_failed",
+                        level="error",
+                        message=f"Impossible de récupérer le statut du scraper 'SCRAPER_CLUBS'.",
+                        error=str(e)
+                    )
+                    return
                 
                 scraper_types = ['club']
                 tasks = []
