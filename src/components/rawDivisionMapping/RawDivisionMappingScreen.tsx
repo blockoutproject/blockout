@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import {
     View,
     Text,
     StyleSheet,
     ActivityIndicator,
     Keyboard,
+    RefreshControl,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAppTheme } from "@/src/context/ThemeProvider";
@@ -18,6 +19,7 @@ import { BottomSheetFlatList, BottomSheetModal } from "@gorhom/bottom-sheet";
 import BottomSheetCustomModal from "../common/BottomSheetCustomModal";
 import SearchBar from "../common/SearchBar";
 import * as Haptics from "expo-haptics";
+import { FlatList } from "react-native-gesture-handler";
 
 type FilterName = string;
 
@@ -36,6 +38,7 @@ const RawDivisionMappingScreen: React.FC = () => {
 
     const formSheetRef = useRef<BottomSheetModal>(null);
     const [editing, setEditing] = useState<RawDivisionMapping | null>(null);
+    const [isRefreshing, setIsRefreshing] = useState(false);
 
     const openForm = (mapping: RawDivisionMapping) => {
         Keyboard.dismiss();
@@ -106,6 +109,13 @@ const RawDivisionMappingScreen: React.FC = () => {
         [filteredData]
     );
 
+    const handleRefresh = useCallback(async () => {
+        setIsRefreshing(true);
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        await refetch();
+        setIsRefreshing(false);
+    }, [refetch]);
+
     if (isLoading || !data) {
         return (
             <View style={[styles.center, { backgroundColor: theme.background }]}>
@@ -130,13 +140,20 @@ const RawDivisionMappingScreen: React.FC = () => {
                     <Filters filters={seasonFilters} setFilters={setSeasonFilters} />
                 </View>
 
-                <BottomSheetFlatList
+                <FlatList
                     style={styles.flatList}
                     data={sortedData}
                     keyExtractor={(item) => item.id.toString()}
                     renderItem={({ item }) => (
                         <RawDivisionMappingItem mapping={item} onPress={() => openForm(item)} />
                     )}
+                    refreshControl={
+                        <RefreshControl
+                            refreshing={isRefreshing}
+                            onRefresh={handleRefresh}
+                            tintColor={theme.text}
+                        />
+                    }
                     contentContainerStyle={{ paddingBottom: insets.bottom + 16 }}
                     ListEmptyComponent={
                         <View style={styles.emptyState}>

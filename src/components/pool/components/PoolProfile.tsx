@@ -7,7 +7,7 @@ import { EnrichedPoolDTO, Pool } from "@/src/types/Pool";
 import FollowButton from "@/src/components/common/FollowButton";
 import FollowersCounter from "@/src/components/common/FollowersCount";
 import { usePoolFollowState } from "@/src/hooks/pool/usePoolFollowState";
-import { GenderLabels } from "@/src/types/enums/Gender";
+import { EnumGender, GenderLabels } from "@/src/types/enums/Gender";
 
 type Props = {
     enrichedPool: EnrichedPoolDTO
@@ -38,16 +38,26 @@ const PoolProfile: React.FC<Props> = ({ enrichedPool }) => {
                 />
 
                 <View style={styles.info}>
-                    <Text style={[styles.title, { color: theme.text }]}>{enrichedPool.name}</Text>
+                    <Text
+                        style={[styles.title, { color: theme.text }]}
+                        numberOfLines={2}
+                        ellipsizeMode="tail"
+                        adjustsFontSizeToFit
+                        minimumFontScale={0.8}
+                    >
+                        {enrichedPool.name}
+                    </Text>
 
                     <View style={styles.infoLine}>
-                        <MaterialCommunityIcons name="trophy-outline" size={18} color={theme.text} />
+                        <MaterialCommunityIcons name="trophy" size={18} color={theme.text} />
                         <Text style={[styles.infoText, { color: theme.text }]}>{division.name}</Text>
                     </View>
 
                     <View style={styles.infoLine}>
-                        <MaterialCommunityIcons name="gender-male-female" size={18} color={theme.text} />
-                        <Text style={[styles.infoText, { color: theme.text }]}>{GenderLabels[enrichedPool.gender]}</Text>
+                            {enrichedPool.gender === EnumGender.M && <MaterialCommunityIcons name="gender-male" size={18} color={theme.text} />}
+                            {enrichedPool.gender === EnumGender.F && <MaterialCommunityIcons name="gender-female" size={18} color={theme.text} />}
+                            {enrichedPool.gender === EnumGender.O && <MaterialCommunityIcons name="gender-male-female" size={18} color={theme.text} />}
+                            <Text style={[styles.infoText, { color: theme.text }]}>{GenderLabels[enrichedPool.gender]}</Text>
                     </View>
 
                     <View style={styles.infoLine}>
@@ -98,14 +108,16 @@ const styles = StyleSheet.create({
     infoLine: {
         flexDirection: "row",
         alignItems: "center",
-        gap: 10,
+        gap: 6,
         marginBottom: 2,
     },
     infoText: {
         fontSize: 14,
+        fontWeight: '500',
     },
     linkText: {
         fontSize: 14,
+        fontWeight: '500',
     },
     actionsRow: {
         flexDirection: "row",

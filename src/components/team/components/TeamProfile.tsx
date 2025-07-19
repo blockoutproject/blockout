@@ -7,7 +7,7 @@ import { EnrichedTeamDTO, Team } from '@/src/types/Team';
 import { useTeamFollowState } from '@/src/hooks/team/useTeamFollowState';
 import FollowButton from '@/src/components/common/FollowButton';
 import FollowersCounter from '@/src/components/common/FollowersCount';
-import { GenderLabels } from '@/src/types/enums/Gender';
+import { EnumGender, GenderLabels } from '@/src/types/enums/Gender';
 import * as Haptics from "expo-haptics";
 import { BottomSheetModal } from '@gorhom/bottom-sheet';
 import BottomSheetCustomPage from '../../common/BottomSheetCustomPage';
@@ -51,25 +51,33 @@ const TeamProfile: React.FC<Props> = ({ enrichedTeam }) => {
                     />
 
                     <View style={styles.info}>
-                        <Text style={[styles.title, { color: theme.text }]}>{enrichedTeam.name}</Text>
+                        <Text 
+                            style={[styles.title, { color: theme.text }]}
+                            numberOfLines={2}
+                            ellipsizeMode="tail"
+                            adjustsFontSizeToFit
+                            minimumFontScale={0.8}
+                        >
+                            {enrichedTeam.name}
+                        </Text>
 
                         <View style={styles.infoLine}>
-                            <MaterialCommunityIcons name="trophy-outline" size={18} color={theme.text} />
+                            <MaterialCommunityIcons name="trophy" size={18} color={theme.text} />
                             <Text style={[styles.infoText, { color: theme.text }]}>{enrichedTeam.division.name}</Text>
                         </View>
 
                         <View style={styles.infoLine}>
-                            <MaterialCommunityIcons name="gender-male-female" size={18} color={theme.text} />
+                            {enrichedTeam.gender === EnumGender.M && <MaterialCommunityIcons name="gender-male" size={18} color={theme.text} />}
+                            {enrichedTeam.gender === EnumGender.F && <MaterialCommunityIcons name="gender-female" size={18} color={theme.text} />}
+                            {enrichedTeam.gender === EnumGender.O && <MaterialCommunityIcons name="gender-male-female" size={18} color={theme.text} />}
                             <Text style={[styles.infoText, { color: theme.text }]}>{GenderLabels[enrichedTeam.gender]}</Text>
                         </View>
 
                         <TouchableOpacity onPress={() => openClubSheet(enrichedTeam.club.id)} style={styles.infoLine}>
                             <Text
-                                style={[styles.infoText, { color: theme.primary, fontWeight: '700' }]}
-                                numberOfLines={2}
+                                style={[styles.infoText, { color: theme.primary }]}
+                                numberOfLines={1}
                                 ellipsizeMode="tail"
-                                adjustsFontSizeToFit
-                                minimumFontScale={0.8}
                             >
                                 {enrichedTeam.club.name}
                             </Text>
@@ -129,11 +137,12 @@ const styles = StyleSheet.create({
     infoLine: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 10,
+        gap: 6,
         marginBottom: 2,
     },
     infoText: {
         fontSize: 14,
+        fontWeight: '500',
     },
     linkText: {
         fontSize: 14,

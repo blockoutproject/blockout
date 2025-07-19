@@ -6,7 +6,6 @@ import {
     TouchableOpacity,
     Alert,
     ActivityIndicator,
-    Switch,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BottomSheetTextInput } from '@gorhom/bottom-sheet';
@@ -17,7 +16,6 @@ import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
 import FastImage from 'react-native-fast-image';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-
 import { useAppTheme } from '@/src/context/ThemeProvider';
 import type { Club } from '@/src/types/Club';
 import ClubsApi from '@/src/api/ClubsApi';
@@ -90,13 +88,10 @@ const ClubForm: React.FC<ClubFormProps> = ({ club, onSuccess }) => {
             city: club.city ?? '',
             email: club.email ?? '',
             phoneNumber: club.phoneNumber ?? '',
-            website: club.website ?? '',
-            active: club.active,
+            website: club.website ?? ''
         },
         validationSchema: Yup.object({
             name: Yup.string().required('Nom requis'),
-            email: Yup.string().email('Email invalide').nullable(),
-            website: Yup.string().url('URL invalide').nullable(),
         }),
         onSubmit: async (values) => {
             try {
@@ -110,7 +105,6 @@ const ClubForm: React.FC<ClubFormProps> = ({ club, onSuccess }) => {
                     email: values.email,
                     phoneNumber: values.phoneNumber,
                     website: values.website,
-                    active: values.active,
                 };
 
                 const updated = await api.updateClub(club.id, dto, imageFile ?? undefined);

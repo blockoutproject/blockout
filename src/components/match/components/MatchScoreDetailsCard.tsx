@@ -28,7 +28,6 @@ const MatchScoreDetailsCard: React.FC<MatchScoreDetailsCardProps> = ({
         opponentSets: number[];
     }> = ({ team, finalScore, sets, opponentSets }) => (
         <View style={styles.scoreDetailsTeamRow}>
-            <View style={styles.teamLogoColumn}>
                 <FastImage
                 source={
                     team.logoUrl
@@ -38,7 +37,6 @@ const MatchScoreDetailsCard: React.FC<MatchScoreDetailsCardProps> = ({
                 style={[styles.teamLogoSmall, { backgroundColor: theme.text }]}
                 resizeMode="contain"
             />
-            </View>
             <View style={styles.teamNameColumn}>
                 <Text
                     style={[styles.shortTeamName, { color: theme.text }]}
@@ -117,7 +115,7 @@ const styles = StyleSheet.create({
         width: 40,
         justifyContent: "center",
         alignItems: "center",
-        marginRight: 4,
+        marginRight: 6,
     },
     teamNameColumn: {
         flex: 1,
@@ -135,9 +133,10 @@ const styles = StyleSheet.create({
         alignItems: "center",
     },
     teamLogoSmall: {
-        width: 36,
+        width: 30,
         aspectRatio: 1,
         borderRadius: 10,
+        marginRight: 8,
 
     },
     shortTeamName: {

@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef } from "react";
+import React, { useState, useMemo, useRef, useCallback } from "react";
 import {
     View,
     Text,
@@ -6,6 +6,7 @@ import {
     StyleSheet,
     ActivityIndicator,
     Keyboard,
+    RefreshControl,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAppTheme } from "@/src/context/ThemeProvider";
@@ -19,6 +20,7 @@ import { BottomSheetFlatList, BottomSheetModal } from "@gorhom/bottom-sheet";
 import BottomSheetCustomModal from "../common/BottomSheetCustomModal";
 import SearchBar from "../common/SearchBar";
 import * as Haptics from "expo-haptics"; // ← import haptic
+import { FlatList } from "react-native-gesture-handler";
 
 const DivisionScreen = () => {
     const theme = useAppTheme();
@@ -27,6 +29,12 @@ const DivisionScreen = () => {
 
     const formSheetRef = useRef<BottomSheetModal>(null);
     const [editedDivision, setEditedDivision] = useState<Division | null>(null);
+    const [isRefreshing, setIsRefreshing] = useState(false);
+    const [search, setSearch] = useState("");
+    const [statusFilters, setStatusFilters] = useState<Filter[]>([
+        { name: "Actives", isActive: false },
+        { name: "Inactives", isActive: false },
+    ]);
 
     const openForm = (division: Division | null) => {
         Haptics.selectionAsync(); // ← haptic feedback
@@ -34,13 +42,14 @@ const DivisionScreen = () => {
         formSheetRef.current?.present();
     };
 
-    const closeForm = () => formSheetRef.current?.dismiss();
+    const handleRefresh = useCallback(async () => {
+        setIsRefreshing(true);
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        await refetch();
+        setIsRefreshing(false);
+    }, [refetch]);
 
-    const [search, setSearch] = useState("");
-    const [statusFilters, setStatusFilters] = useState<Filter[]>([
-        { name: "Actives", isActive: false },
-        { name: "Inactives", isActive: false },
-    ]);
+    const closeForm = () => formSheetRef.current?.dismiss();
 
     const activeStatus = statusFilters.find((f) => f.isActive)?.name ?? "";
 
@@ -97,7 +106,7 @@ const DivisionScreen = () => {
                     </View>
                 </View>
 
-                <BottomSheetFlatList
+                <FlatList
                     style={styles.flatList}
                     data={sorted}
                     keyExtractor={(item) => item.id.toString()}
@@ -108,6 +117,13 @@ const DivisionScreen = () => {
                             onDeactivated={refetch}
                         />
                     )}
+                    refreshControl={
+                        <RefreshControl
+                            refreshing={isRefreshing}
+                            onRefresh={handleRefresh}
+                            tintColor={theme.text}
+                        />
+                    }
                     contentContainerStyle={{ paddingBottom: insets.bottom + 16 }}
                     ListEmptyComponent={
                         <View style={styles.emptyState}>

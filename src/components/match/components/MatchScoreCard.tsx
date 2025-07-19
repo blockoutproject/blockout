@@ -135,10 +135,10 @@ const styles = StyleSheet.create({
     verticalContainer: {
         flexDirection: "column",
         alignItems: "center",
-        gap: 4,
+        gap: 8,
     },
     teamRowContainer: {
-        flexDirection: "row"
+        flexDirection: "row",
     },
     teamCard: {
         flex: 1,
@@ -149,7 +149,7 @@ const styles = StyleSheet.create({
         width: 90,
         aspectRatio: 1,
         borderRadius: 22,
-        marginBottom: 4
+        marginBottom: 8
     },
     teamLabel: {
         fontSize: 14,

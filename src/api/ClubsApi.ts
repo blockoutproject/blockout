@@ -1,6 +1,7 @@
 import { CONFIG } from '@/src/config/config';
 import AbstractApi, { ApiError } from './AbstractApi';
 import { Club } from '../types/Club';
+import snakecaseKeys from 'snakecase-keys';
 
 class ClubsApi extends AbstractApi {
     private static instance: ClubsApi | null = null;
@@ -71,7 +72,7 @@ class ClubsApi extends AbstractApi {
     ): Promise<Club> {
         const formData = new FormData();
 
-        formData.append('data', JSON.stringify(payload));
+        formData.append('data', JSON.stringify(snakecaseKeys(payload, { deep: true })));
 
         if (image) formData.append('image', image);
 

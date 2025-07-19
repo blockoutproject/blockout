@@ -2,6 +2,7 @@ import { CONFIG } from '@/src/config/config';
 import AbstractApi from './AbstractApi';
 import { RawDivisionMapping } from '../types/RawDivisionMapping';
 import { Division } from '../types/Division';
+import snakecaseKeys from 'snakecase-keys';
 
 class ConfigApi extends AbstractApi {
     private static instance: ConfigApi | null = null;
@@ -92,7 +93,7 @@ class ConfigApi extends AbstractApi {
     ): Promise<Division> {
         const formData = new FormData();
 
-        formData.append('data', JSON.stringify(payload));
+        formData.append('data', JSON.stringify(snakecaseKeys(payload, { deep: true })));
 
         if (image) formData.append('image', image, image.name);
 

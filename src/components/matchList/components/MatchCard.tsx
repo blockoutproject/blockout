@@ -94,8 +94,6 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         borderRadius: 12,
         paddingVertical: 14,
-        paddingHorizontal: 4,
-        gap: 2,
     },
     teamSide: {
         flex: 3,
@@ -117,10 +115,11 @@ const styles = StyleSheet.create({
         fontSize: 14,
         fontWeight: "600",
         textAlign: "center",
+        paddingHorizontal: 6,
         flex: 1,
     },
     finalScoreBox: {
-        paddingHorizontal: 10,
+        paddingHorizontal: 8,
         paddingVertical: 6,
     },
     finalScoreTextLarge: {
@@ -130,13 +129,7 @@ const styles = StyleSheet.create({
     centerBlock: {
         justifyContent: "center",
         alignItems: "center",
-        paddingHorizontal: 6,
-    },
-    scoreBadge: {
-        borderWidth: 2,
-        borderRadius: 12,
-        paddingVertical: 4,
-        paddingHorizontal: 6,
+        paddingHorizontal: 8,
     },
     timeText: {
         fontSize: 18,

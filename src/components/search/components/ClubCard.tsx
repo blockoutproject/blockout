@@ -12,8 +12,6 @@ interface Props {
 const ClubCard: React.FC<Props> = ({ club, onPress }) => {
     const theme = useAppTheme();
 
-    console.log('ClubCard rendered with club:', club); 
-
     return (
         <Pressable
             onPress={onPress}
@@ -55,8 +53,9 @@ const styles = StyleSheet.create({
     },
     logo: {
         aspectRatio: 1,
-        marginEnd: 16,
+        marginRight: 16,
         height: 50,
+        borderRadius: 12,
     },
     name: {
         fontSize: 18,
