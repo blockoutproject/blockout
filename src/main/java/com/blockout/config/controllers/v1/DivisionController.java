@@ -86,7 +86,6 @@ public class DivisionController {
             @RequestPart("data") String json,
             @RequestPart(value = "image", required = false) MultipartFile image) throws JsonProcessingException {
 
-        System.out.println("Updating division with ID: " + json);
         DivisionDTO dto = objectMapper.readValue(json, DivisionDTO.class);
         Division updated = divisionService.updateDivision(id, dto, image);
         return ResponseEntity.ok(updated);

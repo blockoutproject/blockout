@@ -98,7 +98,6 @@ public class DivisionService {
      */
     @Transactional
     public Division updateDivision(Long id, DivisionDTO dto, MultipartFile image) {
-        System.out.println("Updating division with ID: " + id + " and payload: " + dto.getMainColor());
         return divisionRepository.findById(id).map(existing -> {
             Division before = existing.toBuilder().build();
 
