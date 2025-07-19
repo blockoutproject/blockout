@@ -50,6 +50,16 @@ public class GlobalExceptionHandler {
                 request.getRequestURI());
     }
 
+    @ExceptionHandler(ScraperNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleScraperNotFound(
+            ScraperNotFoundException ex, HttpServletRequest request) {
+        ex.printStackTrace();
+        return buildErrorResponse(
+                ex.getMessage(),
+                HttpStatus.NOT_FOUND,
+                request.getRequestURI());
+    }
+
     @ExceptionHandler(IllegalStateException.class)
     public ResponseEntity<Map<String, Object>> handleIllegalState(
             IllegalStateException ex, HttpServletRequest request) {
