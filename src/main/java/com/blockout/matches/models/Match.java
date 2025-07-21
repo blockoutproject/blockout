@@ -16,7 +16,7 @@ import com.blockout.matches.models.enums.MatchStatus;
 @AllArgsConstructor
 @Entity
 @Table(name = "matches", uniqueConstraints = {
-        @UniqueConstraint(columnNames = {"match_code", "league_code"}, name = "uix_match")
+        @UniqueConstraint(columnNames = {"match_code", "league_code", "season"}, name = "uix_match")
 })
 public class Match {
 
@@ -44,6 +44,9 @@ public class Match {
 
     @Column(name = "match_date", nullable = false)
     private LocalDateTime matchDate;
+
+    @Column(name = "season", nullable = false)
+    private String season;
 
     @Column(name = "set")
     private String set;

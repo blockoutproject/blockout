@@ -235,6 +235,7 @@ public class MatchService {
             match.setMatchCode(updatedMatch.getMatchCode());
             match.setLeagueCode(updatedMatch.getLeagueCode());
             match.setMatchDate(updatedMatch.getMatchDate());
+            match.setSeason(updatedMatch.getSeason());
             match.setTeamIdA(updatedMatch.getTeamIdA());
             match.setTeamIdB(updatedMatch.getTeamIdB());
             match.setPoolId(updatedMatch.getPoolId());
