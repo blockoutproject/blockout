@@ -15,7 +15,7 @@ import { Filter } from "@/src/types/Filter";
 import Filters from "../common/Filters";
 import RawDivisionMappingItem from "./RawDivisionMappingItem";
 import RawDivisionMappingForm from "./RawDivisionMappingForm";
-import { BottomSheetFlatList, BottomSheetModal } from "@gorhom/bottom-sheet";
+import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import BottomSheetCustomModal from "../common/BottomSheetCustomModal";
 import SearchBar from "../common/SearchBar";
 import * as Haptics from "expo-haptics";
@@ -42,7 +42,7 @@ const RawDivisionMappingScreen: React.FC = () => {
 
     const openForm = (mapping: RawDivisionMapping) => {
         Keyboard.dismiss();
-        Haptics.selectionAsync(); // <- haptic feedback ici
+        Haptics.selectionAsync();
         setEditing(mapping);
         formSheetRef.current?.present();
     };

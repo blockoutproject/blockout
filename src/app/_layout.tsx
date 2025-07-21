@@ -22,14 +22,14 @@ const RootLayout: React.FC = () => {
     const queryClient = new QueryClient();
     const theme = useThemeColor({}, "background");
 
-    const onCopy = async (text: string) => {
-        try {
-            await Clipboard.setStringAsync(text);
-            return true;
-        } catch {
-            return false;
-        }
-    };
+    // const onCopy = async (text: string) => {
+    //     try {
+    //         await Clipboard.setStringAsync(text);
+    //         return true;
+    //     } catch {
+    //         return false;
+    //     }
+    // };
 
     return (
         <GestureHandlerRootView style={{ flex: 1 }}>
@@ -52,7 +52,7 @@ const RootLayout: React.FC = () => {
                         </ApiProvider>
                     </Auth0Provider>
                 </ThemeProvider>
-                <DevToolsBubble onCopy={onCopy} />
+                {/* <DevToolsBubble onCopy={onCopy} /> */}
             </QueryClientProvider>
         </GestureHandlerRootView>
     );

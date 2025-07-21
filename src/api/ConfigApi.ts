@@ -2,6 +2,8 @@ import { CONFIG } from '@/src/config/config';
 import AbstractApi from './AbstractApi';
 import { RawDivisionMapping } from '../types/RawDivisionMapping';
 import { Division } from '../types/Division';
+import { ScraperStatus } from '../types/ScraperStatus';
+import { EnumScraperName } from '../types/enums/ScraperName';
 import snakecaseKeys from 'snakecase-keys';
 
 class ConfigApi extends AbstractApi {
@@ -11,14 +13,20 @@ class ConfigApi extends AbstractApi {
         super(url, token);
     }
 
-    /** Initialise l'instance de l'API avec le token d'accès */
+    /**
+     * Initialise l'instance unique de l'API Config avec un token d'accès.
+     * @param token Token JWT Auth0
+     */
     public static initInstance(token: string): void {
         if (!ConfigApi.instance) {
             ConfigApi.instance = new ConfigApi(CONFIG.API_CONFIG_BASE_URL, token);
         }
     }
 
-    /** Retourne l'instance de l'API */
+    /**
+     * Retourne l'instance actuelle de l'API Config.
+     * @throws Erreur si l'instance n'a pas été initialisée.
+     */
     public static getInstance(): ConfigApi {
         if (!ConfigApi.instance) {
             throw new Error('Initialisez l’instance avant d’appeler getInstance().');
@@ -26,7 +34,11 @@ class ConfigApi extends AbstractApi {
         return ConfigApi.instance;
     }
 
-
+    /**
+     * Récupère la liste des mappings raw division pour une ligue et une saison spécifiques.
+     * @param leagueCode Code de la ligue
+     * @param season Année de la saison
+     */
     public async listRawDivisionMappings(
         leagueCode?: string,
         season?: number,
@@ -38,6 +50,11 @@ class ConfigApi extends AbstractApi {
         });
     }
 
+    /**
+     * Met à jour un mapping raw division existant.
+     * @param id Identifiant du mapping
+     * @param data Données à modifier
+     */
     public async updateRawDivisionMapping(
         id: number,
         data: Partial<RawDivisionMapping>,
@@ -49,6 +66,9 @@ class ConfigApi extends AbstractApi {
         });
     }
 
+    /**
+     * Récupère la liste de toutes les divisions.
+     */
     public async listDivisions(): Promise<Division[]> {
         return this.request<Division[]>({
             method: 'get',
@@ -56,6 +76,10 @@ class ConfigApi extends AbstractApi {
         });
     }
 
+    /**
+     * Récupère une division par son ID.
+     * @param id Identifiant de la division
+     */
     public async getDivisionById(id: number): Promise<Division> {
         return this.request<Division>({
             method: 'get',
@@ -65,16 +89,18 @@ class ConfigApi extends AbstractApi {
 
     /**
      * Crée une division (image optionnelle).
+     * @param payload Données de la division
+     * @param image Fichier image à uploader
      */
     public async createOrUpdateDivision(
         payload: Partial<Division>,
         image?: File,
     ): Promise<Division> {
         const formData = new FormData();
-
-        formData.append('data', JSON.stringify(payload));
-
+        formData.append('data', JSON.stringify(snakecaseKeys(payload, { deep: true })));
         if (image) formData.append('image', image, image.name);
+
+        console.log('Creating or updating division with payload:', payload);
 
         return this.request<Division>({
             method: 'post',
@@ -84,7 +110,10 @@ class ConfigApi extends AbstractApi {
     }
 
     /**
-     * Met à jour une division (image optionnelle).
+     * Met à jour une division existante (image optionnelle).
+     * @param id Identifiant de la division
+     * @param payload Champs à mettre à jour
+     * @param image Fichier image à remplacer (facultatif)
      */
     public async updateDivision(
         id: number,
@@ -92,10 +121,10 @@ class ConfigApi extends AbstractApi {
         image?: File,
     ): Promise<Division> {
         const formData = new FormData();
-
         formData.append('data', JSON.stringify(snakecaseKeys(payload, { deep: true })));
-
         if (image) formData.append('image', image, image.name);
+
+        console.log('Updating division with ID:', id, 'and payload:', payload);
 
         return this.request<Division>({
             method: 'put',
@@ -105,12 +134,47 @@ class ConfigApi extends AbstractApi {
     }
 
     /**
-     * Désactive une division.
+     * Désactive une division (soft delete).
+     * @param id Identifiant de la division
      */
     public async deactivateDivision(id: number): Promise<void> {
         await this.request<void>({
             method: 'delete',
             url: `/divisions/${id}`,
+        });
+    }
+
+    /**
+     * Récupère la liste des statuts de tous les scrapers.
+     */
+    public async listScraperStatuses(): Promise<ScraperStatus[]> {
+        return this.request<ScraperStatus[]>({
+            method: 'get',
+            url: '/scrapers/status',
+        });
+    }
+
+    /**
+     * Récupère le statut d’un scraper donné.
+     * @param name Nom du scraper
+     */
+    public async getScraperStatus(name: EnumScraperName): Promise<ScraperStatus> {
+        return this.request<ScraperStatus>({
+            method: 'get',
+            url: `/scrapers/${name}/status`,
+        });
+    }
+
+    /**
+     * Active ou désactive un scraper.
+     * @param name Nom du scraper
+     * @param enabled Statut à appliquer
+     */
+    public async updateScraperStatus(name: EnumScraperName, enabled: boolean): Promise<ScraperStatus> {
+        return this.request<ScraperStatus>({
+            method: 'put',
+            url: `/scrapers/${name}/enabled`,
+            params: { enabled },
         });
     }
 }

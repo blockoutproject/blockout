@@ -8,6 +8,7 @@ import FollowButton from "@/src/components/common/FollowButton";
 import FollowersCounter from "@/src/components/common/FollowersCount";
 import { usePoolFollowState } from "@/src/hooks/pool/usePoolFollowState";
 import { EnumGender, GenderLabels } from "@/src/types/enums/Gender";
+import { FormatLabels } from "@/src/types/enums/Format";
 
 type Props = {
     enrichedPool: EnrichedPoolDTO
@@ -62,7 +63,7 @@ const PoolProfile: React.FC<Props> = ({ enrichedPool }) => {
 
                     <View style={styles.infoLine}>
                         <MaterialCommunityIcons name="link-variant" size={18} color={theme.text} />
-                        <Text style={[styles.linkText, { color: theme.text }]}>ligue-b-masculine.com</Text>
+                        <Text style={[styles.linkText, { color: theme.text }]}>{FormatLabels[enrichedPool.format]}</Text>
                     </View>
                 </View>
             </View>

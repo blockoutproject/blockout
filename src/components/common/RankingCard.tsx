@@ -133,7 +133,7 @@ const RankingCard: React.FC<RankingCardProps> = ({
                     stickyHeaderIndices={[0]}
                     showsVerticalScrollIndicator={false}
                     scrollEnabled={scrollable}
-                    contentContainerStyle={{ paddingBottom: 8, paddingHorizontal: 8 }}
+                    contentContainerStyle={{ paddingHorizontal: 8 }}
                 />
             </View>
 

@@ -1,4 +1,4 @@
-import React, { forwardRef, useMemo } from "react";
+import React, { forwardRef } from "react";
 import {
     BottomSheetBackdrop,
     BottomSheetBackdropProps,
@@ -33,7 +33,7 @@ const BottomSheetCustomPage = forwardRef<BottomSheetModal, BottomSheetPageProps>
                         appearsOnIndex={0}
                         disappearsOnIndex={-1}
                         pressBehavior="close"
-                        opacity={0.5}
+                        opacity={0.8}
                     />
                 )}
                 handleStyle={{ paddingTop: insets.top + 8 }}
@@ -45,23 +45,14 @@ const BottomSheetCustomPage = forwardRef<BottomSheetModal, BottomSheetPageProps>
                 enableDynamicSizing={false}
                 {...rest}
             >
-                <BottomSheetView style={{ flex: 1 }}>{children}</BottomSheetView>
+                <View style={{ flex: 1 }}>{children}</View>
             </BottomSheetModal>
         );
     }
 );
 
 const styles = StyleSheet.create({
-    content: {
-        flex: 1,
-    },
-    popupContent: {
-        padding: 16,
-    },
-    popupHandle: {
-        borderTopLeftRadius: 20,
-        borderTopRightRadius: 20,
-    },
+
 });
 
 export default BottomSheetCustomPage;

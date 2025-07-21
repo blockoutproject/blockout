@@ -1,11 +1,12 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useAppTheme } from '@/src/context/ThemeProvider';
 import { Division } from '@/src/types/Division';
 import ConfigApi from '@/src/api/ConfigApi';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
+import FastImage from 'react-native-fast-image';
 
 interface DivisionItemProps {
     division: Division;
@@ -40,10 +41,10 @@ const DivisionItem: React.FC<DivisionItemProps> = ({ division, onPress, onDeacti
             <Text style={[styles.id, { color: theme.textInactive }]}>#{division.id}</Text>
 
             {division.logoUrl ? (
-                <Image
+                <FastImage
                     source={{ uri: division.logoUrl }}
                     style={styles.avatar}
-                    resizeMode="cover"
+                    resizeMode="contain"
                 />
             ) : (
                 <View style={[styles.avatar, { backgroundColor: theme.border }]} />

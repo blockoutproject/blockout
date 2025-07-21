@@ -125,7 +125,7 @@ const DivisionForm: React.FC<DivisionFormProps> = ({ division, onSuccess }) => {
     const imageUri = previewUri ?? formik.values.logoUrl;
 
     return (
-        <View style={[styles.container, { backgroundColor: theme.backgroundSecondary, paddingBottom: insets.bottom }]}>
+        <BottomSheetView style={[styles.container, { backgroundColor: theme.backgroundSecondary, paddingBottom: insets.bottom }]}>
             <View style={styles.fieldBlock}>
                 <Text style={[styles.label, { color: theme.text }]}>Nom</Text>
                 <BottomSheetTextInput
@@ -184,7 +184,11 @@ const DivisionForm: React.FC<DivisionFormProps> = ({ division, onSuccess }) => {
                 <Text style={[styles.label, { color: theme.text }]}>Image de profil</Text>
                 <TouchableOpacity onPress={handlePickImage} activeOpacity={0.8} style={styles.imageTouch}>
                     {imageUri ? (
-                        <FastImage source={{ uri: imageUri }} style={[styles.imagePreview, { borderColor: theme.border, backgroundColor: theme.text }]} />
+                        <FastImage
+                            source={{ uri: imageUri }}
+                            style={[styles.imagePreview, { borderColor: theme.border, backgroundColor: theme.text }]}
+                            resizeMode="contain"
+                        />
                     ) : (
                         <View style={[styles.imagePreview, styles.imagePlaceholder, { backgroundColor: theme.surface, borderColor: theme.border }]}>
                             <MaterialIcons name="photo-camera" size={28} color={theme.textInactive} />
@@ -215,16 +219,16 @@ const DivisionForm: React.FC<DivisionFormProps> = ({ division, onSuccess }) => {
                     </Text>
                 )}
             </TouchableOpacity>
-        </View>
+        </BottomSheetView>
     );
 };
 
 const styles = StyleSheet.create({
-    container: { 
-        padding: 12 
+    container: {
+        padding: 12
     },
-    fieldBlock: { 
-        marginBottom: 20 
+    fieldBlock: {
+        marginBottom: 20
     },
     label: {
         fontSize: 14,

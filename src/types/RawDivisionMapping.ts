@@ -8,7 +8,7 @@ export interface RawDivisionMapping {
     format: EnumFormat | null;
     gender: EnumGender | null;
     leagueCode: string;
-    season: number;
+    season: string;
     createdAt: string;
     lastUpdate: string;
 }

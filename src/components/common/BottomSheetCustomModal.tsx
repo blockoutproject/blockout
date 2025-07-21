@@ -7,6 +7,7 @@ import {
     BottomSheetView,
 } from "@gorhom/bottom-sheet";
 import { useAppTheme } from "@/src/context/ThemeProvider";
+import { View } from "react-native";
 
 export type BottomSheetModalPropsEx = Omit<
     BottomSheetModalProps,
@@ -28,7 +29,7 @@ const BottomSheetCustomModal = forwardRef<BottomSheetModal, BottomSheetModalProp
                         appearsOnIndex={0}
                         disappearsOnIndex={-1}
                         pressBehavior="close"
-                        opacity={0.5}
+                        opacity={0.8}
                     />
                 )}
                 handleStyle={{ paddingTop: 8 }}
@@ -40,7 +41,7 @@ const BottomSheetCustomModal = forwardRef<BottomSheetModal, BottomSheetModalProp
                 enableDynamicSizing
                 {...rest}
             >
-                <BottomSheetView style={{ flex: 1 }}>{children}</BottomSheetView>
+                <View style={{ flex: 1 }}>{children}</View>
             </BottomSheetModal>
         );
     }

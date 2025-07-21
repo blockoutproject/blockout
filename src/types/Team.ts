@@ -13,6 +13,7 @@ export interface Team {
     divisionId: number;
     format: EnumFormat;
     gender: EnumGender;
+    season: string;
     followersCount: number;
     active: boolean;
     createdAt: string;
@@ -25,6 +26,7 @@ export interface TeamWithStats {
     shortName: string;
     format: EnumFormat;
     gender: EnumGender;
+    season: string;
     followersCount: number;
     logoUrl: string | null;
     points: number;
@@ -42,6 +44,7 @@ export interface EnrichedTeamDTO {
     shortName: string;
     format: EnumFormat;
     gender: EnumGender;
+    season: string;
     followersCount: number;
     division: Division;
     club: Club

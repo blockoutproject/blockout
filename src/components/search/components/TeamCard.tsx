@@ -38,7 +38,7 @@ const TeamCard: React.FC<Props> = ({ team, onPress }) => {
             <View style={{ flex: 1 }}>
                 <Text style={[styles.name, { color: theme.text }]}>{team.name}</Text>
                 <Text style={[styles.details, { color: theme.textInactive }]}>
-                    {team.divisionName} • {team.gender}
+                    {team.divisionName} • {team.gender} • {team.season}
                 </Text>
             </View>
         </Pressable>

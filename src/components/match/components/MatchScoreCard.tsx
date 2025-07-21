@@ -7,7 +7,6 @@ import { splitIsoDateFormatted } from "@/src/utils/utils";
 import * as Haptics from "expo-haptics";
 import TeamContainer from "../../team/TeamScreen";
 import GradientBorderView from "../../common/GradientBorderView";
-
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import BottomSheetCustomPage from "../../common/BottomSheetCustomPage";
 import { EnrichedMatchDTO } from "@/src/types/Match";
@@ -47,7 +46,13 @@ const MatchScoreCard: React.FC<MatchScoreCardProps> = ({
                 style={[styles.teamLogoLarge, { backgroundColor: theme.text }]}
                 resizeMode="contain"
             />
-            <Text style={[styles.teamLabel, { color: theme.text }]} numberOfLines={2}>
+            <Text 
+                style={[styles.teamLabel, { color: theme.text }]} 
+                numberOfLines={2} 
+                ellipsizeMode="tail"
+                adjustsFontSizeToFit
+                minimumFontScale={0.8}
+            >
                 {team.name}
             </Text>
             <Text style={[styles.teamRoleLabel, { color: theme.textInactive }]}>{role}</Text>
@@ -142,7 +147,6 @@ const styles = StyleSheet.create({
     },
     teamCard: {
         flex: 1,
-        marginHorizontal: 12,
         alignItems: "center"
     },
     teamLogoLarge: {

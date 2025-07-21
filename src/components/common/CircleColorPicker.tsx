@@ -11,6 +11,7 @@ import ColorPicker, { Preview, Panel1, HueSlider } from "reanimated-color-picker
 import { BottomSheetModal, BottomSheetView } from "@gorhom/bottom-sheet";
 import BottomSheetCustomModal from "./BottomSheetCustomModal";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import * as Haptics from 'expo-haptics';
 
 interface Props {
     value: string;
@@ -36,6 +37,7 @@ const CircleColorPicker: React.FC<Props> = ({
 
     const open = () => {
         Keyboard.dismiss();
+        Haptics.selectionAsync();
         setTempColor(safeColor);
         sheetRef.current?.present();
     };
@@ -62,21 +64,21 @@ const CircleColorPicker: React.FC<Props> = ({
             />
 
             <BottomSheetCustomModal ref={sheetRef}  >
-                <View style={{ padding: 8, paddingBottom: insets.bottom }}>
-                <ColorPicker
-                    value={tempColor}
-                    onCompleteJS={(c) => setTempColor(c.hex)}
-                    boundedThumb
-                >
-                    <Preview style={{ marginBottom: 16 }} />
-                    <Panel1 style={{ marginBottom: 16 }} />
-                    <HueSlider style={{ marginBottom: 40 }} />
-                </ColorPicker>
+                <BottomSheetView style={{ padding: 8, paddingBottom: insets.bottom }}>
+                    <ColorPicker
+                        value={tempColor}
+                        onCompleteJS={(c) => setTempColor(c.hex)}
+                        boundedThumb
+                    >
+                        <Preview style={{ marginBottom: 16 }} />
+                        <Panel1 style={{ marginBottom: 16 }} />
+                        <HueSlider style={{ marginBottom: 40 }} />
+                    </ColorPicker>
 
-                <View style={[styles.buttonRow, { backgroundColor: tempColor }]}>
-                    <Button title="Valider" onPress={handleValidate} color={theme.text} />
-                </View>
-            </View>
+                    <View style={[styles.buttonRow, { backgroundColor: tempColor }]}>
+                        <Button title="Valider" onPress={handleValidate} color={theme.text} />
+                    </View>
+                </BottomSheetView>
             </BottomSheetCustomModal>
         </>
     );

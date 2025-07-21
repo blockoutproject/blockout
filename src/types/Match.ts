@@ -14,6 +14,7 @@ export interface Match {
     teamIdA: number;
     teamIdB: number;
     matchDate: string;
+    season: string;
     status: MatchStatus;
     set: string | null;
     score: string | null;
@@ -45,6 +46,7 @@ export interface DayPageDTO {
 export interface EnrichedMatchDTO {
     id: number;
     matchDate: string;
+    season: string;
     status: MatchStatus;
     set: string | null;
     score: string | null;

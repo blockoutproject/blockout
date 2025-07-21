@@ -34,6 +34,8 @@ import {
     BottomSheetView,
 } from "@gorhom/bottom-sheet";
 import BottomSheetCustomPage from "../common/BottomSheetCustomPage";
+import ScraperStatusScreen from "../scraper/ScraperStatusScreen";
+import BottomSheetCustomModal from "../common/BottomSheetCustomModal";
 
 type HeaderProps = SceneRendererProps & {
     navigationState: NavigationState<Route>;
@@ -57,16 +59,22 @@ const AnimatedHomeHeader: React.FC<HeaderProps> = ({
     const mappingSheetRef = useRef<BottomSheetModal>(null);
     const divisionSheetRef = useRef<BottomSheetModal>(null);
     const profileSheetRef = useRef<BottomSheetModal>(null);
+    const scraperSheetRef = useRef<BottomSheetModal>(null);
 
-    const canAccessRawDivisionMapping = useHasScopes([
+    const canAccessRawDivisionMappings = useHasScopes([
         "read:raw_division_mapping",
-        "update:raw_division_mapping",
+        "update:raw_division_mapping"
     ]);
 
-    const canAccessDivision = useHasScopes([
+    const canAccessDivisions = useHasScopes([
         "read:divisions",
         "update:divisions",
-        "create:divisions",
+        "create:divisions"
+    ]);
+
+    const canAccessScrapersManagement = useHasScopes([
+        "read:scrapers",
+        "update:scrapers"
     ]);
 
     const translateY = scrollY.interpolate({
@@ -168,15 +176,21 @@ const AnimatedHomeHeader: React.FC<HeaderProps> = ({
                             <MaterialCommunityIcons name="magnify" size={25} color={theme.text} />
                         </TouchableOpacity>
 
-                        {canAccessRawDivisionMapping && (
+                        {canAccessRawDivisionMappings && (
                             <TouchableOpacity onPress={open(mappingSheetRef)}>
                                 <MaterialCommunityIcons name="alpha-m-circle" size={25} color={theme.text} />
                             </TouchableOpacity>
                         )}
 
-                        {canAccessDivision && (
+                        {canAccessDivisions && (
                             <TouchableOpacity onPress={open(divisionSheetRef)}>
                                 <MaterialCommunityIcons name="alpha-d-circle" size={25} color={theme.text} />
+                            </TouchableOpacity>
+                        )}
+
+                        {canAccessScrapersManagement && (
+                            <TouchableOpacity onPress={open(scraperSheetRef)}>
+                                <MaterialCommunityIcons name="power-standby" size={25} color={theme.text} />
                             </TouchableOpacity>
                         )}
 
@@ -202,6 +216,10 @@ const AnimatedHomeHeader: React.FC<HeaderProps> = ({
             <BottomSheetCustomPage ref={profileSheetRef}>
                 <ProfileScreen />
             </BottomSheetCustomPage>
+
+            <BottomSheetCustomModal ref={scraperSheetRef}>
+                <ScraperStatusScreen />
+            </BottomSheetCustomModal>
         </>
     );
 };

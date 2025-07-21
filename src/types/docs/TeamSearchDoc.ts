@@ -8,4 +8,5 @@ export interface TeamSearchDoc {
     divisionName: string;
     format: string;
     gender: string;
+    season: string;
 }

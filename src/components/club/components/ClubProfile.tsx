@@ -22,7 +22,7 @@ type Props = {
 const ClubProfile: React.FC<Props> = ({ club, onEdit }) => {
     const theme = useAppTheme();
 
-    const canAccessDivision = useHasScopes([
+    const canUpdateClub = useHasScopes([
         "update:clubs",
     ]);
 
@@ -36,7 +36,7 @@ const ClubProfile: React.FC<Props> = ({ club, onEdit }) => {
 
     return (
         <View style={[styles.container, { backgroundColor: theme.background }]}>
-            {true && (
+            {canUpdateClub && (
                 <TouchableOpacity
                     style={styles.editIcon}
                     onPress={onEdit}

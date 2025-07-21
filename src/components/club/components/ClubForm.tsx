@@ -8,7 +8,7 @@ import {
     ActivityIndicator,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { BottomSheetTextInput } from '@gorhom/bottom-sheet';
+import { BottomSheetTextInput, BottomSheetView } from '@gorhom/bottom-sheet';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import * as Haptics from 'expo-haptics';
@@ -121,7 +121,7 @@ const ClubForm: React.FC<ClubFormProps> = ({ club, onSuccess }) => {
     const logoUri = previewUri ?? club.logoUrl;
 
     return (
-        <View
+        <BottomSheetView
             style={[
                 styles.container,
                 { backgroundColor: theme.backgroundSecondary, paddingBottom: insets.bottom },
@@ -185,6 +185,7 @@ const ClubForm: React.FC<ClubFormProps> = ({ club, onSuccess }) => {
                         <FastImage
                             source={{ uri: logoUri }}
                             style={[styles.logo, { borderColor: theme.border, backgroundColor: theme.text }]}
+                            resizeMode="contain"
                         />
                     ) : (
                         <View
@@ -216,7 +217,7 @@ const ClubForm: React.FC<ClubFormProps> = ({ club, onSuccess }) => {
                     <Text style={[styles.submitText, { color: theme.text }]}>Enregistrer</Text>
                 )}
             </TouchableOpacity>
-        </View>
+        </BottomSheetView>
     );
 };
 
