@@ -24,6 +24,7 @@ public class TeamDoc {
     private String divisionName;
     private String format;
     private String gender;
+    private String season;
 
     // 🔍 Champs d'autocomplétion
     private String keywordsAutocomplete;

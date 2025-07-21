@@ -96,6 +96,7 @@ public class TeamIndexService {
                 .divisionName(divisionName)
                 .format(format != null ? format.getLabel() : null)
                 .gender(gender != null ? gender.getLabel() : null)
+                .season(e.getSeason())
                 .keywordsAutocomplete(raw)
                 .keywordsAutocompleteSimplified(simplified)
                 .build();

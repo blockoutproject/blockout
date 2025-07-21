@@ -24,7 +24,7 @@ public class TeamDTO {
     @JsonProperty("short_name")
     private String shortName;
 
-    private Boolean active;
+    private String season;
 
     @JsonProperty("last_update")
     private String lastUpdate;
@@ -36,9 +36,11 @@ public class TeamDTO {
     private Long divisionId;
 
     private Format format;
-    
+
     private Gender gender;
 
     @JsonProperty("followers_count")
     private Long followersCount;
+
+    private Boolean active;
 }

@@ -66,6 +66,7 @@ public class CacheInitializerService {
                         .divisionId(team.getDivisionId())
                         .format(team.getFormat())
                         .gender(team.getGender())
+                        .season(team.getSeason())
                         .build())
                 .toList();
 
