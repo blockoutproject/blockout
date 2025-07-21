@@ -35,6 +35,8 @@ public class MatchDTO {
     @JsonProperty("match_date")
     private String matchDate;
 
+    private String season;
+
     private String set;
 
     private String score;
