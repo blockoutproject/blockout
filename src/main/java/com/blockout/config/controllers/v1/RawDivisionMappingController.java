@@ -46,7 +46,7 @@ public class RawDivisionMappingController {
     @GetMapping
     public ResponseEntity<List<RawDivisionMapping>> list(
             @RequestParam(required = false, name = "league_code") String leagueCode,
-            @RequestParam(required = false) Integer season) {
+            @RequestParam(required = false) String season) {
         List<RawDivisionMapping> mappings = rawDivisionMappingService.findRawDivisionMappingByLeagueCodeAndSeason(leagueCode, season);
         return ResponseEntity.ok(mappings);
     }
