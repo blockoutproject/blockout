@@ -19,4 +19,5 @@ public class TeamUpsertEvent {
     private Long divisionId;
     private Format format;
     private Gender gender;
+    private String season;
 }

@@ -25,6 +25,7 @@ public interface TeamRepository extends JpaRepository<Team, Long> {
                 AND (:divisionId IS NULL OR t.divisionId = :divisionId)
                 AND (:format IS NULL OR t.format = :format)
                 AND (:gender IS NULL OR t.gender = :gender)
+                AND (:season IS NULL OR t.season = :season)
                 AND (:clubId IS NULL OR t.clubId = :clubId)
                 AND (:idsSize = 0 OR t.id IN :ids)
             ORDER BY t.name ASC
@@ -33,6 +34,7 @@ public interface TeamRepository extends JpaRepository<Team, Long> {
             @Param("divisionId") Long divisionId,
             @Param("format") Format format,
             @Param("gender") Gender gender,
+            @Param("season") String season,
             @Param("clubId") String clubId,
             @Param("ids") List<Long> ids,
             @Param("idsSize") int idsSize);

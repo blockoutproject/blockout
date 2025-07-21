@@ -30,6 +30,7 @@ public class EventPublisher {
                 .divisionId(team.getDivisionId())
                 .format(team.getFormat())
                 .gender(team.getGender())
+                .season(team.getSeason())
                 .build();
 
         try {

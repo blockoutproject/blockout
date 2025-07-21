@@ -16,7 +16,7 @@ import com.blockout.teams.models.enums.Gender;
 @AllArgsConstructor
 @Entity
 @Table(name = "teams", uniqueConstraints = {
-        @UniqueConstraint(columnNames = { "club_id", "division_id", "format", "gender", "name" }, name = "uix_team")
+        @UniqueConstraint(columnNames = { "club_id", "division_id", "format", "gender", "name", "season" }, name = "uix_team")
 })
 public class Team {
 
@@ -33,15 +33,14 @@ public class Team {
     @Column(name = "short_name", nullable = false)
     private String shortName;
 
-    @Builder.Default
-    @Column(name = "active", nullable = false)
-    private Boolean active = true;
-
     @Column(name = "league_code", nullable = false)
     private String leagueCode;
 
     @Column(name = "division_id", nullable = false)
     private Long divisionId;
+
+    @Column(name = "season", nullable = false)
+    private String season;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "format", nullable = false)
@@ -54,6 +53,10 @@ public class Team {
     @Builder.Default
     @Column(name = "followers_count", nullable = false)
     private Long followersCount = 0L;
+
+    @Builder.Default
+    @Column(name = "active", nullable = false)
+    private Boolean active = true;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
