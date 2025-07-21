@@ -33,7 +33,7 @@ public class Pool {
     private String leagueCode;
 
     @Column(name = "season", nullable = false)
-    private Integer season;
+    private String season;
 
     @Column(name = "league_name")
     private String leagueName;

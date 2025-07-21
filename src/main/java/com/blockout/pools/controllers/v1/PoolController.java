@@ -30,7 +30,7 @@ public class PoolController {
     @GetMapping
     public ResponseEntity<List<Pool>> listPools(
             @RequestParam(required = false, name = "league_code") String leagueCode,
-            @RequestParam(required = false) Integer season,
+            @RequestParam(required = false) String season,
             @RequestParam(required = false) Boolean active,
             @RequestParam(required = false) List<Long> ids) {
         List<Pool> pools = poolService.findPools(leagueCode, season, active, ids);

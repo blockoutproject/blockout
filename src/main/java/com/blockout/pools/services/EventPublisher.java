@@ -27,6 +27,7 @@ public class EventPublisher {
                 .name(pool.getName())
                 .divisionId(pool.getDivisionId())
                 .leagueName(pool.getLeagueName())
+                .season(pool.getSeason())
                 .build();
 
         try {
