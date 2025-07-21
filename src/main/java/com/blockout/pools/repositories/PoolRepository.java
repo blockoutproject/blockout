@@ -24,7 +24,7 @@ public interface PoolRepository extends JpaRepository<Pool, Long> {
             ORDER BY p.season DESC, p.name ASC
             """)
     List<Pool> findFiltered(@Param("leagueCode") String leagueCode,
-            @Param("season") Integer season,
+            @Param("season") String season,
             @Param("active") Boolean active,
             @Param("ids") List<Long> ids,
             @Param("idsSize") int idsSize);

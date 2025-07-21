@@ -51,7 +51,7 @@ public class PoolService {
      * @param ids        liste d'IDs spécifiques (null pour ignorer)
      * @return liste des pools correspondant aux critères
      */
-    public List<Pool> findPools(String leagueCode, Integer season, Boolean active, List<Long> ids) {
+    public List<Pool> findPools(String leagueCode, String season, Boolean active, List<Long> ids) {
         List<Long> safeIds = (ids == null) ? Collections.emptyList() : ids;
         return poolRepository.findFiltered(leagueCode, season, active, safeIds, safeIds.size());
     }
