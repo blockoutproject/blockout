@@ -18,4 +18,5 @@ public class TeamSearchDoc {
     private String divisionName;
     private String format;
     private String gender;
+    private String season;
 }
