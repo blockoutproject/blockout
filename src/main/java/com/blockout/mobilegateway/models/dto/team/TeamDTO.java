@@ -30,11 +30,11 @@ public class TeamDTO {
     @JsonProperty("division_id")
     private Long divisionId;
 
-    private String season;
-
     private Format format;
     
     private Gender gender;
+
+    private String season;
 
     @JsonProperty("followers_count")
     private Long followersCount;
