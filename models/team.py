@@ -9,6 +9,7 @@ class Team:
     short_name: str
     league_code: str
     division_id: str
+    season: str
     gender: Optional[str] = None
     format: Optional[str] = None
     id: Optional[int] = None

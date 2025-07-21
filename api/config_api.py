@@ -13,7 +13,7 @@ from utils.utils import to_dict
 async def get_raw_division_mappings_by_league_and_season(
     session: aiohttp.ClientSession,
     league_code: Optional[str],
-    season: Optional[int]
+    season: Optional[str]
 ) -> List[RawDivisionMapping]:
     """
     Récupère tous les raw pool mappings pour un code de ligue et une saison spécifiques.

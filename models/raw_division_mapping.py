@@ -6,7 +6,7 @@ from typing import Optional
 class RawDivisionMapping:
     raw_division_name: str
     league_code: str
-    season: int
+    season: str
     id: Optional[int] = None
     division_id: Optional[str] = None
     format: Optional[str] = None

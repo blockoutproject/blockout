@@ -12,7 +12,7 @@ from utils.utils import to_dict
 async def get_pools_by_league_and_season(
     session: aiohttp.ClientSession,
     league_code: str,
-    season: int
+    season: str
 ) -> List[Pool]:
     """
     Récupère toutes les pools pour un code de ligue et une saison spécifiques.

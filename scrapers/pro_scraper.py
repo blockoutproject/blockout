@@ -15,11 +15,10 @@ from models.pool import Pool
 from models.raw_division_mapping import RawDivisionMapping
 from models.scraper import Scraper
 from services.matchs_service import find_match_in_cache
-from services.teams_service import find_team_by_name_in_division_format_gender
+from services.teams_service import find_team_by_name_in_division_format_gender_season
 from utils.match_utils import validate_set_format, validate_set_score_format
 from utils.scraper_logic import handle_csv_download_and_parse
 from utils.team_utils import get_full_name
-from utils.utils import parse_season
 from config.logger_config import log_event
 
 class ProScraper(Scraper):
@@ -29,7 +28,6 @@ class ProScraper(Scraper):
             priority_validation_enabled=True
         )
         self.raw_season = "2024/2025"
-        self.parsed_season = parse_season(self.raw_season)
         self.league_code = "AALNV"
         self.league_name = "PRO"
 
@@ -66,15 +64,13 @@ class ProScraper(Scraper):
 
         try:
             # Récupération des poules déjà existantes pour cette ligue/saison
-            existing_pools = await get_pools_by_league_and_season(
-                self.session, self.league_code, self.parsed_season
-            )
+            existing_pools = await get_pools_by_league_and_season(self.session, self.league_code, self.raw_season)
             existing_pools_dict = {
                 (pool.pool_code, pool.league_code, pool.season): pool
                 for pool in existing_pools
             }
             
-            raw_mappings = await get_raw_division_mappings_by_league_and_season(self.session, self.league_code, self.parsed_season)
+            raw_mappings = await get_raw_division_mappings_by_league_and_season(self.session, self.league_code, self.raw_season)
             mapping_dict = {m.raw_division_name: m for m in raw_mappings}
 
             # Boucle de traitement de chaque poule configurée
@@ -88,7 +84,7 @@ class ProScraper(Scraper):
                         new_mapping = RawDivisionMapping(
                             raw_division_name=name,
                             league_code=self.league_code,
-                            season=self.parsed_season
+                            season=self.raw_season
                         )
                         created_mapping = await create_raw_division_mapping(self.session, new_mapping)
                         mapping_dict[name] = created_mapping
@@ -100,7 +96,7 @@ class ProScraper(Scraper):
                     pool_obj = Pool(
                         pool_code=pool_code,
                         league_code=self.league_code,
-                        season=self.parsed_season,
+                        season=self.raw_season,
                         league_name=self.league_name,
                         name=name,
                         division_id=mapping.division_id,
@@ -146,7 +142,7 @@ class ProScraper(Scraper):
                 message="Erreur critique lors du scraping des poules professionnelles."
             )
 
-    async def execute_task_chain(self, pool: Pool, existing_pool: Pool, raw_season, lnv_url, lnv_xml_matches_url, lnv_xml_rank_url):
+    async def execute_task_chain(self, pool: Pool, existing_pool: Pool, raw_season: str, lnv_url, lnv_xml_matches_url, lnv_xml_rank_url):
         # 1) Télécharge et parse un éventuel CSV (FFVB)
         await handle_csv_download_and_parse(self, pool, raw_season, existing_pool=existing_pool)
 
@@ -300,11 +296,12 @@ class ProScraper(Scraper):
                         # Si on n’a pas trouvé d’alias, on peut décider de skip ou de logguer un warning
                         continue
 
-                    team = await find_team_by_name_in_division_format_gender(
+                    team = await find_team_by_name_in_division_format_gender_season(
                         self.session,
                         pool.division_id,
                         pool.format,
                         pool.gender,
+                        pool.season,
                         full_name
                     )
 
@@ -437,18 +434,20 @@ class ProScraper(Scraper):
             parsed_match_date = datetime.strptime(match_date_text, "%d/%m/%Y - %H:%M").date()
             # Récupération en base des teams si possible
             if home_team_full and guest_team_full:
-                team_a = await find_team_by_name_in_division_format_gender(
+                team_a = await find_team_by_name_in_division_format_gender_season(
                     self.session,
                     pool.division_id,
                     pool.format,
                     pool.gender,
+                    pool.season,
                     home_team_full
                 )
-                team_b = await find_team_by_name_in_division_format_gender(
+                team_b = await find_team_by_name_in_division_format_gender_season(
                     self.session,
                     pool.division_id,
                     pool.format,
                     pool.gender,
+                    pool.season,
                     guest_team_full
                 )
 

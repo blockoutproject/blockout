@@ -6,7 +6,7 @@ from typing import Optional
 class Pool:
     pool_code: str
     league_code: str
-    season: int
+    season: str
     division_id: str
     league_name: str
     name: str

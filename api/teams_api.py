@@ -49,6 +49,7 @@ async def get_teams(
     division_id: Optional[str] = None,
     format: Optional[str] = None,
     gender: Optional[str] = None,
+    season: Optional[str] = None,
     club_id: Optional[str] = None,
     name: Optional[str] = None,
     ids: Optional[List[int]] = None
@@ -67,6 +68,8 @@ async def get_teams(
         params["format"] = format
     if gender:
         params["gender"] = gender
+    if season:
+        params["season"] = season
     if club_id:
         params["club_id"] = club_id
     if ids:

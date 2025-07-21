@@ -8,7 +8,6 @@ from models.pool import Pool
 from models.raw_division_mapping import RawDivisionMapping
 from models.scraper import Scraper
 from utils.scraper_logic import handle_csv_download_and_parse
-from utils.utils import parse_season
 from config.logger_config import log_event
 
 class RegionalScraper(Scraper):
@@ -116,12 +115,10 @@ class RegionalScraper(Scraper):
             if not raw_season:
                 raise ValueError("Saison non trouvée")
 
-            parsed_season = parse_season(raw_season)
-
-            existing_pools = await get_pools_by_league_and_season(self.session, league_code, parsed_season)
+            existing_pools = await get_pools_by_league_and_season(self.session, league_code, raw_season)
             existing_pools_dict = {(p.pool_code, p.league_code, p.season): p for p in existing_pools}
 
-            raw_mappings = await get_raw_division_mappings_by_league_and_season(self.session, league_code, parsed_season)
+            raw_mappings = await get_raw_division_mappings_by_league_and_season(self.session, league_code, raw_season)
             mapping_dict = {m.raw_division_name: m for m in raw_mappings}
 
             scraped_pool_ids = set()
@@ -146,7 +143,7 @@ class RegionalScraper(Scraper):
                         new_mapping = RawDivisionMapping(
                             raw_division_name=raw_division_name,
                             league_code=league_code,
-                            season=parsed_season
+                            season=raw_season
                         )
                         created_mapping = await create_raw_division_mapping(self.session, new_mapping)
                         mapping_dict[raw_division_name] = created_mapping
@@ -158,7 +155,7 @@ class RegionalScraper(Scraper):
                     pool_obj = Pool(
                         pool_code=pool_code,
                         league_code=league_code,
-                        season=parsed_season,
+                        season=raw_season,
                         league_name=league_name,
                         name=name,
                         division_id=mapping.division_id,

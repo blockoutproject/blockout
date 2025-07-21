@@ -7,7 +7,7 @@ async def add_or_update_team(session: aiohttp.ClientSession, team: Team, existin
     """
     Vérifie l'existence d'une équipe et la met à jour ou la crée selon les besoins.
     """
-    required_fields = ['league_code', 'division_id', 'name']
+    required_fields = ['club_id', 'league_code', 'division_id', 'name', 'season']
     missing_fields = [field for field in required_fields if not getattr(team, field, None)]
     if missing_fields:
         raise ValueError(f"Les champs obligatoires suivants sont manquants : {', '.join(missing_fields)}.")
@@ -30,11 +30,12 @@ async def add_or_update_team(session: aiohttp.ClientSession, team: Team, existin
         new_team = await create_team(session, team)
         return new_team
     
-async def find_team_by_name_in_division_format_gender(
+async def find_team_by_name_in_division_format_gender_season(
     session,
     division_id: str,
     format: str,
     gender: str,
+    season: str,
     searched_name: str
 ) -> Optional[Team]:
     """
@@ -42,7 +43,7 @@ async def find_team_by_name_in_division_format_gender(
     2) Filtre pour trouver celle dont name correspond à 'searched_name' (insensible à la casse).
     3) Retourne la première correspondante ou None si introuvable.
     """
-    teams = await get_teams(session, division_id, format, gender)
+    teams = await get_teams(session, division_id, format, gender, season)
     if not teams:
         return None
     

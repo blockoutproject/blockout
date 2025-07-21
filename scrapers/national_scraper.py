@@ -8,7 +8,7 @@ from models.pool import Pool
 from models.scraper import Scraper
 from models.raw_division_mapping import RawDivisionMapping
 from utils.scraper_logic import handle_csv_download_and_parse
-from utils.utils import extract_season_from_url, parse_season
+from utils.utils import extract_season_from_url
 
 class NationalScraper(Scraper):
     def __init__(self, session):
@@ -45,12 +45,10 @@ class NationalScraper(Scraper):
             if not raw_season:
                 raise ValueError("Saison non trouvée.")
 
-            parsed_season = parse_season(raw_season)
-
-            existing_pools = await get_pools_by_league_and_season(self.session, self.league_code, parsed_season)
+            existing_pools = await get_pools_by_league_and_season(self.session, self.league_code, raw_season)
             existing_pools_dict = {(p.pool_code, p.league_code, p.season): p for p in existing_pools}
 
-            raw_mappings = await get_raw_division_mappings_by_league_and_season(self.session, self.league_code, parsed_season)
+            raw_mappings = await get_raw_division_mappings_by_league_and_season(self.session, self.league_code, raw_season)
             mapping_dict = {m.raw_division_name: m for m in raw_mappings}
 
             scraped_pool_ids = set()
@@ -67,7 +65,7 @@ class NationalScraper(Scraper):
                         new_mapping = RawDivisionMapping(
                             raw_division_name=name,
                             league_code=self.league_code,
-                            season=parsed_season
+                            season=raw_season
                         )
                         created_mapping = await create_raw_division_mapping(self.session, new_mapping)
                         mapping_dict[name] = created_mapping
@@ -79,7 +77,7 @@ class NationalScraper(Scraper):
                     pool_obj = Pool(
                         pool_code=pool_code,
                         league_code=self.league_code,
-                        season=parsed_season,
+                        season=raw_season,
                         league_name=self.league_name,
                         name=name,
                         division_id=mapping.division_id,

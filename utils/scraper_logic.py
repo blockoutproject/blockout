@@ -22,7 +22,7 @@ from models.enums.datasource_priority import DataSourcePriority
 async def handle_csv_download_and_parse(
     scraper: Scraper,
     pool: Pool,
-    raw_season: int,
+    raw_season: str,
     existing_pool=None,
     scraped_pool_ids: Optional[set[int]] = None
 ) -> None:
@@ -61,7 +61,7 @@ async def handle_csv_download_and_parse(
         await scraper.init_matches_cache(new_pool.id)
         await scraper.init_associations_cache(new_pool.id)
 
-        existing_teams = await get_teams(scraper.session, new_pool.division_id, new_pool.format, new_pool.gender) or []
+        existing_teams = await get_teams(scraper.session, new_pool.division_id, new_pool.format, new_pool.gender, new_pool.season) or []
         active_team_ids = {
             t_id for (p_id, t_id), (original, _) in scraper._associations_cache.items()
             if p_id == new_pool.id and original is not None
@@ -98,6 +98,7 @@ async def handle_csv_download_and_parse(
                 name=team_a_full,
                 short_name=team_a_short,
                 club_id=row['club_a_id'],
+                season= new_pool.season,
                 league_code=new_pool.league_code,
                 division_id=new_pool.division_id,
                 format=new_pool.format,
@@ -116,6 +117,7 @@ async def handle_csv_download_and_parse(
                 name=team_b_full,
                 short_name=team_b_short,
                 club_id=row['club_b_id'],
+                season= new_pool.season,
                 league_code=new_pool.league_code,
                 division_id=new_pool.division_id,
                 format=new_pool.format,
@@ -133,6 +135,7 @@ async def handle_csv_download_and_parse(
                 team_id_a=new_team_a.id,
                 team_id_b=new_team_b.id,
                 match_date=match_datetime,
+                season=new_pool.season,
                 set=row.get('set').replace('/', '-') if row.get('set') else None,
                 score=row.get('score') or None,
                 status=MatchStatus.FINISHED.value if row.get('set') else MatchStatus.UPCOMING.value,
