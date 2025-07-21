@@ -43,7 +43,7 @@ public class RawDivisionMappingService {
      * @param season      saison (optionnel)
      * @return liste filtrée
      */
-    public List<RawDivisionMapping> findRawDivisionMappingByLeagueCodeAndSeason(String leagueCode, Integer season) {
+    public List<RawDivisionMapping> findRawDivisionMappingByLeagueCodeAndSeason(String leagueCode, String season) {
         List<RawDivisionMapping> list = rawDivisionMappingRepository.findByLeagueCodeAndSeason(leagueCode, season);
         logger.debug("Listing raw division mappings",
                 keyValue("action", "list_raw_division_mappings"),

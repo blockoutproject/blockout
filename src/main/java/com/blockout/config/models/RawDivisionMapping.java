@@ -38,7 +38,7 @@ public class RawDivisionMapping {
     private String leagueCode;
 
     @Column(name = "season", nullable = false)
-    private Integer season;
+    private String season;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;

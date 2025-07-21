@@ -19,5 +19,5 @@ public interface RawDivisionMappingRepository extends JpaRepository<RawDivisionM
             """)
     List<RawDivisionMapping> findByLeagueCodeAndSeason(
             @Param("leagueCode") String leagueCode,
-            @Param("season") Integer season);
+            @Param("season") String season);
 }
