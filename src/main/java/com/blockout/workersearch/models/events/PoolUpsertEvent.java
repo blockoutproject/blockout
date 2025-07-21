@@ -15,4 +15,5 @@ public class PoolUpsertEvent {
     private String name;
     private Long divisionId;
     private String leagueName;
+    private String season;
 }

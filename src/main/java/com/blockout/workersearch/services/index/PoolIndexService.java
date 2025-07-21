@@ -60,6 +60,7 @@ public class PoolIndexService {
                 .name(e.getName())
                 .divisionName(divisionName)
                 .leagueName(e.getLeagueName())
+                .season(e.getSeason())
                 .nameSimplified(TextNormalizer.simplify(e.getName()))
                 .divisionNameSimplified(TextNormalizer.simplify(divisionName))
                 .leagueNameSimplified(TextNormalizer.simplify(e.getLeagueName()))

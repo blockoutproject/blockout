@@ -19,6 +19,7 @@ public class PoolDoc {
     private String name;
     private String divisionName;
     private String leagueName;
+    private String season;
     private String nameSimplified;
     private String divisionNameSimplified;
     private String leagueNameSimplified;

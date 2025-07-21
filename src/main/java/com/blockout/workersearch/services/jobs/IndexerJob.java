@@ -73,6 +73,7 @@ public class IndexerJob {
                         .divisionId(team.getDivisionId())
                         .format(team.getFormat())
                         .gender(team.getGender())
+                        .season(team.getSeason())
                         .build())
                 .toList();
 
@@ -88,6 +89,7 @@ public class IndexerJob {
                         .name(pool.getName())
                         .divisionId(pool.getDivisionId())
                         .leagueName(pool.getLeagueName())
+                        .season(pool.getSeason())
                         .build())
                 .toList();
 
