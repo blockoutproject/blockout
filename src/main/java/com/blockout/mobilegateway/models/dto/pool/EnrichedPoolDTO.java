@@ -20,7 +20,7 @@ public class EnrichedPoolDTO {
 
     private Long id;
 
-    private Integer season;
+    private String season;
 
     @JsonProperty("league_name")
     private String leagueName;

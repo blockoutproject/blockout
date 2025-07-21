@@ -21,6 +21,8 @@ public class TeamWithStatsDTO {
 
     private Gender gender;
 
+    private String season;
+
     @JsonProperty("followers_count")
     private Long followersCount;
 
