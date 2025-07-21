@@ -1,7 +1,5 @@
 package com.blockout.mobilegateway.models.dto.team;
 
-import com.blockout.mobilegateway.models.enums.Format;
-import com.blockout.mobilegateway.models.enums.Gender;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.*;
 
@@ -16,13 +14,6 @@ public class TeamWithStatsDTO {
 
     @JsonProperty("short_name")
     private String shortName;
-
-    private Format format;
-
-    private Gender gender;
-
-    @JsonProperty("followers_count")
-    private Long followersCount;
 
     @JsonProperty("logo_url")
     private String logoUrl;
