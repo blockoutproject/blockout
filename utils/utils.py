@@ -5,22 +5,6 @@ import re
 from typing import Optional
 from config.logger_config import log_event
 
-def parse_season(season_str: str) -> int:
-    """
-    Convertit une chaîne de saison 'YYYY/YYYY' en un entier combiné 'YYYYYY'.
-    """
-    try:
-        start_year, end_year = season_str.split('/')
-        combined_years = int(start_year[-2:] + end_year[-2:])
-        return combined_years
-    except Exception as e:
-        log_event(
-            action="parse_season",
-            level="error",
-            message=f"Erreur inattendue lors du parsing de la saison '{season_str}'",
-            error=str(e)
-        )
-        raise
 
 def extract_season_from_url(url: str) -> Optional[str]:
     """
