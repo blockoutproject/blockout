@@ -21,7 +21,7 @@ const EmptyPrompt: React.FC<EmptyPromptProps> = ({
             <Image
                 source={{ uri: "https://cdn-icons-png.flaticon.com/512/4076/4076549.png" }}
                 style={[styles.image, { tintColor: theme.textInactive }]}
-                resizeMode="contain"
+                contentFit="contain"
             />
             <Text style={[styles.title, { color: theme.text }]}>{title}</Text>
             <Text style={[styles.subtitle, { color: theme.textInactive }]}>{subtitle}</Text>

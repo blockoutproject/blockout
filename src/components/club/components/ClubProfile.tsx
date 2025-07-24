@@ -6,7 +6,7 @@ import {
     Linking,
     TouchableOpacity,
 } from 'react-native';
-import FastImage from 'react-native-fast-image';
+import { Image } from 'expo-image';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 
@@ -48,14 +48,14 @@ const ClubProfile: React.FC<Props> = ({ club, onEdit }) => {
             )}
 
             <View style={styles.row}>
-                <FastImage
+                <Image
                     source={
                         club.logoUrl
                             ? { uri: club.logoUrl }
                             : require('@/assets/clubs/default_club_logo.png')
                     }
                     style={[styles.logo, { backgroundColor: theme.text }]}
-                    resizeMode="contain"
+                    contentFit="contain"
                 />
 
                 <View style={styles.info}>

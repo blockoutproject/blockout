@@ -1,6 +1,6 @@
 import React, { useRef, useState } from "react";
 import { View, Text, Pressable, StyleSheet } from "react-native";
-import FastImage from "react-native-fast-image";
+import { Image } from 'expo-image';
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import { Team } from "@/src/types/Team";
 import { splitIsoDateFormatted } from "@/src/utils/utils";
@@ -37,14 +37,14 @@ const MatchScoreCard: React.FC<MatchScoreCardProps> = ({
         role: "Home" | "Away";
     }> = ({ team, role }) => (
         <Pressable onPress={() => openTeamSheet(team.id)} style={styles.teamCard}>
-            <FastImage
+            <Image
                 source={
                     team.logoUrl
                         ? { uri: team.logoUrl }
                         : require('@/assets/clubs/default_club_logo.png')
                 }
                 style={[styles.teamLogoLarge, { backgroundColor: theme.text }]}
-                resizeMode="contain"
+                contentFit="contain"
             />
             <Text 
                 style={[styles.teamLabel, { color: theme.text }]} 

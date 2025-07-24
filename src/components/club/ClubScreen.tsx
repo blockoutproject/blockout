@@ -1,7 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { BottomSheetModal } from '@gorhom/bottom-sheet';
+import { BottomSheetModal, BottomSheetView } from '@gorhom/bottom-sheet';
 import * as Haptics from 'expo-haptics';
 
 import { useAppTheme } from '@/src/context/ThemeProvider';
@@ -44,7 +44,7 @@ const ClubScreen: React.FC<Props> = ({ clubId }) => {
     }
 
     return (
-        <>
+        <BottomSheetView style={{ flex: 1 }}>
             <View style={[styles.container, { backgroundColor: theme.background }]}>
                 <ClubProfile club={club} onEdit={openForm} />
             </View>
@@ -59,7 +59,7 @@ const ClubScreen: React.FC<Props> = ({ clubId }) => {
                     }}
                 />
             </BottomSheetCustomModal>
-        </>
+        </BottomSheetView>
     );
 };
 

@@ -8,7 +8,7 @@ import {
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useAppTheme } from '@/src/context/ThemeProvider';
 import { ScraperStatus } from '@/src/types/ScraperStatus';
-import FastImage from 'react-native-fast-image';
+import { Image } from 'expo-image';
 
 interface Props {
     scraper: ScraperStatus;
@@ -43,14 +43,14 @@ const ScraperStatusItem: React.FC<Props> = ({ scraper, onToggle }) => {
                     {scraper.enabled ? 'Activé' : 'Désactivé'}
                 </Text>
             </View>
-            <FastImage
+            <Image
                 source={
                     scraper.enabled
                         ? require('@/assets/images/scraper-started.jpg')
                         : require('@/assets/images/scraper-stopped.jpg')
                 }
                 style={[styles.logo, { backgroundColor: theme.text }]}
-                resizeMode="contain"
+                contentFit="contain"
             />
         </TouchableOpacity>
     );

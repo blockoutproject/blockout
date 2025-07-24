@@ -1,6 +1,6 @@
 import React from "react";
 import { Text, TouchableOpacity, View, StyleSheet } from "react-native";
-import FastImage from "react-native-fast-image";
+import { Image } from 'expo-image';
 import MatchCard from "./MatchCard";
 import { EnrichedPoolMatchesDTO } from "@/src/types/Match";
 import { useAppTheme } from "@/src/context/ThemeProvider";
@@ -28,10 +28,10 @@ const PoolItem: React.FC<Props> = ({
         <View style={[styles.poolContainer, { backgroundColor: enrichedPoolMatches.pool.division.mainColor }]}>
             <TouchableOpacity onPress={() => handlePoolPress(enrichedPoolMatches.pool.id)}>
                 <View style={styles.poolHeader}>
-                    <FastImage
+                    <Image
                         source={{ uri: enrichedPoolMatches.pool.division.logoUrl || "" }}
                         style={[styles.poolLogo, { backgroundColor: theme.text }]}
-                        resizeMode="contain"
+                        contentFit="contain"
                     />
                     <Text
                         style={[styles.poolTitle, { color: theme.text }]}

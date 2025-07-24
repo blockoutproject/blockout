@@ -7,7 +7,7 @@ import {
     ListRenderItemInfo,
 } from "react-native";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
-import FastImage from "react-native-fast-image";
+import { Image } from 'expo-image';
 import * as Haptics from "expo-haptics";
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import TeamContainer from "../team/TeamScreen";
@@ -86,14 +86,14 @@ const RankingCard: React.FC<RankingCardProps> = ({
                     style={[styles.teamCell, styles.teamContainer]}
                     onPress={() => openTeamSheet(item.id)}
                 >
-                    <FastImage
+                    <Image
                         source={
                             item.logoUrl
                                 ? { uri: item.logoUrl }
                                 : require('@/assets/clubs/default_club_logo.png')
                         }
                         style={[styles.logo, { backgroundColor: theme.text }]}
-                        resizeMode="contain"
+                        contentFit="contain"
                     />
                     <Text
                         style={[styles.name, { color: theme.text }]}

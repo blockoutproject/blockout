@@ -1,7 +1,7 @@
 import { TeamSearchDoc } from '@/src/types/docs/TeamSearchDoc';
 import React from 'react';
 import { Text, View, Pressable, StyleSheet } from 'react-native';
-import FastImage from 'react-native-fast-image';
+import { Image } from 'expo-image';
 import { useAppTheme } from '@/src/context/ThemeProvider';
 
 interface Props {
@@ -24,14 +24,14 @@ const TeamCard: React.FC<Props> = ({ team, onPress }) => {
             ]}
         >
             {/* Logo */}
-            <FastImage
+            <Image
                 source={
                     team.logoUrl
                         ? { uri: team.logoUrl }
                         : require('@/assets/clubs/default_club_logo.png')
                 }
                 style={[styles.logo, { backgroundColor: theme.text }]}
-                resizeMode="contain"
+                contentFit="contain"
             />
 
             {/* Infos de l'équipe */}

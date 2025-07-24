@@ -14,7 +14,7 @@ import * as Yup from 'yup';
 import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
-import FastImage from 'react-native-fast-image';
+import { Image } from 'expo-image';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useAppTheme } from '@/src/context/ThemeProvider';
 import type { Club } from '@/src/types/Club';
@@ -182,10 +182,10 @@ const ClubForm: React.FC<ClubFormProps> = ({ club, onSuccess }) => {
             <Field label="Logo">
                 <TouchableOpacity onPress={handlePickImage} activeOpacity={0.8}>
                     {logoUri ? (
-                        <FastImage
+                        <Image
                             source={{ uri: logoUri }}
                             style={[styles.logo, { borderColor: theme.border, backgroundColor: theme.text }]}
-                            resizeMode="contain"
+                            contentFit="contain"
                         />
                     ) : (
                         <View

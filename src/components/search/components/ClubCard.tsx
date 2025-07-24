@@ -1,7 +1,7 @@
 import { ClubSearchDoc } from '@/src/types/docs/ClubSearchDoc';
 import React from 'react';
 import { Text, View, Pressable, StyleSheet } from 'react-native';
-import FastImage from 'react-native-fast-image';
+import { Image } from 'expo-image';
 import { useAppTheme } from '@/src/context/ThemeProvider';
 
 interface Props {
@@ -23,14 +23,14 @@ const ClubCard: React.FC<Props> = ({ club, onPress }) => {
                 },
             ]}
         >
-            <FastImage
+            <Image
                 source={
                     club.logoUrl
                         ? { uri: club.logoUrl }
                         : require('@/assets/clubs/default_club_logo.png')
                 }
                 style={[styles.logo, { backgroundColor: theme.text }]}
-                resizeMode="contain"
+                contentFit="contain"
             />
 
             <View style={{ flex: 1 }}>

@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import FastImage from 'react-native-fast-image';
+import { Image } from 'expo-image';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useAppTheme } from '@/src/context/ThemeProvider';
 import { EnrichedTeamDTO, Team } from '@/src/types/Team';
@@ -12,6 +12,7 @@ import * as Haptics from "expo-haptics";
 import { BottomSheetModal } from '@gorhom/bottom-sheet';
 import BottomSheetCustomPage from '../../common/BottomSheetCustomPage';
 import ClubScreen from '../../club/ClubScreen';
+import BottomSheetCustomModal from '../../common/BottomSheetCustomModal';
 
 type Props = {
     enrichedTeam: EnrichedTeamDTO;
@@ -40,14 +41,14 @@ const TeamProfile: React.FC<Props> = ({ enrichedTeam }) => {
         <>
             <View style={[styles.container, { backgroundColor: theme.background }]}>
                 <View style={styles.row}>
-                    <FastImage
+                    <Image
                         source={
                             enrichedTeam.club.logoUrl
                                 ? { uri: enrichedTeam.club.logoUrl }
                                 : require('@/assets/clubs/default_club_logo.png')
                         }
                         style={[styles.logo, { backgroundColor: theme.text }]}
-                        resizeMode="contain"
+                        contentFit="contain"
                     />
 
                     <View style={styles.info}>
@@ -73,9 +74,16 @@ const TeamProfile: React.FC<Props> = ({ enrichedTeam }) => {
                             <Text style={[styles.infoText, { color: theme.text }]}>{GenderLabels[enrichedTeam.gender]}</Text>
                         </View>
 
+                        <View style={styles.infoLine}>
+                            <MaterialCommunityIcons name="calendar" size={18} color={theme.text} />
+                            <Text style={[styles.infoText, { color: theme.text }]}>{enrichedTeam.season}</Text>
+                        </View>
+
                         <TouchableOpacity onPress={() => openClubSheet(enrichedTeam.club.id)} style={styles.infoLine}>
+                            <MaterialCommunityIcons name="home" size={18} color={theme.text} />
                             <Text
-                                style={[styles.infoText, { color: theme.primary }]}
+                                style={[styles.infoText, { color: theme.text, textDecorationLine: 'underline', fontWeight: '700' }]}
+                                
                                 numberOfLines={1}
                                 ellipsizeMode="tail"
                             >

@@ -2,11 +2,6 @@
 
 - **Node.js** (version recommandée : 16.x ou 18.x)
 - **npm** (ou **yarn**)
-- **Expo CLI** : Installez-le globalement si nécessaire :
-
-  ```bash
-  npm install -g expo-cli
-  ```
 
 - **Xcode** (pour macOS, si vous développez pour iOS)
 - **Android Studio** (pour le développement Android)

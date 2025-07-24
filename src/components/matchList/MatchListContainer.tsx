@@ -15,15 +15,14 @@ import * as Haptics from "expo-haptics";
 import EmptyPrompt from "../common/feedback/EmptyPrompt";
 import ErrorPrompt from "../common/feedback/ErrorPrompt";
 import PoolItem from "./components/PoolItem";
-import MatchContainer from "@/src/components/match/MatchScreen";
-import PoolContainer from "../pool/PoolScreen";
+import MatchScreen from "@/src/components/match/MatchScreen";
+import PoolScreen from "../pool/PoolScreen";
 import { useMatchList } from "@/src/hooks/match/useMatchList";
 import {
     BottomSheetModal
 } from "@gorhom/bottom-sheet";
 import BottomSheetCustomPage from "../common/BottomSheetCustomPage";
 import { useThemeColor } from "@/src/hooks/useThemeColor";
-import PoolItemSkeleton from "./components/PoolItemSkeleton";
 
 type Props = {
     poolIds?: number[];
@@ -197,11 +196,11 @@ const MatchListContainer: React.FC<Props> = ({
             </View>
 
             <BottomSheetCustomPage ref={poolSheetRef}>
-                {selectedPoolId && <PoolContainer poolId={selectedPoolId} />}
+                {selectedPoolId && <PoolScreen poolId={selectedPoolId} />}
             </BottomSheetCustomPage>
 
             <BottomSheetCustomPage ref={matchSheetRef}>
-                {selectedMatchId && <MatchContainer matchId={selectedMatchId} />}
+                {selectedMatchId && <MatchScreen matchId={selectedMatchId} />}
             </BottomSheetCustomPage>
         </>
     );

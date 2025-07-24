@@ -17,7 +17,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BottomSheetTextInput, BottomSheetView } from '@gorhom/bottom-sheet';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
-import FastImage from 'react-native-fast-image';
+import { Image } from 'expo-image';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import * as Haptics from 'expo-haptics';
 
@@ -184,10 +184,10 @@ const DivisionForm: React.FC<DivisionFormProps> = ({ division, onSuccess }) => {
                 <Text style={[styles.label, { color: theme.text }]}>Image de profil</Text>
                 <TouchableOpacity onPress={handlePickImage} activeOpacity={0.8} style={styles.imageTouch}>
                     {imageUri ? (
-                        <FastImage
+                        <Image
                             source={{ uri: imageUri }}
                             style={[styles.imagePreview, { borderColor: theme.border, backgroundColor: theme.text }]}
-                            resizeMode="contain"
+                            contentFit="contain"
                         />
                     ) : (
                         <View style={[styles.imagePreview, styles.imagePlaceholder, { backgroundColor: theme.surface, borderColor: theme.border }]}>

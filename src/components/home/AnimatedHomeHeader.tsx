@@ -5,10 +5,9 @@ import {
     Animated,
     LayoutChangeEvent,
     Platform,
-    useColorScheme,
     View,
 } from "react-native";
-import FastImage from "react-native-fast-image";
+import { Image } from 'expo-image';
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useAuth0 } from "react-native-auth0";
 import {
@@ -31,7 +30,6 @@ import { useHasScopes } from "@/src/hooks/user/useHasScope";
 
 import {
     BottomSheetModal,
-    BottomSheetView,
 } from "@gorhom/bottom-sheet";
 import BottomSheetCustomPage from "../common/BottomSheetCustomPage";
 import ScraperStatusScreen from "../scraper/ScraperStatusScreen";
@@ -143,10 +141,10 @@ const AnimatedHomeHeader: React.FC<HeaderProps> = ({
                         transform: [{ scale: titleScale }],
                     }}
                 >
-                    <FastImage
+                    <Image
                         source={require("@/assets/images/blockout-logo-with-title-light.png")}
                         style={styles.teamLogo}
-                        resizeMode="contain"
+                        contentFit="contain"
                     />
                 </Animated.View>
 
@@ -195,7 +193,7 @@ const AnimatedHomeHeader: React.FC<HeaderProps> = ({
                         )}
 
                         <TouchableOpacity onPress={open(profileSheetRef)}>
-                            <FastImage style={styles.avatar} source={{ uri: user?.picture }} />
+                            <Image style={styles.avatar} source={{ uri: user?.picture }} />
                         </TouchableOpacity>
                     </View>
                 </View>

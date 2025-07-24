@@ -6,6 +6,7 @@ import TeamProfile from "./components/TeamProfile";
 import { useEnrichedTeamById } from "@/src/hooks/team/useEnrichedTeamById";
 import TeamStatsCard from "./components/TeamStatsCard";
 import TeamSkeleton from "./components/TeamSkeleton";
+import { BottomSheetView } from "@gorhom/bottom-sheet";
 
 type Props = {
     teamId: number;
@@ -17,7 +18,7 @@ const TeamScreen: React.FC<Props> = ({ teamId }) => {
 
 
     return (
-        <View style={[styles.container, { backgroundColor: theme.background }]}>
+        <BottomSheetView style={[styles.container, { backgroundColor: theme.background }]}>
             {isLoading || !enrichedTeam ? (
                 <TeamSkeleton />
             ) : (
@@ -26,7 +27,7 @@ const TeamScreen: React.FC<Props> = ({ teamId }) => {
                     <TeamTabs enrichedTeam={enrichedTeam} />
                 </>
             )}
-        </View>
+        </BottomSheetView>
     );
 };
 

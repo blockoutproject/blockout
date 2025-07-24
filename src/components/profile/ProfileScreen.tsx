@@ -8,7 +8,7 @@ import {
 } from "react-native";
 import { BottomSheetScrollView, useBottomSheetModal } from "@gorhom/bottom-sheet";
 import { useAuth0 } from "react-native-auth0";
-import FastImage from "react-native-fast-image";
+import { Image } from 'expo-image';
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import { router } from "expo-router";
 import { useUserContext } from "@/src/context/UserProvider";
@@ -46,7 +46,7 @@ const ProfileScreen: React.FC = () => {
             {/* --- Header --- */}
             <View style={styles.profileHeader}>
                 {user.picture && (
-                    <FastImage source={{ uri: user.picture }} style={styles.avatar} />
+                    <Image source={{ uri: user.picture }} style={styles.avatar} />
                 )}
                 <Text style={[styles.username, { color: theme.text }]}>
                     {customUser?.pseudo || "Utilisateur"}

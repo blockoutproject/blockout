@@ -1,6 +1,6 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
-import FastImage from "react-native-fast-image";
+import { Image } from 'expo-image';
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import { EnrichedPoolDTO, Pool } from "@/src/types/Pool";
@@ -32,10 +32,10 @@ const PoolProfile: React.FC<Props> = ({ enrichedPool }) => {
     return (
         <View style={[styles.container, { backgroundColor: theme.background }]}>
             <View style={styles.row}>
-                <FastImage
+                <Image
                     source={{ uri: division.logoUrl || "" }}
                     style={[styles.logo, { backgroundColor: theme.text }]}
-                    resizeMode="contain"
+                    contentFit="contain"
                 />
 
                 <View style={styles.info}>
@@ -55,14 +55,19 @@ const PoolProfile: React.FC<Props> = ({ enrichedPool }) => {
                     </View>
 
                     <View style={styles.infoLine}>
-                            {enrichedPool.gender === EnumGender.M && <MaterialCommunityIcons name="gender-male" size={18} color={theme.text} />}
-                            {enrichedPool.gender === EnumGender.F && <MaterialCommunityIcons name="gender-female" size={18} color={theme.text} />}
-                            {enrichedPool.gender === EnumGender.O && <MaterialCommunityIcons name="gender-male-female" size={18} color={theme.text} />}
-                            <Text style={[styles.infoText, { color: theme.text }]}>{GenderLabels[enrichedPool.gender]}</Text>
+                        {enrichedPool.gender === EnumGender.M && <MaterialCommunityIcons name="gender-male" size={18} color={theme.text} />}
+                        {enrichedPool.gender === EnumGender.F && <MaterialCommunityIcons name="gender-female" size={18} color={theme.text} />}
+                        {enrichedPool.gender === EnumGender.O && <MaterialCommunityIcons name="gender-male-female" size={18} color={theme.text} />}
+                        <Text style={[styles.infoText, { color: theme.text }]}>{GenderLabels[enrichedPool.gender]}</Text>
                     </View>
 
                     <View style={styles.infoLine}>
-                        <MaterialCommunityIcons name="link-variant" size={18} color={theme.text} />
+                        <MaterialCommunityIcons name="calendar" size={18} color={theme.text} />
+                        <Text style={[styles.infoText, { color: theme.text }]}>{enrichedPool.season}</Text>
+                    </View>
+
+                    <View style={styles.infoLine}>
+                        <MaterialCommunityIcons name="account-supervisor" size={18} color={theme.text} />
                         <Text style={[styles.linkText, { color: theme.text }]}>{FormatLabels[enrichedPool.format]}</Text>
                     </View>
                 </View>

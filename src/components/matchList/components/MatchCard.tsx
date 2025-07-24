@@ -1,6 +1,6 @@
 import React from "react";
 import { Text, View, StyleSheet } from "react-native";
-import FastImage from "react-native-fast-image";
+import { Image } from 'expo-image';
 import { EnrichedMatchDTO, MatchStatus } from "@/src/types/Match";
 import GradientBorderView from "../../common/GradientBorderView";
 import { useThemeColor } from "@/src/hooks/useThemeColor";
@@ -33,14 +33,14 @@ const MatchCard: React.FC<Props> = ({ enrichedMatch, gradient }) => {
                 >
                     {enrichedMatch.teamA.shortName || "Équipe inconnue"}
                 </Text>
-                <FastImage
+                <Image
                     source={
                         enrichedMatch.teamA.logoUrl
                             ? { uri: enrichedMatch.teamA.logoUrl }
                             : require('@/assets/clubs/default_club_logo.png')
                     }
                     style={[styles.teamLogo, { backgroundColor: text }]}
-                    resizeMode="contain"
+                    contentFit="contain"
                 />
             </View>
 
@@ -66,14 +66,14 @@ const MatchCard: React.FC<Props> = ({ enrichedMatch, gradient }) => {
 
             {/* Team B */}
             <View style={[styles.teamSide, styles.teamAlignLeft]}>
-                <FastImage
+                <Image
                     source={
                         enrichedMatch.teamB.logoUrl
                             ? { uri: enrichedMatch.teamB.logoUrl }
                             : require('@/assets/clubs/default_club_logo.png')
                     }
                     style={[styles.teamLogo, { backgroundColor: text }]}
-                    resizeMode="contain"
+                    contentFit="contain"
                 />
                 <Text
                     style={[styles.teamName, { color: text }]}

@@ -5,7 +5,7 @@ import {
     TouchableOpacity,
     StyleSheet,
 } from "react-native";
-import FastImage from "react-native-fast-image";
+import { Image } from 'expo-image';
 import * as Haptics from "expo-haptics";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
@@ -60,10 +60,10 @@ const MatchInfoCard: React.FC<MatchInfoCardProps> = ({ enrichedMatch }) => {
 
                 <View style={styles.infoRow}>
                 <TouchableOpacity onPress={() => openPoolSheet(enrichedMatch.pool.id)} style={styles.row}>
-                    <FastImage
+                    <Image
                         source={{ uri: enrichedMatch.pool.division.logoUrl || "" }}
                         style={[styles.poolLogo, { backgroundColor: theme.text }]}
-                        resizeMode="contain"
+                        contentFit="contain"
                     />
                     <Text
                         style={[styles.poolTitleText, { color: theme.text }]}
@@ -78,7 +78,7 @@ const MatchInfoCard: React.FC<MatchInfoCardProps> = ({ enrichedMatch }) => {
 
                 <InfoRow icon="trophy" text={enrichedMatch.pool.leagueName === 'PRO' ? 'Professionnel' : enrichedMatch.pool.division.name} />
                 <InfoRow
-                    icon="calendar-month"
+                    icon="calendar"
                     text={new Date(enrichedMatch.matchDate).toLocaleString("fr-FR", {
                         year: "numeric",
                         month: "long",

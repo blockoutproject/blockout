@@ -6,6 +6,7 @@ import PoolProfile from './components/PoolProfile';
 import PoolTabs from './components/PoolTabs';
 import { useEnrichedPoolById } from '@/src/hooks/pool/useEnrichedPoolById';
 import PoolSkeleton from './components/PoolSkeleton';
+import { BottomSheetView } from '@gorhom/bottom-sheet';
 
 type Props = {
     poolId: number;
@@ -20,7 +21,7 @@ const PoolScreen: React.FC<Props> = ({ poolId }) => {
     }
 
     return (
-        <View style={[styles.container, { backgroundColor: theme.background }]}>
+        <BottomSheetView style={[styles.container, { backgroundColor: theme.background }]}>
             {isLoading || !enrichedPool ? (
                 <PoolSkeleton />
             ) : (
@@ -29,7 +30,7 @@ const PoolScreen: React.FC<Props> = ({ poolId }) => {
                     <PoolTabs enrichedPool={enrichedPool} />
                 </>
             )}
-        </View>
+        </BottomSheetView>
     );
 };
 

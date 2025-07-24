@@ -1,6 +1,6 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
-import FastImage from "react-native-fast-image";
+import { Image } from 'expo-image';
 import { EnrichedMatchDTO } from "@/src/types/Match";
 import { Team } from "@/src/types/Team";
 import { useAppTheme } from "@/src/context/ThemeProvider";
@@ -28,14 +28,14 @@ const MatchScoreDetailsCard: React.FC<MatchScoreDetailsCardProps> = ({
         opponentSets: number[];
     }> = ({ team, finalScore, sets, opponentSets }) => (
         <View style={styles.scoreDetailsTeamRow}>
-                <FastImage
+            <Image
                 source={
                     team.logoUrl
                         ? { uri: team.logoUrl }
                         : require('@/assets/clubs/default_club_logo.png')
                 }
                 style={[styles.teamLogoSmall, { backgroundColor: theme.text }]}
-                resizeMode="contain"
+                contentFit="contain"
             />
             <View style={styles.teamNameColumn}>
                 <Text

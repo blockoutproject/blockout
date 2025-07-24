@@ -24,10 +24,6 @@ export interface TeamWithStats {
     id: number;
     name: string;
     shortName: string;
-    format: EnumFormat;
-    gender: EnumGender;
-    season: string;
-    followersCount: number;
     logoUrl: string | null;
     points: number;
     played: number;
