@@ -31,8 +31,6 @@ public class Auth0TokenManager {
     @PostConstruct
     public void init() {
         try {
-            System.out.println("Domain: " + properties.getDomain());
-        System.out.println("Client ID: " + properties.getClientId());
             logger.info("Initializing Auth0 token manager for Management API",
                     keyValue("action", "init_management_token"),
                     keyValue("auth0.domain", properties.getDomain()));

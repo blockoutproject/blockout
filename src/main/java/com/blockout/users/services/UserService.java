@@ -94,10 +94,8 @@ public class UserService {
      * Supprime un utilisateur de la base de données et de Auth0.
      *
      * @param auth0Id L'identifiant Auth0 de l'utilisateur à supprimer.
-     * @throws CustomUserNotFoundException si l'utilisateur n'existe pas dans la
-     *                                     base de données.
-     * @throws Auth0Exception              si la suppression de l'utilisateur dans
-     *                                     Auth0 échoue.
+     * @throws CustomUserNotFoundException si l'utilisateur n'existe pas dans la base de données.
+     * @throws Auth0Exception              si la suppression de l'utilisateur dans Auth0 échoue.
      */
     @Transactional
     public void deleteUser(String auth0Id) throws Auth0Exception {
