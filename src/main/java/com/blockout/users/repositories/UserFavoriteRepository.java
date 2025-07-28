@@ -7,17 +7,15 @@ import com.blockout.users.models.CustomUser;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import java.util.List;
-import java.util.Optional;
 
 @Repository
 public interface UserFavoriteRepository extends JpaRepository<UserFavorite, Long> {
 
-    // Tous les favoris d'un user
-    List<UserFavorite> findByUser(CustomUser user);
+    boolean existsByUserAndEntityTypeAndEntityId(CustomUser user, EntityType type, Long entityId);
 
-    // Tous les favoris d'un user pour un type donné (TEAM, POOL, etc.)
-    List<UserFavorite> findByUserAndEntityType(CustomUser user, EntityType entityType);
+    int deleteByUserAndEntityTypeAndEntityId(CustomUser user, EntityType type, Long entityId);
 
-    // Vérifier s'il existe déjà un favori
-    Optional<UserFavorite> findByUserAndEntityTypeAndEntityId(CustomUser user, EntityType entityType, Long entityId);
+    List<UserFavorite> findByUserId(Long userId);
+
+    List<UserFavorite> findByUserIdAndEntityType(Long userId, EntityType entityType);
 }

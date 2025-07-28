@@ -9,6 +9,7 @@ import com.blockout.users.models.CustomUser;
 import com.blockout.users.models.dto.CustomUserDto;
 import com.blockout.users.models.dto.UserRegistrationRequestDTO;
 import com.blockout.users.models.enums.UserRole;
+import com.blockout.users.models.events.UserFollowEvent.EventType;
 import com.blockout.users.models.mappers.CustomUserMapper;
 import com.blockout.users.repositories.UserRepository;
 
@@ -29,6 +30,7 @@ public class UserService {
     private final Auth0TokenManager tokenManager;
     private final UserRepository userRepository;
     private final CustomUserMapper customUserMapper;
+    private final EventPublisher eventPublisher;
 
     /**
      * Récupère un utilisateur par son ID Auth0.
@@ -49,18 +51,24 @@ public class UserService {
     /**
      * Enregistre un nouvel utilisateur à partir des informations Auth0.
      *
-     * @param auth0Id             Le subject du token Auth0
+     * @param auth0Id Le subject du token Auth0
      * @param registrationRequest L'objet contenant les infos d'enregistrement
      * @return L'utilisateur persisté
      * @throws Auth0Exception si la récupération de l'utilisateur Auth0 échoue
      */
     @Transactional
-    public CustomUser registerUser(String auth0Id, UserRegistrationRequestDTO registrationRequest) throws Auth0Exception {
+    public CustomUser registerUser(String auth0Id, UserRegistrationRequestDTO registrationRequest)
+            throws Auth0Exception {
         ManagementAPI managementAPI = tokenManager.getManagementAPI();
         User auth0User = managementAPI.users().get(auth0Id, null).execute().getBody();
 
         if (auth0User == null) {
             throw new Auth0Exception("Utilisateur non trouvé dans Auth0 pour l'ID: " + auth0Id);
+        }
+
+        if (userRepository.findByAuth0Id(auth0Id).isPresent()) {
+            logger.warn("Utilisateur déjà existant", keyValue("auth0Id", auth0Id));
+            return userRepository.findByAuth0Id(auth0Id).get();
         }
 
         CustomUser user = CustomUser.builder()
@@ -80,5 +88,36 @@ public class UserService {
         logger.info("Utilisateur créé avec succès", keyValue("userId", created.getId()));
 
         return created;
+    }
+
+    /**
+     * Supprime un utilisateur de la base de données et de Auth0.
+     *
+     * @param auth0Id L'identifiant Auth0 de l'utilisateur à supprimer.
+     * @throws CustomUserNotFoundException si l'utilisateur n'existe pas dans la
+     *                                     base de données.
+     * @throws Auth0Exception              si la suppression de l'utilisateur dans
+     *                                     Auth0 échoue.
+     */
+    @Transactional
+    public void deleteUser(String auth0Id) throws Auth0Exception {
+        CustomUser user = userRepository.findByAuth0Id(auth0Id)
+                .orElseThrow(() -> {
+                    logger.warn("Suppression échouée : utilisateur introuvable", keyValue("auth0Id", auth0Id));
+                    return new CustomUserNotFoundException(auth0Id);
+                });
+
+        ManagementAPI managementAPI = tokenManager.getManagementAPI();
+        managementAPI.users().delete(auth0Id).execute();
+
+        user.getFavorites().forEach(fav -> eventPublisher.publishFollowEvent(
+                user.getId(),
+                fav.getEntityType(),
+                fav.getEntityId(),
+                EventType.DELETED));
+
+        userRepository.delete(user);
+
+        logger.info("Utilisateur (et ses favoris) supprimé avec succès", keyValue("auth0Id", auth0Id));
     }
 }

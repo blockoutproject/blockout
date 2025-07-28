@@ -16,7 +16,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Optional;
 
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
@@ -50,8 +49,7 @@ public class UserFavoriteService {
                 });
 
         boolean alreadyFollowed = userFavoriteRepository
-                .findByUserAndEntityTypeAndEntityId(user, entityType, entityId)
-                .isPresent();
+                .existsByUserAndEntityTypeAndEntityId(user, entityType, entityId);
 
         if (alreadyFollowed) {
             logger.info("Suivi déjà existant",
@@ -97,17 +95,16 @@ public class UserFavoriteService {
                     return new CustomUserNotFoundException(auth0Id);
                 });
 
-        Optional<UserFavorite> favoriteOpt = userFavoriteRepository
-                .findByUserAndEntityTypeAndEntityId(user, entityType, entityId);
+        int deleted = userFavoriteRepository
+                .deleteByUserAndEntityTypeAndEntityId(user, entityType, entityId);
 
-        favoriteOpt.ifPresent(fav -> {
-            userFavoriteRepository.delete(fav);
+        if (deleted > 0) {
             logger.info("Suivi supprimé",
                     keyValue("userId", user.getId()),
                     keyValue("entityType", entityType),
                     keyValue("entityId", entityId));
             eventPublisher.publishFollowEvent(user.getId(), entityType, entityId, EventType.DELETED);
-        });
+        }
     }
 
     /**
@@ -118,14 +115,13 @@ public class UserFavoriteService {
      * @throws CustomUserNotFoundException si l'utilisateur n'existe pas
      */
     public List<UserFavorite> getUserFavorites(Long userId) {
-        CustomUser user = userRepository.findById(userId)
-                .orElseThrow(() -> {
-                    logger.error("Utilisateur introuvable lors de la récupération des favoris",
-                            keyValue("userId", userId));
-                    return new CustomUserNotFoundException(userId.toString());
-                });
+        if (!userRepository.existsById(userId)) {
+            logger.error("Utilisateur introuvable lors de la récupération des favoris",
+                    keyValue("userId", userId));
+            throw new CustomUserNotFoundException(userId.toString());
+        }
 
-        List<UserFavorite> favorites = userFavoriteRepository.findByUser(user);
+        List<UserFavorite> favorites = userFavoriteRepository.findByUserId(userId);
         logger.info("Favoris récupérés", keyValue("userId", userId), keyValue("count", favorites.size()));
         return favorites;
     }
@@ -139,15 +135,14 @@ public class UserFavoriteService {
      * @throws CustomUserNotFoundException si l'utilisateur n'existe pas
      */
     public List<UserFavorite> getUserFavoritesByType(Long userId, EntityType entityType) {
-        CustomUser user = userRepository.findById(userId)
-                .orElseThrow(() -> {
-                    logger.error("Utilisateur introuvable lors de la récupération des favoris par type",
-                            keyValue("userId", userId),
-                            keyValue("entityType", entityType));
-                    return new CustomUserNotFoundException(userId.toString());
-                });
+        if (!userRepository.existsById(userId)) {
+            logger.error("Utilisateur introuvable lors de la récupération des favoris par type",
+                    keyValue("userId", userId),
+                    keyValue("entityType", entityType));
+            throw new CustomUserNotFoundException(userId.toString());
+        }
 
-        List<UserFavorite> favorites = userFavoriteRepository.findByUserAndEntityType(user, entityType);
+        List<UserFavorite> favorites = userFavoriteRepository.findByUserIdAndEntityType(userId, entityType);
         logger.info("Favoris par type récupérés",
                 keyValue("userId", userId),
                 keyValue("entityType", entityType),

@@ -60,4 +60,18 @@ public class UserController {
 
         return ResponseEntity.created(location).body(created);
     }
+
+    @Operation(summary = "Supprimer un utilisateur", description = "Supprime un utilisateur dans Auth0 et en base de données.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "Utilisateur supprimé"),
+            @ApiResponse(responseCode = "404", description = "Utilisateur non trouvé"),
+            @ApiResponse(responseCode = "500", description = "Erreur serveur lors de la suppression")
+    })
+    @PreAuthorize("hasAuthority('SCOPE_delete:users')")
+    @DeleteMapping
+    public ResponseEntity<Void> deleteUser(@AuthenticationPrincipal Jwt jwt) throws Auth0Exception {
+        String auth0Id = jwt.getSubject();
+        userService.deleteUser(auth0Id);
+        return ResponseEntity.noContent().build();
+    }
 }
