@@ -33,6 +33,7 @@ public class UserController {
             @ApiResponse(responseCode = "200", description = "Utilisateur trouvé"),
             @ApiResponse(responseCode = "404", description = "Utilisateur non trouvé")
     })
+    @PreAuthorize("hasAuthority('SCOPE_read:users') or hasAuthority('SCOPE_read:current_user')")
     @GetMapping("/{auth0Id}")
     public ResponseEntity<CustomUserDto> getUserByAuth0Id(@PathVariable String auth0Id) {
         CustomUserDto user = userService.getUserByAuth0Id(auth0Id);
@@ -44,7 +45,7 @@ public class UserController {
             @ApiResponse(responseCode = "201", description = "Utilisateur créé"),
             @ApiResponse(responseCode = "400", description = "Requête invalide")
     })
-    @PreAuthorize("hasAuthority('SCOPE_create:users')")
+    @PreAuthorize("hasAuthority('SCOPE_update:users') or hasAuthority('SCOPE_update:current_user')")
     @PostMapping
     public ResponseEntity<CustomUser> registerUser(
             @RequestBody UserRegistrationRequestDTO body,
