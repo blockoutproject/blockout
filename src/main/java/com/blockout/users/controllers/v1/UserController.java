@@ -45,7 +45,7 @@ public class UserController {
             @ApiResponse(responseCode = "201", description = "Utilisateur créé"),
             @ApiResponse(responseCode = "400", description = "Requête invalide")
     })
-    @PreAuthorize("hasAuthority('SCOPE_update:users') or hasAuthority('SCOPE_update:current_user')")
+    @PreAuthorize("hasAuthority('SCOPE_create:users') or hasAuthority('SCOPE_create:current_user')")
     @PostMapping
     public ResponseEntity<CustomUser> registerUser(
             @RequestBody UserRegistrationRequestDTO body,
