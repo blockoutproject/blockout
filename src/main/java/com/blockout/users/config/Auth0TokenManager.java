@@ -18,9 +18,7 @@ import static net.logstash.logback.argument.StructuredArguments.keyValue;
 public class Auth0TokenManager {
 
     private static final Logger logger = LoggerFactory.getLogger(Auth0TokenManager.class);
-
     private final Auth0Properties properties;
-
     private volatile ManagementAPI managementAPI;
     private volatile LocalDateTime tokenExpiry;
 
