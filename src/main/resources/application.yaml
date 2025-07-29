@@ -48,4 +48,5 @@ auth0:
   domain: ${AUTH0_DOMAIN}
   client-id: ${AUTH0_CLIENT_ID}
   client-secret: ${AUTH0_CLIENT_SECRET}
+  default-user-role-id: ${AUTH0_DEFAULT_ROLE_ID}
   token-refresh-delay: 86400000

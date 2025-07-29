@@ -3,11 +3,11 @@ package com.blockout.users.services;
 import com.auth0.client.mgmt.ManagementAPI;
 import com.auth0.exception.Auth0Exception;
 import com.auth0.json.mgmt.users.User;
+import com.blockout.users.config.Auth0Properties;
 import com.blockout.users.config.Auth0TokenManager;
 import com.blockout.users.exceptions.CustomUserNotFoundException;
 import com.blockout.users.models.CustomUser;
 import com.blockout.users.models.dto.CustomUserDto;
-import com.blockout.users.models.enums.UserRole;
 import com.blockout.users.models.events.UserFollowEvent.EventType;
 import com.blockout.users.models.mappers.CustomUserMapper;
 import com.blockout.users.repositories.UserRepository;
@@ -22,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Objects;
 
 @Service
@@ -34,6 +35,7 @@ public class UserService {
     private final UserRepository userRepository;
     private final CustomUserMapper customUserMapper;
     private final EventPublisher eventPublisher;
+    private final Auth0Properties properties;
 
     private String generatePseudo(String email) {
         return (email != null) ? email.split("@")[0] : "user" + System.currentTimeMillis();
@@ -58,13 +60,15 @@ public class UserService {
     /**
      * Crée ou met à jour un utilisateur à partir de son ID Auth0 (sub),
      * en récupérant les informations directement depuis l'API Management Auth0.
-     * 
+     * <p>
      * Si l'utilisateur existe déjà et qu'aucune donnée n'a changé, aucun
      * enregistrement n'est effectué.
+     * En cas de création, un rôle par défaut est automatiquement assigné via Auth0.
      *
      * @param auth0Id Identifiant unique Auth0 (claim "sub")
      * @return L'utilisateur existant ou nouvellement créé
-     * @throws Auth0Exception En cas d'échec de récupération depuis Auth0
+     * @throws Auth0Exception En cas d'échec de récupération ou d'assignation de
+     *                        rôle depuis Auth0
      */
     @Transactional
     public CustomUser ensureCurrentUser(String auth0Id) throws Auth0Exception {
@@ -96,40 +100,49 @@ public class UserService {
                 updated = true;
             }
 
-            if (!updated) {
+            if (!updated)
                 return user;
-            }
 
             user.setLastUpdate(LocalDateTime.now());
             CustomUser saved = userRepository.save(user);
-
             DiffUtils.logChanges(before, saved, logger, "update_user", saved.getId());
 
             return saved;
         }).orElseGet(() -> {
-            CustomUser newUser = CustomUser.builder()
-                    .auth0Id(auth0User.getId())
-                    .email(auth0User.getEmail())
-                    .pseudo(generatePseudo(auth0User.getEmail()))
-                    .firstName(auth0User.getGivenName())
-                    .lastName(auth0User.getFamilyName())
-                    .pictureUrl(auth0User.getPicture())
-                    .phoneNumber(auth0User.getPhoneNumber())
-                    .role(UserRole.USER)
-                    .active(true)
-                    .createdAt(LocalDateTime.now())
-                    .lastUpdate(LocalDateTime.now())
-                    .build();
+            try {
+                CustomUser newUser = CustomUser.builder()
+                        .auth0Id(auth0User.getId())
+                        .email(auth0User.getEmail())
+                        .pseudo(generatePseudo(auth0User.getEmail()))
+                        .firstName(auth0User.getGivenName())
+                        .lastName(auth0User.getFamilyName())
+                        .pictureUrl(auth0User.getPicture())
+                        .phoneNumber(auth0User.getPhoneNumber())
+                        .active(true)
+                        .createdAt(LocalDateTime.now())
+                        .lastUpdate(LocalDateTime.now())
+                        .build();
 
-            CustomUser created = userRepository.save(newUser);
+                CustomUser created = userRepository.save(newUser);
 
-            logger.info("User created successfully",
-                    keyValue("action", "create_user"),
-                    keyValue("auth0Id", auth0Id),
-                    keyValue("userId", created.getId()),
-                    keyValue("email", created.getEmail()));
+                managementAPI.users()
+                        .addRoles(auth0User.getId(), List.of(properties.getDefaultUserRoleId()))
+                        .execute();
 
-            return created;
+                logger.info("Rôle par défaut assigné à l'utilisateur",
+                        keyValue("auth0Id", auth0Id),
+                        keyValue("roleId", properties.getDefaultUserRoleId()));
+
+                logger.info("User created successfully",
+                        keyValue("action", "create_user"),
+                        keyValue("auth0Id", auth0Id),
+                        keyValue("userId", created.getId()),
+                        keyValue("email", created.getEmail()));
+
+                return created;
+            } catch (Auth0Exception e) {
+                throw new RuntimeException("Erreur lors de l'assignation du rôle Auth0", e);
+            }
         });
     }
 
