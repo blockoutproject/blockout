@@ -7,11 +7,11 @@ import com.blockout.users.config.Auth0TokenManager;
 import com.blockout.users.exceptions.CustomUserNotFoundException;
 import com.blockout.users.models.CustomUser;
 import com.blockout.users.models.dto.CustomUserDto;
-import com.blockout.users.models.dto.UserRegistrationRequestDTO;
 import com.blockout.users.models.enums.UserRole;
 import com.blockout.users.models.events.UserFollowEvent.EventType;
 import com.blockout.users.models.mappers.CustomUserMapper;
 import com.blockout.users.repositories.UserRepository;
+import com.blockout.users.utils.DiffUtils;
 
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -20,6 +20,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
+
+import java.time.LocalDateTime;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -31,6 +34,10 @@ public class UserService {
     private final UserRepository userRepository;
     private final CustomUserMapper customUserMapper;
     private final EventPublisher eventPublisher;
+
+    private String generatePseudo(String email) {
+        return (email != null) ? email.split("@")[0] : "user" + System.currentTimeMillis();
+    }
 
     /**
      * Récupère un utilisateur par son ID Auth0.
@@ -49,53 +56,91 @@ public class UserService {
     }
 
     /**
-     * Enregistre un nouvel utilisateur à partir des informations Auth0.
+     * Crée ou met à jour un utilisateur à partir de son ID Auth0 (sub),
+     * en récupérant les informations directement depuis l'API Management Auth0.
+     * 
+     * Si l'utilisateur existe déjà et qu'aucune donnée n'a changé, aucun
+     * enregistrement n'est effectué.
      *
-     * @param auth0Id Le subject du token Auth0
-     * @param registrationRequest L'objet contenant les infos d'enregistrement
-     * @return L'utilisateur persisté
-     * @throws Auth0Exception si la récupération de l'utilisateur Auth0 échoue
+     * @param auth0Id Identifiant unique Auth0 (claim "sub")
+     * @return L'utilisateur existant ou nouvellement créé
+     * @throws Auth0Exception En cas d'échec de récupération depuis Auth0
      */
     @Transactional
-    public CustomUser registerUser(String auth0Id, UserRegistrationRequestDTO registrationRequest)
-            throws Auth0Exception {
+    public CustomUser ensureCurrentUser(String auth0Id) throws Auth0Exception {
         ManagementAPI managementAPI = tokenManager.getManagementAPI();
         User auth0User = managementAPI.users().get(auth0Id, null).execute().getBody();
 
-        if (auth0User == null) {
-            throw new Auth0Exception("Utilisateur non trouvé dans Auth0 pour l'ID: " + auth0Id);
-        }
+        return userRepository.findByAuth0Id(auth0Id).map(user -> {
+            CustomUser before = user.toBuilder().build();
+            boolean updated = false;
 
-        if (userRepository.findByAuth0Id(auth0Id).isPresent()) {
-            logger.warn("Utilisateur déjà existant", keyValue("auth0Id", auth0Id));
-            return userRepository.findByAuth0Id(auth0Id).get();
-        }
+            if (!Objects.equals(user.getEmail(), auth0User.getEmail())) {
+                user.setEmail(auth0User.getEmail());
+                updated = true;
+            }
+            if (!Objects.equals(user.getFirstName(), auth0User.getGivenName())) {
+                user.setFirstName(auth0User.getGivenName());
+                updated = true;
+            }
+            if (!Objects.equals(user.getLastName(), auth0User.getFamilyName())) {
+                user.setLastName(auth0User.getFamilyName());
+                updated = true;
+            }
+            if (!Objects.equals(user.getPictureUrl(), auth0User.getPicture())) {
+                user.setPictureUrl(auth0User.getPicture());
+                updated = true;
+            }
+            if (!Objects.equals(user.getPhoneNumber(), auth0User.getPhoneNumber())) {
+                user.setPhoneNumber(auth0User.getPhoneNumber());
+                updated = true;
+            }
 
-        CustomUser user = CustomUser.builder()
-                .auth0Id(auth0User.getId())
-                .email(auth0User.getEmail())
-                .pseudo(registrationRequest.getPseudo())
-                .firstName(auth0User.getGivenName())
-                .lastName(auth0User.getFamilyName())
-                .pictureUrl(auth0User.getPicture())
-                .phoneNumber(auth0User.getPhoneNumber())
-                .role(UserRole.USER)
-                .active(true)
-                .build();
+            if (!updated) {
+                return user;
+            }
 
-        logger.info("Enregistrement d'un nouvel utilisateur", keyValue("email", user.getEmail()));
-        CustomUser created = userRepository.save(user);
-        logger.info("Utilisateur créé avec succès", keyValue("userId", created.getId()));
+            user.setLastUpdate(LocalDateTime.now());
+            CustomUser saved = userRepository.save(user);
 
-        return created;
+            DiffUtils.logChanges(before, saved, logger, "update_user", saved.getId());
+
+            return saved;
+        }).orElseGet(() -> {
+            CustomUser newUser = CustomUser.builder()
+                    .auth0Id(auth0User.getId())
+                    .email(auth0User.getEmail())
+                    .pseudo(generatePseudo(auth0User.getEmail()))
+                    .firstName(auth0User.getGivenName())
+                    .lastName(auth0User.getFamilyName())
+                    .pictureUrl(auth0User.getPicture())
+                    .phoneNumber(auth0User.getPhoneNumber())
+                    .role(UserRole.USER)
+                    .active(true)
+                    .createdAt(LocalDateTime.now())
+                    .lastUpdate(LocalDateTime.now())
+                    .build();
+
+            CustomUser created = userRepository.save(newUser);
+
+            logger.info("User created successfully",
+                    keyValue("action", "create_user"),
+                    keyValue("auth0Id", auth0Id),
+                    keyValue("userId", created.getId()),
+                    keyValue("email", created.getEmail()));
+
+            return created;
+        });
     }
 
     /**
      * Supprime un utilisateur de la base de données et de Auth0.
      *
      * @param auth0Id L'identifiant Auth0 de l'utilisateur à supprimer.
-     * @throws CustomUserNotFoundException si l'utilisateur n'existe pas dans la base de données.
-     * @throws Auth0Exception              si la suppression de l'utilisateur dans Auth0 échoue.
+     * @throws CustomUserNotFoundException si l'utilisateur n'existe pas dans la
+     *                                     base de données.
+     * @throws Auth0Exception              si la suppression de l'utilisateur dans
+     *                                     Auth0 échoue.
      */
     @Transactional
     public void deleteUser(String auth0Id) throws Auth0Exception {

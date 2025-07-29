@@ -3,7 +3,6 @@ package com.blockout.users.controllers.v1;
 import com.auth0.exception.Auth0Exception;
 import com.blockout.users.models.CustomUser;
 import com.blockout.users.models.dto.CustomUserDto;
-import com.blockout.users.models.dto.UserRegistrationRequestDTO;
 import com.blockout.users.services.UserService;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -17,9 +16,6 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
-
-import java.net.URI;
 
 @RestController
 @RequiredArgsConstructor
@@ -40,26 +36,17 @@ public class UserController {
         return ResponseEntity.ok(user);
     }
 
-    @Operation(summary = "Enregistrer un utilisateur", description = "Crée un nouvel utilisateur à partir du token Auth0.")
+    @Operation(summary = "Créer ou mettre à jour l'utilisateur courant", description = "Crée l'utilisateur s'il n'existe pas encore, ou met à jour ses données depuis Auth0 si nécessaire.")
     @ApiResponses({
-            @ApiResponse(responseCode = "201", description = "Utilisateur créé"),
-            @ApiResponse(responseCode = "400", description = "Requête invalide")
+            @ApiResponse(responseCode = "200", description = "Utilisateur existant ou mis à jour avec succès"),
+            @ApiResponse(responseCode = "500", description = "Erreur lors de la récupération depuis Auth0")
     })
-    @PreAuthorize("hasAuthority('SCOPE_create:users') or hasAuthority('SCOPE_create:current_user')")
-    @PostMapping
-    public ResponseEntity<CustomUser> registerUser(
-            @RequestBody UserRegistrationRequestDTO body,
-            @AuthenticationPrincipal Jwt jwt) throws Auth0Exception {
-
+    @PreAuthorize("hasAuthority('SCOPE_user:ensure')")
+    @PutMapping("/me")
+    public ResponseEntity<CustomUser> ensureCurrentUser(@AuthenticationPrincipal Jwt jwt) throws Auth0Exception {
         String auth0Id = jwt.getSubject();
-        CustomUser created = userService.registerUser(auth0Id, body);
-
-        URI location = ServletUriComponentsBuilder.fromCurrentRequest()
-                .path("/{id}")
-                .buildAndExpand(created.getId())
-                .toUri();
-
-        return ResponseEntity.created(location).body(created);
+        CustomUser user = userService.ensureCurrentUser(auth0Id);
+        return ResponseEntity.ok(user);
     }
 
     @Operation(summary = "Supprimer un utilisateur", description = "Supprime un utilisateur dans Auth0 et en base de données.")
