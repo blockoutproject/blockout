@@ -8,8 +8,6 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import java.util.List;
 
-import com.blockout.users.models.enums.UserRole;
-
 @Data
 @Builder(toBuilder = true)
 @NoArgsConstructor
@@ -45,10 +43,6 @@ public class CustomUser {
 
     @Column(name = "phone_number")
     private String phoneNumber;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "role", nullable = false)
-    private UserRole role;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<UserFavorite> favorites;
