@@ -29,9 +29,21 @@ public class UserController {
             @ApiResponse(responseCode = "200", description = "Utilisateur trouvé"),
             @ApiResponse(responseCode = "404", description = "Utilisateur non trouvé")
     })
-    @PreAuthorize("hasAuthority('SCOPE_read:users') or hasAuthority('SCOPE_read:current_user')")
+    @PreAuthorize("hasAuthority('SCOPE_read:users')")
     @GetMapping("/{auth0Id}")
     public ResponseEntity<CustomUserDto> getUserByAuth0Id(@PathVariable String auth0Id) {
+        CustomUserDto user = userService.getUserByAuth0Id(auth0Id);
+        return ResponseEntity.ok(user);
+    }
+
+    @Operation(summary = "Récupérer l'utilisateur courant", description = "Retourne l'utilisateur correspondant au token JWT.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Utilisateur trouvé"),
+            @ApiResponse(responseCode = "404", description = "Utilisateur non trouvé")
+    })
+    @GetMapping("/me")
+    public ResponseEntity<CustomUserDto> getCurrentUser(@AuthenticationPrincipal Jwt jwt) {
+        String auth0Id = jwt.getSubject();
         CustomUserDto user = userService.getUserByAuth0Id(auth0Id);
         return ResponseEntity.ok(user);
     }
@@ -41,7 +53,6 @@ public class UserController {
             @ApiResponse(responseCode = "200", description = "Utilisateur existant ou mis à jour avec succès"),
             @ApiResponse(responseCode = "500", description = "Erreur lors de la récupération depuis Auth0")
     })
-    @PreAuthorize("hasAuthority('SCOPE_user:ensure')")
     @PutMapping("/me")
     public ResponseEntity<CustomUser> ensureCurrentUser(@AuthenticationPrincipal Jwt jwt) throws Auth0Exception {
         String auth0Id = jwt.getSubject();
