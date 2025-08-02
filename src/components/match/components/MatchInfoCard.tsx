@@ -11,9 +11,9 @@ import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 
 import { useAppTheme } from "@/src/context/ThemeProvider";
-import PoolScreen from "../../pool/PoolScreen";
 import BottomSheetCustomPage from "../../common/BottomSheetCustomPage";
 import { EnrichedMatchDTO } from "@/src/types/Match";
+import { router } from "expo-router";
 
 type MatchInfoCardProps = {
     enrichedMatch: EnrichedMatchDTO
@@ -22,13 +22,9 @@ type MatchInfoCardProps = {
 const MatchInfoCard: React.FC<MatchInfoCardProps> = ({ enrichedMatch }) => {
     const theme = useAppTheme();
 
-    const poolSheetRef = useRef<BottomSheetModal>(null);
-    const [selectedPoolId, setSelectedPoolId] = useState<number | null>(null);
-
-    const openPoolSheet = (id: number) => {
+    const handlePoolPress = (poolId: number) => {
         Haptics.selectionAsync();
-        setSelectedPoolId(id);
-        poolSheetRef.current?.present();
+        router.push(`/pool/${poolId}`);
     };
 
     const InfoRow = ({
@@ -54,12 +50,14 @@ const MatchInfoCard: React.FC<MatchInfoCardProps> = ({ enrichedMatch }) => {
         ) : null;
 
     return (
-        <>
-            <View style={[styles.container, { backgroundColor: theme.background, borderColor: enrichedMatch.pool.division.mainColor }]}>
-                <Text style={[styles.title, { color: theme.text }]}>Information</Text>
+        <View style={[styles.container, { backgroundColor: theme.background, borderColor: enrichedMatch.pool.division.mainColor }]}>
+            <Text style={[styles.title, { color: theme.text }]}>Information</Text>
 
-                <View style={styles.infoRow}>
-                <TouchableOpacity onPress={() => openPoolSheet(enrichedMatch.pool.id)} style={styles.row}>
+            <View style={styles.infoRow}>
+                <TouchableOpacity
+                    style={styles.row}
+                    onPress={() => handlePoolPress(enrichedMatch.pool.id)}
+                >
                     <Image
                         source={{ uri: enrichedMatch.pool.division.logoUrl || "" }}
                         style={[styles.poolLogo, { backgroundColor: theme.text }]}
@@ -90,13 +88,8 @@ const MatchInfoCard: React.FC<MatchInfoCardProps> = ({ enrichedMatch }) => {
                 <InfoRow icon="map-marker" text={enrichedMatch.venue} />
                 <InfoRow icon="whistle" text={enrichedMatch.firstReferee} />
                 <InfoRow icon="whistle" text={enrichedMatch.secondReferee} />
-                </View>
             </View>
-
-            <BottomSheetCustomPage ref={poolSheetRef}>
-                    {selectedPoolId && <PoolScreen poolId={selectedPoolId} />}
-            </BottomSheetCustomPage>
-        </>
+        </View>
     );
 };
 

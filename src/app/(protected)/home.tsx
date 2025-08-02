@@ -1,25 +1,16 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
-import { StyleSheet, Animated, Button, View } from "react-native";
-import {
-    NavigationState,
-    Route,
-    SceneRendererProps,
-    TabView,
-} from "react-native-tab-view";
-import MatchList from "@/src/components/matchList/MatchListContainer";
-import { MatchStatus } from "@/src/types/Match";
-import { Filter } from "@/src/types/Filter";
-import { EntityType } from "@/src/types/User";
-import AnimatedHomeHeader from "@/src/components/home/AnimatedHomeHeader";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useUserContext } from "@/src/context/UserProvider";
-import ExampleBottomSheet from "@/src/components/Test";
-import BottomSheet from "@gorhom/bottom-sheet";
+import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
+import { StyleSheet, Animated } from 'react-native';
+import { NavigationState, Route, SceneRendererProps, TabView } from 'react-native-tab-view';
+import MatchList from '@/src/components/matchList/MatchListContainer';
+import { MatchStatus } from '@/src/types/Match';
+import { EntityType } from '@/src/types/User';
+import AnimatedHomeHeader from '@/src/components/home/AnimatedHomeHeader';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useUserContext } from '@/src/context/UserProvider';
 
 const HomeScreen: React.FC = () => {
     const insets = useSafeAreaInsets();
     const { customUser } = useUserContext();
-    if (!customUser) return null;
 
     const scrollY = useRef(new Animated.Value(0)).current;
 
@@ -30,24 +21,33 @@ const HomeScreen: React.FC = () => {
 
     useEffect(() => {
         setHeaderOffset(insets.top + tabBarHeight + titleHeight);
-    }, [tabBarHeight, titleHeight]);
+    }, [insets.top, tabBarHeight, titleHeight]);
 
-    const userFavoritePools = useMemo(() => {
-        return customUser.favorites
-            ?.filter((fav) => fav.entityType === EntityType.POOL)
-            .map((fav) => fav.entityId) || [];
-    }, [customUser.favorites]);
+    const favorites = customUser?.favorites ?? [];
 
-    const userFavoriteTeams = useMemo(() => {
-        return customUser.favorites
-            ?.filter((fav) => fav.entityType === EntityType.TEAM)
-            .map((fav) => fav.entityId) || [];
-    }, [customUser.favorites]);
+    const userFavoritePools = useMemo(
+        () =>
+            favorites
+                .filter((fav) => fav.entityType === EntityType.POOL)
+                .map((fav) => fav.entityId),
+        [favorites]
+    );
 
-    const routes = [
-        { key: "finished", title: "Terminés" },
-        { key: "upcoming", title: "À Venir" },
-    ];
+    const userFavoriteTeams = useMemo(
+        () =>
+            favorites
+                .filter((fav) => fav.entityType === EntityType.TEAM)
+                .map((fav) => fav.entityId),
+        [favorites]
+    );
+
+    const routes = useMemo(
+        () => [
+            { key: 'finished', title: 'Terminés' },
+            { key: 'upcoming', title: 'À Venir' },
+        ],
+        []
+    );
 
     const finishedTab = useMemo(
         () => (
@@ -66,7 +66,7 @@ const HomeScreen: React.FC = () => {
                 home
             />
         ),
-        [userFavoritePools, userFavoriteTeams, headerOffset]
+        [userFavoritePools, userFavoriteTeams, headerOffset, insets.top, tabBarHeight, titleHeight, scrollY]
     );
 
     const upcomingTab = useMemo(
@@ -86,44 +86,42 @@ const HomeScreen: React.FC = () => {
                 home
             />
         ),
-        [userFavoritePools, userFavoriteTeams, headerOffset]
+        [userFavoritePools, userFavoriteTeams, headerOffset, insets.top, tabBarHeight, titleHeight, scrollY]
     );
 
-    const onTabChange = (i: number) => {
+    const onTabChange = useCallback((i: number) => {
         setIndex(i);
-    };
+    }, []);
 
-    const renderScene = ({ route }: SceneRendererProps & { route: Route }) => {
-        switch (route.key) {
-            case "finished":
-                return finishedTab;
-            case "upcoming":
-                return upcomingTab;
-            default:
-                return null;
-        }
-    };
+    const renderScene = useCallback(
+        ({ route }: SceneRendererProps & { route: Route }) => {
+            switch (route.key) {
+                case 'finished':
+                    return finishedTab;
+                case 'upcoming':
+                    return upcomingTab;
+                default:
+                    return null;
+            }
+        },
+        [finishedTab, upcomingTab]
+    );
 
-    const renderTabBar = (
-        props: SceneRendererProps & {
-            navigationState: NavigationState<Route>;
-        }
-    ) => {
-        return (
+    const renderTabBar = useCallback(
+        (props: SceneRendererProps & { navigationState: NavigationState<Route> }) => (
             <AnimatedHomeHeader
                 {...props}
                 scrollY={scrollY}
                 onTitleLayout={setTitleHeight}
                 onTabBarLayout={setTabBarHeight}
             />
-        );
-    };
+        ),
+        [scrollY]
+    );
 
-      const bottomSheetRef = useRef<BottomSheet>(null);
-
-  const openSheet = () => {
-    bottomSheetRef.current?.expand();
-  };
+    if (!customUser) {
+        return null;
+    }
 
     return (
         <TabView
@@ -134,17 +132,13 @@ const HomeScreen: React.FC = () => {
             renderTabBar={renderTabBar}
             commonOptions={{ labelStyle: styles.tabItem }}
         />
-    //         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-    //   <Button title="Open Bottom Sheet" onPress={openSheet} />
-    //   <ExampleBottomSheet ref={bottomSheetRef} />
-    // </View>
     );
 };
 
 const styles = StyleSheet.create({
     tabItem: {
         fontSize: 14,
-        fontWeight: "700",
+        fontWeight: '700',
     },
 });
 

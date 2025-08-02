@@ -15,14 +15,13 @@ import * as Haptics from "expo-haptics";
 import EmptyPrompt from "../common/feedback/EmptyPrompt";
 import ErrorPrompt from "../common/feedback/ErrorPrompt";
 import PoolItem from "./components/PoolItem";
-import MatchScreen from "@/src/components/match/MatchScreen";
-import PoolScreen from "../pool/PoolScreen";
 import { useMatchList } from "@/src/hooks/match/useMatchList";
 import {
     BottomSheetModal
 } from "@gorhom/bottom-sheet";
 import BottomSheetCustomPage from "../common/BottomSheetCustomPage";
 import { useThemeColor } from "@/src/hooks/useThemeColor";
+import { router } from "expo-router";
 
 type Props = {
     poolIds?: number[];
@@ -47,9 +46,7 @@ const MatchListContainer: React.FC<Props> = ({
     const text = useThemeColor({}, "text");
 
     const poolSheetRef = useRef<BottomSheetModal>(null);
-    const matchSheetRef = useRef<BottomSheetModal>(null);
     const [selectedPoolId, setSelectedPoolId] = useState<number | null>(null);
-    const [selectedMatchId, setSelectedMatchId] = useState<number | null>(null);
 
     const {
         dayMatches,
@@ -81,10 +78,14 @@ const MatchListContainer: React.FC<Props> = ({
         poolSheetRef.current?.present();
     };
 
-    const openMatchSheet = (id: number) => {
+    const handlePoolPress = (poolId: number) => {
         Haptics.selectionAsync();
-        setSelectedMatchId(id);
-        matchSheetRef.current?.present();
+        router.push(`/pool/${poolId}`);
+    };
+
+    const handleMatchPress = (matchId: number) => {
+        Haptics.selectionAsync();
+        router.push(`/match/${matchId}`);
     };
 
     const sections = useMemo(
@@ -113,8 +114,8 @@ const MatchListContainer: React.FC<Props> = ({
     const renderItem = ({ item }: any) => (
         <PoolItem
             enrichedPoolMatches={item}
-            handlePoolPress={openPoolSheet}
-            handleMatchPress={openMatchSheet}
+            handlePoolPress={handlePoolPress}
+            handleMatchPress={handleMatchPress}
         />
     );
 
@@ -190,34 +191,38 @@ const MatchListContainer: React.FC<Props> = ({
     };
 
     return (
-        <>
-            <View style={[styles.container, { backgroundColor: background }]}>
-                {body()}
-            </View>
-
-            <BottomSheetCustomPage ref={poolSheetRef}>
-                {selectedPoolId && <PoolScreen poolId={selectedPoolId} />}
-            </BottomSheetCustomPage>
-
-            <BottomSheetCustomPage ref={matchSheetRef}>
-                {selectedMatchId && <MatchScreen matchId={selectedMatchId} />}
-            </BottomSheetCustomPage>
-        </>
+        <View style={[styles.container, { backgroundColor: background }]}>
+            {body()}
+        </View>
     );
 };
 
 const styles = StyleSheet.create({
-    container: { flex: 1 },
-    sectionListContent: { paddingBottom: 8 },
-    itemSeparator: { height: 16 },
-    sectionSeparator: { height: 6 },
-    dateContainer: { backgroundColor: "transparent", alignItems: "center" },
+    container: { 
+        flex: 1 
+    },
+    sectionListContent: { 
+        paddingBottom: 8 
+    },
+    itemSeparator: { 
+        height: 16 
+    },
+    sectionSeparator: { 
+        height: 6 
+    },
+    dateContainer: { 
+        backgroundColor: "transparent", 
+        alignItems: "center" 
+    },
     dateBackground: {
         borderRadius: 14,
         paddingHorizontal: 6,
         paddingVertical: 4,
     },
-    dateHeader: { fontSize: 16, fontWeight: "800" },
+    dateHeader: { 
+        fontSize: 16, 
+        fontWeight: "800" 
+    },
 });
 
 export default MatchListContainer;

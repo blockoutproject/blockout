@@ -33,6 +33,17 @@ class UsersApi extends AbstractApi {
     }
 
     /**
+     * Crée ou met à jour l'utilisateur courant à partir du profil Auth0.
+     * Ce endpoint est idempotent : aucun changement si les données n'ont pas évolué.
+     */
+    public async ensureCurrentUser(): Promise<CustomUser> {
+        return await this.request<CustomUser>({
+            method: 'put',
+            url: '/me'
+        });
+    }
+
+    /**
      * Vérifie si un utilisateur existe dans la base de données.
      * @param auth0Id Identifiant Auth0 de l’utilisateur.
      */
@@ -51,16 +62,29 @@ class UsersApi extends AbstractApi {
     }
 
     /**
-     * Enregistre un nouvel utilisateur.
-     * @param data Données de création de l’utilisateur.
+     * Récupère les informations de l'utilisateur courant via le JWT.
      */
-    public async registerUser(
-        data: UserRegistrationRequest
-    ): Promise<CustomUser> {
-        return this.request<CustomUser>({
-            method: 'post',
-            url: '',
-            data
+    public async getCurrentUser(): Promise<CustomUser | null> {
+        try {
+            return await this.request<CustomUser>({
+                method: 'get',
+                url: '/me'
+            });
+        } catch (error) {
+            if (error instanceof ApiError && error.status === 404) {
+                return null;
+            }
+            throw error;
+        }
+    }
+
+    /**
+     * Supprime l’utilisateur actuellement connecté.
+     */
+    public async deleteCurrentUser(): Promise<void> {
+        await this.request<void>({
+            method: 'delete',
+            url: ''
         });
     }
 

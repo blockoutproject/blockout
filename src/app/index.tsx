@@ -1,5 +1,7 @@
 import { Redirect } from 'expo-router';
+import { useSession } from '@/src/context/SessionProvider';
 
 export default function Index() {
-    return <Redirect href="/home" />;
+    const { session } = useSession();
+    return <Redirect href={session ? '/(protected)/home' : '/(auth)/login'} />;
 }

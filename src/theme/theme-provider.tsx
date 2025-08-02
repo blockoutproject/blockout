@@ -44,7 +44,7 @@ export const ThemeProvider = ({ children }: Props) => {
 
     return (
         <RNThemeProvider
-            value={colorScheme === 'dark' ? customDarkTheme : customLightTheme}
+            value={colorScheme === 'dark' ? customDarkTheme : customDarkTheme}
         >
             {children}
         </RNThemeProvider>

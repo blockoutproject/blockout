@@ -1,18 +1,20 @@
 import React from 'react';
 import { Text, View, StyleSheet } from 'react-native';
 import { useAppTheme } from '@/src/context/ThemeProvider';
-import MatchSkeleton from './components/MatchSkeleton';
-import MatchScoreCard from './components/MatchScoreCard';
-import RankingCard from '../common/RankingCard';
-import MatchScoreDetailsCard from './components/MatchScoreDetailsCard';
-import MatchInfoCard from './components/MatchInfoCard';
-import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useEnrichedMatchById } from '@/src/hooks/match/useEnrichedMatchById';
+import MatchSkeleton from '@/src/components/match/components/MatchSkeleton';
+import MatchScoreCard from '@/src/components/match/components/MatchScoreCard';
+import MatchScoreDetailsCard from '@/src/components/match/components/MatchScoreDetailsCard';
+import MatchInfoCard from '@/src/components/match/components/MatchInfoCard';
+import RankingCard from '@/src/components/common/RankingCard';
+import { useLocalSearchParams } from 'expo-router';
+import { ScrollView } from 'react-native-gesture-handler';
+import { HEIGHT } from '@/src/theme/globals';
 
-type Props = { matchId: number };
-
-const MatchScreen: React.FC<Props> = ({ matchId }) => {
+const Match: React.FC = () => {
+    const { match_id } = useLocalSearchParams();
+    const matchId = Number(match_id);
     const { data: enrichedMatch, isLoading, isError } = useEnrichedMatchById(matchId)
 
     const theme = useAppTheme();
@@ -40,12 +42,12 @@ const MatchScreen: React.FC<Props> = ({ matchId }) => {
     ];
 
     return (
-        <BottomSheetScrollView
+        <ScrollView
             scrollEnabled={true}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={[
                 styles.scrollContent,
-                { paddingBottom: insets.bottom + 8 },
+                { paddingBottom: insets.bottom, paddingTop: insets.top + HEIGHT + 10 },
             ]}
         >
             <MatchScoreCard
@@ -63,16 +65,15 @@ const MatchScreen: React.FC<Props> = ({ matchId }) => {
                 enrichedPool={enrichedMatch.pool}
                 scrollable={false}
             />
-        </BottomSheetScrollView>
+        </ScrollView>
     );
 };
 
 const styles = StyleSheet.create({
     scrollContent: {
         gap: 20,
-        paddingTop: 8,
         paddingHorizontal: 4,
     },
 });
 
-export default MatchScreen;
+export default Match;

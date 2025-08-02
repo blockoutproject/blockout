@@ -1,4 +1,4 @@
-import React, { useRef, useState, useCallback } from "react";
+import React from "react";
 import {
     View,
     Text,
@@ -6,14 +6,12 @@ import {
     TouchableOpacity,
     ListRenderItemInfo,
 } from "react-native";
-import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import { Image } from 'expo-image';
 import * as Haptics from "expo-haptics";
 import { useAppTheme } from "@/src/context/ThemeProvider";
-import TeamContainer from "../team/TeamScreen";
-import BottomSheetCustomPage from "./BottomSheetCustomPage";
 import { EnrichedPoolDTO } from "@/src/types/Pool";
 import { FlatList } from "react-native-gesture-handler";
+import { router } from "expo-router";
 
 interface RankingCardProps {
     enrichedPool: EnrichedPoolDTO;
@@ -28,14 +26,11 @@ const RankingCard: React.FC<RankingCardProps> = ({
     scrollable = true,
 }) => {
     const theme = useAppTheme();
-    const teamSheetRef = useRef<BottomSheetModal>(null);
-    const [selectedTeam, setSelectedTeam] = useState<number | null>(null);
 
-    const openTeamSheet = useCallback((teamId: number) => {
+    const handleTeamPress = (teamId: number) => {
         Haptics.selectionAsync();
-        setSelectedTeam(teamId);
-        teamSheetRef.current?.present();
-    }, []);
+        router.push(`/team/${teamId}`);
+    };
 
     const ListHeader = () => (
         <View style={[styles.headerRow, { backgroundColor: theme.background }]}>
@@ -84,7 +79,7 @@ const RankingCard: React.FC<RankingCardProps> = ({
 
                 <TouchableOpacity
                     style={[styles.teamCell, styles.teamContainer]}
-                    onPress={() => openTeamSheet(item.id)}
+                    onPress={() => handleTeamPress(item.id)}
                 >
                     <Image
                         source={
@@ -133,13 +128,9 @@ const RankingCard: React.FC<RankingCardProps> = ({
                     stickyHeaderIndices={[0]}
                     showsVerticalScrollIndicator={false}
                     scrollEnabled={scrollable}
-                    contentContainerStyle={{ paddingHorizontal: 8 }}
+                    contentContainerStyle={{ paddingHorizontal: 8, paddingBottom: 8 }}
                 />
             </View>
-
-            <BottomSheetCustomPage ref={teamSheetRef}>
-                {selectedTeam && <TeamContainer teamId={selectedTeam} />}
-            </BottomSheetCustomPage>
         </>
     );
 };

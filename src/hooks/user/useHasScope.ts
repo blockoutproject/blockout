@@ -1,41 +1,60 @@
+import { useEffect, useMemo, useState } from 'react';
 import { useAuth0 } from 'react-native-auth0';
-import jwtDecode from 'jwt-decode';
-import { useEffect, useState } from 'react';
+import { jwtDecode } from 'jwt-decode'; // v4 : import nommé
+import { useSession } from '@/src/context/SessionProvider';
 
 type JwtPayloadWithPermissions = {
     permissions?: string[];
 };
 
+/**
+ * Retourne true si TOUS les scopes requis sont présents.
+ * - Appelle getCredentials() seulement quand la session est authentifiée,
+ *   et quand la liste des scopes change (clé mémoïsée).
+ */
 export const useHasScopes = (requiredScopes: string[]): boolean => {
+    const { session } = useSession();
     const { getCredentials } = useAuth0();
     const [hasScopes, setHasScopes] = useState(false);
 
-    useEffect(() => {
-        const checkScopes = async () => {
-            try {
-                const credentials = await getCredentials();
+    // Clé stable pour éviter des reruns inutiles
+    const key = useMemo(
+        () => JSON.stringify([...new Set(requiredScopes)].sort()),
+        [requiredScopes]
+    );
 
-                if (!credentials?.accessToken) {
-                    setHasScopes(false);
+    useEffect(() => {
+        let alive = true;
+
+        if (!session || requiredScopes.length === 0) {
+            if (alive) setHasScopes(false);
+            return () => {
+                alive = false;
+            };
+        }
+
+        (async () => {
+            try {
+                const { accessToken } = await getCredentials();
+                if (!accessToken) {
+                    if (alive) setHasScopes(false);
                     return;
                 }
 
-                const decoded = jwtDecode<JwtPayloadWithPermissions>(credentials.accessToken);
+                const decoded = jwtDecode<JwtPayloadWithPermissions>(accessToken);
                 const userScopes = decoded.permissions ?? [];
-
-                const allScopesPresent = requiredScopes.every(scope =>
-                    userScopes.includes(scope)
-                );
-
-                setHasScopes(allScopesPresent);
+                const ok = requiredScopes.every((s) => userScopes.includes(s));
+                if (alive) setHasScopes(ok);
             } catch (err) {
-                console.error('Erreur lors de la vérification des scopes :', err);
-                setHasScopes(false);
+                console.warn('useHasScopes: unable to read credentials/scopes', err);
+                if (alive) setHasScopes(false);
             }
-        };
+        })();
 
-        checkScopes();
-    }, [requiredScopes]);
+        return () => {
+            alive = false;
+        };
+    }, [session, key, getCredentials]);
 
     return hasScopes;
 };

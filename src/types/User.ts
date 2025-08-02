@@ -19,7 +19,6 @@ export interface CustomUser {
     lastName?: string;
     pictureUrl?: string;
     phoneNumber?: string;
-    role: UserRole;
     favorites?: UserFavorite[];
     active: boolean;
     createdAt: string;
@@ -33,12 +32,4 @@ export interface UserFavorite {
 
 export interface UserRegistrationRequest {
     pseudo: string;
-}
-
-export interface UserContextValue {
-    auth0User: User | null;
-    customUser: CustomUser | null | undefined;
-    isLoading: boolean;
-    error: unknown;
-    refetch: () => void;
 }

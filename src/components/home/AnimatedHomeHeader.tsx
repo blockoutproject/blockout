@@ -34,6 +34,7 @@ import {
 import BottomSheetCustomPage from "../common/BottomSheetCustomPage";
 import ScraperStatusScreen from "../scraper/ScraperStatusScreen";
 import BottomSheetCustomModal from "../common/BottomSheetCustomModal";
+import { router } from "expo-router";
 
 type HeaderProps = SceneRendererProps & {
     navigationState: NavigationState<Route>;
@@ -53,7 +54,6 @@ const AnimatedHomeHeader: React.FC<HeaderProps> = ({
     const theme = useAppTheme();
     const [titleHeight, setTitleHeight] = useState(0);
 
-    const searchSheetRef = useRef<BottomSheetModal>(null);
     const mappingSheetRef = useRef<BottomSheetModal>(null);
     const divisionSheetRef = useRef<BottomSheetModal>(null);
     const profileSheetRef = useRef<BottomSheetModal>(null);
@@ -104,12 +104,17 @@ const AnimatedHomeHeader: React.FC<HeaderProps> = ({
         ref.current?.present();
     };
 
+    const handleSearchPress = () => {
+        Haptics.selectionAsync();
+        router.push("/search");
+    };
+
     return (
         <>
             <Animated.View
                 style={[
                     styles.container,
-                    { paddingTop: insets.top, transform: [{ translateY }] },
+                    { paddingTop: insets.top, transform: [{ translateY }], backgroundColor: theme.background},
                 ]}
             >
                 {Platform.OS === "ios" && (
@@ -170,7 +175,7 @@ const AnimatedHomeHeader: React.FC<HeaderProps> = ({
                     />
 
                     <View style={styles.actions}>
-                        <TouchableOpacity onPress={open(searchSheetRef)}>
+                        <TouchableOpacity onPress={handleSearchPress}>
                             <MaterialCommunityIcons name="magnify" size={25} color={theme.text} />
                         </TouchableOpacity>
 
@@ -198,10 +203,6 @@ const AnimatedHomeHeader: React.FC<HeaderProps> = ({
                     </View>
                 </View>
             </Animated.View>
-
-            <BottomSheetCustomPage ref={searchSheetRef}>
-                <SearchContainer />
-            </BottomSheetCustomPage>
 
             <BottomSheetCustomPage ref={mappingSheetRef}>
                 <RawDivisionMappingsScreen />

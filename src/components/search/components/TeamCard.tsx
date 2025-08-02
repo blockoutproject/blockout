@@ -17,10 +17,7 @@ const TeamCard: React.FC<Props> = ({ team, onPress }) => {
             onPress={onPress}
             style={[
                 styles.card,
-                {
-                    backgroundColor: theme.surface,
-                    shadowColor: theme.background,
-                },
+                { backgroundColor: theme.surface, shadowColor: theme.background },
             ]}
         >
             {/* Logo */}

@@ -8,9 +8,8 @@ import {
     ActivityIndicator,
     Keyboard,
 } from "react-native";
-import { useDebounce } from "use-debounce";
 import { useAppTheme } from "@/src/context/ThemeProvider";
-import { BottomSheetModal, BottomSheetFlatList } from "@gorhom/bottom-sheet";
+import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import SearchBar from "@/src/components/common/SearchBar";
 import ClubCard from "@/src/components/search/components/ClubCard";
 import ClubContainer from "@/src/components/club/ClubScreen";
@@ -20,6 +19,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import BottomSheetCustomPage from "@/src/components/common/BottomSheetCustomPage";
 import * as Haptics from "expo-haptics";
 import { useSearchClubs } from "@/src/hooks/search/useSearchClubs";
+import { FlatList } from "react-native-gesture-handler";
 
 type Props = {
     search: string;
@@ -88,7 +88,7 @@ const SearchClubScreen: React.FC<Props> = ({
                     <ErrorState message="Une erreur est survenue. Réessaie plus tard." />
                 )}
 
-                <BottomSheetFlatList
+                <FlatList
                     data={clubs}
                     keyExtractor={(item) => item.id.toString()}
                     renderItem={({ item }) => (

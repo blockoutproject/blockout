@@ -1,15 +1,14 @@
 import React from 'react';
-import { Slot } from 'expo-router';
-import { useAuthGuard } from '@/src/hooks/auth/useAuthGuard';
-import AppLoader from '@/src/components/common/AppLoader';
-import { useUserContext } from '@/src/context/UserProvider';
+import { Slot, Stack } from 'expo-router';
 
 export default function AuthLayout() {
-    useAuthGuard();
-    const { isLoading } = useUserContext();
-
-    if (isLoading) {
-        return <AppLoader />;
-    }
-    return <Slot />;
+    return (
+        <Stack
+            screenOptions={{
+                headerShown: false
+            }}
+        >
+            <Stack.Screen name="login" />
+        </Stack>
+    );
 }

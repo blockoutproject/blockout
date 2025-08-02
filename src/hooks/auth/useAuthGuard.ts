@@ -14,15 +14,10 @@ export const useAuthGuard = () => {
 
         const inAuthGroup = currentGroup === '(auth)';
         const inProtectedGroup = currentGroup === '(protected)';
-        const inOnboardingGroup = currentGroup === '(onboarding)';
 
-        if (!auth0User && (inProtectedGroup || inOnboardingGroup)) {
+        if (!auth0User && inProtectedGroup) {
             router.replace('/(auth)/login');
-        } else if (auth0User && !customUser && !inOnboardingGroup) {
-            // Utilisateur connecté mais pas encore onboardé ➝ onboarding
-            router.replace('/(onboarding)/pseudo');
-        } else if (auth0User && customUser && (inAuthGroup || inOnboardingGroup)) {
-            // Utilisateur onboardé ➝ mais encore sur une route publique ➝ home
+        } else if (auth0User && customUser && inAuthGroup) {
             router.replace('/(protected)/home');
         }
     }, [auth0User, customUser, isLoading, segments]);

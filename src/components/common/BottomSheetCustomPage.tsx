@@ -4,7 +4,6 @@ import {
     BottomSheetBackdropProps,
     BottomSheetModal,
     BottomSheetModalProps,
-    BottomSheetView,
 } from "@gorhom/bottom-sheet";
 
 import { useSafeAreaInsets } from "react-native-safe-area-context";

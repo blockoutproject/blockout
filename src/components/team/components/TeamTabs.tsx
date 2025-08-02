@@ -1,25 +1,23 @@
-import React from "react";
-import GenericTabView from "@/src/components/common/GenericTabView";
-import MatchList from "@/src/components/matchList/MatchListContainer";
-import { MatchStatus } from "@/src/types/Match";
-import { useAppTheme } from "@/src/context/ThemeProvider";
-import { EnrichedTeamDTO } from "@/src/types/Team";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import RankingTab from "../../common/RankingTab";
+import React from 'react';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-type TeamTabsProps = {
-    enrichedTeam: EnrichedTeamDTO;
-};
+import GenericTabView from '@/src/components/common/GenericTabView';
+import MatchList from '@/src/components/matchList/MatchListContainer';
+import RankingTab from '@/src/components/common/RankingTab';
 
-const TeamTabs: React.FC<TeamTabsProps> = ({ enrichedTeam }) => {
-    const theme = useAppTheme();
+import { MatchStatus } from '@/src/types/Match';
+import { EnrichedTeamDTO } from '@/src/types/Team';
+
+type Props = { enrichedTeam: EnrichedTeamDTO };
+
+const TeamTabs: React.FC<Props> = ({ enrichedTeam }) => {
     const insets = useSafeAreaInsets();
 
     const staticTabs = [
         {
-            key: "finished",
-            title: "Terminés",
-            render: () =>
+            key: 'finished',
+            title: 'Terminés',
+            render: () => (
                 <MatchList
                     teamIds={[enrichedTeam.id]}
                     status={MatchStatus.FINISHED}
@@ -28,12 +26,13 @@ const TeamTabs: React.FC<TeamTabsProps> = ({ enrichedTeam }) => {
                         marginTop: 8,
                         paddingBottom: insets.bottom + 8,
                     }}
-                />,
+                />
+            ),
         },
         {
-            key: "upcoming",
-            title: "À Venir",
-            render: () =>
+            key: 'upcoming',
+            title: 'À Venir',
+            render: () => (
                 <MatchList
                     teamIds={[enrichedTeam.id]}
                     status={MatchStatus.UPCOMING}
@@ -42,23 +41,18 @@ const TeamTabs: React.FC<TeamTabsProps> = ({ enrichedTeam }) => {
                         marginTop: 8,
                         paddingBottom: insets.bottom + 8,
                     }}
-                />,
+                />
+            ),
         },
     ];
 
-    const dynamicTabs = enrichedTeam.pools.map((enrichedPool) => ({
-        key: `pool-${enrichedPool.id}`,
-        title: `${enrichedPool.name}`,
-        render: () => <RankingTab key={enrichedPool.id} enrichedPool={enrichedPool}/>,
+    const dynamicTabs = enrichedTeam.pools.map((p) => ({
+        key: `pool-${p.id}`,
+        title: p.name,
+        render: () => <RankingTab enrichedPool={p} />,
     }));
 
-    const tabs = [...staticTabs, ...dynamicTabs];
-
-    return (
-        <GenericTabView
-            tabs={tabs}
-        />
-    );
+    return <GenericTabView tabs={[...staticTabs, ...dynamicTabs]} />;
 };
 
 export default TeamTabs;

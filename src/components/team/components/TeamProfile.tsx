@@ -82,7 +82,7 @@ const TeamProfile: React.FC<Props> = ({ enrichedTeam }) => {
                         <TouchableOpacity onPress={() => openClubSheet(enrichedTeam.club.id)} style={styles.infoLine}>
                             <MaterialCommunityIcons name="home" size={18} color={theme.text} />
                             <Text
-                                style={[styles.infoText, { color: theme.text, textDecorationLine: 'underline', fontWeight: '700' }]}
+                                style={[styles.infoText, { color: theme.text, textDecorationLine: 'underline', fontWeight: '500' }]}
                                 
                                 numberOfLines={1}
                                 ellipsizeMode="tail"
@@ -115,7 +115,6 @@ export default TeamProfile;
 
 const styles = StyleSheet.create({
     container: {
-        paddingTop: 8,
         paddingHorizontal: 16,
     },
     row: {
@@ -139,7 +138,7 @@ const styles = StyleSheet.create({
     },
     title: {
         fontWeight: '700',
-        fontSize: 20,
+        fontSize: 18,
         marginBottom: 10,
     },
     infoLine: {

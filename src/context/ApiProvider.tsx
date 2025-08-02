@@ -1,48 +1,48 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useAuth0 } from 'react-native-auth0';
+import { useSession } from '@/src/context/SessionProvider';
+
 import MatchesApi from '@/src/api/MatchesApi';
 import TeamsApi from '@/src/api/TeamsApi';
 import PoolsApi from '@/src/api/PoolsApi';
 import CompetitionsApi from '@/src/api/CompetitionsApi';
 import UsersApi from '@/src/api/UsersApi';
-import SearchApi from '../api/SearchApi';
-import MobileGatewayApi from '../api/MobileGatewayApi';
-import ConfigApi from '../api/ConfigApi';
-import ClubsApi from '../api/ClubsApi';
+import SearchApi from '@/src/api/SearchApi';
+import MobileGatewayApi from '@/src/api/MobileGatewayApi';
+import ConfigApi from '@/src/api/ConfigApi';
+import ClubsApi from '@/src/api/ClubsApi';
 
 export const ApiProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const { getCredentials, user } = useAuth0();
+    const { session } = useSession();
+    const { getCredentials } = useAuth0();
+    const initializedRef = useRef(false);
 
     useEffect(() => {
-        const initializeApis = async () => {
-            if (user) {
-                try {
-                    const credentials = await getCredentials();
-                    const token = credentials?.accessToken;
+        if (!session) { initializedRef.current = false; return; }
+        if (initializedRef.current) return;
 
-                    if (token) {
-                        console.info('Token récupéré avec succès :', token);
-                        // Initialiser les APIs avec le token
-                        MatchesApi.initInstance(token);
-                        TeamsApi.initInstance(token);
-                        PoolsApi.initInstance(token);
-                        CompetitionsApi.initInstance(token);
-                        UsersApi.initInstance(token);
-                        SearchApi.initInstance(token);
-                        MobileGatewayApi.initInstance(token);
-                        ConfigApi.initInstance(token);
-                        ClubsApi.initInstance(token);
+        (async () => {
+            try {
+                const creds = await getCredentials();
+                const token = creds?.accessToken;
+                if (!token) return;
 
-                        console.info('APIs initialisées avec succès.');
-                    }
-                } catch (error) {
-                    console.error('Erreur lors de l\'initialisation des APIs :', error);
-                }
+                MatchesApi.initInstance(token);
+                TeamsApi.initInstance(token);
+                PoolsApi.initInstance(token);
+                CompetitionsApi.initInstance(token);
+                UsersApi.initInstance(token);
+                SearchApi.initInstance(token);
+                MobileGatewayApi.initInstance(token);
+                ConfigApi.initInstance(token);
+                ClubsApi.initInstance(token);
+
+                initializedRef.current = true;
+            } catch (e) {
+                console.error('API init failed:', e);
             }
-        };
-
-        initializeApis();
-    }, [getCredentials, user]);
+        })();
+    }, [session, getCredentials]);
 
     return <>{children}</>;
 };

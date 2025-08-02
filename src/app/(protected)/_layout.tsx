@@ -1,28 +1,28 @@
 import React from 'react';
 import { Stack } from 'expo-router';
-import { useUserContext } from '@/src/context/UserProvider';
-import { useAuthGuard } from '@/src/hooks/auth/useAuthGuard';
-import AppLoader from '@/src/components/common/AppLoader';
+import SearchHeader from '@/src/components/search/components/SearchHeader';
 
-const ProtectedLayout: React.FC = () => {
-    useAuthGuard();
-    const { isLoading } = useUserContext();
-
-    if (isLoading) {
-        return <AppLoader />;
-    }
-
+export default function ProtectedLayout() {
     return (
         <Stack
             screenOptions={{
-                headerShown: false,
+                headerShown: false
             }}
         >
             <Stack.Screen
                 name="home"
+                options={{
+                    headerShown: false,
+                }}
+            />
+            <Stack.Screen
+                name="search"
+                options={{
+                    animation: 'fade_from_bottom',
+                    headerShown: true,
+                    header: () => <SearchHeader />,
+                }}
             />
         </Stack>
     );
 }
-
-export default ProtectedLayout;

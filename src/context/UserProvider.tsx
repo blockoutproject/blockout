@@ -1,40 +1,36 @@
-import { createContext, useContext, useEffect, useMemo } from "react";
-import { useCustomUser } from "../hooks/user/useUser";
-import { useAuth0 } from "react-native-auth0";
-import { UserContextValue } from "../types/User";
+import React, { createContext, useContext, useMemo } from 'react';
+import { useSession } from '@/src/context/SessionProvider';
+import { useCurrentUser } from '@/src/hooks/user/useCurrentUser';
+import { CustomUser } from '../types/User';
+
+export interface UserContextValue {
+    customUser: CustomUser | null | undefined;
+    isLoading: boolean;
+    error: unknown;
+    refetch: () => void;
+}
 
 export const UserContext = createContext<UserContextValue | undefined>(undefined);
 
 export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const { user: auth0User, isLoading: isAuth0Loading } = useAuth0();
-    const {
-        data: customUser,
-        isLoading: isCustomUserLoading,
-        error,
-        refetch
-    } = useCustomUser(auth0User?.sub);
+    const { session } = useSession();
+    const { data: customUser, isLoading: isCustomUserLoading, error, refetch } = useCurrentUser({ enabled: session });
 
-    const isLoading = isAuth0Loading || isCustomUserLoading;
-
-    const value = useMemo(() => ({
-        auth0User,
-        customUser,
-        isLoading,
-        error,
-        refetch,
-    }), [auth0User, customUser, isLoading, error, refetch]);
-
-    return (
-        <UserContext.Provider value={value}>
-            {children}
-        </UserContext.Provider>
+    const value = useMemo<UserContextValue>(
+        () => ({
+            customUser: session ? customUser ?? null : null,
+            isLoading: session ? isCustomUserLoading : false,
+            error,
+            refetch,
+        }),
+        [session, customUser, isCustomUserLoading, error, refetch]
     );
+
+    return <UserContext.Provider value={value}>{children}</UserContext.Provider>;
 };
 
 export const useUserContext = () => {
-    const context = useContext(UserContext);
-    if (!context) {
-        throw new Error('useUserContext must be used within a UserProvider');
-    }
-    return context;
-}
+    const ctx = useContext(UserContext);
+    if (!ctx) throw new Error('useUserContext must be used within a UserProvider');
+    return ctx;
+};

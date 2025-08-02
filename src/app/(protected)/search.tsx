@@ -2,9 +2,9 @@ import React, { useState } from "react";
 import { View, StyleSheet } from "react-native";
 import Filters from "@/src/components/common/Filters";
 import { Filter } from "@/src/types/Filter";
-import SearchTeamScreen from "./components/SearchTeamScreen";
-import SearchClubScreen from "./components/SearchClubScreen";
 import { useDebounce } from "use-debounce";
+import SearchTeamScreen from "@/src/components/search/components/SearchTeamScreen";
+import SearchClubScreen from "@/src/components/search/components/SearchClubScreen";
 
 const SearchScreen: React.FC = () => {
     const [search, setSearch] = useState("");

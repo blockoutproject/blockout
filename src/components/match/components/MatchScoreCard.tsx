@@ -1,15 +1,13 @@
-import React, { useRef, useState } from "react";
+import React from "react";
 import { View, Text, Pressable, StyleSheet } from "react-native";
 import { Image } from 'expo-image';
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import { Team } from "@/src/types/Team";
 import { splitIsoDateFormatted } from "@/src/utils/utils";
 import * as Haptics from "expo-haptics";
-import TeamContainer from "../../team/TeamScreen";
 import GradientBorderView from "../../common/GradientBorderView";
-import { BottomSheetModal } from "@gorhom/bottom-sheet";
-import BottomSheetCustomPage from "../../common/BottomSheetCustomPage";
 import { EnrichedMatchDTO } from "@/src/types/Match";
+import { router } from "expo-router";
 
 export interface MatchScoreCardProps {
     enrichedMatch: EnrichedMatchDTO
@@ -23,20 +21,16 @@ const MatchScoreCard: React.FC<MatchScoreCardProps> = ({
     const theme = useAppTheme();
     const { date, time } = splitIsoDateFormatted(enrichedMatch.matchDate);
 
-    const teamSheetRef = useRef<BottomSheetModal>(null);
-    const [selectedTeamId, setSelectedTeamId] = useState<number | null>(null);
-
-    const openTeamSheet = (id: number) => {
+    const handleTeamPress = (teamId: number) => {
         Haptics.selectionAsync();
-        setSelectedTeamId(id);
-        teamSheetRef.current?.present();
+        router.push(`/team/${teamId}`);
     };
 
     const TeamBlock: React.FC<{
         team: Team & { logoUrl: string | null };
         role: "Home" | "Away";
     }> = ({ team, role }) => (
-        <Pressable onPress={() => openTeamSheet(team.id)} style={styles.teamCard}>
+        <Pressable onPress={() => handleTeamPress(team.id)} style={styles.teamCard}>
             <Image
                 source={
                     team.logoUrl
@@ -46,9 +40,9 @@ const MatchScoreCard: React.FC<MatchScoreCardProps> = ({
                 style={[styles.teamLogoLarge, { backgroundColor: theme.text }]}
                 contentFit="contain"
             />
-            <Text 
-                style={[styles.teamLabel, { color: theme.text }]} 
-                numberOfLines={2} 
+            <Text
+                style={[styles.teamLabel, { color: theme.text }]}
+                numberOfLines={2}
                 ellipsizeMode="tail"
                 adjustsFontSizeToFit
                 minimumFontScale={0.8}
@@ -122,10 +116,6 @@ const MatchScoreCard: React.FC<MatchScoreCardProps> = ({
                     )}
                 </View>
             </View>
-
-            <BottomSheetCustomPage ref={teamSheetRef}>
-                {selectedTeamId && <TeamContainer teamId={selectedTeamId} />}
-            </BottomSheetCustomPage>
         </>
     );
 };

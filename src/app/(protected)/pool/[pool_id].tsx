@@ -1,18 +1,17 @@
 import React from 'react';
-import { View, StyleSheet, Text } from 'react-native';
-import MatchSkeleton from '@/src/components/match/components/MatchSkeleton';
+import { StyleSheet, Text, View } from 'react-native';
 import { useAppTheme } from '@/src/context/ThemeProvider';
-import PoolProfile from './components/PoolProfile';
-import PoolTabs from './components/PoolTabs';
 import { useEnrichedPoolById } from '@/src/hooks/pool/useEnrichedPoolById';
-import PoolSkeleton from './components/PoolSkeleton';
 import { BottomSheetView } from '@gorhom/bottom-sheet';
+import PoolSkeleton from '@/src/components/pool/components/PoolSkeleton';
+import PoolProfile from '@/src/components/pool/components/PoolProfile';
+import PoolTabs from '@/src/components/pool/components/PoolTabs';
+import { useLocalSearchParams } from 'expo-router';
 
-type Props = {
-    poolId: number;
-};
 
-const PoolScreen: React.FC<Props> = ({ poolId }) => {
+const PoolScreen: React.FC = () => {
+    const { pool_id } = useLocalSearchParams();
+    const poolId = Number(pool_id);
     const { data: enrichedPool, isLoading, isError } = useEnrichedPoolById(poolId);
     const theme = useAppTheme();
 
@@ -21,7 +20,7 @@ const PoolScreen: React.FC<Props> = ({ poolId }) => {
     }
 
     return (
-        <BottomSheetView style={[styles.container, { backgroundColor: theme.background }]}>
+        <View style={[ styles.container ]}>
             {isLoading || !enrichedPool ? (
                 <PoolSkeleton />
             ) : (
@@ -30,7 +29,7 @@ const PoolScreen: React.FC<Props> = ({ poolId }) => {
                     <PoolTabs enrichedPool={enrichedPool} />
                 </>
             )}
-        </BottomSheetView>
+        </View>
     );
 };
 
