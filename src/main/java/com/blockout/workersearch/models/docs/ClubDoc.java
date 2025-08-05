@@ -16,7 +16,6 @@ public class ClubDoc {
     private String name;
     private String city;
     
-    // 🔍 Champs d'autocomplétion
     private String keywordsAutocomplete;
     private String keywordsAutocompleteSimplified;
 }
