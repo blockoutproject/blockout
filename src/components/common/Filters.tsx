@@ -8,9 +8,15 @@ type FiltersProps = {
     filters: Filter[];
     setFilters: (updated: Filter[]) => void;
     singleSelect?: boolean;
+    requireSelection?: boolean;
 };
 
-const Filters: React.FC<FiltersProps> = ({ filters, setFilters, singleSelect = false }) => {
+const Filters: React.FC<FiltersProps> = ({
+    filters,
+    setFilters,
+    singleSelect = false,
+    requireSelection = false,
+}) => {
     const theme = useAppTheme();
 
     const toggleFilter = async (index: number) => {
@@ -18,6 +24,13 @@ const Filters: React.FC<FiltersProps> = ({ filters, setFilters, singleSelect = f
 
         if (singleSelect) {
             const alreadyActive = updated[index].isActive;
+
+            const isLastActive = updated.filter(f => f.isActive).length === 1 && alreadyActive;
+
+            if (requireSelection && isLastActive) {
+                return;
+            }
+
             updated.forEach((f) => (f.isActive = false));
             if (!alreadyActive) {
                 updated[index].isActive = true;

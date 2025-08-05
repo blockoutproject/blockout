@@ -31,7 +31,7 @@ const SearchHeader: React.FC<Props> = ({ onCloseSheet, filters, setFilters }) =>
                     <Ionicons name="arrow-back" size={30} color={theme.text} />
                 </TouchableOpacity>
 
-                <Filters filters={filters} setFilters={setFilters} singleSelect />
+                <Filters filters={filters} setFilters={setFilters} singleSelect requireSelection />
             </View>
         </View>
     );

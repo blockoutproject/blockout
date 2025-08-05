@@ -1,5 +1,5 @@
 import React from 'react';
-import { StatusBar, Platform } from 'react-native';
+import { StatusBar } from 'react-native';
 import { Stack } from 'expo-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Auth0Provider } from 'react-native-auth0';
@@ -14,7 +14,6 @@ import { ApiProvider } from '@/src/context/ApiProvider';
 import { UserProvider } from '@/src/context/UserProvider';
 import { SessionProvider, useSession } from '@/src/context/SessionProvider';
 import { SplashScreenController } from '@/src/session/splash';
-import { SheetProvider } from '../context/SheetProvider';
 
 const queryClient = new QueryClient();
 
@@ -26,7 +25,7 @@ export default function Root() {
             <QueryClientProvider client={queryClient}>
                 <ThemeProvider>
                     <StatusBar
-                        barStyle={Platform.OS === 'ios' ? 'light-content' : 'light-content'}
+                        barStyle={'light-content'}
                         backgroundColor={bg}
                     />
                     <Auth0Provider domain={AUTH0_CONFIG.domain} clientId={AUTH0_CONFIG.clientId}>

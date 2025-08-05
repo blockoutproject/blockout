@@ -1,3 +1,4 @@
+import { useQueryClient } from '@tanstack/react-query';
 import React, { createContext, useContext, useMemo, PropsWithChildren } from 'react';
 import { useAuth0 } from 'react-native-auth0';
 
@@ -18,13 +19,15 @@ export function useSession() {
 
 export function SessionProvider({ children }: PropsWithChildren) {
     const { user, isLoading, authorize, clearSession } = useAuth0();
+    const qc = useQueryClient();
+
     const session = !!user;
 
     const signIn = async () => {
+        console.log('SessionProvider signIn called');
         await authorize(
             {
                 audience: 'https://api.blockoutproject.com/',
-                scope: 'openid profile email offline_access',
             },
             { useSFSafariViewController: true }
         );
@@ -32,6 +35,7 @@ export function SessionProvider({ children }: PropsWithChildren) {
 
     const signOut = async () => {
         await clearSession();
+        qc.clear()
     };
 
     const value = useMemo(

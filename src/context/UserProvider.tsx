@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useMemo } from 'react';
 import { useSession } from '@/src/context/SessionProvider';
-import { useCurrentUser } from '@/src/hooks/user/useCurrentUser';
+import { useEnsureUser } from '@/src/hooks/user/useEnsureUser';
 import { CustomUser } from '../types/User';
 
 export interface UserContextValue {
@@ -14,7 +14,7 @@ export const UserContext = createContext<UserContextValue | undefined>(undefined
 
 export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const { session } = useSession();
-    const { data: customUser, isLoading: isCustomUserLoading, error, refetch } = useCurrentUser({ enabled: session });
+    const { data: customUser, isLoading: isCustomUserLoading, error, refetch } = useEnsureUser({ enabled: session });
 
     const value = useMemo<UserContextValue>(
         () => ({

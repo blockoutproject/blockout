@@ -27,6 +27,8 @@ export const ApiProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 const token = creds?.accessToken;
                 if (!token) return;
 
+                console.log('Initializing APIs with token:', token);
+
                 MatchesApi.initInstance(token);
                 TeamsApi.initInstance(token);
                 PoolsApi.initInstance(token);

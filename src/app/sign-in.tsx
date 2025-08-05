@@ -34,11 +34,39 @@ const LoginScreen: React.FC = () => {
 export default LoginScreen;
 
 const styles = StyleSheet.create({
-    background: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-    overlay: { ...StyleSheet.absoluteFillObject },
-    contentContainer: { flex: 1, width: '80%', justifyContent: 'center', alignItems: 'center' },
-    title: { fontSize: 48, fontWeight: 'bold', marginBottom: 16 },
-    tagline: { fontSize: 14, textAlign: 'center', marginHorizontal: 10, marginBottom: 50 },
-    loginButton: { paddingVertical: 15, paddingHorizontal: 40, borderRadius: 30, marginBottom: 15 },
-    loginButtonText: { fontSize: 18, fontWeight: '600' },
+    background: { 
+        flex: 1, 
+        justifyContent: 'center', 
+        alignItems: 'center' 
+    },
+    overlay: { 
+        ...StyleSheet.absoluteFillObject 
+    },
+    contentContainer: { 
+        flex: 1, 
+        width: '80%', 
+        justifyContent: 'center', 
+        alignItems: 'center' 
+    },
+    title: { 
+        fontSize: 48, 
+        fontWeight: 'bold', 
+        marginBottom: 16 
+    },
+    tagline: { 
+        fontSize: 14, 
+        textAlign: 'center', 
+        marginHorizontal: 10, 
+        marginBottom: 50 
+    },
+    loginButton: { 
+        paddingVertical: 15, 
+        paddingHorizontal: 40, 
+        borderRadius: 30, 
+        marginBottom: 15 
+    },
+    loginButtonText: { 
+        fontSize: 18, 
+        fontWeight: '600' 
+    },
 });

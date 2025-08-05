@@ -10,11 +10,11 @@ export const SearchPrompt = () => {
             <Image
                 source={{ uri: 'https://cdn-icons-png.flaticon.com/512/4076/4076549.png' }}
                 style={[styles.image, { tintColor: theme.textInactive }]}
-                contentFit="contain"
+                resizeMode="contain"
             />
 
             <Text style={[styles.title, { color: theme.text }]}>
-                🔎 Prêt à explorer ?
+                Prêt à explorer ?
             </Text>
 
             <Text style={[styles.subtitle, { color: theme.textInactive }]}>

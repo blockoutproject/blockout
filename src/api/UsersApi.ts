@@ -62,23 +62,6 @@ class UsersApi extends AbstractApi {
     }
 
     /**
-     * Récupère les informations de l'utilisateur courant via le JWT.
-     */
-    public async getCurrentUser(): Promise<CustomUser | null> {
-        try {
-            return await this.request<CustomUser>({
-                method: 'get',
-                url: '/me'
-            });
-        } catch (error) {
-            if (error instanceof ApiError && error.status === 404) {
-                return null;
-            }
-            throw error;
-        }
-    }
-
-    /**
      * Supprime l’utilisateur actuellement connecté.
      */
     public async deleteCurrentUser(): Promise<void> {
