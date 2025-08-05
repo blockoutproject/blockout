@@ -21,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Objects;
 
 @Service
@@ -160,5 +161,20 @@ public class UserService {
         userRepository.delete(user);
 
         logger.info("Utilisateur (et ses favoris) supprimé avec succès", keyValue("auth0Id", auth0Id));
+    }
+
+    public void assignDefaultRole(String auth0Id) {
+        try {
+            ManagementAPI managementAPI = tokenManager.getManagementAPI();
+            List<String> roleIds = List.of("your-default-role-id");
+            managementAPI.users().addRoles(auth0Id, roleIds).execute();
+            logger.info("Rôle par défaut assigné à l'utilisateur",
+                    keyValue("auth0Id", auth0Id),
+                    keyValue("roleIds", roleIds));
+        } catch (Auth0Exception e) {
+            logger.error("Erreur lors de l'assignation du rôle par défaut",
+                    keyValue("auth0Id", auth0Id), e);
+            throw new RuntimeException("Erreur assignation rôle", e);
+        }
     }
 }

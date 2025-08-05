@@ -9,20 +9,9 @@ import org.springframework.validation.annotation.Validated;
 @Data
 @Validated
 @Component
-@ConfigurationProperties(prefix = "auth0")
-public class Auth0Properties {
+@ConfigurationProperties(prefix = "auth")
+public class AuthProperties {
 
     @NotBlank
-    private String domain;
-
-    @NotBlank
-    private String clientId;
-
-    @NotBlank
-    private String clientSecret;
-
-    @NotBlank
-    private String defaultUserRoleId;
-
-    private long tokenRefreshDelay = 86400000L;
+    private String apiKey;
 }
