@@ -1,15 +1,18 @@
 package com.blockout.users.models.mappers;
 
+import org.springframework.stereotype.Component;
+
 import com.blockout.users.models.CustomUser;
 import com.blockout.users.models.dto.CustomUserDto;
 
 import lombok.RequiredArgsConstructor;
 
+@Component
 @RequiredArgsConstructor
 public class CustomUserMapper {
 
     private final UserFavoriteMapper userFavoriteMapper;
-    
+
     public CustomUserDto toDto(CustomUser user) {
         if (user == null) return null;
 

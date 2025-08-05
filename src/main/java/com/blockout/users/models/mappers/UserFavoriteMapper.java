@@ -6,6 +6,9 @@ import com.blockout.users.models.dto.UserFavoriteDto;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.springframework.stereotype.Component;
+
+@Component
 public class UserFavoriteMapper {
 
     public UserFavoriteDto toDto(UserFavorite favorite) {
