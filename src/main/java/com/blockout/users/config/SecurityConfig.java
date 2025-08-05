@@ -30,18 +30,15 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-            .csrf(csrf -> csrf.disable())
-            .authorizeHttpRequests(authz -> authz
-                .requestMatchers("/internal/**").authenticated()
-                .anyRequest().authenticated()
-            )
-            .addFilterBefore(new ApiKeyFilter(), UsernamePasswordAuthenticationFilter.class)
-            .oauth2ResourceServer(oauth2 -> oauth2
-                .jwt(jwt -> jwt
-                    .jwtAuthenticationConverter(jwtAuthenticationConverter())
-                )
-            )
-            .cors(withDefaults());
+                .csrf(csrf -> csrf.disable())
+                .authorizeHttpRequests(authz -> authz
+                        .requestMatchers("/api/v1/users/internal/**").permitAll()
+                        .anyRequest().authenticated())
+                .addFilterBefore(new ApiKeyFilter(), UsernamePasswordAuthenticationFilter.class)
+                .oauth2ResourceServer(oauth2 -> oauth2
+                        .jwt(jwt -> jwt
+                                .jwtAuthenticationConverter(jwtAuthenticationConverter())))
+                .cors(withDefaults());
 
         return http.build();
     }
@@ -58,11 +55,12 @@ public class SecurityConfig {
 
     private class ApiKeyFilter extends OncePerRequestFilter {
         @Override
-        protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+        protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
+                FilterChain filterChain)
                 throws ServletException, IOException {
 
             String path = request.getRequestURI();
-            if (!path.startsWith("/internal/")) {
+            if (!path.startsWith("/api/v1/users/internal/")) {
                 filterChain.doFilter(request, response);
                 return;
             }
