@@ -4,19 +4,18 @@ import { useEnrichedTeamById } from '@/src/hooks/team/useEnrichedTeamById';
 import TeamSkeleton from '@/src/components/team/components/TeamSkeleton';
 import TeamProfile from '@/src/components/team/components/TeamProfile';
 import TeamTabs from '@/src/components/team/components/TeamTabs';
-import { useLocalSearchParams } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { HEIGHT } from '@/src/theme/globals';
+import { RouteProp, useRoute } from '@react-navigation/native';
+import { SheetStackParamList } from '@/src/components/common/BottomSheetNavigator';
 
+type TeamRouteProp = RouteProp<SheetStackParamList, 'Team'>;
 
 const TeamScreen: React.FC = () => {
-    const { team_id } = useLocalSearchParams();
-    const teamId = Number(team_id);
+    const { params } = useRoute<TeamRouteProp>();
+    const teamId = params.teamId;
     const { data: team, isLoading } = useEnrichedTeamById(teamId);
-    const insets = useSafeAreaInsets();
 
     return (
-        <View style={[ styles.container ]}>
+        <View style={[styles.container]}>
             {isLoading || !team ? (
                 <TeamSkeleton />
             ) : (

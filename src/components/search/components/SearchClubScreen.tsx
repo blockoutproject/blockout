@@ -9,7 +9,7 @@ import {
     Keyboard,
 } from "react-native";
 import { useAppTheme } from "@/src/context/ThemeProvider";
-import { BottomSheetModal } from "@gorhom/bottom-sheet";
+import { BottomSheetFlatList, BottomSheetModal } from "@gorhom/bottom-sheet";
 import SearchBar from "@/src/components/common/SearchBar";
 import ClubCard from "@/src/components/search/components/ClubCard";
 import ClubContainer from "@/src/components/club/ClubScreen";
@@ -88,7 +88,7 @@ const SearchClubScreen: React.FC<Props> = ({
                     <ErrorState message="Une erreur est survenue. Réessaie plus tard." />
                 )}
 
-                <FlatList
+                <BottomSheetFlatList
                     data={clubs}
                     keyExtractor={(item) => item.id.toString()}
                     renderItem={({ item }) => (
@@ -115,10 +115,11 @@ const SearchClubScreen: React.FC<Props> = ({
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        paddingHorizontal: 16,
+        paddingHorizontal: 8,
     },
     searchRow: {
-        marginVertical: 16,
+        marginTop: 8,
+        marginBottom: 16,
         flexDirection: "row",
         alignItems: "center",
     },

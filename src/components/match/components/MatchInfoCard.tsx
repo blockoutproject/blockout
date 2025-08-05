@@ -14,6 +14,9 @@ import { useAppTheme } from "@/src/context/ThemeProvider";
 import BottomSheetCustomPage from "../../common/BottomSheetCustomPage";
 import { EnrichedMatchDTO } from "@/src/types/Match";
 import { router } from "expo-router";
+import { useNavigation } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { SheetStackParamList } from "../../common/BottomSheetNavigator";
 
 type MatchInfoCardProps = {
     enrichedMatch: EnrichedMatchDTO
@@ -21,10 +24,11 @@ type MatchInfoCardProps = {
 
 const MatchInfoCard: React.FC<MatchInfoCardProps> = ({ enrichedMatch }) => {
     const theme = useAppTheme();
+    const navigation = useNavigation<NativeStackNavigationProp<SheetStackParamList>>();
 
     const handlePoolPress = (poolId: number) => {
         Haptics.selectionAsync();
-        router.push(`/pool/${poolId}`);
+        navigation.push('Pool', { poolId });
     };
 
     const InfoRow = ({

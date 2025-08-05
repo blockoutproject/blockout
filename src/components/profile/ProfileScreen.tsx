@@ -15,18 +15,19 @@ import { useAuth0 } from "react-native-auth0";
 import { router } from "expo-router";
 import UsersApi from "@/src/api/UsersApi";
 import * as Haptics from "expo-haptics";
+import { useSession } from "@/src/context/SessionProvider";
 
 const ProfileScreen: React.FC = () => {
-    const { user, clearSession } = useAuth0();
+    const { user } = useAuth0();
     const { customUser } = useUserContext();
     const theme = useAppTheme();
     const insets = useSafeAreaInsets();
+    const { signOut } = useSession();
 
     const handleLogout = async () => {
         try {
             await Haptics.selectionAsync();
-            await clearSession();
-            router.replace("/"); // ou autre redirect
+            await signOut();
         } catch (error) {
             console.log("Erreur lors de la déconnexion :", error);
         }
@@ -45,8 +46,7 @@ const ProfileScreen: React.FC = () => {
                         try {
                             await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
                             await UsersApi.getInstance().deleteCurrentUser();
-                            await clearSession();
-                            router.replace("/");
+                            await signOut();
                         } catch (error) {
                             console.log("Erreur suppression compte :", error);
                         }

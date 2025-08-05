@@ -12,6 +12,9 @@ import { useAppTheme } from "@/src/context/ThemeProvider";
 import { EnrichedPoolDTO } from "@/src/types/Pool";
 import { FlatList } from "react-native-gesture-handler";
 import { router } from "expo-router";
+import { useNavigation } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { SheetStackParamList } from "./BottomSheetNavigator";
 
 interface RankingCardProps {
     enrichedPool: EnrichedPoolDTO;
@@ -26,10 +29,11 @@ const RankingCard: React.FC<RankingCardProps> = ({
     scrollable = true,
 }) => {
     const theme = useAppTheme();
+    const navigation = useNavigation<NativeStackNavigationProp<SheetStackParamList>>();
 
     const handleTeamPress = (teamId: number) => {
         Haptics.selectionAsync();
-        router.push(`/team/${teamId}`);
+        navigation.push('Team', { teamId });
     };
 
     const ListHeader = () => (

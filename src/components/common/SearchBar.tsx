@@ -1,5 +1,5 @@
 import React from "react";
-import { View, StyleSheet, TextInput } from "react-native";
+import { View, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import { BottomSheetTextInput } from "@gorhom/bottom-sheet";
@@ -29,7 +29,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
                 color={theme.textInactive}
                 style={styles.icon}
             />
-            <TextInput
+            <BottomSheetTextInput
                 value={value}
                 onChangeText={onChangeText}
                 placeholder={placeholder}

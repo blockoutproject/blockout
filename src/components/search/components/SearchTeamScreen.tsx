@@ -18,6 +18,10 @@ import * as Haptics from "expo-haptics";
 import { useSearchTeams } from "@/src/hooks/search/useSearchTeams";
 import { router } from "expo-router";
 import { FlatList } from "react-native-gesture-handler";
+import { useNavigation } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { SheetStackParamList } from "../../common/BottomSheetNavigator";
+import { BottomSheetFlatList } from "@gorhom/bottom-sheet";
 
 type Props = {
     search: string;
@@ -36,11 +40,12 @@ const SearchTeamScreen: React.FC<Props> = ({
 }) => {
     const theme = useAppTheme();
     const insets = useSafeAreaInsets();
+    const navigation = useNavigation<NativeStackNavigationProp<SheetStackParamList>>();
     const { data: teams, isLoading, isError } = useSearchTeams(debouncedQuery);
 
     const handleTeamPress = (teamId: number) => {
         Haptics.selectionAsync();
-        router.push(`/team/${teamId}`);
+        navigation.push('Team', { teamId });
     };
 
     const renderEmpty = () => {
@@ -79,7 +84,7 @@ const SearchTeamScreen: React.FC<Props> = ({
                 <ErrorState message="Une erreur est survenue. Réessaie plus tard." />
             )}
 
-            <FlatList
+            <BottomSheetFlatList
                 data={teams}
                 keyExtractor={(item) => item.id.toString()}
                 renderItem={({ item }) => (
@@ -101,10 +106,11 @@ const SearchTeamScreen: React.FC<Props> = ({
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        paddingHorizontal: 16,
+        paddingHorizontal: 8,
     },
     searchRow: {
-        marginVertical: 16,
+        marginTop: 8,
+        marginBottom: 16,
         flexDirection: "row",
         alignItems: "center",
     },

@@ -12,7 +12,7 @@ const MatchSkeleton: React.FC = () => {
         <View
             style={[
                 styles.skeletonContainer,
-                { paddingBottom: insets.bottom, paddingTop: insets.top + HEIGHT + 10 },
+                { paddingBottom: insets.bottom, paddingTop: HEIGHT + 10 },
             ]}
         >
             <Skeleton width="100%" height={200} style={{ borderRadius: 18 }} />

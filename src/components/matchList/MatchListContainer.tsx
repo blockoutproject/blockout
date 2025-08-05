@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef, useCallback } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import {
     RefreshControl,
     View,
@@ -16,12 +16,10 @@ import EmptyPrompt from "../common/feedback/EmptyPrompt";
 import ErrorPrompt from "../common/feedback/ErrorPrompt";
 import PoolItem from "./components/PoolItem";
 import { useMatchList } from "@/src/hooks/match/useMatchList";
-import {
-    BottomSheetModal
-} from "@gorhom/bottom-sheet";
-import BottomSheetCustomPage from "../common/BottomSheetCustomPage";
 import { useThemeColor } from "@/src/hooks/useThemeColor";
-import { router } from "expo-router";
+import { useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import type { SheetStackParamList } from "@/src/components/common/BottomSheetNavigator";
 
 type Props = {
     poolIds?: number[];
@@ -30,7 +28,11 @@ type Props = {
     scrollY?: Animated.Value;
     headerOffset?: number;
     contentContainerStyle?: StyleProp<ViewStyle>;
-    home?: boolean
+    home?: boolean;
+    openSheet?: <T extends keyof SheetStackParamList>(
+        screen: T,
+        params: SheetStackParamList[T]
+    ) => void;
 };
 
 const MatchListContainer: React.FC<Props> = ({
@@ -41,12 +43,10 @@ const MatchListContainer: React.FC<Props> = ({
     headerOffset = 0,
     contentContainerStyle,
     home = false,
+    openSheet,
 }) => {
     const background = useThemeColor({}, "background");
     const text = useThemeColor({}, "text");
-
-    const poolSheetRef = useRef<BottomSheetModal>(null);
-    const [selectedPoolId, setSelectedPoolId] = useState<number | null>(null);
 
     const {
         dayMatches,
@@ -59,6 +59,7 @@ const MatchListContainer: React.FC<Props> = ({
         refetch,
     } = useMatchList(status, poolIds, teamIds);
 
+    const navigation = useNavigation<NativeStackNavigationProp<SheetStackParamList>>();
     const [isRefreshing, setIsRefreshing] = useState(false);
 
     const handleRefresh = useCallback(async () => {
@@ -72,20 +73,22 @@ const MatchListContainer: React.FC<Props> = ({
         if (hasNextPage && !isFetchingNextPage) fetchNextPage();
     };
 
-    const openPoolSheet = (id: number) => {
+    const onMatchPress = (matchId: number) => {
         Haptics.selectionAsync();
-        setSelectedPoolId(id);
-        poolSheetRef.current?.present();
+        if (home && openSheet) {
+            openSheet("Match", { matchId });
+        } else {
+            navigation.push("Match", { matchId });
+        }
     };
 
-    const handlePoolPress = (poolId: number) => {
+    const onPoolPress = (poolId: number) => {
         Haptics.selectionAsync();
-        router.push(`/pool/${poolId}`);
-    };
-
-    const handleMatchPress = (matchId: number) => {
-        Haptics.selectionAsync();
-        router.push(`/match/${matchId}`);
+        if (home && openSheet) {
+            openSheet("Pool", { poolId });
+        } else {
+            navigation.push("Pool", { poolId });
+        }
     };
 
     const sections = useMemo(
@@ -97,15 +100,9 @@ const MatchListContainer: React.FC<Props> = ({
         [dayMatches]
     );
 
-    const renderSectionHeader = ({
-        section: { title },
-    }: {
-        section: { title: string };
-    }) => (
+    const renderSectionHeader = ({ section: { title } }: { section: { title: string } }) => (
         <View style={styles.dateContainer}>
-            <View
-                style={[styles.dateBackground, { backgroundColor: background }]}
-            >
+            <View style={[styles.dateBackground, { backgroundColor: background }]}>
                 <Text style={[styles.dateHeader, { color: text }]}>{title}</Text>
             </View>
         </View>
@@ -114,8 +111,8 @@ const MatchListContainer: React.FC<Props> = ({
     const renderItem = ({ item }: any) => (
         <PoolItem
             enrichedPoolMatches={item}
-            handlePoolPress={handlePoolPress}
-            handleMatchPress={handleMatchPress}
+            handlePoolPress={onPoolPress}
+            handleMatchPress={onMatchPress}
         />
     );
 
@@ -139,10 +136,10 @@ const MatchListContainer: React.FC<Props> = ({
                     color={text}
                     style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
                 />
-            )
+            );
         }
 
-        if (isError)
+        if (isError) {
             return (
                 <ErrorPrompt
                     title="Erreur de chargement"
@@ -151,6 +148,7 @@ const MatchListContainer: React.FC<Props> = ({
                     home
                 />
             );
+        }
 
         return (
             <Animated.SectionList
@@ -190,39 +188,17 @@ const MatchListContainer: React.FC<Props> = ({
         );
     };
 
-    return (
-        <View style={[styles.container, { backgroundColor: background }]}>
-            {body()}
-        </View>
-    );
+    return <View style={[styles.container, { backgroundColor: background }]}>{body()}</View>;
 };
 
 const styles = StyleSheet.create({
-    container: { 
-        flex: 1 
-    },
-    sectionListContent: { 
-        paddingBottom: 8 
-    },
-    itemSeparator: { 
-        height: 16 
-    },
-    sectionSeparator: { 
-        height: 6 
-    },
-    dateContainer: { 
-        backgroundColor: "transparent", 
-        alignItems: "center" 
-    },
-    dateBackground: {
-        borderRadius: 14,
-        paddingHorizontal: 6,
-        paddingVertical: 4,
-    },
-    dateHeader: { 
-        fontSize: 16, 
-        fontWeight: "800" 
-    },
+    container: { flex: 1 },
+    sectionListContent: { paddingBottom: 8 },
+    itemSeparator: { height: 16 },
+    sectionSeparator: { height: 6 },
+    dateContainer: { backgroundColor: "transparent", alignItems: "center" },
+    dateBackground: { borderRadius: 14, paddingHorizontal: 6, paddingVertical: 4 },
+    dateHeader: { fontSize: 16, fontWeight: "800" },
 });
 
 export default MatchListContainer;

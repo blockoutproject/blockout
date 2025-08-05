@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { JSX, useState } from "react";
 import { StyleSheet } from "react-native";
 import {
     TabView,
@@ -42,8 +42,8 @@ const GenericTabView: React.FC<GenericTabViewProps> = ({
             {...props}
             onTabPress={Haptics.selectionAsync}
             scrollEnabled
-            style={styles.tabBar}
-            tabStyle={styles.tabStyle}
+            style={[styles.tabBar, { backgroundColor: theme.background }]}
+            tabStyle={[styles.tabStyle]}
             activeColor={theme.text}
             inactiveColor={theme.textInactive}
             indicatorStyle={[

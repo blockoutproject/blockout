@@ -1,24 +1,37 @@
+import React from "react";
+import { View, StyleSheet, TouchableOpacity } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import { HEIGHT } from "@/src/theme/globals";
-import { Ionicons } from "@expo/vector-icons";
-import { router } from "expo-router";
-import { TouchableOpacity, View, StyleSheet } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Filters from "@/src/components/common/Filters";
+import type { Filter } from "@/src/types/Filter";
+import type { SheetStackParamList } from "@/src/components/common/BottomSheetNavigator";
 
-const SearchHeader: React.FC = () => {
+type Props = {
+    onCloseSheet: () => void;
+    filters: Filter[];
+    setFilters: (updated: Filter[]) => void;
+};
+
+const SearchHeader: React.FC<Props> = ({ onCloseSheet, filters, setFilters }) => {
     const theme = useAppTheme();
-    const insets = useSafeAreaInsets();
+    const navigation = useNavigation<NativeStackNavigationProp<SheetStackParamList>>();
 
     return (
-        <View style={[
-            styles.container,
-            { paddingTop: insets.top }
-        ]}>
-            <View style={styles.header}>
-                {/* Bouton Back */}
-                <TouchableOpacity onPress={() => router.back()}>
+        <View style={styles.container}>
+            <View style={styles.topRow}>
+                <TouchableOpacity
+                    onPress={() => {
+                        navigation.canGoBack() ? navigation.goBack() : onCloseSheet();
+                    }}
+                >
                     <Ionicons name="arrow-back" size={30} color={theme.text} />
                 </TouchableOpacity>
+
+                <Filters filters={filters} setFilters={setFilters} singleSelect />
             </View>
         </View>
     );
@@ -26,14 +39,13 @@ const SearchHeader: React.FC = () => {
 
 const styles = StyleSheet.create({
     container: {
-        backgroundColor: "transparent",
+        paddingHorizontal: 12,
     },
-    header: {
+    topRow: {
         height: HEIGHT,
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
-        paddingHorizontal: 12,
     },
 });
 

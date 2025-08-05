@@ -8,13 +8,19 @@ import MatchScoreCard from '@/src/components/match/components/MatchScoreCard';
 import MatchScoreDetailsCard from '@/src/components/match/components/MatchScoreDetailsCard';
 import MatchInfoCard from '@/src/components/match/components/MatchInfoCard';
 import RankingCard from '@/src/components/common/RankingCard';
-import { useLocalSearchParams } from 'expo-router';
-import { ScrollView } from 'react-native-gesture-handler';
 import { HEIGHT } from '@/src/theme/globals';
+import { RouteProp, useRoute } from '@react-navigation/native';
+import { SheetStackParamList } from '@/src/components/common/BottomSheetNavigator';
+import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 
-const Match: React.FC = () => {
-    const { match_id } = useLocalSearchParams();
-    const matchId = Number(match_id);
+type MatchRouteProp = RouteProp<SheetStackParamList, 'Match'>;
+
+const MatchScreen: React.FC = () => {
+    // const { match_id } = useLocalSearchParams();
+    // const matchId = Number(match_id);
+
+    const { params } = useRoute<MatchRouteProp>();
+    const matchId = params.matchId;
     const { data: enrichedMatch, isLoading, isError } = useEnrichedMatchById(matchId)
 
     const theme = useAppTheme();
@@ -42,12 +48,12 @@ const Match: React.FC = () => {
     ];
 
     return (
-        <ScrollView
+        <BottomSheetScrollView
             scrollEnabled={true}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={[
                 styles.scrollContent,
-                { paddingBottom: insets.bottom, paddingTop: insets.top + HEIGHT + 10 },
+                { backgroundColor: theme.background, paddingBottom: insets.bottom, paddingTop: HEIGHT },
             ]}
         >
             <MatchScoreCard
@@ -65,7 +71,7 @@ const Match: React.FC = () => {
                 enrichedPool={enrichedMatch.pool}
                 scrollable={false}
             />
-        </ScrollView>
+        </BottomSheetScrollView>
     );
 };
 
@@ -76,4 +82,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default Match;
+export default MatchScreen;

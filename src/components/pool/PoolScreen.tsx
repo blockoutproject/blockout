@@ -6,12 +6,14 @@ import { BottomSheetView } from '@gorhom/bottom-sheet';
 import PoolSkeleton from '@/src/components/pool/components/PoolSkeleton';
 import PoolProfile from '@/src/components/pool/components/PoolProfile';
 import PoolTabs from '@/src/components/pool/components/PoolTabs';
-import { useLocalSearchParams } from 'expo-router';
+import { RouteProp, useRoute } from '@react-navigation/native';
+import { SheetStackParamList } from '@/src/components/common/BottomSheetNavigator';
 
+type PoolRouteProp = RouteProp<SheetStackParamList, 'Pool'>;
 
 const PoolScreen: React.FC = () => {
-    const { pool_id } = useLocalSearchParams();
-    const poolId = Number(pool_id);
+    const { params } = useRoute<PoolRouteProp>();
+    const poolId = params.poolId;
     const { data: enrichedPool, isLoading, isError } = useEnrichedPoolById(poolId);
     const theme = useAppTheme();
 
@@ -20,7 +22,7 @@ const PoolScreen: React.FC = () => {
     }
 
     return (
-        <View style={[ styles.container ]}>
+        <View style={[styles.container]}>
             {isLoading || !enrichedPool ? (
                 <PoolSkeleton />
             ) : (

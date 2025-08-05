@@ -5,7 +5,7 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/blockout-logo-light.png",
-    "scheme": "myapp",
+    "scheme": "blockout",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": false,
     "ios": {

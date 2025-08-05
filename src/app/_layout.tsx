@@ -14,6 +14,7 @@ import { ApiProvider } from '@/src/context/ApiProvider';
 import { UserProvider } from '@/src/context/UserProvider';
 import { SessionProvider, useSession } from '@/src/context/SessionProvider';
 import { SplashScreenController } from '@/src/session/splash';
+import { SheetProvider } from '../context/SheetProvider';
 
 const queryClient = new QueryClient();
 
@@ -55,11 +56,11 @@ function RootNavigator() {
                 }}
             >
                 <Stack.Protected guard={session}>
-                    <Stack.Screen name="(protected)" />
+                    <Stack.Screen name="(app)" />
                 </Stack.Protected>
 
                 <Stack.Protected guard={!session}>
-                    <Stack.Screen name="(auth)" />
+                    <Stack.Screen name="sign-in" />
                 </Stack.Protected>
             </Stack>
         </BottomSheetModalProvider>

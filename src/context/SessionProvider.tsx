@@ -31,7 +31,7 @@ export function SessionProvider({ children }: PropsWithChildren) {
     };
 
     const signOut = async () => {
-        try { await clearSession(); } catch { }
+        await clearSession();
     };
 
     const value = useMemo(

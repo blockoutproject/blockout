@@ -1,34 +1,27 @@
 import React, { useState } from "react";
 import { View, StyleSheet } from "react-native";
-import Filters from "@/src/components/common/Filters";
-import { Filter } from "@/src/types/Filter";
 import { useDebounce } from "use-debounce";
+
 import SearchTeamScreen from "@/src/components/search/components/SearchTeamScreen";
 import SearchClubScreen from "@/src/components/search/components/SearchClubScreen";
 
-const SearchScreen: React.FC = () => {
+import type { Filter } from "@/src/types/Filter";
+
+type Props = {
+    filters: Filter[];
+    setFilters: (updated: Filter[]) => void; // gardé pour symétrie, pas utilisé ici
+};
+
+const SearchScreen: React.FC<Props> = ({ filters }) => {
     const [search, setSearch] = useState("");
     const [debouncedQuery] = useDebounce(search, 300);
     const [isInputFocused, setIsInputFocused] = useState(false);
 
-    const [entityFilters, setEntityFilters] = useState<Filter[]>([
-        { name: "Équipes", isActive: true },
-        { name: "Clubs", isActive: false },
-    ]);
-
-    const activeIndex = entityFilters.findIndex((f) => f.isActive);
-    const activeEntity = entityFilters[activeIndex]?.name ?? "Équipes";
+    const activeIndex = filters.findIndex((f) => f.isActive);
+    const activeEntity = filters[activeIndex]?.name ?? "Équipes";
 
     return (
         <View style={styles.container}>
-            <View style={styles.filterRow}>
-                <Filters
-                    filters={entityFilters}
-                    setFilters={setEntityFilters}
-                    singleSelect
-                />
-            </View>
-
             {activeEntity === "Équipes" ? (
                 <SearchTeamScreen
                     search={search}
@@ -51,12 +44,8 @@ const SearchScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-    },
-    filterRow: {
-        marginTop: 12,
-        marginHorizontal: 12,
+    container: { 
+        flex: 1
     },
 });
 

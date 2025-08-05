@@ -22,7 +22,6 @@ import { BlurView } from "expo-blur";
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import { Extrapolation } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
-import SearchContainer from "../search/SearchScreen";
 import ProfileScreen from "../profile/ProfileScreen";
 import RawDivisionMappingsScreen from "../rawDivisionMapping/RawDivisionMappingScreen";
 import DivisionScreen from "../division/DivisionScreen";
@@ -34,7 +33,8 @@ import {
 import BottomSheetCustomPage from "../common/BottomSheetCustomPage";
 import ScraperStatusScreen from "../scraper/ScraperStatusScreen";
 import BottomSheetCustomModal from "../common/BottomSheetCustomModal";
-import { router } from "expo-router";
+import SearchScreen from "@/src/components/search/SearchScreen";
+import { useSheet } from "@/src/context/SheetProvider";
 
 type HeaderProps = SceneRendererProps & {
     navigationState: NavigationState<Route>;
@@ -52,12 +52,15 @@ const AnimatedHomeHeader: React.FC<HeaderProps> = ({
     const { user } = useAuth0();
     const insets = useSafeAreaInsets();
     const theme = useAppTheme();
+    const { open } = useSheet();
+
     const [titleHeight, setTitleHeight] = useState(0);
 
     const mappingSheetRef = useRef<BottomSheetModal>(null);
     const divisionSheetRef = useRef<BottomSheetModal>(null);
     const profileSheetRef = useRef<BottomSheetModal>(null);
     const scraperSheetRef = useRef<BottomSheetModal>(null);
+    const searchSheetRef = useRef<BottomSheetModal>(null);
 
     const canAccessRawDivisionMappings = useHasScopes([
         "read:raw_division_mapping",
@@ -99,14 +102,14 @@ const AnimatedHomeHeader: React.FC<HeaderProps> = ({
         extrapolate: Extrapolation.CLAMP,
     });
 
-    const open = (ref: React.RefObject<BottomSheetModal>) => () => {
+    const openLocal = (ref: React.RefObject<BottomSheetModal>) => () => {
         Haptics.selectionAsync();
         ref.current?.present();
     };
 
-    const handleSearchPress = () => {
+    const onSearchPress = () => {
         Haptics.selectionAsync();
-        router.push("/search");
+        open("Search", {});
     };
 
     return (
@@ -114,7 +117,7 @@ const AnimatedHomeHeader: React.FC<HeaderProps> = ({
             <Animated.View
                 style={[
                     styles.container,
-                    { paddingTop: insets.top, transform: [{ translateY }], backgroundColor: theme.background},
+                    { paddingTop: insets.top, transform: [{ translateY }] },
                 ]}
             >
                 {Platform.OS === "ios" && (
@@ -175,29 +178,29 @@ const AnimatedHomeHeader: React.FC<HeaderProps> = ({
                     />
 
                     <View style={styles.actions}>
-                        <TouchableOpacity onPress={handleSearchPress}>
+                        <TouchableOpacity onPress={onSearchPress}>
                             <MaterialCommunityIcons name="magnify" size={25} color={theme.text} />
                         </TouchableOpacity>
 
                         {canAccessRawDivisionMappings && (
-                            <TouchableOpacity onPress={open(mappingSheetRef)}>
+                            <TouchableOpacity onPress={openLocal(mappingSheetRef)}>
                                 <MaterialCommunityIcons name="alpha-m-circle" size={25} color={theme.text} />
                             </TouchableOpacity>
                         )}
 
                         {canAccessDivisions && (
-                            <TouchableOpacity onPress={open(divisionSheetRef)}>
+                            <TouchableOpacity onPress={openLocal(divisionSheetRef)}>
                                 <MaterialCommunityIcons name="alpha-d-circle" size={25} color={theme.text} />
                             </TouchableOpacity>
                         )}
 
                         {canAccessScrapersManagement && (
-                            <TouchableOpacity onPress={open(scraperSheetRef)}>
+                            <TouchableOpacity onPress={openLocal(scraperSheetRef)}>
                                 <MaterialCommunityIcons name="power-standby" size={25} color={theme.text} />
                             </TouchableOpacity>
                         )}
 
-                        <TouchableOpacity onPress={open(profileSheetRef)}>
+                        <TouchableOpacity onPress={openLocal(profileSheetRef)}>
                             <Image style={styles.avatar} source={{ uri: user?.picture }} />
                         </TouchableOpacity>
                     </View>

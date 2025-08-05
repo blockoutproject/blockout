@@ -8,6 +8,9 @@ import * as Haptics from "expo-haptics";
 import GradientBorderView from "../../common/GradientBorderView";
 import { EnrichedMatchDTO } from "@/src/types/Match";
 import { router } from "expo-router";
+import { useNavigation } from "@react-navigation/native";
+import { SheetStackParamList } from "../../common/BottomSheetNavigator";
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 export interface MatchScoreCardProps {
     enrichedMatch: EnrichedMatchDTO
@@ -19,11 +22,13 @@ const MatchScoreCard: React.FC<MatchScoreCardProps> = ({
     gradient,
 }) => {
     const theme = useAppTheme();
+    const navigation = useNavigation<NativeStackNavigationProp<SheetStackParamList>>();
+
     const { date, time } = splitIsoDateFormatted(enrichedMatch.matchDate);
 
     const handleTeamPress = (teamId: number) => {
         Haptics.selectionAsync();
-        router.push(`/team/${teamId}`);
+        navigation.push('Team', { teamId });
     };
 
     const TeamBlock: React.FC<{

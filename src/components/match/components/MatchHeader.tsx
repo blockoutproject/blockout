@@ -1,26 +1,36 @@
+import React from "react";
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import { HEIGHT } from "@/src/theme/globals";
 import { Ionicons } from "@expo/vector-icons";
-import { router } from "expo-router";
+import { useNavigation } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { TouchableOpacity, View, StyleSheet } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { SheetStackParamList } from "../../common/BottomSheetNavigator";
 
-const MatchHeader: React.FC = () => {
+type MatchHeaderProps = {
+    onCloseSheet: () => void;
+};
+
+const MatchHeader: React.FC<MatchHeaderProps> = ({ onCloseSheet }) => {
     const theme = useAppTheme();
-    const insets = useSafeAreaInsets();
+    const navigation = useNavigation<NativeStackNavigationProp<SheetStackParamList>>();
 
     return (
-        <View style={[styles.container, { paddingTop: insets.top }]}>
+        <View style={[styles.container]}>
             <View style={styles.header}>
                 {/* Bouton Back */}
-                <TouchableOpacity onPress={() => router.back()}>
+                <TouchableOpacity
+                    onPress={() => {
+                        navigation.canGoBack() ? navigation.goBack() : onCloseSheet();
+                    }}
+                >
                     <Ionicons name="arrow-back" size={30} color={theme.text} />
                 </TouchableOpacity>
 
                 {/* Bouton Share */}
-                <TouchableOpacity onPress={() => console.log("Share pressed!")}>
+                {/* <TouchableOpacity onPress={() => console.log("Share pressed!")}>
                     <Ionicons name="share-outline" size={30} color={theme.text} />
-                </TouchableOpacity>
+                </TouchableOpacity> */}
             </View>
         </View>
     );

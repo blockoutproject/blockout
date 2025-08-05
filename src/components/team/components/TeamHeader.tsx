@@ -1,22 +1,29 @@
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import { HEIGHT } from "@/src/theme/globals";
 import { Ionicons } from "@expo/vector-icons";
-import { router } from "expo-router";
+import { useNavigation } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { TouchableOpacity, View, StyleSheet } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { SheetStackParamList } from "../../common/BottomSheetNavigator";
 
-const TeamHeader: React.FC = () => {
+type TeamHeaderProps = {
+    onCloseSheet: () => void;
+};
+
+const TeamHeader: React.FC<TeamHeaderProps> = ({ onCloseSheet }) => {
     const theme = useAppTheme();
-    const insets = useSafeAreaInsets();
+    const navigation = useNavigation<NativeStackNavigationProp<SheetStackParamList>>();
 
     return (
         <View style={[
-            styles.container,
-            { paddingTop: insets.top }
+            styles.container
         ]}>
             <View style={styles.header}>
                 {/* Bouton Back */}
-                <TouchableOpacity onPress={() => router.back()}>
+                <TouchableOpacity
+                    onPress={() => {
+                        navigation.canGoBack() ? navigation.goBack() : onCloseSheet();
+                    }}>
                     <Ionicons name="arrow-back" size={30} color={theme.text} />
                 </TouchableOpacity>
             </View>
