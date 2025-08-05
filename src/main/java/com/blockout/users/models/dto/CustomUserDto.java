@@ -6,8 +6,6 @@ import lombok.Data;
 import java.time.LocalDateTime;
 import java.util.List;
 
-import com.blockout.users.models.enums.UserRole;
-
 @Data
 @Builder
 public class CustomUserDto {
@@ -19,7 +17,6 @@ public class CustomUserDto {
     private String lastName;
     private String pictureUrl;
     private String phoneNumber;
-    private UserRole role;
     private Boolean active;
     private LocalDateTime createdAt;
     private LocalDateTime lastUpdate;
