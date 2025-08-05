@@ -22,7 +22,6 @@ import org.springframework.transaction.annotation.Transactional;
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.Objects;
 
 @Service
@@ -109,40 +108,32 @@ public class UserService {
 
             return saved;
         }).orElseGet(() -> {
-            try {
-                CustomUser newUser = CustomUser.builder()
-                        .auth0Id(auth0User.getId())
-                        .email(auth0User.getEmail())
-                        .pseudo(generatePseudo(auth0User.getEmail()))
-                        .firstName(auth0User.getGivenName())
-                        .lastName(auth0User.getFamilyName())
-                        .pictureUrl(auth0User.getPicture())
-                        .phoneNumber(auth0User.getPhoneNumber())
-                        .active(true)
-                        .createdAt(LocalDateTime.now())
-                        .lastUpdate(LocalDateTime.now())
-                        .build();
+            CustomUser newUser = CustomUser.builder()
+                    .auth0Id(auth0User.getId())
+                    .email(auth0User.getEmail())
+                    .pseudo(generatePseudo(auth0User.getEmail()))
+                    .firstName(auth0User.getGivenName())
+                    .lastName(auth0User.getFamilyName())
+                    .pictureUrl(auth0User.getPicture())
+                    .phoneNumber(auth0User.getPhoneNumber())
+                    .active(true)
+                    .createdAt(LocalDateTime.now())
+                    .lastUpdate(LocalDateTime.now())
+                    .build();
 
-                CustomUser created = userRepository.save(newUser);
+            CustomUser created = userRepository.save(newUser);
 
-                managementAPI.users()
-                        .addRoles(auth0User.getId(), List.of(properties.getDefaultUserRoleId()))
-                        .execute();
+            logger.info("Rôle par défaut assigné à l'utilisateur",
+                    keyValue("auth0Id", auth0Id),
+                    keyValue("roleId", properties.getDefaultUserRoleId()));
 
-                logger.info("Rôle par défaut assigné à l'utilisateur",
-                        keyValue("auth0Id", auth0Id),
-                        keyValue("roleId", properties.getDefaultUserRoleId()));
+            logger.info("User created successfully",
+                    keyValue("action", "create_user"),
+                    keyValue("auth0Id", auth0Id),
+                    keyValue("userId", created.getId()),
+                    keyValue("email", created.getEmail()));
 
-                logger.info("User created successfully",
-                        keyValue("action", "create_user"),
-                        keyValue("auth0Id", auth0Id),
-                        keyValue("userId", created.getId()),
-                        keyValue("email", created.getEmail()));
-
-                return created;
-            } catch (Auth0Exception e) {
-                throw new RuntimeException("Erreur lors de l'assignation du rôle Auth0", e);
-            }
+            return created;
         });
     }
 

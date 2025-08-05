@@ -21,8 +21,5 @@ public class Auth0Properties {
     @NotBlank
     private String clientSecret;
 
-    @NotBlank
-    private String defaultUserRoleId;
-
     private long tokenRefreshDelay = 86400000L;
 }
