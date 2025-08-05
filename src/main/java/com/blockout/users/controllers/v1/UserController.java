@@ -73,4 +73,16 @@ public class UserController {
         userService.deleteUser(auth0Id);
         return ResponseEntity.noContent().build();
     }
+
+    @Operation(summary = "Assigner un rôle par défaut", description = "Assigne un rôle par défaut à un utilisateur Auth0 s'il n'en a pas encore.")
+    @ApiResponses({
+        @ApiResponse(responseCode = "204", description = "Rôle assigné avec succès"),
+        @ApiResponse(responseCode = "401", description = "Clé API invalide ou manquante"),
+        @ApiResponse(responseCode = "500", description = "Erreur serveur lors de l'assignation")
+    })
+    @PostMapping("/internal/{auth0Id}/assign-default-role")
+    public ResponseEntity<Void> assignDefaultRole(@PathVariable String auth0Id) {
+        userService.assignDefaultRole(auth0Id);
+        return ResponseEntity.noContent().build();
+    }
 }
