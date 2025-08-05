@@ -3,7 +3,6 @@ package com.blockout.users.services;
 import com.auth0.client.mgmt.ManagementAPI;
 import com.auth0.exception.Auth0Exception;
 import com.auth0.json.mgmt.users.User;
-import com.blockout.users.config.Auth0Properties;
 import com.blockout.users.config.Auth0TokenManager;
 import com.blockout.users.exceptions.CustomUserNotFoundException;
 import com.blockout.users.models.CustomUser;
@@ -34,7 +33,6 @@ public class UserService {
     private final UserRepository userRepository;
     private final CustomUserMapper customUserMapper;
     private final EventPublisher eventPublisher;
-    private final Auth0Properties properties;
 
     private String generatePseudo(String email) {
         return (email != null) ? email.split("@")[0] : "user" + System.currentTimeMillis();
@@ -122,10 +120,6 @@ public class UserService {
                     .build();
 
             CustomUser created = userRepository.save(newUser);
-
-            logger.info("Rôle par défaut assigné à l'utilisateur",
-                    keyValue("auth0Id", auth0Id),
-                    keyValue("roleId", properties.getDefaultUserRoleId()));
 
             logger.info("User created successfully",
                     keyValue("action", "create_user"),
