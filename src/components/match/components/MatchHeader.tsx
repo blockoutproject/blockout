@@ -1,6 +1,6 @@
 import React from "react";
 import { useAppTheme } from "@/src/context/ThemeProvider";
-import { HEIGHT } from "@/src/theme/globals";
+import { TABBAR_HEIGHT } from "@/src/theme/globals";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -41,7 +41,7 @@ const styles = StyleSheet.create({
         backgroundColor: "transparent",
     },
     header: {
-        height: HEIGHT,
+        height: TABBAR_HEIGHT,
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",

@@ -128,7 +128,6 @@ const styles = StyleSheet.create({
     actionsRow: {
         flexDirection: "row",
         alignItems: "center",
-        gap: 0,
-        marginTop: 16,
+        marginTop: 8,
     },
 });

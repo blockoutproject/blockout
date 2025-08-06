@@ -1,13 +1,13 @@
-import React, { useRef, useState } from "react";
+// AnimatedHomeHeader.tsx
+import React, { useRef } from "react";
 import {
     TouchableOpacity,
     StyleSheet,
     Animated,
-    LayoutChangeEvent,
     Platform,
     View,
 } from "react-native";
-import { Image } from 'expo-image';
+import { Image } from "expo-image";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useAuth0 } from "react-native-auth0";
 import {
@@ -20,89 +20,99 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { BlurView } from "expo-blur";
 import { useAppTheme } from "@/src/context/ThemeProvider";
-import { Extrapolation } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
 import ProfileScreen from "../profile/ProfileScreen";
 import RawDivisionMappingsScreen from "../rawDivisionMapping/RawDivisionMappingScreen";
 import DivisionScreen from "../division/DivisionScreen";
 import { useHasScopes } from "@/src/hooks/user/useHasScope";
-
-import {
-    BottomSheetModal,
-} from "@gorhom/bottom-sheet";
+import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import BottomSheetCustomPage from "../common/BottomSheetCustomPage";
 import ScraperStatusScreen from "../scraper/ScraperStatusScreen";
 import BottomSheetCustomModal from "../common/BottomSheetCustomModal";
-import SearchScreen from "@/src/components/search/SearchScreen";
 import { useSheet } from "@/src/context/SheetProvider";
+import { HEADER_HEIGHT, TABBAR_HEIGHT } from "@/src/theme/globals";
 
+// 🔁 On attend maintenant un mapping scrollYs (un Animated.Value par tab)
 type HeaderProps = SceneRendererProps & {
     navigationState: NavigationState<Route>;
-    scrollY: Animated.Value;
-    onTitleLayout: (height: number) => void;
-    onTabBarLayout: (height: number) => void;
+    scrollYs: Record<string, Animated.Value>;
 };
 
-const AnimatedHomeHeader: React.FC<HeaderProps> = ({
-    scrollY,
-    onTitleLayout,
-    onTabBarLayout,
-    ...props
-}) => {
+const AnimatedHomeHeader: React.FC<HeaderProps> = ({ scrollYs, ...props }) => {
     const { user } = useAuth0();
     const insets = useSafeAreaInsets();
     const theme = useAppTheme();
     const { open } = useSheet();
 
-    const [titleHeight, setTitleHeight] = useState(0);
-
     const mappingSheetRef = useRef<BottomSheetModal>(null);
     const divisionSheetRef = useRef<BottomSheetModal>(null);
     const profileSheetRef = useRef<BottomSheetModal>(null);
     const scraperSheetRef = useRef<BottomSheetModal>(null);
-    const searchSheetRef = useRef<BottomSheetModal>(null);
 
     const canAccessRawDivisionMappings = useHasScopes([
         "read:raw_division_mapping",
-        "update:raw_division_mapping"
+        "update:raw_division_mapping",
     ]);
 
     const canAccessDivisions = useHasScopes([
         "read:divisions",
         "update:divisions",
-        "create:divisions"
+        "create:divisions",
     ]);
 
     const canAccessScrapersManagement = useHasScopes([
         "read:scrapers",
-        "update:scrapers"
+        "update:scrapers",
     ]);
 
-    const translateY = scrollY.interpolate({
-        inputRange: [0, titleHeight],
-        outputRange: [0, -titleHeight],
-        extrapolate: Extrapolation.CLAMP,
-    });
+    const { routes } = props.navigationState;
+    const { position } = props;
 
-    const titleOpacity = scrollY.interpolate({
-        inputRange: [0, titleHeight / 1],
-        outputRange: [1, 0],
-        extrapolate: Extrapolation.CLAMP,
-    });
+    // Poids par route en fonction de la position (1 pour la route visible, 0 pour les autres)
+    const weights = routes.map((_, i) =>
+        position.interpolate({
+            inputRange: routes.map((__, idx) => idx),
+            outputRange: routes.map((__, idx) => (idx === i ? 1 : 0)),
+            extrapolate: "clamp",
+        })
+    );
 
-    const blurOpacity = scrollY.interpolate({
-        inputRange: [0, titleHeight / 1],
-        outputRange: [0, 1],
+    // Progression verticale (0→1) pour chaque route via son scrollY
+    const progressByRoute = routes.map((r) =>
+        (scrollYs[r.key] ?? new Animated.Value(0)).interpolate({
+            inputRange: [0, HEADER_HEIGHT],
+            outputRange: [0, 1],
+            extrapolate: "clamp",
+        })
+    );
+
+    // Somme pondérée = progression combinée (0→1) sur laquelle on drive le header
+    const combinedProgress = progressByRoute
+        .map((p, i) => Animated.multiply(p, weights[i]))
+        .reduce<Animated.AnimatedAddition<number>>((acc, cur) => (acc ? Animated.add(acc, cur) : cur), new Animated.Value(0));
+
+    // Dérivés : translate/opacity/scale/blur
+    const translateY = combinedProgress.interpolate({
+        inputRange: [0, 1],
+        outputRange: [0, -HEADER_HEIGHT],
         extrapolate: "clamp",
     });
 
-    const titleScale = scrollY.interpolate({
-        inputRange: [0, titleHeight],
-        outputRange: [1, 2.2],
-        extrapolate: Extrapolation.CLAMP,
+    const titleOpacity = combinedProgress.interpolate({
+        inputRange: [0, 1],
+        outputRange: [1, 0],
+        extrapolate: "clamp",
     });
 
-    const openLocal = (ref: React.RefObject<BottomSheetModal>) => () => {
+    const blurOpacity = combinedProgress; // 0 -> 1
+
+    const titleScale = combinedProgress.interpolate({
+        inputRange: [0, 1],
+        outputRange: [1, 2.2],
+        extrapolate: "clamp",
+    });
+
+    const openLocal = (ref: React.RefObject<BottomSheetModal | null>) => () => {
         Haptics.selectionAsync();
         ref.current?.present();
     };
@@ -138,11 +148,6 @@ const AnimatedHomeHeader: React.FC<HeaderProps> = ({
                 )}
 
                 <Animated.View
-                    onLayout={(e: LayoutChangeEvent) => {
-                        const h = e.nativeEvent.layout.height;
-                        setTitleHeight(h);
-                        onTitleLayout(h);
-                    }}
                     style={{
                         paddingVertical: 10,
                         opacity: titleOpacity,
@@ -164,7 +169,6 @@ const AnimatedHomeHeader: React.FC<HeaderProps> = ({
                                 Platform.OS === "android" ? theme.background : "transparent",
                         },
                     ]}
-                    onLayout={(e: LayoutChangeEvent) => onTabBarLayout(e.nativeEvent.layout.height)}
                 >
                     <TabBar
                         {...props}
@@ -229,15 +233,12 @@ const AnimatedHomeHeader: React.FC<HeaderProps> = ({
 const styles = StyleSheet.create({
     container: {
         position: "absolute",
-        top: 0,
-        left: 0,
-        right: 0,
+        top: 0, left: 0, right: 0,
         zIndex: 10,
     },
-    teamLogo: {
-        height: 22,
-    },
+    teamLogo: { height: 22 },
     tabBarContainer: {
+        height: TABBAR_HEIGHT,
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",

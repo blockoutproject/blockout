@@ -35,7 +35,7 @@ const BottomSheetCustomPage = forwardRef<BottomSheetModal, BottomSheetPageProps>
                         opacity={0.8}
                     />
                 )}
-                handleStyle={{ paddingTop: insets.top + 8 }}
+                handleStyle={{ paddingTop: insets.top }}
                 handleIndicatorStyle={{ backgroundColor: theme.text }}
                 backgroundStyle={{ backgroundColor: theme.background }}
                 snapPoints={snapPoints}

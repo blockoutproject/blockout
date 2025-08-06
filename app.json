@@ -1,61 +1,64 @@
 {
-  "expo": {
-    "name": "blockout",
-    "slug": "blockoutproject",
-    "version": "1.0.0",
-    "orientation": "portrait",
-    "icon": "./assets/images/blockout-logo-light.png",
-    "scheme": "blockout",
-    "userInterfaceStyle": "automatic",
-    "newArchEnabled": false,
-    "ios": {
-      "supportsTablet": true,
-      "bundleIdentifier": "com.blockoutproject.blockout",
-      "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
-      }
-    },
-    "android": {
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/images/blockout-logo-light.png",
-        "backgroundColor": "#ffffff"
-      },
-      "package": "com.blockoutproject.blockout"
-    },
-    "web": {
-      "bundler": "metro",
-      "output": "static",
-      "favicon": "./assets/images/blockout-logo-dark.png"
-    },
-    "plugins": [
-      "expo-router",
-      [
-        "expo-splash-screen",
-        {
-          "image": "./assets/images/blockout-logo-dark.png",
-          "imageWidth": 200,
-          "resizeMode": "contain",
-          "backgroundColor": "#ffffff"
-        }
-      ],
-      [
-        "react-native-auth0",
-        {
-          "domain": "dev-jb2dhm4ou4owlr6e.eu.auth0.com"
-        }
-      ]
-    ],
-    "experiments": {
-      "typedRoutes": true
-    },
-    "extra": {
-      "router": {
-        "origin": false
-      },
-      "eas": {
-        "projectId": "10cdf86a-a81e-496a-bcaa-07c132678f6d"
-      }
-    },
-    "owner": "blockoutproject"
-  }
+    "expo": {
+        "name": "blockout",
+        "slug": "blockoutproject",
+        "version": "1.0.0",
+        "orientation": "portrait",
+        "icon": "./assets/images/icon.png",
+        "scheme": "blockout",
+        "userInterfaceStyle": "automatic",
+        "newArchEnabled": false,
+        "ios": {
+            "supportsTablet": true,
+            "bundleIdentifier": "com.blockoutproject.blockout",
+            "infoPlist": {
+                "ITSAppUsesNonExemptEncryption": false
+            }
+        },
+        "android": {
+            "adaptiveIcon": {
+                "foregroundImage": "./assets/images/blockout-logo-light.png",
+                "backgroundColor": "#ffffff"
+            },
+            "package": "com.blockoutproject.blockout"
+        },
+        "web": {
+            "bundler": "metro",
+            "output": "static",
+            "favicon": "./assets/images/blockout-logo-dark.png"
+        },
+        "plugins": [
+            "expo-router",
+            [
+                "expo-splash-screen",
+                {
+                    "backgroundColor": "#232323",
+                    "image": "./assets/images/splash-icon-dark.png",
+                    "dark": {
+                        "image": "./assets/images/splash-icon-dark.png",
+                        "backgroundColor": "#000000"
+                    },
+                    "imageWidth": 200
+                }
+            ],
+            [
+                "react-native-auth0",
+                {
+                    "domain": "dev-jb2dhm4ou4owlr6e.eu.auth0.com"
+                }
+            ]
+        ],
+        "experiments": {
+            "typedRoutes": true
+        },
+        "extra": {
+            "router": {
+                "origin": false
+            },
+            "eas": {
+                "projectId": "10cdf86a-a81e-496a-bcaa-07c132678f6d"
+            }
+        },
+        "owner": "blockoutproject"
+    }
 }

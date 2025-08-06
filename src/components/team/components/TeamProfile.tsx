@@ -157,6 +157,6 @@ const styles = StyleSheet.create({
     actionsRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginTop: 16,
+        marginTop: 8,
     },
 });

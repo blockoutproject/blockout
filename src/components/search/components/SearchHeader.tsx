@@ -5,7 +5,7 @@ import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
 import { useAppTheme } from "@/src/context/ThemeProvider";
-import { HEIGHT } from "@/src/theme/globals";
+import { HEADER_HEIGHT } from "@/src/theme/globals";
 import Filters from "@/src/components/common/Filters";
 import type { Filter } from "@/src/types/Filter";
 import type { SheetStackParamList } from "@/src/components/common/BottomSheetNavigator";
@@ -42,7 +42,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 12,
     },
     topRow: {
-        height: HEIGHT,
+        height: HEADER_HEIGHT,
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",

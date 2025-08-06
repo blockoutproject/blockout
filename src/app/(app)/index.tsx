@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
-import { StyleSheet, Animated } from 'react-native';
+import React, { useMemo, useRef, useState, useCallback } from 'react';
+import { StyleSheet, Animated, SectionList as RNSectionList } from 'react-native';
 import { NavigationState, Route, SceneRendererProps, TabView } from 'react-native-tab-view';
 import MatchList from '@/src/components/matchList/MatchListContainer';
 import { MatchStatus } from '@/src/types/Match';
@@ -7,22 +7,18 @@ import { EntityType } from '@/src/types/User';
 import AnimatedHomeHeader from '@/src/components/home/AnimatedHomeHeader';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useUserContext } from '@/src/context/UserProvider';
-import { useSheet } from '@/src/context/SheetProvider'; // ✅
+import { useSheet } from '@/src/context/SheetProvider';
+import { HEADER_HEIGHT, TABBAR_HEIGHT } from '@/src/theme/globals';
 
 const HomeScreen: React.FC = () => {
     const insets = useSafeAreaInsets();
     const { customUser } = useUserContext();
     const { open } = useSheet();
-    const scrollY = useRef(new Animated.Value(0)).current;
 
-    const [titleHeight, setTitleHeight] = useState(0);
-    const [tabBarHeight, setTabBarHeight] = useState(0);
     const [index, setIndex] = useState(0);
-    const [headerOffset, setHeaderOffset] = useState(0);
 
-    useEffect(() => {
-        setHeaderOffset(insets.top + tabBarHeight + titleHeight);
-    }, [insets.top, tabBarHeight, titleHeight]);
+    // Espace fixe (SafeArea + TabBar). Le header collapsible (HEADER_HEIGHT) est géré dans le HomeHeader.
+    const headerOffset = insets.top + TABBAR_HEIGHT;
 
     const favorites = customUser?.favorites ?? [];
     const userFavoritePools = useMemo(
@@ -39,41 +35,47 @@ const HomeScreen: React.FC = () => {
         { key: 'upcoming', title: 'À Venir' },
     ], []);
 
+    // 👇 Un Animated.Value par onglet (stable sur toute la vie du composant)
+    const scrollYs = useRef<Record<string, Animated.Value>>({
+        finished: new Animated.Value(0),
+        upcoming: new Animated.Value(0),
+    }).current;
+
     const finishedTab = useMemo(() => (
         <MatchList
             poolIds={userFavoritePools}
             teamIds={userFavoriteTeams}
             status={MatchStatus.FINISHED}
-            scrollY={scrollY}
-            headerOffset={headerOffset}
+            scrollY={scrollYs.finished}
             contentContainerStyle={{
                 paddingHorizontal: 4,
-                marginTop: insets.top + tabBarHeight + 8,
-                paddingTop: titleHeight,
-                paddingBottom: headerOffset + 8,
+                marginTop: headerOffset + 8,
+                paddingTop: HEADER_HEIGHT,
+                paddingBottom: insets.bottom + headerOffset + 8,
             }}
+            headerOffset={headerOffset}
             home
             openSheet={open}
         />
-    ), [userFavoritePools, userFavoriteTeams, headerOffset, insets.top, tabBarHeight, titleHeight, scrollY, open]);
+    ), [userFavoritePools, userFavoriteTeams, headerOffset, insets.bottom, open, scrollYs.finished]);
 
     const upcomingTab = useMemo(() => (
         <MatchList
             poolIds={userFavoritePools}
             teamIds={userFavoriteTeams}
             status={MatchStatus.UPCOMING}
-            scrollY={scrollY}
-            headerOffset={headerOffset}
+            scrollY={scrollYs.upcoming}
             contentContainerStyle={{
                 paddingHorizontal: 4,
-                marginTop: insets.top + tabBarHeight + 8,
-                paddingTop: titleHeight,
-                paddingBottom: headerOffset + 8,
+                marginTop: headerOffset + 8,
+                paddingTop: HEADER_HEIGHT,
+                paddingBottom: insets.bottom + headerOffset + 8,
             }}
+            headerOffset={headerOffset}
             home
             openSheet={open}
         />
-    ), [userFavoritePools, userFavoriteTeams, headerOffset, insets.top, tabBarHeight, titleHeight, scrollY, open]);
+    ), [userFavoritePools, userFavoriteTeams, headerOffset, insets.bottom, open, scrollYs.upcoming]);
 
     const onTabChange = useCallback((i: number) => setIndex(i), []);
 
@@ -92,12 +94,10 @@ const HomeScreen: React.FC = () => {
         (props: SceneRendererProps & { navigationState: NavigationState<Route> }) => (
             <AnimatedHomeHeader
                 {...props}
-                scrollY={scrollY}
-                onTitleLayout={setTitleHeight}
-                onTabBarLayout={setTabBarHeight}
+                scrollYs={scrollYs}
             />
         ),
-        [scrollY]
+        [scrollYs]
     );
 
     if (!customUser) return null;
@@ -115,7 +115,10 @@ const HomeScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-    tabItem: { fontSize: 14, fontWeight: '700' },
+    tabItem: {
+        fontSize: 14,
+        fontWeight: '700',
+    },
 });
 
 export default HomeScreen;

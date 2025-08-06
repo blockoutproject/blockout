@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import RankingCard from './RankingCard';
 import { useAppTheme } from '@/src/context/ThemeProvider';
 import { EnrichedPoolDTO } from '@/src/types/Pool';
+import { TABBAR_HEIGHT } from '@/src/theme/globals';
 
 type Props = { enrichedPool: EnrichedPoolDTO };
 
@@ -16,7 +17,11 @@ const RankingTab: React.FC<Props> = ({ enrichedPool }) => {
         <View
             style={[
                 styles.container,
-                { paddingBottom: insets.bottom + 8, backgroundColor: theme.background },
+                { 
+                    paddingTop: TABBAR_HEIGHT + 16,
+                    paddingBottom: insets.bottom + 16, 
+                    backgroundColor: theme.background 
+                },
             ]}
         >
             <RankingCard enrichedPool={enrichedPool} />

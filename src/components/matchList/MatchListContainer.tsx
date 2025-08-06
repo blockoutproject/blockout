@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import {
     RefreshControl,
     View,
@@ -20,14 +20,16 @@ import { useThemeColor } from "@/src/hooks/useThemeColor";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { SheetStackParamList } from "@/src/components/common/BottomSheetNavigator";
+import { TABBAR_HEIGHT } from "@/src/theme/globals";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 type Props = {
     poolIds?: number[];
     teamIds?: number[];
     status: MatchStatus;
-    scrollY?: Animated.Value;
-    headerOffset?: number;
+    scrollY: Animated.Value;
     contentContainerStyle?: StyleProp<ViewStyle>;
+    headerOffset: number;
     home?: boolean;
     openSheet?: <T extends keyof SheetStackParamList>(
         screen: T,
@@ -40,26 +42,25 @@ const MatchListContainer: React.FC<Props> = ({
     teamIds,
     status,
     scrollY,
-    headerOffset = 0,
     contentContainerStyle,
+    headerOffset,
     home = false,
     openSheet,
 }) => {
     const background = useThemeColor({}, "background");
     const text = useThemeColor({}, "text");
-
     const {
         dayMatches,
         fetchNextPage,
         hasNextPage,
         isFetchingNextPage,
         isLoading,
-        isRefetching,
         isError,
         refetch,
     } = useMatchList(status, poolIds, teamIds);
-
     const navigation = useNavigation<NativeStackNavigationProp<SheetStackParamList>>();
+    const insets = useSafeAreaInsets();
+
     const [isRefreshing, setIsRefreshing] = useState(false);
 
     const handleRefresh = useCallback(async () => {
@@ -192,13 +193,31 @@ const MatchListContainer: React.FC<Props> = ({
 };
 
 const styles = StyleSheet.create({
-    container: { flex: 1 },
-    sectionListContent: { paddingBottom: 8 },
-    itemSeparator: { height: 16 },
-    sectionSeparator: { height: 6 },
-    dateContainer: { backgroundColor: "transparent", alignItems: "center" },
-    dateBackground: { borderRadius: 14, paddingHorizontal: 6, paddingVertical: 4 },
-    dateHeader: { fontSize: 16, fontWeight: "800" },
+    container: {
+        flex: 1
+    },
+    sectionListContent: {
+
+    },
+    itemSeparator: {
+        height: 16
+    },
+    sectionSeparator: {
+        height: 6
+    },
+    dateContainer: {
+        backgroundColor: "transparent",
+        alignItems: "center"
+    },
+    dateBackground: {
+        borderRadius: 14,
+        paddingHorizontal: 6,
+        paddingVertical: 4
+    },
+    dateHeader: {
+        fontSize: 16,
+        fontWeight: "800"
+    },
 });
 
 export default MatchListContainer;

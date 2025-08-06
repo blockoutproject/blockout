@@ -129,13 +129,13 @@ const styles = StyleSheet.create({
     container: {
         borderWidth: 2,
         borderRadius: 18,
-        paddingVertical: 16,
+        paddingVertical: 12,
         paddingHorizontal: 8,
     },
     verticalContainer: {
         flexDirection: "column",
         alignItems: "center",
-        gap: 8,
+        gap: 4,
     },
     teamRowContainer: {
         flexDirection: "row",

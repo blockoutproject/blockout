@@ -11,7 +11,6 @@ import * as Haptics from "expo-haptics";
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import { EnrichedPoolDTO } from "@/src/types/Pool";
 import { FlatList } from "react-native-gesture-handler";
-import { router } from "expo-router";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { SheetStackParamList } from "./BottomSheetNavigator";

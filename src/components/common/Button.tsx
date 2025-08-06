@@ -18,7 +18,7 @@ import Animated, {
     useSharedValue,
     withSpring,
 } from 'react-native-reanimated';
-import { CORNERS, FONT_SIZE, HEIGHT } from '@/src/theme/globals';
+import { CORNERS, FONT_SIZE, TABBAR_HEIGHT } from '@/src/theme/globals';
 import { Icon } from './Icon';
 
 export type ButtonVariant =
@@ -101,13 +101,13 @@ export const Button = forwardRef<View, ButtonProps>(
                     break;
                 case 'icon':
                     Object.assign(baseStyle, {
-                        height: HEIGHT,
-                        width: HEIGHT,
+                        height: TABBAR_HEIGHT,
+                        width: TABBAR_HEIGHT,
                         paddingHorizontal: 0,
                     });
                     break;
                 default:
-                    Object.assign(baseStyle, { height: HEIGHT, paddingHorizontal: 32 });
+                    Object.assign(baseStyle, { height: TABBAR_HEIGHT, paddingHorizontal: 32 });
             }
 
             // Variant styles
@@ -301,7 +301,7 @@ export const Button = forwardRef<View, ButtonProps>(
                 : flexValue !== null
                     ? {
                         flex: flexValue,
-                        maxHeight: size === 'sm' ? 44 : size === 'lg' ? 54 : HEIGHT,
+                        maxHeight: size === 'sm' ? 44 : size === 'lg' ? 54 : TABBAR_HEIGHT,
                     }
                     : {};
         };

@@ -8,7 +8,7 @@ import MatchScoreCard from '@/src/components/match/components/MatchScoreCard';
 import MatchScoreDetailsCard from '@/src/components/match/components/MatchScoreDetailsCard';
 import MatchInfoCard from '@/src/components/match/components/MatchInfoCard';
 import RankingCard from '@/src/components/common/RankingCard';
-import { HEIGHT } from '@/src/theme/globals';
+import { TABBAR_HEIGHT } from '@/src/theme/globals';
 import { RouteProp, useRoute } from '@react-navigation/native';
 import { SheetStackParamList } from '@/src/components/common/BottomSheetNavigator';
 import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
@@ -53,7 +53,7 @@ const MatchScreen: React.FC = () => {
             showsVerticalScrollIndicator={false}
             contentContainerStyle={[
                 styles.scrollContent,
-                { backgroundColor: theme.background, paddingBottom: insets.bottom, paddingTop: HEIGHT },
+                { backgroundColor: theme.background, paddingBottom: insets.bottom, paddingTop: TABBAR_HEIGHT },
             ]}
         >
             <MatchScoreCard

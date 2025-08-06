@@ -3,7 +3,7 @@ import { View, StyleSheet } from 'react-native';
 import { useAppTheme } from '@/src/context/ThemeProvider';
 import { Skeleton } from '../../common/Skeleton';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { HEIGHT } from '@/src/theme/globals';
+import { TABBAR_HEIGHT } from '@/src/theme/globals';
 
 const MatchSkeleton: React.FC = () => {
     const insets = useSafeAreaInsets();
@@ -12,7 +12,7 @@ const MatchSkeleton: React.FC = () => {
         <View
             style={[
                 styles.skeletonContainer,
-                { paddingBottom: insets.bottom, paddingTop: HEIGHT + 10 },
+                { paddingBottom: insets.bottom, paddingTop: TABBAR_HEIGHT + 10 },
             ]}
         >
             <Skeleton width="100%" height={200} style={{ borderRadius: 18 }} />
