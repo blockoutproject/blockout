@@ -37,8 +37,8 @@ jobs:
           port: ${{ secrets.VPS_PORT }}
           script: |
             cd ~/blockout/docker
-            sudo docker compose pull blockout-mobile-gateway
-            sudo docker compose up -d --no-deps blockout-mobile-gateway
+            doppler run -- sudo docker compose pull blockout-mobile-gateway
+            doppler run -- sudo docker compose up -d --no-deps blockout-mobile-gateway
 
       - name: Discord Notification
         if: success()
