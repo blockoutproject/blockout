@@ -17,7 +17,7 @@ MIRROR_TOKEN = None
 lock = asyncio.Lock()
 
 # Prometheus: durée d'exécution du scraper
-execution_duration_gauge = Gauge('scraper_execution_duration_seconds', 'Duration of the scraper execution in seconds')
+execution_duration_gauge = Gauge('scraper_clubs_execution_duration_seconds', 'Duration of the scraper clubs execution in seconds')
 
 SCRAPER_NAME = 'SCRAPER_CLUBS'
 SCRAPER_TYPES = ['club']
