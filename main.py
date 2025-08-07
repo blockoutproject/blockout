@@ -12,57 +12,61 @@ from contextvars import ContextVar
 # Définir une variable contextuelle pour le scraper actuel
 current_scraper = ContextVar("current_scraper", default="global_scraper")
 
-# Variable globale pour stocker le token JWT
+# Variable globale pour le token JWT
 MIRROR_TOKEN = None
 lock = asyncio.Lock()
 
-# Définir une métrique Prometheus pour la durée d'exécution
+# Prometheus: durée d'exécution du scraper
 execution_duration_gauge = Gauge('scraper_clubs_execution_duration_seconds', 'Duration of the scraper clubs execution in seconds')
 
-async def main():
+SCRAPER_NAME = 'SCRAPER_CLUBS'
+SCRAPER_TYPES = ['club']
+
+async def scraper_enabled() -> bool:
     """
-    Fonction principale exécutant le scraping pour les pools nationales, régionales, et pro.
+    Vérifie via l'API si le scraper est activé.
     """
-    start_time = datetime.now(timezone.utc)
+    try:
+        async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=10)) as session:
+            status = await get_scraper_status(session, SCRAPER_NAME)
+            if not status.enabled:
+                log_event(
+                    action="scraper_skipped",
+                    level="warning",
+                    message=f"Scraper '{SCRAPER_NAME}' désactivé via API config."
+                )
+                return False
+            return True
+    except Exception as e:
+        log_event(
+            action="scraper_status_fetch_failed",
+            level="error",
+            message=f"Impossible de récupérer le statut du scraper '{SCRAPER_NAME}'.",
+            error=str(e)
+        )
+        return False
+
+async def run_scraper():
+    """
+    Exécute le scraping avec verrou et mesure de durée.
+    """
     async with lock:
+        start_time = datetime.now(timezone.utc)
+
         try:
             async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=60)) as session:
-                try:
-                    status = await get_scraper_status(session, 'SCRAPER_CLUBS') # Récupérer le statut du scraper 'SCRAPER_CLUBS'
-                    if not status.enabled:
-                        log_event(
-                            action="scraper_skipped",
-                            level="warning",
-                            message=f"Scraper 'SCRAPER_CLUBS' désactivé via API config."
-                        )
-                        return
-                except Exception as e:
-                    log_event(
-                        action="scraper_status_fetch_failed",
-                        level="error",
-                        message=f"Impossible de récupérer le statut du scraper 'SCRAPER_CLUBS'.",
-                        error=str(e)
-                    )
-                    return
-                
-                scraper_types = ['club']
                 tasks = []
-
-                for scraper_type in scraper_types:
-                    # Met à jour le contexte pour le scraper actuel
+                for scraper_type in SCRAPER_TYPES:
                     current_scraper.set(scraper_type)
-                    
                     scraper = ScraperFactory.create_scraper(scraper_type, session)
                     tasks.append(scraper.scrape())
 
                 await asyncio.gather(*tasks)
-            
+
             end_time = datetime.now(timezone.utc)
             duration = (end_time - start_time).total_seconds()
-
-            # Mettre à jour la métrique Prometheus
             execution_duration_gauge.set(duration)
-                    
+
         except Exception as e:
             log_event(
                 action="scraping_error",
@@ -71,9 +75,16 @@ async def main():
                 error=str(e)
             )
 
+async def main():
+    """
+    Vérifie l'état du scraper, puis exécute si activé.
+    """
+    if await scraper_enabled():
+        await run_scraper()
+
 def schedule_scraper():
     """
-    Planifie l'exécution du scraping une fois par jour à l'aide d'APScheduler.
+    Planifie l'exécution du scraping toutes les 1 minute.
     """
     loop = asyncio.get_event_loop()
     scheduler = AsyncIOScheduler(event_loop=loop)
@@ -86,7 +97,6 @@ def schedule_scraper():
         message="Scheduler démarré avec succès."
     )
 
-    # Garder la boucle active
     try:
         loop.run_forever()
     except (KeyboardInterrupt, SystemExit):
@@ -102,7 +112,6 @@ if __name__ == "__main__":
     loop = asyncio.get_event_loop()
 
     try:
-        # Démarre la tâche de rafraîchissement du token en arrière-plan
         loop.create_task(refresh_token_task())
         log_event(
             action="refresh_token_task_started",
