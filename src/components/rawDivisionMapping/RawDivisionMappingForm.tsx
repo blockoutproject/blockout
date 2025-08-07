@@ -124,7 +124,7 @@ const RawDivisionMappingForm: React.FC<Props> = ({ mapping, onSuccess }) => {
                         }}
                     >
                         <Picker.Item label="Division" value="" color={theme.textInactive} />
-                        {divisions.map((d) => (
+                        {divisions.filter(division => division.active).map((d) => (
                             <Picker.Item key={d.id} label={d.name} value={d.id} />
                         ))}
                     </Picker>

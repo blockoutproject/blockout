@@ -53,8 +53,8 @@ const TeamTabs: React.FC<Props> = ({ enrichedTeam }) => {
                         headerOffset={TABBAR_HEIGHT}
                         contentContainerStyle={{
                             paddingHorizontal: 4,
-                            marginTop: TABBAR_HEIGHT + 8,
-                            paddingBottom: insets.bottom + TABBAR_HEIGHT + 8,
+                            marginTop: TABBAR_HEIGHT,
+                            paddingBottom: insets.bottom + TABBAR_HEIGHT,
                         }}
                     />
                 ),
@@ -72,8 +72,8 @@ const TeamTabs: React.FC<Props> = ({ enrichedTeam }) => {
                         headerOffset={TABBAR_HEIGHT}
                         contentContainerStyle={{
                             paddingHorizontal: 4,
-                            marginTop: TABBAR_HEIGHT + 8,
-                            paddingBottom: insets.bottom + TABBAR_HEIGHT + 8,
+                            marginTop: TABBAR_HEIGHT,
+                            paddingBottom: insets.bottom + TABBAR_HEIGHT,
                         }}
                     />
                 ),
@@ -91,12 +91,12 @@ const TeamTabs: React.FC<Props> = ({ enrichedTeam }) => {
                     highlightTeams={[
                         {
                             teamId: pool.ranking.find(t => t.id === enrichedTeam.id)?.id,
-                            color: `${theme.primary}70`,
+                            color: `${pool.division.mainColor}`,
                         },
                     ]}/>
                 : null,
         };
-    });
+    })
 
     return (
         <GenericTabView

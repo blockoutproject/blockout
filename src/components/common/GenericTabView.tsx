@@ -100,12 +100,12 @@ const GenericTabView: React.FC<GenericTabViewProps> = ({
                     <TabBar
                         {...props}
                         onTabPress={Haptics.selectionAsync}
+                        scrollEnabled
                         indicatorStyle={[styles.indicator, { backgroundColor: theme.text }]}
                         tabStyle={styles.tabStyle}
                         style={styles.tabBar}
                         activeColor={theme.text}
                         inactiveColor={theme.textInactive}
-                        android_ripple={{ color: "transparent" }}
                     />
                 </View>
             </View>
@@ -118,9 +118,7 @@ const GenericTabView: React.FC<GenericTabViewProps> = ({
             navigationState={{ index, routes }}
             renderScene={renderScene}
             renderTabBar={renderTabBar}
-            onIndexChange={(i) => {
-                setIndex(i);
-            }}
+            onIndexChange={setIndex}
         />
     );
 };
@@ -134,26 +132,22 @@ const styles = StyleSheet.create({
         zIndex: 10,
     },
     tabBarContainer: {
-        height: TABBAR_HEIGHT,
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
     },
     tabBar: {
+        flex: 1,
+        height: TABBAR_HEIGHT,
         backgroundColor: "transparent",
-        paddingVertical: 4,
     },
     tabStyle: {
         width: "auto",
-        paddingHorizontal: 20,
+        paddingHorizontal: 16,
     },
     indicator: {
         height: 3,
-        width: 0.5,
-    },
-    tabItem: {
-        fontSize: 14,
-        fontWeight: "700",
+        width: 0.4,
     },
 });
 

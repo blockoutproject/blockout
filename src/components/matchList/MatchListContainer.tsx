@@ -161,14 +161,13 @@ const MatchListContainer: React.FC<Props> = ({
                 renderItem={renderItem}
                 onEndReached={handleLoadMore}
                 ItemSeparatorComponent={() => <View style={styles.itemSeparator} />}
-                SectionSeparatorComponent={() => <View style={styles.sectionSeparator} />}
                 showsVerticalScrollIndicator={false}
                 refreshControl={
                     <RefreshControl
                         refreshing={isRefreshing}
                         onRefresh={handleRefresh}
                         tintColor={text}
-                        progressViewOffset={headerOffset + 6}
+                        progressViewOffset={headerOffset + 12}
                     />
                 }
                 ListEmptyComponent={renderEmpty}
@@ -181,9 +180,9 @@ const MatchListContainer: React.FC<Props> = ({
                         )
                         : undefined
                 }
-                contentContainerStyle={[styles.sectionListContent, contentContainerStyle]}
+                contentContainerStyle={[contentContainerStyle]}
                 ListFooterComponent={
-                    isFetchingNextPage && hasNextPage ? <ActivityIndicator /> : null
+                    isFetchingNextPage && hasNextPage ? <ActivityIndicator style={{ marginTop: 12}} /> : null
                 }
             />
         );
@@ -196,16 +195,12 @@ const styles = StyleSheet.create({
     container: {
         flex: 1
     },
-    sectionListContent: {
-
-    },
     itemSeparator: {
-        height: 16
-    },
-    sectionSeparator: {
-        height: 6
+        height: 12
     },
     dateContainer: {
+        marginTop: 12,
+        marginBottom: 6,
         backgroundColor: "transparent",
         alignItems: "center"
     },

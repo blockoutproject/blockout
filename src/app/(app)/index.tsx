@@ -49,9 +49,9 @@ const HomeScreen: React.FC = () => {
             scrollY={scrollYs.finished}
             contentContainerStyle={{
                 paddingHorizontal: 4,
-                marginTop: insets.top + TABBAR_HEIGHT + 8,
+                marginTop: insets.top + TABBAR_HEIGHT,
                 paddingTop: HEADER_HEIGHT,
-                paddingBottom: insets.bottom + headerOffset + 8,
+                paddingBottom: insets.bottom + insets.top + TABBAR_HEIGHT,
             }}
             headerOffset={headerOffset}
             home
@@ -67,9 +67,9 @@ const HomeScreen: React.FC = () => {
             scrollY={scrollYs.upcoming}
             contentContainerStyle={{
                 paddingHorizontal: 4,
-                marginTop: insets.top + TABBAR_HEIGHT + 8,
+                marginTop: insets.top + TABBAR_HEIGHT,
                 paddingTop: HEADER_HEIGHT,
-                paddingBottom: insets.bottom + headerOffset + 8,
+                paddingBottom: insets.bottom + insets.top + TABBAR_HEIGHT,
             }}
             headerOffset={headerOffset}
             home

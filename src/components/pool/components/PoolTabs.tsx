@@ -48,8 +48,8 @@ const PoolTabs: React.FC<PoolTabsProps> = ({ enrichedPool }) => {
                         headerOffset={TABBAR_HEIGHT}
                         contentContainerStyle={{
                             paddingHorizontal: 4,
-                            marginTop: TABBAR_HEIGHT + 8,
-                            paddingBottom: insets.bottom + TABBAR_HEIGHT + 8,
+                            marginTop: TABBAR_HEIGHT,
+                            paddingBottom: insets.bottom + TABBAR_HEIGHT,
                         }}
                     />
                 ),
@@ -67,8 +67,8 @@ const PoolTabs: React.FC<PoolTabsProps> = ({ enrichedPool }) => {
                         headerOffset={TABBAR_HEIGHT}
                         contentContainerStyle={{
                             paddingHorizontal: 4,
-                            marginTop: TABBAR_HEIGHT + 8,
-                            paddingBottom: insets.bottom + TABBAR_HEIGHT + 8,
+                            marginTop: TABBAR_HEIGHT,
+                            paddingBottom: insets.bottom + TABBAR_HEIGHT,
                         }}
                     />
                 ),
