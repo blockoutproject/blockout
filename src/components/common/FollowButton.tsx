@@ -22,10 +22,6 @@ const FollowButton: React.FC<Props> = ({ isFollowing, onPress, disabled, gradien
 
     const buttonContent = (
         <TouchableOpacity
-            style={[
-                styles.button,
-                { backgroundColor: 'transparent' },
-            ]}
             onPress={handlePress}
             disabled={disabled}
             activeOpacity={0.9}
@@ -39,7 +35,7 @@ const FollowButton: React.FC<Props> = ({ isFollowing, onPress, disabled, gradien
     return isFollowing ? (
         <GradientBorderView
             gradient={gradient}
-            borderRadius={12}
+            borderRadius={999}
             borderWidth={2}
             outerStyle={{ marginRight: 12 }}
             style={{ backgroundColor: theme.background }}
@@ -57,11 +53,6 @@ const FollowButton: React.FC<Props> = ({ isFollowing, onPress, disabled, gradien
 };
 
 const styles = StyleSheet.create({
-    button: {
-        borderRadius: 10,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
     text: {
         paddingVertical: 6,
         paddingHorizontal: 20,
@@ -69,7 +60,7 @@ const styles = StyleSheet.create({
         fontWeight: '600',
     },
     gradientFilled: {
-        borderRadius: 12,
+        borderRadius: 999,
         paddingVertical: 2,
         paddingHorizontal: 1,
     },

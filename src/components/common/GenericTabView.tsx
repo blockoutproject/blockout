@@ -27,13 +27,11 @@ type TabDefinition = {
 type GenericTabViewProps = {
     tabs: TabDefinition[];
     scrollYs: Record<string, Animated.Value>;
-    onIndexChange?: (index: number) => void;
 };
 
 const GenericTabView: React.FC<GenericTabViewProps> = ({
     tabs,
     scrollYs,
-    onIndexChange,
 }) => {
     const [index, setIndex] = useState(0);
     const theme = useAppTheme();
@@ -122,7 +120,6 @@ const GenericTabView: React.FC<GenericTabViewProps> = ({
             renderTabBar={renderTabBar}
             onIndexChange={(i) => {
                 setIndex(i);
-                onIndexChange?.(i);
             }}
         />
     );

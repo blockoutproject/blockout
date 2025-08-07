@@ -16,7 +16,6 @@ type PoolTabsProps = {
 
 const PoolTabs: React.FC<PoolTabsProps> = ({ enrichedPool }) => {
     const insets = useSafeAreaInsets();
-    const [activeIndex, setActiveIndex] = useState(0);
 
     const tabs = [
         { key: 'ranking', title: 'Classement' },
@@ -68,8 +67,8 @@ const PoolTabs: React.FC<PoolTabsProps> = ({ enrichedPool }) => {
                         headerOffset={TABBAR_HEIGHT}
                         contentContainerStyle={{
                             paddingHorizontal: 4,
-                            marginTop: 8,
-                            paddingBottom: insets.bottom + 8,
+                            marginTop: TABBAR_HEIGHT + 8,
+                            paddingBottom: insets.bottom + TABBAR_HEIGHT + 8,
                         }}
                     />
                 ),
@@ -86,7 +85,6 @@ const PoolTabs: React.FC<PoolTabsProps> = ({ enrichedPool }) => {
         <GenericTabView
             tabs={renderTabs}
             scrollYs={scrollYs}
-            onIndexChange={setActiveIndex}
         />
     );
 };

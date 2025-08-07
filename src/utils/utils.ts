@@ -3,11 +3,14 @@ import { fr } from 'date-fns/locale';
 import { Pool } from '../types/Pool';
 import tinycolor from 'tinycolor2';
 import { Division } from '../types/Division';
+import { TeamHighlight } from '../types/Team';
+import { useAppTheme } from '../context/ThemeProvider';
+import { AppTheme } from '../types/Theme';
 
 export type GradientVariants = {
     base: readonly [string, string, ...string[]];
     light: readonly [string, string, ...string[]];
-    lighter:  readonly[string, string, ...string[]];
+    lighter: readonly [string, string, ...string[]];
     dark: readonly [string, string, ...string[]];
     darker: readonly [string, string, ...string[]];
 };
@@ -54,3 +57,43 @@ export function splitIsoDateFormatted(
 }
 
 export const getLeagueLabel = (division: Division, pool: Pool) => `${division.name} - ${pool.gender}`;
+
+export function getTeamsRankingColor(
+    theme: AppTheme,
+    enrichedMatch: {
+        teamA: { id: number };
+        teamB: { id: number };
+        set: string | null;
+    }
+): TeamHighlight[] {
+    const { teamA, teamB, set } = enrichedMatch;
+
+    if (!set || set.trim() === "") {
+        return [
+            { teamId: teamA.id, color: `${theme.primary}70` },
+            { teamId: teamB.id, color: `${theme.primary}70` },
+        ];
+    }
+
+    const sets = set
+        .split(" ")
+        .map(s => s.split("-").map(Number))
+        .filter(([a, b]) => !isNaN(a) && !isNaN(b));
+
+    if (sets.length === 0) return [];
+
+    const teamAWins = sets.filter(([a, b]) => a > b).length;
+    const teamBWins = sets.filter(([a, b]) => b > a).length;
+
+    if (teamAWins > teamBWins) {
+        return [
+            { teamId: teamA.id, color: `${theme.success}70` },
+            { teamId: teamB.id, color: `${theme.error}70` },
+        ];
+    } else {
+        return [
+            { teamId: teamB.id, color: `${theme.success}70` },
+            { teamId: teamA.id, color: `${theme.error}70` },
+        ];
+    }
+}

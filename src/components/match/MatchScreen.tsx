@@ -12,17 +12,14 @@ import { TABBAR_HEIGHT } from '@/src/theme/globals';
 import { RouteProp, useRoute } from '@react-navigation/native';
 import { SheetStackParamList } from '@/src/components/common/BottomSheetNavigator';
 import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
+import { getTeamsRankingColor } from '@/src/utils/utils';
 
 type MatchRouteProp = RouteProp<SheetStackParamList, 'Match'>;
 
 const MatchScreen: React.FC = () => {
-    // const { match_id } = useLocalSearchParams();
-    // const matchId = Number(match_id);
-
     const { params } = useRoute<MatchRouteProp>();
     const matchId = params.matchId;
     const { data: enrichedMatch, isLoading, isError } = useEnrichedMatchById(matchId)
-
     const theme = useAppTheme();
     const insets = useSafeAreaInsets();
 
@@ -70,6 +67,13 @@ const MatchScreen: React.FC = () => {
             <RankingCard
                 enrichedPool={enrichedMatch.pool}
                 scrollable={false}
+                highlightTeams={getTeamsRankingColor(
+                    theme,
+                    {
+                        teamA: enrichedMatch.teamA,
+                        teamB: enrichedMatch.teamB,
+                        set: enrichedMatch.set,
+                    })}
             />
         </BottomSheetScrollView>
     );

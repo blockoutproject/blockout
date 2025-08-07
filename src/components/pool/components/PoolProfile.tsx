@@ -58,17 +58,12 @@ const PoolProfile: React.FC<Props> = ({ enrichedPool }) => {
                         {enrichedPool.gender === EnumGender.M && <MaterialCommunityIcons name="gender-male" size={18} color={theme.text} />}
                         {enrichedPool.gender === EnumGender.F && <MaterialCommunityIcons name="gender-female" size={18} color={theme.text} />}
                         {enrichedPool.gender === EnumGender.O && <MaterialCommunityIcons name="gender-male-female" size={18} color={theme.text} />}
-                        <Text style={[styles.infoText, { color: theme.text }]}>{GenderLabels[enrichedPool.gender]}</Text>
+                        <Text style={[styles.infoText, { color: theme.text }]}>{`${GenderLabels[enrichedPool.gender]} / ${FormatLabels[enrichedPool.format]}`}</Text>
                     </View>
 
                     <View style={styles.infoLine}>
                         <MaterialCommunityIcons name="calendar" size={18} color={theme.text} />
                         <Text style={[styles.infoText, { color: theme.text }]}>{enrichedPool.season}</Text>
-                    </View>
-
-                    <View style={styles.infoLine}>
-                        <MaterialCommunityIcons name="account-supervisor" size={18} color={theme.text} />
-                        <Text style={[styles.linkText, { color: theme.text }]}>{FormatLabels[enrichedPool.format]}</Text>
                     </View>
                 </View>
             </View>

@@ -24,7 +24,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     counterText: {
-        fontSize: 14,
+        fontSize: 16,
     },
 });
 

@@ -49,7 +49,7 @@ const MatchScoreDetailsCard: React.FC<MatchScoreDetailsCardProps> = ({
                 </Text>
             </View>
             <View style={styles.finalScoreColumn}>
-                <View style={[styles.scoreBox, { borderColor: theme.textInactive }]}>
+                <View style={[styles.scoreBox, { borderColor: theme.textInactive, backgroundColor: theme.backgroundSecondary }]}>
                     <Text style={[styles.finalScoreTextSmall, { color: theme.text }]}>{finalScore}</Text>
                 </View>
             </View>

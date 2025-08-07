@@ -18,7 +18,7 @@ const HomeScreen: React.FC = () => {
     const [index, setIndex] = useState(0);
 
     // Espace fixe (SafeArea + TabBar). Le header collapsible (HEADER_HEIGHT) est géré dans le HomeHeader.
-    const headerOffset = insets.top + TABBAR_HEIGHT;
+    const headerOffset = insets.top + TABBAR_HEIGHT + HEADER_HEIGHT;
 
     const favorites = customUser?.favorites ?? [];
     const userFavoritePools = useMemo(
@@ -49,7 +49,7 @@ const HomeScreen: React.FC = () => {
             scrollY={scrollYs.finished}
             contentContainerStyle={{
                 paddingHorizontal: 4,
-                marginTop: headerOffset + 8,
+                marginTop: insets.top + TABBAR_HEIGHT + 8,
                 paddingTop: HEADER_HEIGHT,
                 paddingBottom: insets.bottom + headerOffset + 8,
             }}
@@ -67,7 +67,7 @@ const HomeScreen: React.FC = () => {
             scrollY={scrollYs.upcoming}
             contentContainerStyle={{
                 paddingHorizontal: 4,
-                marginTop: headerOffset + 8,
+                marginTop: insets.top + TABBAR_HEIGHT + 8,
                 paddingTop: HEADER_HEIGHT,
                 paddingBottom: insets.bottom + headerOffset + 8,
             }}

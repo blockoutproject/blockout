@@ -46,3 +46,8 @@ export interface EnrichedTeamDTO {
     club: Club
     pools: EnrichedPoolDTO[];
 }
+
+export interface TeamHighlight { 
+    teamId?: number; 
+    color: string 
+};

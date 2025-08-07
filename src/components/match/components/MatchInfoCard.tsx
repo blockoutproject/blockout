@@ -55,7 +55,7 @@ const MatchInfoCard: React.FC<MatchInfoCardProps> = ({ enrichedMatch }) => {
 
     return (
         <View style={[styles.container, { backgroundColor: theme.background, borderColor: enrichedMatch.pool.division.mainColor }]}>
-            <Text style={[styles.title, { color: theme.text }]}>Information</Text>
+            <Text style={[styles.title, { color: theme.text }]}>Informations</Text>
 
             <View style={styles.infoRow}>
                 <TouchableOpacity

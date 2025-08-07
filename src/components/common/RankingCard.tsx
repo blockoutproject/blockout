@@ -14,10 +14,12 @@ import { FlatList } from "react-native-gesture-handler";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { SheetStackParamList } from "./BottomSheetNavigator";
+import { TeamHighlight } from "@/src/types/Team";
 
 interface RankingCardProps {
     enrichedPool: EnrichedPoolDTO;
     scrollable?: boolean;
+    highlightTeams?: TeamHighlight[];
 }
 
 const getRowBg = (isEven: boolean, mainColor: string) =>
@@ -26,6 +28,7 @@ const getRowBg = (isEven: boolean, mainColor: string) =>
 const RankingCard: React.FC<RankingCardProps> = ({
     enrichedPool,
     scrollable = true,
+    highlightTeams
 }) => {
     const theme = useAppTheme();
     const navigation = useNavigation<NativeStackNavigationProp<SheetStackParamList>>();
@@ -38,7 +41,7 @@ const RankingCard: React.FC<RankingCardProps> = ({
     const ListHeader = () => (
         <View style={[styles.headerRow, { backgroundColor: theme.background }]}>
             <View style={styles.transparentIndicator} />
-            {["#", "Team", "MJ", "V", "D", "PTS"].map((h, i) => (
+            {["#", "Équipe", "MJ", "V", "D", "PTS"].map((h, i) => (
                 <Text
                     key={h}
                     numberOfLines={1}
@@ -63,22 +66,17 @@ const RankingCard: React.FC<RankingCardProps> = ({
         index,
     }: ListRenderItemInfo<EnrichedPoolDTO["ranking"][number]>) => {
         const rank = index + 1;
+
+        // Check if the team should be highlighted
+        const highlight = highlightTeams?.find(h => h.teamId === item.id);
+        const backgroundColor = highlight
+            ? highlight.color
+            : getRowBg(index % 2 === 0, enrichedPool.division.mainColor);
+
         return (
-            <View
-                style={[
-                    styles.row,
-                    {
-                        backgroundColor: getRowBg(
-                            index % 2 === 0,
-                            enrichedPool.division.mainColor
-                        ),
-                    },
-                ]}
-            >
+            <View style={[styles.row, { backgroundColor }]}>
                 <View style={styles.transparentIndicator} />
-                <Text style={[styles.cell, styles.rankCell, { color: theme.text }]}>
-                    {rank}
-                </Text>
+                <Text style={[styles.cell, styles.rankCell, { color: theme.text }]}>{rank}</Text>
 
                 <TouchableOpacity
                     style={[styles.teamCell, styles.teamContainer]}

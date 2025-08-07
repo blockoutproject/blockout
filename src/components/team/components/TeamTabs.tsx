@@ -9,12 +9,13 @@ import RankingTab from '@/src/components/common/RankingTab';
 import { MatchStatus } from '@/src/types/Match';
 import { EnrichedTeamDTO } from '@/src/types/Team';
 import { TABBAR_HEIGHT } from '@/src/theme/globals';
+import { useAppTheme } from '@/src/context/ThemeProvider';
 
 type Props = { enrichedTeam: EnrichedTeamDTO };
 
 const TeamTabs: React.FC<Props> = ({ enrichedTeam }) => {
     const insets = useSafeAreaInsets();
-    const [activeIndex, setActiveIndex] = useState(0);
+    const theme = useAppTheme()
 
     const staticTabs = [
         {
@@ -71,8 +72,8 @@ const TeamTabs: React.FC<Props> = ({ enrichedTeam }) => {
                         headerOffset={TABBAR_HEIGHT}
                         contentContainerStyle={{
                             paddingHorizontal: 4,
-                            marginTop: 8,
-                            paddingBottom: insets.bottom + 8,
+                            marginTop: TABBAR_HEIGHT + 8,
+                            paddingBottom: insets.bottom + TABBAR_HEIGHT + 8,
                         }}
                     />
                 ),
@@ -84,7 +85,16 @@ const TeamTabs: React.FC<Props> = ({ enrichedTeam }) => {
 
         return {
             ...tab,
-            render: () => pool ? <RankingTab enrichedPool={pool} /> : null,
+            render: () => pool
+                ? <RankingTab
+                    enrichedPool={pool}
+                    highlightTeams={[
+                        {
+                            teamId: pool.ranking.find(t => t.id === enrichedTeam.id)?.id,
+                            color: `${theme.primary}70`,
+                        },
+                    ]}/>
+                : null,
         };
     });
 
@@ -92,7 +102,6 @@ const TeamTabs: React.FC<Props> = ({ enrichedTeam }) => {
         <GenericTabView
             tabs={tabs}
             scrollYs={scrollYs}
-            onIndexChange={setActiveIndex}
         />
     );
 };
