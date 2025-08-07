@@ -22,49 +22,49 @@ execution_duration_gauge = Gauge('scraper_execution_duration_seconds', 'Duration
 async def main():
     start_time = datetime.now(timezone.utc)
 
-    async with lock:
-        try:
-            async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=60)) as session:
-                try:
-                    status = await get_scraper_status(session, 'SCRAPER') # Récupérer le statut du scraper 'SCRAPER'
-                    if not status.enabled:
-                        log_event(
-                            action="scraper_skipped",
-                            level="warning",
-                            message=f"Scraper 'SCRAPER' désactivé via API config."
-                        )
-                        return
-                except Exception as e:
+    try:
+        async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=10)) as tmp_session:
+            try:
+                status = await get_scraper_status(tmp_session, 'SCRAPER')
+                if not status.enabled:
                     log_event(
-                        action="scraper_status_fetch_failed",
-                        level="error",
-                        message=f"Impossible de récupérer le statut du scraper 'SCRAPER'.",
-                        error=str(e)
+                        action="scraper_skipped",
+                        level="warning",
+                        message=f"Scraper 'SCRAPER' désactivé via API config."
                     )
                     return
+            except Exception as e:
+                log_event(
+                    action="scraper_status_fetch_failed",
+                    level="error",
+                    message=f"Impossible de récupérer le statut du scraper 'SCRAPER'.",
+                    error=str(e)
+                )
+                return
 
+        async with lock:
+            async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=60)) as session:
                 scraper_types = ['pro', 'national', 'regional']
                 tasks = []
 
                 for scraper_type in scraper_types:
                     current_scraper.set(scraper_type)
-
                     scraper = ScraperFactory.create_scraper(scraper_type, session)
                     tasks.append(scraper.scrape())
 
                 await asyncio.gather(*tasks)
 
-            end_time = datetime.now(timezone.utc)
-            duration = (end_time - start_time).total_seconds()
-            execution_duration_gauge.set(duration)
+        end_time = datetime.now(timezone.utc)
+        duration = (end_time - start_time).total_seconds()
+        execution_duration_gauge.set(duration)
 
-        except Exception as e:
-            log_event(
-                action="scraping_error",
-                level="error",
-                message="Erreur lors du scraping",
-                error=str(e)
-            )
+    except Exception as e:
+        log_event(
+            action="scraping_error",
+            level="error",
+            message="Erreur lors du scraping",
+            error=str(e)
+        )
 
 def schedule_scraper():
     """
