@@ -72,6 +72,12 @@ class NationalScraper(Scraper):
                         continue
 
                     if not mapping.is_mapped():
+                        log_event(
+                            action="uncompleted_mapping",
+                            level="warning",
+                            raw_division_name=mapping.raw_division_name,
+                            league_code=mapping.league_code
+                        )
                         continue
                     
                     pool_obj = Pool(
