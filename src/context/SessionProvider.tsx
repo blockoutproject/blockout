@@ -24,7 +24,6 @@ export function SessionProvider({ children }: PropsWithChildren) {
     const session = !!user;
 
     const signIn = async () => {
-        console.log('SessionProvider signIn called');
         await authorize(
             {
                 audience: 'https://api.blockoutproject.com/',
