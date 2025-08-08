@@ -40,6 +40,7 @@ public class MatchListService {
             int size,
             List<Long> poolFilterIds,
             List<Long> teamFilterIds) {
+
         logger.info("Fetching match list",
                 keyValue("action", "fetch_match_list"),
                 keyValue("status", status),
@@ -94,7 +95,6 @@ public class MatchListService {
 
         logger.info("Fetching logos for clubs", keyValue("clubIds", clubIds));
 
-        // Fetch des clubs en une seule requête
         List<ClubDTO> clubs = clubClientService.getClubsByIds(clubIds);
 
         Map<String, String> clubLogoMap = new HashMap<>();
@@ -108,10 +108,15 @@ public class MatchListService {
         });
 
         List<DivisionDTO> divisions = configClientService.listDivisions().stream()
-                .filter(d -> divisionIds.contains(d.getId()))
+                .filter(d -> divisionIds.contains(d.getId()) && Boolean.TRUE.equals(d.getActive()))
                 .toList();
 
+        Set<Long> activeDivisionIds = divisions.stream()
+                .map(DivisionDTO::getId)
+                .collect(Collectors.toSet());
+
         Map<Long, EnrichedPoolDTO> enrichedPoolMap = rawPools.stream()
+                .filter(pool -> activeDivisionIds.contains(pool.getDivisionId()))
                 .map(pool -> {
                     DivisionDTO division = divisions.stream()
                             .filter(d -> Objects.equals(d.getId(), pool.getDivisionId()))
@@ -142,22 +147,33 @@ public class MatchListService {
 
         for (DayMatchesDTO day : dayGroups) {
             List<EnrichedPoolMatchesDTO> enrichedPoolMatches = new ArrayList<>();
+
             for (PoolMatchesDTO pool : day.getPools()) {
+                if (!enrichedPoolMap.containsKey(pool.getPoolId())) {
+                    continue;
+                }
+
                 List<EnrichedMatchDTO> enrichedMatches = new ArrayList<>();
                 for (MatchDTO match : pool.getMatches()) {
                     enrichedMatches.add(enrichMatch(match, teamMap));
                 }
-                enrichedPoolMatches.add(
-                        EnrichedPoolMatchesDTO.builder()
-                                .pool(enrichedPoolMap.get(pool.getPoolId()))
-                                .matches(enrichedMatches)
+
+                if (!enrichedMatches.isEmpty()) {
+                    enrichedPoolMatches.add(
+                            EnrichedPoolMatchesDTO.builder()
+                                    .pool(enrichedPoolMap.get(pool.getPoolId()))
+                                    .matches(enrichedMatches)
+                                    .build());
+                }
+            }
+
+            if (!enrichedPoolMatches.isEmpty()) {
+                enrichedDayMatches.add(
+                        EnrichedDayMatchesDTO.builder()
+                                .date(day.getDate())
+                                .pools(enrichedPoolMatches)
                                 .build());
             }
-            enrichedDayMatches.add(
-                    EnrichedDayMatchesDTO.builder()
-                            .date(day.getDate())
-                            .pools(enrichedPoolMatches)
-                            .build());
         }
 
         logger.info("Built enriched day matches list",
