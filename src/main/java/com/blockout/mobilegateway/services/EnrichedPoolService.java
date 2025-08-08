@@ -32,7 +32,6 @@ public class EnrichedPoolService {
     private final ClubClientService clubClientService;
 
     public EnrichedPoolDTO getEnrichedPoolById(Long poolId) {
-        // Récupération de la pool et de sa division
         PoolDTO rawPool = poolClientService.getPoolById(poolId);
 
         if (rawPool == null) {
