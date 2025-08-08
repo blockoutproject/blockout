@@ -36,6 +36,7 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           port: ${{ secrets.VPS_PORT }}
           script: |
+            export DOPPLER_TOKEN=${{ secrets.DOPPLER_SERVICE_TOKEN }}
             cd ~/blockout/docker
             doppler run -- sudo docker compose pull blockout-mobile-gateway
             doppler run -- sudo docker compose up -d --no-deps blockout-mobile-gateway
