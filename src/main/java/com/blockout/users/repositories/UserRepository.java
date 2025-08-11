@@ -26,4 +26,13 @@ public interface UserRepository extends JpaRepository<CustomUser, Long> {
      */
     @Query("SELECT u FROM CustomUser u LEFT JOIN FETCH u.favorites WHERE u.auth0Id = :auth0Id")
     Optional<CustomUser> findByAuth0IdWithFavorites(@Param("auth0Id") String auth0Id);
+
+    /**
+     * Vérifie si un pseudo existe déjà, en ignorant la casse et en excluant un ID spécifique
+     * 
+     * @param pseudo Le pseudo à vérifier
+     * @param id L'ID de l'utilisateur à exclure de la vérification (pour les mises à jour)
+     * @return true si le pseudo existe déjà, false sinon
+     */
+    boolean existsByPseudoIgnoreCaseAndIdNot(String pseudo, Long id);
 }

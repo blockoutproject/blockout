@@ -15,6 +15,15 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    @ExceptionHandler(ConflictException.class)
+    public ResponseEntity<Map<String, Object>> handleConflict(
+            ConflictException ex, HttpServletRequest request) {
+        return buildErrorResponse(
+                ex.getMessage(),
+                HttpStatus.CONFLICT,
+                request.getRequestURI());
+    }
+
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<Map<String, Object>> handleAccessDenied(
             AccessDeniedException ex, HttpServletRequest request) {
@@ -32,6 +41,7 @@ public class GlobalExceptionHandler {
                 HttpStatus.UNAUTHORIZED,
                 request.getRequestURI());
     }
+
     @ExceptionHandler(CustomUserNotFoundException.class)
     public ResponseEntity<Map<String, Object>> handleUserNotFound(
             CustomUserNotFoundException ex, HttpServletRequest request) {
@@ -82,7 +92,6 @@ public class GlobalExceptionHandler {
                 "status", status.value(),
                 "error", status.getReasonPhrase(),
                 "message", message,
-                "path", path
-        ));
+                "path", path));
     }
 }

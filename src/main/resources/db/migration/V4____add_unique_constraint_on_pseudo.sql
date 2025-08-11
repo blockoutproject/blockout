@@ -1,0 +1,1 @@
+ALTER TABLE users ADD CONSTRAINT uix_user_pseudo UNIQUE (pseudo);
