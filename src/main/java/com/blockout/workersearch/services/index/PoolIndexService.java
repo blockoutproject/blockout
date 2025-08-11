@@ -54,6 +54,7 @@ public class PoolIndexService {
     private PoolDoc map(PoolUpsertEvent e) {
         DivisionUpsertEvent division = configCacheService.getDivisionById(e.getDivisionId());
         String divisionName = division != null ? division.getName() : "Division inconnue";
+        String logoUrl = division != null ? division.getLogoUrl() : null;
 
         // Contenu brut (comme Team: concat utile pour la recherche)
         String raw = String.join(" ",
@@ -71,6 +72,7 @@ public class PoolIndexService {
                 .divisionName(divisionName)
                 .leagueName(e.getLeagueName())
                 .season(e.getSeason())
+                .logoUrl(logoUrl)
                 .keywordsAutocomplete(raw)
                 .keywordsAutocompleteSimplified(simplified)
                 .build();

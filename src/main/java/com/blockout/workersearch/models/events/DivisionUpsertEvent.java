@@ -12,4 +12,5 @@ import lombok.NoArgsConstructor;
 public class DivisionUpsertEvent {
     private Long id;
     private String name;
+    private String logoUrl;
 }
