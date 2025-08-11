@@ -20,4 +20,5 @@ public class PoolSearchDoc {
     private String divisionName;
     private String leagueName;
     private String season;
+    private String logoUrl;
 }
