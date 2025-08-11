@@ -17,7 +17,10 @@ MIRROR_TOKEN = None
 lock = asyncio.Lock()
 
 # Prometheus: durée d'exécution du scraper
-execution_duration_gauge = Gauge('scraper_clubs_execution_duration_seconds', 'Duration of the scraper clubs execution in seconds')
+execution_duration_gauge = Gauge(
+    'scraper_clubs_execution_duration_seconds',
+    'Duration of the scraper clubs execution in seconds'
+)
 
 SCRAPER_NAME = 'SCRAPER_CLUBS'
 SCRAPER_TYPES = ['club']
@@ -48,39 +51,38 @@ async def scraper_enabled() -> bool:
 
 async def run_scraper():
     """
-    Exécute le scraping avec verrou et mesure de durée.
+    Exécute le scraping avec verrou.
+    (Pas de métrique ici : la durée est mesurée dans main())
     """
     async with lock:
-        start_time = datetime.now(timezone.utc)
-
-        try:
-            async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=60)) as session:
-                tasks = []
-                for scraper_type in SCRAPER_TYPES:
-                    current_scraper.set(scraper_type)
-                    scraper = ScraperFactory.create_scraper(scraper_type, session)
-                    tasks.append(scraper.scrape())
-
-                await asyncio.gather(*tasks)
-
-            end_time = datetime.now(timezone.utc)
-            duration = (end_time - start_time).total_seconds()
-            execution_duration_gauge.set(duration)
-
-        except Exception as e:
-            log_event(
-                action="scraping_error",
-                level="error",
-                message="Erreur lors du scraping",
-                error=str(e)
-            )
+        async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=60)) as session:
+            tasks = []
+            for scraper_type in SCRAPER_TYPES:
+                current_scraper.set(scraper_type)
+                scraper = ScraperFactory.create_scraper(scraper_type, session)
+                tasks.append(scraper.scrape())
+            await asyncio.gather(*tasks)
 
 async def main():
     """
-    Vérifie l'état du scraper, puis exécute si activé.
+    Mesure la durée *dans tous les cas* (succès, skip, erreur),
+    puis exécute le scraper uniquement si activé.
     """
-    if await scraper_enabled():
-        await run_scraper()
+    start_time = datetime.now(timezone.utc)
+    try:
+        if await scraper_enabled():
+            await run_scraper()
+    except Exception as e:
+        log_event(
+            action="scraping_error",
+            level="error",
+            message="Erreur lors du scraping",
+            error=str(e)
+        )
+    finally:
+        end_time = datetime.now(timezone.utc)
+        duration = (end_time - start_time).total_seconds()
+        execution_duration_gauge.set(duration)
 
 def schedule_scraper():
     """
