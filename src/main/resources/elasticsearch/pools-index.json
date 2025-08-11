@@ -44,6 +44,9 @@
             "season": {
                 "type": "keyword"
             },
+            "logoUrl": {
+                "type": "keyword"
+            },
             "keywordsAutocomplete": {
                 "type": "text",
                 "analyzer": "autocomplete",
