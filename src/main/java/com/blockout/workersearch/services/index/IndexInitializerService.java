@@ -1,3 +1,4 @@
+// src/main/java/com/blockout/workersearch/services/index/IndexInitializerService.java
 package com.blockout.workersearch.services.index;
 
 import jakarta.annotation.PostConstruct;
@@ -32,7 +33,6 @@ public class IndexInitializerService {
         String indexName = "teams";
         String jsonPath = "elasticsearch/teams-index.json";
 
-        // Check if index exists
         BooleanResponse exists = elasticsearchClient.indices()
                 .exists(ExistsRequest.of(e -> e.index(indexName)));
 
@@ -49,14 +49,11 @@ public class IndexInitializerService {
                 keyValue("index", indexName),
                 keyValue("source", jsonPath));
 
-        // Load JSON config
         InputStream jsonStream = new ClassPathResource(jsonPath).getInputStream();
 
-        // Create the index
         CreateIndexRequest createIndexRequest = CreateIndexRequest.of(b -> b
                 .index(indexName)
-                .withJson(jsonStream)
-        );
+                .withJson(jsonStream));
 
         elasticsearchClient.indices().create(createIndexRequest);
 
@@ -71,7 +68,6 @@ public class IndexInitializerService {
         String indexName = "clubs";
         String jsonPath = "elasticsearch/clubs-index.json";
 
-        // Check if index exists
         BooleanResponse exists = elasticsearchClient.indices()
                 .exists(ExistsRequest.of(e -> e.index(indexName)));
 
@@ -88,19 +84,51 @@ public class IndexInitializerService {
                 keyValue("index", indexName),
                 keyValue("source", jsonPath));
 
-        // Load JSON config
         InputStream jsonStream = new ClassPathResource(jsonPath).getInputStream();
 
-        // Create the index
         CreateIndexRequest createIndexRequest = CreateIndexRequest.of(b -> b
                 .index(indexName)
-                .withJson(jsonStream)
-        );
+                .withJson(jsonStream));
 
         elasticsearchClient.indices().create(createIndexRequest);
 
         logger.info("Index clubs created successfully",
                 keyValue("action", "index_clubs_created"),
+                keyValue("index", indexName));
+    }
+
+    @PostConstruct
+    @SneakyThrows
+    public void initializePoolIndex() {
+        String indexName = "pools";
+        String jsonPath = "elasticsearch/pools-index.json";
+
+        BooleanResponse exists = elasticsearchClient.indices()
+                .exists(ExistsRequest.of(e -> e.index(indexName)));
+
+        if (exists.value()) {
+            logger.info("Deleting existing pools index",
+                    keyValue("action", "delete_pools_index"),
+                    keyValue("index", indexName));
+            elasticsearchClient.indices()
+                    .delete(DeleteIndexRequest.of(d -> d.index(indexName)));
+        }
+
+        logger.info("Creating pools index from JSON config",
+                keyValue("action", "create_pools_index"),
+                keyValue("index", indexName),
+                keyValue("source", jsonPath));
+
+        InputStream jsonStream = new ClassPathResource(jsonPath).getInputStream();
+
+        CreateIndexRequest createIndexRequest = CreateIndexRequest.of(b -> b
+                .index(indexName)
+                .withJson(jsonStream));
+
+        elasticsearchClient.indices().create(createIndexRequest);
+
+        logger.info("Index pools created successfully",
+                keyValue("action", "index_pools_created"),
                 keyValue("index", indexName));
     }
 }

@@ -55,19 +55,24 @@ public class PoolIndexService {
         DivisionUpsertEvent division = configCacheService.getDivisionById(e.getDivisionId());
         String divisionName = division != null ? division.getName() : "Division inconnue";
 
+        // Contenu brut (comme Team: concat utile pour la recherche)
+        String raw = String.join(" ",
+                e.getName() != null ? e.getName() : "",
+                divisionName != null ? divisionName : "",
+                e.getLeagueName() != null ? e.getLeagueName() : "",
+                e.getSeason() != null ? e.getSeason() : "");
+
+        // Version simplifiée
+        String simplified = TextNormalizer.simplify(raw);
+
         return PoolDoc.builder()
                 .id(e.getId())
                 .name(e.getName())
                 .divisionName(divisionName)
                 .leagueName(e.getLeagueName())
                 .season(e.getSeason())
-                .nameSimplified(TextNormalizer.simplify(e.getName()))
-                .divisionNameSimplified(TextNormalizer.simplify(divisionName))
-                .leagueNameSimplified(TextNormalizer.simplify(e.getLeagueName()))
-                .keywords(TextNormalizer.simplify(
-                        e.getName() + " " +
-                                divisionName + " " +
-                                e.getLeagueName()))
+                .keywordsAutocomplete(raw)
+                .keywordsAutocompleteSimplified(simplified)
                 .build();
     }
 }
