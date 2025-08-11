@@ -73,6 +73,7 @@ const MatchScreen: React.FC = () => {
                         teamA: enrichedMatch.teamA,
                         teamB: enrichedMatch.teamB,
                         set: enrichedMatch.set,
+                        highlightColor: enrichedMatch.pool.division.mainColor,
                     })}
             />
         </BottomSheetScrollView>

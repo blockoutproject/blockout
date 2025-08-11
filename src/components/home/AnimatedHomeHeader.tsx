@@ -1,4 +1,3 @@
-// AnimatedHomeHeader.tsx
 import React, { useRef } from "react";
 import {
     TouchableOpacity,
@@ -21,32 +20,30 @@ import { LinearGradient } from "expo-linear-gradient";
 import { BlurView } from "expo-blur";
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import * as Haptics from "expo-haptics";
-import ProfileScreen from "../profile/ProfileScreen";
 import RawDivisionMappingsScreen from "../rawDivisionMapping/RawDivisionMappingScreen";
 import DivisionScreen from "../division/DivisionScreen";
-import { useHasScopes } from "@/src/hooks/user/useHasScope";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import BottomSheetCustomPage from "../common/BottomSheetCustomPage";
 import ScraperStatusScreen from "../scraper/ScraperStatusScreen";
 import BottomSheetCustomModal from "../common/BottomSheetCustomModal";
 import { useSheet } from "@/src/context/SheetProvider";
 import { HEADER_HEIGHT, TABBAR_HEIGHT } from "@/src/theme/globals";
+import useHasScopes from "@/src/hooks/user/useHasScopes";
+import { useUserContext } from "@/src/context/UserProvider";
 
-// 🔁 On attend maintenant un mapping scrollYs (un Animated.Value par tab)
 type HeaderProps = SceneRendererProps & {
     navigationState: NavigationState<Route>;
     scrollYs: Record<string, Animated.Value>;
 };
 
 const AnimatedHomeHeader: React.FC<HeaderProps> = ({ scrollYs, ...props }) => {
-    const { user } = useAuth0();
+    const { customUser } = useUserContext();
     const insets = useSafeAreaInsets();
     const theme = useAppTheme();
     const { open } = useSheet();
 
     const mappingSheetRef = useRef<BottomSheetModal>(null);
     const divisionSheetRef = useRef<BottomSheetModal>(null);
-    const profileSheetRef = useRef<BottomSheetModal>(null);
     const scraperSheetRef = useRef<BottomSheetModal>(null);
 
     const canAccessRawDivisionMappings = useHasScopes([
@@ -120,6 +117,11 @@ const AnimatedHomeHeader: React.FC<HeaderProps> = ({ scrollYs, ...props }) => {
     const onSearchPress = () => {
         Haptics.selectionAsync();
         open("Search", {});
+    };
+
+    const onUserPress = () => {
+        Haptics.selectionAsync();
+        open("User", {});
     };
 
     return (
@@ -204,8 +206,8 @@ const AnimatedHomeHeader: React.FC<HeaderProps> = ({ scrollYs, ...props }) => {
                             </TouchableOpacity>
                         )}
 
-                        <TouchableOpacity onPress={openLocal(profileSheetRef)}>
-                            <Image style={styles.avatar} source={{ uri: user?.picture }} />
+                        <TouchableOpacity onPress={onUserPress}>
+                            <Image style={styles.avatar} source={{ uri: customUser?.pictureUrl }} />
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -217,10 +219,6 @@ const AnimatedHomeHeader: React.FC<HeaderProps> = ({ scrollYs, ...props }) => {
 
             <BottomSheetCustomPage ref={divisionSheetRef}>
                 <DivisionScreen />
-            </BottomSheetCustomPage>
-
-            <BottomSheetCustomPage ref={profileSheetRef}>
-                <ProfileScreen />
             </BottomSheetCustomPage>
 
             <BottomSheetCustomModal ref={scraperSheetRef}>

@@ -12,7 +12,7 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 
 import { useAppTheme } from '@/src/context/ThemeProvider';
 import type { Club } from '@/src/types/Club';
-import { useHasScopes } from '@/src/hooks/user/useHasScope';
+import { useHasScopes } from '@/src/hooks/user/useHasScopes';
 
 type Props = {
     club: Club;
@@ -43,7 +43,7 @@ const ClubProfile: React.FC<Props> = ({ club, onEdit }) => {
                     hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                     activeOpacity={0.7}
                 >
-                    <MaterialIcons name="edit" size={22} color={theme.text} />
+                    <MaterialCommunityIcons name="pencil" size={22} color={theme.text} />
                 </TouchableOpacity>
             )}
 

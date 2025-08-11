@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
     View,
     Text,
@@ -7,7 +7,6 @@ import {
     Alert,
     ActivityIndicator,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BottomSheetTextInput, BottomSheetView } from '@gorhom/bottom-sheet';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
@@ -18,29 +17,30 @@ import { Image } from 'expo-image';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 
 import { useAppTheme } from '@/src/context/ThemeProvider';
-import type { Club } from '@/src/types/Club';
-import ClubsApi from '@/src/api/ClubsApi';
+import UsersApi from '@/src/api/UsersApi';
+import type { CustomUser } from '@/src/types/User';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ApiError } from '@/src/api/AbstractApi';
+import { useUserContext } from '@/src/context/UserProvider';
 
-interface ClubFormProps {
-    club: Club;
-    onSuccess: (updated: Club) => void;
-}
+type Props = {
+    user: CustomUser;
+    onSuccess: (updated: CustomUser) => void;
+};
 
-const ClubForm: React.FC<ClubFormProps> = ({ club, onSuccess }) => {
+const UserForm: React.FC<Props> = ({ user, onSuccess }) => {
     const theme = useAppTheme();
     const insets = useSafeAreaInsets();
-    const api = ClubsApi.getInstance();
+    const api = UsersApi.getInstance();
 
-    const [imageFile, setImageFile] = React.useState<any | null>(null);
-    const [previewUri, setPreviewUri] = useState<string | null>(null);
-
-    const [loading, setLoading] = useState(false);
-    const [apiError, setApiError] = useState<string | null>(null);
+    const [imageFile, setImageFile] = React.useState<any | undefined>(undefined);
+    const [previewUri, setPreviewUri] = React.useState<string | null>(null);
+    const [loading, setLoading] = React.useState(false);
+    const [apiError, setApiError] = React.useState<string | null>(null);
 
     const handlePickImage = async () => {
         try {
             await Haptics.selectionAsync();
-
             const { granted } = await ImagePicker.requestMediaLibraryPermissionsAsync();
             if (!granted) {
                 Alert.alert('Permission refusée', 'Accès aux photos requis.');
@@ -53,15 +53,13 @@ const ClubForm: React.FC<ClubFormProps> = ({ club, onSuccess }) => {
                 aspect: [1, 1],
                 quality: 1,
             });
-
             if (pickerResult.canceled) return;
 
-            const selected = pickerResult.assets[0];
-            if (!selected.uri) return;
+            const asset = pickerResult.assets[0];
+            if (!asset.uri) return;
 
-            const manipContext = ImageManipulator.ImageManipulator.manipulate(selected.uri);
+            const manipContext = ImageManipulator.ImageManipulator.manipulate(asset.uri);
             manipContext.resize({ width: 512 });
-
             const rendered = await manipContext.renderAsync();
             const saved = await rendered.saveAsync({
                 format: ImageManipulator.SaveFormat.PNG,
@@ -70,7 +68,7 @@ const ClubForm: React.FC<ClubFormProps> = ({ club, onSuccess }) => {
 
             const fileObj = {
                 uri: saved.uri,
-                name: `club.png`,
+                name: 'avatar.png',
                 type: 'image/png',
             };
 
@@ -83,15 +81,12 @@ const ClubForm: React.FC<ClubFormProps> = ({ club, onSuccess }) => {
     };
 
     const formik = useFormik({
-        initialValues: {
-            name: club.name,
-            city: club.city ?? '',
-            email: club.email ?? '',
-            phoneNumber: club.phoneNumber ?? '',
-            website: club.website ?? '',
-        },
+        initialValues: { pseudo: user.pseudo || '' },
         validationSchema: Yup.object({
-            name: Yup.string().required('Nom requis'),
+            pseudo: Yup.string()
+                .min(3, 'Min. 3 caractères')
+                .max(32, 'Max. 32 caractères')
+                .matches(/^[a-zA-Z0-9._-]+$/, 'Lettres, chiffres, ., -, _ uniquement'),
         }),
         onSubmit: async (values) => {
             try {
@@ -99,18 +94,27 @@ const ClubForm: React.FC<ClubFormProps> = ({ club, onSuccess }) => {
                 setLoading(true);
                 setApiError(null);
 
-                const dto = {
-                    name: values.name,
-                    city: values.city,
-                    email: values.email,
-                    phoneNumber: values.phoneNumber,
-                    website: values.website,
-                };
+                const dto: Record<string, any> = {};
+                const trimmed = values.pseudo.trim();
+                if (trimmed && trimmed !== user.pseudo) dto.pseudo = trimmed;
 
-                const updated = await api.updateClub(club.id, dto, imageFile ?? undefined);
+                const updated = await api.updateUser(user.auth0Id, dto, imageFile);
                 onSuccess(updated);
-            } catch (err) {
+            } catch (err: any) {
                 console.error(err);
+
+                // 409: pseudo déjà pris → message inline sous le champ + haptique
+                if (err instanceof ApiError && err.status === 409) {
+                    const serverMsg =
+                        (err.data && (err.data.message || err.data.error)) ||
+                        'Ce pseudo est déjà utilisé.';
+                    await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+                    formik.setFieldError('pseudo', serverMsg);
+                    setApiError(null);
+                    return;
+                }
+
+                // Erreur générique
                 setApiError('Sauvegarde impossible, réessaie.');
             } finally {
                 setLoading(false);
@@ -118,38 +122,33 @@ const ClubForm: React.FC<ClubFormProps> = ({ club, onSuccess }) => {
         },
     });
 
-    const logoUri = previewUri ?? club.logoUrl;
+    const avatarUri = previewUri ?? user.pictureUrl;
 
     return (
-        <BottomSheetView
-            style={[
-                styles.container,
-                { backgroundColor: theme.backgroundSecondary, paddingBottom: insets.bottom },
-            ]}
-        >
-            <Field label="Nom" error={formik.errors.name} touched={formik.touched.name}>
+        <BottomSheetView style={[styles.container, { paddingBottom: insets.bottom }]}>
+            <Field label="Pseudo" error={formik.errors.pseudo} touched={formik.touched.pseudo}>
                 <BottomSheetTextInput
                     style={[styles.input, { borderColor: theme.border, color: theme.text }]}
-                    value={formik.values.name}
-                    onChangeText={formik.handleChange('name')}
-                    placeholder="Nom du club"
+                    value={formik.values.pseudo}
+                    onChangeText={formik.handleChange('pseudo')}
+                    placeholder="Ton pseudo"
                     placeholderTextColor={theme.textInactive}
                 />
             </Field>
-            
-            <Field label="Logo">
+
+            <Field label="Photo de profil">
                 <TouchableOpacity onPress={handlePickImage} activeOpacity={0.8}>
-                    {logoUri ? (
+                    {avatarUri ? (
                         <Image
-                            source={{ uri: logoUri }}
-                            style={[styles.logo, { borderColor: theme.border, backgroundColor: theme.text }]}
-                            contentFit="contain"
+                            source={{ uri: avatarUri }}
+                            style={[styles.avatar, { borderColor: theme.border, backgroundColor: theme.text }]}
+                            contentFit="cover"
                         />
                     ) : (
                         <View
                             style={[
-                                styles.logo,
-                                styles.logoPlaceholder,
+                                styles.avatar,
+                                styles.avatarPlaceholder,
                                 { backgroundColor: theme.surface, borderColor: theme.border },
                             ]}
                         >
@@ -159,7 +158,7 @@ const ClubForm: React.FC<ClubFormProps> = ({ club, onSuccess }) => {
                 </TouchableOpacity>
             </Field>
 
-            {/* Erreur API (esthétique) */}
+            {/* Erreur API globale (esthétique) */}
             {apiError && (
                 <View
                     style={[
@@ -173,10 +172,7 @@ const ClubForm: React.FC<ClubFormProps> = ({ club, onSuccess }) => {
             )}
 
             <TouchableOpacity
-                style={[
-                    styles.submitBtn,
-                    { backgroundColor: theme.primary, opacity: loading ? 0.6 : 1 },
-                ]}
+                style={[styles.submitBtn, { backgroundColor: theme.primary, opacity: loading ? 0.6 : 1 }]}
                 disabled={loading}
                 onPress={() => formik.handleSubmit()}
             >
@@ -232,13 +228,13 @@ const styles = StyleSheet.create({
         marginTop: 4,
         marginLeft: 8,
     },
-    logo: {
+    avatar: {
         width: 100,
         aspectRatio: 1,
         borderRadius: 20,
         borderWidth: 2,
     },
-    logoPlaceholder: {
+    avatarPlaceholder: {
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -270,4 +266,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default ClubForm;
+export default UserForm;

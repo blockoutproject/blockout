@@ -17,13 +17,14 @@ import { EnumGender, GenderLabels } from '@/src/types/enums/Gender';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BottomSheetView } from '@gorhom/bottom-sheet';
 import * as Haptics from 'expo-haptics';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 
-type Props = {
+type RawDivisionMappingFormProps = {
     mapping: RawDivisionMapping;
     onSuccess: () => void;
 };
 
-const RawDivisionMappingForm: React.FC<Props> = ({ mapping, onSuccess }) => {
+const RawDivisionMappingForm: React.FC<RawDivisionMappingFormProps> = ({ mapping, onSuccess }) => {
     const theme = useAppTheme();
     const inset = useSafeAreaInsets();
     const { data: divisions = [], isLoading: loadingDivisions } = useDivisions();
@@ -49,7 +50,6 @@ const RawDivisionMappingForm: React.FC<Props> = ({ mapping, onSuccess }) => {
             onSuccess();
         } catch (error) {
             await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-            Alert.alert("Erreur", "Impossible d'enregistrer les données.");
             setErrorMessage("Une erreur est survenue lors de la sauvegarde.");
         } finally {
             setIsSubmitting(false);
@@ -124,7 +124,7 @@ const RawDivisionMappingForm: React.FC<Props> = ({ mapping, onSuccess }) => {
                         }}
                     >
                         <Picker.Item label="Division" value="" color={theme.textInactive} />
-                        {divisions.filter(division => division.active).map((d) => (
+                        {divisions.filter((division) => division.active).map((d) => (
                             <Picker.Item key={d.id} label={d.name} value={d.id} />
                         ))}
                     </Picker>
@@ -132,8 +132,19 @@ const RawDivisionMappingForm: React.FC<Props> = ({ mapping, onSuccess }) => {
                 </View>
             </View>
 
+            {/* Erreur API */}
             {errorMessage && (
-                <Text style={styles.apiError}>{errorMessage}</Text>
+                <View
+                    style={[
+                        styles.apiErrorContainer,
+                        { backgroundColor: theme.error + '22', borderColor: theme.error },
+                    ]}
+                >
+                    <MaterialIcons name="error-outline" size={18} color={theme.error} />
+                    <Text style={[styles.apiErrorText, { color: theme.error }]}>
+                        {errorMessage}
+                    </Text>
+                </View>
             )}
 
             {/* Submit Button */}
@@ -179,6 +190,22 @@ const styles = StyleSheet.create({
         height: 50,
         justifyContent: 'center',
     },
+    apiErrorContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 8,
+        paddingHorizontal: 12,
+        borderRadius: 12,
+        borderWidth: 1,
+        marginHorizontal: 12,
+        marginBottom: 12,
+        gap: 8,
+    },
+    apiErrorText: {
+        flex: 1,
+        fontSize: 14,
+        fontWeight: '500',
+    },
     submitButton: {
         borderRadius: 999,
         paddingVertical: 14,
@@ -188,12 +215,6 @@ const styles = StyleSheet.create({
     submitText: {
         fontWeight: '600',
         fontSize: 16,
-    },
-    apiError: {
-        color: 'red',
-        fontSize: 13,
-        textAlign: 'center',
-        marginBottom: 12,
     },
 });
 

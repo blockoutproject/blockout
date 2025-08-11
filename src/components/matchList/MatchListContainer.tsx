@@ -59,7 +59,6 @@ const MatchListContainer: React.FC<Props> = ({
         refetch,
     } = useMatchList(status, poolIds, teamIds);
     const navigation = useNavigation<NativeStackNavigationProp<SheetStackParamList>>();
-    const insets = useSafeAreaInsets();
 
     const [isRefreshing, setIsRefreshing] = useState(false);
 

@@ -2,7 +2,6 @@ import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useAppTheme } from '@/src/context/ThemeProvider';
 import { useEnrichedPoolById } from '@/src/hooks/pool/useEnrichedPoolById';
-import { BottomSheetView } from '@gorhom/bottom-sheet';
 import PoolSkeleton from '@/src/components/pool/components/PoolSkeleton';
 import PoolProfile from '@/src/components/pool/components/PoolProfile';
 import PoolTabs from '@/src/components/pool/components/PoolTabs';

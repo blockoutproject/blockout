@@ -23,7 +23,7 @@ interface RankingCardProps {
 }
 
 const getRowBg = (isEven: boolean, mainColor: string) =>
-    isEven ? `${mainColor}30` : "transparent";
+    isEven ? `${mainColor}40` : "transparent";
 
 const RankingCard: React.FC<RankingCardProps> = ({
     enrichedPool,

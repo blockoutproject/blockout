@@ -15,7 +15,7 @@ export const darkTheme: AppTheme = {
     hover: "#1c1d20",
     pressed: "#242528",
     primary: "#2d9cdb",
-    success: "#50b02e",
+    success: "#61b543",
     error: "#c23846",
     warning: "#e6c84c",
     gold: "#FFD700",

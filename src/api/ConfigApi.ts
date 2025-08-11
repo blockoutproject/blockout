@@ -5,6 +5,7 @@ import { Division } from '../types/Division';
 import { ScraperStatus } from '../types/ScraperStatus';
 import { EnumScraperName } from '../types/enums/ScraperName';
 import snakecaseKeys from 'snakecase-keys';
+import { LegalDocument, LegalDocumentType } from '../types/LegalDocument';
 
 class ConfigApi extends AbstractApi {
     private static instance: ConfigApi | null = null;
@@ -175,6 +176,33 @@ class ConfigApi extends AbstractApi {
             method: 'put',
             url: `/scrapers/${name}/enabled`,
             params: { enabled },
+        });
+    }
+
+    /**
+ * Récupère un document légal (terms, privacy, imprint).
+ * @param type Type du document
+ */
+    public async getLegalDocument(type: LegalDocumentType): Promise<LegalDocument> {
+        return this.request<LegalDocument>({
+            method: 'get',
+            url: `/legal/${type}`,
+        });
+    }
+
+    /**
+     * Met à jour un document légal.
+     * @param type Type du document (terms, privacy, imprint)
+     * @param data Données à modifier
+     */
+    public async updateLegalDocument(
+        type: LegalDocumentType,
+        data: Partial<LegalDocument>
+    ): Promise<LegalDocument> {
+        return this.request<LegalDocument>({
+            method: 'put',
+            url: `/legal/${type}`,
+            data,
         });
     }
 }

@@ -42,7 +42,7 @@ const DivisionForm: React.FC<DivisionFormProps> = ({ division, onSuccess }) => {
 
             const { granted } = await ImagePicker.requestMediaLibraryPermissionsAsync();
             if (!granted) {
-                Alert.alert("Permission refusée", "Accès à la bibliothèque requis.");
+                Alert.alert('Permission refusée', 'Accès à la bibliothèque requis.');
                 return;
             }
 
@@ -69,14 +69,14 @@ const DivisionForm: React.FC<DivisionFormProps> = ({ division, onSuccess }) => {
 
             const fileObj = {
                 uri: saved.uri,
-                name: `division.jpg`,
+                name: 'division.jpg',
                 type: 'image/jpeg',
             };
 
             setPreviewUri(saved.uri);
             setImageFile(fileObj);
         } catch (e) {
-            console.error("Erreur image:", e);
+            console.error('Erreur image:', e);
             Alert.alert("Erreur", "Impossible de traiter l'image.");
         }
     };
@@ -97,7 +97,6 @@ const DivisionForm: React.FC<DivisionFormProps> = ({ division, onSuccess }) => {
             secondGradientColor: Yup.string().required('Deuxième couleur de dégradé requise'),
             thirdGradientColor: Yup.string().required('Troisième couleur de dégradé requise'),
         }),
-
         onSubmit: async (values) => {
             try {
                 await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -125,7 +124,12 @@ const DivisionForm: React.FC<DivisionFormProps> = ({ division, onSuccess }) => {
     const imageUri = previewUri ?? formik.values.logoUrl;
 
     return (
-        <BottomSheetView style={[styles.container, { backgroundColor: theme.backgroundSecondary, paddingBottom: insets.bottom }]}>
+        <BottomSheetView
+            style={[
+                styles.container,
+                { backgroundColor: theme.backgroundSecondary, paddingBottom: insets.bottom },
+            ]}
+        >
             <View style={styles.fieldBlock}>
                 <Text style={[styles.label, { color: theme.text }]}>Nom</Text>
                 <BottomSheetTextInput
@@ -190,19 +194,37 @@ const DivisionForm: React.FC<DivisionFormProps> = ({ division, onSuccess }) => {
                             contentFit="contain"
                         />
                     ) : (
-                        <View style={[styles.imagePreview, styles.imagePlaceholder, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+                        <View
+                            style={[
+                                styles.imagePreview,
+                                styles.imagePlaceholder,
+                                { backgroundColor: theme.surface, borderColor: theme.border },
+                            ]}
+                        >
                             <MaterialIcons name="photo-camera" size={28} color={theme.textInactive} />
                         </View>
                     )}
                 </TouchableOpacity>
             </View>
 
+            {/* Erreur API (esthétique) */}
             {errorMessage && (
-                <Text style={styles.apiError}>{errorMessage}</Text>
+                <View
+                    style={[
+                        styles.apiErrorContainer,
+                        { backgroundColor: theme.error + '22', borderColor: theme.error },
+                    ]}
+                >
+                    <MaterialIcons name="error-outline" size={18} color={theme.error} />
+                    <Text style={[styles.apiErrorText, { color: theme.error }]}>{errorMessage}</Text>
+                </View>
             )}
 
             <TouchableOpacity
-                style={[styles.submitButton, { backgroundColor: formik.values.mainColor || theme.primary, opacity: loading ? 0.7 : 1 }]}
+                style={[
+                    styles.submitButton,
+                    { backgroundColor: formik.values.mainColor || theme.primary, opacity: loading ? 0.7 : 1 },
+                ]}
                 onPress={() => formik.handleSubmit()}
                 disabled={loading}
                 activeOpacity={0.8}
@@ -211,11 +233,7 @@ const DivisionForm: React.FC<DivisionFormProps> = ({ division, onSuccess }) => {
                     <ActivityIndicator color={theme.text} />
                 ) : (
                     <Text style={[styles.submitText, { color: theme.text }]}>
-                        {isEditMode
-                            ? !division?.active
-                                ? 'Réactiver'
-                                : 'Modifier'
-                            : 'Créer'}
+                        {isEditMode ? (!division?.active ? 'Réactiver' : 'Modifier') : 'Créer'}
                     </Text>
                 )}
             </TouchableOpacity>
@@ -225,10 +243,10 @@ const DivisionForm: React.FC<DivisionFormProps> = ({ division, onSuccess }) => {
 
 const styles = StyleSheet.create({
     container: {
-        padding: 12
+        padding: 12,
     },
     fieldBlock: {
-        marginBottom: 20
+        marginBottom: 20,
     },
     label: {
         fontSize: 14,
@@ -270,6 +288,22 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
     },
+    apiErrorContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 8,
+        paddingHorizontal: 12,
+        borderRadius: 12,
+        borderWidth: 1,
+        marginHorizontal: 12,
+        marginBottom: 12,
+        gap: 8,
+    },
+    apiErrorText: {
+        flex: 1,
+        fontSize: 14,
+        fontWeight: '500',
+    },
     submitButton: {
         borderRadius: 999,
         paddingVertical: 14,
@@ -279,12 +313,6 @@ const styles = StyleSheet.create({
     submitText: {
         fontWeight: '600',
         fontSize: 16,
-    },
-    apiError: {
-        color: 'red',
-        fontSize: 13,
-        textAlign: 'center',
-        marginBottom: 12,
     },
 });
 

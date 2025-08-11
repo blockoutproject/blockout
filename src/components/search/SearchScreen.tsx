@@ -1,28 +1,29 @@
-import React, { useState } from "react";
-import { View, StyleSheet } from "react-native";
-import { useDebounce } from "use-debounce";
+import React, { useState } from 'react';
+import { View, StyleSheet } from 'react-native';
+import { useDebounce } from 'use-debounce';
 
-import SearchTeamScreen from "@/src/components/search/components/SearchTeamScreen";
-import SearchClubScreen from "@/src/components/search/components/SearchClubScreen";
+import SearchTeamScreen from '@/src/components/search/components/SearchTeamScreen';
+import SearchClubScreen from '@/src/components/search/components/SearchClubScreen';
+import SearchPoolScreen from '@/src/components/search/components/SearchPoolScreen';
 
-import type { Filter } from "@/src/types/Filter";
+import type { Filter } from '@/src/types/Filter';
 
 type Props = {
     filters: Filter[];
-    setFilters: (updated: Filter[]) => void; // gardé pour symétrie, pas utilisé ici
+    setFilters: (updated: Filter[]) => void;
 };
 
 const SearchScreen: React.FC<Props> = ({ filters }) => {
-    const [search, setSearch] = useState("");
+    const [search, setSearch] = useState('');
     const [debouncedQuery] = useDebounce(search, 300);
     const [isInputFocused, setIsInputFocused] = useState(false);
 
     const activeIndex = filters.findIndex((f) => f.isActive);
-    const activeEntity = filters[activeIndex]?.name ?? "Équipes";
+    const activeEntity = filters[activeIndex]?.name ?? 'Équipes';
 
     return (
         <View style={styles.container}>
-            {activeEntity === "Équipes" ? (
+            {activeEntity === 'Équipes' ? (
                 <SearchTeamScreen
                     search={search}
                     debouncedQuery={debouncedQuery}
@@ -30,8 +31,16 @@ const SearchScreen: React.FC<Props> = ({ filters }) => {
                     isInputFocused={isInputFocused}
                     setIsInputFocused={setIsInputFocused}
                 />
-            ) : (
+            ) : activeEntity === 'Clubs' ? (
                 <SearchClubScreen
+                    search={search}
+                    debouncedQuery={debouncedQuery}
+                    setSearch={setSearch}
+                    isInputFocused={isInputFocused}
+                    setIsInputFocused={setIsInputFocused}
+                />
+            ) : (
+                <SearchPoolScreen
                     search={search}
                     debouncedQuery={debouncedQuery}
                     setSearch={setSearch}

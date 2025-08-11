@@ -2,6 +2,7 @@ import { CONFIG } from '@/src/config/config';
 import AbstractApi, { ApiError } from './AbstractApi';
 import { TeamSearchDoc } from '../types/docs/TeamSearchDoc';
 import { ClubSearchDoc } from '../types/docs/ClubSearchDoc';
+import { PoolSearchDoc } from '../types/docs/PoolSearchDoc';
 
 class SearchApi extends AbstractApi {
     private static instance: SearchApi | null = null;
@@ -58,6 +59,25 @@ class SearchApi extends AbstractApi {
             return await this.request<ClubSearchDoc[]>({
                 method: 'get',
                 url: 'clubs',
+                params: { query }
+            });
+        } catch (error) {
+            if (error instanceof ApiError && error.status === 404) {
+                return [];
+            }
+            throw error;
+        }
+    }
+
+    /**
+     * Recherche des pools avec ElasticSearch
+     * @param query texte de recherche
+     */
+    public async searchPools(query: string): Promise<PoolSearchDoc[]> {
+        try {
+            return await this.request<PoolSearchDoc[]>({
+                method: 'get',
+                url: 'pools',
                 params: { query }
             });
         } catch (error) {

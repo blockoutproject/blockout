@@ -12,7 +12,7 @@ export enum EntityType {
 
 export interface CustomUser {
     id: number;
-    auth0_id: string;
+    auth0Id: string;
     email: string;
     pseudo: string;
     firstName?: string;

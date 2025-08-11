@@ -102,6 +102,31 @@ class UsersApi extends AbstractApi {
             params: { entityType, entityId }
         });
     }
+
+    /**
+     * Met à jour un utilisateur.
+     * @param auth0Id Identifiant Auth0 de l’utilisateur.
+     * @param data Objet contenant les champs à mettre à jour.
+     * @param image Fichier image optionnel pour la photo de profil.
+     */
+    public async updateUser(
+        auth0Id: string,
+        data: Record<string, any>,
+        image?: File
+    ): Promise<CustomUser> {
+        const formData = new FormData();
+        formData.append('data', JSON.stringify(data));
+
+        if (image) {
+            formData.append('image', image);
+        }
+
+        return await this.request<CustomUser>({
+            method: 'put',
+            url: `/${auth0Id}`,
+            data: formData,
+        });
+    }
 }
 
 export default UsersApi;

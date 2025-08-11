@@ -16,16 +16,16 @@ import { Filter } from "@/src/types/Filter";
 import Filters from "../common/Filters";
 import DivisionItem from "./DivisionItem";
 import DivisionForm from "./DivisionForm";
-import { BottomSheetFlatList, BottomSheetModal } from "@gorhom/bottom-sheet";
+import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import BottomSheetCustomModal from "../common/BottomSheetCustomModal";
 import SearchBar from "../common/SearchBar";
-import * as Haptics from "expo-haptics"; // ← import haptic
+import * as Haptics from "expo-haptics";
 import { FlatList } from "react-native-gesture-handler";
 
 const DivisionScreen = () => {
     const theme = useAppTheme();
     const insets = useSafeAreaInsets();
-    const { data, isLoading, refetch } = useDivisions();
+    const { data, isLoading, refetch: refetchDivisions } = useDivisions();
 
     const formSheetRef = useRef<BottomSheetModal>(null);
     const [editedDivision, setEditedDivision] = useState<Division | null>(null);
@@ -37,7 +37,7 @@ const DivisionScreen = () => {
     ]);
 
     const openForm = (division: Division | null) => {
-        Haptics.selectionAsync(); // ← haptic feedback
+        Haptics.selectionAsync();
         setEditedDivision(division);
         formSheetRef.current?.present();
     };
@@ -45,9 +45,9 @@ const DivisionScreen = () => {
     const handleRefresh = useCallback(async () => {
         setIsRefreshing(true);
         await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-        await refetch();
+        await refetchDivisions();
         setIsRefreshing(false);
-    }, [refetch]);
+    }, [refetchDivisions]);
 
     const closeForm = () => formSheetRef.current?.dismiss();
 
@@ -114,7 +114,7 @@ const DivisionScreen = () => {
                         <DivisionItem
                             division={item}
                             onPress={() => openForm(item)}
-                            onDeactivated={refetch}
+                            onDeactivated={refetchDivisions}
                         />
                     )}
                     refreshControl={
@@ -142,7 +142,7 @@ const DivisionScreen = () => {
                     division={editedDivision}
                     onSuccess={async () => {
                         await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-                        refetch();
+                        refetchDivisions();
                         closeForm();
                     }}
                 />

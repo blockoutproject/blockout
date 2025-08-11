@@ -17,12 +17,18 @@ import TeamScreen from '../team/TeamScreen';
 import SearchScreen from '@/src/components/search/SearchScreen';
 
 import type { Filter } from '@/src/types/Filter';
+import UserScreen from '../user/UserScreen';
+import LegalDocumentScreen from '../user/LegalDocumentScreen';
 
 export type SheetStackParamList = {
     Match: { matchId: number };
     Pool: { poolId: number };
     Team: { teamId: number };
     Search: {};
+    User: {};
+    LegalImprint: {};
+    LegalTerms: {};
+    LegalPrivacy: {};
 };
 
 export const sheetNavRef = createNavigationContainerRef<SheetStackParamList>();
@@ -52,10 +58,10 @@ const BottomSheetNavigator = ({
 }) => {
     const theme = useAppTheme();
 
-    // ✅ État des filtres de la page Search (partagé header <-> screen)
     const [searchFilters, setSearchFilters] = useState<Filter[]>([
         { name: 'Équipes', isActive: true },
         { name: 'Clubs', isActive: false },
+        { name: 'Poules', isActive: false },
     ]);
 
     return (
@@ -98,7 +104,6 @@ const BottomSheetNavigator = ({
                         }}
                     />
 
-                    {/* ✅ Header Search défini ici + passage des filtres au screen via children */}
                     <Stack.Screen
                         name="Search"
                         options={{
@@ -120,6 +125,61 @@ const BottomSheetNavigator = ({
                             />
                         )}
                     </Stack.Screen>
+
+                    <Stack.Screen
+                        name="User"
+                        children={() => (
+                            <UserScreen onCloseSheet={onCloseSheet} />
+                        )}
+                        options={{
+                            headerShown: false, // le header est géré DANS UserScreen
+                            animation: 'slide_from_right',
+                        }}
+                    />
+
+                    <Stack.Screen
+                        name="LegalImprint"
+                        children={() => (
+                            <LegalDocumentScreen
+                                type="imprint"
+                                title="Mentions Légales"
+                                onCloseSheet={onCloseSheet}
+                            />
+                        )}
+                        options={{
+                            animation: 'slide_from_right',
+                            headerShown: false
+                        }}
+                    />
+
+                    <Stack.Screen
+                        name="LegalTerms"
+                        children={() => (
+                            <LegalDocumentScreen
+                                type="terms"
+                                title="Conditions Générales d'Utilisation"
+                                onCloseSheet={onCloseSheet}
+                            />
+                        )}
+                        options={{
+                            animation: 'slide_from_right',
+                            headerShown: false
+                        }} />
+
+                    <Stack.Screen
+                        name="LegalPrivacy"
+                        children={() => (
+                            <LegalDocumentScreen
+                                type="privacy"
+                                title="Politique de Confidentialité"
+                                onCloseSheet={onCloseSheet}
+                            />
+                        )}
+                        options={{
+                            animation: 'slide_from_right',
+                            headerShown: false
+                        }}
+                    />
                 </Stack.Navigator>
             </NavigationContainer>
         </NavigationIndependentTree>

@@ -19,7 +19,6 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import BottomSheetCustomPage from "@/src/components/common/BottomSheetCustomPage";
 import * as Haptics from "expo-haptics";
 import { useSearchClubs } from "@/src/hooks/search/useSearchClubs";
-import { FlatList } from "react-native-gesture-handler";
 
 type Props = {
     search: string;

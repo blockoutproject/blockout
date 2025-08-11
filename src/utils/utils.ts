@@ -64,14 +64,15 @@ export function getTeamsRankingColor(
         teamA: { id: number };
         teamB: { id: number };
         set: string | null;
+        highlightColor: string;
     }
 ): TeamHighlight[] {
-    const { teamA, teamB, set } = enrichedMatch;
+    const { teamA, teamB, set, highlightColor } = enrichedMatch;
 
     if (!set || set.trim() === "") {
         return [
-            { teamId: teamA.id, color: `${theme.primary}70` },
-            { teamId: teamB.id, color: `${theme.primary}70` },
+            { teamId: teamA.id, color: `${highlightColor}` },
+            { teamId: teamB.id, color: `${highlightColor}` },
         ];
     }
 
