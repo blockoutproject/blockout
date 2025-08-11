@@ -2,7 +2,7 @@ package com.blockout.config.services;
 
 import com.blockout.config.exceptions.DivisionNotFoundException;
 import com.blockout.config.models.Division;
-import com.blockout.config.models.dto.DivisionDTO;
+import com.blockout.config.models.dto.DivisionUpdateDTO;
 import com.blockout.config.repositories.DivisionRepository;
 import com.blockout.config.services.clients.S3StorageClient;
 import com.blockout.config.utils.DiffUtils;
@@ -53,7 +53,7 @@ public class DivisionService {
      * Crée une nouvelle division
      */
     @Transactional
-    public Division createDivision(DivisionDTO dto, MultipartFile image) {
+    public Division createDivision(DivisionUpdateDTO dto, MultipartFile image) {
         divisionRepository.findByNameIgnoreCase(dto.getName())
                 .ifPresent(existing -> {
                     throw new IllegalStateException("Une division avec ce nom existe déjà.");
@@ -97,7 +97,7 @@ public class DivisionService {
      * @throws DivisionNotFoundException si la division n'existe pas
      */
     @Transactional
-    public Division updateDivision(Long id, DivisionDTO dto, MultipartFile image) {
+    public Division updateDivision(Long id, DivisionUpdateDTO dto, MultipartFile image) {
         return divisionRepository.findById(id).map(existing -> {
             Division before = existing.toBuilder().build();
 

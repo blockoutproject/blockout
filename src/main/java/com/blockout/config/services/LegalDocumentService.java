@@ -2,7 +2,7 @@ package com.blockout.config.services;
 
 import com.blockout.config.exceptions.LegalDocumentNotFoundException;
 import com.blockout.config.models.LegalDocument;
-import com.blockout.config.models.dto.UpdateLegalDocumentDTO;
+import com.blockout.config.models.dto.LegalDocumentUpdateDTO;
 import com.blockout.config.repositories.LegalDocumentRepository;
 import com.blockout.config.utils.DiffUtils;
 
@@ -34,7 +34,7 @@ public class LegalDocumentService {
     /**
      * Met à jour un document légal existant à partir de son type
      */
-    public LegalDocument updateLegalDocument(String type, UpdateLegalDocumentDTO dto) {
+    public LegalDocument updateLegalDocument(String type, LegalDocumentUpdateDTO dto) {
         return repository.findByType(type.toLowerCase().trim())
                 .map(existing -> {
                     LegalDocument before = existing.toBuilder().build();

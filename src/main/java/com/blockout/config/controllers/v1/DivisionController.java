@@ -1,7 +1,7 @@
 package com.blockout.config.controllers.v1;
 
 import com.blockout.config.models.Division;
-import com.blockout.config.models.dto.DivisionDTO;
+import com.blockout.config.models.dto.DivisionUpdateDTO;
 import com.blockout.config.services.DivisionService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -63,7 +63,7 @@ public class DivisionController {
             @RequestPart("data") String json,
             @RequestPart(value = "image", required = false) MultipartFile image) throws JsonProcessingException {
 
-        DivisionDTO dto = objectMapper.readValue(json, DivisionDTO.class);
+        DivisionUpdateDTO dto = objectMapper.readValue(json, DivisionUpdateDTO.class);
         Division saved = divisionService.createDivision(dto, image);
 
         URI location = ServletUriComponentsBuilder.fromCurrentRequest()
@@ -86,7 +86,7 @@ public class DivisionController {
             @RequestPart("data") String json,
             @RequestPart(value = "image", required = false) MultipartFile image) throws JsonProcessingException {
 
-        DivisionDTO dto = objectMapper.readValue(json, DivisionDTO.class);
+        DivisionUpdateDTO dto = objectMapper.readValue(json, DivisionUpdateDTO.class);
         Division updated = divisionService.updateDivision(id, dto, image);
         return ResponseEntity.ok(updated);
     }

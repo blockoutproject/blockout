@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class DivisionDTO {
+public class DivisionUpdateDTO {
     
     private String name;
 

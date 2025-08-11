@@ -1,7 +1,7 @@
 package com.blockout.config.controllers.v1;
 
 import com.blockout.config.models.LegalDocument;
-import com.blockout.config.models.dto.UpdateLegalDocumentDTO;
+import com.blockout.config.models.dto.LegalDocumentUpdateDTO;
 import com.blockout.config.services.LegalDocumentService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -40,7 +40,7 @@ public class LegalDocumentController {
     @PreAuthorize("hasAuthority('SCOPE_update:legal')")
     public ResponseEntity<LegalDocument> updateLegal(
             @PathVariable String type,
-            @RequestBody UpdateLegalDocumentDTO dto) {
+            @RequestBody LegalDocumentUpdateDTO dto) {
         LegalDocument updated = service.updateLegalDocument(type, dto);
         return ResponseEntity.ok(updated);
     }
