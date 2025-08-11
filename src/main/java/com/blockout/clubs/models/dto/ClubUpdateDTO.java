@@ -12,7 +12,7 @@ import lombok.Builder;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class ClubDTO {
+public class ClubUpdateDTO {
 
     private String id;
 

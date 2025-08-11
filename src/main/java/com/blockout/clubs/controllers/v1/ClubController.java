@@ -1,7 +1,7 @@
 package com.blockout.clubs.controllers.v1;
 
 import com.blockout.clubs.models.Club;
-import com.blockout.clubs.models.dto.ClubDTO;
+import com.blockout.clubs.models.dto.ClubUpdateDTO;
 import com.blockout.clubs.services.ClubService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -62,7 +62,7 @@ public class ClubController {
             @RequestPart("data") String json,
             @RequestPart(value = "image", required = false) MultipartFile image) throws JsonProcessingException {
 
-        ClubDTO dto = objectMapper.readValue(json, ClubDTO.class);
+        ClubUpdateDTO dto = objectMapper.readValue(json, ClubUpdateDTO.class);
         Club saved = clubService.createClub(dto, image);
 
         URI location = ServletUriComponentsBuilder.fromCurrentRequest()
@@ -85,7 +85,7 @@ public class ClubController {
             @RequestPart("data") String json,
             @RequestPart(value = "image", required = false) MultipartFile image) throws JsonProcessingException {
 
-        ClubDTO dto = objectMapper.readValue(json, ClubDTO.class);
+        ClubUpdateDTO dto = objectMapper.readValue(json, ClubUpdateDTO.class);
         Club updated = clubService.updateClub(id, dto, image);
         return ResponseEntity.ok(updated);
     }

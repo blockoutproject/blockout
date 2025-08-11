@@ -2,7 +2,7 @@ package com.blockout.clubs.services;
 
 import com.blockout.clubs.exceptions.ClubNotFoundException;
 import com.blockout.clubs.models.Club;
-import com.blockout.clubs.models.dto.ClubDTO;
+import com.blockout.clubs.models.dto.ClubUpdateDTO;
 import com.blockout.clubs.repositories.ClubRepository;
 import com.blockout.clubs.services.clients.S3StorageClient;
 import com.blockout.clubs.utils.DiffUtils;
@@ -74,7 +74,7 @@ public class ClubService {
      *         rempli
      */
     @Transactional
-    public Club createClub(ClubDTO dto, MultipartFile image) {
+    public Club createClub(ClubUpdateDTO dto, MultipartFile image) {
 
         Club club = Club.builder()
                 .id(dto.getId())
@@ -121,7 +121,7 @@ public class ClubService {
      * @throws ClubNotFoundException si le club est introuvable
      */
     @Transactional
-    public Club updateClub(String id, ClubDTO dto, MultipartFile image) {
+    public Club updateClub(String id, ClubUpdateDTO dto, MultipartFile image) {
         return clubRepository.findById(id).map(existing -> {
             Club before = existing.toBuilder().build();
 
