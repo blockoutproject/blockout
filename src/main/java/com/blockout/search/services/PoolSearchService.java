@@ -27,27 +27,24 @@ public class PoolSearchService {
                 return Collections.emptyList();
             }
 
-            // ex: "prenat bret" -> "prenat* bret*"
             String wildcardQuery = Arrays.stream(keyword.trim().split("\\s+"))
                     .filter(t -> !t.isBlank())
                     .map(t -> t + "*")
                     .collect(Collectors.joining(" "));
 
             Query query = Query.of(q -> q.simpleQueryString(sqs -> sqs
-                .query(wildcardQuery)
-                .fields("keywordsAutocomplete^2", "keywordsAutocompleteSimplified^3")
-                .defaultOperator(Operator.And)   // tous les mots requis
-                .lenient(true)                   // tolère petits écarts de types
-            ));
+                    .query(wildcardQuery)
+                    .fields("keywordsAutocomplete^2", "keywordsAutocompleteSimplified^3")
+                    .defaultOperator(Operator.And)
+                    .lenient(true)));
 
             SearchResponse<PoolSearchDoc> response = elasticsearchClient.search(
-                s -> s.index("pools").query(query).size(20),
-                PoolSearchDoc.class
-            );
+                    s -> s.index("pools").query(query).size(20),
+                    PoolSearchDoc.class);
 
             return response.hits().hits().stream()
-                .map(hit -> hit.source())
-                .toList();
+                    .map(hit -> hit.source())
+                    .toList();
 
         } catch (Exception e) {
             return Collections.emptyList();
