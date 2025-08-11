@@ -2,8 +2,9 @@ package com.blockout.search.services;
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
+import co.elastic.clients.elasticsearch._types.query_dsl.Operator;
 import co.elastic.clients.elasticsearch._types.query_dsl.Query;
-
+import co.elastic.clients.elasticsearch._types.query_dsl.TextQueryType; // ← ici
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -21,27 +22,16 @@ public class PoolSearchService {
 
     public List<PoolSearchDoc> searchByKeyword(String keyword) {
         try {
-            Query query = Query.of(q -> q
-                .bool(b -> b
-                    .should(s -> s.match(mq -> mq
-                        .field("keywordsAutocomplete")
-                        .query(keyword)
-                        .boost(2.0f)
-                    ))
-                    .should(s -> s.match(mq -> mq
-                        .field("keywordsAutocompleteSimplified")
-                        .query(keyword)
-                        .boost(1.5f)
-                    ))
-                    .minimumShouldMatch("1")
-                )
-            );
+            Query query = Query.of(q -> q.multiMatch(mm -> mm
+                .query(keyword)
+                .fields("keywordsAutocomplete^2,keywordsAutocompleteSimplified^3")
+                .type(TextQueryType.BoolPrefix)
+                .operator(Operator.And)
+                .fuzziness("AUTO")
+            ));
 
             SearchResponse<PoolSearchDoc> response = elasticsearchClient.search(
-                s -> s
-                    .index("pools")
-                    .query(query)
-                    .size(20),
+                s -> s.index("pools").query(query).size(20),
                 PoolSearchDoc.class
             );
 
