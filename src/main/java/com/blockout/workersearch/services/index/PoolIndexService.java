@@ -56,10 +56,6 @@ public class PoolIndexService {
         String divisionName = division != null ? division.getName() : "Division inconnue";
         String logoUrl = division != null ? division.getLogoUrl() : null;
 
-                logger.info("Test pool",
-                keyValue("action", "tes_pool"),
-                keyValue("logo", logoUrl));
-
         String raw = String.join(" ",
                 e.getName() != null ? e.getName() : "",
                 divisionName != null ? divisionName : "",
