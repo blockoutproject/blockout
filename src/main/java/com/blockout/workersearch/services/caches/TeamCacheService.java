@@ -25,6 +25,10 @@ public class TeamCacheService {
                 .add(event);
     }
 
+    public void remove(String clubId) {
+        teamCacheByClub.remove(clubId);
+    }
+
     public void replaceAll(List<TeamUpsertEvent> events) {
         teamCacheByClub.clear();
         events.forEach(this::put);

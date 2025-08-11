@@ -82,6 +82,7 @@ public class CacheInitializerService {
                 .map(division -> DivisionUpsertEvent.builder()
                         .id(division.getId())
                         .name(division.getName())
+                        .logoUrl(division.getLogoUrl())
                         .build())
                 .toList();
 

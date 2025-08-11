@@ -56,14 +56,12 @@ public class PoolIndexService {
         String divisionName = division != null ? division.getName() : "Division inconnue";
         String logoUrl = division != null ? division.getLogoUrl() : null;
 
-        // Contenu brut (comme Team: concat utile pour la recherche)
         String raw = String.join(" ",
                 e.getName() != null ? e.getName() : "",
                 divisionName != null ? divisionName : "",
                 e.getLeagueName() != null ? e.getLeagueName() : "",
                 e.getSeason() != null ? e.getSeason() : "");
 
-        // Version simplifiée
         String simplified = TextNormalizer.simplify(raw);
 
         return PoolDoc.builder()

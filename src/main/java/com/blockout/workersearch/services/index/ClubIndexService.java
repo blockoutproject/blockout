@@ -64,6 +64,8 @@ public class ClubIndexService {
                 keyValue("action", "delete_club"),
                 keyValue("id", id));
         clubRepository.deleteById(id);
+        clubCacheService.remove(id);
+        teamCacheService.remove(id);
     }
 
     private ClubDoc map(ClubUpsertEvent e) {
