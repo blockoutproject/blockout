@@ -59,18 +59,6 @@ public class UserController {
         return ResponseEntity.ok(updated);
     }
 
-    @Operation(summary = "Récupérer l'utilisateur courant", description = "Retourne l'utilisateur correspondant au token JWT.")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Utilisateur trouvé"),
-            @ApiResponse(responseCode = "404", description = "Utilisateur non trouvé")
-    })
-    @GetMapping("/me")
-    public ResponseEntity<CustomUserDto> getCurrentUser(@AuthenticationPrincipal Jwt jwt) {
-        String auth0Id = jwt.getSubject();
-        CustomUserDto user = userService.getUserByAuth0Id(auth0Id);
-        return ResponseEntity.ok(user);
-    }
-
     @Operation(summary = "Créer ou mettre à jour l'utilisateur courant", description = "Crée l'utilisateur s'il n'existe pas encore, ou met à jour ses données depuis Auth0 si nécessaire.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Utilisateur existant ou mis à jour avec succès"),

@@ -74,8 +74,7 @@ public class UserService {
      *
      * @param auth0Id Identifiant unique Auth0 (claim "sub")
      * @return L'utilisateur existant ou nouvellement créé
-     * @throws Auth0Exception En cas d'échec de récupération ou d'assignation de
-     *                        rôle depuis Auth0
+     * @throws Auth0Exception En cas d'échec de récupération ou d'assignation de rôle depuis Auth0
      */
     @Transactional
     public CustomUser ensureCurrentUser(String auth0Id) throws Auth0Exception {

@@ -58,7 +58,7 @@ public class GlobalExceptionHandler {
         ex.printStackTrace();
         return buildErrorResponse(
                 ex.getMessage(),
-                HttpStatus.NOT_FOUND,
+                HttpStatus.UNAUTHORIZED,
                 request.getRequestURI());
     }
 
