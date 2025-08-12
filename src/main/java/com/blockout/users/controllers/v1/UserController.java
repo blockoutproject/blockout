@@ -78,7 +78,7 @@ public class UserController {
             @ApiResponse(responseCode = "500", description = "Erreur serveur lors de la suppression")
     })
     @PreAuthorize("hasAuthority('SCOPE_delete:current_user') or hasAuthority('SCOPE_delete:users')")
-    @DeleteMapping
+    @DeleteMapping("/me")
     public ResponseEntity<Void> deleteUser(@AuthenticationPrincipal Jwt jwt) throws Auth0Exception {
         String auth0Id = jwt.getSubject();
         userService.deleteUser(auth0Id);
