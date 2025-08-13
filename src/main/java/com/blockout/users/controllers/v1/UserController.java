@@ -47,7 +47,7 @@ public class UserController {
             @ApiResponse(responseCode = "200", description = "Utilisateur mis à jour"),
             @ApiResponse(responseCode = "404", description = "Utilisateur introuvable")
     })
-    @PreAuthorize("hasAuthority('SCOPE_update:currnt_user') or hasAuthority('SCOPE_update:users')")
+    @PreAuthorize("hasAuthority('SCOPE_update:current_user') or hasAuthority('SCOPE_update:users')")
     @PutMapping(path = "/{auth0Id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<CustomUser> updateUser(
             @PathVariable String auth0Id,
@@ -64,6 +64,7 @@ public class UserController {
             @ApiResponse(responseCode = "200", description = "Utilisateur existant ou mis à jour avec succès"),
             @ApiResponse(responseCode = "500", description = "Erreur lors de la récupération depuis Auth0")
     })
+    @PreAuthorize("hasAuthority('SCOPE_create:current_user')")
     @PutMapping("/me")
     public ResponseEntity<CustomUser> ensureCurrentUser(@AuthenticationPrincipal Jwt jwt) throws Auth0Exception {
         String auth0Id = jwt.getSubject();
