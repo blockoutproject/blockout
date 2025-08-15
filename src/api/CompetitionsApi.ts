@@ -2,29 +2,32 @@ import { CONFIG } from '@/src/config/config';
 import AbstractApi, { ApiError } from './AbstractApi';
 import { CompetitionAssociation } from '@/src/types/Competition';
 
+type InitOpts = {
+    tokenSupplier?: () => Promise<string | null>;
+    onUnauthorized?: (e: ApiError) => void | Promise<void>;
+};
+
 class CompetitionsApi extends AbstractApi {
     private static instance: CompetitionsApi | null = null;
 
-    private constructor(url: string, token: string) {
-        super(url, token);
+    private constructor(token: string, opts?: InitOpts) {
+        super(CONFIG.API_COMPETITIONS_BASE_URL, token, {
+            tokenSupplier: opts?.tokenSupplier,
+            onUnauthorized: opts?.onUnauthorized,
+        });
     }
 
-    /** Initialise l'instance avec le token d'accès */
-    public static initInstance(token: string): void {
+    /** Initialise l'instance avec le token d'accès (+ options runtime) */
+    public static initInstance(token: string, opts?: InitOpts): void {
         if (!CompetitionsApi.instance) {
-            CompetitionsApi.instance = new CompetitionsApi(
-                CONFIG.API_COMPETITIONS_BASE_URL,
-                token
-            );
+            CompetitionsApi.instance = new CompetitionsApi(token, opts);
         }
     }
 
     /** Retourne l'instance de l'API */
     public static getInstance(): CompetitionsApi {
         if (!CompetitionsApi.instance) {
-            throw new Error(
-                'Initialisez l’instance avant d’appeler getInstance().'
-            );
+            throw new Error('Initialisez l’instance avant d’appeler getInstance().');
         }
         return CompetitionsApi.instance;
     }

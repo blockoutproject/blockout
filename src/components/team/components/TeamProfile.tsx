@@ -1,128 +1,82 @@
-import React, { useRef, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { Image } from 'expo-image';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { useAppTheme } from '@/src/context/ThemeProvider';
-import { EnrichedTeamDTO } from '@/src/types/Team';
-import { useTeamFollowState } from '@/src/hooks/team/useTeamFollowState';
-import FollowButton from '@/src/components/common/FollowButton';
-import FollowersCounter from '@/src/components/common/FollowersCount';
-import { EnumGender, GenderLabels } from '@/src/types/enums/Gender';
+import React from "react";
+import { View, StyleSheet } from "react-native";
+import { Image } from "expo-image";
 import * as Haptics from "expo-haptics";
-import { BottomSheetModal } from '@gorhom/bottom-sheet';
-import BottomSheetCustomPage from '../../common/BottomSheetCustomPage';
-import ClubScreen from '../../club/ClubScreen';
+import { useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
-type Props = {
+import { useAppTheme } from "@/src/context/ThemeProvider";
+import { EnrichedTeamDTO } from "@/src/types/Team";
+import { useTeamFollowState } from "@/src/hooks/team/useTeamFollowState";
+import FollowButton from "@/src/components/common/FollowButton";
+import FollowersCounter from "@/src/components/common/FollowersCount";
+import { GenderLabels } from "@/src/types/enums/Gender";
+import type { SheetStackParamList } from "@/src/components/common/BottomSheetNavigator";
+import { LOGO_SIZE } from "@/src/theme/globals";
+import { FormatLabels } from "@/src/types/enums/Format";
+import InfoChipGradient from "../../common/chips/InfoChipGradientTwoIcons";
+import InfoPill from "../../common/chips/InfoPill";
+import MaskedImage from "../../common/MaskedImage";
+
+type TeamProfileProps = {
     enrichedTeam: EnrichedTeamDTO;
 };
 
-const TeamProfile: React.FC<Props> = ({ enrichedTeam }) => {
-    const theme = useAppTheme();
-    const { isFollowing, isProcessing, followersCount, onToggleFollow } = useTeamFollowState(enrichedTeam);
+const TeamProfile: React.FC<TeamProfileProps> = ({ enrichedTeam }) => {
+    const navigation = useNavigation<NativeStackNavigationProp<SheetStackParamList>>();
+    const { isFollowing, isProcessing, followersCount, onToggleFollow } =
+        useTeamFollowState(enrichedTeam);
 
-    const gradient: readonly [string, string, ...string[]] = [
+    const gradient = [
         enrichedTeam.division.firstGradientColor,
         enrichedTeam.division.secondGradientColor,
         enrichedTeam.division.thirdGradientColor,
-    ];
+    ] as const;
 
-    const clubSheetRef = useRef<BottomSheetModal>(null);
-    const [selectedClubId, setSelectedClubId] = useState<string | null>(null);
-
-    const openClubSheet = (id: string) => {
-        Haptics.selectionAsync();
-        setSelectedClubId(id);
-        clubSheetRef.current?.present();
+    const handleClubPress = (clubId: string) => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        navigation.push("Club", { clubId });
     };
 
     return (
-        <>
-            <View style={[styles.container, { backgroundColor: theme.background }]}>
-                <View style={styles.row}>
-                    <Image
-                        source={
-                            enrichedTeam.club.logoUrl
-                                ? { uri: enrichedTeam.club.logoUrl }
-                                : require('@/assets/clubs/default_club_logo.png')
-                        }
-                        style={[styles.logo, { backgroundColor: theme.text }]}
-                        contentFit="contain"
-                    />
+        <View style={styles.container}>
+            <View style={styles.topRow}>
+                <MaskedImage
+                    uri={enrichedTeam.club.logoUrl}
+                    size={LOGO_SIZE}
+                    radius={20}
+                    shadow
+                />
 
-                    <View style={styles.info}>
-                        <Text
-                            style={[styles.title, { color: theme.text }]}
-                            numberOfLines={2}
-                            ellipsizeMode="tail"
-                            adjustsFontSizeToFit
-                            minimumFontScale={0.8}
-                        >
-                            {enrichedTeam.name}
-                        </Text>
+                <View style={styles.infoCol}>
+                    <View style={styles.pillRow}>
+                        <InfoPill label={enrichedTeam.division.name} />
+                        <InfoPill label={GenderLabels[enrichedTeam.gender]}  />
+                    </View>
 
-                        <View style={styles.infoLine}>
-                            <MaterialCommunityIcons name="trophy" size={18} color={theme.text} />
-                            <Text style={[styles.infoText, { color: theme.text }]}>
-                                {enrichedTeam.division.name}
-                            </Text>
-                        </View>
+                    <View style={styles.pillRow}>
+                        <InfoPill label={FormatLabels[enrichedTeam.format]} />
+                        <InfoPill label={String(enrichedTeam.season)} />
+                        <InfoChipGradient
+                            firstIcon="home"
+                            secondIcon="arrow-right"
+                            gradient={gradient}
+                            onPress={() => handleClubPress(enrichedTeam.club.id)}
+                        />
+                    </View>
 
-                        <View style={styles.infoLine}>
-                            {enrichedTeam.gender === EnumGender.M && (
-                                <MaterialCommunityIcons name="gender-male" size={18} color={theme.text} />
-                            )}
-                            {enrichedTeam.gender === EnumGender.F && (
-                                <MaterialCommunityIcons name="gender-female" size={18} color={theme.text} />
-                            )}
-                            {enrichedTeam.gender === EnumGender.O && (
-                                <MaterialCommunityIcons name="gender-male-female" size={18} color={theme.text} />
-                            )}
-                            <Text style={[styles.infoText, { color: theme.text }]}>
-                                {GenderLabels[enrichedTeam.gender]}
-                            </Text>
-                        </View>
-
-                        <View style={styles.infoLine}>
-                            <MaterialCommunityIcons name="calendar" size={18} color={theme.text} />
-                            <Text style={[styles.infoText, { color: theme.text }]}>
-                                {enrichedTeam.season}
-                            </Text>
-                        </View>
-
-                        <TouchableOpacity
-                            onPress={() => openClubSheet(enrichedTeam.club.id)}
-                            style={styles.infoLine}
-                        >
-                            <MaterialCommunityIcons name="home" size={18} color={theme.text} />
-                            <View style={styles.clubName}>
-                                <Text
-                                    style={[styles.clubNameText, { color: theme.text }]}
-                                    numberOfLines={1}
-                                    ellipsizeMode="tail"
-                                >
-                                    {enrichedTeam.club.name}
-                                </Text>
-                            </View>
-                        </TouchableOpacity>
+                    <View style={styles.actionsRow}>
+                        <FollowButton
+                            isFollowing={isFollowing}
+                            onPress={onToggleFollow}
+                            disabled={isProcessing}
+                            gradient={gradient}
+                        />
+                        <FollowersCounter count={followersCount} />
                     </View>
                 </View>
-
-                <View style={styles.actionsRow}>
-                    <FollowButton
-                        isFollowing={isFollowing}
-                        onPress={onToggleFollow}
-                        disabled={isProcessing}
-                        gradient={gradient}
-                    />
-                    <FollowersCounter count={followersCount} />
-                </View>
             </View>
-
-            <BottomSheetCustomPage ref={clubSheetRef}>
-                {selectedClubId && <ClubScreen clubId={selectedClubId} />}
-            </BottomSheetCustomPage>
-        </>
+        </View>
     );
 };
 
@@ -130,48 +84,40 @@ export default TeamProfile;
 
 const styles = StyleSheet.create({
     container: {
-        paddingHorizontal: 16,
+        padding: 12,
+        gap: 10,
     },
-    row: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 16,
+    topRow: {
+        flexDirection: "row",
+        alignItems: "flex-start",
+        gap: 12,
     },
-    logo: {
-        width: 100,
-        aspectRatio: 1,
-        borderRadius: 24,
-    },
-    info: {
-        flex: 1,
-    },
-    title: {
-        fontWeight: '700',
-        fontSize: 18,
-        marginBottom: 10,
-    },
-    infoLine: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 6,
-        marginBottom: 2,
-    },
-    infoText: {
-        fontSize: 14,
-        fontWeight: '500',
-    },
-    clubName: {
+    infoCol: {
         flex: 1,
         minWidth: 0,
+        height: LOGO_SIZE,
+        justifyContent: "space-between",
     },
-    clubNameText: {
-        fontSize: 14,
-        fontWeight: '500',
-        textDecorationLine: 'underline',
+    pillRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 6,
+        flexWrap: "nowrap",
     },
     actionsRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginTop: 8,
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 12,
+    },
+    clubChipInner: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 6,
+        paddingVertical: 6,
+        paddingHorizontal: 10,
+    },
+    clubChipText: {
+        fontSize: 12,
+        fontWeight: "800",
     },
 });

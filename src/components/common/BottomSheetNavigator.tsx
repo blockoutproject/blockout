@@ -1,29 +1,23 @@
-import React, { useState } from 'react';
+import React from "react";
+import { NavigationContainer, NavigationIndependentTree } from "@react-navigation/native";
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { createNavigationContainerRef } from "@react-navigation/native";
 
-import { NavigationContainer, NavigationIndependentTree } from '@react-navigation/native';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { createNavigationContainerRef } from '@react-navigation/native';
+import { useAppTheme } from "@/src/context/ThemeProvider";
 
-import { useAppTheme } from '@/src/context/ThemeProvider';
-
-import MatchHeader from '../match/components/MatchHeader';
-import PoolHeader from '../pool/components/PoolHeader';
-import TeamHeader from '../team/components/TeamHeader';
-import SearchHeader from '@/src/components/search/components/SearchHeader';
-
-import MatchScreen from '../match/MatchScreen';
-import PoolScreen from '../pool/PoolScreen';
-import TeamScreen from '../team/TeamScreen';
-import SearchScreen from '@/src/components/search/SearchScreen';
-
-import type { Filter } from '@/src/types/Filter';
-import UserScreen from '../user/UserScreen';
-import LegalDocumentScreen from '../user/LegalDocumentScreen';
+import MatchScreen from "@/src/components/match/MatchScreen";
+import PoolScreen from "@/src/components/pool/PoolScreen";
+import TeamScreen from "@/src/components/team/TeamScreen";
+import SearchScreen from "@/src/components/search/SearchScreen";
+import UserScreen from "@/src/components/user/UserScreen";
+import LegalDocumentScreen from "@/src/components/user/LegalDocumentScreen";
+import ClubScreen from "@/src/components/club/ClubScreen";
 
 export type SheetStackParamList = {
     Match: { matchId: number };
     Pool: { poolId: number };
     Team: { teamId: number };
+    Club: { clubId: string };
     Search: {};
     User: {};
     LegalImprint: {};
@@ -58,98 +52,62 @@ const BottomSheetNavigator = ({
 }) => {
     const theme = useAppTheme();
 
-    const [searchFilters, setSearchFilters] = useState<Filter[]>([
-        { name: 'Équipes', isActive: true },
-        { name: 'Clubs', isActive: false },
-        { name: 'Poules', isActive: false },
-    ]);
-
     return (
         <NavigationIndependentTree>
             <NavigationContainer ref={sheetNavRef}>
                 <Stack.Navigator
                     initialRouteName={initialScreen}
                     screenOptions={{
+                        headerShown: false,
                         contentStyle: { backgroundColor: theme.background },
                     }}
                 >
                     <Stack.Screen
                         name="Match"
-                        component={MatchScreen}
-                        initialParams={initialScreen === 'Match' ? params : undefined}
-                        options={{
-                            headerTransparent: true,
-                            header: () => <MatchHeader onCloseSheet={onCloseSheet} />,
-                            animation: 'slide_from_right',
-                        }}
+                        children={() => <MatchScreen onCloseSheet={onCloseSheet} />}
+                        initialParams={initialScreen === "Match" ? params : undefined}
+                        options={{ animation: "slide_from_right" }}
                     />
 
                     <Stack.Screen
                         name="Pool"
-                        component={PoolScreen}
-                        initialParams={initialScreen === 'Pool' ? params : undefined}
-                        options={{
-                            header: () => <PoolHeader onCloseSheet={onCloseSheet} />,
-                            animation: 'slide_from_right',
-                        }}
+                        children={() => <PoolScreen onCloseSheet={onCloseSheet} />}
+                        initialParams={initialScreen === "Pool" ? params : undefined}
+                        options={{ animation: "slide_from_right" }}
                     />
 
                     <Stack.Screen
                         name="Team"
-                        component={TeamScreen}
-                        initialParams={initialScreen === 'Team' ? params : undefined}
-                        options={{
-                            header: () => <TeamHeader onCloseSheet={onCloseSheet} />,
-                            animation: 'slide_from_right',
-                        }}
+                        children={() => <TeamScreen onCloseSheet={onCloseSheet} />}
+                        initialParams={initialScreen === "Team" ? params : undefined}
+                        options={{ animation: "slide_from_right" }}
+                    />
+
+                    <Stack.Screen
+                        name="Club"
+                        children={() => <ClubScreen onCloseSheet={onCloseSheet} />}
+                        initialParams={initialScreen === "Club" ? params : undefined}
+                        options={{ animation: "slide_from_right" }}
                     />
 
                     <Stack.Screen
                         name="Search"
-                        options={{
-                            headerShown: true,
-                            animation: 'fade_from_bottom',
-                            header: () => (
-                                <SearchHeader
-                                    onCloseSheet={onCloseSheet}
-                                    filters={searchFilters}
-                                    setFilters={setSearchFilters}
-                                />
-                            ),
-                        }}
-                    >
-                        {() => (
-                            <SearchScreen
-                                filters={searchFilters}
-                                setFilters={setSearchFilters}
-                            />
-                        )}
-                    </Stack.Screen>
+                        children={() => <SearchScreen onCloseSheet={onCloseSheet} />}
+                        options={{ animation: "fade_from_bottom" }}
+                    />
 
                     <Stack.Screen
                         name="User"
-                        children={() => (
-                            <UserScreen onCloseSheet={onCloseSheet} />
-                        )}
-                        options={{
-                            headerShown: false, // le header est géré DANS UserScreen
-                            animation: 'slide_from_right',
-                        }}
+                        children={() => <UserScreen onCloseSheet={onCloseSheet} />}
+                        options={{ animation: "slide_from_right" }}
                     />
 
                     <Stack.Screen
                         name="LegalImprint"
                         children={() => (
-                            <LegalDocumentScreen
-                                type="imprint"
-                                title="Mentions Légales"
-                                onCloseSheet={onCloseSheet}
-                            />
+                            <LegalDocumentScreen type="imprint" title="Mentions Légales" onCloseSheet={onCloseSheet} />
                         )}
-                        options={{
-                            animation: 'slide_from_right',
-                            headerShown: false
-                        }}
+                        options={{ animation: "slide_from_right" }}
                     />
 
                     <Stack.Screen
@@ -161,10 +119,8 @@ const BottomSheetNavigator = ({
                                 onCloseSheet={onCloseSheet}
                             />
                         )}
-                        options={{
-                            animation: 'slide_from_right',
-                            headerShown: false
-                        }} />
+                        options={{ animation: "slide_from_right" }}
+                    />
 
                     <Stack.Screen
                         name="LegalPrivacy"
@@ -175,10 +131,7 @@ const BottomSheetNavigator = ({
                                 onCloseSheet={onCloseSheet}
                             />
                         )}
-                        options={{
-                            animation: 'slide_from_right',
-                            headerShown: false
-                        }}
+                        options={{ animation: "slide_from_right" }}
                     />
                 </Stack.Navigator>
             </NavigationContainer>

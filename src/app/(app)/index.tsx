@@ -9,6 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useUserContext } from '@/src/context/UserProvider';
 import { useSheet } from '@/src/context/SheetProvider';
 import { HEADER_HEIGHT, TABBAR_HEIGHT } from '@/src/theme/globals';
+import VolleyballLoader from '@/src/components/common/VolleyballLoader';
 
 const HomeScreen: React.FC = () => {
     const insets = useSafeAreaInsets();
@@ -17,7 +18,6 @@ const HomeScreen: React.FC = () => {
 
     const [index, setIndex] = useState(0);
 
-    // Espace fixe (SafeArea + TabBar). Le header collapsible (HEADER_HEIGHT) est géré dans le HomeHeader.
     const headerOffset = insets.top + TABBAR_HEIGHT + HEADER_HEIGHT;
 
     const favorites = customUser?.favorites ?? [];
@@ -99,8 +99,6 @@ const HomeScreen: React.FC = () => {
         ),
         [scrollYs]
     );
-
-    if (!customUser) return null;
 
     return (
         <TabView

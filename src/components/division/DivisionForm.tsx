@@ -20,6 +20,7 @@ import * as ImageManipulator from 'expo-image-manipulator';
 import { Image } from 'expo-image';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import * as Haptics from 'expo-haptics';
+import { CORNERS } from '@/src/theme/globals';
 
 interface DivisionFormProps {
     division: Division | null;
@@ -39,12 +40,6 @@ const DivisionForm: React.FC<DivisionFormProps> = ({ division, onSuccess }) => {
     const handlePickImage = async () => {
         try {
             await Haptics.selectionAsync();
-
-            const { granted } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-            if (!granted) {
-                Alert.alert('Permission refusée', 'Accès à la bibliothèque requis.');
-                return;
-            }
 
             const pickerResult = await ImagePicker.launchImageLibraryAsync({
                 mediaTypes: ['images'],
@@ -305,7 +300,7 @@ const styles = StyleSheet.create({
         fontWeight: '500',
     },
     submitButton: {
-        borderRadius: 999,
+        borderRadius: CORNERS,
         paddingVertical: 14,
         marginHorizontal: 12,
         alignItems: 'center',

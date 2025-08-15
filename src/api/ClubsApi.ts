@@ -3,24 +3,32 @@ import AbstractApi, { ApiError } from './AbstractApi';
 import { Club } from '../types/Club';
 import snakecaseKeys from 'snakecase-keys';
 
+type InitOpts = {
+    tokenSupplier?: () => Promise<string | null>;
+    onUnauthorized?: (e: ApiError) => void | Promise<void>;
+};
+
 class ClubsApi extends AbstractApi {
     private static instance: ClubsApi | null = null;
 
-    private constructor(url: string, token: string) {
-        super(url, token);
+    private constructor(token: string, opts?: InitOpts) {
+        super(CONFIG.API_CLUBS_BASE_URL, token, {
+            tokenSupplier: opts?.tokenSupplier,
+            onUnauthorized: opts?.onUnauthorized,
+        });
     }
 
-    /** Initialise l'instance de l'API avec le token d'accès */
-    public static initInstance(token: string): void {
+    /** Initialise l'instance de l'API avec le token d'accès (et options runtime) */
+    public static initInstance(token: string, opts?: InitOpts): void {
         if (!ClubsApi.instance) {
-            ClubsApi.instance = new ClubsApi(CONFIG.API_CLUBS_BASE_URL, token);
+            ClubsApi.instance = new ClubsApi(token, opts);
         }
     }
 
     /** Retourne l'instance de l'API */
     public static getInstance(): ClubsApi {
         if (!ClubsApi.instance) {
-            throw new Error('Initialisez l’instance avant d’appeler getInstance().');
+            throw new Error('Initialisez l’instance via ClubsApi.initInstance(...) avant getInstance().');
         }
         return ClubsApi.instance;
     }
@@ -30,8 +38,9 @@ class ClubsApi extends AbstractApi {
      * @param ids tableau d’identifiants
      */
     public async getClubsByIds(ids: number[]): Promise<Club[]> {
-        if (ids.length === 0) {
-            throw new Error('La liste d’IDs ne peut pas être vide.');
+        if (!ids || ids.length === 0) {
+            // plus soft: on retourne un tableau vide plutôt que throw
+            return [];
         }
 
         try {
@@ -62,19 +71,27 @@ class ClubsApi extends AbstractApi {
     /**
      * Met à jour un club avec ses nouvelles données (et un logo facultatif)
      * @param id ID du club
-     * @param data Données à mettre à jour
-     * @param image Fichier image (facultatif)
+     * @param payload Données à mettre à jour
+     * @param image Image (React Native friendly) { uri, type?, name? }
      */
     public async updateClub(
         id: string,
         payload: Partial<Club>,
-        image?: File
+        image?: { uri: string; type?: string; name?: string }
     ): Promise<Club> {
         const formData = new FormData();
 
+        // Comme on envoie du FormData, l'interceptor JSON ne snakecase pas.
+        // On snakecase donc explicitement l'objet avant de le stringify.
         formData.append('data', JSON.stringify(snakecaseKeys(payload, { deep: true })));
 
-        if (image) formData.append('image', image);
+        if (image) {
+            formData.append('image', {
+                uri: image.uri,
+                type: image.type ?? 'image/jpeg',
+                name: image.name ?? 'club-logo.jpg',
+            } as any);
+        }
 
         return this.request<Club>({
             method: 'put',

@@ -12,6 +12,7 @@ import { BottomSheetModal, BottomSheetView } from "@gorhom/bottom-sheet";
 import BottomSheetCustomModal from "./BottomSheetCustomModal";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from 'expo-haptics';
+import { CORNERS } from "@/src/theme/globals";
 
 interface Props {
     value: string;
@@ -86,11 +87,11 @@ const CircleColorPicker: React.FC<Props> = ({
 
 const styles = StyleSheet.create({
     circle: {
-        borderRadius: 999,
+        borderRadius: CORNERS,
         borderWidth: 2,
     },
     buttonRow: {
-        borderRadius: 999,
+        borderRadius: CORNERS,
         padding: 4,
         marginHorizontal: 10,
     },

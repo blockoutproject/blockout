@@ -1,36 +1,54 @@
-import React, { createContext, useContext, useMemo } from 'react';
-import { useSession } from '@/src/context/SessionProvider';
-import { useEnsureUser } from '@/src/hooks/user/useEnsureUser';
-import { CustomUser } from '../types/User';
+import React, { createContext, useContext, useEffect, useMemo } from "react";
+import type { CustomUser } from "@/src/types/User";
+import { useSession } from "@/src/context/SessionProvider";
+import { useEnsureUser } from "@/src/hooks/user/useEnsureUser";
+import { ApiError } from "@/src/api/AbstractApi";
 
 export interface UserContextValue {
-    customUser: CustomUser | null | undefined;
+    customUser: CustomUser | null;
     isLoading: boolean;
-    error: unknown;
+    userReady: boolean;
+    error: ApiError | null;
     refetch: () => void;
 }
 
-export const UserContext = createContext<UserContextValue | undefined>(undefined);
-
-export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const { session } = useSession();
-    const { data: customUser, isLoading: isCustomUserLoading, error, refetch } = useEnsureUser({ enabled: session });
-
-    const value = useMemo<UserContextValue>(
-        () => ({
-            customUser: session ? customUser ?? null : null,
-            isLoading: session ? isCustomUserLoading : false,
-            error,
-            refetch,
-        }),
-        [session, customUser, isCustomUserLoading, error, refetch]
-    );
-
-    return <UserContext.Provider value={value}>{children}</UserContext.Provider>;
-};
+const UserContext = createContext<UserContextValue | undefined>(undefined);
 
 export const useUserContext = () => {
     const ctx = useContext(UserContext);
-    if (!ctx) throw new Error('useUserContext must be used within a UserProvider');
+    if (!ctx) throw new Error("useUserContext must be used within a UserProvider");
     return ctx;
+};
+
+export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+    const { authenticated, softResetAuth } = useSession();
+
+    const {
+        data,
+        isLoading,
+        error,
+        refetch,
+    } = useEnsureUser({ enabled: authenticated });
+
+    useEffect(() => {
+        if (!authenticated || !error) return;
+        const status = (error as ApiError)?.status;
+        if ([401, 403, 404, 410, 500].includes(status)) {
+            softResetAuth();
+        }
+    }, [authenticated, error, softResetAuth]);
+
+    const value = useMemo<UserContextValue>(() => {
+        const customUser = authenticated ? (data ?? null) : null;
+        const userReady = !!customUser && !isLoading;
+        return {
+            customUser,
+            isLoading: authenticated ? isLoading : false,
+            userReady,
+            error: (error as ApiError) ?? null,
+            refetch,
+        };
+    }, [authenticated, data, isLoading, error, refetch]);
+
+    return <UserContext.Provider value={value}>{children}</UserContext.Provider>;
 };

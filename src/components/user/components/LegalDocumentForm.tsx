@@ -9,6 +9,7 @@ import * as Haptics from 'expo-haptics';
 import { useAppTheme } from '@/src/context/ThemeProvider';
 import type { LegalDocument } from '@/src/types/LegalDocument';
 import ConfigApi from '@/src/api/ConfigApi';
+import { CORNERS } from '@/src/theme/globals';
 
 interface LegalDocumentFormProps {
     document: LegalDocument;
@@ -147,7 +148,7 @@ const styles = StyleSheet.create({
         textAlignVertical: 'top',
     },
     button: {
-        borderRadius: 999,
+        borderRadius: CORNERS,
         paddingVertical: 14,
         alignItems: 'center',
         marginTop: 12,

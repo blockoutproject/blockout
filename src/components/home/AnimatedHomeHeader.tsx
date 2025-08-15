@@ -28,8 +28,8 @@ import ScraperStatusScreen from "../scraper/ScraperStatusScreen";
 import BottomSheetCustomModal from "../common/BottomSheetCustomModal";
 import { useSheet } from "@/src/context/SheetProvider";
 import { HEADER_HEIGHT, TABBAR_HEIGHT } from "@/src/theme/globals";
-import useHasScopes from "@/src/hooks/user/useHasScopes";
 import { useUserContext } from "@/src/context/UserProvider";
+import useHasScopes from "@/src/hooks/user/useHasScopes";
 
 type HeaderProps = SceneRendererProps & {
     navigationState: NavigationState<Route>;
@@ -46,18 +46,18 @@ const AnimatedHomeHeader: React.FC<HeaderProps> = ({ scrollYs, ...props }) => {
     const divisionSheetRef = useRef<BottomSheetModal>(null);
     const scraperSheetRef = useRef<BottomSheetModal>(null);
 
-    const canAccessRawDivisionMappings = useHasScopes([
+    const { allowed: canAccessRawDivisionMappings } = useHasScopes([
         "read:raw_division_mapping",
         "update:raw_division_mapping",
     ]);
 
-    const canAccessDivisions = useHasScopes([
+    const { allowed: canAccessDivisions } = useHasScopes([
         "read:divisions",
         "update:divisions",
         "create:divisions",
     ]);
 
-    const canAccessScrapersManagement = useHasScopes([
+    const { allowed: canAccessScrapersManagement } = useHasScopes([
         "read:scrapers",
         "update:scrapers",
     ]);
@@ -119,7 +119,7 @@ const AnimatedHomeHeader: React.FC<HeaderProps> = ({ scrollYs, ...props }) => {
         open("Search", {});
     };
 
-    const onUserPress = () => {
+    const handleUserPress = () => {
         Haptics.selectionAsync();
         open("User", {});
     };
@@ -206,7 +206,7 @@ const AnimatedHomeHeader: React.FC<HeaderProps> = ({ scrollYs, ...props }) => {
                             </TouchableOpacity>
                         )}
 
-                        <TouchableOpacity onPress={onUserPress}>
+                        <TouchableOpacity onPress={handleUserPress}>
                             <Image style={styles.avatar} source={{ uri: customUser?.pictureUrl }} />
                         </TouchableOpacity>
                     </View>

@@ -2,40 +2,44 @@ import { CONFIG } from '@/src/config/config';
 import AbstractApi, { ApiError } from './AbstractApi';
 import { Team } from '@/src/types/Team';
 
+type InitOpts = {
+    tokenSupplier?: () => Promise<string | null>;
+    onUnauthorized?: (e: ApiError) => void | Promise<void>;
+};
+
 class TeamsApi extends AbstractApi {
     private static instance: TeamsApi | null = null;
 
-    private constructor(url: string, token: string) {
-        super(url, token);
+    private constructor(token: string, opts?: InitOpts) {
+        super(CONFIG.API_TEAMS_BASE_URL, token, {
+            tokenSupplier: opts?.tokenSupplier,
+            onUnauthorized: opts?.onUnauthorized,
+        });
     }
 
-    /** Initialise l'instance de l'API avec le token d'accès */
-    public static initInstance(token: string): void {
+    /** Initialise l'instance de l'API avec le token d'accès (+ options runtime) */
+    public static initInstance(token: string, opts?: InitOpts): void {
         if (!TeamsApi.instance) {
-            TeamsApi.instance = new TeamsApi(
-                CONFIG.API_TEAMS_BASE_URL,
-                token
-            );
+            TeamsApi.instance = new TeamsApi(token, opts);
         }
     }
 
     /** Retourne l'instance de l'API */
     public static getInstance(): TeamsApi {
         if (!TeamsApi.instance) {
-            throw new Error(
-                'Initialisez l’instance avant d’appeler getInstance().'
-            );
+            throw new Error('Initialisez l’instance avant d’appeler getInstance().');
         }
         return TeamsApi.instance;
     }
 
     /**
-     * Récupère les équipes par leurs identifiants (liste non vide)
+     * Récupère les équipes par leurs identifiants
      * @param ids tableau d’identifiants
      */
     public async getTeamsByIds(ids: number[]): Promise<Team[]> {
-        if (ids.length === 0) {
-            throw new Error('La liste d’IDs ne peut pas être vide.');
+        if (!ids || ids.length === 0) {
+            // plus doux qu’un throw : renvoie un tableau vide si aucun id
+            return [];
         }
 
         try {
@@ -60,7 +64,7 @@ class TeamsApi extends AbstractApi {
         try {
             return await this.request<Team>({
                 method: 'get',
-                url: `/${id}`
+                url: `/${id}`,
             });
         } catch (error) {
             if (error instanceof ApiError && error.status === 404) {

@@ -3,10 +3,10 @@ import { AppTheme } from "../types/Theme";
 export const darkTheme: AppTheme = {
     background: "#0b0c0d",
     backgroundSecondary: "#141414",
-    surface: "#1c1c1c",
+    surface: "#1a1a1aff",
     surfaceSecondary: "#2b2b2b",
     surfaceTertiary: "#393939",
-    border: "#3c3e42",
+    border: "#343434ff",
     borderSecondary: "#5a5b63",
     text: "#ffffff",
     textSecondary: "#e2e2e2",

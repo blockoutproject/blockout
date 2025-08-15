@@ -1,5 +1,5 @@
 import { CONFIG } from '@/src/config/config';
-import AbstractApi from './AbstractApi';
+import AbstractApi, { ApiError } from './AbstractApi';
 import { RawDivisionMapping } from '../types/RawDivisionMapping';
 import { Division } from '../types/Division';
 import { ScraperStatus } from '../types/ScraperStatus';
@@ -7,20 +7,28 @@ import { EnumScraperName } from '../types/enums/ScraperName';
 import snakecaseKeys from 'snakecase-keys';
 import { LegalDocument, LegalDocumentType } from '../types/LegalDocument';
 
+type InitOpts = {
+    tokenSupplier?: () => Promise<string | null>;
+    onUnauthorized?: (e: ApiError) => void | Promise<void>;
+};
+
 class ConfigApi extends AbstractApi {
     private static instance: ConfigApi | null = null;
 
-    private constructor(url: string, token: string) {
-        super(url, token);
+    private constructor(token: string, opts?: InitOpts) {
+        super(CONFIG.API_CONFIG_BASE_URL, token, {
+            tokenSupplier: opts?.tokenSupplier,
+            onUnauthorized: opts?.onUnauthorized,
+        });
     }
 
     /**
      * Initialise l'instance unique de l'API Config avec un token d'accès.
      * @param token Token JWT Auth0
      */
-    public static initInstance(token: string): void {
+    public static initInstance(token: string, opts?: InitOpts): void {
         if (!ConfigApi.instance) {
-            ConfigApi.instance = new ConfigApi(CONFIG.API_CONFIG_BASE_URL, token);
+            ConfigApi.instance = new ConfigApi(token, opts);
         }
     }
 
@@ -89,19 +97,24 @@ class ConfigApi extends AbstractApi {
     }
 
     /**
-     * Crée une division (image optionnelle).
+     * Crée ou met à jour une division (image optionnelle).
      * @param payload Données de la division
-     * @param image Fichier image à uploader
+     * @param image Image (React Native): { uri, type?, name? }
      */
     public async createOrUpdateDivision(
         payload: Partial<Division>,
-        image?: File,
+        image?: { uri: string; type?: string; name?: string },
     ): Promise<Division> {
         const formData = new FormData();
+        // On snakecase les clés dans le JSON embarqué
         formData.append('data', JSON.stringify(snakecaseKeys(payload, { deep: true })));
-        if (image) formData.append('image', image, image.name);
-
-        console.log('Creating or updating division with payload:', payload);
+        if (image) {
+            formData.append('image', {
+                uri: image.uri,
+                type: image.type ?? 'image/jpeg',
+                name: image.name ?? 'division.jpg',
+            } as any);
+        }
 
         return this.request<Division>({
             method: 'post',
@@ -114,18 +127,22 @@ class ConfigApi extends AbstractApi {
      * Met à jour une division existante (image optionnelle).
      * @param id Identifiant de la division
      * @param payload Champs à mettre à jour
-     * @param image Fichier image à remplacer (facultatif)
+     * @param image Image (React Native): { uri, type?, name? }
      */
     public async updateDivision(
         id: number,
         payload: Partial<Division>,
-        image?: File,
+        image?: { uri: string; type?: string; name?: string },
     ): Promise<Division> {
         const formData = new FormData();
         formData.append('data', JSON.stringify(snakecaseKeys(payload, { deep: true })));
-        if (image) formData.append('image', image, image.name);
-
-        console.log('Updating division with ID:', id, 'and payload:', payload);
+        if (image) {
+            formData.append('image', {
+                uri: image.uri,
+                type: image.type ?? 'image/jpeg',
+                name: image.name ?? 'division.jpg',
+            } as any);
+        }
 
         return this.request<Division>({
             method: 'put',
@@ -180,9 +197,9 @@ class ConfigApi extends AbstractApi {
     }
 
     /**
- * Récupère un document légal (terms, privacy, imprint).
- * @param type Type du document
- */
+     * Récupère un document légal (terms, privacy, imprint).
+     * @param type Type du document
+     */
     public async getLegalDocument(type: LegalDocumentType): Promise<LegalDocument> {
         return this.request<LegalDocument>({
             method: 'get',

@@ -1,63 +1,75 @@
 import React from "react";
 import { Text, View, StyleSheet } from "react-native";
-import { Image } from 'expo-image';
+import { Image } from "expo-image";
+
 import { EnrichedMatchDTO, MatchStatus } from "@/src/types/Match";
 import GradientBorderView from "../../common/GradientBorderView";
 import { useThemeColor } from "@/src/hooks/useThemeColor";
+import { withAlpha } from "@/src/utils/utils";
+import { CORNERS } from "@/src/theme/globals";
+import { useAppTheme } from "@/src/context/ThemeProvider";
+import { th } from "date-fns/locale";
+import MaskedImage from "../../common/MaskedImage";
 
 type Props = {
-    enrichedMatch: EnrichedMatchDTO
+    enrichedMatch: EnrichedMatchDTO;
     gradient: readonly [string, string, ...string[]];
 };
 
 const MatchCard: React.FC<Props> = ({ enrichedMatch, gradient }) => {
-    const card = useThemeColor({}, "card");
-    const text = useThemeColor({}, "text");
+    const theme = useAppTheme();
 
     const date = new Date(enrichedMatch.matchDate ?? "");
-    const matchTime = `${date.getHours().toString().padStart(2, "0")}:${date
-        .getMinutes()
-        .toString()
-        .padStart(2, "0")}`;
+    const hh = date.getHours().toString().padStart(2, "0");
+    const mm = date.getMinutes().toString().padStart(2, "0");
+    const matchTime = `${hh}:${mm}`;
 
     return (
-        <View style={[styles.matchCard, { backgroundColor: card }]}>
+        <View
+            style={[
+                styles.matchCard,
+                {
+                    backgroundColor: theme.surface,
+                    borderColor: theme.border,
+                },
+            ]}
+        >
             {/* Team A */}
             <View style={[styles.teamSide, styles.teamAlignRight]}>
                 <Text
-                    style={[styles.teamName, { color: text }]}
+                    style={[styles.teamName, { color: theme.text }]}
                     numberOfLines={2}
                     ellipsizeMode="tail"
                     adjustsFontSizeToFit
-                    minimumFontScale={0.8}
+                    minimumFontScale={0.85}
                 >
                     {enrichedMatch.teamA.shortName || "Équipe inconnue"}
                 </Text>
-                <Image
-                    source={
-                        enrichedMatch.teamA.logoUrl
-                            ? { uri: enrichedMatch.teamA.logoUrl }
-                            : require('@/assets/clubs/default_club_logo.png')
-                    }
-                    style={[styles.teamLogo, { backgroundColor: text }]}
-                    contentFit="contain"
+                <MaskedImage
+                    uri={enrichedMatch.teamA.logoUrl}
+                    size={32}
+                    radius={10}
+                    shadow={false}
                 />
             </View>
 
             {/* Center */}
             <View style={styles.centerBlock}>
                 {enrichedMatch.status === MatchStatus.UPCOMING ? (
-                    <Text style={[styles.timeText, { color: text }]}>
-                        {matchTime}
-                    </Text>
-                ) : (
-
-                    <GradientBorderView
-                        style={styles.finalScoreBox}
-                        borderRadius={12}
-                        gradient={gradient}
+                    <View
+                        style={[
+                            styles.pill,
+                            {
+                                backgroundColor: withAlpha(theme.text, 0.08),
+                                borderColor: withAlpha(theme.text, 0.12),
+                            },
+                        ]}
                     >
-                        <Text style={[styles.finalScoreTextLarge, { color: text }]}>
+                        <Text style={[styles.timeText, { color: theme.text }]}>{matchTime}</Text>
+                    </View>
+                ) : (
+                    <GradientBorderView style={styles.finalScoreBox} borderRadius={12} gradient={gradient}>
+                        <Text style={[styles.finalScoreTextLarge, { color: theme.text }]}>
                             {enrichedMatch.set || "-"}
                         </Text>
                     </GradientBorderView>
@@ -66,21 +78,18 @@ const MatchCard: React.FC<Props> = ({ enrichedMatch, gradient }) => {
 
             {/* Team B */}
             <View style={[styles.teamSide, styles.teamAlignLeft]}>
-                <Image
-                    source={
-                        enrichedMatch.teamB.logoUrl
-                            ? { uri: enrichedMatch.teamB.logoUrl }
-                            : require('@/assets/clubs/default_club_logo.png')
-                    }
-                    style={[styles.teamLogo, { backgroundColor: text }]}
-                    contentFit="contain"
+                <MaskedImage
+                    uri={enrichedMatch.teamB.logoUrl}
+                    size={32}
+                    radius={10}
+                    shadow={false}
                 />
                 <Text
-                    style={[styles.teamName, { color: text }]}
+                    style={[styles.teamName, { color: theme.text }]}
                     numberOfLines={2}
                     ellipsizeMode="tail"
                     adjustsFontSizeToFit
-                    minimumFontScale={0.8}
+                    minimumFontScale={0.85}
                 >
                     {enrichedMatch.teamB.shortName || "Équipe inconnue"}
                 </Text>
@@ -89,16 +98,23 @@ const MatchCard: React.FC<Props> = ({ enrichedMatch, gradient }) => {
     );
 };
 
+export default MatchCard;
+
+const LOGO_SIZE = 32;
+
 const styles = StyleSheet.create({
     matchCard: {
         flexDirection: "row",
-        borderRadius: 12,
-        paddingVertical: 14,
+        borderRadius: 14,
+        borderWidth: 1,
+        paddingVertical: 12,
+        paddingHorizontal: 6,
     },
     teamSide: {
         flex: 3,
         flexDirection: "row",
         alignItems: "center",
+        gap: 6,
     },
     teamAlignRight: {
         justifyContent: "flex-end",
@@ -106,17 +122,23 @@ const styles = StyleSheet.create({
     teamAlignLeft: {
         justifyContent: "flex-start",
     },
-    teamLogo: {
-        width: 33,
-        aspectRatio: 1,
-        borderRadius: 10,
-    },
     teamName: {
         fontSize: 14,
-        fontWeight: "600",
+        fontWeight: "700",
         textAlign: "center",
-        paddingHorizontal: 6,
+        paddingHorizontal: 4,
         flex: 1,
+    },
+    centerBlock: {
+        justifyContent: "center",
+        alignItems: "center",
+        paddingHorizontal: 6,
+    },
+    pill: {
+        paddingHorizontal: 8,
+        paddingVertical: 5,
+        borderRadius: CORNERS,
+        borderWidth: StyleSheet.hairlineWidth,
     },
     finalScoreBox: {
         paddingHorizontal: 8,
@@ -126,15 +148,8 @@ const styles = StyleSheet.create({
         fontSize: 20,
         fontWeight: "700",
     },
-    centerBlock: {
-        justifyContent: "center",
-        alignItems: "center",
-        paddingHorizontal: 8,
-    },
     timeText: {
-        fontSize: 18,
+        fontSize: 14,
         fontWeight: "700",
     },
 });
-
-export default MatchCard;

@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAppTheme } from '@/src/context/ThemeProvider';
 
 type Props = {
@@ -12,7 +12,7 @@ const FollowersCounter: React.FC<Props> = ({ count }) => {
 
     return (
         <View style={styles.container}>
-            <Ionicons name="people-outline" size={22} color={theme.text} style={{ marginRight: 6 }} />
+            <MaterialCommunityIcons name="account-multiple" size={20} color={theme.text} style={{ marginRight: 6 }} />
             <Text style={[styles.counterText, { color: theme.text }]}>{count}</Text>
         </View>
     );
@@ -24,7 +24,8 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     counterText: {
-        fontSize: 16,
+        fontWeight: '600',
+        fontSize: 14,
     },
 });
 

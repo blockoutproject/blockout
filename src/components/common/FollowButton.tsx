@@ -4,6 +4,7 @@ import * as Haptics from 'expo-haptics';
 import { useAppTheme } from '@/src/context/ThemeProvider';
 import GradientView from './GradientView'; // adapte les chemins si besoin
 import GradientBorderView from './GradientBorderView';
+import { CORNERS } from '@/src/theme/globals';
 
 type Props = {
     isFollowing: boolean;
@@ -35,9 +36,8 @@ const FollowButton: React.FC<Props> = ({ isFollowing, onPress, disabled, gradien
     return isFollowing ? (
         <GradientBorderView
             gradient={gradient}
-            borderRadius={999}
+            borderRadius={CORNERS}
             borderWidth={2}
-            outerStyle={{ marginRight: 12 }}
             style={{ backgroundColor: theme.background }}
         >
             {buttonContent}
@@ -45,7 +45,7 @@ const FollowButton: React.FC<Props> = ({ isFollowing, onPress, disabled, gradien
     ) : (
         <GradientView
             gradient={gradient}
-            style={[styles.gradientFilled, { marginRight: 12 }]}
+            style={styles.gradientFilled}
         >
             {buttonContent}
         </GradientView>
@@ -54,13 +54,13 @@ const FollowButton: React.FC<Props> = ({ isFollowing, onPress, disabled, gradien
 
 const styles = StyleSheet.create({
     text: {
-        paddingVertical: 6,
-        paddingHorizontal: 20,
+        paddingVertical: 4,
+        paddingHorizontal: 14,
         fontSize: 14,
         fontWeight: '600',
     },
     gradientFilled: {
-        borderRadius: 999,
+        borderRadius: CORNERS,
         paddingVertical: 2,
         paddingHorizontal: 1,
     },

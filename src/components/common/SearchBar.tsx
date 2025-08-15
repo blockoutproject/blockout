@@ -1,6 +1,6 @@
 import React from "react";
 import { View, StyleSheet } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import { BottomSheetTextInput } from "@gorhom/bottom-sheet";
 
@@ -23,8 +23,8 @@ const SearchBar: React.FC<SearchBarProps> = ({
 
     return (
         <View style={[styles.container, { backgroundColor: theme.surface }]}>
-            <Ionicons
-                name="search"
+            <MaterialCommunityIcons
+                name="magnify"
                 size={18}
                 color={theme.textInactive}
                 style={styles.icon}

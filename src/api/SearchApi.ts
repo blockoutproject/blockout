@@ -4,29 +4,32 @@ import { TeamSearchDoc } from '../types/docs/TeamSearchDoc';
 import { ClubSearchDoc } from '../types/docs/ClubSearchDoc';
 import { PoolSearchDoc } from '../types/docs/PoolSearchDoc';
 
+type InitOpts = {
+    tokenSupplier?: () => Promise<string | null>;
+    onUnauthorized?: (e: ApiError) => void | Promise<void>;
+};
+
 class SearchApi extends AbstractApi {
     private static instance: SearchApi | null = null;
 
-    private constructor(url: string, token: string) {
-        super(url, token);
+    private constructor(token: string, opts?: InitOpts) {
+        super(CONFIG.API_SEARCH_BASE_URL, token, {
+            tokenSupplier: opts?.tokenSupplier,
+            onUnauthorized: opts?.onUnauthorized,
+        });
     }
 
-    /** Initialise l'instance de l'API avec le token d'accès */
-    public static initInstance(token: string): void {
+    /** Initialise l'instance de l'API avec le token d'accès (+ options runtime) */
+    public static initInstance(token: string, opts?: InitOpts): void {
         if (!SearchApi.instance) {
-            SearchApi.instance = new SearchApi(
-                CONFIG.API_SEARCH_BASE_URL,
-                token
-            );
+            SearchApi.instance = new SearchApi(token, opts);
         }
     }
 
     /** Retourne l'instance de l'API */
     public static getInstance(): SearchApi {
         if (!SearchApi.instance) {
-            throw new Error(
-                'Initialisez l’instance avant d’appeler getInstance().'
-            );
+            throw new Error('Initialisez l’instance avant d’appeler getInstance().');
         }
         return SearchApi.instance;
     }
@@ -40,7 +43,7 @@ class SearchApi extends AbstractApi {
             return await this.request<TeamSearchDoc[]>({
                 method: 'get',
                 url: 'teams',
-                params: { query }
+                params: { query },
             });
         } catch (error) {
             if (error instanceof ApiError && error.status === 404) {
@@ -59,7 +62,7 @@ class SearchApi extends AbstractApi {
             return await this.request<ClubSearchDoc[]>({
                 method: 'get',
                 url: 'clubs',
-                params: { query }
+                params: { query },
             });
         } catch (error) {
             if (error instanceof ApiError && error.status === 404) {
@@ -78,7 +81,7 @@ class SearchApi extends AbstractApi {
             return await this.request<PoolSearchDoc[]>({
                 method: 'get',
                 url: 'pools',
-                params: { query }
+                params: { query },
             });
         } catch (error) {
             if (error instanceof ApiError && error.status === 404) {

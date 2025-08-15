@@ -1,34 +1,36 @@
 import React from "react";
 import { View, Text, Pressable, StyleSheet } from "react-native";
-import { Image } from 'expo-image';
-import { useAppTheme } from "@/src/context/ThemeProvider";
-import { Team } from "@/src/types/Team";
-import { splitIsoDateFormatted } from "@/src/utils/utils";
+import { Image } from "expo-image";
 import * as Haptics from "expo-haptics";
-import GradientBorderView from "../../common/GradientBorderView";
-import { EnrichedMatchDTO } from "@/src/types/Match";
-import { router } from "expo-router";
 import { useNavigation } from "@react-navigation/native";
-import { SheetStackParamList } from "../../common/BottomSheetNavigator";
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+
+import { useAppTheme } from "@/src/context/ThemeProvider";
+import { splitIsoDateFormatted } from "@/src/utils/utils";
+import GradientBorderView from "@/src/components/common/GradientBorderView";
+import type { EnrichedMatchDTO } from "@/src/types/Match";
+import type { Team } from "@/src/types/Team";
+import type { SheetStackParamList } from "@/src/components/common/BottomSheetNavigator";
+import InfoPill from "../../common/chips/InfoPill";
+import InfoPillGradient from "../../common/chips/InfoPillGradient";
+import MaskedImage from "../../common/MaskedImage";
 
 export interface MatchScoreCardProps {
-    enrichedMatch: EnrichedMatchDTO
+    enrichedMatch: EnrichedMatchDTO;
     gradient: readonly [string, string, ...string[]];
 }
 
-const MatchScoreCard: React.FC<MatchScoreCardProps> = ({
-    enrichedMatch,
-    gradient,
-}) => {
+const LOGO_SIZE = 84;
+const RADIUS = 20;
+
+const MatchScoreCard: React.FC<MatchScoreCardProps> = ({ enrichedMatch, gradient }) => {
     const theme = useAppTheme();
     const navigation = useNavigation<NativeStackNavigationProp<SheetStackParamList>>();
-
     const { date, time } = splitIsoDateFormatted(enrichedMatch.matchDate);
 
     const handleTeamPress = (teamId: number) => {
         Haptics.selectionAsync();
-        navigation.push('Team', { teamId });
+        navigation.push("Team", { teamId });
     };
 
     const TeamBlock: React.FC<{
@@ -36,21 +38,18 @@ const MatchScoreCard: React.FC<MatchScoreCardProps> = ({
         role: "Home" | "Away";
     }> = ({ team, role }) => (
         <Pressable onPress={() => handleTeamPress(team.id)} style={styles.teamCard}>
-            <Image
-                source={
-                    team.logoUrl
-                        ? { uri: team.logoUrl }
-                        : require('@/assets/clubs/default_club_logo.png')
-                }
-                style={[styles.teamLogoLarge, { backgroundColor: theme.text }]}
-                contentFit="contain"
+            <MaskedImage
+                uri={team.logoUrl}
+                size={LOGO_SIZE}
+                radius={RADIUS}
+                shadow
             />
             <Text
                 style={[styles.teamLabel, { color: theme.text }]}
                 numberOfLines={2}
                 ellipsizeMode="tail"
                 adjustsFontSizeToFit
-                minimumFontScale={0.8}
+                minimumFontScale={0.85}
             >
                 {team.name}
             </Text>
@@ -59,140 +58,105 @@ const MatchScoreCard: React.FC<MatchScoreCardProps> = ({
     );
 
     return (
-        <>
-            <View style={[styles.container, { backgroundColor: theme.background, borderColor: enrichedMatch.pool.division.mainColor }]}>
-                <View style={styles.verticalContainer}>
-                    <Text style={[styles.leagueLabel, { color: theme.text }]}>
-                        {enrichedMatch.pool.division.name}
-                    </Text>
+        <GradientBorderView
+            gradient={gradient}
+            borderRadius={RADIUS}
+            borderWidth={2}
+            style={[styles.card, { backgroundColor: theme.background }]}
+        >
+            <View style={styles.headerRow}>
+                <InfoPill label={enrichedMatch.pool.division.name} />
+                {date ? <InfoPill label={date} /> : null}
+            </View>
 
-                    <View style={styles.teamRowContainer}>
-                        <TeamBlock
-                            team={enrichedMatch.teamA}
-                            role="Home"
-                        />
+            <View style={styles.teamsRow}>
+                <TeamBlock team={enrichedMatch.teamA} role="Home" />
 
-                        <View style={styles.centerBlock}>
-                            {enrichedMatch.set ? (
-                                <>
-                                    <GradientBorderView
-                                        style={[styles.finalScoreBox, { backgroundColor: theme.background }]}
-                                        borderRadius={12}
-                                        gradient={gradient}
-                                    >
-                                        <Text
-                                            style={[styles.finalScoreTextLarge, { color: theme.text }]}
-                                        >
-                                            {enrichedMatch.set}
-                                        </Text>
-                                    </GradientBorderView>
-                                    {time && (
-                                        <Text
-                                            style={[styles.timeText, { color: theme.textInactive }]}
-                                        >
-                                            {time}
-                                        </Text>
-                                    )}
-                                </>
-                            ) : (
-                                <>
-                                    {time && (
-                                        <Text style={[styles.largeTimeText, { color: theme.text }]}>
-                                            {time}
-                                        </Text>
-                                    )}
-                                    <Text
-                                        style={[styles.upcomingLabel, { color: theme.textInactive }]}
-                                    >
-                                        À venir
-                                    </Text>
-                                </>
-                            )}
-                        </View>
-
-                        <TeamBlock
-                            team={enrichedMatch.teamB}
-                            role="Away"
-                        />
-                    </View>
-
-                    {date && (
-                        <Text style={[styles.dateText, { color: theme.text }]}>{date}</Text>
+                <View style={styles.centerBlock}>
+                    {enrichedMatch.set ? (
+                        <>
+                            <GradientBorderView
+                                gradient={gradient}
+                                borderRadius={12}
+                                borderWidth={2}
+                                style={[styles.finalScoreBox, { backgroundColor: theme.background }]}
+                            >
+                                <Text style={[styles.finalScoreText, { color: theme.text }]}>{enrichedMatch.set}</Text>
+                            </GradientBorderView>
+                            {time ? <Text style={[styles.timeSubtle, { color: theme.textInactive }]}>{time}</Text> : null}
+                        </>
+                    ) : (
+                        <>
+                            {time ? <Text style={[styles.timeLarge, { color: theme.text }]}>{time}</Text> : null}
+                            <InfoPillGradient label="À venir" gradient={gradient} />
+                        </>
                     )}
                 </View>
+
+                <TeamBlock team={enrichedMatch.teamB} role="Away" />
             </View>
-        </>
+        </GradientBorderView>
     );
 };
 
+export default MatchScoreCard;
+
 const styles = StyleSheet.create({
-    container: {
-        borderWidth: 2,
-        borderRadius: 18,
+    card: {
         paddingVertical: 12,
-        paddingHorizontal: 8,
+        paddingHorizontal: 12,
+        borderRadius: RADIUS,
+        gap: 10,
     },
-    verticalContainer: {
-        flexDirection: "column",
-        alignItems: "center",
-        gap: 4,
-    },
-    teamRowContainer: {
+    headerRow: {
         flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+    },
+    dateText: {
+        fontSize: 14,
+        fontWeight: "700",
+    },
+    teamsRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 8,
     },
     teamCard: {
         flex: 1,
-        alignItems: "center"
-    },
-    teamLogoLarge: {
-        width: 90,
-        aspectRatio: 1,
-        borderRadius: 22,
-        marginBottom: 8
+        alignItems: "center",
+        gap: 6,
     },
     teamLabel: {
         fontSize: 14,
-        fontWeight: "600",
-        textAlign: "center"
+        fontWeight: "700",
+        textAlign: "center",
     },
     teamRoleLabel: {
         fontSize: 12,
         fontWeight: "600",
-        marginTop: 2
     },
     centerBlock: {
+        minWidth: 96,
         alignItems: "center",
         justifyContent: "center",
-        gap: 8
+        gap: 8,
     },
     finalScoreBox: {
-        paddingHorizontal: 10,
-        paddingVertical: 6
+        paddingHorizontal: 12,
+        paddingVertical: 6,
     },
-    finalScoreTextLarge: {
+    finalScoreText: {
         fontSize: 28,
-        fontWeight: "700"
+        fontWeight: "800",
+        letterSpacing: 0.3,
     },
-    timeText: {
-        fontSize: 14,
-        fontWeight: "600"
-    },
-    upcomingLabel: {
-        fontSize: 14,
-        fontWeight: "600"
-    },
-    dateText: {
-        fontWeight: "700",
-        fontSize: 14
-    },
-    leagueLabel: {
+    timeSubtle: {
+        fontSize: 13,
         fontWeight: "600",
-        fontSize: 14
     },
-    largeTimeText: {
-        fontSize: 36,
-        fontWeight: "700"
+    timeLarge: {
+        fontSize: 32,
+        fontWeight: "800",
     },
 });
-
-export default MatchScoreCard;

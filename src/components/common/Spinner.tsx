@@ -397,7 +397,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     pulseSpinner: {
-        borderRadius: 999,
+        borderRadius: CORNERS,
     },
     dotsContainer: {
         flexDirection: 'row',
@@ -405,7 +405,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     dot: {
-        borderRadius: 999,
+        borderRadius: CORNERS,
     },
     barsContainer: {
         flexDirection: 'row',

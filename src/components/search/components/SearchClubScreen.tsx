@@ -9,16 +9,17 @@ import {
     Keyboard,
 } from "react-native";
 import { useAppTheme } from "@/src/context/ThemeProvider";
-import { BottomSheetFlatList, BottomSheetModal } from "@gorhom/bottom-sheet";
+import { BottomSheetFlatList } from "@gorhom/bottom-sheet";
 import SearchBar from "@/src/components/common/SearchBar";
 import ClubCard from "@/src/components/search/components/ClubCard";
-import ClubContainer from "@/src/components/club/ClubScreen";
 import { SearchPrompt } from "@/src/components/common/feedback/SearchPrompt";
 import { ErrorState } from "@/src/components/common/feedback/ErrorState";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import BottomSheetCustomPage from "@/src/components/common/BottomSheetCustomPage";
 import * as Haptics from "expo-haptics";
 import { useSearchClubs } from "@/src/hooks/search/useSearchClubs";
+import { useNavigation } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { SheetStackParamList } from "../../common/BottomSheetNavigator";
 
 type Props = {
     search: string;
@@ -37,17 +38,13 @@ const SearchClubScreen: React.FC<Props> = ({
 }) => {
     const theme = useAppTheme();
     const insets = useSafeAreaInsets();
-
     const { data: clubs, isLoading, isError } = useSearchClubs(debouncedQuery);
+    const navigation = useNavigation<NativeStackNavigationProp<SheetStackParamList>>();
 
-    const clubSheetRef = useRef<BottomSheetModal>(null);
-    const [selectedClubId, setSelectedClubId] = useState<string | null>(null);
-
-    const openClubSheet = (id: string) => {
+    const handleClubPress = (clubId: string) => {
         Haptics.selectionAsync();
-        setSelectedClubId(id);
-        clubSheetRef.current?.present();
-    };
+        navigation.push("Club", { clubId });
+    }
 
     const renderEmpty = () => {
         if (!search && !isInputFocused) return <SearchPrompt />;
@@ -64,50 +61,44 @@ const SearchClubScreen: React.FC<Props> = ({
     };
 
     return (
-        <>
-            <KeyboardAvoidingView
-                style={[styles.container, { backgroundColor: theme.background }]}
-                behavior={Platform.OS === "ios" ? "padding" : undefined}
-            >
-                <View style={styles.searchRow}>
-                    <SearchBar
-                        value={search}
-                        onChangeText={setSearch}
-                        placeholder="Rechercher un club..."
-                        onFocus={() => setIsInputFocused(true)}
-                        onBlur={() => setIsInputFocused(false)}
-                    />
-                </View>
-
-                {isLoading && (
-                    <ActivityIndicator size="small" color={theme.text} style={styles.loader} />
-                )}
-
-                {isError && (
-                    <ErrorState message="Une erreur est survenue. Réessaie plus tard." />
-                )}
-
-                <BottomSheetFlatList
-                    data={clubs}
-                    keyExtractor={(item) => item.id.toString()}
-                    renderItem={({ item }) => (
-                        <ClubCard club={item} onPress={() => {
-                            Keyboard.dismiss();
-                            openClubSheet(item.id)
-                        }}/>
-                    )}
-                    ListEmptyComponent={renderEmpty}
-                    showsVerticalScrollIndicator={false}
-                    keyboardShouldPersistTaps="handled"
-                    onScrollBeginDrag={Keyboard.dismiss}
-                    contentContainerStyle={{ paddingBottom: insets.bottom }}
+        <KeyboardAvoidingView
+            style={[styles.container, { backgroundColor: theme.background }]}
+            behavior={Platform.OS === "ios" ? "padding" : undefined}
+        >
+            <View style={styles.searchRow}>
+                <SearchBar
+                    value={search}
+                    onChangeText={setSearch}
+                    placeholder="Rechercher un club..."
+                    onFocus={() => setIsInputFocused(true)}
+                    onBlur={() => setIsInputFocused(false)}
                 />
-            </KeyboardAvoidingView>
+            </View>
 
-            <BottomSheetCustomPage ref={clubSheetRef}>
-                {selectedClubId && <ClubContainer clubId={selectedClubId} />}
-            </BottomSheetCustomPage>
-        </>
+            {isLoading && (
+                <ActivityIndicator size="small" color={theme.text} style={styles.loader} />
+            )}
+
+            {isError && (
+                <ErrorState message="Une erreur est survenue. Réessaie plus tard." />
+            )}
+
+            <BottomSheetFlatList
+                data={clubs}
+                keyExtractor={(item) => item.id.toString()}
+                renderItem={({ item }) => (
+                    <ClubCard club={item} onPress={() => {
+                        Keyboard.dismiss();
+                        handleClubPress(item.id)
+                    }} />
+                )}
+                ListEmptyComponent={renderEmpty}
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+                onScrollBeginDrag={Keyboard.dismiss}
+                contentContainerStyle={{ paddingBottom: insets.bottom }}
+            />
+        </KeyboardAvoidingView>
     );
 };
 

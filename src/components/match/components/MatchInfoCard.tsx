@@ -1,138 +1,95 @@
-import React, { useRef, useState } from "react";
-import {
-    View,
-    Text,
-    TouchableOpacity,
-    StyleSheet,
-} from "react-native";
-import { Image } from 'expo-image';
+import React from "react";
+import { View, Text, StyleSheet } from "react-native";
 import * as Haptics from "expo-haptics";
-import { BottomSheetModal } from "@gorhom/bottom-sheet";
-import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import { useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
 import { useAppTheme } from "@/src/context/ThemeProvider";
-import BottomSheetCustomPage from "../../common/BottomSheetCustomPage";
-import { EnrichedMatchDTO } from "@/src/types/Match";
-import { router } from "expo-router";
-import { useNavigation } from "@react-navigation/native";
-import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { SheetStackParamList } from "../../common/BottomSheetNavigator";
+import GradientBorderView from "@/src/components/common/GradientBorderView";
+import type { EnrichedMatchDTO } from "@/src/types/Match";
+import type { SheetStackParamList } from "@/src/components/common/BottomSheetNavigator";
+import InfoPillGradient from "../../common/chips/InfoPillGradient";
 
 type MatchInfoCardProps = {
-    enrichedMatch: EnrichedMatchDTO
+    enrichedMatch: EnrichedMatchDTO;
 };
+
+const RADIUS = 18;
 
 const MatchInfoCard: React.FC<MatchInfoCardProps> = ({ enrichedMatch }) => {
     const theme = useAppTheme();
     const navigation = useNavigation<NativeStackNavigationProp<SheetStackParamList>>();
 
+    const division = enrichedMatch.pool.division;
+    const gradient = [
+        division.firstGradientColor,
+        division.secondGradientColor,
+        division.thirdGradientColor,
+    ] as const;
+
+    const dateLabel = new Date(enrichedMatch.matchDate).toLocaleString("fr-FR", {
+        weekday: "short",
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+    });
+
+    const leagueLabel = enrichedMatch.pool.leagueName === "PRO" ? "Professionnel" : division.name;
+    const venue = enrichedMatch.venue || "Lieu à confirmer";
+    const ref1 = enrichedMatch.firstReferee;
+    const ref2 = enrichedMatch.secondReferee;
+
     const handlePoolPress = (poolId: number) => {
         Haptics.selectionAsync();
-        navigation.push('Pool', { poolId });
+        navigation.push("Pool", { poolId });
     };
 
-    const InfoRow = ({
-        icon,
-        text,
-    }: {
-        icon: keyof typeof MaterialCommunityIcons.glyphMap;
-        text: string | null;
-    }) =>
-        text ? (
-            <View style={styles.row}>
-                <MaterialCommunityIcons name={icon} size={22} color={theme.text} style={styles.icon} />
-                <Text
-                    style={[styles.infoText, { color: theme.text }]}
-                    numberOfLines={1}
-                    ellipsizeMode="tail"
-                    adjustsFontSizeToFit
-                    minimumFontScale={0.8}
-                >
-                    {text}
-                </Text>
-            </View>
-        ) : null;
-
     return (
-        <View style={[styles.container, { backgroundColor: theme.background, borderColor: enrichedMatch.pool.division.mainColor }]}>
+        <GradientBorderView
+            gradient={gradient}
+            borderRadius={RADIUS}
+            borderWidth={2}
+            style={[styles.card, { backgroundColor: theme.background }]}
+        >
             <Text style={[styles.title, { color: theme.text }]}>Informations</Text>
 
-            <View style={styles.infoRow}>
-                <TouchableOpacity
-                    style={styles.row}
+            <View style={styles.pillsWrap}>
+                <InfoPillGradient icon="trophy-variant" label={leagueLabel} gradient={gradient} borderWidth={1} />
+                <InfoPillGradient
+                    label={enrichedMatch.pool.name}
+                    gradient={gradient}
+                    variant="filled"
+                    borderWidth={2}
                     onPress={() => handlePoolPress(enrichedMatch.pool.id)}
-                >
-                    <Image
-                        source={{ uri: enrichedMatch.pool.division.logoUrl || "" }}
-                        style={[styles.poolLogo, { backgroundColor: theme.text }]}
-                        contentFit="contain"
-                    />
-                    <Text
-                        style={[styles.poolTitleText, { color: theme.text }]}
-                        numberOfLines={1}
-                        ellipsizeMode="tail"
-                        adjustsFontSizeToFit
-                        minimumFontScale={0.8}
-                    >
-                        {enrichedMatch.pool.name}
-                    </Text>
-                </TouchableOpacity>
-
-                <InfoRow icon="trophy" text={enrichedMatch.pool.leagueName === 'PRO' ? 'Professionnel' : enrichedMatch.pool.division.name} />
-                <InfoRow
-                    icon="calendar"
-                    text={new Date(enrichedMatch.matchDate).toLocaleString("fr-FR", {
-                        year: "numeric",
-                        month: "long",
-                        day: "numeric",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                    })}
                 />
-                <InfoRow icon="map-marker" text={enrichedMatch.venue} />
-                <InfoRow icon="whistle" text={enrichedMatch.firstReferee} />
-                <InfoRow icon="whistle" text={enrichedMatch.secondReferee} />
+                <InfoPillGradient icon="calendar" label={dateLabel} gradient={gradient} borderWidth={1} />
+                <InfoPillGradient icon="map-marker" label={venue} gradient={gradient} borderWidth={1} />
+                {ref1 && <InfoPillGradient icon="whistle" label={ref1} gradient={gradient} borderWidth={1} />}
+                {ref2 && <InfoPillGradient icon="whistle" label={ref2} gradient={gradient} borderWidth={1} />}
             </View>
-        </View>
+        </GradientBorderView>
     );
 };
 
+export default MatchInfoCard;
+
 const styles = StyleSheet.create({
-    container: {
-        borderWidth: 2,
-        borderRadius: 18,
-        padding: 16,
-    },
-    infoRow: {
-        gap: 10,
+    card: {
+        borderRadius: RADIUS,
+        padding: 14,
+        gap: 12,
     },
     title: {
-        fontSize: 18,
-        fontWeight: "600",
-        marginBottom: 16,
+        fontSize: 14,
+        fontWeight: "800",
+        textTransform: "uppercase",
+        letterSpacing: 0.3,
     },
-    row: {
+    pillsWrap: {
         flexDirection: "row",
-        alignItems: "center",
-    },
-    poolLogo: {
-        width: 22,
-        aspectRatio: 1,
-        marginRight: 12,
-        borderRadius: 5,
-    },
-    poolTitleText: {
-        flex: 1,
-        fontSize: 14,
-        fontWeight: "700",
-    },
-    icon: {
-        marginRight: 12,
-    },
-    infoText: {
-        flex: 1,
-        fontSize: 14,
+        flexWrap: "wrap",
+        gap: 8,
     },
 });
-
-export default MatchInfoCard;

@@ -1,46 +1,51 @@
-// src/hooks/useAuthScopes.ts
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useAuth0 } from 'react-native-auth0';
 import { jwtDecode } from 'jwt-decode';
 
-type JwtPayloadWithPermissions = {
-    permissions?: string[];
-};
+type JwtPayloadWithPermissions = { permissions?: string[] };
 
-type UseAuthScopesResult = {
-    hasScopes: (required: string[]) => boolean;
+export type UseAuthScopesResult = {
+    allowed: boolean;
     loading: boolean;
+    error?: unknown;
 };
 
 export default function useHasScopes(requiredScopes: string[]): UseAuthScopesResult {
     const { getCredentials } = useAuth0();
-    const [scopes, setScopes] = useState<Set<string>>(new Set());
-    const [loading, setLoading] = useState<boolean>(true);
-
-    const parseScopes = (token: string | null) => {
-        if (!token) return new Set<string>();
-        const decoded = jwtDecode<JwtPayloadWithPermissions>(token);
-        return new Set(decoded.permissions ?? []);
-    };
-
-    const load = useCallback(async () => {
-        setLoading(true);
-        try {
-            const credentials = await getCredentials();
-            const token = credentials?.accessToken ?? null;
-            setScopes(parseScopes(token));
-        } catch {
-            setScopes(new Set());
-        } finally {
-            setLoading(false);
-        }
-    }, [getCredentials]);
+    const [perms, setPerms] = useState<Set<string>>(new Set());
+    const [loading, setLoading] = useState(true);
+    const [err, setErr] = useState<unknown>(undefined);
 
     useEffect(() => {
-        load();
-    }, [load, requiredScopes.length]);
+        let mounted = true;
+        (async () => {
+            setLoading(true);
+            setErr(undefined);
+            try {
+                const cred = await getCredentials(undefined, 60);
+                const token = cred?.accessToken ?? null;
 
-    const hasScopes = (req: string[]) => req.every((s) => scopes.has(s));
+                const decoded = token ? jwtDecode<JwtPayloadWithPermissions>(token) : undefined;
+                const p = new Set(decoded?.permissions ?? []);
 
-    return { hasScopes, loading };
+                if (mounted) setPerms(p);
+            } catch (e) {
+                if (mounted) {
+                    setPerms(new Set());
+                    setErr(e);
+                }
+            } finally {
+                if (mounted) setLoading(false);
+            }
+        })();
+
+        return () => { mounted = false; };
+    }, [getCredentials]);
+
+    const allowed = useMemo(() => {
+        if (!requiredScopes?.length) return true;
+        return requiredScopes.every((s) => perms.has(s));
+    }, [requiredScopes, perms]);
+
+    return { allowed, loading, error: err };
 }

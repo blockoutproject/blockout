@@ -18,6 +18,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BottomSheetView } from '@gorhom/bottom-sheet';
 import * as Haptics from 'expo-haptics';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { CORNERS } from '@/src/theme/globals';
 
 type RawDivisionMappingFormProps = {
     mapping: RawDivisionMapping;
@@ -207,7 +208,7 @@ const styles = StyleSheet.create({
         fontWeight: '500',
     },
     submitButton: {
-        borderRadius: 999,
+        borderRadius: CORNERS,
         paddingVertical: 14,
         marginHorizontal: 12,
         alignItems: 'center',

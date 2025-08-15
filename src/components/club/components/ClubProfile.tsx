@@ -1,161 +1,74 @@
-import React from 'react';
-import {
-    View,
-    Text,
-    StyleSheet,
-    Linking,
-    TouchableOpacity,
-} from 'react-native';
-import { Image } from 'expo-image';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import React, { useMemo } from "react";
+import { StyleSheet } from "react-native";
+import { BottomSheetScrollView } from "@gorhom/bottom-sheet";
+import * as Linking from "expo-linking";
+import { useAppTheme } from "@/src/context/ThemeProvider";
+import type { Club } from "@/src/types/Club";
 
-import { useAppTheme } from '@/src/context/ThemeProvider';
-import type { Club } from '@/src/types/Club';
-import { useHasScopes } from '@/src/hooks/user/useHasScopes';
+import ClubHero from "./ClubHero";
+import { InfoCard, InfoRow } from "./ClubInfoCard";
 
-type Props = {
-    club: Club;
-    onEdit: () => void;
-};
+type Props = { club: Club };
 
-const ClubProfile: React.FC<Props> = ({ club, onEdit }) => {
+const ClubProfile: React.FC<Props> = ({ club }) => {
     const theme = useAppTheme();
 
-    const canUpdateClub = useHasScopes([
-        "update:clubs",
-    ]);
+    const websiteDisplay = useMemo(() => {
+        if (!club.website) return null;
+        return club.website.replace(/^https?:\/\//, "");
+    }, [club.website]);
 
     const openWebsite = () => {
-        if (club.website) {
-            Linking.openURL(
-                club.website.startsWith('http') ? club.website : `https://${club.website}`,
-            );
-        }
+        if (!club.website) return;
+        const url = club.website.startsWith("http") ? club.website : `https://${club.website}`;
+        Linking.openURL(url);
+    };
+
+    const openMail = () => {
+        if (!club.email) return;
+        Linking.openURL(`mailto:${club.email}`);
+    };
+
+    const openPhone = () => {
+        if (!club.phoneNumber) return;
+        Linking.openURL(`tel:${club.phoneNumber}`);
+    };
+
+    const openMap = () => {
+        const query = encodeURIComponent(`${club.name}${club.city ? " " + club.city : ""}`);
+        // Laisse le système décider : Apple/Google Maps
+        Linking.openURL(`https://maps.google.com/?q=${query}`);
     };
 
     return (
-        <View style={[styles.container, { backgroundColor: theme.background }]}>
-            {canUpdateClub && (
-                <TouchableOpacity
-                    style={styles.editIcon}
-                    onPress={onEdit}
-                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                    activeOpacity={0.7}
-                >
-                    <MaterialCommunityIcons name="pencil" size={22} color={theme.text} />
-                </TouchableOpacity>
-            )}
+        <BottomSheetScrollView
+            scrollEnabled={false}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={[styles.content, { backgroundColor: theme.background }]}
+        >
+            {/* HERO */}
+            <ClubHero club={club} />
 
-            <View style={styles.row}>
-                <Image
-                    source={
-                        club.logoUrl
-                            ? { uri: club.logoUrl }
-                            : require('@/assets/clubs/default_club_logo.png')
-                    }
-                    style={[styles.logo, { backgroundColor: theme.text }]}
-                    contentFit="contain"
-                />
+            {/* Coordonnées */}
+            <InfoCard title="Coordonnées">
+                <InfoRow icon="email-outline" label="Email" value={club.email} onPress={openMail} isLink />
+                <InfoRow icon="phone-outline" label="Téléphone" value={club.phoneNumber} onPress={openPhone} isLink />
+                <InfoRow icon="link-variant" label="Site web" value={websiteDisplay} onPress={openWebsite} isLink />
+            </InfoCard>
 
-                <View style={styles.info}>
-                    <Text style={[styles.title, { color: theme.text }]}>{club.name}</Text>
-
-                    {club.city && (
-                        <InfoLine icon="map-marker" text={club.city} />
-                    )}
-
-                    {club.email && (
-                        <InfoLine icon="email-outline" text={club.email} />
-                    )}
-
-                    {club.phoneNumber && (
-                        <InfoLine icon="phone-outline" text={club.phoneNumber} />
-                    )}
-
-                    {club.website && (
-                        <InfoLine
-                            icon="link-variant"
-                            text={club.website.replace(/^https?:\/\//, '')}
-                            onPress={openWebsite}
-                            link
-                        />
-                    )}
-                </View>
-            </View>
-        </View>
-    );
-};
-
-const InfoLine = ({
-    icon,
-    text,
-    onPress,
-    link,
-}: {
-    icon: any;
-    text: string;
-    onPress?: () => void;
-    link?: boolean;
-}) => {
-    const theme = useAppTheme();
-    const Comp = onPress ? TouchableOpacity : View;
-
-    return (
-        <Comp style={styles.infoLine} onPress={onPress} activeOpacity={0.7}>
-            <MaterialCommunityIcons name={icon} size={18} color={theme.text} />
-            <Text
-                style={[
-                    styles.infoText,
-                    { color: link ? theme.primary : theme.text },
-                    link && styles.underline,
-                ]}
-            >
-                {text}
-            </Text>
-        </Comp>
+            {/* Localisation */}
+            <InfoCard title="Localisation">
+                <InfoRow icon="map-marker" label="Ville" value={club.city} />
+                <InfoRow icon="map-outline" label="Voir sur la carte" value="Ouvrir la carte" onPress={openMap} isLink />
+            </InfoCard>
+        </BottomSheetScrollView>
     );
 };
 
 const styles = StyleSheet.create({
-    container: {
-        paddingTop: 8,
-        paddingHorizontal: 16,
-    },
-    editIcon: {
-        alignSelf: 'flex-end',
-        marginBottom: 6,
-    },
-    row: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 16,
-    },
-    logo: {
-        width: 100,
-        borderRadius: 18,
-        aspectRatio: 1,
-    },
-    info: {
-        flex: 1,
-        justifyContent: 'center',
-    },
-    title: {
-        fontWeight: '700',
-        fontSize: 20,
-        marginBottom: 10,
-    },
-    infoLine: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 10,
-        marginBottom: 2,
-    },
-    infoText: {
-        fontSize: 14,
-    },
-    underline: {
-        textDecorationLine: 'underline'
+    content: {
+        paddingHorizontal: 4,
+        gap: 20,
     },
 });
 

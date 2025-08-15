@@ -73,7 +73,8 @@
     "tinycolor2": "^1.6.0",
     "twrnc": "^4.6.1",
     "use-debounce": "^10.0.4",
-    "yup": "^1.6.1"
+    "yup": "^1.6.1",
+    "expo-secure-store": "~14.2.3"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

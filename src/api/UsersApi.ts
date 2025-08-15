@@ -4,23 +4,28 @@ import {
     CustomUser,
     EntityType,
     UserRegistrationRequest,
-    UserFavorite
+    UserFavorite,
 } from '@/src/types/User';
+
+type InitOpts = {
+    tokenSupplier?: () => Promise<string | null>;
+    onUnauthorized?: (e: ApiError) => void | Promise<void>;
+};
 
 class UsersApi extends AbstractApi {
     private static instance: UsersApi | null = null;
 
-    private constructor(url: string, token: string) {
-        super(url, token);
+    private constructor(token: string, opts?: InitOpts) {
+        super(CONFIG.API_USERS_BASE_URL, token, {
+            tokenSupplier: opts?.tokenSupplier,
+            onUnauthorized: opts?.onUnauthorized,
+        });
     }
 
-    /** Initialise l'instance de l'API avec le token d'accès. */
-    public static initInstance(token: string): void {
+    /** Initialise l'instance de l'API avec le token d'accès (+ options runtime). */
+    public static initInstance(token: string, opts?: InitOpts): void {
         if (!UsersApi.instance) {
-            UsersApi.instance = new UsersApi(
-                CONFIG.API_USERS_BASE_URL,
-                token
-            );
+            UsersApi.instance = new UsersApi(token, opts);
         }
     }
 
@@ -34,31 +39,13 @@ class UsersApi extends AbstractApi {
 
     /**
      * Crée ou met à jour l'utilisateur courant à partir du profil Auth0.
-     * Ce endpoint est idempotent : aucun changement si les données n'ont pas évolué.
+     * Endpoint idempotent : aucun changement si les données n'ont pas évolué.
      */
     public async ensureCurrentUser(): Promise<CustomUser> {
         return await this.request<CustomUser>({
             method: 'put',
-            url: '/me'
+            url: '/me',
         });
-    }
-
-    /**
-     * Vérifie si un utilisateur existe dans la base de données.
-     * @param auth0Id Identifiant Auth0 de l’utilisateur.
-     */
-    public async getUserByAuth0Id(auth0Id: string): Promise<CustomUser | null> {
-        try {
-            return await this.request<CustomUser>({
-                method: 'get',
-                url: `/${auth0Id}`
-            });
-        } catch (error) {
-            if (error instanceof ApiError && error.status === 404) {
-                return null;
-            }
-            throw error;
-        }
     }
 
     /**
@@ -67,58 +54,50 @@ class UsersApi extends AbstractApi {
     public async deleteCurrentUser(): Promise<void> {
         await this.request<void>({
             method: 'delete',
-            url: ''
+            url: '/me',
         });
     }
 
     /**
      * Suit une entité.
-     * @param entityType Type de l’entité à suivre.
-     * @param entityId Identifiant de l’entité à suivre.
      */
-    public async follow(
-        entityType: EntityType,
-        entityId: number
-    ): Promise<void> {
+    public async follow(entityType: EntityType, entityId: number): Promise<void> {
         await this.request<void>({
             method: 'post',
             url: '/favorites/follow',
-            params: { entityType, entityId }
+            params: { entityType, entityId },
         });
     }
 
     /**
      * Ne suit plus une entité.
-     * @param entityType Type de l’entité à ne plus suivre.
-     * @param entityId Identifiant de l’entité à ne plus suivre.
      */
-    public async unfollow(
-        entityType: EntityType,
-        entityId: number
-    ): Promise<void> {
+    public async unfollow(entityType: EntityType, entityId: number): Promise<void> {
         await this.request<void>({
             method: 'delete',
             url: '/favorites/follow',
-            params: { entityType, entityId }
+            params: { entityType, entityId },
         });
     }
 
     /**
-     * Met à jour un utilisateur.
-     * @param auth0Id Identifiant Auth0 de l’utilisateur.
-     * @param data Objet contenant les champs à mettre à jour.
-     * @param image Fichier image optionnel pour la photo de profil.
+     * Met à jour un utilisateur (photo optionnelle).
+     * ⚠️ En React Native, passe une image au format { uri, type?, name? }.
      */
     public async updateUser(
         auth0Id: string,
         data: Record<string, any>,
-        image?: File
+        image?: { uri: string; type?: string; name?: string }
     ): Promise<CustomUser> {
         const formData = new FormData();
         formData.append('data', JSON.stringify(data));
 
         if (image) {
-            formData.append('image', image);
+            formData.append('image', {
+                uri: image.uri,
+                type: image.type ?? 'image/jpeg',
+                name: image.name ?? 'profile.jpg',
+            } as any);
         }
 
         return await this.request<CustomUser>({

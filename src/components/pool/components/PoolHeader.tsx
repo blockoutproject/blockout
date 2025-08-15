@@ -1,40 +1,39 @@
+import React from "react";
+import { TouchableOpacity, View, StyleSheet, Text } from "react-native";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import { HEADER_HEIGHT } from "@/src/theme/globals";
-import { Ionicons } from "@expo/vector-icons";
-import { useNavigation } from "@react-navigation/native";
-import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { TouchableOpacity, View, StyleSheet } from "react-native";
-import { SheetStackParamList } from "../../common/BottomSheetNavigator";
+import { useBackOrClose } from "@/src/hooks/utils/useBackOrClose";
 
 type PoolHeaderProps = {
+    title?: string;
     onCloseSheet: () => void;
 };
 
-const PoolHeader: React.FC<PoolHeaderProps> = ({ onCloseSheet }) => {
+const PoolHeader: React.FC<PoolHeaderProps> = ({ title, onCloseSheet }) => {
     const theme = useAppTheme();
-    const navigation = useNavigation<NativeStackNavigationProp<SheetStackParamList>>();
+    const { handleBack, canGoBack } = useBackOrClose(onCloseSheet);
 
     return (
-        <View style={[
-            styles.container
-        ]}>
+        <View style={styles.container}>
             <View style={styles.header}>
-                {/* Bouton Back */}
-                <TouchableOpacity
-                    onPress={() => {
-                        navigation.canGoBack() ? navigation.goBack() : onCloseSheet();
-                    }}>
-                    <Ionicons name="arrow-back" size={30} color={theme.text} />
-                </TouchableOpacity>
+                <View style={styles.leftGroup}>
+
+                    <TouchableOpacity onPress={handleBack} style={styles.backButton}>
+                        <MaterialCommunityIcons name={canGoBack ? "chevron-left" : "close"} size={30} color={theme.text} />
+                    </TouchableOpacity>
+                    <Text style={[styles.title, { color: theme.text }]} numberOfLines={1}>
+                        {title}
+                    </Text>
+                </View>
+                <View style={{ width: 30 }} />
             </View>
         </View>
     );
 };
 
 const styles = StyleSheet.create({
-    container: {
-        backgroundColor: "transparent",
-    },
+    container: { backgroundColor: "transparent" },
     header: {
         height: HEADER_HEIGHT,
         flexDirection: "row",
@@ -42,6 +41,9 @@ const styles = StyleSheet.create({
         justifyContent: "space-between",
         paddingHorizontal: 12,
     },
+    leftGroup: { flexDirection: "row", alignItems: "center", flex: 1 },
+    backButton: { marginRight: 8 },
+    title: { fontSize: 18, fontWeight: "700" },
 });
 
 export default PoolHeader;

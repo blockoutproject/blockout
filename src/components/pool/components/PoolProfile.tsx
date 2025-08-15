@@ -1,81 +1,70 @@
 import React from "react";
-import { View, Text, StyleSheet } from "react-native";
-import { Image } from 'expo-image';
-import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import { View, StyleSheet } from "react-native";
+import { Image } from "expo-image";
+
 import { useAppTheme } from "@/src/context/ThemeProvider";
-import { EnrichedPoolDTO, Pool } from "@/src/types/Pool";
+import { EnrichedPoolDTO } from "@/src/types/Pool";
 import FollowButton from "@/src/components/common/FollowButton";
 import FollowersCounter from "@/src/components/common/FollowersCount";
 import { usePoolFollowState } from "@/src/hooks/pool/usePoolFollowState";
-import { EnumGender, GenderLabels } from "@/src/types/enums/Gender";
+import { GenderLabels } from "@/src/types/enums/Gender";
 import { FormatLabels } from "@/src/types/enums/Format";
+import InfoPill from "@/src/components/common/chips/InfoPill";
+import { LOGO_SIZE } from "@/src/theme/globals";
+import MaskedImage from "../../common/MaskedImage";
 
-type Props = {
-    enrichedPool: EnrichedPoolDTO
+type PoolProfileProps = {
+    enrichedPool: EnrichedPoolDTO;
 };
 
-const PoolProfile: React.FC<Props> = ({ enrichedPool }) => {
+const PoolProfile: React.FC<PoolProfileProps> = ({ enrichedPool }) => {
     const theme = useAppTheme();
-    const { isFollowing, isProcessing, followersCount, onToggleFollow } = usePoolFollowState(enrichedPool);
+    const { isFollowing, isProcessing, followersCount, onToggleFollow } =
+        usePoolFollowState(enrichedPool);
 
     const division = enrichedPool.division;
-    if (!division) {
-        throw new Error("EnrichedPoolDTO.division is required but was undefined.");
-    }
 
-    const gradient: readonly [string, string, ...string[]] = [
+    const gradient = [
         division.firstGradientColor,
         division.secondGradientColor,
         division.thirdGradientColor,
-    ];
+    ] as const;
+
+    const logoSrc = division.logoUrl
+        ? { uri: division.logoUrl }
+        : require("@/assets/clubs/default_club_logo.png");
 
     return (
-        <View style={[styles.container, { backgroundColor: theme.background }]}>
-            <View style={styles.row}>
-                <Image
-                    source={{ uri: division.logoUrl || "" }}
-                    style={[styles.logo, { backgroundColor: theme.text }]}
-                    contentFit="contain"
+        <View style={styles.container}>
+            <View style={styles.topRow}>
+                <MaskedImage
+                    uri={enrichedPool.division.logoUrl}
+                    size={LOGO_SIZE}
+                    radius={20}
+                    shadow
                 />
 
-                <View style={styles.info}>
-                    <Text
-                        style={[styles.title, { color: theme.text }]}
-                        numberOfLines={2}
-                        ellipsizeMode="tail"
-                        adjustsFontSizeToFit
-                        minimumFontScale={0.8}
-                    >
-                        {enrichedPool.name}
-                    </Text>
-
-                    <View style={styles.infoLine}>
-                        <MaterialCommunityIcons name="trophy" size={18} color={theme.text} />
-                        <Text style={[styles.infoText, { color: theme.text }]}>{division.name}</Text>
+                <View style={styles.infoCol}>
+                    <View style={styles.pillRow}>
+                        <InfoPill label={division.name} />
+                        <InfoPill label={GenderLabels[enrichedPool.gender]} />
                     </View>
 
-                    <View style={styles.infoLine}>
-                        {enrichedPool.gender === EnumGender.M && <MaterialCommunityIcons name="gender-male" size={18} color={theme.text} />}
-                        {enrichedPool.gender === EnumGender.F && <MaterialCommunityIcons name="gender-female" size={18} color={theme.text} />}
-                        {enrichedPool.gender === EnumGender.O && <MaterialCommunityIcons name="gender-male-female" size={18} color={theme.text} />}
-                        <Text style={[styles.infoText, { color: theme.text }]}>{`${GenderLabels[enrichedPool.gender]} / ${FormatLabels[enrichedPool.format]}`}</Text>
+                    <View style={styles.pillRow}>
+                        <InfoPill label={enrichedPool.leagueName} />
+                        <InfoPill label={String(enrichedPool.season)} />
                     </View>
 
-                    <View style={styles.infoLine}>
-                        <MaterialCommunityIcons name="calendar" size={18} color={theme.text} />
-                        <Text style={[styles.infoText, { color: theme.text }]}>{enrichedPool.season}</Text>
+                    <View style={styles.actionsRow}>
+                        <FollowButton
+                            isFollowing={isFollowing}
+                            onPress={onToggleFollow}
+                            disabled={isProcessing}
+                            gradient={gradient}
+                        />
+                        <FollowersCounter count={followersCount} />
                     </View>
                 </View>
-            </View>
-
-            <View style={styles.actionsRow}>
-                <FollowButton
-                    isFollowing={isFollowing}
-                    onPress={onToggleFollow}
-                    disabled={isProcessing}
-                    gradient={gradient}
-                />
-                <FollowersCounter count={followersCount} />
             </View>
         </View>
     );
@@ -85,44 +74,30 @@ export default PoolProfile;
 
 const styles = StyleSheet.create({
     container: {
+        paddingHorizontal: 12,
         paddingTop: 8,
-        paddingHorizontal: 16,
+        gap: 10,
     },
-    row: {
+    topRow: {
         flexDirection: "row",
-        gap: 16,
+        alignItems: "flex-start",
+        gap: 12,
     },
-    logo: {
-        width: 100,
-        aspectRatio: 1,
-        borderRadius: 24
-    },
-    info: {
+    infoCol: {
         flex: 1,
-        justifyContent: "center",
+        minWidth: 0,
+        height: LOGO_SIZE,
+        justifyContent: "space-between",
     },
-    title: {
-        fontWeight: "700",
-        fontSize: 20,
-        marginBottom: 10,
-    },
-    infoLine: {
+    pillRow: {
         flexDirection: "row",
         alignItems: "center",
-        gap: 6,
-        marginBottom: 2,
-    },
-    infoText: {
-        fontSize: 14,
-        fontWeight: '500',
-    },
-    linkText: {
-        fontSize: 14,
-        fontWeight: '500',
+        gap: 8,
+        flexWrap: "wrap",
     },
     actionsRow: {
         flexDirection: "row",
         alignItems: "center",
-        marginTop: 8,
+        gap: 6,
     },
 });

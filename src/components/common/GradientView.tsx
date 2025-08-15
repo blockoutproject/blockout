@@ -1,9 +1,9 @@
-import { ViewStyle } from 'react-native';
+import { StyleProp, ViewStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 
 type GradientViewProps = {
     children: React.ReactNode;
-    style?: ViewStyle | ViewStyle[];
+    style?: StyleProp<ViewStyle>;
     gradient: readonly [string, string, ...string[]];
     start?: { x: number; y: number };
     end?: { x: number; y: number };

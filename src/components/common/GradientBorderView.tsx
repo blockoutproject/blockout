@@ -2,7 +2,6 @@ import React from 'react';
 import { View, ViewStyle, StyleProp } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAppTheme } from '@/src/context/ThemeProvider';
-import { GradientVariants } from '@/src/utils/utils';
 
 type GradientBorderViewProps = {
     children: React.ReactNode;

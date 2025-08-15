@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useRef, useEffect } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import {
     RefreshControl,
     View,
@@ -20,10 +20,8 @@ import { useThemeColor } from "@/src/hooks/useThemeColor";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { SheetStackParamList } from "@/src/components/common/BottomSheetNavigator";
-import { TABBAR_HEIGHT } from "@/src/theme/globals";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-type Props = {
+type MatchListContainerProps = {
     poolIds?: number[];
     teamIds?: number[];
     status: MatchStatus;
@@ -37,7 +35,7 @@ type Props = {
     ) => void;
 };
 
-const MatchListContainer: React.FC<Props> = ({
+const MatchListContainer: React.FC<MatchListContainerProps> = ({
     poolIds,
     teamIds,
     status,
@@ -49,6 +47,8 @@ const MatchListContainer: React.FC<Props> = ({
 }) => {
     const background = useThemeColor({}, "background");
     const text = useThemeColor({}, "text");
+    const navigation = useNavigation<NativeStackNavigationProp<SheetStackParamList>>();
+
     const {
         dayMatches,
         fetchNextPage,
@@ -58,7 +58,6 @@ const MatchListContainer: React.FC<Props> = ({
         isError,
         refetch,
     } = useMatchList(status, poolIds, teamIds);
-    const navigation = useNavigation<NativeStackNavigationProp<SheetStackParamList>>();
 
     const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -73,22 +72,18 @@ const MatchListContainer: React.FC<Props> = ({
         if (hasNextPage && !isFetchingNextPage) fetchNextPage();
     };
 
-    const onMatchPress = (matchId: number) => {
+    const handleMatchPress = (matchId: number) => {
         Haptics.selectionAsync();
-        if (home && openSheet) {
-            openSheet("Match", { matchId });
-        } else {
-            navigation.push("Match", { matchId });
-        }
+        home && openSheet
+            ? openSheet("Match", { matchId })
+            : navigation.push("Match", { matchId });
     };
 
-    const onPoolPress = (poolId: number) => {
+    const handlePoolPress = (poolId: number) => {
         Haptics.selectionAsync();
-        if (home && openSheet) {
-            openSheet("Pool", { poolId });
-        } else {
-            navigation.push("Pool", { poolId });
-        }
+        home && openSheet
+            ? openSheet("Pool", { poolId })
+            : navigation.push("Pool", { poolId });
     };
 
     const sections = useMemo(
@@ -108,56 +103,40 @@ const MatchListContainer: React.FC<Props> = ({
         </View>
     );
 
-    const renderItem = ({ item }: any) => (
-        <PoolItem
-            enrichedPoolMatches={item}
-            handlePoolPress={onPoolPress}
-            handleMatchPress={onMatchPress}
-        />
-    );
-
-    const renderEmpty = () => (
-        <EmptyPrompt
-            title="Aucun match trouvé"
-            subtitle={
-                poolIds?.length || teamIds?.length
-                    ? "Aucun match à venir pour les équipes ou poules sélectionnées."
-                    : "Commence par suivre une équipe ou une poule pour voir les matchs ici !"
-            }
-            home
-        />
-    );
-
-    const body = () => {
-        if (isLoading) {
-            return (
-                <ActivityIndicator
-                    size="large"
-                    color={text}
-                    style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
-                />
-            );
-        }
-
-        if (isError) {
-            return (
-                <ErrorPrompt
-                    title="Erreur de chargement"
-                    subtitle="Impossible de récupérer les données. Vérifie ta connexion."
-                    onRetry={refetch}
-                    home
-                />
-            );
-        }
-
+    if (isLoading) {
         return (
+            <View style={[styles.center, { backgroundColor: background }]}>
+                <ActivityIndicator size="large" color={text} />
+            </View>
+        );
+    }
+
+    if (isError) {
+        return (
+            <ErrorPrompt
+                title="Erreur de chargement"
+                subtitle="Impossible de récupérer les données. Vérifie ta connexion."
+                onRetry={refetch}
+                home
+            />
+        );
+    }
+
+    return (
+        <View style={[styles.container, { backgroundColor: background }]}>
             <Animated.SectionList
                 sections={sections}
                 keyExtractor={(it, i) => `${it.pool.id}-${i}`}
                 initialNumToRender={10}
                 stickySectionHeadersEnabled
                 renderSectionHeader={renderSectionHeader}
-                renderItem={renderItem}
+                renderItem={({ item }) => (
+                    <PoolItem
+                        enrichedPoolMatches={item}
+                        handlePoolPress={handlePoolPress}
+                        handleMatchPress={handleMatchPress}
+                    />
+                )}
                 onEndReached={handleLoadMore}
                 ItemSeparatorComponent={() => <View style={styles.itemSeparator} />}
                 showsVerticalScrollIndicator={false}
@@ -169,7 +148,17 @@ const MatchListContainer: React.FC<Props> = ({
                         progressViewOffset={headerOffset + 12}
                     />
                 }
-                ListEmptyComponent={renderEmpty}
+                ListEmptyComponent={
+                    <EmptyPrompt
+                        title="Aucun match trouvé"
+                        subtitle={
+                            poolIds?.length || teamIds?.length
+                                ? "Aucun match à venir pour les équipes ou poules sélectionnées."
+                                : "Commence par suivre une équipe ou une poule pour voir les matchs ici !"
+                        }
+                        home
+                    />
+                }
                 scrollEnabled={sections.length > 0}
                 onScroll={
                     scrollY
@@ -179,39 +168,33 @@ const MatchListContainer: React.FC<Props> = ({
                         )
                         : undefined
                 }
-                contentContainerStyle={[contentContainerStyle]}
+                contentContainerStyle={contentContainerStyle}
                 ListFooterComponent={
-                    isFetchingNextPage && hasNextPage ? <ActivityIndicator style={{ marginTop: 12}} /> : null
+                    isFetchingNextPage && hasNextPage ? (
+                        <ActivityIndicator style={{ marginTop: 12 }} />
+                    ) : null
                 }
             />
-        );
-    };
-
-    return <View style={[styles.container, { backgroundColor: background }]}>{body()}</View>;
+        </View>
+    );
 };
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1
-    },
-    itemSeparator: {
-        height: 12
-    },
+    container: { flex: 1 },
+    center: { flex: 1, justifyContent: "center", alignItems: "center" },
+    itemSeparator: { height: 12 },
     dateContainer: {
         marginTop: 12,
         marginBottom: 6,
         backgroundColor: "transparent",
-        alignItems: "center"
+        alignItems: "center",
     },
     dateBackground: {
         borderRadius: 14,
         paddingHorizontal: 6,
-        paddingVertical: 4
+        paddingVertical: 4,
     },
-    dateHeader: {
-        fontSize: 16,
-        fontWeight: "800"
-    },
+    dateHeader: { fontSize: 16, fontWeight: "800" },
 });
 
 export default MatchListContainer;
