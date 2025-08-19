@@ -65,23 +65,16 @@ const ReportForm: React.FC<ReportFormProps> = ({ context, onSuccess }) => {
             }
             errorOpacity.setValue(0);
 
-            Animated.timing(errorOpacity, {
-                toValue: 1,
-                duration: 180,
-                useNativeDriver: true,
-            }).start();
+            Animated.timing(errorOpacity, { toValue: 1, duration: 180, useNativeDriver: true }).start();
 
             errorTimerRef.current = setTimeout(() => {
-                Animated.timing(errorOpacity, {
-                    toValue: 0,
-                    duration: 220,
-                    useNativeDriver: true,
-                }).start(({ finished }) => {
-                    if (finished) setApiError(null);
-                });
+                Animated.timing(errorOpacity, { toValue: 0, duration: 220, useNativeDriver: true }).start(
+                    ({ finished }) => {
+                        if (finished) setApiError(null);
+                    }
+                );
             }, 5000);
         }
-
         return () => {
             if (errorTimerRef.current) {
                 clearTimeout(errorTimerRef.current);
@@ -133,7 +126,8 @@ const ReportForm: React.FC<ReportFormProps> = ({ context, onSuccess }) => {
         },
         validationSchema: Yup.object({
             type: Yup.mixed<ReportType>().oneOf(Object.values(ReportType)).required(),
-            title: Yup.string().trim().required("Titre requis"),
+            title: Yup.string().trim().required("Titre requis 🚨"),
+            description: Yup.string().trim().required("Il va nous falloir un peu plus de détails ... 🧐"),
         }),
         onSubmit: async (values) => {
             try {
@@ -166,24 +160,21 @@ const ReportForm: React.FC<ReportFormProps> = ({ context, onSuccess }) => {
         },
     });
 
-    // ---- Filters (single select) ----
     const [filters, setFilters] = useState<Filter[]>(
-        CATEGORY_OPTIONS.map(opt => ({ name: opt.name, isActive: opt.value === initialType }))
+        CATEGORY_OPTIONS.map((opt) => ({ name: opt.name, isActive: opt.value === initialType }))
     );
 
-    // quand le filtre actif change, on pousse la valeur dans formik
     useEffect(() => {
-        const active = filters.find(f => f.isActive)?.name;
+        const active = filters.find((f) => f.isActive)?.name;
         if (!active) return;
-        const found = CATEGORY_OPTIONS.find(c => c.name === active);
+        const found = CATEGORY_OPTIONS.find((c) => c.name === active);
         if (found && found.value !== formik.values.type) {
             formik.setFieldValue("type", found.value);
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [filters]);
 
     const typeLabel = useMemo(
-        () => CATEGORY_OPTIONS.find(c => c.value === formik.values.type)?.name ?? "Catégorie",
+        () => CATEGORY_OPTIONS.find((c) => c.value === formik.values.type)?.name ?? "Catégorie",
         [formik.values.type]
     );
 
@@ -195,7 +186,6 @@ const ReportForm: React.FC<ReportFormProps> = ({ context, onSuccess }) => {
             >
                 <View style={[styles.card, { backgroundColor: theme.surface }]}>
                     <Text style={[styles.sectionTitle, { color: theme.text }]}>Catégorie</Text>
-
                     <Filters
                         filters={filters}
                         setFilters={setFilters}
@@ -208,32 +198,42 @@ const ReportForm: React.FC<ReportFormProps> = ({ context, onSuccess }) => {
                 <View style={[styles.card, { backgroundColor: theme.surface }]}>
                     <Text style={[styles.sectionTitle, { color: theme.text }]}>Détails</Text>
 
-                    <BottomSheetTextInput
-                        style={[
-                            styles.input,
-                            {
-                                borderColor: formik.touched.title && formik.errors.title ? theme.error : theme.border,
-                                color: theme.text,
-                            },
-                        ]}
-                        value={formik.values.title}
-                        onChangeText={formik.handleChange("title")}
-                        onBlur={formik.handleBlur("title")}
-                        placeholder="Titre"
-                        placeholderTextColor={theme.textInactive}
-                    />
-                    {formik.touched.title && formik.errors.title ? (
-                        <Text style={[styles.errorText, { color: theme.error }]}>{formik.errors.title as string}</Text>
-                    ) : null}
+                    <Field label="Titre" error={formik.errors.title as string} touched={formik.touched.title}>
+                        <BottomSheetTextInput
+                            style={[
+                                styles.input,
+                                { borderColor: theme.border, color: theme.text },
+                                formik.touched.title && formik.errors.title ? { borderColor: theme.error } : null,
+                            ]}
+                            value={formik.values.title}
+                            onChangeText={formik.handleChange("title")}
+                            onBlur={formik.handleBlur("title")}
+                            placeholder="Titre"
+                            placeholderTextColor={theme.textInactive}
+                        />
+                    </Field>
 
-                    <BottomSheetTextInput
-                        style={[styles.input, { borderColor: theme.border, color: theme.text, height: 156 }]}
-                        multiline
-                        value={formik.values.description}
-                        onChangeText={formik.handleChange("description")}
-                        placeholder="Description"
-                        placeholderTextColor={theme.textInactive}
-                    />
+                    <Field
+                        label="Description"
+                        error={formik.errors.description as string}
+                        touched={formik.touched.description}
+                    >
+                        <BottomSheetTextInput
+                            multiline
+                            scrollEnabled
+                            style={[
+                                styles.input,
+                                styles.textarea,
+                                { borderColor: theme.border, color: theme.text },
+                                formik.touched.description && formik.errors.description ? { borderColor: theme.error } : null,
+                            ]}
+                            value={formik.values.description}
+                            onChangeText={formik.handleChange("description")}
+                            onBlur={formik.handleBlur("description")}
+                            placeholder="Décris le problème, les étapes pour le reproduire, le contexte…"
+                            placeholderTextColor={theme.textInactive}
+                        />
+                    </Field>
                 </View>
 
                 <View style={[styles.card, { backgroundColor: theme.surface }]}>
@@ -257,7 +257,6 @@ const ReportForm: React.FC<ReportFormProps> = ({ context, onSuccess }) => {
                 </View>
             </BottomSheetScrollView>
 
-            {/* Bannière d'erreur en absolute + fade */}
             {apiError ? (
                 <Animated.View
                     style={[
@@ -284,6 +283,7 @@ const ReportForm: React.FC<ReportFormProps> = ({ context, onSuccess }) => {
                 </Animated.View>
             ) : null}
 
+            {/* Footer */}
             <View
                 style={[
                     styles.footer,
@@ -315,6 +315,24 @@ const ReportForm: React.FC<ReportFormProps> = ({ context, onSuccess }) => {
 
 export default ReportForm;
 
+const Field: React.FC<{
+    label: string;
+    children: React.ReactNode;
+    error?: string;
+    touched?: boolean;
+}> = ({ label, children, error, touched }) => {
+    const theme = useAppTheme();
+    return (
+        <View style={styles.fieldBlock}>
+            <Text style={[styles.label, { color: theme.text }]}>{label}</Text>
+            {children}
+            {touched && !!error ? (
+                <Text style={[styles.error, { color: theme.error }]}>{error}</Text>
+            ) : null}
+        </View>
+    );
+};
+
 const styles = StyleSheet.create({
     scroll: { gap: 12, paddingHorizontal: 8 },
     card: {
@@ -328,17 +346,11 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 0, height: 6 },
     },
     sectionTitle: { fontSize: 13, fontWeight: "800", textTransform: "uppercase", opacity: 0.85 },
-    helper: { fontSize: 12, fontWeight: "600", opacity: 0.8, marginTop: -2, paddingHorizontal: 4 },
-
-    input: {
-        borderWidth: 1.5,
-        borderRadius: 16,
-        paddingVertical: 12,
-        paddingHorizontal: 14,
-        fontSize: 14,
-    },
-    errorText: { fontSize: 12, marginTop: -6, marginLeft: 6, fontWeight: "600" },
-
+    fieldBlock: { marginBottom: 6 },
+    label: { fontSize: 14, fontWeight: "600", marginBottom: 6, marginLeft: 4 },
+    input: { borderWidth: 1.5, borderRadius: 16, paddingVertical: 12, paddingHorizontal: 14, fontSize: 14 },
+    textarea: { maxHeight: 420, textAlignVertical: "top", minHeight: 180 },
+    error: { fontSize: 12, marginTop: 4, marginLeft: 8, fontWeight: "600" },
     thumbWrap: {
         width: 84,
         height: 84,
@@ -358,7 +370,6 @@ const styles = StyleSheet.create({
         gap: 6,
     },
     addBtnText: { fontSize: 12, fontWeight: "700" },
-
     apiErrorContainer: {
         position: "absolute",
         left: 12,
@@ -374,7 +385,6 @@ const styles = StyleSheet.create({
         zIndex: 20,
     },
     apiErrorText: { flex: 1, fontSize: 14, fontWeight: "600" },
-
     footer: {
         position: "absolute",
         left: 0,

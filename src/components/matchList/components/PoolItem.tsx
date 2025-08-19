@@ -62,9 +62,9 @@ const PoolItem: React.FC<PoolItemProps> = ({
                         <LinearGradient
                             pointerEvents="none"
                             colors={[
-                                withAlpha(theme.surface, 0.9),
-                                withAlpha(theme.surface, 0.4),
-                                withAlpha(theme.surface, 0.9),
+                                withAlpha(theme.surface, 0.8),
+                                withAlpha(theme.surface, 0.5),
+                                withAlpha(theme.surface, 0.8),
                             ]}
                             locations={[0, 0.5, 1]}
                             start={{ x: 0, y: 0.5 }}
@@ -113,7 +113,7 @@ const styles = StyleSheet.create({
         borderRadius: RADIUS,
     },
     innerClip: {
-        borderRadius: RADIUS - 1, // évite de rogner le dégradé
+        borderRadius: RADIUS - 1,
         overflow: "hidden",
     },
     headerRow: {

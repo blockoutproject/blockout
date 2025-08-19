@@ -69,7 +69,7 @@ const RankingCard: React.FC<RankingCardProps> = ({
             <Image source={divisionLogo} style={StyleSheet.absoluteFill} contentFit="cover" blurRadius={40} />
             <LinearGradient
                 pointerEvents="none"
-                colors={[withAlpha(theme.surface, 0.9), withAlpha(theme.surface, 0.35), withAlpha(theme.surface, 0.9)]}
+                colors={[withAlpha(theme.surface, 0.8), withAlpha(theme.surface, 0.5), withAlpha(theme.surface, 0.8)]}
                 locations={[0, 0.5, 1]}
                 start={{ x: 0, y: 0.5 }}
                 end={{ x: 1, y: 0.5 }}
