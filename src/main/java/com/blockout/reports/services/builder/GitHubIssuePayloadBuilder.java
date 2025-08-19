@@ -25,7 +25,8 @@ public class GitHubIssuePayloadBuilder {
         body.append("## Contexte\n");
         kv(body, "Type", dto.getType() != null ? dto.getType().name() : null);
         kv(body, "Version app", dto.getAppVersion());
-        kv(body, "Utilisateur", dto.getUserId());
+        kv(body, "ID Utilisateur", dto.getUserId());
+        kv(body, "Nom Utilisateur", dto.getUserName());
         kv(body, "Écran", dto.getScreen());
         kv(body, "Device", dto.getDeviceModel());
         kv(body, "OS", dto.getOs());

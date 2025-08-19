@@ -30,6 +30,9 @@ public class ReportCreateDTO {
     @JsonProperty("user_id")
     private String userId;
 
+    @JsonProperty("user_name")
+    private String userName;
+
     private String screen;
 
     @JsonProperty("device_model")
