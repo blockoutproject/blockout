@@ -1,15 +1,22 @@
-// components/UserForm.tsx
-import React, { useState } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert } from "react-native";
+import React, { useEffect, useRef, useState } from "react";
+import {
+    View,
+    Text,
+    StyleSheet,
+    TouchableOpacity,
+    ActivityIndicator,
+    Alert,
+    Animated,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { BottomSheetTextInput, BottomSheetView } from "@gorhom/bottom-sheet";
+import { BottomSheetScrollView, BottomSheetTextInput } from "@gorhom/bottom-sheet";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import * as Haptics from "expo-haptics";
 import * as ImagePicker from "expo-image-picker";
 import * as ImageManipulator from "expo-image-manipulator";
 import { Image } from "expo-image";
-import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import UsersApi from "@/src/api/UsersApi";
@@ -29,12 +36,36 @@ const UserForm: React.FC<UserFormProps> = ({ user, onSuccess }) => {
     const [loading, setLoading] = useState(false);
     const [apiError, setApiError] = useState<string | null>(null);
 
+    const errorOpacity = useRef(new Animated.Value(0)).current;
+    const errorTimerRef = useRef<number | null>(null);
+
+    useEffect(() => {
+        if (apiError) {
+            if (errorTimerRef.current) {
+                clearTimeout(errorTimerRef.current);
+                errorTimerRef.current = null;
+            }
+            errorOpacity.setValue(0);
+            Animated.timing(errorOpacity, { toValue: 1, duration: 180, useNativeDriver: true }).start();
+            errorTimerRef.current = setTimeout(() => {
+                Animated.timing(errorOpacity, { toValue: 0, duration: 220, useNativeDriver: true }).start(({ finished }) => {
+                    if (finished) setApiError(null);
+                });
+            }, 5000) as unknown as number;
+        }
+        return () => {
+            if (errorTimerRef.current) {
+                clearTimeout(errorTimerRef.current);
+                errorTimerRef.current = null;
+            }
+        };
+    }, [apiError, errorOpacity]);
+
     const handlePickImage = async () => {
         try {
             await Haptics.selectionAsync();
-
             const pickerResult = await ImagePicker.launchImageLibraryAsync({
-                mediaTypes: ['images'],
+                mediaTypes: ["images"],
                 allowsEditing: true,
                 aspect: [1, 1],
                 quality: 1,
@@ -52,24 +83,21 @@ const UserForm: React.FC<UserFormProps> = ({ user, onSuccess }) => {
                 compress: 1,
             });
 
-            const fileObj = {
-                uri: saved.uri,
-                name: 'avatar.png',
-                type: 'image/png',
-            };
-
             setPreviewUri(saved.uri);
-            setImageFile(fileObj);
+            setImageFile({ uri: saved.uri, name: "avatar.png", type: "image/png" });
         } catch (e) {
             console.error(e);
-            Alert.alert('Erreur', 'Impossible de traiter l’image.');
+            Alert.alert("Erreur", "Impossible de traiter l’image.");
         }
     };
 
     const formik = useFormik({
         initialValues: { pseudo: user.pseudo ?? "" },
         validationSchema: Yup.object({
-            pseudo: Yup.string().min(3, "Min. 3 caractères").max(32, "Max. 32 caractères").matches(/^[a-zA-Z0-9._-]+$/, "Lettres, chiffres, ., -, _ uniquement"),
+            pseudo: Yup.string()
+                .min(3, "Min. 3 caractères")
+                .max(32, "Max. 32 caractères")
+                .matches(/^[a-zA-Z0-9._-]+$/, "Lettres, chiffres, ., -, _ uniquement"),
         }),
         onSubmit: async (values) => {
             try {
@@ -104,8 +132,11 @@ const UserForm: React.FC<UserFormProps> = ({ user, onSuccess }) => {
     const avatarUri = previewUri ?? user.pictureUrl ?? null;
 
     return (
-        <BottomSheetView style={[styles.container, { backgroundColor: theme.backgroundSecondary, paddingBottom: insets.bottom }]}>
-            <View style={styles.fieldContainer}>
+        <View style={{ flex: 1 }}>
+            <BottomSheetScrollView
+                contentContainerStyle={[styles.fieldContainer, { paddingBottom: insets.bottom + 88 }]}
+                showsVerticalScrollIndicator={false}
+            >
                 <View style={[styles.card, { backgroundColor: theme.surface }]}>
                     <Text style={[styles.sectionTitle, { color: theme.text }]}>Photo de profil</Text>
 
@@ -115,7 +146,7 @@ const UserForm: React.FC<UserFormProps> = ({ user, onSuccess }) => {
                                 <Image source={{ uri: avatarUri }} style={styles.logo} contentFit="cover" />
                             ) : (
                                 <View style={styles.logoPlaceholder}>
-                                    <MaterialIcons name="photo-camera" size={28} color={theme.textInactive} />
+                                    <MaterialCommunityIcons name="camera-plus-outline" size={28} color={theme.textInactive} />
                                     <Text style={[styles.logoHint, { color: theme.textInactive }]}>Ajouter une photo</Text>
                                 </View>
                             )}
@@ -123,7 +154,7 @@ const UserForm: React.FC<UserFormProps> = ({ user, onSuccess }) => {
                     </TouchableOpacity>
 
                     <TouchableOpacity onPress={handlePickImage} style={[styles.logoBtn, { backgroundColor: theme.backgroundSecondary }]}>
-                        <MaterialIcons name="edit" size={16} color={theme.text} />
+                        <MaterialCommunityIcons name="pencil-outline" size={16} color={theme.text} />
                         <Text style={[styles.logoBtnText, { color: theme.text }]}>Changer la photo</Text>
                     </TouchableOpacity>
                 </View>
@@ -148,29 +179,73 @@ const UserForm: React.FC<UserFormProps> = ({ user, onSuccess }) => {
                         returnKeyType="done"
                     />
 
-                    {formik.touched.pseudo && formik.errors.pseudo ? <Text style={[styles.errorText, { color: theme.error }]}>{formik.errors.pseudo}</Text> : null}
+                    {formik.touched.pseudo && formik.errors.pseudo ? (
+                        <Text style={[styles.errorText, { color: theme.error }]}>{formik.errors.pseudo}</Text>
+                    ) : null}
                 </View>
-            </View>
+            </BottomSheetScrollView>
 
+            {/* Erreur flottante animée */}
             {apiError ? (
-                <View style={[styles.apiErrorContainer, { backgroundColor: theme.error + "22", borderColor: theme.error }]}>
-                    <MaterialIcons name="error-outline" size={18} color={theme.error} />
+                <Animated.View
+                    style={[
+                        styles.apiErrorContainer,
+                        {
+                            backgroundColor: theme.error + "22",
+                            borderColor: theme.error,
+                            bottom: insets.bottom + 64, // juste au-dessus du bouton
+                            opacity: errorOpacity,
+                            transform: [
+                                {
+                                    translateY: errorOpacity.interpolate({
+                                        inputRange: [0, 1],
+                                        outputRange: [8, 0],
+                                    }),
+                                },
+                            ],
+                        },
+                    ]}
+                    pointerEvents="box-none"
+                >
+                    <MaterialCommunityIcons name="alert-circle-outline" size={18} color={theme.error} />
                     <Text style={[styles.apiErrorText, { color: theme.error }]}>{apiError}</Text>
-                </View>
+                </Animated.View>
             ) : null}
 
-            <TouchableOpacity style={[styles.submitBtn, { backgroundColor: theme.primary, opacity: loading ? 0.7 : 1 }]} disabled={loading} onPress={() => formik.handleSubmit()}>
-                {loading ? <ActivityIndicator color={theme.text} /> : <Text style={[styles.submitText, { color: theme.text }]}>Enregistrer</Text>}
-            </TouchableOpacity>
-        </BottomSheetView>
+            {/* Footer fixé */}
+            <View
+                style={[
+                    styles.footer,
+                    {
+                        paddingBottom: insets.bottom + 8,
+                        backgroundColor: theme.backgroundSecondary,
+                        borderTopColor: theme.border,
+                    },
+                ]}
+            >
+                <TouchableOpacity
+                    style={[styles.submitBtn, { backgroundColor: theme.primary, opacity: loading ? 0.7 : 1 }]}
+                    disabled={loading}
+                    onPress={() => formik.handleSubmit()}
+                >
+                    {loading ? (
+                        <ActivityIndicator color={theme.text} />
+                    ) : (
+                        <>
+                            <MaterialCommunityIcons name="content-save-outline" size={18} color={theme.text} />
+                            <Text style={[styles.submitText, { color: theme.text }]}>Enregistrer</Text>
+                        </>
+                    )}
+                </TouchableOpacity>
+            </View>
+        </View>
     );
 };
 
 export default UserForm;
 
 const styles = StyleSheet.create({
-    container: { padding: 8 },
-    fieldContainer: { marginBottom: 32, gap: 12 },
+    fieldContainer: { padding: 8, gap: 12 },
     card: {
         borderRadius: 18,
         padding: 14,
@@ -191,8 +266,37 @@ const styles = StyleSheet.create({
     logoBtnText: { fontSize: 12, fontWeight: "700" },
     input: { borderWidth: 1.5, borderRadius: 16, paddingVertical: 12, paddingHorizontal: 14, fontSize: 14 },
     errorText: { fontSize: 12, marginTop: 6, marginLeft: 6, fontWeight: "600" },
-    apiErrorContainer: { flexDirection: "row", alignItems: "center", paddingVertical: 8, paddingHorizontal: 12, borderRadius: 12, borderWidth: 1, marginTop: 6, gap: 8 },
+    apiErrorContainer: {
+        position: "absolute",
+        left: 12,
+        right: 12,
+        borderRadius: 12,
+        borderWidth: 1,
+        flexDirection: "row",
+        alignItems: "center",
+        paddingVertical: 8,
+        paddingHorizontal: 12,
+        marginBottom: 8,
+        gap: 8,
+        zIndex: 20,
+    },
     apiErrorText: { flex: 1, fontSize: 14, fontWeight: "600" },
-    submitBtn: { borderRadius: CORNERS, paddingVertical: 14, alignItems: "center" },
+    footer: {
+        position: "absolute",
+        left: 0,
+        right: 0,
+        bottom: 0,
+        paddingHorizontal: 12,
+        paddingTop: 8,
+        borderTopWidth: 1,
+    },
+    submitBtn: {
+        borderRadius: CORNERS,
+        paddingVertical: 14,
+        alignItems: "center",
+        justifyContent: "center",
+        flexDirection: "row",
+        gap: 8,
+    },
     submitText: { fontWeight: "800", fontSize: 16 },
 });

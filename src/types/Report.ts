@@ -4,36 +4,16 @@ export enum ReportType {
     OTHER = 'OTHER',
 }
 
-export interface DisplayBug {
-    screen: string;
-    deviceModel?: string;
-    os?: string;
-    stepsToReproduce?: string;
-    expected?: string;
-    actual?: string;
-    uiTheme?: string;
-    viewport?: string;
-}
-
-export interface DataError {
-    reference: string;
-    field?: string;
-    currentValue?: string;
-    expectedValue?: string;
-    sourceLink?: string;
-    context?: string;
-}
-
 export interface Report {
     type: ReportType;
     title: string;
     description?: string;
     appVersion?: string;
-    locale?: string;
     userId?: string;
-    environment?: string;
-    displayBug?: DisplayBug;
-    dataError?: DataError;
+    userName?: string;
+    screen: string;
+    deviceModel?: string;
+    os?: string;
 }
 
 export interface GitHubIssueResponse {

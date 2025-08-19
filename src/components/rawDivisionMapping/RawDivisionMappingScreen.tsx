@@ -16,8 +16,8 @@ import { useRawDivisionMappings } from "@/src/hooks/config/rawDivisionMapping/us
 import { RawDivisionMapping } from "@/src/types/RawDivisionMapping";
 import { Filter } from "@/src/types/Filter";
 import Filters from "../common/Filters";
-import RawDivisionMappingItem from "./RawDivisionMappingItem";
-import RawDivisionMappingForm from "./RawDivisionMappingForm";
+import RawDivisionMappingItem from "./components/RawDivisionMappingItem";
+import RawDivisionMappingForm from "./components/RawDivisionMappingForm";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import BottomSheetCustomModal from "../common/BottomSheetCustomModal";
 import SearchBar from "../common/SearchBar";

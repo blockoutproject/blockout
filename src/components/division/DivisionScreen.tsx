@@ -87,7 +87,7 @@ const DivisionScreen: React.FC = () => {
                     />
                     <TouchableOpacity
                         onPress={() => openForm(null)}
-                        style={[styles.addButton, { backgroundColor: theme.success }]}
+                        style={[styles.addButton, { backgroundColor: theme.primary }]}
                         activeOpacity={0.8}
                     >
                         <Text style={styles.addButtonText}>Ajouter</Text>

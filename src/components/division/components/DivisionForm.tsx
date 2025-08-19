@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
     View,
     Text,
@@ -6,16 +6,17 @@ import {
     TouchableOpacity,
     ActivityIndicator,
     Alert,
+    Animated,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { BottomSheetTextInput, BottomSheetView } from "@gorhom/bottom-sheet";
+import { BottomSheetScrollView, BottomSheetTextInput } from "@gorhom/bottom-sheet";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import * as Haptics from "expo-haptics";
 import * as ImagePicker from "expo-image-picker";
 import * as ImageManipulator from "expo-image-manipulator";
 import { Image } from "expo-image";
-import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import { Division } from "@/src/types/Division";
@@ -39,12 +40,36 @@ const DivisionForm: React.FC<DivisionFormProps> = ({ division, onSuccess }) => {
     const [loading, setLoading] = useState(false);
     const [apiError, setApiError] = useState<string | null>(null);
 
+    const errorOpacity = useRef(new Animated.Value(0)).current;
+    const errorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    useEffect(() => {
+        if (apiError) {
+            if (errorTimerRef.current) {
+                clearTimeout(errorTimerRef.current);
+                errorTimerRef.current = null;
+            }
+            errorOpacity.setValue(0);
+            Animated.timing(errorOpacity, { toValue: 1, duration: 180, useNativeDriver: true }).start();
+            errorTimerRef.current = setTimeout(() => {
+                Animated.timing(errorOpacity, { toValue: 0, duration: 220, useNativeDriver: true }).start(({ finished }) => {
+                    if (finished) setApiError(null);
+                });
+            }, 5000);
+        }
+        return () => {
+            if (errorTimerRef.current) {
+                clearTimeout(errorTimerRef.current);
+                errorTimerRef.current = null;
+            }
+        };
+    }, [apiError, errorOpacity]);
+
     const handlePickImage = async () => {
         try {
             await Haptics.selectionAsync();
-
             const pickerResult = await ImagePicker.launchImageLibraryAsync({
-                mediaTypes: ['images'],
+                mediaTypes: ["images"],
                 allowsEditing: true,
                 aspect: [1, 1],
                 quality: 1,
@@ -64,16 +89,11 @@ const DivisionForm: React.FC<DivisionFormProps> = ({ division, onSuccess }) => {
                 compress: 1,
             });
 
-            const fileObj = {
-                uri: saved.uri,
-                name: 'division.jpg',
-                type: 'image/jpeg',
-            };
-
+            const fileObj = { uri: saved.uri, name: "division.jpg", type: "image/jpeg" };
             setPreviewUri(saved.uri);
             setImageFile(fileObj);
         } catch (e) {
-            console.error('Erreur image:', e);
+            console.error("Erreur image:", e);
             Alert.alert("Erreur", "Impossible de traiter l'image.");
         }
     };
@@ -123,17 +143,16 @@ const DivisionForm: React.FC<DivisionFormProps> = ({ division, onSuccess }) => {
         touched && error ? theme.error : theme.border;
 
     return (
-        <BottomSheetView
-            style={[
-                styles.container,
-                { backgroundColor: theme.backgroundSecondary, paddingBottom: insets.bottom },
-            ]}
-        >
-            <View style={styles.fieldContainer}>
-                {/* Carte: Logo */}
+        <View style={{ flex: 1 }}>
+            <BottomSheetScrollView
+                contentContainerStyle={[
+                    styles.scroll,
+                    { paddingBottom: insets.bottom + 88 },
+                ]}
+                showsVerticalScrollIndicator={false}
+            >
                 <View style={[styles.card, { backgroundColor: theme.surface }]}>
                     <Text style={[styles.sectionTitle, { color: theme.text }]}>Logo</Text>
-
                     <TouchableOpacity
                         onPress={handlePickImage}
                         activeOpacity={0.85}
@@ -144,7 +163,7 @@ const DivisionForm: React.FC<DivisionFormProps> = ({ division, onSuccess }) => {
                                 <Image source={{ uri: logoUri }} style={styles.logo} contentFit="contain" />
                             ) : (
                                 <View style={styles.logoPlaceholder}>
-                                    <MaterialIcons name="photo-camera" size={28} color={theme.textInactive} />
+                                    <MaterialCommunityIcons name="camera-plus-outline" size={28} color={theme.textInactive} />
                                     <Text style={[styles.logoHint, { color: theme.textInactive }]}>Ajouter un logo</Text>
                                 </View>
                             )}
@@ -155,15 +174,13 @@ const DivisionForm: React.FC<DivisionFormProps> = ({ division, onSuccess }) => {
                         onPress={handlePickImage}
                         style={[styles.logoBtn, { backgroundColor: theme.backgroundSecondary }]}
                     >
-                        <MaterialIcons name="edit" size={16} color={theme.text} />
+                        <MaterialCommunityIcons name="pencil-outline" size={16} color={theme.text} />
                         <Text style={[styles.logoBtnText, { color: theme.text }]}>Changer le logo</Text>
                     </TouchableOpacity>
                 </View>
 
-                {/* Carte: Nom */}
                 <View style={[styles.card, { backgroundColor: theme.surface }]}>
                     <Text style={[styles.sectionTitle, { color: theme.text }]}>Nom</Text>
-
                     <BottomSheetTextInput
                         style={[
                             styles.input,
@@ -177,15 +194,12 @@ const DivisionForm: React.FC<DivisionFormProps> = ({ division, onSuccess }) => {
                         onBlur={formik.handleBlur("name")}
                         placeholder="Nom de la division"
                         placeholderTextColor={theme.textInactive}
-                        returnKeyType="done"
                     />
-
                     {formik.touched.name && formik.errors.name ? (
                         <Text style={[styles.errorText, { color: theme.error }]}>{formik.errors.name}</Text>
                     ) : null}
                 </View>
 
-                {/* Carte: Couleur principale */}
                 <View style={[styles.card, { backgroundColor: theme.surface }]}>
                     <Text style={[styles.sectionTitle, { color: theme.text }]}>Couleur principale</Text>
                     <View style={styles.colorRow}>
@@ -194,12 +208,8 @@ const DivisionForm: React.FC<DivisionFormProps> = ({ division, onSuccess }) => {
                             onChange={(color) => formik.setFieldValue("mainColor", color)}
                         />
                     </View>
-                    {formik.touched.mainColor && formik.errors.mainColor ? (
-                        <Text style={[styles.errorText, { color: theme.error }]}>{formik.errors.mainColor}</Text>
-                    ) : null}
                 </View>
 
-                {/* Carte: Dégradé */}
                 <View style={[styles.card, { backgroundColor: theme.surface }]}>
                     <Text style={[styles.sectionTitle, { color: theme.text }]}>Dégradé</Text>
                     <View style={styles.colorRow}>
@@ -216,57 +226,74 @@ const DivisionForm: React.FC<DivisionFormProps> = ({ division, onSuccess }) => {
                             onChange={(color) => formik.setFieldValue("thirdGradientColor", color)}
                         />
                     </View>
-                    {formik.touched.firstGradientColor && formik.errors.firstGradientColor ? (
-                        <Text style={[styles.errorText, { color: theme.error }]}>{formik.errors.firstGradientColor}</Text>
-                    ) : null}
-                    {formik.touched.secondGradientColor && formik.errors.secondGradientColor ? (
-                        <Text style={[styles.errorText, { color: theme.error }]}>{formik.errors.secondGradientColor}</Text>
-                    ) : null}
-                    {formik.touched.thirdGradientColor && formik.errors.thirdGradientColor ? (
-                        <Text style={[styles.errorText, { color: theme.error }]}>{formik.errors.thirdGradientColor}</Text>
-                    ) : null}
                 </View>
-            </View>
+            </BottomSheetScrollView>
 
-            {/* Erreur API */}
+            {/* Erreur Absolute + Fade */}
             {apiError ? (
-                <View
+                <Animated.View
                     style={[
                         styles.apiErrorContainer,
-                        { backgroundColor: theme.error + "22", borderColor: theme.error },
+                        {
+                            backgroundColor: theme.error + "22",
+                            borderColor: theme.error,
+                            bottom: insets.bottom + 64,
+                            opacity: errorOpacity,
+                            transform: [
+                                {
+                                    translateY: errorOpacity.interpolate({
+                                        inputRange: [0, 1],
+                                        outputRange: [8, 0],
+                                    }),
+                                },
+                            ],
+                        },
                     ]}
+                    pointerEvents="box-none"
                 >
-                    <MaterialIcons name="error-outline" size={18} color={theme.error} />
+                    <MaterialCommunityIcons name="alert-circle-outline" size={18} color={theme.error} />
                     <Text style={[styles.apiErrorText, { color: theme.error }]}>{apiError}</Text>
-                </View>
+                </Animated.View>
             ) : null}
 
-            {/* Bouton */}
-            <TouchableOpacity
+            <View
                 style={[
-                    styles.submitBtn,
-                    { backgroundColor: formik.values.mainColor || theme.primary, opacity: loading ? 0.7 : 1 },
+                    styles.footer,
+                    {
+                        paddingBottom: insets.bottom + 8,
+                        backgroundColor: theme.backgroundSecondary,
+                        borderTopColor: theme.border,
+                    },
                 ]}
-                disabled={loading}
-                onPress={() => formik.handleSubmit()}
             >
-                {loading ? (
-                    <ActivityIndicator color={theme.text} />
-                ) : (
-                    <Text style={[styles.submitText, { color: theme.text }]}>
-                        {isEditMode ? (!division?.active ? "Réactiver" : "Modifier") : "Créer"}
-                    </Text>
-                )}
-            </TouchableOpacity>
-        </BottomSheetView>
+                <TouchableOpacity
+                    style={[
+                        styles.submitBtn,
+                        { backgroundColor: formik.values.mainColor || theme.primary, opacity: loading ? 0.7 : 1 },
+                    ]}
+                    disabled={loading}
+                    onPress={() => formik.handleSubmit()}
+                >
+                    {loading ? (
+                        <ActivityIndicator color={theme.text} />
+                    ) : (
+                        <>
+                            <MaterialCommunityIcons name="content-save-outline" size={18} color={theme.text} />
+                            <Text style={[styles.submitText, { color: theme.text }]}>
+                                {isEditMode ? (!division?.active ? "Réactiver" : "Modifier") : "Créer"}
+                            </Text>
+                        </>
+                    )}
+                </TouchableOpacity>
+            </View>
+        </View>
     );
 };
 
 export default DivisionForm;
 
 const styles = StyleSheet.create({
-    container: { padding: 8 },
-    fieldContainer: { marginBottom: 32, gap: 12 },
+    scroll: { gap: 12, padding: 8 },
     card: {
         borderRadius: 18,
         padding: 14,
@@ -277,12 +304,7 @@ const styles = StyleSheet.create({
         shadowRadius: 10,
         shadowOffset: { width: 0, height: 6 },
     },
-    sectionTitle: {
-        fontSize: 13,
-        fontWeight: "800",
-        textTransform: "uppercase",
-        opacity: 0.85,
-    },
+    sectionTitle: { fontSize: 13, fontWeight: "800", textTransform: "uppercase", opacity: 0.85 },
     logoWrap: {
         borderWidth: 1.5,
         borderRadius: 22,
@@ -321,16 +343,36 @@ const styles = StyleSheet.create({
     errorText: { fontSize: 12, marginTop: 6, marginLeft: 6, fontWeight: "600" },
     colorRow: { flexDirection: "row", gap: 16, marginTop: 8, marginLeft: 8 },
     apiErrorContainer: {
+        position: "absolute",
+        left: 12,
+        right: 12,
+        borderRadius: 12,
+        borderWidth: 1,
         flexDirection: "row",
         alignItems: "center",
         paddingVertical: 8,
         paddingHorizontal: 12,
-        borderRadius: 12,
-        borderWidth: 1,
-        marginTop: 6,
+        marginBottom: 8,
         gap: 8,
+        zIndex: 20,
     },
     apiErrorText: { flex: 1, fontSize: 14, fontWeight: "600" },
-    submitBtn: { borderRadius: CORNERS, paddingVertical: 14, alignItems: "center" },
+    footer: {
+        position: "absolute",
+        left: 0,
+        right: 0,
+        bottom: 0,
+        paddingHorizontal: 12,
+        paddingTop: 8,
+        borderTopWidth: 1,
+    },
+    submitBtn: {
+        borderRadius: CORNERS,
+        paddingVertical: 14,
+        alignItems: "center",
+        justifyContent: "center",
+        flexDirection: "row",
+        gap: 8,
+    },
     submitText: { fontWeight: "800", fontSize: 16 },
 });

@@ -1,9 +1,8 @@
-import React, { useMemo, useRef, useState } from "react";
-import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { BottomSheetView } from "@gorhom/bottom-sheet";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View, Animated } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
-import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import ConfigApi from "@/src/api/ConfigApi";
@@ -15,6 +14,7 @@ import { CORNERS } from "@/src/theme/globals";
 
 import FormSelect from "@/src/components/common/FormSelect";
 import SelectSheet, { SelectOption, SelectSheetRef } from "@/src/components/common/SelectSheet";
+import { BottomSheetScrollView } from "@gorhom/bottom-sheet";
 
 export type RawDivisionMappingFormProps = {
     mapping: RawDivisionMapping;
@@ -32,7 +32,33 @@ const RawDivisionMappingForm: React.FC<RawDivisionMappingFormProps> = ({ mapping
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [apiError, setApiError] = useState<string | null>(null);
 
-    // --- Options
+    const errorOpacity = useRef(new Animated.Value(0)).current;
+    const errorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    useEffect(() => {
+        if (apiError) {
+            if (errorTimerRef.current) {
+                clearTimeout(errorTimerRef.current);
+                errorTimerRef.current = null;
+            }
+            errorOpacity.setValue(0);
+
+            Animated.timing(errorOpacity, { toValue: 1, duration: 180, useNativeDriver: true }).start();
+
+            errorTimerRef.current = setTimeout(() => {
+                Animated.timing(errorOpacity, { toValue: 0, duration: 220, useNativeDriver: true }).start(({ finished }) => {
+                    if (finished) setApiError(null);
+                });
+            }, 5000);
+        }
+        return () => {
+            if (errorTimerRef.current) {
+                clearTimeout(errorTimerRef.current);
+                errorTimerRef.current = null;
+            }
+        };
+    }, [apiError, errorOpacity]);
+
     const formatOptions: SelectOption[] = useMemo(
         () => Object.values(EnumFormat).map((val) => ({ value: val, label: FormatLabels[val] })),
         []
@@ -50,7 +76,6 @@ const RawDivisionMappingForm: React.FC<RawDivisionMappingFormProps> = ({ mapping
     const genderLabel = gender ? GenderLabels[gender] : null;
     const divisionLabel = divisionId ? divisionOptions.find((o) => o.value === divisionId)?.label ?? null : null;
 
-    // --- Sheets refs
     const formatRef = useRef<SelectSheetRef>(null);
     const genderRef = useRef<SelectSheetRef>(null);
     const divisionRef = useRef<SelectSheetRef>(null);
@@ -77,14 +102,11 @@ const RawDivisionMappingForm: React.FC<RawDivisionMappingFormProps> = ({ mapping
     };
 
     return (
-        <BottomSheetView
-            style={[
-                styles.container,
-                { backgroundColor: theme.backgroundSecondary, paddingBottom: insets.bottom },
-            ]}
-        >
-            <View style={styles.fieldContainer}>
-                {/* --- Carte: Source --- */}
+        <View style={{ flex: 1 }}>
+            <BottomSheetScrollView
+                contentContainerStyle={[styles.fieldContainer, { paddingBottom: insets.bottom + 88 }]}
+                showsVerticalScrollIndicator={false}
+            >
                 <View style={[styles.card, { backgroundColor: theme.surface }]}>
                     <Text style={[styles.sectionTitle, { color: theme.text }]}>Source</Text>
                     <View style={styles.sourceBlock}>
@@ -97,27 +119,16 @@ const RawDivisionMappingForm: React.FC<RawDivisionMappingFormProps> = ({ mapping
                     </View>
                 </View>
 
-                {/* --- Carte: Format --- */}
                 <View style={[styles.card, { backgroundColor: theme.surface }]}>
                     <Text style={[styles.sectionTitle, { color: theme.text }]}>Format</Text>
-                    <FormSelect
-                        label="Format"
-                        valueLabel={formatLabel}
-                        onPress={() => formatRef.current?.present()}
-                    />
+                    <FormSelect label="Format" valueLabel={formatLabel} onPress={() => formatRef.current?.present()} />
                 </View>
 
-                {/* --- Carte: Genre --- */}
                 <View style={[styles.card, { backgroundColor: theme.surface }]}>
                     <Text style={[styles.sectionTitle, { color: theme.text }]}>Genre</Text>
-                    <FormSelect
-                        label="Genre"
-                        valueLabel={genderLabel}
-                        onPress={() => genderRef.current?.present()}
-                    />
+                    <FormSelect label="Genre" valueLabel={genderLabel} onPress={() => genderRef.current?.present()} />
                 </View>
 
-                {/* --- Carte: Division --- */}
                 <View style={[styles.card, { backgroundColor: theme.surface }]}>
                     <Text style={[styles.sectionTitle, { color: theme.text }]}>Division</Text>
                     <FormSelect
@@ -128,39 +139,62 @@ const RawDivisionMappingForm: React.FC<RawDivisionMappingFormProps> = ({ mapping
                         disabled={loadingDivisions}
                     />
                 </View>
-            </View>
+            </BottomSheetScrollView>
 
-            {/* --- Erreur API --- */}
+            {/* Bannière d’erreur absolute + fade */}
             {apiError ? (
-                <View
+                <Animated.View
                     style={[
                         styles.apiErrorContainer,
-                        { backgroundColor: theme.error + "22", borderColor: theme.error },
+                        {
+                            backgroundColor: theme.error + "22",
+                            borderColor: theme.error,
+                            bottom: insets.bottom + 64,
+                            opacity: errorOpacity,
+                            transform: [
+                                {
+                                    translateY: errorOpacity.interpolate({
+                                        inputRange: [0, 1],
+                                        outputRange: [8, 0],
+                                    }),
+                                },
+                            ],
+                        },
                     ]}
+                    pointerEvents="box-none"
                 >
-                    <MaterialIcons name="error-outline" size={18} color={theme.error} />
+                    <MaterialCommunityIcons name="alert-circle-outline" size={18} color={theme.error} />
                     <Text style={[styles.apiErrorText, { color: theme.error }]}>{apiError}</Text>
-                </View>
+                </Animated.View>
             ) : null}
 
-            {/* --- Bouton --- */}
-            <TouchableOpacity
-                onPress={handleSubmit}
-                disabled={isSubmitting}
-                activeOpacity={0.85}
+            <View
                 style={[
-                    styles.submitBtn,
-                    { backgroundColor: theme.success, opacity: isSubmitting ? 0.7 : 1 },
+                    styles.footer,
+                    {
+                        paddingBottom: insets.bottom + 8,
+                        backgroundColor: theme.backgroundSecondary,
+                        borderTopColor: theme.border,
+                    },
                 ]}
             >
-                {isSubmitting ? (
-                    <ActivityIndicator color={theme.text} />
-                ) : (
-                    <Text style={[styles.submitText, { color: theme.text }]}>Enregistrer</Text>
-                )}
-            </TouchableOpacity>
+                <TouchableOpacity
+                    onPress={handleSubmit}
+                    disabled={isSubmitting}
+                    activeOpacity={0.85}
+                    style={[styles.submitBtn, { backgroundColor: theme.primary, opacity: isSubmitting ? 0.7 : 1 }]}
+                >
+                    {isSubmitting ? (
+                        <ActivityIndicator color={theme.text} />
+                    ) : (
+                        <>
+                            <MaterialCommunityIcons name="content-save-outline" size={18} color={theme.text} />
+                            <Text style={[styles.submitText, { color: theme.text }]}>Enregistrer</Text>
+                        </>
+                    )}
+                </TouchableOpacity>
+            </View>
 
-            {/* --- Sheets (allégées : pas de recherche) --- */}
             <SelectSheet
                 ref={formatRef}
                 title="Choisir un format"
@@ -182,15 +216,14 @@ const RawDivisionMappingForm: React.FC<RawDivisionMappingFormProps> = ({ mapping
                 selectedValue={divisionId || ""}
                 onSelect={(opt) => setDivisionId((opt.value as number) || "")}
             />
-        </BottomSheetView>
+        </View>
     );
 };
 
 export default RawDivisionMappingForm;
 
 const styles = StyleSheet.create({
-    container: { padding: 8 },
-    fieldContainer: { marginBottom: 32, gap: 12 },
+    fieldContainer: { padding: 8, gap: 12 },
     card: {
         borderRadius: 18,
         padding: 14,
@@ -211,16 +244,36 @@ const styles = StyleSheet.create({
     sourceName: { fontSize: 16, fontWeight: "700" },
     sourceMeta: { fontSize: 12, fontWeight: "600" },
     apiErrorContainer: {
+        position: "absolute",
+        left: 12,
+        right: 12,
+        borderRadius: 12,
+        borderWidth: 1,
         flexDirection: "row",
         alignItems: "center",
         paddingVertical: 8,
         paddingHorizontal: 12,
-        borderRadius: 12,
-        borderWidth: 1,
-        marginTop: 6,
+        marginBottom: 8,
         gap: 8,
+        zIndex: 20,
     },
     apiErrorText: { flex: 1, fontSize: 14, fontWeight: "600" },
-    submitBtn: { borderRadius: CORNERS, paddingVertical: 14, alignItems: "center" },
+    footer: {
+        position: "absolute",
+        left: 0,
+        right: 0,
+        bottom: 0,
+        paddingHorizontal: 12,
+        paddingTop: 8,
+        borderTopWidth: 1,
+    },
+    submitBtn: {
+        borderRadius: CORNERS,
+        paddingVertical: 14,
+        alignItems: "center",
+        justifyContent: "center",
+        flexDirection: "row",
+        gap: 8,
+    },
     submitText: { fontWeight: "800", fontSize: 16 },
 });
