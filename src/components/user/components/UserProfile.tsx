@@ -1,86 +1,144 @@
-// src/components/user/components/UserProfile.tsx
 import React from "react";
-import { View, Text, StyleSheet } from "react-native";
-import { Image } from "expo-image";
-import { LinearGradient } from "expo-linear-gradient";
+import { View, Text, StyleSheet, Pressable } from "react-native";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import type { CustomUser } from "@/src/types/User";
 import { withAlpha } from "@/src/utils/utils";
+import UserHero from "./UserHero";
+import * as Application from "expo-application";
+import { BottomSheetScrollView, BottomSheetView } from "@gorhom/bottom-sheet";
 
-type UserProfileProps = { user: CustomUser };
+type UserProfileProps = {
+    user: CustomUser;
+    onEdit?: () => void;
+    onOpenImprint: () => void;
+    onOpenTerms: () => void;
+    onOpenPrivacy: () => void;
+    onLogout: () => void;
+    onDeleteAccount: () => void;
+};
 
-const AVATAR_SIZE = 120;
-
-const UserProfile: React.FC<UserProfileProps> = ({ user }) => {
+const UserProfile: React.FC<UserProfileProps> = ({
+    user,
+    onEdit,
+    onOpenImprint,
+    onOpenTerms,
+    onOpenPrivacy,
+    onLogout,
+    onDeleteAccount,
+}) => {
     const theme = useAppTheme();
-    const avatar = user.pictureUrl ? { uri: user.pictureUrl } : require("@/assets/users/default_user_avatar.png");
+    const version = Application.nativeApplicationVersion ?? "1.0.0";
 
-    const edge = 0.95;
-    const mid = 0.0;
+    const LegalItemRow: React.FC<{
+        icon: React.ComponentProps<typeof MaterialCommunityIcons>["name"];
+        label: string;
+        onPress: () => void;
+    }> = ({ icon, label, onPress }) => (
+        <Pressable
+            onPress={onPress}
+            android_ripple={{ color: withAlpha(theme.text, 0.06) }}
+            style={({ pressed }) => [
+                styles.itemRow,
+                {
+                    backgroundColor: pressed ? withAlpha(theme.surface, 0.9) : theme.surface,
+                    borderColor: withAlpha(theme.text, 0.1),
+                },
+            ]}
+        >
+            <View style={styles.itemLeft}>
+                <MaterialCommunityIcons name={icon} size={18} color={withAlpha(theme.text, 0.8)} />
+                <Text style={[styles.itemText, { color: theme.text }]} numberOfLines={1}>
+                    {label}
+                </Text>
+            </View>
+            <MaterialCommunityIcons name="chevron-right" size={20} color={withAlpha(theme.text, 0.5)} />
+        </Pressable>
+    );
 
     return (
-        <View style={styles.wrapper}>
-            <Image source={avatar} style={StyleSheet.absoluteFill} contentFit="cover" blurRadius={60} />
+        <BottomSheetScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={[styles.container, { backgroundColor: theme.background }]}
+        >
+            <UserHero user={user} onEdit={onEdit} />
 
-            <LinearGradient
-                pointerEvents="none"
-                colors={[withAlpha(theme.backgroundSecondary, edge), withAlpha(theme.backgroundSecondary, mid), withAlpha(theme.backgroundSecondary, edge)]}
-                locations={[0, 0.5, 1]}
-                start={{ x: 0.5, y: 0 }}
-                end={{ x: 0.5, y: 1 }}
-                style={StyleSheet.absoluteFill}
-            />
-            <LinearGradient
-                pointerEvents="none"
-                colors={[withAlpha(theme.backgroundSecondary, edge), withAlpha(theme.backgroundSecondary, mid), withAlpha(theme.backgroundSecondary, edge)]}
-                locations={[0, 0.5, 1]}
-                start={{ x: 0, y: 0.5 }}
-                end={{ x: 1, y: 0.5 }}
-                style={StyleSheet.absoluteFill}
-            />
+            <View style={styles.section}>
+                <Text style={[styles.sectionTitle, { color: withAlpha(theme.text, 0.7) }]}>Légal</Text>
+                <View style={styles.cardList}>
+                    <LegalItemRow icon="file-document-outline" label="Mentions légales" onPress={onOpenImprint} />
+                    <LegalItemRow icon="script-text-outline" label="Conditions d'utilisation" onPress={onOpenTerms} />
+                    <LegalItemRow icon="shield-lock-outline" label="Politique de confidentialité" onPress={onOpenPrivacy} />
+                </View>
+            </View>
 
-            <View style={styles.content}>
-                <View style={styles.avatarShadow}>
-                    <View style={[styles.avatarMask, { backgroundColor: theme.text }]}>
-                        <Image source={avatar} style={styles.avatar} contentFit="cover" />
+            <View style={styles.section}>
+                <Text style={[styles.sectionTitle, { color: withAlpha(theme.text, 0.7) }]}>Compte</Text>
+
+                <View style={styles.actions}>
+                    <Pressable
+                        onPress={onLogout}
+                        android_ripple={{ color: withAlpha("#000", 0.05) }}
+                        style={({ pressed }) => [
+                            styles.btnFilledDanger,
+                            { backgroundColor: pressed ? withAlpha(theme.error, 0.9) : theme.error },
+                        ]}
+                    >
+                        <Text style={[styles.buttonText, { color: theme.text }]}>Se déconnecter</Text>
+                    </Pressable>
+
+                    <Pressable
+                        onPress={onDeleteAccount}
+                        android_ripple={{ color: withAlpha(theme.error, 0.08) }}
+                        style={({ pressed }) => [
+                            styles.btnOutlineDanger,
+                            {
+                                borderColor: theme.error,
+                                backgroundColor: pressed ? withAlpha(theme.error, 0.08) : "transparent",
+                            },
+                        ]}
+                    >
+                        <Text style={[styles.buttonText, { color: theme.error }]}>Supprimer mon compte</Text>
+                    </Pressable>
+
+                    <View style={styles.version}>
+                        <Text style={[styles.versionText, { color: theme.textInactive }]}>Version {version}</Text>
                     </View>
                 </View>
-
-                <Text style={[styles.title, { color: theme.text }]} numberOfLines={2} ellipsizeMode="tail">
-                    {user.pseudo || "Utilisateur"}
-                </Text>
-
-                {user.email ? (
-                    <View style={styles.metaRow}>
-                        <MaterialCommunityIcons name="email-outline" size={18} color={theme.textInactive} />
-                        <Text style={[styles.metaText, { color: theme.textInactive }]} numberOfLines={1} ellipsizeMode="tail">
-                            {user.email}
-                        </Text>
-                    </View>
-                ) : null}
             </View>
-        </View>
+        </BottomSheetScrollView>
     );
 };
 
 export default UserProfile;
 
 const styles = StyleSheet.create({
-    wrapper: { overflow: "hidden", borderRadius: 18 },
-    content: { alignItems: "center", gap: 8, paddingHorizontal: 12, paddingVertical: 24 },
-    avatarShadow: {
-        borderRadius: AVATAR_SIZE / 2 + 6,
-        shadowColor: "#000",
-        shadowOpacity: 0.6,
-        shadowRadius: 12,
-        shadowOffset: { width: 0, height: 8 },
-        elevation: 8,
+    container: {
+        paddingHorizontal: 4,
+        gap: 20
     },
-    avatarMask: { width: AVATAR_SIZE, aspectRatio: 1, borderRadius: AVATAR_SIZE / 2, overflow: "hidden", alignItems: "center", justifyContent: "center" },
-    avatar: { width: "100%", height: "100%" },
-    title: { textAlign: "center", fontSize: 20, fontWeight: "800", letterSpacing: 0.2, paddingHorizontal: 24 },
-    metaRow: { marginTop: 2, flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 8 },
-    metaText: { fontSize: 14, fontWeight: "600" },
+    section: { gap: 12 },
+    sectionTitle: { fontSize: 12, fontWeight: "800", letterSpacing: 0.3, textTransform: "uppercase" },
+    cardList: { gap: 10 },
+
+    itemRow: {
+        paddingHorizontal: 14,
+        paddingVertical: 14,
+        borderRadius: 14,
+        borderWidth: StyleSheet.hairlineWidth,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+    },
+    itemLeft: { flexDirection: "row", alignItems: "center", gap: 10, flex: 1, minWidth: 0 },
+    itemText: { fontSize: 14, fontWeight: "700", flex: 1 },
+
+    actions: { gap: 12, marginTop: 4 },
+    btnFilledDanger: { paddingVertical: 14, borderRadius: 999, alignItems: "center" },
+    btnOutlineDanger: { paddingVertical: 14, borderRadius: 999, alignItems: "center", borderWidth: 1 },
+    buttonText: { fontSize: 14, fontWeight: "800" },
+
+    version: { alignItems: "center", marginTop: 2 },
+    versionText: { fontSize: 12, fontWeight: "700", letterSpacing: 0.2 },
 });

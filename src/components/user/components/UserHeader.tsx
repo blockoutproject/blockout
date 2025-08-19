@@ -1,18 +1,17 @@
 import React from "react";
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
-import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-
+import { TouchableOpacity, View, StyleSheet, Text } from "react-native";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import { HEADER_HEIGHT } from "@/src/theme/globals";
 import { useBackOrClose } from "@/src/hooks/utils/useBackOrClose";
 
 type UserHeaderProps = {
     title: string;
-    onCloseSheet?: () => void;
-    onEdit?: () => void;
+    onCloseSheet: () => void;
+    onOpenReport: () => void;
 };
 
-const UserHeader: React.FC<UserHeaderProps> = ({ title, onCloseSheet, onEdit }) => {
+const UserHeader: React.FC<UserHeaderProps> = ({ title, onCloseSheet, onOpenReport }) => {
     const theme = useAppTheme();
     const { handleBack, canGoBack } = useBackOrClose(onCloseSheet);
 
@@ -21,7 +20,11 @@ const UserHeader: React.FC<UserHeaderProps> = ({ title, onCloseSheet, onEdit }) 
             <View style={styles.header}>
                 <View style={styles.leftGroup}>
                     <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-                        <MaterialCommunityIcons name={canGoBack ? "chevron-left" : "close"} size={30} color={theme.text} />
+                        <MaterialCommunityIcons
+                            name={canGoBack ? "chevron-left" : "close"}
+                            size={30}
+                            color={theme.text}
+                        />
                     </TouchableOpacity>
 
                     <Text style={[styles.title, { color: theme.text }]} numberOfLines={1}>
@@ -29,21 +32,17 @@ const UserHeader: React.FC<UserHeaderProps> = ({ title, onCloseSheet, onEdit }) 
                     </Text>
                 </View>
 
-                {onEdit ? (
-                    <TouchableOpacity
-                        onPress={onEdit}
-                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                        activeOpacity={0.7}
-                    >
-                        <MaterialCommunityIcons name="pencil" size={22} color={theme.text} />
+                <View style={styles.rightGroup}>
+                    <TouchableOpacity onPress={onOpenReport} style={styles.iconBtn}>
+                        <MaterialCommunityIcons name="flag-outline" size={22} color={theme.text} />
                     </TouchableOpacity>
-                ) : (
-                    <View style={{ width: 30 }} />
-                )}
+                </View>
             </View>
         </View>
     );
 };
+
+export default UserHeader;
 
 const styles = StyleSheet.create({
     container: { backgroundColor: "transparent" },
@@ -55,8 +54,8 @@ const styles = StyleSheet.create({
         paddingHorizontal: 12,
     },
     leftGroup: { flexDirection: "row", alignItems: "center", flex: 1 },
+    rightGroup: { flexDirection: "row", alignItems: "center", gap: 12 },
     backButton: { marginRight: 8 },
     title: { fontSize: 18, fontWeight: "700" },
+    iconBtn: { padding: 4 },
 });
-
-export default UserHeader;

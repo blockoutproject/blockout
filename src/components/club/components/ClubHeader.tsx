@@ -9,10 +9,10 @@ import { useBackOrClose } from "@/src/hooks/utils/useBackOrClose";
 type ClubHeaderProps = {
     title: string;
     onCloseSheet: () => void;
-    onEdit?: () => void;
+    onOpenReport: () => void;
 };
 
-const ClubHeader: React.FC<ClubHeaderProps> = ({ title, onCloseSheet, onEdit }) => {
+const ClubHeader: React.FC<ClubHeaderProps> = ({ title, onCloseSheet, onOpenReport }) => {
     const theme = useAppTheme();
     const { handleBack, canGoBack } = useBackOrClose(onCloseSheet);
 
@@ -33,17 +33,16 @@ const ClubHeader: React.FC<ClubHeaderProps> = ({ title, onCloseSheet, onEdit }) 
                     </Text>
                 </View>
 
-                {onEdit ? (
+                <View style={styles.rightGroup}>
                     <TouchableOpacity
-                        onPress={onEdit}
+                        onPress={onOpenReport}
                         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                        style={styles.iconBtn}
                         activeOpacity={0.7}
                     >
-                        <MaterialCommunityIcons name="pencil" size={22} color={theme.text} />
+                        <MaterialCommunityIcons name="flag-outline" size={22} color={theme.text} />
                     </TouchableOpacity>
-                ) : (
-                    <View style={{ width: 30 }} />
-                )}
+                </View>
             </View>
         </View>
     );
@@ -63,4 +62,6 @@ const styles = StyleSheet.create({
     leftGroup: { flexDirection: "row", alignItems: "center", flex: 1 },
     backButton: { marginRight: 8 },
     title: { fontSize: 18, fontWeight: "700" },
+    rightGroup: { flexDirection: "row", alignItems: "center", gap: 12 },
+    iconBtn: { padding: 4 },
 });

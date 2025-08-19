@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { FlatList, Pressable, StyleSheet, Text, View, ViewStyle } from "react-native";
 import * as Haptics from "expo-haptics";
 import { Filter } from "@/src/types/Filter";
@@ -9,6 +9,9 @@ type FiltersProps = {
     setFilters: (updated: Filter[]) => void;
     singleSelect?: boolean;
     requireSelection?: boolean;
+    containerStyle?: ViewStyle;
+    size?: "sm" | "md";
+    scrollable?: boolean;
 };
 
 const Filters: React.FC<FiltersProps> = ({
@@ -16,20 +19,27 @@ const Filters: React.FC<FiltersProps> = ({
     setFilters,
     singleSelect = false,
     requireSelection = false,
+    containerStyle,
+    size = "md",
+    scrollable = true,
 }) => {
     const theme = useAppTheme();
+
+    const dims = useMemo(() => {
+        if (size === "sm") {
+            return { padV: 7, padH: 12, fontSize: 13, gap: 8 };
+        }
+        return { padV: 9, padH: 14, fontSize: 14, gap: 10 };
+    }, [size]);
 
     const toggleFilter = async (index: number) => {
         const updated = [...filters];
 
         if (singleSelect) {
             const alreadyActive = updated[index].isActive;
+            const isLastActive = updated.filter((f) => f.isActive).length === 1 && alreadyActive;
 
-            const isLastActive = updated.filter(f => f.isActive).length === 1 && alreadyActive;
-
-            if (requireSelection && isLastActive) {
-                return;
-            }
+            if (requireSelection && isLastActive) return;
 
             updated.forEach((f) => (f.isActive = false));
             if (!alreadyActive) {
@@ -43,51 +53,63 @@ const Filters: React.FC<FiltersProps> = ({
         await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     };
 
-    return (
-        <FlatList
-            data={filters}
-            keyExtractor={(item) => item.name}
-            renderItem={({ item, index }) => (
-                <Pressable
-                    style={[
-                        styles.filterItem,
-                        {
-                            backgroundColor: item.isActive ? theme.text : theme.background,
-                            borderColor: theme.text,
-                        },
-                    ]}
-                    onPress={() => toggleFilter(index)}
+    const renderItem = ({ item, index }: { item: Filter; index: number }) => {
+        const active = item.isActive;
+
+        return (
+            <Pressable
+                onPress={() => toggleFilter(index)}
+                style={({ pressed }) => [
+                    styles.chip,
+                    {
+                        paddingVertical: dims.padV,
+                        paddingHorizontal: dims.padH,
+                        backgroundColor: active ? theme.primary : theme.backgroundSecondary,
+                        borderColor: active ? theme.primary : theme.border,
+                        opacity: pressed ? 0.9 : 1, // simple feedback
+                    },
+                ]}
+            >
+                <Text
+                    style={{
+                        fontSize: dims.fontSize,
+                        fontWeight: "600",
+                        color: active ? theme.text : theme.text,
+                        letterSpacing: 0.2,
+                    }}
                 >
-                    <Text
-                        style={{
-                            fontSize: 14,
-                            color: item.isActive ? theme.background : theme.text,
-                            fontWeight: item.isActive ? "600" : "400",
-                        }}
-                    >
-                        {item.name}
-                    </Text>
-                </Pressable>
-            )}
-            horizontal
-            keyboardShouldPersistTaps="always"
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.filterRow}
-        />
+                    {item.name}
+                </Text>
+            </Pressable>
+        );
+    };
+
+    return (
+        <View style={[{ paddingHorizontal: 8 }, containerStyle]}>
+            <FlatList
+                data={filters}
+                keyExtractor={(item) => item.name}
+                renderItem={renderItem}
+                horizontal
+                scrollEnabled={scrollable}
+                keyboardShouldPersistTaps="always"
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={[styles.row, { columnGap: dims.gap }]}
+            />
+        </View>
     );
 };
 
 const styles = StyleSheet.create({
-    filterItem: {
-        borderRadius: 100,
-        borderWidth: 1,
-        paddingVertical: 6,
-        paddingHorizontal: 14,
-    },
-    filterRow: {
-        gap: 8,
+    row: {
         flexDirection: "row",
-        paddingHorizontal: 8,
+        alignItems: "center",
+    },
+    chip: {
+        borderRadius: 999,
+        borderWidth: 1.5,
+        alignItems: "center",
+        justifyContent: "center",
     },
 });
 

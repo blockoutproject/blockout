@@ -5,23 +5,23 @@ import { LinearGradient } from "expo-linear-gradient";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 
 import { useAppTheme } from "@/src/context/ThemeProvider";
-import type { Club } from "@/src/types/Club";
+import type { CustomUser } from "@/src/types/User";
 import { withAlpha } from "@/src/utils/utils";
 import MaskedImage from "@/src/components/common/MaskedImage";
 
-type ClubHeroProps = { club: Club; onEdit?: () => void };
+type UserHeroProps = { user: CustomUser; onEdit?: () => void };
 
-const AVATAR_SIZE = 120; // homogénéisé avec UserHero
+const AVATAR_SIZE = 120; // même taille que ClubHero
 const EDGE = 0.95;
 const MID = 0.0;
 
-const ClubHero: React.FC<ClubHeroProps> = ({ club, onEdit }) => {
+const UserHero: React.FC<UserHeroProps> = ({ user, onEdit }) => {
     const theme = useAppTheme();
-    const logo = club.logoUrl ? { uri: club.logoUrl } : require("@/assets/clubs/default_club_logo.png");
+    const avatar = user.pictureUrl ? { uri: user.pictureUrl } : require("@/assets/users/default_user_avatar.png");
 
     return (
         <View style={styles.wrapper}>
-            <Image source={logo} style={StyleSheet.absoluteFill} contentFit="cover" blurRadius={60} />
+            <Image source={avatar} style={StyleSheet.absoluteFill} contentFit="cover" blurRadius={60} />
 
             {/* Double gradient homogène */}
             <LinearGradient
@@ -52,8 +52,6 @@ const ClubHero: React.FC<ClubHeroProps> = ({ club, onEdit }) => {
             {/* Bouton stylo homogène */}
             {onEdit ? (
                 <TouchableOpacity
-                    onPress={onEdit}
-                    activeOpacity={0.85}
                     style={[
                         styles.fab,
                         {
@@ -61,6 +59,8 @@ const ClubHero: React.FC<ClubHeroProps> = ({ club, onEdit }) => {
                             borderColor: withAlpha(theme.text, 0.12),
                         },
                     ]}
+                    onPress={onEdit}
+                    activeOpacity={0.85}
                     hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
                 >
                     <MaterialCommunityIcons name="pencil-outline" size={18} color={theme.text} />
@@ -68,17 +68,27 @@ const ClubHero: React.FC<ClubHeroProps> = ({ club, onEdit }) => {
             ) : null}
 
             <View style={styles.content}>
-                <MaskedImage uri={club.logoUrl} size={AVATAR_SIZE} radius={24} shadow />
+                {/* Utilise le même composant d’image que ClubHero */}
+                <MaskedImage
+                    uri={user.pictureUrl || undefined}
+                    size={AVATAR_SIZE}
+                    radius={AVATAR_SIZE / 2}  // cercle
+                    shadow
+                />
 
-                <Text style={[styles.title, { color: theme.text }]} numberOfLines={2}>
-                    {club.name}
+                <Text style={[styles.title, { color: theme.text }]} numberOfLines={2} ellipsizeMode="tail">
+                    {user.pseudo || "Utilisateur"}
                 </Text>
 
-                {club.city ? (
+                {user.email ? (
                     <View style={styles.metaRow}>
-                        <MaterialCommunityIcons name="map-marker" size={18} color={theme.textInactive} />
-                        <Text style={[styles.metaText, { color: theme.textInactive }]} numberOfLines={1}>
-                            {club.city}
+                        <MaterialCommunityIcons name="email-outline" size={18} color={theme.textInactive} />
+                        <Text
+                            style={[styles.metaText, { color: theme.textInactive }]}
+                            numberOfLines={1}
+                            ellipsizeMode="tail"
+                        >
+                            {user.email}
                         </Text>
                     </View>
                 ) : null}
@@ -87,7 +97,7 @@ const ClubHero: React.FC<ClubHeroProps> = ({ club, onEdit }) => {
     );
 };
 
-export default ClubHero;
+export default UserHero;
 
 const styles = StyleSheet.create({
     wrapper: {
@@ -95,29 +105,10 @@ const styles = StyleSheet.create({
         borderRadius: 18,
         position: "relative",
     },
-    content: {
-        alignItems: "center",
-        gap: 8,
-        paddingHorizontal: 8,
-        paddingVertical: 24,
-    },
-    title: {
-        textAlign: "center",
-        fontSize: 20,
-        fontWeight: "800",
-        letterSpacing: 0.2,
-        paddingHorizontal: 24,
-    },
-    metaRow: {
-        marginTop: 2,
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 6,
-    },
-    metaText: {
-        fontSize: 14,
-        fontWeight: "600",
-    },
+    content: { alignItems: "center", gap: 8, paddingHorizontal: 12, paddingVertical: 24 },
+    title: { textAlign: "center", fontSize: 20, fontWeight: "800", letterSpacing: 0.2, paddingHorizontal: 24 },
+    metaRow: { marginTop: 2, flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 8 },
+    metaText: { fontSize: 14, fontWeight: "600" },
     fab: {
         position: "absolute",
         top: 10,

@@ -8,9 +8,12 @@ import type { Club } from "@/src/types/Club";
 import ClubHero from "./ClubHero";
 import { InfoCard, InfoRow } from "./ClubInfoCard";
 
-type ClubProfileProps = { club: Club };
+type ClubProfileProps = {
+    club: Club;
+    onEdit?: () => void;
+};
 
-const ClubProfile: React.FC<ClubProfileProps> = ({ club }) => {
+const ClubProfile: React.FC<ClubProfileProps> = ({ club, onEdit }) => {
     const theme = useAppTheme();
 
     const websiteDisplay = useMemo(() => {
@@ -41,11 +44,10 @@ const ClubProfile: React.FC<ClubProfileProps> = ({ club }) => {
 
     return (
         <BottomSheetScrollView
-            scrollEnabled={false}
             showsVerticalScrollIndicator={false}
-            contentContainerStyle={[styles.content, { backgroundColor: theme.background }]}
+            contentContainerStyle={[styles.container, { backgroundColor: theme.background }]}
         >
-            <ClubHero club={club} />
+            <ClubHero club={club} onEdit={onEdit} />
 
             <InfoCard title="Coordonnées">
                 <InfoRow icon="email-outline" label="Email" value={club.email} onPress={openMail} isLink />
@@ -64,7 +66,7 @@ const ClubProfile: React.FC<ClubProfileProps> = ({ club }) => {
 export default ClubProfile;
 
 const styles = StyleSheet.create({
-    content: {
+    container: {
         paddingHorizontal: 4,
         gap: 20,
     },

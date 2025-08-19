@@ -8,9 +8,10 @@ import { useBackOrClose } from "@/src/hooks/utils/useBackOrClose";
 type TeamHeaderProps = {
     title?: string;
     onCloseSheet: () => void;
+    onOpenReport: () => void;
 };
 
-const TeamHeader: React.FC<TeamHeaderProps> = ({ title, onCloseSheet }) => {
+const TeamHeader: React.FC<TeamHeaderProps> = ({ title, onCloseSheet, onOpenReport }) => {
     const theme = useAppTheme();
     const { handleBack, canGoBack } = useBackOrClose(onCloseSheet);
 
@@ -30,7 +31,10 @@ const TeamHeader: React.FC<TeamHeaderProps> = ({ title, onCloseSheet }) => {
                         {title}
                     </Text>
                 </View>
-                <View style={{ width: 30 }} />
+
+                <TouchableOpacity onPress={onOpenReport} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                    <MaterialCommunityIcons name="flag-outline" size={24} color={theme.text} />
+                </TouchableOpacity>
             </View>
         </View>
     );

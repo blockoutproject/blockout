@@ -1,11 +1,15 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { View, StyleSheet } from "react-native";
 import { useDebounce } from "use-debounce";
+import { BottomSheetModal } from "@gorhom/bottom-sheet";
 
 import SearchTeamScreen from "@/src/components/search/components/SearchTeamScreen";
 import SearchClubScreen from "@/src/components/search/components/SearchClubScreen";
 import SearchPoolScreen from "@/src/components/search/components/SearchPoolScreen";
 import SearchHeader from "@/src/components/search/components/SearchHeader";
+import BottomSheetCustomModal from "@/src/components/common/BottomSheetCustomModal";
+import ReportForm from "@/src/components/report/ReportForm";
+import { ReportType } from "@/src/types/Report";
 import { Filter } from "@/src/types/Filter";
 
 type Props = {
@@ -25,9 +29,17 @@ const SearchScreen: React.FC<Props> = ({ onCloseSheet }) => {
     const activeIndex = filters.findIndex((f) => f.isActive);
     const activeEntity = filters[activeIndex]?.name ?? "Équipes";
 
+    // Report modal
+    const reportSheetRef = useRef<BottomSheetModal>(null);
+
     return (
         <View style={styles.container}>
-            <SearchHeader onCloseSheet={onCloseSheet} filters={filters} setFilters={setFilters} />
+            <SearchHeader
+                onCloseSheet={onCloseSheet}
+                filters={filters}
+                setFilters={setFilters}
+                onOpenReport={() => reportSheetRef.current?.present()}
+            />
 
             {activeEntity === "Équipes" ? (
                 <SearchTeamScreen
@@ -54,6 +66,22 @@ const SearchScreen: React.FC<Props> = ({ onCloseSheet }) => {
                     setIsInputFocused={setIsInputFocused}
                 />
             )}
+
+            <BottomSheetCustomModal
+                ref={reportSheetRef}
+                snapPoint={"90%"}
+                onDismiss={() => reportSheetRef.current?.dismiss()}
+            >
+                <ReportForm
+                    context={{
+                        screen: "Search",
+                        defaultType: ReportType.DISPLAY_BUG,
+                    }}
+                    onSuccess={() => {
+                        reportSheetRef.current?.dismiss();
+                    }}
+                />
+            </BottomSheetCustomModal>
         </View>
     );
 };

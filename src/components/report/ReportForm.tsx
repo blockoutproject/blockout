@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
     View,
     Text,
@@ -26,6 +26,8 @@ import ReportsApi from "@/src/api/ReportsApi";
 import { CORNERS } from "@/src/theme/globals";
 import { ReportType, type Report, type GitHubIssueResponse } from "@/src/types/Report";
 import { useUserContext } from "@/src/context/UserProvider";
+import Filters from "@/src/components/common/Filters";
+import type { Filter } from "@/src/types/Filter";
 
 type ReportFormProps = {
     context?: {
@@ -35,6 +37,12 @@ type ReportFormProps = {
     };
     onSuccess: (created: GitHubIssueResponse) => void;
 };
+
+const CATEGORY_OPTIONS = [
+    { name: "Bug d'affichage", value: ReportType.DISPLAY_BUG },
+    { name: "Données", value: ReportType.DATA_ERROR },
+    { name: "Autre", value: ReportType.OTHER },
+] as const;
 
 const ReportForm: React.FC<ReportFormProps> = ({ context, onSuccess }) => {
     const theme = useAppTheme();
@@ -48,7 +56,7 @@ const ReportForm: React.FC<ReportFormProps> = ({ context, onSuccess }) => {
 
     const errorOpacity = useRef(new Animated.Value(0)).current;
     const errorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-    
+
     useEffect(() => {
         if (apiError) {
             if (errorTimerRef.current) {
@@ -115,9 +123,11 @@ const ReportForm: React.FC<ReportFormProps> = ({ context, onSuccess }) => {
         description?: string;
     };
 
+    const initialType = context?.defaultType ?? ReportType.DISPLAY_BUG;
+
     const formik = useFormik<FormValues>({
         initialValues: {
-            type: context?.defaultType ?? ReportType.DISPLAY_BUG,
+            type: initialType,
             title: "",
             description: "",
         },
@@ -156,6 +166,27 @@ const ReportForm: React.FC<ReportFormProps> = ({ context, onSuccess }) => {
         },
     });
 
+    // ---- Filters (single select) ----
+    const [filters, setFilters] = useState<Filter[]>(
+        CATEGORY_OPTIONS.map(opt => ({ name: opt.name, isActive: opt.value === initialType }))
+    );
+
+    // quand le filtre actif change, on pousse la valeur dans formik
+    useEffect(() => {
+        const active = filters.find(f => f.isActive)?.name;
+        if (!active) return;
+        const found = CATEGORY_OPTIONS.find(c => c.name === active);
+        if (found && found.value !== formik.values.type) {
+            formik.setFieldValue("type", found.value);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [filters]);
+
+    const typeLabel = useMemo(
+        () => CATEGORY_OPTIONS.find(c => c.value === formik.values.type)?.name ?? "Catégorie",
+        [formik.values.type]
+    );
+
     return (
         <View style={{ flex: 1 }}>
             <BottomSheetScrollView
@@ -164,52 +195,14 @@ const ReportForm: React.FC<ReportFormProps> = ({ context, onSuccess }) => {
             >
                 <View style={[styles.card, { backgroundColor: theme.surface }]}>
                     <Text style={[styles.sectionTitle, { color: theme.text }]}>Catégorie</Text>
-                    <View style={styles.row}>
-                        <TouchableOpacity
-                            onPress={() => formik.setFieldValue("type", ReportType.DISPLAY_BUG)}
-                            style={[
-                                styles.chip,
-                                {
-                                    backgroundColor:
-                                        formik.values.type === ReportType.DISPLAY_BUG ? theme.primary : theme.backgroundSecondary,
-                                    borderColor: formik.values.type === ReportType.DISPLAY_BUG ? theme.primary : theme.border,
-                                },
-                            ]}
-                        >
-                            <MaterialCommunityIcons name="bug-outline" size={16} color={theme.text} />
-                            <Text style={[styles.chipText, { color: theme.text }]}>Bug d'affichage</Text>
-                        </TouchableOpacity>
 
-                        <TouchableOpacity
-                            onPress={() => formik.setFieldValue("type", ReportType.DATA_ERROR)}
-                            style={[
-                                styles.chip,
-                                {
-                                    backgroundColor:
-                                        formik.values.type === ReportType.DATA_ERROR ? theme.primary : theme.backgroundSecondary,
-                                    borderColor: formik.values.type === ReportType.DATA_ERROR ? theme.primary : theme.border,
-                                },
-                            ]}
-                        >
-                            <MaterialCommunityIcons name="database-alert-outline" size={16} color={theme.text} />
-                            <Text style={[styles.chipText, { color: theme.text }]}>Données</Text>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                            onPress={() => formik.setFieldValue("type", ReportType.OTHER)}
-                            style={[
-                                styles.chip,
-                                {
-                                    backgroundColor:
-                                        formik.values.type === ReportType.OTHER ? theme.primary : theme.backgroundSecondary,
-                                    borderColor: formik.values.type === ReportType.OTHER ? theme.primary : theme.border,
-                                },
-                            ]}
-                        >
-                            <MaterialCommunityIcons name="flag-outline" size={16} color={theme.text} />
-                            <Text style={[styles.chipText, { color: theme.text }]}>Autre</Text>
-                        </TouchableOpacity>
-                    </View>
+                    <Filters
+                        filters={filters}
+                        setFilters={setFilters}
+                        singleSelect
+                        requireSelection
+                        containerStyle={{ paddingHorizontal: 0 }}
+                    />
                 </View>
 
                 <View style={[styles.card, { backgroundColor: theme.surface }]}>
@@ -278,13 +271,12 @@ const ReportForm: React.FC<ReportFormProps> = ({ context, onSuccess }) => {
                                 {
                                     translateY: errorOpacity.interpolate({
                                         inputRange: [0, 1],
-                                        outputRange: [8, 0], // léger slide
+                                        outputRange: [8, 0],
                                     }),
                                 },
                             ],
                         },
                     ]}
-                    // pour éviter de bloquer les touches dessous
                     pointerEvents="box-none"
                 >
                     <MaterialCommunityIcons name="alert-circle-outline" size={18} color={theme.error} />
@@ -336,17 +328,8 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 0, height: 6 },
     },
     sectionTitle: { fontSize: 13, fontWeight: "800", textTransform: "uppercase", opacity: 0.85 },
-    row: { flexDirection: "row", gap: 10, flexWrap: "wrap" },
-    chip: {
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 6,
-        paddingHorizontal: 12,
-        paddingVertical: 8,
-        borderRadius: CORNERS,
-        borderWidth: 1.5,
-    },
-    chipText: { fontSize: 12, fontWeight: "700" },
+    helper: { fontSize: 12, fontWeight: "600", opacity: 0.8, marginTop: -2, paddingHorizontal: 4 },
+
     input: {
         borderWidth: 1.5,
         borderRadius: 16,
@@ -355,6 +338,7 @@ const styles = StyleSheet.create({
         fontSize: 14,
     },
     errorText: { fontSize: 12, marginTop: -6, marginLeft: 6, fontWeight: "600" },
+
     thumbWrap: {
         width: 84,
         height: 84,
@@ -374,6 +358,7 @@ const styles = StyleSheet.create({
         gap: 6,
     },
     addBtnText: { fontSize: 12, fontWeight: "700" },
+
     apiErrorContainer: {
         position: "absolute",
         left: 12,
@@ -389,6 +374,7 @@ const styles = StyleSheet.create({
         zIndex: 20,
     },
     apiErrorText: { flex: 1, fontSize: 14, fontWeight: "600" },
+
     footer: {
         position: "absolute",
         left: 0,
