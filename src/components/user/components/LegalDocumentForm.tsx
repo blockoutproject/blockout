@@ -123,7 +123,7 @@ const Field: React.FC<{ label: string; children: React.ReactNode; error?: string
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        paddingHorizontal: 16,
+        paddingHorizontal: 8,
     },
     scrollContainer: {
         flex: 1,

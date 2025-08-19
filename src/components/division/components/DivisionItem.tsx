@@ -1,24 +1,25 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { useAppTheme } from '@/src/context/ThemeProvider';
-import { Division } from '@/src/types/Division';
-import ConfigApi from '@/src/api/ConfigApi';
-import { LinearGradient } from 'expo-linear-gradient';
-import * as Haptics from 'expo-haptics';
-import { Image } from 'expo-image';
+import React from "react";
+import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import { LinearGradient } from "expo-linear-gradient";
+import * as Haptics from "expo-haptics";
+import { Image } from "expo-image";
 
-interface DivisionItemProps {
+import { useAppTheme } from "@/src/context/ThemeProvider";
+import { Division } from "@/src/types/Division";
+import ConfigApi from "@/src/api/ConfigApi";
+
+type DivisionItemProps = {
     division: Division;
     onPress: () => void;
     onDeactivated: () => void;
-}
+};
 
 const DivisionItem: React.FC<DivisionItemProps> = ({ division, onPress, onDeactivated }) => {
     const theme = useAppTheme();
 
-    const handlePress = async () => {
-        await Haptics.selectionAsync();
+    const handlePress = () => {
+        Haptics.selectionAsync();
         onPress();
     };
 
@@ -28,7 +29,7 @@ const DivisionItem: React.FC<DivisionItemProps> = ({ division, onPress, onDeacti
             await ConfigApi.getInstance().deactivateDivision(division.id);
             onDeactivated();
         } catch (error) {
-            console.error('Erreur lors de la désactivation :', error);
+            console.error("Erreur lors de la désactivation :", error);
         }
     };
 
@@ -41,11 +42,7 @@ const DivisionItem: React.FC<DivisionItemProps> = ({ division, onPress, onDeacti
             <Text style={[styles.id, { color: theme.textInactive }]}>#{division.id}</Text>
 
             {division.logoUrl ? (
-                <Image
-                    source={{ uri: division.logoUrl }}
-                    style={styles.avatar}
-                    contentFit="contain"
-                />
+                <Image source={{ uri: division.logoUrl }} style={styles.avatar} contentFit="contain" />
             ) : (
                 <View style={[styles.avatar, { backgroundColor: theme.border }]} />
             )}
@@ -60,7 +57,7 @@ const DivisionItem: React.FC<DivisionItemProps> = ({ division, onPress, onDeacti
                         { color: division.active ? theme.success : theme.error },
                     ]}
                 >
-                    {division.active ? 'Active' : 'Inactive'}
+                    {division.active ? "Active" : "Inactive"}
                 </Text>
             </View>
 
@@ -93,10 +90,12 @@ const DivisionItem: React.FC<DivisionItemProps> = ({ division, onPress, onDeacti
     );
 };
 
+export default DivisionItem;
+
 const styles = StyleSheet.create({
     container: {
-        flexDirection: 'row',
-        alignItems: 'center',
+        flexDirection: "row",
+        alignItems: "center",
         borderRadius: 18,
         paddingHorizontal: 12,
         paddingVertical: 16,
@@ -105,27 +104,18 @@ const styles = StyleSheet.create({
     id: {
         fontSize: 12,
         width: 20,
-        textAlign: 'left',
+        textAlign: "left",
     },
     avatar: {
         width: 40,
         aspectRatio: 1,
         borderRadius: 12,
         marginHorizontal: 8,
-        backgroundColor: '#ccc',
+        backgroundColor: "#ccc",
     },
-    textContainer: {
-        flex: 1,
-        paddingHorizontal: 8,
-    },
-    name: {
-        fontSize: 14,
-        fontWeight: '600',
-    },
-    status: {
-        fontSize: 12,
-        marginTop: 4,
-    },
+    textContainer: { flex: 1, paddingHorizontal: 8 },
+    name: { fontSize: 14, fontWeight: "600" },
+    status: { fontSize: 12, marginTop: 4 },
     colorCircle: {
         width: 30,
         height: 30,
@@ -134,5 +124,3 @@ const styles = StyleSheet.create({
         borderWidth: 1,
     },
 });
-
-export default DivisionItem;

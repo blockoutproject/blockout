@@ -1,12 +1,11 @@
 import React from "react";
 import { View, Text, StyleSheet, Pressable } from "react-native";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import { withAlpha } from "@/src/utils/utils";
 
-/* ------------------------------- InfoRow ------------------------------- */
-
-type RowProps = {
+type ClubInfoRowProps = {
     icon: React.ComponentProps<typeof MaterialCommunityIcons>["name"];
     label: string;
     value: string | null;
@@ -14,7 +13,7 @@ type RowProps = {
     isLink?: boolean;
 };
 
-export const InfoRow: React.FC<RowProps> = ({ icon, label, value, onPress, isLink }) => {
+export const InfoRow: React.FC<ClubInfoRowProps> = ({ icon, label, value, onPress, isLink }) => {
     const theme = useAppTheme();
     if (!value) return null;
 
@@ -31,10 +30,7 @@ export const InfoRow: React.FC<RowProps> = ({ icon, label, value, onPress, isLin
             <View
                 style={[
                     styles.iconWrap,
-                    {
-                        backgroundColor: withAlpha(theme.text, 0.06),
-                        borderColor: withAlpha(theme.text, 0.2),
-                    },
+                    { backgroundColor: withAlpha(theme.text, 0.06), borderColor: withAlpha(theme.text, 0.2) },
                 ]}
             >
                 <MaterialCommunityIcons name={icon} size={18} color={theme.text} />
@@ -45,11 +41,7 @@ export const InfoRow: React.FC<RowProps> = ({ icon, label, value, onPress, isLin
                     {label}
                 </Text>
                 <Text
-                    style={[
-                        styles.value,
-                        { color: isLink ? theme.primary : theme.text },
-                        isLink ? styles.underline : null,
-                    ]}
+                    style={[styles.value, { color: isLink ? theme.primary : theme.text }, isLink ? styles.underline : null]}
                     numberOfLines={2}
                 >
                     {value}
@@ -68,24 +60,19 @@ export const InfoRow: React.FC<RowProps> = ({ icon, label, value, onPress, isLin
     );
 };
 
-/* ------------------------------- InfoCard ------------------------------ */
-
-type CardProps = {
+type ClubInfoCardProps = {
     title: string;
     children: React.ReactNode;
 };
 
-export const InfoCard: React.FC<CardProps> = ({ title, children }) => {
+export const InfoCard: React.FC<ClubInfoCardProps> = ({ title, children }) => {
     const theme = useAppTheme();
 
     return (
         <View
             style={[
                 styles.card,
-                {
-                    backgroundColor: theme.surface,
-                    borderColor: withAlpha(theme.text, 0.12),
-                },
+                { backgroundColor: theme.surface, borderColor: withAlpha(theme.text, 0.12) },
             ]}
         >
             <Text style={[styles.cardTitle, { color: theme.text }]}>{title}</Text>
@@ -112,9 +99,7 @@ const styles = StyleSheet.create({
         textTransform: "uppercase",
         letterSpacing: 0.3,
     },
-    cardBody: {
-        gap: 12,
-    },
+    cardBody: { gap: 12 },
     row: {
         flexDirection: "row",
         alignItems: "center",
@@ -131,23 +116,9 @@ const styles = StyleSheet.create({
         justifyContent: "center",
         borderWidth: StyleSheet.hairlineWidth,
     },
-    rowText: {
-        flex: 1,
-        minWidth: 0,
-    },
-    label: {
-        fontSize: 11,
-        fontWeight: "700",
-        letterSpacing: 0.2,
-    },
-    value: {
-        fontSize: 14,
-        fontWeight: "700",
-    },
-    underline: {
-        textDecorationLine: "underline",
-    },
-    chevron: {
-        marginLeft: 4,
-    },
+    rowText: { flex: 1, minWidth: 0 },
+    label: { fontSize: 11, fontWeight: "700", letterSpacing: 0.2 },
+    value: { fontSize: 14, fontWeight: "700" },
+    underline: { textDecorationLine: "underline" },
+    chevron: { marginLeft: 4 },
 });

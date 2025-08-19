@@ -18,24 +18,24 @@ import { Image } from "expo-image";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 
 import { useAppTheme } from "@/src/context/ThemeProvider";
-import type { Club } from "@/src/types/Club";
-import ClubsApi from "@/src/api/ClubsApi";
+import { Division } from "@/src/types/Division";
+import ConfigApi from "@/src/api/ConfigApi";
+import CircleColorPicker from "@/src/components/common/CircleColorPicker";
 import { CORNERS } from "@/src/theme/globals";
 
-type ClubFormProps = {
-    club: Club;
-    /** Paramètre optionnel pour rester compatible avec les anciens appels */
-    onSuccess: (updated?: Club) => void;
+type DivisionFormProps = {
+    division: Division | null;
+    onSuccess: () => void;
 };
 
-const ClubForm: React.FC<ClubFormProps> = ({ club, onSuccess }) => {
+const DivisionForm: React.FC<DivisionFormProps> = ({ division, onSuccess }) => {
     const theme = useAppTheme();
     const insets = useSafeAreaInsets();
-    const api = ClubsApi.getInstance();
+    const api = ConfigApi.getInstance();
+    const isEditMode = !!division;
 
     const [imageFile, setImageFile] = useState<{ uri: string; name: string; type: string } | null>(null);
     const [previewUri, setPreviewUri] = useState<string | null>(null);
-
     const [loading, setLoading] = useState(false);
     const [apiError, setApiError] = useState<string | null>(null);
 
@@ -44,7 +44,7 @@ const ClubForm: React.FC<ClubFormProps> = ({ club, onSuccess }) => {
             await Haptics.selectionAsync();
 
             const pickerResult = await ImagePicker.launchImageLibraryAsync({
-                mediaTypes: ["images"],
+                mediaTypes: ['images'],
                 allowsEditing: true,
                 aspect: [1, 1],
                 quality: 1,
@@ -53,44 +53,64 @@ const ClubForm: React.FC<ClubFormProps> = ({ club, onSuccess }) => {
             if (pickerResult.canceled) return;
 
             const selected = pickerResult.assets[0];
-            if (!selected?.uri) return;
+            if (!selected.uri) return;
 
             const manipContext = ImageManipulator.ImageManipulator.manipulate(selected.uri);
             manipContext.resize({ width: 512 });
 
             const rendered = await manipContext.renderAsync();
             const saved = await rendered.saveAsync({
-                format: ImageManipulator.SaveFormat.PNG,
+                format: ImageManipulator.SaveFormat.JPEG,
                 compress: 1,
             });
 
-            const fileObj = { uri: saved.uri, name: "club.png", type: "image/png" };
+            const fileObj = {
+                uri: saved.uri,
+                name: 'division.jpg',
+                type: 'image/jpeg',
+            };
 
             setPreviewUri(saved.uri);
             setImageFile(fileObj);
         } catch (e) {
-            console.error(e);
-            Alert.alert("Erreur", "Impossible de traiter l’image.");
+            console.error('Erreur image:', e);
+            Alert.alert("Erreur", "Impossible de traiter l'image.");
         }
     };
 
     const formik = useFormik({
-        initialValues: { name: club.name ?? "" },
-        validationSchema: Yup.object({ name: Yup.string().trim().required("Nom requis") }),
+        initialValues: {
+            name: division?.name ?? "",
+            mainColor: division?.mainColor ?? "",
+            firstGradientColor: division?.firstGradientColor ?? "",
+            secondGradientColor: division?.secondGradientColor ?? "",
+            thirdGradientColor: division?.thirdGradientColor ?? "",
+            logoUrl: division?.logoUrl ?? "",
+        },
+        validationSchema: Yup.object({
+            name: Yup.string().trim().required("Le nom est requis"),
+            mainColor: Yup.string().trim().required("Couleur principale requise"),
+            firstGradientColor: Yup.string().trim().required("Première couleur de dégradé requise"),
+            secondGradientColor: Yup.string().trim().required("Deuxième couleur de dégradé requise"),
+            thirdGradientColor: Yup.string().trim().required("Troisième couleur de dégradé requise"),
+        }),
         onSubmit: async (values) => {
             try {
                 await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
                 setLoading(true);
                 setApiError(null);
 
-                const dto = { name: values.name.trim() };
-                const updated = await api.updateClub(club.id, dto, imageFile ?? undefined);
+                if (isEditMode) {
+                    await api.updateDivision(division!.id, values, imageFile ?? undefined);
+                } else {
+                    await api.createOrUpdateDivision(values, imageFile ?? undefined);
+                }
 
                 await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-                onSuccess(updated);
-            } catch (err) {
-                console.error(err);
-                setApiError("Sauvegarde impossible, réessaie.");
+                onSuccess();
+            } catch (error) {
+                console.error("Erreur API:", error);
+                setApiError("La sauvegarde a échoué. Veuillez réessayer.");
                 await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
             } finally {
                 setLoading(false);
@@ -98,7 +118,9 @@ const ClubForm: React.FC<ClubFormProps> = ({ club, onSuccess }) => {
         },
     });
 
-    const logoUri = previewUri ?? club.logoUrl ?? null;
+    const logoUri = previewUri ?? formik.values.logoUrl ?? null;
+    const inputBorderColor = (touched?: unknown, error?: unknown) =>
+        touched && error ? theme.error : theme.border;
 
     return (
         <BottomSheetView
@@ -108,6 +130,7 @@ const ClubForm: React.FC<ClubFormProps> = ({ club, onSuccess }) => {
             ]}
         >
             <View style={styles.fieldContainer}>
+                {/* Carte: Logo */}
                 <View style={[styles.card, { backgroundColor: theme.surface }]}>
                     <Text style={[styles.sectionTitle, { color: theme.text }]}>Logo</Text>
 
@@ -137,6 +160,7 @@ const ClubForm: React.FC<ClubFormProps> = ({ club, onSuccess }) => {
                     </TouchableOpacity>
                 </View>
 
+                {/* Carte: Nom */}
                 <View style={[styles.card, { backgroundColor: theme.surface }]}>
                     <Text style={[styles.sectionTitle, { color: theme.text }]}>Nom</Text>
 
@@ -144,17 +168,15 @@ const ClubForm: React.FC<ClubFormProps> = ({ club, onSuccess }) => {
                         style={[
                             styles.input,
                             {
-                                borderColor:
-                                    formik.touched.name && formik.errors.name ? theme.error : theme.border,
+                                borderColor: inputBorderColor(formik.touched.name, formik.errors.name),
                                 color: theme.text,
                             },
                         ]}
                         value={formik.values.name}
                         onChangeText={formik.handleChange("name")}
                         onBlur={formik.handleBlur("name")}
-                        placeholder="Nom du club"
+                        placeholder="Nom de la division"
                         placeholderTextColor={theme.textInactive}
-                        autoCapitalize="words"
                         returnKeyType="done"
                     />
 
@@ -162,8 +184,51 @@ const ClubForm: React.FC<ClubFormProps> = ({ club, onSuccess }) => {
                         <Text style={[styles.errorText, { color: theme.error }]}>{formik.errors.name}</Text>
                     ) : null}
                 </View>
+
+                {/* Carte: Couleur principale */}
+                <View style={[styles.card, { backgroundColor: theme.surface }]}>
+                    <Text style={[styles.sectionTitle, { color: theme.text }]}>Couleur principale</Text>
+                    <View style={styles.colorRow}>
+                        <CircleColorPicker
+                            value={formik.values.mainColor}
+                            onChange={(color) => formik.setFieldValue("mainColor", color)}
+                        />
+                    </View>
+                    {formik.touched.mainColor && formik.errors.mainColor ? (
+                        <Text style={[styles.errorText, { color: theme.error }]}>{formik.errors.mainColor}</Text>
+                    ) : null}
+                </View>
+
+                {/* Carte: Dégradé */}
+                <View style={[styles.card, { backgroundColor: theme.surface }]}>
+                    <Text style={[styles.sectionTitle, { color: theme.text }]}>Dégradé</Text>
+                    <View style={styles.colorRow}>
+                        <CircleColorPicker
+                            value={formik.values.firstGradientColor}
+                            onChange={(color) => formik.setFieldValue("firstGradientColor", color)}
+                        />
+                        <CircleColorPicker
+                            value={formik.values.secondGradientColor}
+                            onChange={(color) => formik.setFieldValue("secondGradientColor", color)}
+                        />
+                        <CircleColorPicker
+                            value={formik.values.thirdGradientColor}
+                            onChange={(color) => formik.setFieldValue("thirdGradientColor", color)}
+                        />
+                    </View>
+                    {formik.touched.firstGradientColor && formik.errors.firstGradientColor ? (
+                        <Text style={[styles.errorText, { color: theme.error }]}>{formik.errors.firstGradientColor}</Text>
+                    ) : null}
+                    {formik.touched.secondGradientColor && formik.errors.secondGradientColor ? (
+                        <Text style={[styles.errorText, { color: theme.error }]}>{formik.errors.secondGradientColor}</Text>
+                    ) : null}
+                    {formik.touched.thirdGradientColor && formik.errors.thirdGradientColor ? (
+                        <Text style={[styles.errorText, { color: theme.error }]}>{formik.errors.thirdGradientColor}</Text>
+                    ) : null}
+                </View>
             </View>
 
+            {/* Erreur API */}
             {apiError ? (
                 <View
                     style={[
@@ -176,22 +241,28 @@ const ClubForm: React.FC<ClubFormProps> = ({ club, onSuccess }) => {
                 </View>
             ) : null}
 
+            {/* Bouton */}
             <TouchableOpacity
-                style={[styles.submitBtn, { backgroundColor: theme.primary, opacity: loading ? 0.7 : 1 }]}
+                style={[
+                    styles.submitBtn,
+                    { backgroundColor: formik.values.mainColor || theme.primary, opacity: loading ? 0.7 : 1 },
+                ]}
                 disabled={loading}
                 onPress={() => formik.handleSubmit()}
             >
                 {loading ? (
                     <ActivityIndicator color={theme.text} />
                 ) : (
-                    <Text style={[styles.submitText, { color: theme.text }]}>Enregistrer</Text>
+                    <Text style={[styles.submitText, { color: theme.text }]}>
+                        {isEditMode ? (!division?.active ? "Réactiver" : "Modifier") : "Créer"}
+                    </Text>
                 )}
             </TouchableOpacity>
         </BottomSheetView>
     );
 };
 
-export default ClubForm;
+export default DivisionForm;
 
 const styles = StyleSheet.create({
     container: { padding: 8 },
@@ -248,6 +319,7 @@ const styles = StyleSheet.create({
         fontSize: 14,
     },
     errorText: { fontSize: 12, marginTop: 6, marginLeft: 6, fontWeight: "600" },
+    colorRow: { flexDirection: "row", gap: 16, marginTop: 8, marginLeft: 8 },
     apiErrorContainer: {
         flexDirection: "row",
         alignItems: "center",

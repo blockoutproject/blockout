@@ -7,7 +7,7 @@ export const darkTheme: AppTheme = {
     surfaceSecondary: "#2b2b2b",
     surfaceTertiary: "#393939",
     border: "#343434ff",
-    borderSecondary: "#5a5b63",
+    borderSecondary: "#585858ff",
     text: "#ffffff",
     textSecondary: "#e2e2e2",
     textTiertiary: "#000000",

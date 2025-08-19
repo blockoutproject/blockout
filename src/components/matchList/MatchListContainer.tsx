@@ -2,16 +2,15 @@ import React, { useState, useMemo, useCallback } from "react";
 import {
     RefreshControl,
     View,
-    Text,
     Animated,
     ActivityIndicator,
     StyleSheet,
     StyleProp,
     ViewStyle,
 } from "react-native";
+import * as Haptics from "expo-haptics";
 import { MatchStatus } from "@/src/types/Match";
 import { formatDateFrenchLocale } from "@/src/utils/utils";
-import * as Haptics from "expo-haptics";
 import EmptyPrompt from "../common/feedback/EmptyPrompt";
 import ErrorPrompt from "../common/feedback/ErrorPrompt";
 import PoolItem from "./components/PoolItem";
@@ -20,6 +19,7 @@ import { useThemeColor } from "@/src/hooks/useThemeColor";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { SheetStackParamList } from "@/src/components/common/BottomSheetNavigator";
+import SectionDateHeader from "./components/SectionDateHeader";
 
 type MatchListContainerProps = {
     poolIds?: number[];
@@ -33,6 +33,7 @@ type MatchListContainerProps = {
         screen: T,
         params: SheetStackParamList[T]
     ) => void;
+    showPoolHeader?: boolean;
 };
 
 const MatchListContainer: React.FC<MatchListContainerProps> = ({
@@ -44,10 +45,12 @@ const MatchListContainer: React.FC<MatchListContainerProps> = ({
     headerOffset,
     home = false,
     openSheet,
+    showPoolHeader = true,
 }) => {
     const background = useThemeColor({}, "background");
     const text = useThemeColor({}, "text");
-    const navigation = useNavigation<NativeStackNavigationProp<SheetStackParamList>>();
+    const navigation =
+        useNavigation<NativeStackNavigationProp<SheetStackParamList>>();
 
     const {
         dayMatches,
@@ -95,13 +98,10 @@ const MatchListContainer: React.FC<MatchListContainerProps> = ({
         [dayMatches]
     );
 
-    const renderSectionHeader = ({ section: { title } }: { section: { title: string } }) => (
-        <View style={styles.dateContainer}>
-            <View style={[styles.dateBackground, { backgroundColor: background }]}>
-                <Text style={[styles.dateHeader, { color: text }]}>{title}</Text>
-            </View>
-        </View>
-    );
+    const renderSectionHeader = useCallback(
+        ({ section: { title } }: { section: { title: string } }) => (
+            <SectionDateHeader title={title} />
+        ), []);
 
     if (isLoading) {
         return (
@@ -135,9 +135,11 @@ const MatchListContainer: React.FC<MatchListContainerProps> = ({
                         enrichedPoolMatches={item}
                         handlePoolPress={handlePoolPress}
                         handleMatchPress={handleMatchPress}
+                        showHeader={showPoolHeader}
                     />
                 )}
                 onEndReached={handleLoadMore}
+                onEndReachedThreshold={0.4}
                 ItemSeparatorComponent={() => <View style={styles.itemSeparator} />}
                 showsVerticalScrollIndicator={false}
                 refreshControl={
@@ -179,22 +181,10 @@ const MatchListContainer: React.FC<MatchListContainerProps> = ({
     );
 };
 
+export default MatchListContainer;
+
 const styles = StyleSheet.create({
     container: { flex: 1 },
     center: { flex: 1, justifyContent: "center", alignItems: "center" },
-    itemSeparator: { height: 12 },
-    dateContainer: {
-        marginTop: 12,
-        marginBottom: 6,
-        backgroundColor: "transparent",
-        alignItems: "center",
-    },
-    dateBackground: {
-        borderRadius: 14,
-        paddingHorizontal: 6,
-        paddingVertical: 4,
-    },
-    dateHeader: { fontSize: 16, fontWeight: "800" },
+    itemSeparator: { height: 6 },
 });
-
-export default MatchListContainer;

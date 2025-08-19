@@ -8,21 +8,22 @@ import {
     Keyboard,
     RefreshControl,
 } from "react-native";
+import { FlatList } from "react-native-gesture-handler";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import * as Haptics from "expo-haptics";
+
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import { useDivisions } from "@/src/hooks/config/division/useDivisions";
 import { Division } from "@/src/types/Division";
 import { Filter } from "@/src/types/Filter";
-import Filters from "../common/Filters";
-import DivisionItem from "./DivisionItem";
-import DivisionForm from "./DivisionForm";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
-import BottomSheetCustomModal from "../common/BottomSheetCustomModal";
 import SearchBar from "../common/SearchBar";
-import * as Haptics from "expo-haptics";
-import { FlatList } from "react-native-gesture-handler";
+import Filters from "../common/Filters";
+import BottomSheetCustomModal from "../common/BottomSheetCustomModal";
+import DivisionItem from "./components/DivisionItem";
+import DivisionForm from "./components/DivisionForm";
 
-const DivisionScreen = () => {
+const DivisionScreen: React.FC = () => {
     const theme = useAppTheme();
     const insets = useSafeAreaInsets();
     const { data, isLoading, refetch: refetchDivisions } = useDivisions();
@@ -65,10 +66,7 @@ const DivisionScreen = () => {
         });
     }, [data, search, activeStatus]);
 
-    const sorted = useMemo(
-        () => [...filteredData].sort((a, b) => a.id - b.id),
-        [filteredData]
-    );
+    const sorted = useMemo(() => [...filteredData].sort((a, b) => a.id - b.id), [filteredData]);
 
     if (isLoading || !data) {
         return (
@@ -98,11 +96,7 @@ const DivisionScreen = () => {
 
                 <View style={styles.filtersWrapper}>
                     <View style={styles.filterGroup}>
-                        <Filters
-                            filters={statusFilters}
-                            setFilters={setStatusFilters}
-                            singleSelect
-                        />
+                        <Filters filters={statusFilters} setFilters={setStatusFilters} singleSelect />
                     </View>
                 </View>
 
@@ -118,18 +112,12 @@ const DivisionScreen = () => {
                         />
                     )}
                     refreshControl={
-                        <RefreshControl
-                            refreshing={isRefreshing}
-                            onRefresh={handleRefresh}
-                            tintColor={theme.text}
-                        />
+                        <RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} tintColor={theme.text} />
                     }
                     contentContainerStyle={{ paddingBottom: insets.bottom + 16 }}
                     ListEmptyComponent={
                         <View style={styles.emptyState}>
-                            <Text style={{ color: theme.textInactive }}>
-                                Aucun résultat trouvé.
-                            </Text>
+                            <Text style={{ color: theme.textInactive }}>Aucun résultat trouvé.</Text>
                         </View>
                     }
                     onScrollBeginDrag={Keyboard.dismiss}
@@ -151,15 +139,11 @@ const DivisionScreen = () => {
     );
 };
 
+export default DivisionScreen;
+
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-    },
-    center: {
-        flex: 1,
-        justifyContent: "center",
-        alignItems: "center",
-    },
+    container: { flex: 1 },
+    center: { flex: 1, justifyContent: "center", alignItems: "center" },
     searchRow: {
         flexDirection: "row",
         alignItems: "center",
@@ -172,24 +156,9 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         borderRadius: 18,
     },
-    addButtonText: {
-        flex: 1,
-        color: "white",
-        fontWeight: "bold",
-    },
-    filtersWrapper: {
-        paddingHorizontal: 8,
-    },
-    filterGroup: {
-        marginBottom: 12,
-    },
-    flatList: {
-        paddingHorizontal: 8,
-    },
-    emptyState: {
-        alignItems: "center",
-        marginTop: 32,
-    },
+    addButtonText: { color: "white", fontWeight: "bold" },
+    filtersWrapper: { paddingHorizontal: 8 },
+    filterGroup: { marginBottom: 12 },
+    flatList: { paddingHorizontal: 8 },
+    emptyState: { alignItems: "center", marginTop: 32 },
 });
-
-export default DivisionScreen;

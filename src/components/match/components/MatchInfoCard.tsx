@@ -50,7 +50,7 @@ const MatchInfoCard: React.FC<MatchInfoCardProps> = ({ enrichedMatch }) => {
         <GradientBorderView
             gradient={gradient}
             borderRadius={RADIUS}
-            borderWidth={2}
+            borderWidth={1}
             style={[styles.card, { backgroundColor: theme.background }]}
         >
             <Text style={[styles.title, { color: theme.text }]}>Informations</Text>
@@ -61,7 +61,6 @@ const MatchInfoCard: React.FC<MatchInfoCardProps> = ({ enrichedMatch }) => {
                     label={enrichedMatch.pool.name}
                     gradient={gradient}
                     variant="filled"
-                    borderWidth={2}
                     onPress={() => handlePoolPress(enrichedMatch.pool.id)}
                 />
                 <InfoPillGradient icon="calendar" label={dateLabel} gradient={gradient} borderWidth={1} />

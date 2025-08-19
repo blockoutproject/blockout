@@ -12,6 +12,7 @@ import SearchApi from "@/src/api/SearchApi";
 import MobileGatewayApi from "@/src/api/MobileGatewayApi";
 import ConfigApi from "@/src/api/ConfigApi";
 import ClubsApi from "@/src/api/ClubsApi";
+import ReportsApi from "../api/ReportsApi";
 
 export const ApiProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const { authenticated, softResetAuth } = useSession();
@@ -26,7 +27,7 @@ export const ApiProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 const token = creds?.accessToken;
                 if (!token) return;
 
-                console.log("Initializing APIs with token:", creds);
+                console.log("API init with token:", token);
 
                 const tokenSupplier = async () => {
                     const c = await getCredentials(undefined, 60);
@@ -46,6 +47,7 @@ export const ApiProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 MobileGatewayApi.initInstance(token, { tokenSupplier, onUnauthorized });
                 ConfigApi.initInstance(token, { tokenSupplier, onUnauthorized });
                 ClubsApi.initInstance(token, { tokenSupplier, onUnauthorized });
+                ReportsApi.initInstance(token, { tokenSupplier, onUnauthorized });
             } catch (e) {
                 console.log("API init skipped (credentials not ready yet):", e);
             }

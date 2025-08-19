@@ -9,11 +9,11 @@ import type { Club } from "@/src/types/Club";
 import { withAlpha } from "@/src/utils/utils";
 import MaskedImage from "../../common/MaskedImage";
 
-type Props = { club: Club };
+type ClubHeroProps = { club: Club };
 
 const LOGO_SIZE = 120;
 
-const ClubHero: React.FC<Props> = ({ club }) => {
+const ClubHero: React.FC<ClubHeroProps> = ({ club }) => {
     const theme = useAppTheme();
     const logo = club.logoUrl ? { uri: club.logoUrl } : require("@/assets/clubs/default_club_logo.png");
 
@@ -50,12 +50,7 @@ const ClubHero: React.FC<Props> = ({ club }) => {
             />
 
             <View style={styles.content}>
-                <MaskedImage
-                    uri={club.logoUrl}
-                    size={LOGO_SIZE}
-                    radius={24}
-                    shadow
-                />
+                <MaskedImage uri={club.logoUrl} size={LOGO_SIZE} radius={24} shadow />
 
                 <Text style={[styles.title, { color: theme.text }]} numberOfLines={2}>
                     {club.name}
@@ -73,6 +68,8 @@ const ClubHero: React.FC<Props> = ({ club }) => {
         </View>
     );
 };
+
+export default ClubHero;
 
 const styles = StyleSheet.create({
     wrapper: {
@@ -103,5 +100,3 @@ const styles = StyleSheet.create({
         fontWeight: "600",
     },
 });
-
-export default ClubHero;

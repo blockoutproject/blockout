@@ -35,7 +35,6 @@ const HomeScreen: React.FC = () => {
         { key: 'upcoming', title: 'À Venir' },
     ], []);
 
-    // 👇 Un Animated.Value par onglet (stable sur toute la vie du composant)
     const scrollYs = useRef<Record<string, Animated.Value>>({
         finished: new Animated.Value(0),
         upcoming: new Animated.Value(0),
@@ -49,7 +48,7 @@ const HomeScreen: React.FC = () => {
             scrollY={scrollYs.finished}
             contentContainerStyle={{
                 paddingHorizontal: 4,
-                marginTop: insets.top + TABBAR_HEIGHT,
+                marginTop: insets.top + TABBAR_HEIGHT - 8,
                 paddingTop: HEADER_HEIGHT,
                 paddingBottom: insets.bottom + insets.top + TABBAR_HEIGHT,
             }}
@@ -67,7 +66,7 @@ const HomeScreen: React.FC = () => {
             scrollY={scrollYs.upcoming}
             contentContainerStyle={{
                 paddingHorizontal: 4,
-                marginTop: insets.top + TABBAR_HEIGHT,
+                marginTop: insets.top + TABBAR_HEIGHT - 8,
                 paddingTop: HEADER_HEIGHT,
                 paddingBottom: insets.bottom + insets.top + TABBAR_HEIGHT,
             }}

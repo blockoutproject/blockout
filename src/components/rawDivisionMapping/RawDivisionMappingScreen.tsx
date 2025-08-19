@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import React, { useState, useMemo, useRef, useCallback, useEffect } from "react";
 import {
     View,
     Text,
@@ -7,7 +7,10 @@ import {
     Keyboard,
     RefreshControl,
 } from "react-native";
+import { FlatList } from "react-native-gesture-handler";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import * as Haptics from "expo-haptics";
+
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import { useRawDivisionMappings } from "@/src/hooks/config/rawDivisionMapping/useRawDivisionMapping";
 import { RawDivisionMapping } from "@/src/types/RawDivisionMapping";
@@ -18,17 +21,12 @@ import RawDivisionMappingForm from "./RawDivisionMappingForm";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import BottomSheetCustomModal from "../common/BottomSheetCustomModal";
 import SearchBar from "../common/SearchBar";
-import * as Haptics from "expo-haptics";
-import { FlatList } from "react-native-gesture-handler";
 
 type FilterName = string;
 
-const mergeFilters = (nextNames: FilterName[], prevFilters: Filter[]): Filter[] => {
-    const prevState = new Map(prevFilters.map((f) => [f.name, f.isActive]));
-    return nextNames.map((name) => ({
-        name,
-        isActive: prevState.get(name) ?? false,
-    }));
+const mergeFilters = (nextNames: FilterName[], prev: Filter[]): Filter[] => {
+    const prevState = new Map(prev.map((f) => [f.name, f.isActive]));
+    return nextNames.map((name) => ({ name, isActive: prevState.get(name) ?? false }));
 };
 
 const RawDivisionMappingScreen: React.FC = () => {
@@ -39,28 +37,23 @@ const RawDivisionMappingScreen: React.FC = () => {
     const formSheetRef = useRef<BottomSheetModal>(null);
     const [editing, setEditing] = useState<RawDivisionMapping | null>(null);
     const [isRefreshing, setIsRefreshing] = useState(false);
-
-    const openForm = (mapping: RawDivisionMapping) => {
-        Keyboard.dismiss();
-        Haptics.selectionAsync();
-        setEditing(mapping);
-        formSheetRef.current?.present();
-    };
-    const closeForm = () => formSheetRef.current?.dismiss();
-
     const [search, setSearch] = useState("");
+
     const [mappingFilters, setMappingFilters] = useState<Filter[]>([
         { name: "Mappés", isActive: false },
         { name: "Non mappés", isActive: false },
     ]);
 
-    const leagueNames = useMemo(() => {
-        return Array.from(new Set(data?.map((d) => d.leagueCode))).sort();
-    }, [data]);
-
-    const seasonNames = useMemo(() => {
-        return Array.from(new Set(data?.map((d) => d.season))).sort((a, b) => b - a);
-    }, [data]);
+    const leagueNames = useMemo(
+        () => Array.from(new Set(data?.map((d) => d.leagueCode))).sort(),
+        [data]
+    );
+    const seasonNames = useMemo<string[]>(
+        () =>
+            Array.from(new Set((data ?? []).map(d => String(d.season))))
+                .sort((a, b) => b.localeCompare(a, undefined, { numeric: true })),
+        [data]
+    );
 
     const [leagueFilters, setLeagueFilters] = useState<Filter[]>(
         leagueNames.map((name) => ({ name, isActive: false }))
@@ -69,13 +62,19 @@ const RawDivisionMappingScreen: React.FC = () => {
         seasonNames.map((s) => ({ name: s.toString(), isActive: false }))
     );
 
-    useEffect(() => {
-        setLeagueFilters((prev) => mergeFilters(leagueNames, prev));
-    }, [leagueNames]);
+    useEffect(() => setLeagueFilters((prev) => mergeFilters(leagueNames, prev)), [leagueNames]);
+    useEffect(
+        () => setSeasonFilters((prev) => mergeFilters(seasonNames.map((s) => s.toString()), prev)),
+        [seasonNames]
+    );
 
-    useEffect(() => {
-        setSeasonFilters((prev) => mergeFilters(seasonNames.map((s) => s.toString()), prev));
-    }, [seasonNames]);
+    const openForm = (mapping: RawDivisionMapping) => {
+        Keyboard.dismiss();
+        Haptics.selectionAsync();
+        setEditing(mapping);
+        formSheetRef.current?.present();
+    };
+    const closeForm = () => formSheetRef.current?.dismiss();
 
     const activeMapping = mappingFilters.find((f) => f.isActive)?.name ?? "";
     const activeLeagues = leagueFilters.filter((f) => f.isActive).map((f) => f.name);
@@ -86,28 +85,22 @@ const RawDivisionMappingScreen: React.FC = () => {
         return data.filter((item) => {
             const txt = item.rawDivisionName.toLowerCase();
             const matchesSearch = txt.includes(search.toLowerCase());
-            const isMapped = item.divisionId && item.format && item.gender;
+            const isMapped = Boolean(item.divisionId && item.format && item.gender);
 
             const matchesMapping =
                 activeMapping === "" ||
                 (activeMapping === "Mappés" && isMapped) ||
                 (activeMapping === "Non mappés" && !isMapped);
 
-            const matchesLeague =
-                activeLeagues.length === 0 || activeLeagues.includes(item.leagueCode);
-
+            const matchesLeague = activeLeagues.length === 0 || activeLeagues.includes(item.leagueCode);
             const matchesSeason =
-                activeSeasons.length === 0 ||
-                activeSeasons.includes(item.season.toString());
+                activeSeasons.length === 0 || activeSeasons.includes(item.season.toString());
 
             return matchesSearch && matchesMapping && matchesLeague && matchesSeason;
         });
     }, [data, search, activeMapping, activeLeagues, activeSeasons]);
 
-    const sortedData = useMemo(
-        () => [...filteredData].sort((a, b) => a.id - b.id),
-        [filteredData]
-    );
+    const sortedData = useMemo(() => [...filteredData].sort((a, b) => a.id - b.id), [filteredData]);
 
     const handleRefresh = useCallback(async () => {
         setIsRefreshing(true);
@@ -134,6 +127,7 @@ const RawDivisionMappingScreen: React.FC = () => {
                         placeholder="Rechercher par nom brut..."
                     />
                 </View>
+
                 <View style={styles.filterWrapper}>
                     <Filters filters={mappingFilters} setFilters={setMappingFilters} singleSelect />
                     <Filters filters={leagueFilters} setFilters={setLeagueFilters} />
@@ -157,9 +151,7 @@ const RawDivisionMappingScreen: React.FC = () => {
                     contentContainerStyle={{ paddingBottom: insets.bottom + 16 }}
                     ListEmptyComponent={
                         <View style={styles.emptyState}>
-                            <Text style={{ color: theme.textInactive }}>
-                                Aucun résultat correspondant.
-                            </Text>
+                            <Text style={{ color: theme.textInactive }}>Aucun résultat correspondant.</Text>
                         </View>
                     }
                     keyboardShouldPersistTaps="handled"
@@ -184,33 +176,18 @@ const RawDivisionMappingScreen: React.FC = () => {
     );
 };
 
+export default RawDivisionMappingScreen;
+
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-    },
+    container: { flex: 1 },
+    center: { flex: 1, justifyContent: "center", alignItems: "center" },
     searchRow: {
         flexDirection: "row",
         alignItems: "center",
         marginHorizontal: 8,
         marginVertical: 16,
     },
-    center: {
-        flex: 1,
-        justifyContent: "center",
-        alignItems: "center",
-    },
-    filterWrapper: {
-        flexDirection: "column",
-        gap: 12,
-        marginBottom: 16,
-    },
-    flatList: {
-        paddingHorizontal: 8,
-    },
-    emptyState: {
-        alignItems: "center",
-        marginTop: 32,
-    },
+    filterWrapper: { flexDirection: "column", gap: 12, marginBottom: 16 },
+    flatList: { paddingHorizontal: 8 },
+    emptyState: { alignItems: "center", marginTop: 32 },
 });
-
-export default RawDivisionMappingScreen;

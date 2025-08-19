@@ -1,6 +1,5 @@
 import React from "react";
 import { View, Text, Pressable, StyleSheet } from "react-native";
-import { Image } from "expo-image";
 import * as Haptics from "expo-haptics";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -38,12 +37,7 @@ const MatchScoreCard: React.FC<MatchScoreCardProps> = ({ enrichedMatch, gradient
         role: "Home" | "Away";
     }> = ({ team, role }) => (
         <Pressable onPress={() => handleTeamPress(team.id)} style={styles.teamCard}>
-            <MaskedImage
-                uri={team.logoUrl}
-                size={LOGO_SIZE}
-                radius={RADIUS}
-                shadow
-            />
+            <MaskedImage uri={team.logoUrl} size={LOGO_SIZE} radius={RADIUS} shadow />
             <Text
                 style={[styles.teamLabel, { color: theme.text }]}
                 numberOfLines={2}
@@ -61,7 +55,7 @@ const MatchScoreCard: React.FC<MatchScoreCardProps> = ({ enrichedMatch, gradient
         <GradientBorderView
             gradient={gradient}
             borderRadius={RADIUS}
-            borderWidth={2}
+            borderWidth={1}
             style={[styles.card, { backgroundColor: theme.background }]}
         >
             <View style={styles.headerRow}>
@@ -77,13 +71,17 @@ const MatchScoreCard: React.FC<MatchScoreCardProps> = ({ enrichedMatch, gradient
                         <>
                             <GradientBorderView
                                 gradient={gradient}
-                                borderRadius={12}
+                                borderRadius={16}
                                 borderWidth={2}
                                 style={[styles.finalScoreBox, { backgroundColor: theme.background }]}
                             >
-                                <Text style={[styles.finalScoreText, { color: theme.text }]}>{enrichedMatch.set}</Text>
+                                <Text style={[styles.finalScoreText, { color: theme.text }]}>
+                                    {enrichedMatch.set}
+                                </Text>
                             </GradientBorderView>
-                            {time ? <Text style={[styles.timeSubtle, { color: theme.textInactive }]}>{time}</Text> : null}
+                            {time ? (
+                                <Text style={[styles.timeSubtle, { color: theme.textInactive }]}>{time}</Text>
+                            ) : null}
                         </>
                     ) : (
                         <>
@@ -113,10 +111,6 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "space-between",
     },
-    dateText: {
-        fontSize: 14,
-        fontWeight: "700",
-    },
     teamsRow: {
         flexDirection: "row",
         alignItems: "center",
@@ -143,7 +137,7 @@ const styles = StyleSheet.create({
         gap: 8,
     },
     finalScoreBox: {
-        paddingHorizontal: 12,
+        paddingHorizontal: 10,
         paddingVertical: 6,
     },
     finalScoreText: {

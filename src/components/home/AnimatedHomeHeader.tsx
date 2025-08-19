@@ -8,7 +8,6 @@ import {
 } from "react-native";
 import { Image } from "expo-image";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import { useAuth0 } from "react-native-auth0";
 import {
     TabBar,
     SceneRendererProps,

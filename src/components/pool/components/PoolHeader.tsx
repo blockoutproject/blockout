@@ -18,19 +18,25 @@ const PoolHeader: React.FC<PoolHeaderProps> = ({ title, onCloseSheet }) => {
         <View style={styles.container}>
             <View style={styles.header}>
                 <View style={styles.leftGroup}>
-
                     <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-                        <MaterialCommunityIcons name={canGoBack ? "chevron-left" : "close"} size={30} color={theme.text} />
+                        <MaterialCommunityIcons
+                            name={canGoBack ? "chevron-left" : "close"}
+                            size={30}
+                            color={theme.text}
+                        />
                     </TouchableOpacity>
                     <Text style={[styles.title, { color: theme.text }]} numberOfLines={1}>
                         {title}
                     </Text>
                 </View>
+
                 <View style={{ width: 30 }} />
             </View>
         </View>
     );
 };
+
+export default PoolHeader;
 
 const styles = StyleSheet.create({
     container: { backgroundColor: "transparent" },
@@ -45,5 +51,3 @@ const styles = StyleSheet.create({
     backButton: { marginRight: 8 },
     title: { fontSize: 18, fontWeight: "700" },
 });
-
-export default PoolHeader;

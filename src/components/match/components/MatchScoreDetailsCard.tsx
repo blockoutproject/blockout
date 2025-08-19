@@ -1,13 +1,14 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { Image } from "expo-image";
+
 import { EnrichedMatchDTO } from "@/src/types/Match";
 import { Team } from "@/src/types/Team";
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import GradientBorderView from "@/src/components/common/GradientBorderView";
 
 type MatchScoreDetailsCardProps = {
-    title: string;
+    title?: string;
     enrichedMatch: EnrichedMatchDTO;
 };
 
@@ -110,7 +111,7 @@ const MatchScoreDetailsCard: React.FC<MatchScoreDetailsCardProps> = ({
         <GradientBorderView
             gradient={gradient}
             borderRadius={RADIUS}
-            borderWidth={2}
+            borderWidth={1}
             style={[styles.card, { backgroundColor: theme.background }]}
         >
             <Text style={[styles.title, { color: theme.text }]}>{title}</Text>
@@ -149,17 +150,13 @@ const styles = StyleSheet.create({
         textTransform: "uppercase",
         letterSpacing: 0.3,
     },
-    rows: {
-        gap: 8,
-    },
+    rows: { gap: 8 },
     row: {
         flexDirection: "row",
         alignItems: "center",
         gap: 6,
     },
-    identityPlaceholder: {
-        flex: 1,
-    },
+    identityPlaceholder: { flex: 1 },
     identityBlock: {
         flex: 1,
         flexDirection: "row",
@@ -183,9 +180,17 @@ const styles = StyleSheet.create({
         justifyContent: "center",
     },
     finalScoreBox: {
-        width: 34, alignItems: 'center', justifyContent: 'center', paddingVertical: 6, borderRadius: PTS_BADGE_RADIUS
+        width: 34,
+        alignItems: "center",
+        justifyContent: "center",
+        paddingVertical: 6,
+        borderRadius: PTS_BADGE_RADIUS,
     },
-    finalScoreText: { fontSize: 16, fontWeight: "800", letterSpacing: 0.3 },
+    finalScoreText: {
+        fontSize: 16,
+        fontWeight: "800",
+        letterSpacing: 0.3,
+    },
     setColumn: {
         width: SET_COL_W,
         alignItems: "center",
@@ -195,7 +200,5 @@ const styles = StyleSheet.create({
         fontSize: 12,
         fontWeight: "700",
     },
-    setScoreText: {
-        fontSize: 16,
-    },
+    setScoreText: { fontSize: 16 },
 });

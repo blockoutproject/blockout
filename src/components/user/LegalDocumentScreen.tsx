@@ -1,3 +1,4 @@
+// LegalDocumentScreen.tsx
 import React, { useRef } from "react";
 import { ActivityIndicator, View, StyleSheet, Text } from "react-native";
 import { BottomSheetModal, BottomSheetScrollView } from "@gorhom/bottom-sheet";
@@ -6,7 +7,6 @@ import Markdown from "react-native-markdown-display";
 
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import { useLegalDocument } from "@/src/hooks/config/legalDocument/useLegalDocument";
-
 import BottomSheetCustomModal from "../common/BottomSheetCustomModal";
 import LegalDocumentForm from "./components/LegalDocumentForm";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -29,7 +29,7 @@ const LegalDocumentScreen: React.FC<LegalDocumentScreenProps> = ({ type, title, 
 
     const openEdit = () => {
         if (!data) return;
-        Haptics.selectionAsync();
+        void Haptics.selectionAsync();
         sheetRef.current?.present();
     };
     const closeEdit = () => sheetRef.current?.dismiss();
@@ -42,19 +42,9 @@ const LegalDocumentScreen: React.FC<LegalDocumentScreenProps> = ({ type, title, 
             </View>
         );
     } else if (error) {
-        body = (
-            <ErrorState
-                message="Impossible de charger le document légal."
-                onRetry={refetch}
-            />
-        );
+        body = <ErrorState message="Impossible de charger le document légal." onRetry={refetch} />;
     } else if (!data) {
-        body = (
-            <ErrorState
-                message="Ce document est introuvable."
-                onRetry={refetch}
-            />
-        );
+        body = <ErrorState message="Ce document est introuvable." onRetry={refetch} />;
     } else {
         body = (
             <>
@@ -63,20 +53,8 @@ const LegalDocumentScreen: React.FC<LegalDocumentScreenProps> = ({ type, title, 
                         <Markdown
                             style={{
                                 body: { paddingHorizontal: 16 },
-                                paragraph: {
-                                    paddingLeft: 8,
-                                    color: theme.text,
-                                    fontSize: 14,
-                                    lineHeight: 22,
-                                    marginBottom: 24,
-                                },
-                                heading1: {
-                                    color: theme.text,
-                                    fontSize: 24,
-                                    fontWeight: "700",
-                                    lineHeight: 30,
-                                    marginBottom: 12,
-                                },
+                                paragraph: { paddingLeft: 8, color: theme.text, fontSize: 14, lineHeight: 22, marginBottom: 24 },
+                                heading1: { color: theme.text, fontSize: 24, fontWeight: "700", lineHeight: 30, marginBottom: 12 },
                                 heading2: { color: theme.text, fontSize: 20, fontWeight: "700", lineHeight: 26 },
                                 heading3: { color: theme.text, fontSize: 16, fontWeight: "600", lineHeight: 22 },
                                 bullet_list: { marginBottom: 8 },
@@ -86,9 +64,7 @@ const LegalDocumentScreen: React.FC<LegalDocumentScreenProps> = ({ type, title, 
                             {data.content}
                         </Markdown>
 
-                        <Text style={[styles.update, { color: theme.textInactive }]}>
-                            Dernière mise à jour : {data.version}
-                        </Text>
+                        <Text style={[styles.update, { color: theme.textInactive }]}>Dernière mise à jour : {data.version}</Text>
                     </View>
                 </BottomSheetScrollView>
 

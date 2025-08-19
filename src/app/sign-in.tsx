@@ -22,7 +22,6 @@ const LoginScreen: React.FC = () => {
     const { userReady, isLoading: userLoading } = useUserContext();
 
     const [isSigningIn, setIsSigningIn] = useState(false);
-    // bouton en “busy” si on clique OU si l’auth/user charge encore
     const busy = isSigningIn || authLoading || (authenticated && (!userReady || userLoading));
 
     const onPressLogin = async () => {
@@ -38,7 +37,7 @@ const LoginScreen: React.FC = () => {
     const ctaGradient: [string, string, string] = ["#6EE7F9", "#A78BFA", "#F472B6"];
 
     return (
-        <ImageBackground source={HERO.bg} style={styles.background} resizeMode="cover">
+        <ImageBackground style={styles.background} resizeMode="cover">
             {/* voiles lisibilité */}
             <LinearGradient
                 colors={[withAlpha(theme.backgroundSecondary, 0.95), withAlpha(theme.backgroundSecondary, 0.35)]}

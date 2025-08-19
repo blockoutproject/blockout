@@ -1,25 +1,27 @@
 import React from "react";
 import { StyleSheet, View } from "react-native";
+import { RouteProp, useRoute } from "@react-navigation/native";
+
 import { useEnrichedPoolById } from "@/src/hooks/pool/useEnrichedPoolById";
 import PoolSkeleton from "@/src/components/pool/components/PoolSkeleton";
 import PoolProfile from "@/src/components/pool/components/PoolProfile";
 import PoolTabs from "@/src/components/pool/components/PoolTabs";
-import { RouteProp, useRoute } from "@react-navigation/native";
-import { SheetStackParamList } from "@/src/components/common/BottomSheetNavigator";
 import ErrorState from "@/src/components/common/ErrorState";
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import PoolHeader from "@/src/components/pool/components/PoolHeader";
+import { SheetStackParamList } from "@/src/components/common/BottomSheetNavigator";
 
 type PoolRouteProp = RouteProp<SheetStackParamList, "Pool">;
 
-type Props = {
+type PoolScreenProps = {
     onCloseSheet: () => void;
 };
 
-const PoolScreen: React.FC<Props> = ({ onCloseSheet }) => {
+const PoolScreen: React.FC<PoolScreenProps> = ({ onCloseSheet }) => {
     const theme = useAppTheme();
     const { params } = useRoute<PoolRouteProp>();
     const poolId = params.poolId;
+
     const { data: enrichedPool, isLoading, error, refetch } = useEnrichedPoolById(poolId);
 
     let body: React.ReactNode;
@@ -46,8 +48,8 @@ const PoolScreen: React.FC<Props> = ({ onCloseSheet }) => {
     );
 };
 
+export default PoolScreen;
+
 const styles = StyleSheet.create({
     container: { flex: 1 },
 });
-
-export default PoolScreen;

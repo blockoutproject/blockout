@@ -1,14 +1,11 @@
 import React from "react";
 import { View, StyleSheet } from "react-native";
-import { Image } from "expo-image";
 
-import { useAppTheme } from "@/src/context/ThemeProvider";
 import { EnrichedPoolDTO } from "@/src/types/Pool";
 import FollowButton from "@/src/components/common/FollowButton";
 import FollowersCounter from "@/src/components/common/FollowersCount";
 import { usePoolFollowState } from "@/src/hooks/pool/usePoolFollowState";
 import { GenderLabels } from "@/src/types/enums/Gender";
-import { FormatLabels } from "@/src/types/enums/Format";
 import InfoPill from "@/src/components/common/chips/InfoPill";
 import { LOGO_SIZE } from "@/src/theme/globals";
 import MaskedImage from "../../common/MaskedImage";
@@ -18,7 +15,6 @@ type PoolProfileProps = {
 };
 
 const PoolProfile: React.FC<PoolProfileProps> = ({ enrichedPool }) => {
-    const theme = useAppTheme();
     const { isFollowing, isProcessing, followersCount, onToggleFollow } =
         usePoolFollowState(enrichedPool);
 
@@ -30,19 +26,10 @@ const PoolProfile: React.FC<PoolProfileProps> = ({ enrichedPool }) => {
         division.thirdGradientColor,
     ] as const;
 
-    const logoSrc = division.logoUrl
-        ? { uri: division.logoUrl }
-        : require("@/assets/clubs/default_club_logo.png");
-
     return (
         <View style={styles.container}>
             <View style={styles.topRow}>
-                <MaskedImage
-                    uri={enrichedPool.division.logoUrl}
-                    size={LOGO_SIZE}
-                    radius={20}
-                    shadow
-                />
+                <MaskedImage uri={enrichedPool.division.logoUrl} size={LOGO_SIZE} radius={20} shadow />
 
                 <View style={styles.infoCol}>
                     <View style={styles.pillRow}>

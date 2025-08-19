@@ -18,9 +18,12 @@ const TeamHeader: React.FC<TeamHeaderProps> = ({ title, onCloseSheet }) => {
         <View style={styles.container}>
             <View style={styles.header}>
                 <View style={styles.leftGroup}>
-
                     <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-                        <MaterialCommunityIcons name={canGoBack ? "chevron-left" : "close"} size={30} color={theme.text} />
+                        <MaterialCommunityIcons
+                            name={canGoBack ? "chevron-left" : "close"}
+                            size={30}
+                            color={theme.text}
+                        />
                     </TouchableOpacity>
 
                     <Text style={[styles.title, { color: theme.text }]} numberOfLines={1}>
@@ -32,6 +35,8 @@ const TeamHeader: React.FC<TeamHeaderProps> = ({ title, onCloseSheet }) => {
         </View>
     );
 };
+
+export default TeamHeader;
 
 const styles = StyleSheet.create({
     container: { backgroundColor: "transparent" },
@@ -46,5 +51,3 @@ const styles = StyleSheet.create({
     backButton: { marginRight: 8 },
     title: { fontSize: 18, fontWeight: "700" },
 });
-
-export default TeamHeader;

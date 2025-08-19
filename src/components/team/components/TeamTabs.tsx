@@ -53,7 +53,7 @@ const TeamTabs: React.FC<Props> = ({ enrichedTeam }) => {
                         headerOffset={TABBAR_HEIGHT}
                         contentContainerStyle={{
                             paddingHorizontal: 4,
-                            marginTop: TABBAR_HEIGHT,
+                            marginTop: TABBAR_HEIGHT - 10,
                             paddingBottom: insets.bottom + TABBAR_HEIGHT,
                         }}
                     />
@@ -72,7 +72,7 @@ const TeamTabs: React.FC<Props> = ({ enrichedTeam }) => {
                         headerOffset={TABBAR_HEIGHT}
                         contentContainerStyle={{
                             paddingHorizontal: 4,
-                            marginTop: TABBAR_HEIGHT,
+                            marginTop: TABBAR_HEIGHT - 10,
                             paddingBottom: insets.bottom + TABBAR_HEIGHT,
                         }}
                     />

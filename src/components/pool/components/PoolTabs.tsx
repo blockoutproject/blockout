@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import { Animated } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -48,9 +48,10 @@ const PoolTabs: React.FC<PoolTabsProps> = ({ enrichedPool }) => {
                         headerOffset={TABBAR_HEIGHT}
                         contentContainerStyle={{
                             paddingHorizontal: 4,
-                            marginTop: TABBAR_HEIGHT,
+                            marginTop: TABBAR_HEIGHT - 10,
                             paddingBottom: insets.bottom + TABBAR_HEIGHT,
                         }}
+                        showPoolHeader={false}
                     />
                 ),
             };
@@ -67,9 +68,10 @@ const PoolTabs: React.FC<PoolTabsProps> = ({ enrichedPool }) => {
                         headerOffset={TABBAR_HEIGHT}
                         contentContainerStyle={{
                             paddingHorizontal: 4,
-                            marginTop: TABBAR_HEIGHT,
+                            marginTop: TABBAR_HEIGHT - 10,
                             paddingBottom: insets.bottom + TABBAR_HEIGHT,
                         }}
+                        showPoolHeader={false}
                     />
                 ),
             };

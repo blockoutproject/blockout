@@ -2,6 +2,7 @@ import React, { useRef } from "react";
 import { StyleSheet, View } from "react-native";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import * as Haptics from "expo-haptics";
+import { RouteProp, useRoute } from "@react-navigation/native";
 
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import { useClubById } from "@/src/hooks/club/useClubById";
@@ -11,7 +12,6 @@ import ClubProfile from "./components/ClubProfile";
 import ClubForm from "./components/ClubForm";
 import ErrorState from "@/src/components/common/ErrorState";
 import { SheetStackParamList } from "../common/BottomSheetNavigator";
-import { RouteProp, useRoute } from "@react-navigation/native";
 import ClubHeader from "./components/ClubHeader";
 import useHasScopes from "@/src/hooks/user/useHasScopes";
 
@@ -70,7 +70,7 @@ const ClubScreen: React.FC<ClubScreenProps> = ({ onCloseSheet }) => {
     return (
         <View style={[styles.container, { backgroundColor: theme.background }]}>
             <ClubHeader
-                title="Profil"
+                title={club?.name ?? ""}
                 onEdit={canUpdateClub ? openForm : undefined}
                 onCloseSheet={onCloseSheet}
             />

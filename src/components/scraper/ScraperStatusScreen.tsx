@@ -31,7 +31,7 @@ const ScraperStatusScreen = () => {
     const toggleScraper = useCallback(
         async (scraper: ScraperStatus) => {
             try {
-                await Haptics.selectionAsync();
+                Haptics.selectionAsync();
                 await ConfigApi.getInstance().updateScraperStatus(scraper.name, !scraper.enabled);
                 await refetch();
             } catch (error) {

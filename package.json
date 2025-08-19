@@ -74,7 +74,9 @@
     "twrnc": "^4.6.1",
     "use-debounce": "^10.0.4",
     "yup": "^1.6.1",
-    "expo-secure-store": "~14.2.3"
+    "expo-secure-store": "~14.2.3",
+    "expo-device": "~7.1.4",
+    "expo-application": "~6.1.5"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

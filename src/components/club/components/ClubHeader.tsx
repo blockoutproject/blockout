@@ -21,7 +21,11 @@ const ClubHeader: React.FC<ClubHeaderProps> = ({ title, onCloseSheet, onEdit }) 
             <View style={styles.header}>
                 <View style={styles.leftGroup}>
                     <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-                        <MaterialCommunityIcons name={canGoBack ? "chevron-left" : "close"} size={30} color={theme.text} />
+                        <MaterialCommunityIcons
+                            name={canGoBack ? "chevron-left" : "close"}
+                            size={30}
+                            color={theme.text}
+                        />
                     </TouchableOpacity>
 
                     <Text style={[styles.title, { color: theme.text }]} numberOfLines={1}>
@@ -45,6 +49,8 @@ const ClubHeader: React.FC<ClubHeaderProps> = ({ title, onCloseSheet, onEdit }) 
     );
 };
 
+export default ClubHeader;
+
 const styles = StyleSheet.create({
     container: { backgroundColor: "transparent" },
     header: {
@@ -58,5 +64,3 @@ const styles = StyleSheet.create({
     backButton: { marginRight: 8 },
     title: { fontSize: 18, fontWeight: "700" },
 });
-
-export default ClubHeader;

@@ -4,8 +4,8 @@ import {
     Text,
     StyleSheet,
     Pressable,
-    ListRenderItemInfo,
     TouchableOpacity,
+    ListRenderItemInfo,
 } from "react-native";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
@@ -23,11 +23,11 @@ import type { TeamHighlight } from "@/src/types/Team";
 import { withAlpha } from "@/src/utils/utils";
 import MaskedImage from "./MaskedImage";
 
-interface RankingCardProps {
+type RankingCardProps = {
     enrichedPool: EnrichedPoolDTO;
     scrollable?: boolean;
     highlightTeams?: TeamHighlight[];
-}
+};
 
 const RADIUS = 18;
 const LOGO = 28;
@@ -52,7 +52,7 @@ const RankingCard: React.FC<RankingCardProps> = ({
         ? { uri: division.logoUrl }
         : require("@/assets/clubs/default_club_logo.png");
 
-    const zebra = (even: boolean, color: string) => (even ? withAlpha(color, 0.2) : "transparent");
+    const zebraBg = (even: boolean) => (even ? withAlpha(division.mainColor, 0.2) : "transparent");
 
     const handleTeamPress = (teamId: number) => {
         Haptics.selectionAsync();
@@ -66,34 +66,23 @@ const RankingCard: React.FC<RankingCardProps> = ({
 
     const Header = () => (
         <TouchableOpacity activeOpacity={0.85} onPress={handleHeaderPress}>
-            <View style={styles.header}>
-                <Image source={divisionLogo} style={StyleSheet.absoluteFill} contentFit="cover" blurRadius={40} />
-                <LinearGradient
-                    pointerEvents="none"
-                    colors={[withAlpha(theme.surface, 0.9), withAlpha(theme.surface, 0.35), withAlpha(theme.surface, 0.9)]}
-                    locations={[0, 0.5, 1]}
-                    start={{ x: 0, y: 0.5 }}
-                    end={{ x: 1, y: 0.5 }}
-                    style={StyleSheet.absoluteFill}
-                />
-                <View style={styles.headerRow}>
-                    <View style={styles.headerLeft}>
-                        <MaskedImage
-                            uri={division.logoUrl}
-                            size={24}
-                            radius={6}
-                            shadow
-                        />
-                        <Text style={[styles.headerTitle, { color: theme.text }]} numberOfLines={1}>
-                            {division.name} - Classement
-                        </Text>
-                    </View>
-                    <MaterialCommunityIcons
-                        name="chevron-right"
-                        size={22}
-                        color={withAlpha(theme.text, 0.8)}
-                    />
+            <Image source={divisionLogo} style={StyleSheet.absoluteFill} contentFit="cover" blurRadius={40} />
+            <LinearGradient
+                pointerEvents="none"
+                colors={[withAlpha(theme.surface, 0.9), withAlpha(theme.surface, 0.35), withAlpha(theme.surface, 0.9)]}
+                locations={[0, 0.5, 1]}
+                start={{ x: 0, y: 0.5 }}
+                end={{ x: 1, y: 0.5 }}
+                style={StyleSheet.absoluteFill}
+            />
+            <View style={styles.headerRow}>
+                <View style={styles.headerLeft}>
+                    <MaskedImage uri={division.logoUrl} size={24} radius={6} shadow />
+                    <Text style={[styles.headerTitle, { color: theme.text }]} numberOfLines={1}>
+                        {division.name} - Classement
+                    </Text>
                 </View>
+                <MaterialCommunityIcons name="chevron-right" size={22} color={withAlpha(theme.text, 0.8)} />
             </View>
         </TouchableOpacity>
     );
@@ -104,7 +93,9 @@ const RankingCard: React.FC<RankingCardProps> = ({
     }: ListRenderItemInfo<EnrichedPoolDTO["ranking"][number]>) => {
         const rank = index + 1;
         const hl = highlightTeams?.find((h) => h.teamId === item.id);
-        const bg = hl ? withAlpha(hl.color, 0.32) : zebra(index % 2 === 0, division.mainColor);
+        const bg = hl ? withAlpha(hl.color, 0.6) : zebraBg(index % 2 === 0);
+
+        const isTop3 = rank <= 3;
 
         return (
             <Pressable
@@ -113,7 +104,7 @@ const RankingCard: React.FC<RankingCardProps> = ({
                 onPress={() => handleTeamPress(item.id)}
             >
                 <View style={styles.rankCell}>
-                    {rank <= 3 ? (
+                    {isTop3 ? (
                         <Medal rank={rank as 1 | 2 | 3} />
                     ) : (
                         <View style={[styles.rankCircle, { borderColor: withAlpha(theme.text, 0.25) }]}>
@@ -123,12 +114,7 @@ const RankingCard: React.FC<RankingCardProps> = ({
                 </View>
 
                 <View style={styles.teamBlock}>
-                    <MaskedImage
-                        uri={item.logoUrl}
-                        size={28}
-                        radius={8}
-                        shadow
-                    />
+                    <MaskedImage uri={item.logoUrl} size={LOGO} radius={8} shadow />
                     <View style={styles.teamTextCol}>
                         <Text
                             style={[styles.teamName, { color: theme.text }]}
@@ -164,19 +150,21 @@ const RankingCard: React.FC<RankingCardProps> = ({
         <GradientBorderView
             gradient={gradient}
             borderRadius={RADIUS}
-            borderWidth={2}
+            borderWidth={1}
             style={[styles.card, { backgroundColor: theme.background }]}
         >
-            <FlatList
-                data={enrichedPool.ranking}
-                keyExtractor={(item) => item.id.toString()}
-                renderItem={renderItem}
-                ListHeaderComponent={Header}
-                stickyHeaderIndices={[0]}
-                showsVerticalScrollIndicator={false}
-                scrollEnabled={scrollable}
-                contentContainerStyle={styles.listContent}
-            />
+            <View style={styles.innerClip}>
+                <FlatList
+                    data={enrichedPool.ranking}
+                    keyExtractor={(item) => String(item.id)}
+                    renderItem={renderItem}
+                    ListHeaderComponent={Header}
+                    stickyHeaderIndices={[0]}
+                    showsVerticalScrollIndicator={false}
+                    scrollEnabled={scrollable}
+                    contentContainerStyle={styles.listContent}
+                />
+            </View>
         </GradientBorderView>
     );
 };
@@ -208,20 +196,18 @@ const MiniStat: React.FC<{
 const styles = StyleSheet.create({
     card: {
         borderRadius: RADIUS,
+    },
+    innerClip: {
+        borderRadius: RADIUS - 1,
         overflow: "hidden",
     },
     listContent: {
         paddingBottom: 8,
         gap: 6,
     },
-    header: {
-        position: "relative",
-        overflow: "hidden",
-        width: "100%",
-    },
     headerRow: {
         paddingHorizontal: 10,
-        paddingVertical: 12,
+        paddingVertical: 10,
         flexDirection: "row",
         alignItems: "center",
         gap: 10,
@@ -243,7 +229,8 @@ const styles = StyleSheet.create({
         alignItems: "center",
         borderRadius: 12,
         marginHorizontal: 8,
-        padding: 8,
+        paddingHorizontal: 8,
+        paddingVertical: 10,
         gap: 8,
     },
     rankCell: { width: 40, alignItems: "center", justifyContent: "center" },
@@ -263,9 +250,8 @@ const styles = StyleSheet.create({
         gap: 8,
         minWidth: 0,
     },
-    logo: { width: LOGO, aspectRatio: 1, borderRadius: 8 },
     teamTextCol: { flex: 1, gap: 4 },
-    teamName: { fontSize: 14, fontWeight: "800" },
+    teamName: { fontSize: 14, fontWeight: "700" },
     metaRow: { flexDirection: "row", alignItems: "center", gap: 6 },
     miniStat: {
         flexDirection: "row",
@@ -278,7 +264,13 @@ const styles = StyleSheet.create({
     },
     miniStatLabel: { fontSize: 11, fontWeight: "700" },
     miniStatValue: { fontSize: 12, fontWeight: "800" },
-    pointsBadge: { width: 34, alignItems: 'center', justifyContent: 'center', paddingVertical: 6, borderRadius: PTS_BADGE_RADIUS },
+    pointsBadge: {
+        width: 34,
+        alignItems: "center",
+        justifyContent: "center",
+        paddingVertical: 6,
+        borderRadius: PTS_BADGE_RADIUS,
+    },
     pointsText: { fontSize: 14, fontWeight: "800", letterSpacing: 0.3 },
     medalWrap: {
         flexDirection: "row",

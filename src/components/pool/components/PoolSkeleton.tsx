@@ -1,14 +1,14 @@
-import React from 'react';
-import { View, StyleSheet } from 'react-native';
-import { useAppTheme } from '@/src/context/ThemeProvider';
-import { Skeleton } from '../../common/Skeleton';
+import React from "react";
+import { View, StyleSheet } from "react-native";
+import { useAppTheme } from "@/src/context/ThemeProvider";
+import { Skeleton } from "../../common/Skeleton";
 
 const PoolSkeleton: React.FC = () => {
     const theme = useAppTheme();
 
     return (
         <View style={[styles.container, { backgroundColor: theme.background }]}>
-            <View style={[styles.row]}>
+            <View style={styles.row}>
                 <Skeleton width={100} height={100} style={{ borderRadius: 18 }} />
                 <View style={styles.info}>
                     <View style={styles.title}>
@@ -25,6 +25,7 @@ const PoolSkeleton: React.FC = () => {
                     </View>
                 </View>
             </View>
+
             <View style={styles.actionsRow}>
                 <Skeleton width={85} height={34} style={{ borderRadius: 10 }} />
                 <Skeleton width={25} height={25} style={{ borderRadius: 18, marginLeft: 12 }} />
@@ -34,33 +35,33 @@ const PoolSkeleton: React.FC = () => {
     );
 };
 
+export default PoolSkeleton;
+
 const styles = StyleSheet.create({
     container: {
         paddingTop: 8,
         paddingHorizontal: 16,
     },
     row: {
-        flexDirection: 'row',
-        alignItems: 'center',
+        flexDirection: "row",
+        alignItems: "center",
         gap: 16,
     },
     info: {
         flex: 1,
-        justifyContent: 'center',
+        justifyContent: "center",
     },
     title: {
         marginBottom: 10,
     },
     infoLine: {
-        flexDirection: 'row',
-        alignItems: 'center',
+        flexDirection: "row",
+        alignItems: "center",
         marginBottom: 6,
     },
     actionsRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
+        flexDirection: "row",
+        alignItems: "center",
         marginTop: 16,
     },
 });
-
-export default PoolSkeleton;

@@ -2,15 +2,15 @@ import React, { useMemo } from "react";
 import { StyleSheet } from "react-native";
 import { BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import * as Linking from "expo-linking";
+
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import type { Club } from "@/src/types/Club";
-
 import ClubHero from "./ClubHero";
 import { InfoCard, InfoRow } from "./ClubInfoCard";
 
-type Props = { club: Club };
+type ClubProfileProps = { club: Club };
 
-const ClubProfile: React.FC<Props> = ({ club }) => {
+const ClubProfile: React.FC<ClubProfileProps> = ({ club }) => {
     const theme = useAppTheme();
 
     const websiteDisplay = useMemo(() => {
@@ -36,7 +36,6 @@ const ClubProfile: React.FC<Props> = ({ club }) => {
 
     const openMap = () => {
         const query = encodeURIComponent(`${club.name}${club.city ? " " + club.city : ""}`);
-        // Laisse le système décider : Apple/Google Maps
         Linking.openURL(`https://maps.google.com/?q=${query}`);
     };
 
@@ -46,17 +45,14 @@ const ClubProfile: React.FC<Props> = ({ club }) => {
             showsVerticalScrollIndicator={false}
             contentContainerStyle={[styles.content, { backgroundColor: theme.background }]}
         >
-            {/* HERO */}
             <ClubHero club={club} />
 
-            {/* Coordonnées */}
             <InfoCard title="Coordonnées">
                 <InfoRow icon="email-outline" label="Email" value={club.email} onPress={openMail} isLink />
                 <InfoRow icon="phone-outline" label="Téléphone" value={club.phoneNumber} onPress={openPhone} isLink />
                 <InfoRow icon="link-variant" label="Site web" value={websiteDisplay} onPress={openWebsite} isLink />
             </InfoCard>
 
-            {/* Localisation */}
             <InfoCard title="Localisation">
                 <InfoRow icon="map-marker" label="Ville" value={club.city} />
                 <InfoRow icon="map-outline" label="Voir sur la carte" value="Ouvrir la carte" onPress={openMap} isLink />
@@ -65,11 +61,11 @@ const ClubProfile: React.FC<Props> = ({ club }) => {
     );
 };
 
+export default ClubProfile;
+
 const styles = StyleSheet.create({
     content: {
         paddingHorizontal: 4,
         gap: 20,
     },
 });
-
-export default ClubProfile;

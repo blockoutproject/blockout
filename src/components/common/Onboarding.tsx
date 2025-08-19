@@ -1,274 +1,357 @@
-import React, { useRef, useState } from "react";
+import { useThemeColor } from '@/src/hooks/useThemeColor';
+import React, { useRef, useState } from 'react';
 import {
     Dimensions,
     ScrollView,
     StyleSheet,
     View,
-    Text,
-    Pressable,
-    NativeSyntheticEvent,
-    NativeScrollEvent,
-} from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
-import * as Haptics from "expo-haptics";
+    ViewStyle,
+} from 'react-native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Animated, {
+    runOnJS,
+    useAnimatedStyle,
+    useSharedValue,
+    withSpring,
+} from 'react-native-reanimated';
+import { Button } from './Button';
+import { Text } from './Text';
 
-import { useAppTheme } from "@/src/context/ThemeProvider";
-import { withAlpha } from "@/src/utils/utils";
+const { width: screenWidth } = Dimensions.get('window');
 
-const { width: W } = Dimensions.get("window");
-
-export type EmojiStep = {
+export interface OnboardingStep {
     id: string;
-    emoji: string;            // 👉 Ex: "🏐", "📊", "⚡️"
     title: string;
     description: string;
-    accent?: string;          // couleur d’accent facultative (sinon thème)
-};
+    image?: React.ReactNode;
+    icon?: React.ReactNode;
+    backgroundColor?: string;
+}
 
-type Props = {
-    steps: EmojiStep[];
+export interface OnboardingProps {
+    steps: OnboardingStep[];
     onComplete: () => void;
     onSkip?: () => void;
     showSkip?: boolean;
     showProgress?: boolean;
-    nextLabel?: string;
-    backLabel?: string;
-    doneLabel?: string;
-};
+    swipeEnabled?: boolean;
+    primaryButtonText?: string;
+    skipButtonText?: string;
+    nextButtonText?: string;
+    backButtonText?: string;
+    style?: ViewStyle;
+    children?: React.ReactNode;
+}
 
-const DOT = 8;
+// Enhanced Onboarding Step Component for complex layouts
+interface OnboardingStepContentProps {
+    step: OnboardingStep;
+    isActive: boolean;
+    children?: React.ReactNode;
+}
 
-const Onboarding: React.FC<Props> = ({
+export function Onboarding({
     steps,
     onComplete,
     onSkip,
     showSkip = true,
     showProgress = true,
-    nextLabel = "Suivant",
-    backLabel = "Retour",
-    doneLabel = "C’est parti",
-}) => {
-    const theme = useAppTheme();
-    const [index, setIndex] = useState(0);
-    const ref = useRef<ScrollView>(null);
+    swipeEnabled = true,
+    primaryButtonText = 'Get Started',
+    skipButtonText = 'Skip',
+    nextButtonText = 'Next',
+    backButtonText = 'Back',
+    style,
+    children,
+}: OnboardingProps) {
+    const [currentStep, setCurrentStep] = useState(0);
+    const scrollViewRef = useRef<ScrollView>(null);
+    const translateX = useSharedValue(0);
 
-    const isFirst = index === 0;
-    const isLast = index === steps.length - 1;
+    const backgroundColor = useThemeColor({}, 'background');
+    const primaryColor = useThemeColor({}, 'primary');
+    const mutedColor = useThemeColor({}, 'mutedForeground');
 
-    const go = async (to: number) => {
-        await Haptics.selectionAsync();
-        setIndex(to);
-        ref.current?.scrollTo({ x: to * W, animated: true });
+    const isLastStep = currentStep === steps.length - 1;
+    const isFirstStep = currentStep === 0;
+
+    const handleNext = () => {
+        if (isLastStep) {
+            onComplete();
+        } else {
+            const nextStep = currentStep + 1;
+            setCurrentStep(nextStep);
+            scrollViewRef.current?.scrollTo({
+                x: nextStep * screenWidth,
+                animated: true,
+            });
+        }
     };
 
-    const onMomentumEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-        const next = Math.round(e.nativeEvent.contentOffset.x / W);
-        setIndex(next);
+    const handleBack = () => {
+        if (!isFirstStep) {
+            const prevStep = currentStep - 1;
+            setCurrentStep(prevStep);
+            scrollViewRef.current?.scrollTo({
+                x: prevStep * screenWidth,
+                animated: true,
+            });
+        }
     };
 
-    const next = () => (isLast ? onComplete() : go(index + 1));
-    const back = () => !isFirst && go(index - 1);
-    const skip = async () => {
-        await Haptics.selectionAsync();
-        onSkip ? onSkip() : onComplete();
+    const handleSkip = () => {
+        if (onSkip) {
+            onSkip();
+        } else {
+            onComplete();
+        }
     };
 
-    return (
-        <View style={[styles.container, { backgroundColor: theme.background }]}>
-            {/* Pages */}
-            <ScrollView
-                ref={ref}
-                horizontal
-                pagingEnabled
-                showsHorizontalScrollIndicator={false}
-                onMomentumScrollEnd={onMomentumEnd}
-                contentContainerStyle={{ alignItems: "stretch" }}
+    // Modern gesture handling with Gesture API
+    const panGesture = Gesture.Pan()
+        .enabled(swipeEnabled)
+        .onUpdate((event) => {
+            translateX.value = event.translationX;
+        })
+        .onEnd((event) => {
+            const { translationX, velocityX } = event;
+            const shouldSwipe =
+                Math.abs(translationX) > screenWidth * 0.3 || Math.abs(velocityX) > 500;
+
+            if (shouldSwipe) {
+                if (translationX > 0 && !isFirstStep) {
+                    // Swipe right - go back
+                    runOnJS(handleBack)();
+                } else if (translationX < 0 && !isLastStep) {
+                    // Swipe left - go next
+                    runOnJS(handleNext)();
+                }
+            }
+
+            translateX.value = withSpring(0);
+        });
+
+    const animatedStyle = useAnimatedStyle(() => ({
+        transform: [{ translateX: translateX.value }],
+    }));
+
+    const renderProgressDots = () => {
+        if (!showProgress) return null;
+
+        return (
+            <View style={styles.progressContainer}>
+                {steps.map((_, index) => (
+                    <View
+                        key={index}
+                        style={[
+                            styles.progressDot,
+                            {
+                                backgroundColor:
+                                    index === currentStep ? primaryColor : mutedColor,
+                                opacity: index === currentStep ? 1 : 0.3,
+                            },
+                        ]}
+                    />
+                ))}
+            </View>
+        );
+    };
+
+    const renderStep = (step: OnboardingStep, index: number) => {
+        const isActive = index === currentStep;
+
+        return (
+            <Animated.View
+                key={step.id}
+                style={[
+                    styles.stepContainer,
+                    { backgroundColor: step.backgroundColor || backgroundColor },
+                    { opacity: isActive ? 1 : 0.8 },
+                ]}
             >
-                {steps.map((step) => (
-                    <View key={step.id} style={[styles.page, { width: W }]}>
-                        {/* Halo dégradé derrière l’emoji */}
-                        <LinearGradient
-                            colors={[
-                                step.accent ?? withAlpha(theme.primary, 0.35),
-                                withAlpha(theme.background, 0.0),
-                            ]}
-                            start={{ x: 0.5, y: 0 }}
-                            end={{ x: 0.5, y: 1 }}
-                            style={styles.emojiHalo}
-                        />
-                        <View
-                            style={[
-                                styles.emojiWrap,
-                                { backgroundColor: withAlpha(step.accent ?? theme.primary, 0.12) },
-                            ]}
-                        >
-                            <Text style={styles.emoji} accessibilityLabel={step.title}>
-                                {step.emoji}
-                            </Text>
-                        </View>
+                <View style={styles.contentContainer}>
+                    {step.image && (
+                        <View style={styles.imageContainer}>{step.image}</View>
+                    )}
 
-                        <Text style={[styles.title, { color: theme.text }]}>{step.title}</Text>
-                        <Text style={[styles.desc, { color: withAlpha(theme.text, 0.8) }]}>
+                    {step.icon && !step.image && (
+                        <View style={styles.imageContainer}>{step.icon}</View>
+                    )}
+
+                    <View style={styles.textContainer}>
+                        <Text variant='title' style={styles.title}>
+                            {step.title}
+                        </Text>
+                        <Text variant='body' style={styles.description}>
                             {step.description}
                         </Text>
                     </View>
-                ))}
-            </ScrollView>
 
-            {/* Progress */}
-            {showProgress && (
-                <View style={styles.dots}>
-                    {steps.map((_, i) => (
-                        <View
-                            key={i}
-                            style={[
-                                styles.dot,
-                                {
-                                    backgroundColor:
-                                        i === index ? theme.primary : withAlpha(theme.text, 0.25),
-                                    opacity: i === index ? 1 : 0.5,
-                                    width: i === index ? DOT * 2.2 : DOT,
-                                },
-                            ]}
-                        />
-                    ))}
+                    {children && <View style={styles.customContent}>{children}</View>}
+                </View>
+            </Animated.View>
+        );
+    };
+
+    return (
+        <View style={[styles.container, { backgroundColor }, style]}>
+            <GestureDetector gesture={panGesture}>
+                <Animated.View style={[styles.container, animatedStyle]}>
+                    <ScrollView
+                        ref={scrollViewRef}
+                        horizontal
+                        pagingEnabled
+                        showsHorizontalScrollIndicator={false}
+                        scrollEnabled={swipeEnabled}
+                        onMomentumScrollEnd={(event) => {
+                            const newStep = Math.round(
+                                event.nativeEvent.contentOffset.x / screenWidth
+                            );
+                            setCurrentStep(newStep);
+                        }}
+                    >
+                        {steps.map((step, index) => renderStep(step, index))}
+                    </ScrollView>
+                </Animated.View>
+            </GestureDetector>
+
+            {/* Progress Dots */}
+            {renderProgressDots()}
+
+            {/* Skip Button */}
+            {showSkip && !isLastStep && (
+                <View style={styles.skipContainer}>
+                    <Button variant='ghost' onPress={handleSkip}>
+                        {skipButtonText}
+                    </Button>
                 </View>
             )}
 
-            {/* Top-right Skip */}
-            {showSkip && !isLast && (
-                <Pressable style={styles.skip} onPress={skip} hitSlop={10}>
-                    <Text style={{ color: withAlpha(theme.text, 0.7), fontWeight: "800" }}>
-                        Passer
-                    </Text>
-                </Pressable>
-            )}
-
-            {/* Bottom actions */}
-            <View style={styles.actions}>
-                {!isFirst ? (
-                    <GhostButton label={backLabel} onPress={back} />
-                ) : (
-                    <View style={{ flex: 1 }} />
+            {/* Navigation Buttons */}
+            <View style={styles.buttonContainer}>
+                {!isFirstStep && (
+                    <Button variant='outline' onPress={handleBack} style={{ flex: 1 }}>
+                        {backButtonText}
+                    </Button>
                 )}
 
-                <GradientButton
-                    label={isLast ? doneLabel : nextLabel}
-                    onPress={next}
-                    colors={[
-                        (steps[index].accent ?? theme.primary) as string,
-                        withAlpha(theme.text, 0.18),
-                    ]}
-                    themeBg={theme.background}
-                />
+                <Button
+                    variant='default'
+                    onPress={handleNext}
+                    style={[...(isFirstStep ? [styles.fullWidthButton] : [{ flex: 2 }])]}
+                >
+                    {isLastStep ? primaryButtonText : nextButtonText}
+                </Button>
             </View>
         </View>
     );
-};
-
-export default Onboarding;
-
-/* ————— Buttons ————— */
-
-const GradientButton: React.FC<{
-    label: string;
-    onPress: () => void;
-    colors: [string, string];
-    themeBg: string;
-}> = ({ label, onPress, colors, themeBg }) => {
-    return (
-        <Pressable style={styles.ctaPressable} onPress={onPress}>
-            <LinearGradient
-                colors={colors}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.cta}
-            >
-                <Text style={[styles.ctaText, { color: themeBg }]}>{label}</Text>
-            </LinearGradient>
-        </Pressable>
-    );
-};
-
-const GhostButton: React.FC<{ label: string; onPress: () => void }> = ({
-    label,
-    onPress,
-}) => {
-    return (
-        <Pressable onPress={onPress} style={styles.ghost}>
-            <Text style={styles.ghostText}>{label}</Text>
-        </Pressable>
-    );
-};
-
-/* ————— Styles ————— */
+}
 
 const styles = StyleSheet.create({
-    container: { flex: 1 },
-    page: {
+    container: {
         flex: 1,
+    },
+    stepContainer: {
+        width: screenWidth,
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
         paddingHorizontal: 24,
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 14,
     },
-    emojiHalo: {
-        position: "absolute",
-        top: 0,
-        left: W / 2 - 140,
-        width: 280,
-        height: 280,
-        borderRadius: 140,
-        opacity: 0.35,
-    },
-    emojiWrap: {
-        width: 140,
-        height: 140,
-        borderRadius: 28,
-        alignItems: "center",
-        justifyContent: "center",
-    },
-    emoji: { fontSize: 72 },
-    title: { fontSize: 24, fontWeight: "900", textAlign: "center" },
-    desc: { fontSize: 15, fontWeight: "600", textAlign: "center", lineHeight: 22 },
-
-    dots: {
-        position: "absolute",
-        bottom: 120,
-        width: "100%",
-        flexDirection: "row",
-        justifyContent: "center",
-        gap: 8,
-    },
-    dot: {
-        height: DOT,
-        borderRadius: DOT,
-    },
-
-    skip: { position: "absolute", top: 20, right: 16 },
-    actions: {
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 12,
-        paddingHorizontal: 20,
-        paddingBottom: 28,
-    },
-    ghost: {
+    contentContainer: {
         flex: 1,
-        height: 48,
-        borderRadius: 999,
-        borderWidth: StyleSheet.hairlineWidth,
-        borderColor: "rgba(255,255,255,0.25)",
-        alignItems: "center",
-        justifyContent: "center",
+        justifyContent: 'center',
+        alignItems: 'center',
+        maxWidth: 400,
     },
-    ghostText: { fontWeight: "800", fontSize: 14, opacity: 0.9, color: "#fff" },
-    ctaPressable: { flex: 2, borderRadius: 999, overflow: "hidden" },
-    cta: {
-        height: 48,
-        borderRadius: 999,
-        alignItems: "center",
-        justifyContent: "center",
+    imageContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 40,
+        minHeight: 200,
     },
-    ctaText: { fontSize: 15, fontWeight: "900", letterSpacing: 0.3 },
+    textContainer: {
+        alignItems: 'center',
+        paddingHorizontal: 20,
+        marginBottom: 40,
+    },
+    title: {
+        textAlign: 'center',
+        marginBottom: 16,
+        paddingHorizontal: 20,
+    },
+    description: {
+        textAlign: 'center',
+        lineHeight: 24,
+        paddingHorizontal: 20,
+    },
+    customContent: {
+        alignItems: 'center',
+        paddingHorizontal: 20,
+        marginTop: 20,
+    },
+    progressContainer: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingVertical: 20,
+    },
+    progressDot: {
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+        marginHorizontal: 4,
+    },
+    skipContainer: {
+        position: 'absolute',
+        top: 60,
+        right: 10,
+        zIndex: 1,
+    },
+    buttonContainer: {
+        width: '100%',
+        height: 90,
+        flexDirection: 'row',
+        paddingHorizontal: 24,
+        paddingBottom: 40,
+        gap: 12,
+    },
+    fullWidthButton: {
+        flex: 1,
+    },
 });
+
+// Onboarding Hook for managing state
+export function useOnboarding() {
+    const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState(false);
+    const [currentOnboardingStep, setCurrentOnboardingStep] = useState(0);
+
+    const completeOnboarding = async () => {
+        try {
+            // In a real app, you'd save this to AsyncStorage or similar
+            setHasCompletedOnboarding(true);
+            console.log('Onboarding completed and saved');
+        } catch (error) {
+            console.error('Failed to save onboarding completion:', error);
+        }
+    };
+
+    const resetOnboarding = () => {
+        setHasCompletedOnboarding(false);
+        setCurrentOnboardingStep(0);
+    };
+
+    const skipOnboarding = async () => {
+        await completeOnboarding();
+    };
+
+    return {
+        hasCompletedOnboarding,
+        currentOnboardingStep,
+        setCurrentOnboardingStep,
+        completeOnboarding,
+        resetOnboarding,
+        skipOnboarding,
+    };
+}

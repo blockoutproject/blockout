@@ -1,23 +1,23 @@
-import React, { forwardRef, useMemo } from "react";
+import React, { forwardRef } from "react";
 import {
     BottomSheetBackdrop,
     BottomSheetBackdropProps,
     BottomSheetModal,
     BottomSheetModalProps,
-    BottomSheetView,
 } from "@gorhom/bottom-sheet";
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import { View } from "react-native";
 
 export type BottomSheetModalPropsEx = Omit<
     BottomSheetModalProps,
-    "children"
+    "children" | "snapPoints"
 > & {
     children: React.ReactNode;
+    snapPoint?: string | number;
 };
 
 const BottomSheetCustomModal = forwardRef<BottomSheetModal, BottomSheetModalPropsEx>(
-    ({ children, ...rest }, ref) => {
+    ({ children, snapPoint, ...rest }, ref) => {
         const theme = useAppTheme();
 
         return (
@@ -38,7 +38,12 @@ const BottomSheetCustomModal = forwardRef<BottomSheetModal, BottomSheetModalProp
                 keyboardBehavior="interactive"
                 keyboardBlurBehavior="restore"
                 stackBehavior="push"
-                enableDynamicSizing
+                {...(snapPoint
+                    ? {
+                        snapPoints: [snapPoint],
+                        enableDynamicSizing: false
+                    }
+                    : { enableDynamicSizing: true })}
                 {...rest}
             >
                 <View style={{ flex: 1 }}>{children}</View>
