@@ -2,6 +2,7 @@ package com.blockout.workersearch.exceptions;
 
 import com.blockout.workersearch.utils.ApiErrorUtils;
 import jakarta.servlet.http.HttpServletRequest;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -18,7 +19,8 @@ public class GlobalExceptionHandler {
             HttpClientErrorException ex, HttpServletRequest request) {
 
         HttpStatus status = HttpStatus.resolve(ex.getStatusCode().value());
-        if (status == null) status = HttpStatus.BAD_REQUEST;
+        if (status == null)
+            status = HttpStatus.BAD_REQUEST;
 
         String extracted = ApiErrorUtils.extractMessage(ex.getResponseBodyAsString());
 
@@ -62,7 +64,6 @@ public class GlobalExceptionHandler {
                 "status", status.value(),
                 "error", status.getReasonPhrase(),
                 "message", message,
-                "path", path
-        ));
+                "path", path));
     }
 }
