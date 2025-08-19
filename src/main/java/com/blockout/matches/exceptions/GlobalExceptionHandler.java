@@ -34,7 +34,6 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MatchNotFoundException.class)
     public ResponseEntity<Map<String, Object>> handleMatchNotFound(
             MatchNotFoundException ex, HttpServletRequest request) {
-        ex.printStackTrace();
         return buildErrorResponse(
                 ex.getMessage(),
                 HttpStatus.NOT_FOUND,
