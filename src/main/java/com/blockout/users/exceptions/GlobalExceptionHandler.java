@@ -1,11 +1,14 @@
 package com.blockout.users.exceptions;
 
 import jakarta.servlet.http.HttpServletRequest;
+
+import org.apache.tomcat.util.http.fileupload.impl.SizeLimitExceededException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 import com.auth0.exception.Auth0Exception;
 
@@ -45,7 +48,6 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(CustomUserNotFoundException.class)
     public ResponseEntity<Map<String, Object>> handleUserNotFound(
             CustomUserNotFoundException ex, HttpServletRequest request) {
-        ex.printStackTrace();
         return buildErrorResponse(
                 ex.getMessage(),
                 HttpStatus.NOT_FOUND,
@@ -55,7 +57,6 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Auth0Exception.class)
     public ResponseEntity<Map<String, Object>> handleAuth0UserNotFound(
             Auth0Exception ex, HttpServletRequest request) {
-        ex.printStackTrace();
         return buildErrorResponse(
                 ex.getMessage(),
                 HttpStatus.UNAUTHORIZED,
@@ -79,6 +80,17 @@ public class GlobalExceptionHandler {
         return buildErrorResponse(
                 "Une erreur interne est survenue.",
                 HttpStatus.INTERNAL_SERVER_ERROR,
+                request.getRequestURI());
+    }
+
+    @ExceptionHandler({
+            MaxUploadSizeExceededException.class,
+            SizeLimitExceededException.class
+    })
+    public ResponseEntity<Map<String, Object>> handleFileTooLarge(Exception ex, HttpServletRequest request) {
+        return buildErrorResponse(
+                "L’image est trop volumineuse. La taille maximale autorisée est de 5 Mo.",
+                HttpStatus.PAYLOAD_TOO_LARGE,
                 request.getRequestURI());
     }
 

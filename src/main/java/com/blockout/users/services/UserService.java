@@ -13,7 +13,7 @@ import com.blockout.users.models.dto.CustomUserUpdateDTO;
 import com.blockout.users.models.events.UserFollowEvent.EventType;
 import com.blockout.users.models.mappers.CustomUserMapper;
 import com.blockout.users.repositories.UserRepository;
-import com.blockout.users.services.clients.S3StorageClient;
+import com.blockout.users.services.clients.S3StorageClientService;
 import com.blockout.users.utils.DiffUtils;
 import com.blockout.users.utils.ImageUtils;
 
@@ -43,7 +43,7 @@ public class UserService {
     private final CustomUserMapper customUserMapper;
     private final EventPublisher eventPublisher;
     private final Auth0Properties auth0Properties;
-    private final S3StorageClient s3StorageClient;
+    private final S3StorageClientService s3StorageClient;
 
     private String generatePseudo(String email) {
         return (email != null) ? email.split("@")[0] : "user" + System.currentTimeMillis();
