@@ -33,7 +33,6 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(PoolNotFoundException.class)
     public ResponseEntity<Map<String, Object>> handlePoolNotFound(
             PoolNotFoundException ex, HttpServletRequest request) {
-        ex.printStackTrace();
         return buildErrorResponse(
                 ex.getMessage(),
                 HttpStatus.NOT_FOUND,
