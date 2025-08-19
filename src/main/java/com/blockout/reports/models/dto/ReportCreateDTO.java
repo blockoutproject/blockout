@@ -27,18 +27,15 @@ public class ReportCreateDTO {
     @JsonProperty("app_version")
     private String appVersion;
 
-    private String locale;
-
     @JsonProperty("user_id")
     private String userId;
 
-    private String environment;
+    private String screen;
 
-    @JsonProperty("display_bug")
-    private DisplayBugDTO displayBug;
+    @JsonProperty("device_model")
+    private String deviceModel;
 
-    @JsonProperty("data_error")
-    private DataErrorDTO dataError;
+    private String os;
 
     @JsonProperty("attachment_image_urls")
     private List<String> attachmentImageUrls;
