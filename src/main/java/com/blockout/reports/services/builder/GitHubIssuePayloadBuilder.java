@@ -11,14 +11,12 @@ public class GitHubIssuePayloadBuilder {
 
     public GitHubIssueRequest toIssue(ReportCreateDTO dto) {
         List<String> labels = new ArrayList<>();
-        labels.add("report");
-        labels.add("source:app");
         if (dto.getType() == ReportType.DISPLAY_BUG)
-            labels.add("type:display-bug");
+            labels.add("display bug");
         else if (dto.getType() == ReportType.DATA_ERROR)
-            labels.add("type:data-error");
+            labels.add("data error");
         else
-            labels.add("type:other");
+            labels.add("other");
 
         StringBuilder body = new StringBuilder();
 
