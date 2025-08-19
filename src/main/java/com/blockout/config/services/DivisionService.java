@@ -4,7 +4,7 @@ import com.blockout.config.exceptions.DivisionNotFoundException;
 import com.blockout.config.models.Division;
 import com.blockout.config.models.dto.DivisionUpdateDTO;
 import com.blockout.config.repositories.DivisionRepository;
-import com.blockout.config.services.clients.S3StorageClient;
+import com.blockout.config.services.clients.S3StorageClientService;
 import com.blockout.config.utils.DiffUtils;
 import com.blockout.config.utils.ImageUtils;
 
@@ -26,7 +26,7 @@ public class DivisionService {
 
     private static final Logger logger = LoggerFactory.getLogger(DivisionService.class);
     private final DivisionRepository divisionRepository;
-    private final S3StorageClient s3StorageClient;
+    private final S3StorageClientService s3StorageClient;
 
     /**
      * Récupère toutes les divisions, actives ou non

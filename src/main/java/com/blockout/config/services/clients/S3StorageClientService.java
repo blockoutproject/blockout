@@ -19,7 +19,7 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
-public class S3StorageClient {
+public class S3StorageClientService {
 
     private final AwsS3Properties s3Properties;
 

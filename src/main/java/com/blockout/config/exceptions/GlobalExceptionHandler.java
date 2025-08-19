@@ -1,11 +1,14 @@
 package com.blockout.config.exceptions;
 
 import jakarta.servlet.http.HttpServletRequest;
+
+import org.apache.tomcat.util.http.fileupload.impl.SizeLimitExceededException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 import java.time.Instant;
 import java.util.Map;
@@ -30,10 +33,10 @@ public class GlobalExceptionHandler {
                 HttpStatus.UNAUTHORIZED,
                 request.getRequestURI());
     }
+
     @ExceptionHandler(RawDivisionMappingNotFoundException.class)
     public ResponseEntity<Map<String, Object>> handleRawDivisionMappingNotFound(
             RawDivisionMappingNotFoundException ex, HttpServletRequest request) {
-        ex.printStackTrace();
         return buildErrorResponse(
                 ex.getMessage(),
                 HttpStatus.NOT_FOUND,
@@ -43,7 +46,6 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(DivisionNotFoundException.class)
     public ResponseEntity<Map<String, Object>> handleDivisionNotFound(
             DivisionNotFoundException ex, HttpServletRequest request) {
-        ex.printStackTrace();
         return buildErrorResponse(
                 ex.getMessage(),
                 HttpStatus.NOT_FOUND,
@@ -53,7 +55,6 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ScraperNotFoundException.class)
     public ResponseEntity<Map<String, Object>> handleScraperNotFound(
             ScraperNotFoundException ex, HttpServletRequest request) {
-        ex.printStackTrace();
         return buildErrorResponse(
                 ex.getMessage(),
                 HttpStatus.NOT_FOUND,
@@ -77,6 +78,17 @@ public class GlobalExceptionHandler {
         return buildErrorResponse(
                 "Une erreur interne est survenue.",
                 HttpStatus.INTERNAL_SERVER_ERROR,
+                request.getRequestURI());
+    }
+
+    @ExceptionHandler({
+            MaxUploadSizeExceededException.class,
+            SizeLimitExceededException.class
+    })
+    public ResponseEntity<Map<String, Object>> handleFileTooLarge(Exception ex, HttpServletRequest request) {
+        return buildErrorResponse(
+                "L’image est trop volumineuse. La taille maximale autorisée est de 5 Mo.",
+                HttpStatus.PAYLOAD_TOO_LARGE,
                 request.getRequestURI());
     }
 
