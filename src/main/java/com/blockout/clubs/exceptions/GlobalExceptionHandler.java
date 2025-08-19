@@ -1,11 +1,14 @@
 package com.blockout.clubs.exceptions;
 
 import jakarta.servlet.http.HttpServletRequest;
+
+import org.apache.tomcat.util.http.fileupload.impl.SizeLimitExceededException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 import java.time.Instant;
 import java.util.Map;
@@ -30,10 +33,10 @@ public class GlobalExceptionHandler {
                 HttpStatus.UNAUTHORIZED,
                 request.getRequestURI());
     }
+
     @ExceptionHandler(ClubNotFoundException.class)
     public ResponseEntity<Map<String, Object>> handlePoolNotFound(
             ClubNotFoundException ex, HttpServletRequest request) {
-        ex.printStackTrace();
         return buildErrorResponse(
                 ex.getMessage(),
                 HttpStatus.NOT_FOUND,
@@ -60,6 +63,17 @@ public class GlobalExceptionHandler {
                 request.getRequestURI());
     }
 
+    @ExceptionHandler({
+            MaxUploadSizeExceededException.class,
+            SizeLimitExceededException.class
+    })
+    public ResponseEntity<Map<String, Object>> handleFileTooLarge(Exception ex, HttpServletRequest request) {
+        return buildErrorResponse(
+                "L’image est trop volumineuse. La taille maximale autorisée est de 5 Mo.",
+                HttpStatus.PAYLOAD_TOO_LARGE,
+                request.getRequestURI());
+    }
+
     private ResponseEntity<Map<String, Object>> buildErrorResponse(
             String message,
             HttpStatus status,
@@ -70,7 +84,6 @@ public class GlobalExceptionHandler {
                 "status", status.value(),
                 "error", status.getReasonPhrase(),
                 "message", message,
-                "path", path
-        ));
+                "path", path));
     }
 }

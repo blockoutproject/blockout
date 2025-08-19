@@ -4,7 +4,7 @@ import com.blockout.clubs.exceptions.ClubNotFoundException;
 import com.blockout.clubs.models.Club;
 import com.blockout.clubs.models.dto.ClubUpdateDTO;
 import com.blockout.clubs.repositories.ClubRepository;
-import com.blockout.clubs.services.clients.S3StorageClient;
+import com.blockout.clubs.services.clients.S3StorageClientService;
 import com.blockout.clubs.utils.DiffUtils;
 import com.blockout.clubs.utils.ImageUtils;
 
@@ -30,7 +30,7 @@ public class ClubService {
 
     private final ClubRepository clubRepository;
     private final EventPublisher eventPublisher;
-    private final S3StorageClient s3StorageClient;
+    private final S3StorageClientService s3StorageClient;
 
     /**
      * Récupère les clubs en appliquant des filtres facultatifs
@@ -70,8 +70,7 @@ public class ClubService {
      *
      * @param club  Entité Club à persister (nom, ville, etc.)
      * @param image Fichier image optionnel pour le logo
-     * @return Le club créé avec son ID généré et, le cas échéant, son logoUrl
-     *         rempli
+     * @return Le club créé avec son ID généré et, le cas échéant, son logoUrl rempli
      */
     @Transactional
     public Club createClub(ClubUpdateDTO dto, MultipartFile image) {
