@@ -1,5 +1,6 @@
 package com.blockout.competitions.services;
 
+import com.blockout.competitions.exceptions.CompetitionAssociationNotFoundException;
 import com.blockout.competitions.models.CompetitionAssociation;
 import com.blockout.competitions.models.dto.PoolWithRankingDTO;
 import com.blockout.competitions.models.dto.TeamAssociationStatsRequest;
@@ -7,7 +8,6 @@ import com.blockout.competitions.models.dto.TeamRankingDTO;
 import com.blockout.competitions.repositories.CompetitionAssociationRepository;
 import com.blockout.competitions.utils.DiffUtils;
 
-import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 
 import org.slf4j.Logger;
@@ -252,8 +252,7 @@ public class CompetitionAssociationService {
                             "update_association_stats", savedAssoc.getId());
                     return savedAssoc;
                 })
-                .orElseThrow(() -> new EntityNotFoundException(
-                        "Association introuvable pour poolId " + poolId + " et teamId " + teamId));
+                .orElseThrow(() -> new CompetitionAssociationNotFoundException(teamId, poolId));
     }
 
     public List<PoolWithRankingDTO> getPoolsAndRankingsByTeam(Long teamId) {
