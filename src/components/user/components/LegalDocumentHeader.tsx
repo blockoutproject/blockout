@@ -1,6 +1,6 @@
 import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
-import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import { HEADER_HEIGHT } from "@/src/theme/globals";
@@ -21,7 +21,7 @@ const LegalDocumentHeader: React.FC<LegalDocumentHeaderProps> = ({ title, onClos
             <View style={styles.header}>
                 <View style={styles.leftGroup}>
                     <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-                        <MaterialCommunityIcons name={canGoBack ? "chevron-left" : "close"} size={30} color={theme.text} />
+                        <Ionicons name={canGoBack ? "chevron-back-outline" : "close"} size={canGoBack ? 30 : 35} color={theme.text} />
                     </TouchableOpacity>
 
                     <Text style={[styles.title, { color: theme.text }]} numberOfLines={1}>
@@ -55,7 +55,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 12,
     },
     leftGroup: { flexDirection: "row", alignItems: "center", flex: 1 },
-    backButton: { marginRight: 8 },
+    backButton: { marginRight: 4 },
     title: { fontSize: 18, fontWeight: "700" },
 });
 

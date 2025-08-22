@@ -35,7 +35,7 @@ const BottomSheetCustomModal = forwardRef<BottomSheetModal, BottomSheetModalProp
                 handleStyle={{ paddingTop: 8 }}
                 handleIndicatorStyle={{ backgroundColor: theme.text }}
                 backgroundStyle={{ backgroundColor: theme.backgroundSecondary }}
-                keyboardBehavior="interactive"
+                keyboardBehavior="extend"
                 keyboardBlurBehavior="restore"
                 stackBehavior="push"
                 {...(snapPoint

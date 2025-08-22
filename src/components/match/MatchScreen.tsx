@@ -1,8 +1,8 @@
-import React, { useRef } from "react";
-import { StyleSheet, View } from "react-native";
+import React, { useCallback, useRef } from "react";
+import { RefreshControl, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { RouteProp, useRoute } from "@react-navigation/native";
-import { BottomSheetScrollView, BottomSheetModal, BottomSheetView } from "@gorhom/bottom-sheet";
+import { BottomSheetModal } from "@gorhom/bottom-sheet";
 
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import { useEnrichedMatchById } from "@/src/hooks/match/useEnrichedMatchById";
@@ -10,7 +10,6 @@ import MatchSkeleton from "@/src/components/match/components/MatchSkeleton";
 import MatchScoreCard from "@/src/components/match/components/MatchScoreCard";
 import MatchScoreDetailsCard from "@/src/components/match/components/MatchScoreDetailsCard";
 import MatchInfoCard from "@/src/components/match/components/MatchInfoCard";
-import RankingCard from "@/src/components/common/RankingCard";
 import { SheetStackParamList } from "@/src/components/common/BottomSheetNavigator";
 import { getTeamsRankingColor } from "@/src/utils/utils";
 import ErrorState from "@/src/components/common/ErrorState";
@@ -18,6 +17,10 @@ import MatchHeader from "@/src/components/match/components/MatchHeader";
 import ReportForm from "../report/ReportForm";
 import { ReportType } from "@/src/types/Report";
 import BottomSheetCustomModal from "../common/BottomSheetCustomModal";
+import * as Haptics from "expo-haptics";
+import RankingCard from "../ranking/RankingCard";
+import { ScrollView } from "react-native-gesture-handler";
+import { HEADER_HEIGHT } from "@/src/theme/globals";
 
 
 type MatchRouteProp = RouteProp<SheetStackParamList, "Match">;
@@ -34,6 +37,14 @@ const MatchScreen: React.FC<MatchScreenProps> = ({ onCloseSheet }) => {
     const insets = useSafeAreaInsets();
 
     const reportSheetRef = useRef<BottomSheetModal>(null);
+    const [ isRefreshing, setIsRefreshing ] = React.useState(false);
+
+    const handleRefresh = useCallback(async () => {
+        setIsRefreshing(true);
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        await refetch();
+        setIsRefreshing(false);
+    }, [refetch]);
 
     let body: React.ReactNode;
 
@@ -52,13 +63,16 @@ const MatchScreen: React.FC<MatchScreenProps> = ({ onCloseSheet }) => {
         ];
 
         body = (
-            <BottomSheetScrollView
+            <ScrollView
                 scrollEnabled
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={[
                     styles.scrollContent,
-                    { backgroundColor: theme.background, paddingBottom: insets.bottom },
+                    { backgroundColor: theme.background, paddingBottom: insets.bottom + HEADER_HEIGHT },
                 ]}
+                refreshControl={
+                    <RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />
+                }
             >
                 <MatchScoreCard enrichedMatch={enrichedMatch} gradient={gradient} />
                 <MatchScoreDetailsCard enrichedMatch={enrichedMatch} />
@@ -73,7 +87,7 @@ const MatchScreen: React.FC<MatchScreenProps> = ({ onCloseSheet }) => {
                         highlightColor: enrichedMatch.pool.division.mainColor,
                     })}
                 />
-            </BottomSheetScrollView>
+            </ScrollView>
         );
     }
 
@@ -88,7 +102,6 @@ const MatchScreen: React.FC<MatchScreenProps> = ({ onCloseSheet }) => {
             <BottomSheetCustomModal
                 ref={reportSheetRef}
                 snapPoint={"90%"}
-                onDismiss={() => reportSheetRef.current?.dismiss()}
             >
                 <ReportForm
                     context={{

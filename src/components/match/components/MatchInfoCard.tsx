@@ -56,17 +56,18 @@ const MatchInfoCard: React.FC<MatchInfoCardProps> = ({ enrichedMatch }) => {
             <Text style={[styles.title, { color: theme.text }]}>Informations</Text>
 
             <View style={styles.pillsWrap}>
-                <InfoPillGradient icon="trophy-variant" label={leagueLabel} gradient={gradient} borderWidth={1} />
+                <InfoPillGradient leftIcon="trophy-variant" label={leagueLabel} gradient={gradient} borderWidth={1} />
                 <InfoPillGradient
                     label={enrichedMatch.pool.name}
                     gradient={gradient}
                     variant="filled"
                     onPress={() => handlePoolPress(enrichedMatch.pool.id)}
+                    rightIcon="chevron-forward-outline"
                 />
-                <InfoPillGradient icon="calendar" label={dateLabel} gradient={gradient} borderWidth={1} />
-                <InfoPillGradient icon="map-marker" label={venue} gradient={gradient} borderWidth={1} />
-                {ref1 && <InfoPillGradient icon="whistle" label={ref1} gradient={gradient} borderWidth={1} />}
-                {ref2 && <InfoPillGradient icon="whistle" label={ref2} gradient={gradient} borderWidth={1} />}
+                <InfoPillGradient leftIcon="calendar" label={dateLabel} gradient={gradient} borderWidth={1} />
+                <InfoPillGradient leftIcon="map-marker" label={venue} gradient={gradient} borderWidth={1} />
+                {ref1 && <InfoPillGradient leftIcon="whistle" label={ref1} gradient={gradient} borderWidth={1} />}
+                {ref2 && <InfoPillGradient leftIcon="whistle" label={ref2} gradient={gradient} borderWidth={1} />}
             </View>
         </GradientBorderView>
     );

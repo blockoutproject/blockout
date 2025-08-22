@@ -129,9 +129,9 @@ const RawDivisionMappingScreen: React.FC = () => {
                 </View>
 
                 <View style={styles.filterWrapper}>
-                    <Filters filters={mappingFilters} setFilters={setMappingFilters} singleSelect />
-                    <Filters filters={leagueFilters} setFilters={setLeagueFilters} />
-                    <Filters filters={seasonFilters} setFilters={setSeasonFilters} />
+                    <Filters filters={mappingFilters} setFilters={setMappingFilters} singleSelect size="sm" />
+                    <Filters filters={leagueFilters} setFilters={setLeagueFilters} size="sm" />
+                    <Filters filters={seasonFilters} setFilters={setSeasonFilters} size="sm" />
                 </View>
 
                 <FlatList
@@ -160,7 +160,10 @@ const RawDivisionMappingScreen: React.FC = () => {
                 />
             </View>
 
-            <BottomSheetCustomModal ref={formSheetRef}>
+            <BottomSheetCustomModal
+                ref={formSheetRef}
+                snapPoint="90%"
+            >
                 {editing && (
                     <RawDivisionMappingForm
                         mapping={editing}
@@ -179,15 +182,15 @@ const RawDivisionMappingScreen: React.FC = () => {
 export default RawDivisionMappingScreen;
 
 const styles = StyleSheet.create({
-    container: { flex: 1 },
+    container: { flex: 1, gap: 16 },
     center: { flex: 1, justifyContent: "center", alignItems: "center" },
     searchRow: {
         flexDirection: "row",
         alignItems: "center",
         marginHorizontal: 8,
-        marginVertical: 16,
+        marginTop: 16,
     },
-    filterWrapper: { flexDirection: "column", gap: 12, marginBottom: 16 },
+    filterWrapper: { flexDirection: "column", gap: 6 },
     flatList: { paddingHorizontal: 8 },
     emptyState: { alignItems: "center", marginTop: 32 },
 });

@@ -70,7 +70,6 @@ const SearchScreen: React.FC<Props> = ({ onCloseSheet }) => {
             <BottomSheetCustomModal
                 ref={reportSheetRef}
                 snapPoint={"90%"}
-                onDismiss={() => reportSheetRef.current?.dismiss()}
             >
                 <ReportForm
                     context={{

@@ -23,17 +23,22 @@ import { Division } from "@/src/types/Division";
 import ConfigApi from "@/src/api/ConfigApi";
 import CircleColorPicker from "@/src/components/common/CircleColorPicker";
 import { CORNERS } from "@/src/theme/globals";
+import Field from "../../common/Field";
+import useKeyboardVisible from "@/src/hooks/utils/useKeyboardVisible";
 
 type DivisionFormProps = {
     division: Division | null;
     onSuccess: () => void;
 };
 
+const FOOTER_HEIGHT = 60;
+
 const DivisionForm: React.FC<DivisionFormProps> = ({ division, onSuccess }) => {
     const theme = useAppTheme();
     const insets = useSafeAreaInsets();
     const api = ConfigApi.getInstance();
     const isEditMode = !!division;
+    const isKeyboardVisible = useKeyboardVisible();
 
     const [imageFile, setImageFile] = useState<{ uri: string; name: string; type: string } | null>(null);
     const [previewUri, setPreviewUri] = useState<string | null>(null);
@@ -139,15 +144,16 @@ const DivisionForm: React.FC<DivisionFormProps> = ({ division, onSuccess }) => {
     });
 
     const logoUri = previewUri ?? formik.values.logoUrl ?? null;
-    const inputBorderColor = (touched?: unknown, error?: unknown) =>
-        touched && error ? theme.error : theme.border;
+
+    const outerPaddingBottom = isKeyboardVisible ? 8 : insets.bottom + 8;
+    const errorBottomOffset = FOOTER_HEIGHT + outerPaddingBottom;
 
     return (
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1, paddingBottom: outerPaddingBottom }}>
             <BottomSheetScrollView
                 contentContainerStyle={[
                     styles.scroll,
-                    { paddingBottom: insets.bottom + 88 },
+                    { paddingBottom: FOOTER_HEIGHT + outerPaddingBottom },
                 ]}
                 showsVerticalScrollIndicator={false}
             >
@@ -180,24 +186,20 @@ const DivisionForm: React.FC<DivisionFormProps> = ({ division, onSuccess }) => {
                 </View>
 
                 <View style={[styles.card, { backgroundColor: theme.surface }]}>
-                    <Text style={[styles.sectionTitle, { color: theme.text }]}>Nom</Text>
-                    <BottomSheetTextInput
-                        style={[
-                            styles.input,
-                            {
-                                borderColor: inputBorderColor(formik.touched.name, formik.errors.name),
-                                color: theme.text,
-                            },
-                        ]}
-                        value={formik.values.name}
-                        onChangeText={formik.handleChange("name")}
-                        onBlur={formik.handleBlur("name")}
-                        placeholder="Nom de la division"
-                        placeholderTextColor={theme.textInactive}
-                    />
-                    {formik.touched.name && formik.errors.name ? (
-                        <Text style={[styles.errorText, { color: theme.error }]}>{formik.errors.name}</Text>
-                    ) : null}
+                    <Field label="Nom" error={formik.errors.name} touched={formik.touched.name}>
+                        <BottomSheetTextInput
+                            style={[
+                                styles.input,
+                                { borderColor: theme.border, color: theme.text },
+                                formik.touched.name && formik.errors.name ? { borderColor: theme.error } : null,
+                            ]}
+                            value={formik.values.name}
+                            onChangeText={formik.handleChange("name")}
+                            onBlur={formik.handleBlur("name")}
+                            placeholder="Nom de la division"
+                            placeholderTextColor={theme.textInactive}
+                        />
+                    </Field>
                 </View>
 
                 <View style={[styles.card, { backgroundColor: theme.surface }]}>
@@ -229,7 +231,6 @@ const DivisionForm: React.FC<DivisionFormProps> = ({ division, onSuccess }) => {
                 </View>
             </BottomSheetScrollView>
 
-            {/* Erreur Absolute + Fade */}
             {apiError ? (
                 <Animated.View
                     style={[
@@ -237,7 +238,7 @@ const DivisionForm: React.FC<DivisionFormProps> = ({ division, onSuccess }) => {
                         {
                             backgroundColor: theme.error + "22",
                             borderColor: theme.error,
-                            bottom: insets.bottom + 64,
+                            bottom: errorBottomOffset,
                             opacity: errorOpacity,
                             transform: [
                                 {
@@ -256,35 +257,37 @@ const DivisionForm: React.FC<DivisionFormProps> = ({ division, onSuccess }) => {
                 </Animated.View>
             ) : null}
 
-            <View
-                style={[
-                    styles.footer,
-                    {
-                        paddingBottom: insets.bottom + 8,
-                        backgroundColor: theme.backgroundSecondary,
-                        borderTopColor: theme.border,
-                    },
-                ]}
-            >
-                <TouchableOpacity
+            {/* Footer fixe */}
+            <View>
+                <View
                     style={[
-                        styles.submitBtn,
-                        { backgroundColor: formik.values.mainColor || theme.primary, opacity: loading ? 0.7 : 1 },
+                        styles.footer,
+                        {
+                            backgroundColor: theme.backgroundSecondary,
+                            borderTopColor: theme.border,
+                        },
                     ]}
-                    disabled={loading}
-                    onPress={() => formik.handleSubmit()}
                 >
-                    {loading ? (
-                        <ActivityIndicator color={theme.text} />
-                    ) : (
-                        <>
-                            <MaterialCommunityIcons name="content-save-outline" size={18} color={theme.text} />
-                            <Text style={[styles.submitText, { color: theme.text }]}>
-                                {isEditMode ? (!division?.active ? "Réactiver" : "Modifier") : "Créer"}
-                            </Text>
-                        </>
-                    )}
-                </TouchableOpacity>
+                    <TouchableOpacity
+                        style={[
+                            styles.submitBtn,
+                            { backgroundColor: formik.values.mainColor || theme.primary, opacity: loading ? 0.7 : 1 },
+                        ]}
+                        disabled={loading}
+                        onPress={() => formik.handleSubmit()}
+                    >
+                        {loading ? (
+                            <ActivityIndicator color={theme.text} />
+                        ) : (
+                            <>
+                                <MaterialCommunityIcons name="content-save-outline" size={18} color={theme.text} />
+                                <Text style={[styles.submitText, { color: theme.text }]}>
+                                    {isEditMode ? (!division?.active ? "Réactiver" : "Modifier") : "Créer"}
+                                </Text>
+                            </>
+                        )}
+                    </TouchableOpacity>
+                </View>
             </View>
         </View>
     );
@@ -340,7 +343,6 @@ const styles = StyleSheet.create({
         paddingHorizontal: 14,
         fontSize: 14,
     },
-    errorText: { fontSize: 12, marginTop: 6, marginLeft: 6, fontWeight: "600" },
     colorRow: { flexDirection: "row", gap: 16, marginTop: 8, marginLeft: 8 },
     apiErrorContainer: {
         position: "absolute",
@@ -358,6 +360,7 @@ const styles = StyleSheet.create({
     },
     apiErrorText: { flex: 1, fontSize: 14, fontWeight: "600" },
     footer: {
+        height: FOOTER_HEIGHT,
         position: "absolute",
         left: 0,
         right: 0,
@@ -365,6 +368,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 12,
         paddingTop: 8,
         borderTopWidth: 1,
+        justifyContent: "center",
     },
     submitBtn: {
         borderRadius: CORNERS,

@@ -57,7 +57,6 @@ const TeamScreen: React.FC<TeamScreenProps> = ({ onCloseSheet }) => {
             <BottomSheetCustomModal
                 ref={reportSheetRef}
                 snapPoint={"90%"}
-                onDismiss={() => reportSheetRef.current?.dismiss()}
             >
                 <ReportForm
                     context={{

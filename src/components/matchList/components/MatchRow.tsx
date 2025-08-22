@@ -3,7 +3,7 @@ import { Text, View, StyleSheet } from "react-native";
 import { EnrichedMatchDTO, MatchStatus } from "@/src/types/Match";
 import { withAlpha } from "@/src/utils/utils";
 import { useAppTheme } from "@/src/context/ThemeProvider";
-import MaskedImage from "../../common/MaskedImage";
+import MaskedImage from "../../common/images/MaskedImage";
 import GradientBorderView from "../../common/GradientBorderView";
 import { Division } from "@/src/types/Division";
 

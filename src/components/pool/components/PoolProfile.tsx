@@ -8,7 +8,7 @@ import { usePoolFollowState } from "@/src/hooks/pool/usePoolFollowState";
 import { GenderLabels } from "@/src/types/enums/Gender";
 import InfoPill from "@/src/components/common/chips/InfoPill";
 import { LOGO_SIZE } from "@/src/theme/globals";
-import MaskedImage from "../../common/MaskedImage";
+import MaskedImage from "../../common/images/MaskedImage";
 
 type PoolProfileProps = {
     enrichedPool: EnrichedPoolDTO;
@@ -28,29 +28,27 @@ const PoolProfile: React.FC<PoolProfileProps> = ({ enrichedPool }) => {
 
     return (
         <View style={styles.container}>
-            <View style={styles.topRow}>
-                <MaskedImage uri={enrichedPool.division.logoUrl} size={LOGO_SIZE} radius={20} shadow />
+            <MaskedImage uri={enrichedPool.division.logoUrl} size={LOGO_SIZE} radius={20} shadow />
 
-                <View style={styles.infoCol}>
-                    <View style={styles.pillRow}>
-                        <InfoPill label={division.name} />
-                        <InfoPill label={GenderLabels[enrichedPool.gender]} />
-                    </View>
+            <View style={styles.infoCol}>
+                <View style={styles.pillRow}>
+                    <InfoPill label={division.name} />
+                    <InfoPill label={GenderLabels[enrichedPool.gender]} />
+                </View>
 
-                    <View style={styles.pillRow}>
-                        <InfoPill label={enrichedPool.leagueName} />
-                        <InfoPill label={String(enrichedPool.season)} />
-                    </View>
+                <View style={styles.pillRow}>
+                    <InfoPill label={enrichedPool.leagueName} />
+                    <InfoPill label={String(enrichedPool.season)} />
+                </View>
 
-                    <View style={styles.actionsRow}>
-                        <FollowButton
-                            isFollowing={isFollowing}
-                            onPress={onToggleFollow}
-                            disabled={isProcessing}
-                            gradient={gradient}
-                        />
-                        <FollowersCounter count={followersCount} />
-                    </View>
+                <View style={styles.actionsRow}>
+                    <FollowButton
+                        isFollowing={isFollowing}
+                        onPress={onToggleFollow}
+                        disabled={isProcessing}
+                        gradient={gradient}
+                    />
+                    <FollowersCounter count={followersCount} />
                 </View>
             </View>
         </View>
@@ -63,9 +61,6 @@ const styles = StyleSheet.create({
     container: {
         paddingHorizontal: 12,
         paddingTop: 8,
-        gap: 10,
-    },
-    topRow: {
         flexDirection: "row",
         alignItems: "flex-start",
         gap: 12,

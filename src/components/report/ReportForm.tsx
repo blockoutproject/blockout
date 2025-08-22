@@ -28,6 +28,8 @@ import { ReportType, type Report, type GitHubIssueResponse } from "@/src/types/R
 import { useUserContext } from "@/src/context/UserProvider";
 import Filters from "@/src/components/common/Filters";
 import type { Filter } from "@/src/types/Filter";
+import Field from "../common/Field";
+import useKeyboardVisible from "@/src/hooks/utils/useKeyboardVisible";
 
 type ReportFormProps = {
     context?: {
@@ -37,6 +39,8 @@ type ReportFormProps = {
     };
     onSuccess: (created: GitHubIssueResponse) => void;
 };
+
+const FOOTER_HEIGHT = 60;
 
 const CATEGORY_OPTIONS = [
     { name: "Bug d'affichage", value: ReportType.DISPLAY_BUG },
@@ -49,6 +53,7 @@ const ReportForm: React.FC<ReportFormProps> = ({ context, onSuccess }) => {
     const insets = useSafeAreaInsets();
     const api = ReportsApi.getInstance();
     const { customUser } = useUserContext();
+    const isKeyboardVisible = useKeyboardVisible();
 
     const [images, setImages] = useState<{ uri: string; name: string; type: string }[]>([]);
     const [loading, setLoading] = useState(false);
@@ -178,10 +183,16 @@ const ReportForm: React.FC<ReportFormProps> = ({ context, onSuccess }) => {
         [formik.values.type]
     );
 
+    const outerPaddingBottom = isKeyboardVisible ? 8 : insets.bottom + 8;
+    const errorBottomOffset = FOOTER_HEIGHT + outerPaddingBottom;
+
     return (
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1, paddingBottom: outerPaddingBottom }}>
             <BottomSheetScrollView
-                contentContainerStyle={[styles.scroll, { paddingBottom: insets.bottom + 88 }]}
+                contentContainerStyle={[
+                    styles.scroll,
+                    { paddingBottom: FOOTER_HEIGHT + outerPaddingBottom },
+                ]}
                 showsVerticalScrollIndicator={false}
             >
                 <View style={[styles.card, { backgroundColor: theme.surface }]}>
@@ -264,7 +275,7 @@ const ReportForm: React.FC<ReportFormProps> = ({ context, onSuccess }) => {
                         {
                             backgroundColor: theme.error + "22",
                             borderColor: theme.error,
-                            bottom: insets.bottom + 64,
+                            bottom: errorBottomOffset,
                             opacity: errorOpacity,
                             transform: [
                                 {
@@ -283,55 +294,38 @@ const ReportForm: React.FC<ReportFormProps> = ({ context, onSuccess }) => {
                 </Animated.View>
             ) : null}
 
-            {/* Footer */}
-            <View
-                style={[
-                    styles.footer,
-                    {
-                        paddingBottom: insets.bottom + 8,
-                        backgroundColor: theme.backgroundSecondary,
-                        borderTopColor: theme.border,
-                    },
-                ]}
-            >
-                <TouchableOpacity
-                    style={[styles.submitBtn, { backgroundColor: theme.primary, opacity: loading ? 0.7 : 1 }]}
-                    disabled={loading}
-                    onPress={() => formik.handleSubmit()}
+            {/* Footer fixe */}
+            <View>
+                <View
+                    style={[
+                        styles.footer,
+                        {
+                            backgroundColor: theme.backgroundSecondary,
+                            borderTopColor: theme.border,
+                        },
+                    ]}
                 >
-                    {loading ? (
-                        <ActivityIndicator color={theme.text} />
-                    ) : (
-                        <>
-                            <MaterialCommunityIcons name="send" size={18} color={theme.text} />
-                            <Text style={[styles.submitText, { color: theme.text }]}>Envoyer</Text>
-                        </>
-                    )}
-                </TouchableOpacity>
+                    <TouchableOpacity
+                        style={[styles.submitBtn, { backgroundColor: theme.primary, opacity: loading ? 0.7 : 1 }]}
+                        disabled={loading}
+                        onPress={() => formik.handleSubmit()}
+                    >
+                        {loading ? (
+                            <ActivityIndicator color={theme.text} />
+                        ) : (
+                            <>
+                                <MaterialCommunityIcons name="send" size={18} color={theme.text} />
+                                <Text style={[styles.submitText, { color: theme.text }]}>Envoyer</Text>
+                            </>
+                        )}
+                    </TouchableOpacity>
+                </View>
             </View>
         </View>
     );
 };
 
 export default ReportForm;
-
-const Field: React.FC<{
-    label: string;
-    children: React.ReactNode;
-    error?: string;
-    touched?: boolean;
-}> = ({ label, children, error, touched }) => {
-    const theme = useAppTheme();
-    return (
-        <View style={styles.fieldBlock}>
-            <Text style={[styles.label, { color: theme.text }]}>{label}</Text>
-            {children}
-            {touched && !!error ? (
-                <Text style={[styles.error, { color: theme.error }]}>{error}</Text>
-            ) : null}
-        </View>
-    );
-};
 
 const styles = StyleSheet.create({
     scroll: { gap: 12, paddingHorizontal: 8 },
@@ -346,11 +340,8 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 0, height: 6 },
     },
     sectionTitle: { fontSize: 13, fontWeight: "800", textTransform: "uppercase", opacity: 0.85 },
-    fieldBlock: { marginBottom: 6 },
-    label: { fontSize: 14, fontWeight: "600", marginBottom: 6, marginLeft: 4 },
     input: { borderWidth: 1.5, borderRadius: 16, paddingVertical: 12, paddingHorizontal: 14, fontSize: 14 },
-    textarea: { maxHeight: 420, textAlignVertical: "top", minHeight: 180 },
-    error: { fontSize: 12, marginTop: 4, marginLeft: 8, fontWeight: "600" },
+    textarea: { maxHeight: 200, textAlignVertical: "top", minHeight: 180 },
     thumbWrap: {
         width: 84,
         height: 84,
@@ -386,6 +377,7 @@ const styles = StyleSheet.create({
     },
     apiErrorText: { flex: 1, fontSize: 14, fontWeight: "600" },
     footer: {
+        height: FOOTER_HEIGHT,
         position: "absolute",
         left: 0,
         right: 0,
@@ -393,6 +385,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 12,
         paddingTop: 8,
         borderTopWidth: 1,
+        justifyContent: "center",
     },
     submitBtn: {
         borderRadius: CORNERS,

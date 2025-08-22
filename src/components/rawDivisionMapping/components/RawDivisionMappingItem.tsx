@@ -13,9 +13,22 @@ type RawDivisionMappingItemProps = {
 const RawDivisionMappingItem: React.FC<RawDivisionMappingItemProps> = ({ mapping, onPress }) => {
     const theme = useAppTheme();
 
-    const isMapped = Boolean(mapping.divisionId && mapping.format && mapping.gender);
-    const statusColor = isMapped ? theme.success : theme.error;
-    const statusLabel = isMapped ? "Mappé" : "Non mappé";
+    const hasDivision = Boolean(mapping.divisionId);
+    const hasFormat = Boolean(mapping.format);
+    const hasGender = Boolean(mapping.gender);
+
+    const filledCount = [hasDivision, hasFormat, hasGender].filter(Boolean).length;
+
+    let statusColor = theme.error;
+    let statusLabel = "Non mappé";
+
+    if (filledCount === 3) {
+        statusColor = theme.success;
+        statusLabel = "Mappé";
+    } else if (filledCount > 0) {
+        statusColor = theme.textSecondary;
+        statusLabel = "Partiel";
+    }
 
     const handlePress = () => {
         Haptics.selectionAsync();

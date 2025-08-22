@@ -76,24 +76,20 @@ const ClubScreen: React.FC<ClubScreenProps> = ({ onCloseSheet }) => {
                     showsVerticalScrollIndicator={false}
                     contentContainerStyle={[styles.scrollContent, { backgroundColor: theme.background }]}
                 >
-                    {/* Hero avec stylo en haut à droite */}
                     <ClubHero club={club} onEdit={canUpdateClub ? openForm : undefined} />
 
-                    {/* Coordonnées */}
                     <InfoCard title="Coordonnées">
                         <InfoRow icon="email-outline" label="Email" value={club.email} onPress={openMail} isLink />
                         <InfoRow icon="phone-outline" label="Téléphone" value={club.phoneNumber} onPress={openPhone} isLink />
                         <InfoRow icon="link-variant" label="Site web" value={websiteDisplay} onPress={openWebsite} isLink />
                     </InfoCard>
 
-                    {/* Localisation */}
                     <InfoCard title="Localisation">
                         <InfoRow icon="map-marker" label="Ville" value={club.city} />
                         <InfoRow icon="map-outline" label="Voir sur la carte" value="Ouvrir la carte" onPress={openMap} isLink />
                     </InfoCard>
                 </BottomSheetScrollView>
 
-                {/* Modale d’édition */}
                 <BottomSheetCustomModal ref={formSheetRef}>
                     <ClubForm
                         club={club}
@@ -105,11 +101,9 @@ const ClubScreen: React.FC<ClubScreenProps> = ({ onCloseSheet }) => {
                     />
                 </BottomSheetCustomModal>
 
-                {/* Modale de report */}
                 <BottomSheetCustomModal
                     ref={reportSheetRef}
                     snapPoint={"90%"}
-                    onDismiss={() => reportSheetRef.current?.dismiss()}
                 >
                     <ReportForm
                         context={{

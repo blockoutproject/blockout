@@ -7,7 +7,7 @@ import {
     ViewStyle,
     TextStyle,
 } from "react-native";
-import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import { CORNERS } from "@/src/theme/globals";

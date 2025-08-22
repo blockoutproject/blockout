@@ -1,5 +1,5 @@
 import React, { useMemo, useRef, useState, useCallback } from 'react';
-import { StyleSheet, Animated, SectionList as RNSectionList } from 'react-native';
+import { StyleSheet, Animated } from 'react-native';
 import { NavigationState, Route, SceneRendererProps, TabView } from 'react-native-tab-view';
 import MatchList from '@/src/components/matchList/MatchListContainer';
 import { MatchStatus } from '@/src/types/Match';
@@ -9,7 +9,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useUserContext } from '@/src/context/UserProvider';
 import { useSheet } from '@/src/context/SheetProvider';
 import { HEADER_HEIGHT, TABBAR_HEIGHT } from '@/src/theme/globals';
-import VolleyballLoader from '@/src/components/common/VolleyballLoader';
 
 const HomeScreen: React.FC = () => {
     const insets = useSafeAreaInsets();

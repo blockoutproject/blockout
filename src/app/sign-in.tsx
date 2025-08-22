@@ -1,15 +1,14 @@
-// src/app/sign-in/index.tsx
 import React, { useState } from "react";
 import { View, Text, StyleSheet, ImageBackground, Pressable, ActivityIndicator } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
-import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import { useSession } from "@/src/context/SessionProvider";
 import { useUserContext } from "@/src/context/UserProvider";
 import { withAlpha } from "@/src/utils/utils";
-import MaskedImage from "@/src/components/common/MaskedImage";
+import MaskedImage from "@/src/components/common/images/MaskedImage";
 
 const HERO = {
     title: "Blockout",

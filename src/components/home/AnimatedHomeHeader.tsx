@@ -7,7 +7,7 @@ import {
     View,
 } from "react-native";
 import { Image } from "expo-image";
-import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import {
     TabBar,
     SceneRendererProps,

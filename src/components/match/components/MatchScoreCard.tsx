@@ -12,7 +12,7 @@ import type { Team } from "@/src/types/Team";
 import type { SheetStackParamList } from "@/src/components/common/BottomSheetNavigator";
 import InfoPill from "../../common/chips/InfoPill";
 import InfoPillGradient from "../../common/chips/InfoPillGradient";
-import MaskedImage from "../../common/MaskedImage";
+import MaskedImage from "../../common/images/MaskedImage";
 
 export interface MatchScoreCardProps {
     enrichedMatch: EnrichedMatchDTO;
@@ -80,7 +80,7 @@ const MatchScoreCard: React.FC<MatchScoreCardProps> = ({ enrichedMatch, gradient
                                 </Text>
                             </GradientBorderView>
                             {time ? (
-                                <Text style={[styles.timeSubtle, { color: theme.textInactive }]}>{time}</Text>
+                                <InfoPill label={time} />
                             ) : null}
                         </>
                     ) : (

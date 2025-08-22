@@ -1,10 +1,10 @@
 import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
-import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import { HEADER_HEIGHT } from "@/src/theme/globals";
 import { useBackOrClose } from "@/src/hooks/utils/useBackOrClose";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 
 type ClubHeaderProps = {
     title: string;
@@ -21,9 +21,9 @@ const ClubHeader: React.FC<ClubHeaderProps> = ({ title, onCloseSheet, onOpenRepo
             <View style={styles.header}>
                 <View style={styles.leftGroup}>
                     <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-                        <MaterialCommunityIcons
-                            name={canGoBack ? "chevron-left" : "close"}
-                            size={30}
+                        <Ionicons
+                            name={canGoBack ? "chevron-back-outline" : "close"}
+                            size={25}
                             color={theme.text}
                         />
                     </TouchableOpacity>
@@ -60,7 +60,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 12,
     },
     leftGroup: { flexDirection: "row", alignItems: "center", flex: 1 },
-    backButton: { marginRight: 8 },
+    backButton: { marginRight: 4 },
     title: { fontSize: 18, fontWeight: "700" },
     rightGroup: { flexDirection: "row", alignItems: "center", gap: 12 },
     iconBtn: { padding: 4 },

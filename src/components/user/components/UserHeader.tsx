@@ -1,9 +1,10 @@
 import React from "react";
 import { TouchableOpacity, View, StyleSheet, Text } from "react-native";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import { HEADER_HEIGHT } from "@/src/theme/globals";
 import { useBackOrClose } from "@/src/hooks/utils/useBackOrClose";
+import { ca } from "date-fns/locale";
 
 type UserHeaderProps = {
     title: string;
@@ -20,9 +21,9 @@ const UserHeader: React.FC<UserHeaderProps> = ({ title, onCloseSheet, onOpenRepo
             <View style={styles.header}>
                 <View style={styles.leftGroup}>
                     <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-                        <MaterialCommunityIcons
-                            name={canGoBack ? "chevron-left" : "close"}
-                            size={30}
+                        <Ionicons
+                            name={canGoBack ? "chevron-back-outline" : "close"}
+                            size={canGoBack ? 30 : 35}
                             color={theme.text}
                         />
                     </TouchableOpacity>
@@ -34,7 +35,7 @@ const UserHeader: React.FC<UserHeaderProps> = ({ title, onCloseSheet, onOpenRepo
 
                 <View style={styles.rightGroup}>
                     <TouchableOpacity onPress={onOpenReport} style={styles.iconBtn}>
-                        <MaterialCommunityIcons name="flag-outline" size={22} color={theme.text} />
+                        <MaterialCommunityIcons name="flag-outline" size={28} color={theme.text} />
                     </TouchableOpacity>
                 </View>
             </View>
@@ -55,7 +56,7 @@ const styles = StyleSheet.create({
     },
     leftGroup: { flexDirection: "row", alignItems: "center", flex: 1 },
     rightGroup: { flexDirection: "row", alignItems: "center", gap: 12 },
-    backButton: { marginRight: 8 },
+    backButton: { marginRight: 4 },
     title: { fontSize: 18, fontWeight: "700" },
     iconBtn: { padding: 4 },
 });

@@ -95,9 +95,7 @@ const DivisionScreen: React.FC = () => {
                 </View>
 
                 <View style={styles.filtersWrapper}>
-                    <View style={styles.filterGroup}>
-                        <Filters filters={statusFilters} setFilters={setStatusFilters} singleSelect />
-                    </View>
+                    <Filters filters={statusFilters} setFilters={setStatusFilters} singleSelect size="sm" />
                 </View>
 
                 <FlatList
@@ -125,7 +123,10 @@ const DivisionScreen: React.FC = () => {
                 />
             </View>
 
-            <BottomSheetCustomModal ref={formSheetRef}>
+            <BottomSheetCustomModal
+                ref={formSheetRef}
+                snapPoint="90%"
+            >
                 <DivisionForm
                     division={editedDivision}
                     onSuccess={async () => {
@@ -142,13 +143,13 @@ const DivisionScreen: React.FC = () => {
 export default DivisionScreen;
 
 const styles = StyleSheet.create({
-    container: { flex: 1 },
+    container: { flex: 1, gap: 16 },
     center: { flex: 1, justifyContent: "center", alignItems: "center" },
     searchRow: {
         flexDirection: "row",
         alignItems: "center",
         marginHorizontal: 8,
-        marginVertical: 16,
+        marginTop: 16,
         gap: 12,
     },
     addButton: {
@@ -158,7 +159,6 @@ const styles = StyleSheet.create({
     },
     addButtonText: { color: "white", fontWeight: "bold" },
     filtersWrapper: { paddingHorizontal: 8 },
-    filterGroup: { marginBottom: 12 },
     flatList: { paddingHorizontal: 8 },
     emptyState: { alignItems: "center", marginTop: 32 },
 });

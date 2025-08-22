@@ -14,7 +14,7 @@ import type { SheetStackParamList } from "@/src/components/common/BottomSheetNav
 import { LOGO_SIZE } from "@/src/theme/globals";
 import InfoChipGradient from "../../common/chips/InfoChipGradientTwoIcons";
 import InfoPill from "../../common/chips/InfoPill";
-import MaskedImage from "../../common/MaskedImage";
+import MaskedImage from "../../common/images/MaskedImage";
 
 type TeamProfileProps = {
     enrichedTeam: EnrichedTeamDTO;
@@ -22,8 +22,7 @@ type TeamProfileProps = {
 
 const TeamProfile: React.FC<TeamProfileProps> = ({ enrichedTeam }) => {
     const navigation = useNavigation<NativeStackNavigationProp<SheetStackParamList>>();
-    const { isFollowing, isProcessing, followersCount, onToggleFollow } =
-        useTeamFollowState(enrichedTeam);
+    const { isFollowing, isProcessing, followersCount, onToggleFollow } = useTeamFollowState(enrichedTeam);
 
     const gradient = [
         enrichedTeam.division.firstGradientColor,
@@ -38,35 +37,33 @@ const TeamProfile: React.FC<TeamProfileProps> = ({ enrichedTeam }) => {
 
     return (
         <View style={styles.container}>
-            <View style={styles.topRow}>
-                <MaskedImage uri={enrichedTeam.club.logoUrl} size={LOGO_SIZE} radius={20} shadow />
+            <MaskedImage uri={enrichedTeam.club.logoUrl} size={LOGO_SIZE} radius={20} shadow />
 
-                <View style={styles.infoCol}>
-                    <View style={styles.pillRow}>
-                        <InfoPill label={enrichedTeam.division.name} />
-                        <InfoPill label={GenderLabels[enrichedTeam.gender]} />
-                    </View>
+            <View style={styles.infoCol}>
+                <View style={styles.pillRow}>
+                    <InfoPill label={enrichedTeam.division.name} />
+                    <InfoPill label={GenderLabels[enrichedTeam.gender]} />
+                </View>
 
-                    <View style={styles.pillRow}>
-                        <InfoPill label={FormatLabels[enrichedTeam.format]} />
-                        <InfoPill label={String(enrichedTeam.season)} />
-                        <InfoChipGradient
-                            firstIcon="home"
-                            secondIcon="arrow-right"
-                            gradient={gradient}
-                            onPress={() => handleClubPress(enrichedTeam.club.id)}
-                        />
-                    </View>
+                <View style={styles.pillRow}>
+                    <InfoPill label={FormatLabels[enrichedTeam.format]} />
+                    <InfoPill label={String(enrichedTeam.season)} />
+                    <InfoChipGradient
+                        firstIcon="home"
+                        secondIcon="chevron-forward-outline"
+                        gradient={gradient}
+                        onPress={() => handleClubPress(enrichedTeam.club.id)}
+                    />
+                </View>
 
-                    <View style={styles.actionsRow}>
-                        <FollowButton
-                            isFollowing={isFollowing}
-                            onPress={onToggleFollow}
-                            disabled={isProcessing}
-                            gradient={gradient}
-                        />
-                        <FollowersCounter count={followersCount} />
-                    </View>
+                <View style={styles.actionsRow}>
+                    <FollowButton
+                        isFollowing={isFollowing}
+                        onPress={onToggleFollow}
+                        disabled={isProcessing}
+                        gradient={gradient}
+                    />
+                    <FollowersCounter count={followersCount} />
                 </View>
             </View>
         </View>
@@ -77,10 +74,8 @@ export default TeamProfile;
 
 const styles = StyleSheet.create({
     container: {
-        padding: 12,
-        gap: 10,
-    },
-    topRow: {
+        paddingHorizontal: 12,
+        paddingTop: 8,
         flexDirection: "row",
         alignItems: "flex-start",
         gap: 12,

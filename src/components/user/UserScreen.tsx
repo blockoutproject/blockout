@@ -3,7 +3,7 @@ import { View, StyleSheet, ActivityIndicator, Text, Pressable } from "react-nati
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
-import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import * as Application from "expo-application";
 
 import { useAppTheme } from "@/src/context/ThemeProvider";
@@ -95,7 +95,7 @@ const UserScreen: React.FC<UserScreenProps> = ({ onCloseSheet }) => {
                     {label}
                 </Text>
             </View>
-            <MaterialCommunityIcons name="chevron-right" size={20} color={withAlpha(theme.text, 0.5)} />
+            <Ionicons name="chevron-forward-outline" size={20} color={withAlpha(theme.text, 0.5)} />
         </Pressable>
     );
 
@@ -176,7 +176,10 @@ const UserScreen: React.FC<UserScreenProps> = ({ onCloseSheet }) => {
                     <LegalDocumentScreen type="privacy" title="Politique de Confidentialité" onCloseSheet={dismissLocal(privacyRef)} />
                 </BottomSheetCustomPage>
 
-                <BottomSheetCustomModal ref={formSheetRef}>
+                <BottomSheetCustomModal
+                    ref={formSheetRef}
+                    snapPoint={"90%"}
+                >
                     <UserForm
                         user={customUser}
                         onSuccess={async () => {
@@ -190,7 +193,6 @@ const UserScreen: React.FC<UserScreenProps> = ({ onCloseSheet }) => {
                 <BottomSheetCustomModal
                     ref={reportSheetRef}
                     snapPoint={"90%"}
-                    onDismiss={() => reportSheetRef.current?.dismiss()}
                 >
                     <ReportForm
                         context={{

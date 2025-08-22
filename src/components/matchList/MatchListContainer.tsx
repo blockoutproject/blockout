@@ -12,14 +12,14 @@ import * as Haptics from "expo-haptics";
 import { MatchStatus } from "@/src/types/Match";
 import { formatDateFrenchLocale } from "@/src/utils/utils";
 import EmptyPrompt from "../common/feedback/EmptyPrompt";
-import ErrorPrompt from "../common/feedback/ErrorPrompt";
 import PoolItem from "./components/PoolItem";
 import { useMatchList } from "@/src/hooks/match/useMatchList";
-import { useThemeColor } from "@/src/hooks/useThemeColor";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { SheetStackParamList } from "@/src/components/common/BottomSheetNavigator";
 import SectionDateHeader from "./components/SectionDateHeader";
+import { useAppTheme } from "@/src/context/ThemeProvider";
+import ErrorState from "../common/ErrorState";
 
 type MatchListContainerProps = {
     poolIds?: number[];
@@ -47,8 +47,7 @@ const MatchListContainer: React.FC<MatchListContainerProps> = ({
     openSheet,
     showPoolHeader = true,
 }) => {
-    const background = useThemeColor({}, "background");
-    const text = useThemeColor({}, "text");
+    const theme = useAppTheme();
     const navigation =
         useNavigation<NativeStackNavigationProp<SheetStackParamList>>();
 
@@ -59,6 +58,7 @@ const MatchListContainer: React.FC<MatchListContainerProps> = ({
         isFetchingNextPage,
         isLoading,
         isError,
+        error,
         refetch,
     } = useMatchList(status, poolIds, teamIds);
 
@@ -71,23 +71,23 @@ const MatchListContainer: React.FC<MatchListContainerProps> = ({
         setIsRefreshing(false);
     }, [refetch]);
 
-    const handleLoadMore = () => {
+    const handleLoadMore = useCallback(() => {
         if (hasNextPage && !isFetchingNextPage) fetchNextPage();
-    };
+    }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-    const handleMatchPress = (matchId: number) => {
+    const handleMatchPress = useCallback((matchId: number) => {
         Haptics.selectionAsync();
         home && openSheet
             ? openSheet("Match", { matchId })
             : navigation.push("Match", { matchId });
-    };
+    }, [home, openSheet, navigation]);
 
-    const handlePoolPress = (poolId: number) => {
+    const handlePoolPress = useCallback((poolId: number) => {
         Haptics.selectionAsync();
         home && openSheet
             ? openSheet("Pool", { poolId })
             : navigation.push("Pool", { poolId });
-    };
+    }, [home, openSheet, navigation]);
 
     const sections = useMemo(
         () =>
@@ -101,32 +101,30 @@ const MatchListContainer: React.FC<MatchListContainerProps> = ({
     const renderSectionHeader = useCallback(
         ({ section: { title } }: { section: { title: string } }) => (
             <SectionDateHeader title={title} />
-        ), []);
+        ),
+        []
+    );
+
+    let body: React.ReactNode;
 
     if (isLoading) {
-        return (
-            <View style={[styles.center, { backgroundColor: background }]}>
-                <ActivityIndicator size="large" color={text} />
+        body = (
+            <View style={[styles.center, { backgroundColor: theme.background }]}>
+                <ActivityIndicator size="large" color={theme.text} />
             </View>
         );
-    }
-
-    if (isError) {
-        return (
-            <ErrorPrompt
-                title="Erreur de chargement"
-                subtitle="Impossible de récupérer les données. Vérifie ta connexion."
+    } else if (isError) {
+        body = (
+            <ErrorState
+                message="Impossible de charger la liste des matchs."
                 onRetry={refetch}
-                home
             />
         );
-    }
-
-    return (
-        <View style={[styles.container, { backgroundColor: background }]}>
+    } else {
+        body = (
             <Animated.SectionList
                 sections={sections}
-                keyExtractor={(it, i) => `${it.pool.id}-${i}`}
+                keyExtractor={(it) => String(it.pool.id)}
                 initialNumToRender={10}
                 stickySectionHeadersEnabled
                 renderSectionHeader={renderSectionHeader}
@@ -146,7 +144,7 @@ const MatchListContainer: React.FC<MatchListContainerProps> = ({
                     <RefreshControl
                         refreshing={isRefreshing}
                         onRefresh={handleRefresh}
-                        tintColor={text}
+                        tintColor={theme.text}
                         progressViewOffset={headerOffset + 12}
                     />
                 }
@@ -176,7 +174,18 @@ const MatchListContainer: React.FC<MatchListContainerProps> = ({
                         <ActivityIndicator style={{ marginTop: 12 }} />
                     ) : null
                 }
+                maintainVisibleContentPosition={{ minIndexForVisible: 1 }}
+                windowSize={15}
+                maxToRenderPerBatch={8}
+                updateCellsBatchingPeriod={16}
+                scrollEventThrottle={16}
             />
+        );
+    }
+
+    return (
+        <View style={[styles.container, { backgroundColor: theme.background }]}>
+            {body}
         </View>
     );
 };

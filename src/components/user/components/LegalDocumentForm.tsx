@@ -1,26 +1,31 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { View, StyleSheet, Text, TouchableOpacity, ActivityIndicator, Animated } from 'react-native';
-import { BottomSheetTextInput, BottomSheetScrollView } from '@gorhom/bottom-sheet';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useFormik } from 'formik';
-import * as Yup from 'yup';
-import * as Haptics from 'expo-haptics';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import React, { useEffect, useRef, useState } from "react";
+import { View, StyleSheet, Text, TouchableOpacity, ActivityIndicator, Animated } from "react-native";
+import { BottomSheetTextInput, BottomSheetScrollView } from "@gorhom/bottom-sheet";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useFormik } from "formik";
+import * as Yup from "yup";
+import * as Haptics from "expo-haptics";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
-import { useAppTheme } from '@/src/context/ThemeProvider';
-import type { LegalDocument } from '@/src/types/LegalDocument';
-import ConfigApi from '@/src/api/ConfigApi';
-import { CORNERS } from '@/src/theme/globals';
+import { useAppTheme } from "@/src/context/ThemeProvider";
+import type { LegalDocument } from "@/src/types/LegalDocument";
+import ConfigApi from "@/src/api/ConfigApi";
+import { CORNERS } from "@/src/theme/globals";
+import Field from "../../common/Field";
+import useKeyboardVisible from "@/src/hooks/utils/useKeyboardVisible";
 
 interface LegalDocumentFormProps {
     document: LegalDocument;
     onSuccess: () => void;
 }
 
+const FOOTER_HEIGHT = 60;
+
 const LegalDocumentForm: React.FC<LegalDocumentFormProps> = ({ document, onSuccess }) => {
     const theme = useAppTheme();
     const insets = useSafeAreaInsets();
     const api = ConfigApi.getInstance();
+    const isKeyboardVisible = useKeyboardVisible();
 
     const [loading, setLoading] = useState(false);
     const [apiError, setApiError] = useState<string | null>(null);
@@ -57,9 +62,9 @@ const LegalDocumentForm: React.FC<LegalDocumentFormProps> = ({ document, onSucce
             content: document.content,
         },
         validationSchema: Yup.object({
-            title: Yup.string().required('Titre requis'),
-            version: Yup.string().required('Version requise'),
-            content: Yup.string().required('Contenu requis'),
+            title: Yup.string().required("Titre requis"),
+            version: Yup.string().required("Version requise"),
+            content: Yup.string().required("Contenu requis"),
         }),
         onSubmit: async (values) => {
             try {
@@ -72,7 +77,7 @@ const LegalDocumentForm: React.FC<LegalDocumentFormProps> = ({ document, onSucce
                 onSuccess();
             } catch (err) {
                 console.error(err);
-                setApiError('Erreur lors de la sauvegarde.');
+                setApiError("Erreur lors de la sauvegarde.");
                 await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
             } finally {
                 setLoading(false);
@@ -80,19 +85,27 @@ const LegalDocumentForm: React.FC<LegalDocumentFormProps> = ({ document, onSucce
         },
     });
 
+    // === Metrics ===
+    const outerPaddingBottom = isKeyboardVisible ? 8 : insets.bottom + 8;
+    const errorBottomOffset = FOOTER_HEIGHT + outerPaddingBottom;
+
     return (
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1, paddingBottom: outerPaddingBottom }}>
             <BottomSheetScrollView
-                contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 88 }]}
+                contentContainerStyle={[styles.content, { paddingBottom: FOOTER_HEIGHT + outerPaddingBottom }]}
                 keyboardShouldPersistTaps="handled"
                 showsVerticalScrollIndicator={false}
             >
                 <Field label="Titre" error={formik.errors.title} touched={formik.touched.title}>
                     <BottomSheetTextInput
-                        style={[styles.input, { borderColor: theme.border, color: theme.text }]}
+                        style={[
+                            styles.input,
+                            { borderColor: theme.border, color: theme.text },
+                            formik.touched.title && formik.errors.title ? { borderColor: theme.error } : null,
+                        ]}
                         value={formik.values.title}
-                        onChangeText={formik.handleChange('title')}
-                        onBlur={formik.handleBlur('title')}
+                        onChangeText={formik.handleChange("title")}
+                        onBlur={formik.handleBlur("title")}
                         placeholder="Titre"
                         placeholderTextColor={theme.textInactive}
                     />
@@ -100,10 +113,14 @@ const LegalDocumentForm: React.FC<LegalDocumentFormProps> = ({ document, onSucce
 
                 <Field label="Version" error={formik.errors.version} touched={formik.touched.version}>
                     <BottomSheetTextInput
-                        style={[styles.input, { borderColor: theme.border, color: theme.text }]}
+                        style={[
+                            styles.input,
+                            { borderColor: theme.border, color: theme.text },
+                            formik.touched.version && formik.errors.version ? { borderColor: theme.error } : null,
+                        ]}
                         value={formik.values.version}
-                        onChangeText={formik.handleChange('version')}
-                        onBlur={formik.handleBlur('version')}
+                        onChangeText={formik.handleChange("version")}
+                        onBlur={formik.handleBlur("version")}
                         placeholder="2025-08-08"
                         placeholderTextColor={theme.textInactive}
                     />
@@ -113,10 +130,15 @@ const LegalDocumentForm: React.FC<LegalDocumentFormProps> = ({ document, onSucce
                     <BottomSheetTextInput
                         multiline
                         scrollEnabled
-                        style={[styles.input, styles.textarea, { borderColor: theme.border, color: theme.text }]}
+                        style={[
+                            styles.input,
+                            { borderColor: theme.border, color: theme.text },
+                            formik.touched.content && formik.errors.content ? { borderColor: theme.error } : null,
+                            styles.textarea,
+                        ]}
                         value={formik.values.content}
-                        onChangeText={formik.handleChange('content')}
-                        onBlur={formik.handleBlur('content')}
+                        onChangeText={formik.handleChange("content")}
+                        onBlur={formik.handleBlur("content")}
                         placeholder="Contenu du document légal..."
                         placeholderTextColor={theme.textInactive}
                     />
@@ -128,9 +150,9 @@ const LegalDocumentForm: React.FC<LegalDocumentFormProps> = ({ document, onSucce
                     style={[
                         styles.apiErrorContainer,
                         {
-                            backgroundColor: theme.error + '22',
+                            backgroundColor: theme.error + "22",
                             borderColor: theme.error,
-                            bottom: insets.bottom + 64,
+                            bottom: errorBottomOffset,
                             opacity: errorOpacity,
                             transform: [
                                 {
@@ -149,92 +171,77 @@ const LegalDocumentForm: React.FC<LegalDocumentFormProps> = ({ document, onSucce
                 </Animated.View>
             ) : null}
 
-            <View
-                style={[
-                    styles.footer,
-                    {
-                        paddingBottom: insets.bottom + 8,
-                        backgroundColor: theme.backgroundSecondary,
-                        borderTopColor: theme.border,
-                    },
-                ]}
-            >
-                <TouchableOpacity
-                    style={[styles.submitBtn, { backgroundColor: theme.primary, opacity: loading ? 0.7 : 1 }]}
-                    disabled={loading}
-                    onPress={() => formik.handleSubmit()}
-                    activeOpacity={0.85}
+            {/* Footer fixe */}
+            <View>
+                <View
+                    style={[
+                        styles.footer,
+                        {
+                            backgroundColor: theme.backgroundSecondary,
+                            borderTopColor: theme.border,
+                        },
+                    ]}
                 >
-                    {loading ? (
-                        <ActivityIndicator color={theme.text} />
-                    ) : (
-                        <>
-                            <MaterialCommunityIcons name="content-save-outline" size={18} color={theme.text} />
-                            <Text style={[styles.submitText, { color: theme.text }]}>Enregistrer</Text>
-                        </>
-                    )}
-                </TouchableOpacity>
+                    <TouchableOpacity
+                        style={[styles.submitBtn, { backgroundColor: theme.primary, opacity: loading ? 0.7 : 1 }]}
+                        disabled={loading}
+                        onPress={() => formik.handleSubmit()}
+                        activeOpacity={0.85}
+                    >
+                        {loading ? (
+                            <ActivityIndicator color={theme.text} />
+                        ) : (
+                            <>
+                                <MaterialCommunityIcons name="content-save-outline" size={18} color={theme.text} />
+                                <Text style={[styles.submitText, { color: theme.text }]}>Enregistrer</Text>
+                            </>
+                        )}
+                    </TouchableOpacity>
+                </View>
             </View>
-        </View>
-    );
-};
-
-const Field: React.FC<{ label: string; children: React.ReactNode; error?: string; touched?: boolean }> = ({
-    label,
-    children,
-    error,
-    touched,
-}) => {
-    const theme = useAppTheme();
-    return (
-        <View style={styles.fieldBlock}>
-            <Text style={[styles.label, { color: theme.text }]}>{label}</Text>
-            {children}
-            {touched && error ? <Text style={[styles.error, { color: theme.error }]}>{error}</Text> : null}
         </View>
     );
 };
 
 const styles = StyleSheet.create({
     content: { padding: 8, gap: 12 },
-    fieldBlock: { marginBottom: 6 },
-    label: { fontSize: 14, fontWeight: '600', marginBottom: 6, marginLeft: 4 },
     input: { borderWidth: 1.5, borderRadius: 16, paddingVertical: 12, paddingHorizontal: 14, fontSize: 14 },
-    textarea: { maxHeight: 420, textAlignVertical: 'top', minHeight: 180 },
+    textarea: { maxHeight: 300, textAlignVertical: "top", minHeight: 180 },
     apiErrorContainer: {
-        position: 'absolute',
+        position: "absolute",
         left: 12,
         right: 12,
         borderRadius: 12,
         borderWidth: 1,
-        flexDirection: 'row',
-        alignItems: 'center',
+        flexDirection: "row",
+        alignItems: "center",
         paddingVertical: 8,
         paddingHorizontal: 12,
         marginBottom: 8,
         gap: 8,
         zIndex: 20,
     },
-    apiErrorText: { flex: 1, fontSize: 14, fontWeight: '600' },
+    apiErrorText: { flex: 1, fontSize: 14, fontWeight: "600" },
     footer: {
-        position: 'absolute',
+        height: FOOTER_HEIGHT,
+        position: "absolute",
         left: 0,
         right: 0,
         bottom: 0,
         paddingHorizontal: 12,
         paddingTop: 8,
         borderTopWidth: 1,
+        justifyContent: "center",
     },
     submitBtn: {
         borderRadius: CORNERS,
         paddingVertical: 14,
-        alignItems: 'center',
-        justifyContent: 'center',
-        flexDirection: 'row',
+        alignItems: "center",
+        justifyContent: "center",
+        flexDirection: "row",
         gap: 8,
     },
-    submitText: { fontWeight: '800', fontSize: 16 },
-    error: { fontSize: 12, marginTop: 4, marginLeft: 8, fontWeight: '600' },
+    submitText: { fontWeight: "800", fontSize: 16 },
 });
 
 export default LegalDocumentForm;

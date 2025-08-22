@@ -1,6 +1,6 @@
 import React from "react";
 import { View, StyleSheet, TouchableOpacity } from "react-native";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import { HEADER_HEIGHT } from "@/src/theme/globals";
@@ -22,15 +22,10 @@ const SearchHeader: React.FC<SearchHeaderProps> = ({ onCloseSheet, filters, setF
     return (
         <View style={styles.container}>
             <View style={styles.topRow}>
-                <TouchableOpacity onPress={handleBack} style={styles.iconBtn}>
-                    {canGoBack ? (
-                        <MaterialCommunityIcons name="chevron-left" size={30} color={theme.text} />
-                    ) : (
-                        <MaterialCommunityIcons name="close" size={30} color={theme.text} />
-                    )}
+                <TouchableOpacity onPress={handleBack} style={styles.backButton}>
+                    <Ionicons name={canGoBack ? "chevron-back-outline" : "close"} size={canGoBack ? 30 : 35} color={theme.text} />
                 </TouchableOpacity>
 
-                {/* Les filtres prennent tout l'espace central et restent alignés à gauche */}
                 <View style={styles.filtersWrap}>
                     <Filters
                         filters={filters}
@@ -45,10 +40,9 @@ const SearchHeader: React.FC<SearchHeaderProps> = ({ onCloseSheet, filters, setF
 
                 <TouchableOpacity
                     onPress={onOpenReport}
-                    style={styles.iconBtn}
                     hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 >
-                    <MaterialCommunityIcons name="flag-outline" size={22} color={theme.text} />
+                    <MaterialCommunityIcons name="flag-outline" size={28} color={theme.text} />
                 </TouchableOpacity>
             </View>
         </View>
@@ -62,7 +56,7 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
     },
-    iconBtn: { padding: 4 },
+    backButton: { marginRight: 4 },
     filtersWrap: {
         flex: 1,                 // occupe tout l’espace entre les deux icônes
         marginHorizontal: 8,

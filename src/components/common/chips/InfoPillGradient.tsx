@@ -1,6 +1,6 @@
 import React, { memo } from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
-import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import { CORNERS } from "@/src/theme/globals";
 import GradientBorderView from "@/src/components/common/GradientBorderView";
@@ -16,7 +16,8 @@ type Props = {
     disabled?: boolean;
     borderWidth?: number;
     maxWidth?: number;
-    icon?: React.ComponentProps<typeof MaterialCommunityIcons>["name"];
+    leftIcon?: React.ComponentProps<typeof MaterialCommunityIcons>["name"];
+    rightIcon?: React.ComponentProps<typeof Ionicons>["name"];
     iconSize?: number;
 };
 
@@ -33,7 +34,8 @@ const InfoPillGradient: React.FC<Props> = memo(
         disabled,
         borderWidth = 1,
         maxWidth,
-        icon,
+        leftIcon,
+        rightIcon,
         iconSize = 14,
     }) => {
         const theme = useAppTheme();
@@ -54,12 +56,15 @@ const InfoPillGradient: React.FC<Props> = memo(
                     maxWidth ? { maxWidth } : undefined,
                 ]}
             >
-                {icon ? (
-                    <MaterialCommunityIcons name={icon} size={iconSize} color={theme.text} />
+                {leftIcon ? (
+                    <MaterialCommunityIcons name={leftIcon} size={iconSize} color={theme.text} />
                 ) : null}
                 <Text style={[styles.text, { color: theme.text }]} numberOfLines={1}>
                     {label}
                 </Text>
+                {rightIcon ? (
+                    <Ionicons name={rightIcon} size={iconSize} color={theme.text} />
+                ) : null}
             </View>
         );
 

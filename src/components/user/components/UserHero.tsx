@@ -2,16 +2,16 @@ import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
-import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import type { CustomUser } from "@/src/types/User";
 import { withAlpha } from "@/src/utils/utils";
-import MaskedImage from "@/src/components/common/MaskedImage";
+import MaskedImage from "@/src/components/common/images/MaskedImage";
 
 type UserHeroProps = { user: CustomUser; onEdit?: () => void };
 
-const AVATAR_SIZE = 120; // même taille que ClubHero
+const AVATAR_SIZE = 120;
 const EDGE = 0.95;
 const MID = 0.0;
 
@@ -22,8 +22,6 @@ const UserHero: React.FC<UserHeroProps> = ({ user, onEdit }) => {
     return (
         <View style={styles.wrapper}>
             <Image source={avatar} style={StyleSheet.absoluteFill} contentFit="cover" blurRadius={60} />
-
-            {/* Double gradient homogène */}
             <LinearGradient
                 pointerEvents="none"
                 colors={[
@@ -49,7 +47,6 @@ const UserHero: React.FC<UserHeroProps> = ({ user, onEdit }) => {
                 style={StyleSheet.absoluteFill}
             />
 
-            {/* Bouton stylo homogène */}
             {onEdit ? (
                 <TouchableOpacity
                     style={[
@@ -68,11 +65,10 @@ const UserHero: React.FC<UserHeroProps> = ({ user, onEdit }) => {
             ) : null}
 
             <View style={styles.content}>
-                {/* Utilise le même composant d’image que ClubHero */}
                 <MaskedImage
                     uri={user.pictureUrl || undefined}
                     size={AVATAR_SIZE}
-                    radius={AVATAR_SIZE / 2}  // cercle
+                    radius={AVATAR_SIZE / 2}
                     shadow
                 />
 

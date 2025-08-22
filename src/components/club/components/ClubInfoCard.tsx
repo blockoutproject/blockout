@@ -1,9 +1,9 @@
 import React from "react";
 import { View, Text, StyleSheet, Pressable } from "react-native";
-import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import { withAlpha } from "@/src/utils/utils";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 
 type ClubInfoRowProps = {
     icon: React.ComponentProps<typeof MaterialCommunityIcons>["name"];
@@ -49,8 +49,8 @@ export const InfoRow: React.FC<ClubInfoRowProps> = ({ icon, label, value, onPres
             </View>
 
             {onPress ? (
-                <MaterialCommunityIcons
-                    name="chevron-right"
+                <Ionicons
+                    name="chevron-forward-outline"
                     size={20}
                     color={withAlpha(theme.text, 0.5)}
                     style={styles.chevron}

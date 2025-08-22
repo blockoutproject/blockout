@@ -22,16 +22,21 @@ import { useAppTheme } from "@/src/context/ThemeProvider";
 import type { Club } from "@/src/types/Club";
 import ClubsApi from "@/src/api/ClubsApi";
 import { CORNERS } from "@/src/theme/globals";
+import Field from "../../common/Field";
+import useKeyboardVisible from "@/src/hooks/utils/useKeyboardVisible";
 
 type ClubFormProps = {
     club: Club;
     onSuccess: (updated?: Club) => void;
 };
 
+const FOOTER_HEIGHT = 60;
+
 const ClubForm: React.FC<ClubFormProps> = ({ club, onSuccess }) => {
     const theme = useAppTheme();
     const insets = useSafeAreaInsets();
     const api = ClubsApi.getInstance();
+    const isKeyboardVisible = useKeyboardVisible();
 
     const [imageFile, setImageFile] = useState<{ uri: string; name: string; type: string } | null>(null);
     const [previewUri, setPreviewUri] = useState<string | null>(null);
@@ -123,13 +128,14 @@ const ClubForm: React.FC<ClubFormProps> = ({ club, onSuccess }) => {
 
     const logoUri = previewUri ?? club.logoUrl ?? null;
 
+    // === Metrics ===
+    const outerPaddingBottom = isKeyboardVisible ? 8 : insets.bottom + 8;
+    const errorBottomOffset = FOOTER_HEIGHT + outerPaddingBottom;
+
     return (
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1, paddingBottom: outerPaddingBottom }}>
             <BottomSheetScrollView
-                contentContainerStyle={[
-                    styles.scroll,
-                    { paddingBottom: insets.bottom + 88 },
-                ]}
+                contentContainerStyle={[styles.scroll, { paddingBottom: FOOTER_HEIGHT + outerPaddingBottom }]}
                 showsVerticalScrollIndicator={false}
             >
                 <View style={[styles.card, { backgroundColor: theme.surface }]}>
@@ -162,32 +168,25 @@ const ClubForm: React.FC<ClubFormProps> = ({ club, onSuccess }) => {
                 </View>
 
                 <View style={[styles.card, { backgroundColor: theme.surface }]}>
-                    <Text style={[styles.sectionTitle, { color: theme.text }]}>Nom</Text>
-
-                    <BottomSheetTextInput
-                        style={[
-                            styles.input,
-                            {
-                                borderColor: formik.touched.name && formik.errors.name ? theme.error : theme.border,
-                                color: theme.text,
-                            },
-                        ]}
-                        value={formik.values.name}
-                        onChangeText={formik.handleChange("name")}
-                        onBlur={formik.handleBlur("name")}
-                        placeholder="Nom du club"
-                        placeholderTextColor={theme.textInactive}
-                        autoCapitalize="words"
-                        returnKeyType="done"
-                    />
-
-                    {formik.touched.name && formik.errors.name ? (
-                        <Text style={[styles.errorText, { color: theme.error }]}>{formik.errors.name}</Text>
-                    ) : null}
+                    <Field label="Nom" error={formik.errors.name} touched={formik.touched.name}>
+                        <BottomSheetTextInput
+                            style={[
+                                styles.input,
+                                { borderColor: theme.border, color: theme.text },
+                                formik.touched.name && formik.errors.name ? { borderColor: theme.error } : null,
+                            ]}
+                            value={formik.values.name}
+                            onChangeText={formik.handleChange("name")}
+                            onBlur={formik.handleBlur("name")}
+                            placeholder="Nom du club"
+                            placeholderTextColor={theme.textInactive}
+                            autoCapitalize="words"
+                            returnKeyType="done"
+                        />
+                    </Field>
                 </View>
             </BottomSheetScrollView>
 
-            {/* Erreur flottante animée */}
             {apiError ? (
                 <Animated.View
                     style={[
@@ -195,7 +194,7 @@ const ClubForm: React.FC<ClubFormProps> = ({ club, onSuccess }) => {
                         {
                             backgroundColor: theme.error + "22",
                             borderColor: theme.error,
-                            bottom: insets.bottom + 64,
+                            bottom: errorBottomOffset,
                             opacity: errorOpacity,
                             transform: [
                                 {
@@ -214,30 +213,32 @@ const ClubForm: React.FC<ClubFormProps> = ({ club, onSuccess }) => {
                 </Animated.View>
             ) : null}
 
-            <View
-                style={[
-                    styles.footer,
-                    {
-                        paddingBottom: insets.bottom + 8,
-                        backgroundColor: theme.backgroundSecondary,
-                        borderTopColor: theme.border,
-                    },
-                ]}
-            >
-                <TouchableOpacity
-                    style={[styles.submitBtn, { backgroundColor: theme.primary, opacity: loading ? 0.7 : 1 }]}
-                    disabled={loading}
-                    onPress={() => formik.handleSubmit()}
+            {/* Footer fixe */}
+            <View>
+                <View
+                    style={[
+                        styles.footer,
+                        {
+                            backgroundColor: theme.backgroundSecondary,
+                            borderTopColor: theme.border,
+                        },
+                    ]}
                 >
-                    {loading ? (
-                        <ActivityIndicator color={theme.text} />
-                    ) : (
-                        <>
-                            <MaterialCommunityIcons name="content-save-outline" size={18} color={theme.text} />
-                            <Text style={[styles.submitText, { color: theme.text }]}>Enregistrer</Text>
-                        </>
-                    )}
-                </TouchableOpacity>
+                    <TouchableOpacity
+                        style={[styles.submitBtn, { backgroundColor: theme.primary, opacity: loading ? 0.7 : 1 }]}
+                        disabled={loading}
+                        onPress={() => formik.handleSubmit()}
+                    >
+                        {loading ? (
+                            <ActivityIndicator color={theme.text} />
+                        ) : (
+                            <>
+                                <MaterialCommunityIcons name="content-save-outline" size={18} color={theme.text} />
+                                <Text style={[styles.submitText, { color: theme.text }]}>Enregistrer</Text>
+                            </>
+                        )}
+                    </TouchableOpacity>
+                </View>
             </View>
         </View>
     );
@@ -298,7 +299,6 @@ const styles = StyleSheet.create({
         paddingHorizontal: 14,
         fontSize: 14,
     },
-    errorText: { fontSize: 12, marginTop: 6, marginLeft: 6, fontWeight: "600" },
     apiErrorContainer: {
         position: "absolute",
         left: 12,
@@ -315,6 +315,7 @@ const styles = StyleSheet.create({
     },
     apiErrorText: { flex: 1, fontSize: 14, fontWeight: "600" },
     footer: {
+        height: FOOTER_HEIGHT,
         position: "absolute",
         left: 0,
         right: 0,
@@ -322,6 +323,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 12,
         paddingTop: 8,
         borderTopWidth: 1,
+        justifyContent: "center",
     },
     submitBtn: {
         borderRadius: CORNERS,

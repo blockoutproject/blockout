@@ -2,12 +2,12 @@ import React from "react";
 import { Text, TouchableOpacity, View, StyleSheet } from "react-native";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
-import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 
 import { EnrichedPoolMatchesDTO } from "@/src/types/Match";
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import { withAlpha } from "@/src/utils/utils";
-import MaskedImage from "../../common/MaskedImage";
+import MaskedImage from "../../common/images/MaskedImage";
 import MatchRow from "./MatchRow";
 import GradientBorderView from "@/src/components/common/GradientBorderView";
 
@@ -81,8 +81,8 @@ const PoolItem: React.FC<PoolItemProps> = ({
                             >
                                 {enrichedPoolMatches.pool.name}
                             </Text>
-                            <MaterialCommunityIcons
-                                name="chevron-right"
+                            <Ionicons
+                                name="chevron-forward-outline"
                                 size={20}
                                 color={withAlpha(theme.text, 0.8)}
                             />

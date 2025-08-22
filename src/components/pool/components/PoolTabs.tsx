@@ -4,11 +4,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import GenericTabView from '@/src/components/common/GenericTabView';
 import MatchList from '@/src/components/matchList/MatchListContainer';
-import RankingTab from '@/src/components/common/RankingTab';
 
 import { MatchStatus } from '@/src/types/Match';
 import { EnrichedPoolDTO } from '@/src/types/Pool';
 import { TABBAR_HEIGHT } from '@/src/theme/globals';
+import RankingTab from '../../ranking/RankingTab';
 
 type PoolTabsProps = {
     enrichedPool: EnrichedPoolDTO;

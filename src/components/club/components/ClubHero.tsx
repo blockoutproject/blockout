@@ -2,16 +2,16 @@ import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
-import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import type { Club } from "@/src/types/Club";
 import { withAlpha } from "@/src/utils/utils";
-import MaskedImage from "@/src/components/common/MaskedImage";
+import MaskedImage from "@/src/components/common/images/MaskedImage";
 
 type ClubHeroProps = { club: Club; onEdit?: () => void };
 
-const AVATAR_SIZE = 120; // homogénéisé avec UserHero
+const AVATAR_SIZE = 120;
 const EDGE = 0.95;
 const MID = 0.0;
 
@@ -22,8 +22,6 @@ const ClubHero: React.FC<ClubHeroProps> = ({ club, onEdit }) => {
     return (
         <View style={styles.wrapper}>
             <Image source={logo} style={StyleSheet.absoluteFill} contentFit="cover" blurRadius={60} />
-
-            {/* Double gradient homogène */}
             <LinearGradient
                 pointerEvents="none"
                 colors={[
@@ -49,7 +47,6 @@ const ClubHero: React.FC<ClubHeroProps> = ({ club, onEdit }) => {
                 style={StyleSheet.absoluteFill}
             />
 
-            {/* Bouton stylo homogène */}
             {onEdit ? (
                 <TouchableOpacity
                     onPress={onEdit}

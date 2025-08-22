@@ -1,6 +1,6 @@
 import React, { memo } from "react";
 import { View, Text, StyleSheet } from "react-native";
-import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useAppTheme } from "@/src/context/ThemeProvider";
 
 export const INFOCHIP_METRICS = {

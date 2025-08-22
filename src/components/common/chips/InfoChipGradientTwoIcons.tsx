@@ -1,14 +1,13 @@
 import React, { memo } from "react";
-import { TouchableOpacity, View, Text, StyleSheet } from "react-native";
-import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import { TouchableOpacity, View, StyleSheet } from "react-native";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useAppTheme } from "@/src/context/ThemeProvider";
-import GradientBorderView from "@/src/components/common/GradientBorderView";
 import { INFOCHIP_METRICS } from "./InfoChip";
 import GradientView from "../GradientView";
 
 type Props = {
     firstIcon: React.ComponentProps<typeof MaterialCommunityIcons>["name"];
-    secondIcon: React.ComponentProps<typeof MaterialCommunityIcons>["name"];
+    secondIcon: React.ComponentProps<typeof Ionicons>["name"];
     gradient: readonly [string, string, ...string[]];
     onPress?: () => void;
     disabled?: boolean;
@@ -31,7 +30,7 @@ const InfoChipGradient: React.FC<Props> = memo(
                 ]}
             >
                 <MaterialCommunityIcons name={firstIcon} size={14} color={theme.text} />
-                <MaterialCommunityIcons name={secondIcon} size={14} color={theme.text} />
+                <Ionicons name={secondIcon} size={14} color={theme.text} />
             </View>
         );
 

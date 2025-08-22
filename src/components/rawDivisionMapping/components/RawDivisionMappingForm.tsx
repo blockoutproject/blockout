@@ -15,15 +15,19 @@ import { CORNERS } from "@/src/theme/globals";
 import FormSelect from "@/src/components/common/FormSelect";
 import SelectSheet, { SelectOption, SelectSheetRef } from "@/src/components/common/SelectSheet";
 import { BottomSheetScrollView } from "@gorhom/bottom-sheet";
+import useKeyboardVisible from "@/src/hooks/utils/useKeyboardVisible";
 
 export type RawDivisionMappingFormProps = {
     mapping: RawDivisionMapping;
     onSuccess: () => void;
 };
 
+const FOOTER_HEIGHT = 60;
+
 const RawDivisionMappingForm: React.FC<RawDivisionMappingFormProps> = ({ mapping, onSuccess }) => {
     const theme = useAppTheme();
     const insets = useSafeAreaInsets();
+    const isKeyboardVisible = useKeyboardVisible();
     const { data: divisions = [], isLoading: loadingDivisions } = useDivisions();
 
     const [divisionId, setDivisionId] = useState<number | "">(mapping.divisionId ?? "");
@@ -101,10 +105,17 @@ const RawDivisionMappingForm: React.FC<RawDivisionMappingFormProps> = ({ mapping
         }
     };
 
+    // === Metrics ===
+    const outerPaddingBottom = isKeyboardVisible ? 8 : insets.bottom + 8;
+    const errorBottomOffset = FOOTER_HEIGHT + outerPaddingBottom;
+
     return (
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1, paddingBottom: outerPaddingBottom }}>
             <BottomSheetScrollView
-                contentContainerStyle={[styles.fieldContainer, { paddingBottom: insets.bottom + 88 }]}
+                contentContainerStyle={[
+                    styles.fieldContainer,
+                    { paddingBottom: FOOTER_HEIGHT + outerPaddingBottom },
+                ]}
                 showsVerticalScrollIndicator={false}
             >
                 <View style={[styles.card, { backgroundColor: theme.surface }]}>
@@ -141,7 +152,7 @@ const RawDivisionMappingForm: React.FC<RawDivisionMappingFormProps> = ({ mapping
                 </View>
             </BottomSheetScrollView>
 
-            {/* Bannière d’erreur absolute + fade */}
+            {/* Erreur flottante */}
             {apiError ? (
                 <Animated.View
                     style={[
@@ -149,7 +160,7 @@ const RawDivisionMappingForm: React.FC<RawDivisionMappingFormProps> = ({ mapping
                         {
                             backgroundColor: theme.error + "22",
                             borderColor: theme.error,
-                            bottom: insets.bottom + 64,
+                            bottom: errorBottomOffset,
                             opacity: errorOpacity,
                             transform: [
                                 {
@@ -168,31 +179,33 @@ const RawDivisionMappingForm: React.FC<RawDivisionMappingFormProps> = ({ mapping
                 </Animated.View>
             ) : null}
 
-            <View
-                style={[
-                    styles.footer,
-                    {
-                        paddingBottom: insets.bottom + 8,
-                        backgroundColor: theme.backgroundSecondary,
-                        borderTopColor: theme.border,
-                    },
-                ]}
-            >
-                <TouchableOpacity
-                    onPress={handleSubmit}
-                    disabled={isSubmitting}
-                    activeOpacity={0.85}
-                    style={[styles.submitBtn, { backgroundColor: theme.primary, opacity: isSubmitting ? 0.7 : 1 }]}
+            {/* Footer fixe avec safe area padding */}
+            <View>
+                <View
+                    style={[
+                        styles.footer,
+                        {
+                            backgroundColor: theme.backgroundSecondary,
+                            borderTopColor: theme.border,
+                        },
+                    ]}
                 >
-                    {isSubmitting ? (
-                        <ActivityIndicator color={theme.text} />
-                    ) : (
-                        <>
-                            <MaterialCommunityIcons name="content-save-outline" size={18} color={theme.text} />
-                            <Text style={[styles.submitText, { color: theme.text }]}>Enregistrer</Text>
-                        </>
-                    )}
-                </TouchableOpacity>
+                    <TouchableOpacity
+                        onPress={handleSubmit}
+                        disabled={isSubmitting}
+                        activeOpacity={0.85}
+                        style={[styles.submitBtn, { backgroundColor: theme.primary, opacity: isSubmitting ? 0.7 : 1 }]}
+                    >
+                        {isSubmitting ? (
+                            <ActivityIndicator color={theme.text} />
+                        ) : (
+                            <>
+                                <MaterialCommunityIcons name="content-save-outline" size={18} color={theme.text} />
+                                <Text style={[styles.submitText, { color: theme.text }]}>Enregistrer</Text>
+                            </>
+                        )}
+                    </TouchableOpacity>
+                </View>
             </View>
 
             <SelectSheet
@@ -259,6 +272,7 @@ const styles = StyleSheet.create({
     },
     apiErrorText: { flex: 1, fontSize: 14, fontWeight: "600" },
     footer: {
+        height: FOOTER_HEIGHT,
         position: "absolute",
         left: 0,
         right: 0,
@@ -266,6 +280,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 12,
         paddingTop: 8,
         borderTopWidth: 1,
+        justifyContent: "center",
     },
     submitBtn: {
         borderRadius: CORNERS,

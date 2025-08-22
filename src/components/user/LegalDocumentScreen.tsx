@@ -48,8 +48,7 @@ const LegalDocumentScreen: React.FC<LegalDocumentScreenProps> = ({ type, title, 
     } else {
         body = (
             <>
-                <BottomSheetScrollView style={[styles.container, { backgroundColor: theme.background }]}>
-                    <View style={{ paddingTop: 16, paddingBottom: insets.bottom }}>
+                <BottomSheetScrollView contentContainerStyle={{ paddingTop: 8, paddingBottom: insets.bottom }}>
                         <Markdown
                             style={{
                                 body: { paddingHorizontal: 16 },
@@ -65,10 +64,12 @@ const LegalDocumentScreen: React.FC<LegalDocumentScreenProps> = ({ type, title, 
                         </Markdown>
 
                         <Text style={[styles.update, { color: theme.textInactive }]}>Dernière mise à jour : {data.version}</Text>
-                    </View>
                 </BottomSheetScrollView>
 
-                <BottomSheetCustomModal ref={sheetRef}>
+                <BottomSheetCustomModal
+                    ref={sheetRef}
+                    snapPoint={"90%"}
+                >
                     <LegalDocumentForm
                         document={data}
                         onSuccess={async () => {
@@ -94,7 +95,6 @@ export default LegalDocumentScreen;
 
 const styles = StyleSheet.create({
     screen: { flex: 1 },
-    container: {},
     center: { flex: 1, justifyContent: "center", alignItems: "center" },
     update: { textAlign: "center", fontSize: 12, marginTop: 12 },
 });
