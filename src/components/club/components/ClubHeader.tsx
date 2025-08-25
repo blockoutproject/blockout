@@ -5,6 +5,7 @@ import { useAppTheme } from "@/src/context/ThemeProvider";
 import { HEADER_HEIGHT } from "@/src/theme/globals";
 import { useBackOrClose } from "@/src/hooks/utils/useBackOrClose";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 type ClubHeaderProps = {
     title: string;
@@ -14,10 +15,11 @@ type ClubHeaderProps = {
 
 const ClubHeader: React.FC<ClubHeaderProps> = ({ title, onCloseSheet, onOpenReport }) => {
     const theme = useAppTheme();
+    const insets = useSafeAreaInsets();
     const { handleBack, canGoBack } = useBackOrClose(onCloseSheet);
 
     return (
-        <View style={styles.container}>
+        <View style={{ paddingTop: insets.top }}>
             <View style={styles.header}>
                 <View style={styles.leftGroup}>
                     <TouchableOpacity onPress={handleBack} style={styles.backButton}>

@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React from "react";
 import {
     KeyboardAvoidingView,
     StyleSheet,
@@ -11,17 +11,13 @@ import { useAppTheme } from "@/src/context/ThemeProvider";
 import SearchBar from "@/src/components/common/SearchBar";
 import TeamCard from "@/src/components/search/components/TeamCard";
 import { SearchPrompt } from "@/src/components/common/feedback/SearchPrompt";
-import { ErrorState } from "@/src/components/common/feedback/ErrorState";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import BottomSheetCustomPage from "@/src/components/common/BottomSheetCustomPage";
 import * as Haptics from "expo-haptics";
 import { useSearchTeams } from "@/src/hooks/search/useSearchTeams";
-import { router } from "expo-router";
 import { FlatList } from "react-native-gesture-handler";
-import { useNavigation } from "@react-navigation/native";
-import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { SheetStackParamList } from "../../common/BottomSheetNavigator";
-import { BottomSheetFlatList } from "@gorhom/bottom-sheet";
+import ErrorState from "../../common/feedback/ErrorState";
+import { useRouter } from "expo-router";
+
 
 type Props = {
     search: string;
@@ -40,12 +36,12 @@ const SearchTeamScreen: React.FC<Props> = ({
 }) => {
     const theme = useAppTheme();
     const insets = useSafeAreaInsets();
-    const navigation = useNavigation<NativeStackNavigationProp<SheetStackParamList>>();
-    const { data: teams, isLoading, isError } = useSearchTeams(debouncedQuery);
+    const router = useRouter();
+    const { data: teams, isLoading, isError, refetch } = useSearchTeams(debouncedQuery);
 
     const handleTeamPress = (teamId: number) => {
         Haptics.selectionAsync();
-        navigation.push('Team', { teamId });
+        router.push(`/teams/${teamId}`);
     };
 
     const renderEmpty = () => {
@@ -73,6 +69,7 @@ const SearchTeamScreen: React.FC<Props> = ({
                     placeholder="Rechercher une équipe..."
                     onFocus={() => setIsInputFocused(true)}
                     onBlur={() => setIsInputFocused(false)}
+                    inSheet={false}
                 />
             </View>
 
@@ -81,10 +78,13 @@ const SearchTeamScreen: React.FC<Props> = ({
             )}
 
             {isError && (
-                <ErrorState message="Une erreur est survenue. Réessaie plus tard." />
+                <ErrorState
+                    message="Impossible de charger la liste des matchs."
+                    onRetry={refetch}
+                />
             )}
 
-            <BottomSheetFlatList
+            <FlatList
                 data={teams}
                 keyExtractor={(item) => item.id.toString()}
                 renderItem={({ item }) => (

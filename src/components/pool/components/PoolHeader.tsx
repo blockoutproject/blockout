@@ -3,26 +3,27 @@ import { TouchableOpacity, View, StyleSheet, Text } from "react-native";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import { HEADER_HEIGHT } from "@/src/theme/globals";
-import { useBackOrClose } from "@/src/hooks/utils/useBackOrClose";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useRouter } from "expo-router";
 
 type PoolHeaderProps = {
     title?: string;
-    onCloseSheet: () => void;
     onOpenReport: () => void;
 };
 
-const PoolHeader: React.FC<PoolHeaderProps> = ({ title, onCloseSheet, onOpenReport }) => {
+const PoolHeader: React.FC<PoolHeaderProps> = ({ title, onOpenReport }) => {
     const theme = useAppTheme();
-    const { handleBack, canGoBack } = useBackOrClose(onCloseSheet);
+    const insets = useSafeAreaInsets();
+    const router = useRouter();
 
     return (
-        <View style={styles.container}>
+        <View style={{ paddingTop: insets.top }}>
             <View style={styles.header}>
                 <View style={styles.leftGroup}>
-                    <TouchableOpacity onPress={handleBack} style={styles.backButton}>
+                    <TouchableOpacity onPress={router.back} style={styles.backButton}>
                         <Ionicons
-                            name={canGoBack ? "chevron-back-outline" : "close"}
-                            size={canGoBack ? 30 : 35}
+                            name={"chevron-back-outline"}
+                            size={28 }
                             color={theme.text}
                         />
                     </TouchableOpacity>
@@ -56,7 +57,7 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
-        paddingHorizontal: 8,
+        paddingHorizontal: 12,
     },
     leftGroup: {
         flexDirection: "row",
@@ -64,7 +65,9 @@ const styles = StyleSheet.create({
         flexShrink: 1,
         flexGrow: 1,
     },
-    backButton: { marginRight: 4 },
+    backButton: { 
+        marginRight: 4 
+    },
     title: {
         fontSize: 16,
         fontWeight: "700",

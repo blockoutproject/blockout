@@ -11,15 +11,14 @@ import {
 import * as Haptics from "expo-haptics";
 import { MatchStatus } from "@/src/types/Match";
 import { formatDateFrenchLocale } from "@/src/utils/utils";
-import EmptyPrompt from "../common/feedback/EmptyPrompt";
+import EmptyPrompt from "../common/feedback/EmptyState";
 import PoolItem from "./components/PoolItem";
 import { useMatchList } from "@/src/hooks/match/useMatchList";
-import { useNavigation } from "@react-navigation/native";
-import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import type { SheetStackParamList } from "@/src/components/common/BottomSheetNavigator";
 import SectionDateHeader from "./components/SectionDateHeader";
 import { useAppTheme } from "@/src/context/ThemeProvider";
-import ErrorState from "../common/ErrorState";
+import ErrorState from "../common/feedback/ErrorState";
+import { useRouter } from "expo-router";
+import { SECTION_SEPARATOR_HEIGHT } from "@/src/theme/globals";
 
 type MatchListContainerProps = {
     poolIds?: number[];
@@ -29,10 +28,6 @@ type MatchListContainerProps = {
     contentContainerStyle?: StyleProp<ViewStyle>;
     headerOffset: number;
     home?: boolean;
-    openSheet?: <T extends keyof SheetStackParamList>(
-        screen: T,
-        params: SheetStackParamList[T]
-    ) => void;
     showPoolHeader?: boolean;
 };
 
@@ -44,12 +39,10 @@ const MatchListContainer: React.FC<MatchListContainerProps> = ({
     contentContainerStyle,
     headerOffset,
     home = false,
-    openSheet,
     showPoolHeader = true,
 }) => {
     const theme = useAppTheme();
-    const navigation =
-        useNavigation<NativeStackNavigationProp<SheetStackParamList>>();
+    const router = useRouter();
 
     const {
         dayMatches,
@@ -77,17 +70,13 @@ const MatchListContainer: React.FC<MatchListContainerProps> = ({
 
     const handleMatchPress = useCallback((matchId: number) => {
         Haptics.selectionAsync();
-        home && openSheet
-            ? openSheet("Match", { matchId })
-            : navigation.push("Match", { matchId });
-    }, [home, openSheet, navigation]);
+        router.push(`/matches/${matchId}`);
+    }, []);
 
     const handlePoolPress = useCallback((poolId: number) => {
         Haptics.selectionAsync();
-        home && openSheet
-            ? openSheet("Pool", { poolId })
-            : navigation.push("Pool", { poolId });
-    }, [home, openSheet, navigation]);
+        router.push(`/pools/${poolId}`);
+    }, []);
 
     const sections = useMemo(
         () =>
@@ -139,13 +128,14 @@ const MatchListContainer: React.FC<MatchListContainerProps> = ({
                 onEndReached={handleLoadMore}
                 onEndReachedThreshold={0.4}
                 ItemSeparatorComponent={() => <View style={styles.itemSeparator} />}
+                SectionSeparatorComponent={() => <View style={styles.sectionSeparator} />}
                 showsVerticalScrollIndicator={false}
                 refreshControl={
                     <RefreshControl
                         refreshing={isRefreshing}
                         onRefresh={handleRefresh}
                         tintColor={theme.text}
-                        progressViewOffset={headerOffset + 12}
+                        progressViewOffset={headerOffset}
                     />
                 }
                 ListEmptyComponent={
@@ -170,8 +160,8 @@ const MatchListContainer: React.FC<MatchListContainerProps> = ({
                 }
                 contentContainerStyle={contentContainerStyle}
                 ListFooterComponent={
-                    isFetchingNextPage && hasNextPage ? (
-                        <ActivityIndicator style={{ marginTop: 12 }} />
+                    (isFetchingNextPage && hasNextPage) ? (
+                        <ActivityIndicator style={{ marginBottom: SECTION_SEPARATOR_HEIGHT }} />
                     ) : null
                 }
                 maintainVisibleContentPosition={{ minIndexForVisible: 1 }}
@@ -196,4 +186,5 @@ const styles = StyleSheet.create({
     container: { flex: 1 },
     center: { flex: 1, justifyContent: "center", alignItems: "center" },
     itemSeparator: { height: 6 },
+    sectionSeparator: { height: SECTION_SEPARATOR_HEIGHT },
 });

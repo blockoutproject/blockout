@@ -9,6 +9,7 @@ import { useSession } from "@/src/context/SessionProvider";
 import { useUserContext } from "@/src/context/UserProvider";
 import { withAlpha } from "@/src/utils/utils";
 import MaskedImage from "@/src/components/common/images/MaskedImage";
+import InfoPill from "../components/common/chips/InfoPill";
 
 const HERO = {
     title: "Blockout",
@@ -36,7 +37,7 @@ const LoginScreen: React.FC = () => {
     const ctaGradient: [string, string, string] = ["#6EE7F9", "#A78BFA", "#F472B6"];
 
     return (
-        <ImageBackground style={styles.background} resizeMode="cover">
+        <View style={styles.background}>
             {/* voiles lisibilité */}
             <LinearGradient
                 colors={[withAlpha(theme.backgroundSecondary, 0.95), withAlpha(theme.backgroundSecondary, 0.35)]}
@@ -67,9 +68,9 @@ const LoginScreen: React.FC = () => {
 
                 {/* micro-features */}
                 <View style={styles.pillsRow}>
-                    <Pill icon="flash" label="Live scores" themeText={theme.text} themeBG={theme.background} />
-                    <Pill icon="trophy" label="Classements" themeText={theme.text} themeBG={theme.background} />
-                    <Pill icon="bell-outline" label="Suivi équipes" themeText={theme.text} themeBG={theme.background} />
+                    <InfoPill leftIconName="flash" label="Live scores" />
+                    <InfoPill leftIconName="trophy" label="Classements" />
+                    <InfoPill leftIconName="bell-outline" label="Suivi équipes" />
                 </View>
 
                 {/* CTA avec SPINNER dans le bouton */}
@@ -98,31 +99,11 @@ const LoginScreen: React.FC = () => {
                     En continuant, tu acceptes nos CGU et notre politique de confidentialité.
                 </Text>
             </View>
-        </ImageBackground>
+        </View>
     );
 };
 
 export default LoginScreen;
-
-const Pill: React.FC<{
-    icon: React.ComponentProps<typeof MaterialCommunityIcons>["name"];
-    label: string;
-    themeText: string;
-    themeBG: string;
-}> = ({ icon, label, themeText, themeBG }) => (
-    <View
-        style={[
-            styles.pill,
-            {
-                borderColor: withAlpha(themeText, 0.2),
-                backgroundColor: withAlpha(themeBG, 0.5),
-            },
-        ]}
-    >
-        <MaterialCommunityIcons name={icon} size={14} color={themeText} />
-        <Text style={[styles.pillText, { color: themeText }]} numberOfLines={1}>{label}</Text>
-    </View>
-);
 
 const styles = StyleSheet.create({
     background: { flex: 1 },

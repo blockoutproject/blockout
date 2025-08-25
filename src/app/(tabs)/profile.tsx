@@ -10,21 +10,19 @@ import { useAppTheme } from "@/src/context/ThemeProvider";
 import { useUserContext } from "@/src/context/UserProvider";
 import { useSession } from "@/src/context/SessionProvider";
 import UsersApi from "@/src/api/UsersApi";
-import BottomSheetCustomPage from "../common/BottomSheetCustomPage";
-import BottomSheetCustomModal from "../common/BottomSheetCustomModal";
-import LegalDocumentScreen from "./LegalDocumentScreen";
-import UserForm from "./components/UserForm";
-import UserHeader from "./components/UserHeader";
 import useHasScopes from "@/src/hooks/user/useHasScopes";
 import ReportForm from "@/src/components/report/ReportForm";
 import { ReportType } from "@/src/types/Report";
 import { withAlpha } from "@/src/utils/utils";
-import { BottomSheetScrollView } from "@gorhom/bottom-sheet";
-import UserHero from "./components/UserHero";
+import BottomSheetCustomPage from "@/src/components/common/BottomSheetCustomPage";
+import LegalDocumentScreen from "@/src/components/user/LegalDocumentScreen";
+import BottomSheetCustomModal from "@/src/components/common/BottomSheetCustomModal";
+import ProfileHero from "@/src/components/user/components/ProfileHero";
+import ProfileForm from "@/src/components/user/components/ProfileForm";
+import ProfileHeader from "@/src/components/user/components/ProfileHeader";
+import { ScrollView } from "react-native-gesture-handler";
 
-type UserScreenProps = { onCloseSheet: () => void };
-
-const UserScreen: React.FC<UserScreenProps> = ({ onCloseSheet }) => {
+const ProfileScreen: React.FC = () => {
     const { refetch, customUser } = useUserContext();
     const theme = useAppTheme();
     const insets = useSafeAreaInsets();
@@ -109,14 +107,9 @@ const UserScreen: React.FC<UserScreenProps> = ({ onCloseSheet }) => {
     } else {
         body = (
             <>
-                <BottomSheetScrollView
-                    showsVerticalScrollIndicator={false}
-                    contentContainerStyle={[styles.scrollContent, { backgroundColor: theme.background, paddingBottom: insets.bottom + 12 }]}
-                >
-                    {/* Héro (avatar + email) avec stylo en haut à droite */}
-                    <UserHero user={customUser} onEdit={canEdit ? openForm : undefined} />
+                <View style={styles.content} >
+                    <ProfileHero user={customUser} onEdit={canEdit ? openForm : undefined} />
 
-                    {/* Section Légal */}
                     <View style={styles.section}>
                         <Text style={[styles.sectionTitle, { color: withAlpha(theme.text, 0.7) }]}>Légal</Text>
                         <View style={styles.cardList}>
@@ -126,7 +119,6 @@ const UserScreen: React.FC<UserScreenProps> = ({ onCloseSheet }) => {
                         </View>
                     </View>
 
-                    {/* Section Compte */}
                     <View style={styles.section}>
                         <Text style={[styles.sectionTitle, { color: withAlpha(theme.text, 0.7) }]}>Compte</Text>
 
@@ -161,9 +153,8 @@ const UserScreen: React.FC<UserScreenProps> = ({ onCloseSheet }) => {
                             </View>
                         </View>
                     </View>
-                </BottomSheetScrollView>
+                </View>
 
-                {/* Sheets */}
                 <BottomSheetCustomPage ref={imprintRef}>
                     <LegalDocumentScreen type="imprint" title="Mentions Légales" onCloseSheet={dismissLocal(imprintRef)} />
                 </BottomSheetCustomPage>
@@ -180,7 +171,7 @@ const UserScreen: React.FC<UserScreenProps> = ({ onCloseSheet }) => {
                     ref={formSheetRef}
                     snapPoint={"90%"}
                 >
-                    <UserForm
+                    <ProfileForm
                         user={customUser}
                         onSuccess={async () => {
                             await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -196,7 +187,7 @@ const UserScreen: React.FC<UserScreenProps> = ({ onCloseSheet }) => {
                 >
                     <ReportForm
                         context={{
-                            screen: "User",
+                            screen: "Profile",
                             defaultType: ReportType.DISPLAY_BUG,
                         }}
                         onSuccess={() => {
@@ -209,10 +200,9 @@ const UserScreen: React.FC<UserScreenProps> = ({ onCloseSheet }) => {
     }
 
     return (
-        <View style={[styles.container, { backgroundColor: theme.background, paddingBottom: insets.bottom }]}>
-            <UserHeader
+        <View style={styles.container}>
+            <ProfileHeader
                 title="Profil"
-                onCloseSheet={onCloseSheet}
                 onOpenReport={() => reportSheetRef.current?.present()}
             />
             {body}
@@ -223,8 +213,7 @@ const UserScreen: React.FC<UserScreenProps> = ({ onCloseSheet }) => {
 const styles = StyleSheet.create({
     container: { flex: 1 },
     center: { flex: 1, justifyContent: "center", alignItems: "center" },
-
-    scrollContent: { paddingHorizontal: 4, gap: 20 },
+    content: { paddingHorizontal: 12, gap: 20 },
 
     section: { gap: 12 },
     sectionTitle: { fontSize: 12, fontWeight: "800", letterSpacing: 0.3, textTransform: "uppercase" },
@@ -251,4 +240,4 @@ const styles = StyleSheet.create({
     versionText: { fontSize: 12, fontWeight: "700", letterSpacing: 0.2 },
 });
 
-export default UserScreen;
+export default ProfileScreen;

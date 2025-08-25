@@ -7,19 +7,17 @@ import {
     ActivityIndicator,
     Keyboard,
     Platform,
+    FlatList,
 } from 'react-native';
 import { useAppTheme } from '@/src/context/ThemeProvider';
 import SearchBar from '@/src/components/common/SearchBar';
 import { SearchPrompt } from '@/src/components/common/feedback/SearchPrompt';
-import { ErrorState } from '@/src/components/common/feedback/ErrorState';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
-import { BottomSheetFlatList } from '@gorhom/bottom-sheet';
-import { useNavigation } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import type { SheetStackParamList } from '@/src/components/common/BottomSheetNavigator';
 import PoolCard from './PoolCard';
 import { useSearchPools } from '@/src/hooks/search/useSearchPools';
+import { useRouter } from 'expo-router';
+import ErrorState from '@/src/components/common/feedback/ErrorState';
 
 type Props = {
     search: string;
@@ -38,12 +36,12 @@ const SearchPoolScreen: React.FC<Props> = ({
 }) => {
     const theme = useAppTheme();
     const insets = useSafeAreaInsets();
-    const navigation = useNavigation<NativeStackNavigationProp<SheetStackParamList>>();
-    const { data: pools, isLoading, isError } = useSearchPools(debouncedQuery);
+    const router = useRouter();
+    const { data: pools, isLoading, isError, refetch } = useSearchPools(debouncedQuery);
 
     const handlePoolPress = (poolId: number) => {
         Haptics.selectionAsync();
-        navigation.push('Pool', { poolId });
+        router.push(`/pools/${poolId}`);
     };
 
     const renderEmpty = () => {
@@ -72,6 +70,7 @@ const SearchPoolScreen: React.FC<Props> = ({
                     placeholder="Rechercher une poule..."
                     onFocus={() => setIsInputFocused(true)}
                     onBlur={() => setIsInputFocused(false)}
+                    inSheet={false}
                 />
             </View>
 
@@ -80,10 +79,13 @@ const SearchPoolScreen: React.FC<Props> = ({
             )}
 
             {isError && (
-                <ErrorState message="Une erreur est survenue. Réessaie plus tard." />
+                    <ErrorState
+                        message="Impossible de charger la liste des pools."
+                        onRetry={refetch}
+                    />
             )}
 
-            <BottomSheetFlatList
+            <FlatList
                 data={pools}
                 keyExtractor={(item) => item.id.toString()}
                 renderItem={({ item }) => (

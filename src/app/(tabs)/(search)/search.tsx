@@ -12,11 +12,8 @@ import ReportForm from "@/src/components/report/ReportForm";
 import { ReportType } from "@/src/types/Report";
 import { Filter } from "@/src/types/Filter";
 
-type Props = {
-    onCloseSheet: () => void;
-};
 
-const SearchScreen: React.FC<Props> = ({ onCloseSheet }) => {
+const SearchScreen: React.FC = () => {
     const [filters, setFilters] = useState<Filter[]>([
         { name: "Équipes", isActive: true },
         { name: "Clubs", isActive: false },
@@ -35,7 +32,6 @@ const SearchScreen: React.FC<Props> = ({ onCloseSheet }) => {
     return (
         <View style={styles.container}>
             <SearchHeader
-                onCloseSheet={onCloseSheet}
                 filters={filters}
                 setFilters={setFilters}
                 onOpenReport={() => reportSheetRef.current?.present()}

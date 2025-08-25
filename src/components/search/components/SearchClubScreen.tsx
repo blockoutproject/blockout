@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React from "react";
 import {
     KeyboardAvoidingView,
     Platform,
@@ -7,19 +7,19 @@ import {
     Text,
     ActivityIndicator,
     Keyboard,
+    FlatList,
 } from "react-native";
 import { useAppTheme } from "@/src/context/ThemeProvider";
-import { BottomSheetFlatList } from "@gorhom/bottom-sheet";
 import SearchBar from "@/src/components/common/SearchBar";
 import ClubCard from "@/src/components/search/components/ClubCard";
 import { SearchPrompt } from "@/src/components/common/feedback/SearchPrompt";
-import { ErrorState } from "@/src/components/common/feedback/ErrorState";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import { useSearchClubs } from "@/src/hooks/search/useSearchClubs";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { SheetStackParamList } from "../../common/BottomSheetNavigator";
+import { useRouter } from "expo-router";
+import ErrorState from "../../common/feedback/ErrorState";
 
 type Props = {
     search: string;
@@ -38,12 +38,12 @@ const SearchClubScreen: React.FC<Props> = ({
 }) => {
     const theme = useAppTheme();
     const insets = useSafeAreaInsets();
-    const { data: clubs, isLoading, isError } = useSearchClubs(debouncedQuery);
-    const navigation = useNavigation<NativeStackNavigationProp<SheetStackParamList>>();
+    const { data: clubs, isLoading, isError, refetch } = useSearchClubs(debouncedQuery);
+    const router = useRouter();
 
     const handleClubPress = (clubId: string) => {
         Haptics.selectionAsync();
-        navigation.push("Club", { clubId });
+        router.push(`/clubs/${clubId}`);
     }
 
     const renderEmpty = () => {
@@ -72,6 +72,7 @@ const SearchClubScreen: React.FC<Props> = ({
                     placeholder="Rechercher un club..."
                     onFocus={() => setIsInputFocused(true)}
                     onBlur={() => setIsInputFocused(false)}
+                    inSheet={false}
                 />
             </View>
 
@@ -80,10 +81,13 @@ const SearchClubScreen: React.FC<Props> = ({
             )}
 
             {isError && (
-                <ErrorState message="Une erreur est survenue. Réessaie plus tard." />
+                <ErrorState
+                    message="Impossible de charger la liste des clubs."
+                    onRetry={refetch}
+                />
             )}
 
-            <BottomSheetFlatList
+            <FlatList
                 data={clubs}
                 keyExtractor={(item) => item.id.toString()}
                 renderItem={({ item }) => (

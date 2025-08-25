@@ -1,16 +1,15 @@
 import React from "react";
 import { View, StyleSheet } from "react-native";
 import { FlatList } from "react-native-gesture-handler";
-import { useNavigation } from "@react-navigation/native";
-import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import * as Haptics from "expo-haptics";
 
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import GradientBorderView from "@/src/components/common/GradientBorderView";
 import type { EnrichedPoolDTO } from "@/src/types/Pool";
 import type { TeamHighlight } from "@/src/types/Team";
-import { SheetStackParamList } from "../common/BottomSheetNavigator";
 import RankingRow from "./RankingRow";
 import RankingHeader from "./RankingHeader";
+import { useRouter } from "expo-router";
 
 type RankingCardProps = {
     enrichedPool: EnrichedPoolDTO;
@@ -26,8 +25,7 @@ const RankingCard: React.FC<RankingCardProps> = ({
     highlightTeams,
 }) => {
     const theme = useAppTheme();
-    const navigation =
-        useNavigation<NativeStackNavigationProp<SheetStackParamList>>();
+    const router = useRouter();
 
     const { division } = enrichedPool;
     const gradient = [
@@ -37,11 +35,13 @@ const RankingCard: React.FC<RankingCardProps> = ({
     ] as const;
 
     const handleTeamPress = (teamId: number) => {
-        navigation.push("Team", { teamId });
+        Haptics.selectionAsync();
+        router.push(`/teams/${teamId}`);
     };
 
     const handleHeaderPress = () => {
-        navigation.push("Pool", { poolId: enrichedPool.id });
+        Haptics.selectionAsync();
+        router.push(`/pools/${enrichedPool.id}`);
     };
 
     return (

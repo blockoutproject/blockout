@@ -1,36 +1,27 @@
 import React from "react";
-import { View, StyleSheet, TouchableOpacity } from "react-native";
+import { TouchableOpacity, View, StyleSheet, Text } from "react-native";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
-
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import { HEADER_HEIGHT } from "@/src/theme/globals";
-import Filters from "@/src/components/common/Filters";
 import { useBackOrClose } from "@/src/hooks/utils/useBackOrClose";
-import { Filter } from "@/src/types/Filter";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-type SearchHeaderProps = {
-    filters: Filter[];
-    setFilters: (updated: Filter[]) => void;
+type UserHeaderProps = {
+    title: string;
     onOpenReport: () => void;
 };
 
-const SearchHeader: React.FC<SearchHeaderProps> = ({ filters, setFilters, onOpenReport }) => {
+const ProfileHeader: React.FC<UserHeaderProps> = ({ title, onOpenReport }) => {
     const theme = useAppTheme();
     const insets = useSafeAreaInsets();
+    const { handleBack, canGoBack } = useBackOrClose();
 
     return (
         <View style={{ paddingTop: insets.top }}>
-            <View style={[styles.header]}>
-                <Filters
-                    filters={filters}
-                    setFilters={setFilters}
-                    singleSelect
-                    requireSelection
-                    size="sm"
-                    scrollable={false}
-                    containerStyle={{ paddingHorizontal: 0 }}
-                />
+            <View style={styles.header}>
+                <Text style={[styles.title, { color: theme.text }]} numberOfLines={1}>
+                    {title}
+                </Text>
 
                 <TouchableOpacity
                     onPress={onOpenReport}
@@ -43,6 +34,8 @@ const SearchHeader: React.FC<SearchHeaderProps> = ({ filters, setFilters, onOpen
     );
 };
 
+export default ProfileHeader;
+
 const styles = StyleSheet.create({
     header: {
         height: HEADER_HEIGHT,
@@ -51,6 +44,5 @@ const styles = StyleSheet.create({
         justifyContent: "space-between",
         paddingHorizontal: 12,
     },
+    title: { fontSize: 18, fontWeight: "700" },
 });
-
-export default SearchHeader;

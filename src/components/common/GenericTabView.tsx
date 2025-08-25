@@ -16,7 +16,7 @@ import { useAppTheme } from "@/src/context/ThemeProvider";
 import * as Haptics from "expo-haptics";
 import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
-import { TABBAR_HEIGHT } from "@/src/theme/globals";
+import { TABBAR_HEIGHT, TABBAR_INDICATOR_HEIGHT } from "@/src/theme/globals";
 
 type TabDefinition = {
     key: string;
@@ -119,6 +119,7 @@ const GenericTabView: React.FC<GenericTabViewProps> = ({
             renderScene={renderScene}
             renderTabBar={renderTabBar}
             onIndexChange={setIndex}
+            commonOptions={{ labelStyle: styles.tabItem }}
         />
     );
 };
@@ -146,8 +147,12 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
     },
     indicator: {
-        height: 3,
+        height: TABBAR_INDICATOR_HEIGHT,
         width: 0.4,
+    },
+    tabItem: {
+        fontSize: 14,
+        fontWeight: "700",
     },
 });
 

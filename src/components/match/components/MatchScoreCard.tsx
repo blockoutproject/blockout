@@ -9,10 +9,10 @@ import { splitIsoDateFormatted } from "@/src/utils/utils";
 import GradientBorderView from "@/src/components/common/GradientBorderView";
 import type { EnrichedMatchDTO } from "@/src/types/Match";
 import type { Team } from "@/src/types/Team";
-import type { SheetStackParamList } from "@/src/components/common/BottomSheetNavigator";
 import InfoPill from "../../common/chips/InfoPill";
 import InfoPillGradient from "../../common/chips/InfoPillGradient";
 import MaskedImage from "../../common/images/MaskedImage";
+import { useRouter } from "expo-router";
 
 export interface MatchScoreCardProps {
     enrichedMatch: EnrichedMatchDTO;
@@ -24,12 +24,12 @@ const RADIUS = 20;
 
 const MatchScoreCard: React.FC<MatchScoreCardProps> = ({ enrichedMatch, gradient }) => {
     const theme = useAppTheme();
-    const navigation = useNavigation<NativeStackNavigationProp<SheetStackParamList>>();
+    const router = useRouter();
     const { date, time } = splitIsoDateFormatted(enrichedMatch.matchDate);
 
     const handleTeamPress = (teamId: number) => {
         Haptics.selectionAsync();
-        navigation.push("Team", { teamId });
+        router.push(`/teams/${teamId}`);
     };
 
     const TeamBlock: React.FC<{

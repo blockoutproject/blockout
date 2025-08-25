@@ -7,17 +7,15 @@ import { EntityType } from '@/src/types/User';
 import AnimatedHomeHeader from '@/src/components/home/AnimatedHomeHeader';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useUserContext } from '@/src/context/UserProvider';
-import { useSheet } from '@/src/context/SheetProvider';
-import { HEADER_HEIGHT, TABBAR_HEIGHT } from '@/src/theme/globals';
+import { BOTTOM_TABBAR_HEIGHT, LOGO_HEIGHT, TABBAR_HEIGHT } from '@/src/theme/globals';
 
-const HomeScreen: React.FC = () => {
+const FeedScreen: React.FC = () => {
     const insets = useSafeAreaInsets();
     const { customUser } = useUserContext();
-    const { open } = useSheet();
 
     const [index, setIndex] = useState(0);
 
-    const headerOffset = insets.top + TABBAR_HEIGHT + HEADER_HEIGHT;
+    const headerOffset = insets.top + TABBAR_HEIGHT + LOGO_HEIGHT;
 
     const favorites = customUser?.favorites ?? [];
     const userFavoritePools = useMemo(
@@ -47,15 +45,14 @@ const HomeScreen: React.FC = () => {
             scrollY={scrollYs.finished}
             contentContainerStyle={{
                 paddingHorizontal: 4,
-                marginTop: insets.top + TABBAR_HEIGHT - 8,
-                paddingTop: HEADER_HEIGHT,
-                paddingBottom: insets.bottom + insets.top + TABBAR_HEIGHT,
+                marginTop: insets.top + TABBAR_HEIGHT + 4,
+                paddingTop: LOGO_HEIGHT,
+                paddingBottom: insets.bottom + insets.top + TABBAR_HEIGHT + BOTTOM_TABBAR_HEIGHT + 4,
             }}
             headerOffset={headerOffset}
             home
-            openSheet={open}
         />
-    ), [userFavoritePools, userFavoriteTeams, headerOffset, insets.bottom, open, scrollYs.finished]);
+    ), [userFavoritePools, userFavoriteTeams, headerOffset, insets.bottom, scrollYs.finished]);
 
     const upcomingTab = useMemo(() => (
         <MatchList
@@ -65,15 +62,14 @@ const HomeScreen: React.FC = () => {
             scrollY={scrollYs.upcoming}
             contentContainerStyle={{
                 paddingHorizontal: 4,
-                marginTop: insets.top + TABBAR_HEIGHT - 8,
-                paddingTop: HEADER_HEIGHT,
-                paddingBottom: insets.bottom + insets.top + TABBAR_HEIGHT,
+                marginTop: insets.top + TABBAR_HEIGHT + 4,
+                paddingTop: LOGO_HEIGHT,
+                paddingBottom: insets.bottom + insets.top + TABBAR_HEIGHT + BOTTOM_TABBAR_HEIGHT + 4,
             }}
             headerOffset={headerOffset}
             home
-            openSheet={open}
         />
-    ), [userFavoritePools, userFavoriteTeams, headerOffset, insets.bottom, open, scrollYs.upcoming]);
+    ), [userFavoritePools, userFavoriteTeams, headerOffset, insets.bottom, scrollYs.upcoming]);
 
     const onTabChange = useCallback((i: number) => setIndex(i), []);
 
@@ -117,4 +113,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default HomeScreen;
+export default FeedScreen;

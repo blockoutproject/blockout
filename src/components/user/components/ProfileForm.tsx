@@ -30,7 +30,7 @@ type UserFormProps = { user: CustomUser; onSuccess: (updated: CustomUser) => voi
 
 const FOOTER_HEIGHT = 60;
 
-const UserForm: React.FC<UserFormProps> = ({ user, onSuccess }) => {
+const ProfileForm: React.FC<UserFormProps> = ({ user, onSuccess }) => {
     const theme = useAppTheme();
     const insets = useSafeAreaInsets();
     const api = UsersApi.getInstance();
@@ -248,7 +248,7 @@ const UserForm: React.FC<UserFormProps> = ({ user, onSuccess }) => {
     );
 };
 
-export default UserForm;
+export default ProfileForm;
 
 const styles = StyleSheet.create({
     fieldContainer: { padding: 8, gap: 12 },

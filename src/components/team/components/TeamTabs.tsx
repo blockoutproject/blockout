@@ -7,7 +7,7 @@ import MatchList from '@/src/components/matchList/MatchListContainer';
 
 import { MatchStatus } from '@/src/types/Match';
 import { EnrichedTeamDTO } from '@/src/types/Team';
-import { TABBAR_HEIGHT } from '@/src/theme/globals';
+import { BOTTOM_TABBAR_HEIGHT, TABBAR_HEIGHT } from '@/src/theme/globals';
 import { useAppTheme } from '@/src/context/ThemeProvider';
 import RankingTab from '../../ranking/RankingTab';
 
@@ -53,8 +53,8 @@ const TeamTabs: React.FC<Props> = ({ enrichedTeam }) => {
                         headerOffset={TABBAR_HEIGHT}
                         contentContainerStyle={{
                             paddingHorizontal: 4,
-                            marginTop: TABBAR_HEIGHT - 10,
-                            paddingBottom: insets.bottom + TABBAR_HEIGHT,
+                            marginTop: TABBAR_HEIGHT + 4,
+                            paddingBottom: insets.bottom + TABBAR_HEIGHT + BOTTOM_TABBAR_HEIGHT + 4,
                         }}
                     />
                 ),
@@ -72,8 +72,8 @@ const TeamTabs: React.FC<Props> = ({ enrichedTeam }) => {
                         headerOffset={TABBAR_HEIGHT}
                         contentContainerStyle={{
                             paddingHorizontal: 4,
-                            marginTop: TABBAR_HEIGHT - 10,
-                            paddingBottom: insets.bottom + TABBAR_HEIGHT,
+                            marginTop: TABBAR_HEIGHT + 4,
+                            paddingBottom: insets.bottom + TABBAR_HEIGHT + BOTTOM_TABBAR_HEIGHT + 4,
                         }}
                     />
                 ),

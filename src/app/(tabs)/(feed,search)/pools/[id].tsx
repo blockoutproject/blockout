@@ -3,53 +3,46 @@ import { StyleSheet, View } from "react-native";
 import { RouteProp, useRoute } from "@react-navigation/native";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
 
-import { useEnrichedTeamById } from "@/src/hooks/team/useEnrichedTeamById";
-import TeamSkeleton from "@/src/components/team/components/TeamSkeleton";
-import TeamProfile from "@/src/components/team/components/TeamProfile";
-import TeamTabs from "@/src/components/team/components/TeamTabs";
-import ErrorState from "@/src/components/common/ErrorState";
+import { useEnrichedPoolById } from "@/src/hooks/pool/useEnrichedPoolById";
+import PoolSkeleton from "@/src/components/pool/components/PoolSkeleton";
+import PoolProfile from "@/src/components/pool/components/PoolProfile";
+import PoolTabs from "@/src/components/pool/components/PoolTabs";
+import ErrorState from "@/src/components/common/feedback/ErrorState";
 import { useAppTheme } from "@/src/context/ThemeProvider";
-import TeamHeader from "@/src/components/team/components/TeamHeader";
-import { SheetStackParamList } from "@/src/components/common/BottomSheetNavigator";
+import PoolHeader from "@/src/components/pool/components/PoolHeader";
 import BottomSheetCustomModal from "@/src/components/common/BottomSheetCustomModal";
 import ReportForm from "@/src/components/report/ReportForm";
 import { ReportType } from "@/src/types/Report";
+import { useLocalSearchParams } from "expo-router";
 
-type TeamRouteProp = RouteProp<SheetStackParamList, "Team">;
 
-type TeamScreenProps = {
-    onCloseSheet: () => void;
-};
-
-const TeamScreen: React.FC<TeamScreenProps> = ({ onCloseSheet }) => {
+const PoolScreen: React.FC = () => {
     const theme = useAppTheme();
-    const { params } = useRoute<TeamRouteProp>();
-    const teamId = params.teamId;
-    const { data: team, isLoading, error, refetch } = useEnrichedTeamById(teamId);
+    const { id } = useLocalSearchParams();
+    const { data: enrichedPool, isLoading, error, refetch } = useEnrichedPoolById(Number(id));
 
     const reportSheetRef = useRef<BottomSheetModal>(null);
 
     let body: React.ReactNode;
     if (isLoading) {
-        body = <TeamSkeleton />;
+        body = <PoolSkeleton />;
     } else if (error) {
-        body = <ErrorState message="Impossible de charger l'équipe." onRetry={refetch} />;
-    } else if (!team) {
-        body = <ErrorState message="Cette équipe est introuvable." onRetry={refetch} />;
+        body = <ErrorState message="Impossible de charger la poule." onRetry={refetch} />;
+    } else if (!enrichedPool) {
+        body = <ErrorState message="Cette poule est introuvable." onRetry={refetch} />;
     } else {
         body = (
             <>
-                <TeamProfile enrichedTeam={team} />
-                <TeamTabs enrichedTeam={team} />
+                <PoolProfile enrichedPool={enrichedPool} />
+                <PoolTabs enrichedPool={enrichedPool} />
             </>
         );
     }
 
     return (
         <View style={[styles.container, { backgroundColor: theme.background }]}>
-            <TeamHeader
-                title={team?.name}
-                onCloseSheet={onCloseSheet}
+            <PoolHeader
+                title={enrichedPool?.name}
                 onOpenReport={() => reportSheetRef.current?.present()}
             />
             {body}
@@ -60,7 +53,7 @@ const TeamScreen: React.FC<TeamScreenProps> = ({ onCloseSheet }) => {
             >
                 <ReportForm
                     context={{
-                        screen: "Team",
+                        screen: "Pool",
                         defaultType: ReportType.DISPLAY_BUG,
                     }}
                     onSuccess={() => {
@@ -72,7 +65,7 @@ const TeamScreen: React.FC<TeamScreenProps> = ({ onCloseSheet }) => {
     );
 };
 
-export default TeamScreen;
+export default PoolScreen;
 
 const styles = StyleSheet.create({
     container: { flex: 1 },

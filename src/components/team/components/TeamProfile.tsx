@@ -10,18 +10,18 @@ import FollowButton from "@/src/components/common/FollowButton";
 import FollowersCounter from "@/src/components/common/FollowersCount";
 import { GenderLabels } from "@/src/types/enums/Gender";
 import { FormatLabels } from "@/src/types/enums/Format";
-import type { SheetStackParamList } from "@/src/components/common/BottomSheetNavigator";
 import { LOGO_SIZE } from "@/src/theme/globals";
 import InfoChipGradient from "../../common/chips/InfoChipGradientTwoIcons";
 import InfoPill from "../../common/chips/InfoPill";
 import MaskedImage from "../../common/images/MaskedImage";
+import { useRouter } from "expo-router";
 
 type TeamProfileProps = {
     enrichedTeam: EnrichedTeamDTO;
 };
 
 const TeamProfile: React.FC<TeamProfileProps> = ({ enrichedTeam }) => {
-    const navigation = useNavigation<NativeStackNavigationProp<SheetStackParamList>>();
+    const router = useRouter();
     const { isFollowing, isProcessing, followersCount, onToggleFollow } = useTeamFollowState(enrichedTeam);
 
     const gradient = [
@@ -32,7 +32,7 @@ const TeamProfile: React.FC<TeamProfileProps> = ({ enrichedTeam }) => {
 
     const handleClubPress = (clubId: string) => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-        navigation.push("Club", { clubId });
+        router.push(`/clubs/${clubId}`);
     };
 
     return (

@@ -25,21 +25,23 @@ import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import BottomSheetCustomPage from "../common/BottomSheetCustomPage";
 import ScraperStatusScreen from "../scraper/ScraperStatusScreen";
 import BottomSheetCustomModal from "../common/BottomSheetCustomModal";
-import { useSheet } from "@/src/context/SheetProvider";
-import { HEADER_HEIGHT, TABBAR_HEIGHT } from "@/src/theme/globals";
-import { useUserContext } from "@/src/context/UserProvider";
+import { LOGO_HEIGHT, TABBAR_HEIGHT } from "@/src/theme/globals";
 import useHasScopes from "@/src/hooks/user/useHasScopes";
+import { withAlpha } from "@/src/utils/utils";
 
 type HeaderProps = SceneRendererProps & {
     navigationState: NavigationState<Route>;
     scrollYs: Record<string, Animated.Value>;
+    androidBackgroundAlpha?: number;
 };
 
-const AnimatedHomeHeader: React.FC<HeaderProps> = ({ scrollYs, ...props }) => {
-    const { customUser } = useUserContext();
+const AnimatedHomeHeader: React.FC<HeaderProps> = ({
+    scrollYs,
+    androidBackgroundAlpha = 0.88,
+    ...props
+}) => {
     const insets = useSafeAreaInsets();
     const theme = useAppTheme();
-    const { open } = useSheet();
 
     const mappingSheetRef = useRef<BottomSheetModal>(null);
     const divisionSheetRef = useRef<BottomSheetModal>(null);
@@ -64,7 +66,7 @@ const AnimatedHomeHeader: React.FC<HeaderProps> = ({ scrollYs, ...props }) => {
     const { routes } = props.navigationState;
     const { position } = props;
 
-    // Poids par route en fonction de la position (1 pour la route visible, 0 pour les autres)
+    // Poids par route (1 pour la route visible, 0 sinon)
     const weights = routes.map((_, i) =>
         position.interpolate({
             inputRange: routes.map((__, idx) => idx),
@@ -76,21 +78,24 @@ const AnimatedHomeHeader: React.FC<HeaderProps> = ({ scrollYs, ...props }) => {
     // Progression verticale (0→1) pour chaque route via son scrollY
     const progressByRoute = routes.map((r) =>
         (scrollYs[r.key] ?? new Animated.Value(0)).interpolate({
-            inputRange: [0, HEADER_HEIGHT],
+            inputRange: [0, LOGO_HEIGHT],
             outputRange: [0, 1],
             extrapolate: "clamp",
         })
     );
 
-    // Somme pondérée = progression combinée (0→1) sur laquelle on drive le header
+    // Somme pondérée → progression combinée (0→1)
     const combinedProgress = progressByRoute
         .map((p, i) => Animated.multiply(p, weights[i]))
-        .reduce<Animated.AnimatedAddition<number>>((acc, cur) => (acc ? Animated.add(acc, cur) : cur), new Animated.Value(0));
+        .reduce<Animated.AnimatedAddition<number>>(
+            (acc, cur) => (acc ? Animated.add(acc, cur) : cur),
+            new Animated.Value(0)
+        );
 
-    // Dérivés : translate/opacity/scale/blur
+    // Dérivés
     const translateY = combinedProgress.interpolate({
         inputRange: [0, 1],
-        outputRange: [0, -HEADER_HEIGHT],
+        outputRange: [0, -LOGO_HEIGHT],
         extrapolate: "clamp",
     });
 
@@ -100,11 +105,11 @@ const AnimatedHomeHeader: React.FC<HeaderProps> = ({ scrollYs, ...props }) => {
         extrapolate: "clamp",
     });
 
-    const blurOpacity = combinedProgress; // 0 -> 1
+    const blurOpacity = combinedProgress;
 
     const titleScale = combinedProgress.interpolate({
         inputRange: [0, 1],
-        outputRange: [1, 2.2],
+        outputRange: [1, 2],
         extrapolate: "clamp",
     });
 
@@ -113,15 +118,8 @@ const AnimatedHomeHeader: React.FC<HeaderProps> = ({ scrollYs, ...props }) => {
         ref.current?.present();
     };
 
-    const onSearchPress = () => {
-        Haptics.selectionAsync();
-        open("Search", {});
-    };
-
-    const handleUserPress = () => {
-        Haptics.selectionAsync();
-        open("User", {});
-    };
+    // ✅ Fond Android semi-transparent dérivé du thème (pas noir “brut”)
+    const androidTint = withAlpha(theme.background, androidBackgroundAlpha);
 
     return (
         <>
@@ -131,26 +129,49 @@ const AnimatedHomeHeader: React.FC<HeaderProps> = ({ scrollYs, ...props }) => {
                     { paddingTop: insets.top, transform: [{ translateY }] },
                 ]}
             >
-                {Platform.OS === "ios" && (
-                    <View style={StyleSheet.absoluteFill}>
-                        <Animated.View
-                            style={[StyleSheet.absoluteFill, { opacity: blurOpacity }]}
-                        >
-                            <BlurView intensity={50} tint="default" style={StyleSheet.absoluteFill} />
-                        </Animated.View>
+                {/* iOS : blur animé + gradient.
+            Android : overlay colorisé semi-transparent + le même gradient pour adoucir */}
+                <View style={StyleSheet.absoluteFill}>
+                    {Platform.OS === "ios" ? (
+                        <>
+                            <Animated.View style={[StyleSheet.absoluteFill, { opacity: blurOpacity }]}>
+                                <BlurView intensity={50} tint="default" style={StyleSheet.absoluteFill} />
+                            </Animated.View>
+                            <LinearGradient
+                                colors={[theme.background, "transparent"]}
+                                start={{ x: 0, y: 0.35 }}
+                                end={{ x: 0, y: 1 }}
+                                style={StyleSheet.absoluteFill}
+                            />
+                        </>
+                    ) : (
+                        <>
+                            <Animated.View
+                                style={[
+                                    StyleSheet.absoluteFill,
+                                    {
+                                        // 🎯 teinte issue du thème + opacité douce
+                                        backgroundColor: androidTint,
+                                        opacity: blurOpacity, // suit la progression comme iOS
+                                    },
+                                ]}
+                            />
+                            <LinearGradient
+                                // Gradient identique pour lisser la jonction haut/centre
+                                colors={[androidTint, "transparent"]}
+                                start={{ x: 0, y: 0.35 }}
+                                end={{ x: 0, y: 1 }}
+                                style={StyleSheet.absoluteFill}
+                                pointerEvents="none"
+                            />
+                        </>
+                    )}
+                </View>
 
-                        <LinearGradient
-                            colors={[theme.background, "transparent"]}
-                            start={{ x: 0, y: 0.35 }}
-                            end={{ x: 0, y: 1 }}
-                            style={StyleSheet.absoluteFill}
-                        />
-                    </View>
-                )}
-
+                {/* Logo animé (échelle + fade out) */}
                 <Animated.View
                     style={{
-                        paddingVertical: 10,
+                        height: LOGO_HEIGHT,
                         opacity: titleOpacity,
                         transform: [{ scale: titleScale }],
                     }}
@@ -162,12 +183,13 @@ const AnimatedHomeHeader: React.FC<HeaderProps> = ({ scrollYs, ...props }) => {
                     />
                 </Animated.View>
 
+                {/* TabBar + actions */}
                 <View
                     style={[
                         styles.tabBarContainer,
                         {
-                            backgroundColor:
-                                Platform.OS === "android" ? theme.background : "transparent",
+                            // Android : on laisse la surface principale transparente, l’overlay s’occupe du fond
+                            backgroundColor: Platform.OS === "android" ? "transparent" : "transparent",
                         },
                     ]}
                 >
@@ -183,10 +205,6 @@ const AnimatedHomeHeader: React.FC<HeaderProps> = ({ scrollYs, ...props }) => {
                     />
 
                     <View style={styles.actions}>
-                        <TouchableOpacity onPress={onSearchPress}>
-                            <MaterialCommunityIcons name="magnify" size={25} color={theme.text} />
-                        </TouchableOpacity>
-
                         {canAccessRawDivisionMappings && (
                             <TouchableOpacity onPress={openLocal(mappingSheetRef)}>
                                 <MaterialCommunityIcons name="alpha-m-circle" size={25} color={theme.text} />
@@ -204,10 +222,6 @@ const AnimatedHomeHeader: React.FC<HeaderProps> = ({ scrollYs, ...props }) => {
                                 <MaterialCommunityIcons name="power-standby" size={25} color={theme.text} />
                             </TouchableOpacity>
                         )}
-
-                        <TouchableOpacity onPress={handleUserPress}>
-                            <Image style={styles.avatar} source={{ uri: customUser?.pictureUrl }} />
-                        </TouchableOpacity>
                     </View>
                 </View>
             </Animated.View>
@@ -230,18 +244,26 @@ const AnimatedHomeHeader: React.FC<HeaderProps> = ({ scrollYs, ...props }) => {
 const styles = StyleSheet.create({
     container: {
         position: "absolute",
-        top: 0, left: 0, right: 0,
+        top: 0,
+        left: 0,
+        right: 0,
         zIndex: 10,
     },
-    teamLogo: { height: 22 },
     tabBarContainer: {
-        height: TABBAR_HEIGHT,
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
     },
-    tabBar: { backgroundColor: "transparent" },
-    tabStyle: { width: "auto", paddingHorizontal: 16 },
+    tabBar: {
+        flex: 1,
+        height: TABBAR_HEIGHT,
+        backgroundColor: "transparent",
+    },
+    tabStyle: {
+        width: "auto",
+        paddingHorizontal: 16,
+    },
+    teamLogo: { height: LOGO_HEIGHT },
     indicator: { width: 0.5, height: 3 },
     actions: {
         flexDirection: "row",
@@ -249,7 +271,6 @@ const styles = StyleSheet.create({
         gap: 10,
         paddingRight: 10,
     },
-    avatar: { height: 30, width: 30, borderRadius: 100 },
 });
 
 export default AnimatedHomeHeader;

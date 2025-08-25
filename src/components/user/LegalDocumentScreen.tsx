@@ -12,7 +12,7 @@ import LegalDocumentForm from "./components/LegalDocumentForm";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import LegalDocumentHeader from "./components/LegalDocumentHeader";
 import useHasScopes from "@/src/hooks/user/useHasScopes";
-import ErrorState from "@/src/components/common/ErrorState";
+import ErrorState from "@/src/components/common/feedback/ErrorState";
 
 type LegalDocumentScreenProps = {
     type: "imprint" | "privacy" | "terms";

@@ -7,7 +7,7 @@ import MatchList from '@/src/components/matchList/MatchListContainer';
 
 import { MatchStatus } from '@/src/types/Match';
 import { EnrichedPoolDTO } from '@/src/types/Pool';
-import { TABBAR_HEIGHT } from '@/src/theme/globals';
+import { BOTTOM_TABBAR_HEIGHT, TABBAR_HEIGHT } from '@/src/theme/globals';
 import RankingTab from '../../ranking/RankingTab';
 
 type PoolTabsProps = {
@@ -48,8 +48,8 @@ const PoolTabs: React.FC<PoolTabsProps> = ({ enrichedPool }) => {
                         headerOffset={TABBAR_HEIGHT}
                         contentContainerStyle={{
                             paddingHorizontal: 4,
-                            marginTop: TABBAR_HEIGHT - 10,
-                            paddingBottom: insets.bottom + TABBAR_HEIGHT,
+                            marginTop: TABBAR_HEIGHT + 4,
+                            paddingBottom: insets.bottom + TABBAR_HEIGHT + BOTTOM_TABBAR_HEIGHT + 4,
                         }}
                         showPoolHeader={false}
                     />
@@ -68,8 +68,8 @@ const PoolTabs: React.FC<PoolTabsProps> = ({ enrichedPool }) => {
                         headerOffset={TABBAR_HEIGHT}
                         contentContainerStyle={{
                             paddingHorizontal: 4,
-                            marginTop: TABBAR_HEIGHT - 10,
-                            paddingBottom: insets.bottom + TABBAR_HEIGHT,
+                            marginTop: TABBAR_HEIGHT + 4,
+                            paddingBottom: insets.bottom + TABBAR_HEIGHT + BOTTOM_TABBAR_HEIGHT + 4,
                         }}
                         showPoolHeader={false}
                     />

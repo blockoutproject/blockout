@@ -7,8 +7,8 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import GradientBorderView from "@/src/components/common/GradientBorderView";
 import type { EnrichedMatchDTO } from "@/src/types/Match";
-import type { SheetStackParamList } from "@/src/components/common/BottomSheetNavigator";
 import InfoPillGradient from "../../common/chips/InfoPillGradient";
+import { useRouter } from "expo-router";
 
 type MatchInfoCardProps = {
     enrichedMatch: EnrichedMatchDTO;
@@ -18,7 +18,7 @@ const RADIUS = 18;
 
 const MatchInfoCard: React.FC<MatchInfoCardProps> = ({ enrichedMatch }) => {
     const theme = useAppTheme();
-    const navigation = useNavigation<NativeStackNavigationProp<SheetStackParamList>>();
+    const router = useRouter();
 
     const division = enrichedMatch.pool.division;
     const gradient = [
@@ -43,7 +43,7 @@ const MatchInfoCard: React.FC<MatchInfoCardProps> = ({ enrichedMatch }) => {
 
     const handlePoolPress = (poolId: number) => {
         Haptics.selectionAsync();
-        navigation.push("Pool", { poolId });
+        router.push(`/pools/${poolId}`);
     };
 
     return (

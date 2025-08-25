@@ -1,36 +1,35 @@
 import React, { useRef } from "react";
-import { StyleSheet, View } from "react-native";
-import { BottomSheetModal, BottomSheetScrollView } from "@gorhom/bottom-sheet";
+import { ScrollView, StyleSheet, View } from "react-native";
+import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import * as Haptics from "expo-haptics";
 import * as Linking from "expo-linking";
-import { RouteProp, useRoute } from "@react-navigation/native";
 
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import { useClubById } from "@/src/hooks/club/useClubById";
-import PoolSkeleton from "../pool/components/PoolSkeleton";
-import BottomSheetCustomModal from "../common/BottomSheetCustomModal";
-import ClubForm from "./components/ClubForm";
-import ErrorState from "@/src/components/common/ErrorState";
-import { SheetStackParamList } from "../common/BottomSheetNavigator";
-import ClubHeader from "./components/ClubHeader";
+import ErrorState from "@/src/components/common/feedback/ErrorState";
 import useHasScopes from "@/src/hooks/user/useHasScopes";
 import ReportForm from "@/src/components/report/ReportForm";
 import { ReportType } from "@/src/types/Report";
-import ClubHero from "./components/ClubHero";
-import { InfoCard, InfoRow } from "./components/ClubInfoCard";
+import { useLocalSearchParams } from "expo-router";
+import PoolSkeleton from "@/src/components/pool/components/PoolSkeleton";
+import ClubHero from "@/src/components/club/components/ClubHero";
+import { InfoCard, InfoRow } from "@/src/components/club/components/ClubInfoCard";
+import BottomSheetCustomModal from "@/src/components/common/BottomSheetCustomModal";
+import ClubForm from "@/src/components/club/components/ClubForm";
+import ClubHeader from "@/src/components/club/components/ClubHeader";
+import { BOTTOM_TABBAR_HEIGHT, SECTION_SEPARATOR_HEIGHT } from "@/src/theme/globals";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-type ClubRouteProp = RouteProp<SheetStackParamList, "Club">;
 
 type ClubScreenProps = {
     onCloseSheet: () => void;
 };
 
 const ClubScreen: React.FC<ClubScreenProps> = ({ onCloseSheet }) => {
-    const { params } = useRoute<ClubRouteProp>();
-    const clubId = params.clubId;
-
+    const { id } = useLocalSearchParams();
+    const insets = useSafeAreaInsets();
     const theme = useAppTheme();
-    const { data: club, isLoading, error, refetch } = useClubById(clubId);
+    const { data: club, isLoading, error, refetch } = useClubById(String(id));
 
     const formSheetRef = useRef<BottomSheetModal>(null);
     const reportSheetRef = useRef<BottomSheetModal>(null);
@@ -72,9 +71,9 @@ const ClubScreen: React.FC<ClubScreenProps> = ({ onCloseSheet }) => {
 
         body = (
             <>
-                <BottomSheetScrollView
+                <ScrollView
                     showsVerticalScrollIndicator={false}
-                    contentContainerStyle={[styles.scrollContent, { backgroundColor: theme.background }]}
+                    contentContainerStyle={[styles.scrollContent, { backgroundColor: theme.background, paddingBottom: insets.bottom + BOTTOM_TABBAR_HEIGHT + SECTION_SEPARATOR_HEIGHT }]}
                 >
                     <ClubHero club={club} onEdit={canUpdateClub ? openForm : undefined} />
 
@@ -88,7 +87,7 @@ const ClubScreen: React.FC<ClubScreenProps> = ({ onCloseSheet }) => {
                         <InfoRow icon="map-marker" label="Ville" value={club.city} />
                         <InfoRow icon="map-outline" label="Voir sur la carte" value="Ouvrir la carte" onPress={openMap} isLink />
                     </InfoCard>
-                </BottomSheetScrollView>
+                </ScrollView>
 
                 <BottomSheetCustomModal ref={formSheetRef}>
                     <ClubForm
@@ -97,21 +96,6 @@ const ClubScreen: React.FC<ClubScreenProps> = ({ onCloseSheet }) => {
                             await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
                             refetch();
                             closeForm();
-                        }}
-                    />
-                </BottomSheetCustomModal>
-
-                <BottomSheetCustomModal
-                    ref={reportSheetRef}
-                    snapPoint={"90%"}
-                >
-                    <ReportForm
-                        context={{
-                            screen: "Club",
-                            defaultType: ReportType.DISPLAY_BUG,
-                        }}
-                        onSuccess={() => {
-                            reportSheetRef.current?.dismiss();
                         }}
                     />
                 </BottomSheetCustomModal>
@@ -127,6 +111,20 @@ const ClubScreen: React.FC<ClubScreenProps> = ({ onCloseSheet }) => {
                 onOpenReport={() => reportSheetRef.current?.present()}
             />
             {body}
+            <BottomSheetCustomModal
+                ref={reportSheetRef}
+                snapPoint={"90%"}
+            >
+                <ReportForm
+                    context={{
+                        screen: "Club",
+                        defaultType: ReportType.DISPLAY_BUG,
+                    }}
+                    onSuccess={() => {
+                        reportSheetRef.current?.dismiss();
+                    }}
+                />
+            </BottomSheetCustomModal>
         </View>
     );
 };

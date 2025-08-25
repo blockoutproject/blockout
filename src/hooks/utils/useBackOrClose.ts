@@ -10,7 +10,7 @@ export function useBackOrClose(onCloseSheet?: () => void) {
         } else {
             onCloseSheet?.();
         }
-    }, [navigation, onCloseSheet]);
+    }, [navigation]);
 
     const canGoBack = navigation.canGoBack();
 

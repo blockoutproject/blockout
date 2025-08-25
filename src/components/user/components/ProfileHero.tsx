@@ -15,7 +15,7 @@ const AVATAR_SIZE = 120;
 const EDGE = 0.95;
 const MID = 0.0;
 
-const UserHero: React.FC<UserHeroProps> = ({ user, onEdit }) => {
+const ProfileHero: React.FC<UserHeroProps> = ({ user, onEdit }) => {
     const theme = useAppTheme();
     const avatar = user.pictureUrl ? { uri: user.pictureUrl } : require("@/assets/users/default_user_avatar.png");
 
@@ -93,7 +93,7 @@ const UserHero: React.FC<UserHeroProps> = ({ user, onEdit }) => {
     );
 };
 
-export default UserHero;
+export default ProfileHero;
 
 const styles = StyleSheet.create({
     wrapper: {

@@ -35,8 +35,6 @@ export default SectionDateHeader;
 
 const styles = StyleSheet.create({
     wrapper: {
-        paddingTop: 18,
-        paddingBottom: 8,
         flexDirection: "row",
         alignItems: "center",
     },

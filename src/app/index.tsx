@@ -7,7 +7,12 @@ export default function Index() {
     const { authenticated, isLoading: authLoading } = useSession();
     const { userReady, isLoading: userLoading } = useUserContext();
 
-    const ready = authenticated && userReady && !authLoading && !userLoading;
+    const ready = authenticated 
+        && userReady 
+        && !authLoading 
+        && !userLoading;
 
-    return <Redirect href={ready ? "/(app)" : "/sign-in"} />;
+    return (
+        <Redirect href={ready ? "/(tabs)/(feed)" : "/sign-in"} />
+    );
 }
