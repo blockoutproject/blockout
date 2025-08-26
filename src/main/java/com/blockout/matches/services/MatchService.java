@@ -264,7 +264,7 @@ public class MatchService {
     /**
      * Désactive en masse les matches actifs d'une pool pour les codes spécifiés.
      *
-     * @param poolId                 L'identifiant de la pool
+     * @param poolId L'identifiant de la pool
      * @param matchCodesToDeactivate Liste des codes de match à désactiver
      */
     @Transactional
