@@ -104,7 +104,7 @@ const styles = StyleSheet.create({
         paddingVertical: 12,
         paddingHorizontal: 12,
         borderRadius: RADIUS,
-        gap: 10,
+        gap: 16,
     },
     headerRow: {
         flexDirection: "row",
@@ -119,7 +119,7 @@ const styles = StyleSheet.create({
     teamCard: {
         flex: 1,
         alignItems: "center",
-        gap: 6,
+        gap: 10,
     },
     teamLabel: {
         fontSize: 14,

@@ -87,5 +87,5 @@ export default RankingCard;
 const styles = StyleSheet.create({
     card: { borderRadius: RADIUS },
     innerClip: { borderRadius: RADIUS - 1, overflow: "hidden" },
-    listContent: { paddingBottom: 8, gap: 6 },
+    listContent: { paddingBottom: 8, gap: 10 },
 });

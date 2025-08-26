@@ -11,7 +11,7 @@ import {
 import * as Haptics from "expo-haptics";
 import { MatchStatus } from "@/src/types/Match";
 import { formatDateFrenchLocale } from "@/src/utils/utils";
-import EmptyPrompt from "../common/feedback/EmptyState";
+import EmptyState from "../common/feedback/EmptyState";
 import PoolItem from "./components/PoolItem";
 import { useMatchList } from "@/src/hooks/match/useMatchList";
 import SectionDateHeader from "./components/SectionDateHeader";
@@ -19,6 +19,19 @@ import { useAppTheme } from "@/src/context/ThemeProvider";
 import ErrorState from "../common/feedback/ErrorState";
 import { useRouter } from "expo-router";
 import { SECTION_SEPARATOR_HEIGHT } from "@/src/theme/globals";
+
+
+export type RowItem = {
+    id: string;
+    title: string;
+    subtitle?: string;
+};
+
+export type Section = {
+    key: string;
+    title: string;
+    data: RowItem[];
+};
 
 type MatchListContainerProps = {
     poolIds?: number[];
@@ -82,7 +95,7 @@ const MatchListContainer: React.FC<MatchListContainerProps> = ({
         () =>
             dayMatches.map((d) => ({
                 title: formatDateFrenchLocale(d.date),
-                data: d.pools,
+                data: d.pools.map((p, idx) => ({ ...p, __sectionKey: d.date })),
             })),
         [dayMatches]
     );
@@ -113,20 +126,19 @@ const MatchListContainer: React.FC<MatchListContainerProps> = ({
         body = (
             <Animated.SectionList
                 sections={sections}
-                keyExtractor={(it) => String(it.pool.id)}
-                initialNumToRender={10}
+                keyExtractor={(it) => `${it.pool.id}-${it.__sectionKey}`}
                 stickySectionHeadersEnabled
                 renderSectionHeader={renderSectionHeader}
-                renderItem={({ item }) => (
+                renderItem={({ item, index }) => (
                     <PoolItem
                         enrichedPoolMatches={item}
                         handlePoolPress={handlePoolPress}
                         handleMatchPress={handleMatchPress}
                         showHeader={showPoolHeader}
+                        appearIndex={index}
                     />
                 )}
                 onEndReached={handleLoadMore}
-                onEndReachedThreshold={0.4}
                 ItemSeparatorComponent={() => <View style={styles.itemSeparator} />}
                 SectionSeparatorComponent={() => <View style={styles.sectionSeparator} />}
                 showsVerticalScrollIndicator={false}
@@ -139,7 +151,7 @@ const MatchListContainer: React.FC<MatchListContainerProps> = ({
                     />
                 }
                 ListEmptyComponent={
-                    <EmptyPrompt
+                    <EmptyState
                         title="Aucun match trouvé"
                         subtitle={
                             poolIds?.length || teamIds?.length
@@ -164,11 +176,9 @@ const MatchListContainer: React.FC<MatchListContainerProps> = ({
                         <ActivityIndicator style={{ marginBottom: SECTION_SEPARATOR_HEIGHT }} />
                     ) : null
                 }
-                maintainVisibleContentPosition={{ minIndexForVisible: 1 }}
-                windowSize={15}
-                maxToRenderPerBatch={8}
-                updateCellsBatchingPeriod={16}
-                scrollEventThrottle={16}
+                maintainVisibleContentPosition={{
+                    minIndexForVisible: 1,
+                }}
             />
         );
     }

@@ -1,7 +1,7 @@
-import React from 'react';
-import { View, ViewStyle, StyleProp } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { useAppTheme } from '@/src/context/ThemeProvider';
+import React from "react";
+import { View, ViewStyle, StyleProp } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import { useAppTheme } from "@/src/context/ThemeProvider";
 
 type GradientBorderViewProps = {
     children: React.ReactNode;
@@ -25,24 +25,30 @@ const GradientBorderView: React.FC<GradientBorderViewProps> = ({
     end = { x: 1, y: 1 },
 }) => {
     const theme = useAppTheme();
+    const innerRadius = Math.max(0, borderRadius - borderWidth);
 
     return (
-        <LinearGradient
-            colors={gradient}
-            start={start}
-            end={end}
-            style={[
-                {
-                    borderRadius,
-                    padding: borderWidth,
-                },
-                outerStyle,
-            ]}
-        >
-            <View style={[{ backgroundColor: theme.backgroundSecondary, borderRadius: borderRadius - borderWidth }, style]}>
-                {children}
-            </View>
-        </LinearGradient>
+        <View style={[{ borderRadius, overflow: "hidden" }, outerStyle]}>
+            <LinearGradient
+                colors={gradient}
+                start={start}
+                end={end}
+                style={{ borderRadius }}
+            >
+                <View
+                    style={[
+                        {
+                            margin: borderWidth,
+                            borderRadius: innerRadius,
+                            backgroundColor: theme.backgroundSecondary,
+                        },
+                        style,
+                    ]}
+                >
+                    {children}
+                </View>
+            </LinearGradient>
+        </View>
     );
 };
 

@@ -12,14 +12,13 @@ import {
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import SearchBar from "@/src/components/common/SearchBar";
 import ClubCard from "@/src/components/search/components/ClubCard";
-import { SearchPrompt } from "@/src/components/common/feedback/SearchPrompt";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import { useSearchClubs } from "@/src/hooks/search/useSearchClubs";
-import { useNavigation } from "@react-navigation/native";
-import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useRouter } from "expo-router";
 import ErrorState from "../../common/feedback/ErrorState";
+import SearchState from "../../common/feedback/SearchState.tsx";
+import { BOTTOM_TABBAR_HEIGHT } from "@/src/theme/globals";
 
 type Props = {
     search: string;
@@ -47,7 +46,7 @@ const SearchClubScreen: React.FC<Props> = ({
     }
 
     const renderEmpty = () => {
-        if (!search && !isInputFocused) return <SearchPrompt />;
+        if (!search && !isInputFocused) return <SearchState />;
         if (debouncedQuery.length > 1 && !isLoading && !isError) {
             return (
                 <View style={styles.emptyContainer}>
@@ -100,7 +99,8 @@ const SearchClubScreen: React.FC<Props> = ({
                 showsVerticalScrollIndicator={false}
                 keyboardShouldPersistTaps="handled"
                 onScrollBeginDrag={Keyboard.dismiss}
-                contentContainerStyle={{ paddingBottom: insets.bottom }}
+                contentContainerStyle={{ paddingBottom: insets.bottom + BOTTOM_TABBAR_HEIGHT }}
+                scrollEnabled={!!clubs && clubs.length > 0}
             />
         </KeyboardAvoidingView>
     );

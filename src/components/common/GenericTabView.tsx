@@ -76,7 +76,7 @@ const GenericTabView: React.FC<GenericTabViewProps> = ({
                         <Animated.View
                             style={[StyleSheet.absoluteFill, { opacity: interpolatedOpacity }]}
                         >
-                            <BlurView intensity={70} tint="dark" style={StyleSheet.absoluteFill} />
+                            <BlurView intensity={60} tint="dark" style={StyleSheet.absoluteFill} />
                         </Animated.View>
 
                         <LinearGradient

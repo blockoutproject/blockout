@@ -11,13 +11,14 @@ import {
 } from 'react-native';
 import { useAppTheme } from '@/src/context/ThemeProvider';
 import SearchBar from '@/src/components/common/SearchBar';
-import { SearchPrompt } from '@/src/components/common/feedback/SearchPrompt';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import PoolCard from './PoolCard';
 import { useSearchPools } from '@/src/hooks/search/useSearchPools';
 import { useRouter } from 'expo-router';
 import ErrorState from '@/src/components/common/feedback/ErrorState';
+import SearchState from '../../common/feedback/SearchState.tsx';
+import { BOTTOM_TABBAR_HEIGHT } from '@/src/theme/globals';
 
 type Props = {
     search: string;
@@ -45,7 +46,7 @@ const SearchPoolScreen: React.FC<Props> = ({
     };
 
     const renderEmpty = () => {
-        if (!search && !isInputFocused) return <SearchPrompt />;
+        if (!search && !isInputFocused) return <SearchState />;
         if (debouncedQuery.length > 1 && !isLoading && !isError) {
             return (
                 <View style={styles.emptyContainer}>
@@ -79,10 +80,10 @@ const SearchPoolScreen: React.FC<Props> = ({
             )}
 
             {isError && (
-                    <ErrorState
-                        message="Impossible de charger la liste des pools."
-                        onRetry={refetch}
-                    />
+                <ErrorState
+                    message="Impossible de charger la liste des pools."
+                    onRetry={refetch}
+                />
             )}
 
             <FlatList
@@ -101,7 +102,8 @@ const SearchPoolScreen: React.FC<Props> = ({
                 showsVerticalScrollIndicator={false}
                 keyboardShouldPersistTaps="handled"
                 onScrollBeginDrag={Keyboard.dismiss}
-                contentContainerStyle={{ paddingBottom: insets.bottom }}
+                contentContainerStyle={{ paddingBottom: insets.bottom + BOTTOM_TABBAR_HEIGHT }}
+                scrollEnabled={!!pools && pools.length > 0}
             />
         </KeyboardAvoidingView>
     );

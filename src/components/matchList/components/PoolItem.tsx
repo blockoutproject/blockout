@@ -1,8 +1,8 @@
-import React from "react";
-import { Text, TouchableOpacity, View, StyleSheet } from "react-native";
+import React, { useEffect, useRef } from "react";
+import { Text, TouchableOpacity, View, StyleSheet, Animated } from "react-native";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
-import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 
 import { EnrichedPoolMatchesDTO } from "@/src/types/Match";
 import { useAppTheme } from "@/src/context/ThemeProvider";
@@ -16,6 +16,9 @@ type PoolItemProps = {
     handlePoolPress: (id: number) => void;
     handleMatchPress: (id: number) => void;
     showHeader?: boolean;
+    appearIndex?: number;
+    staggerBase?: number;
+    staggerStep?: number;
 };
 
 const RADIUS = 16;
@@ -25,6 +28,9 @@ const PoolItem: React.FC<PoolItemProps> = ({
     handlePoolPress,
     handleMatchPress,
     showHeader = true,
+    appearIndex = 0,
+    staggerBase = 0,
+    staggerStep = 40,
 }) => {
     const theme = useAppTheme();
     const division = enrichedPoolMatches.pool.division;
@@ -39,70 +45,103 @@ const PoolItem: React.FC<PoolItemProps> = ({
         division.thirdGradientColor,
     ] as const;
 
+    const opacity = useRef(new Animated.Value(0)).current;
+    const translateY = useRef(new Animated.Value(8)).current;
+    const hasAnimated = useRef(false);
+
+    useEffect(() => {
+        if (hasAnimated.current) return;
+        hasAnimated.current = true;
+
+        const delay = staggerBase + appearIndex * staggerStep;
+
+        Animated.parallel([
+            Animated.timing(opacity, {
+                toValue: 1,
+                duration: 220,
+                delay,
+                useNativeDriver: true,
+            }),
+            Animated.timing(translateY, {
+                toValue: 0,
+                duration: 220,
+                delay,
+                useNativeDriver: true,
+            }),
+        ]).start();
+    }, [appearIndex, staggerBase, staggerStep, opacity, translateY]);
+
     return (
-        <GradientBorderView
-            gradient={gradient}
-            borderRadius={RADIUS}
-            borderWidth={1}
-            style={[styles.card, { backgroundColor: theme.surface }]}
+        <Animated.View
+            style={{
+                opacity,
+                transform: [{ translateY }],
+            }}
         >
-            <View style={styles.innerClip}>
-                {showHeader && (
-                    <TouchableOpacity
-                        activeOpacity={0.85}
-                        onPress={() => handlePoolPress(enrichedPoolMatches.pool.id)}
-                    >
-                        <Image
-                            source={divisionLogo}
-                            style={StyleSheet.absoluteFill}
-                            contentFit="cover"
-                            blurRadius={40}
-                        />
-
-                        <LinearGradient
-                            pointerEvents="none"
-                            colors={[
-                                withAlpha(theme.surface, 0.8),
-                                withAlpha(theme.surface, 0.5),
-                                withAlpha(theme.surface, 0.8),
-                            ]}
-                            locations={[0, 0.5, 1]}
-                            start={{ x: 0, y: 0.5 }}
-                            end={{ x: 1, y: 0.5 }}
-                            style={StyleSheet.absoluteFill}
-                        />
-
-                        <View style={styles.headerRow}>
-                            <MaskedImage uri={division.logoUrl} size={22} radius={6} shadow={false} />
-                            <Text
-                                style={[styles.poolTitle, { color: theme.text }]}
-                                numberOfLines={1}
-                                ellipsizeMode="tail"
-                            >
-                                {enrichedPoolMatches.pool.name}
-                            </Text>
-                            <Ionicons
-                                name="chevron-forward-outline"
-                                size={20}
-                                color={withAlpha(theme.text, 0.8)}
-                            />
-                        </View>
-                    </TouchableOpacity>
-                )}
-
-                <View style={styles.matchList}>
-                    {enrichedPoolMatches.matches.map((enrichedMatch) => (
+            <GradientBorderView
+                gradient={gradient}
+                borderRadius={RADIUS}
+                borderWidth={1}
+                style={[styles.card, { backgroundColor: theme.surface }]}
+            >
+                <View style={styles.innerClip}>
+                    {showHeader && (
                         <TouchableOpacity
-                            key={enrichedMatch.id}
                             activeOpacity={0.85}
-                            onPress={() => handleMatchPress(enrichedMatch.id)}
+                            onPress={() => handlePoolPress(enrichedPoolMatches.pool.id)}
                         >
-                            <MatchRow enrichedMatch={enrichedMatch} division={division} />
+                            <Image
+                                source={divisionLogo}
+                                style={StyleSheet.absoluteFill}
+                                contentFit="cover"
+                                blurRadius={60}
+                            />
+
+                            <LinearGradient
+                                pointerEvents="none"
+                                colors={[
+                                    withAlpha(theme.surface, 0.8),
+                                    withAlpha(theme.surface, 0.5),
+                                    withAlpha(theme.surface, 0.8),
+                                ]}
+                                locations={[0, 0.5, 1]}
+                                start={{ x: 0, y: 0.5 }}
+                                end={{ x: 1, y: 0.5 }}
+                                style={StyleSheet.absoluteFill}
+                            />
+
+                            <View style={styles.headerRow}>
+                                <MaskedImage uri={division.logoUrl} size={22} radius={6} shadow={false} />
+                                <Text
+                                    style={[styles.poolTitle, { color: theme.text }]}
+                                    numberOfLines={1}
+                                    ellipsizeMode="tail"
+                                >
+                                    {enrichedPoolMatches.pool.name}
+                                </Text>
+                                <Ionicons
+                                    name="chevron-forward-outline"
+                                    size={20}
+                                    color={withAlpha(theme.text, 0.8)}
+                                />
+                            </View>
                         </TouchableOpacity>
-                    ))}
+                    )}
+
+                    <View style={styles.matchList}>
+                        {enrichedPoolMatches.matches.map((enrichedMatch) => (
+                            <TouchableOpacity
+                                key={enrichedMatch.id}
+                                activeOpacity={0.85}
+                                onPress={() => handleMatchPress(enrichedMatch.id)}
+                            >
+                                <MatchRow enrichedMatch={enrichedMatch} division={division} />
+                            </TouchableOpacity>
+                        ))}
+                    </View>
                 </View>
-            </View>
-        </GradientBorderView>
+            </GradientBorderView>
+        </Animated.View>
     );
 };
 

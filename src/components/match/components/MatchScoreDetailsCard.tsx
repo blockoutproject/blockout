@@ -37,10 +37,10 @@ const MatchScoreDetailsCard: React.FC<MatchScoreDetailsCardProps> = ({
     const homeSets = setsArray.map(([h]) => h);
     const awaySets = setsArray.map(([, a]) => a);
 
-    const SetHeader: React.FC = () => (
+    const HeaderRow: React.FC = () => (
         <View style={styles.row}>
-            <View style={styles.identityPlaceholder} />
-            <View style={styles.finalScoreColumn} />
+            <Text style={[styles.headerScoreText, { color: theme.text }]}>{title}</Text>
+            <View style={styles.identityBlock} />
             {Array.from({ length: maxSets }).map((_, i) => (
                 <View key={`h-${i}`} style={styles.setColumn}>
                     <Text style={[styles.setHeaderText, { color: theme.textInactive }]}>{`S${i + 1}`}</Text>
@@ -114,9 +114,7 @@ const MatchScoreDetailsCard: React.FC<MatchScoreDetailsCardProps> = ({
             borderWidth={1}
             style={[styles.card, { backgroundColor: theme.background }]}
         >
-            <Text style={[styles.title, { color: theme.text }]}>{title}</Text>
-
-            {maxSets > 0 ? <SetHeader /> : null}
+            {maxSets > 0 && <HeaderRow />}
 
             <View style={styles.rows}>
                 <TeamRow
@@ -142,27 +140,25 @@ const styles = StyleSheet.create({
     card: {
         borderRadius: RADIUS,
         padding: 14,
-        gap: 10,
+        gap: 16,
     },
-    title: {
-        fontSize: 14,
-        fontWeight: "800",
-        textTransform: "uppercase",
-        letterSpacing: 0.3,
-    },
-    rows: { gap: 8 },
+    rows: { gap: 12 },
     row: {
         flexDirection: "row",
         alignItems: "center",
-        gap: 6,
+        gap: 4,
     },
-    identityPlaceholder: { flex: 1 },
     identityBlock: {
         flex: 1,
         flexDirection: "row",
         alignItems: "center",
         gap: 8,
-        minWidth: 0,
+    },
+    headerScoreText: {
+        fontSize: 14,
+        fontWeight: "800",
+        textTransform: "uppercase",
+        letterSpacing: 0.3,
     },
     teamLogo: {
         width: LOGO,
@@ -199,6 +195,7 @@ const styles = StyleSheet.create({
     setHeaderText: {
         fontSize: 12,
         fontWeight: "700",
+        textTransform: "uppercase",
     },
     setScoreText: { fontSize: 16 },
 });

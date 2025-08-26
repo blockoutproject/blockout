@@ -79,7 +79,7 @@ const styles = StyleSheet.create({
     card: {
         borderRadius: RADIUS,
         padding: 14,
-        gap: 12,
+        gap: 16,
     },
     title: {
         fontSize: 14,
@@ -90,6 +90,6 @@ const styles = StyleSheet.create({
     pillsWrap: {
         flexDirection: "row",
         flexWrap: "wrap",
-        gap: 8,
+        gap: 12,
     },
 });

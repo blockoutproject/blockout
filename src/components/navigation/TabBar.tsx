@@ -18,16 +18,8 @@ import { BlurView } from "expo-blur";
 import * as Haptics from "expo-haptics";
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import { BOTTOM_TABBAR_HEIGHT } from "@/src/theme/globals";
+import { withAlpha } from "@/src/utils/utils";
 
-/** Utilitaire pour transformer un hex en rgba avec alpha */
-function hexToRgba(hex: string, alpha = 1) {
-    const full = hex.replace("#", "");
-    const isShort = full.length === 3;
-    const r = parseInt(isShort ? full[0] + full[0] : full.slice(0, 2), 16);
-    const g = parseInt(isShort ? full[1] + full[1] : full.slice(2, 4), 16);
-    const b = parseInt(isShort ? full[2] + full[2] : full.slice(4, 6), 16);
-    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-}
 
 type Props = BottomTabBarProps & {
     activeColor: string;
@@ -63,7 +55,7 @@ export default function TabBar({
     extraBottomInset = 0,
     pillWidth = 50,
     pillHeight = 44,
-    pillOpacity = 0.16,
+    pillOpacity = 0.26,
     pillBorder = true,
 }: Props) {
     const insets = useSafeAreaInsets();
@@ -101,7 +93,7 @@ export default function TabBar({
 
     const Background =
         Platform.OS === "ios" ? (
-            <BlurView intensity={40} tint={blurTintIOS} style={StyleSheet.absoluteFill} />
+            <BlurView intensity={70} tint={blurTintIOS} style={StyleSheet.absoluteFill} />
         ) : (
             <View
                 pointerEvents="none"
@@ -109,7 +101,7 @@ export default function TabBar({
             />
         );
 
-    const pillBg = hexToRgba(activeColor, pillOpacity);
+    const pillBg = withAlpha(activeColor, pillOpacity);
 
     return (
         <View pointerEvents="box-none" style={[styles.wrapper, { bottom: offsetFromBottom }]}>
@@ -164,7 +156,6 @@ export default function TabBar({
                                 requestAnimationFrame(() => animateToIndex(index));
                         };
 
-                        // “Lift” + scale sur l’icône active
                         const iconAnimatedStyle = useAnimatedStyle(() => {
                             const scale = activeIndex.value === index ? 1.06 : 1;
                             return {

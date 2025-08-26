@@ -10,13 +10,14 @@ import {
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import SearchBar from "@/src/components/common/SearchBar";
 import TeamCard from "@/src/components/search/components/TeamCard";
-import { SearchPrompt } from "@/src/components/common/feedback/SearchPrompt";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import { useSearchTeams } from "@/src/hooks/search/useSearchTeams";
 import { FlatList } from "react-native-gesture-handler";
 import ErrorState from "../../common/feedback/ErrorState";
 import { useRouter } from "expo-router";
+import SearchState from "../../common/feedback/SearchState.tsx";
+import { BOTTOM_TABBAR_HEIGHT } from "@/src/theme/globals";
 
 
 type Props = {
@@ -45,7 +46,7 @@ const SearchTeamScreen: React.FC<Props> = ({
     };
 
     const renderEmpty = () => {
-        if (!search && !isInputFocused) return <SearchPrompt />;
+        if (!search && !isInputFocused) return <SearchState />;
         if (debouncedQuery.length > 1 && !isLoading && !isError) {
             return (
                 <View style={styles.emptyContainer}>
@@ -57,6 +58,8 @@ const SearchTeamScreen: React.FC<Props> = ({
         }
         return null;
     };
+
+    console.log(teams)
 
     return (
         <KeyboardAvoidingView
@@ -97,7 +100,8 @@ const SearchTeamScreen: React.FC<Props> = ({
                 showsVerticalScrollIndicator={false}
                 keyboardShouldPersistTaps="handled"
                 onScrollBeginDrag={Keyboard.dismiss}
-                contentContainerStyle={{ paddingBottom: insets.bottom }}
+                contentContainerStyle={{ paddingBottom: insets.bottom + BOTTOM_TABBAR_HEIGHT }}
+                scrollEnabled={!!teams && teams.length > 0}
             />
         </KeyboardAvoidingView>
     );

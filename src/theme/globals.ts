@@ -1,4 +1,4 @@
-export const HEADER_HEIGHT = 40;
+export const HEADER_HEIGHT = 48;
 export const TABBAR_HEIGHT = 48;
 export const LOGO_HEIGHT = 26;
 export const FONT_SIZE = 17;

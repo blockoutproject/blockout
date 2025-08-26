@@ -9,14 +9,14 @@ import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 import MaskedImage from "@/src/components/common/images/MaskedImage";
 import GradientBorderView from "@/src/components/common/GradientBorderView";
-import InfoPill from "@/src/components/common/chips/InfoPill";
 import InfoPillGradient from "@/src/components/common/chips/InfoPillGradient";
+import { withAlpha } from "@/src/utils/utils";
 
 type HeaderContent = {
     teamALogo: string | null;
     teamBLogo: string | null;
-    scoreText: string | null; // si null → on affiche timeText
-    timeText: string | null;  // si null & score null → rien
+    scoreText: string | null;
+    timeText: string | null;
 };
 
 type MatchHeaderProps = {
@@ -68,36 +68,37 @@ const MatchHeader: React.FC<MatchHeaderProps> = ({ onOpenReport, scrollY, header
         extrapolate: "clamp",
     });
 
-    const elevation = scrollY.interpolate({
+    const containerElevation = scrollY.interpolate({
         inputRange: [BG_FADE_IN_START, BG_FADE_IN_END],
         outputRange: [0, 4],
         extrapolate: "clamp",
     });
 
-    const BackgroundLayer = (
-        <View style={StyleSheet.absoluteFill}>
-            {Platform.OS === "ios" ? (
-                <Animated.View style={[StyleSheet.absoluteFill, { opacity: bgOpacity }]}>
-                    <BlurView intensity={50} tint="dark" style={StyleSheet.absoluteFill} />
-                </Animated.View>
-            ) : (
-                <Animated.View
-                    style={[
-                        StyleSheet.absoluteFill,
-                        { backgroundColor: theme.background, opacity: bgOpacity, elevation },
-                    ]}
-                />
-            )}
+    const androidTint = withAlpha(theme.background, 0.88);
 
-            <Animated.View style={[StyleSheet.absoluteFill, { opacity: bgOpacity }]} pointerEvents="none">
-                <LinearGradient
-                    colors={[theme.background, "transparent"]}
-                    start={{ x: 0, y: 0.35 }}
-                    end={{ x: 0, y: 1 }}
-                    style={StyleSheet.absoluteFill}
-                />
-            </Animated.View>
-        </View>
+    const BackgroundLayer = (
+        <Animated.View style={[StyleSheet.absoluteFill, { opacity: bgOpacity, zIndex: 0 }]} pointerEvents="none">
+            {Platform.OS === "ios" ? (
+                <BlurView intensity={50} tint="dark" style={StyleSheet.absoluteFill} />
+            ) : (
+                <>
+                    <View style={[StyleSheet.absoluteFill, { backgroundColor: androidTint }]} />
+                    <LinearGradient
+                        colors={[androidTint, "transparent"]}
+                        start={{ x: 0, y: 0.35 }}
+                        end={{ x: 0, y: 1 }}
+                        style={StyleSheet.absoluteFill}
+                    />
+                </>
+            )}
+            {/* iOS ET Android : gradient additionnel par-dessus la teinte/blur */}
+            <LinearGradient
+                colors={[theme.background, "transparent"]}
+                start={{ x: 0, y: 0.35 }}
+                end={{ x: 0, y: 1 }}
+                style={StyleSheet.absoluteFill}
+            />
+        </Animated.View>
     );
 
     // Centre façon MatchScoreCard
@@ -105,9 +106,11 @@ const MatchHeader: React.FC<MatchHeaderProps> = ({ onOpenReport, scrollY, header
         headerContent && headerGradient ? (
             <Animated.View
                 pointerEvents="none"
+                needsOffscreenAlphaCompositing
+                renderToHardwareTextureAndroid
                 style={[
                     styles.centerWrap,
-                    { opacity: contentOpacity, transform: [{ scale: centerScale }] },
+                    { opacity: contentOpacity, transform: [{ scale: centerScale }], zIndex: 2 },
                 ]}
             >
                 <Animated.View style={{ transform: [{ translateX: leftTranslateX }] }}>
@@ -116,18 +119,16 @@ const MatchHeader: React.FC<MatchHeaderProps> = ({ onOpenReport, scrollY, header
 
                 <View style={styles.centerBlock}>
                     {headerContent.scoreText ? (
-                        <>
-                            <GradientBorderView
-                                gradient={headerGradient}
-                                borderRadius={12}
-                                borderWidth={1.5}
-                                style={[styles.finalScoreBox, { backgroundColor: theme.background }]}
-                            >
-                                <Text style={[styles.finalScoreText, { color: theme.text }]}>
-                                    {headerContent.scoreText}
-                                </Text>
-                            </GradientBorderView>
-                        </>
+                        <GradientBorderView
+                            gradient={headerGradient}
+                            borderRadius={12}
+                            borderWidth={2}
+                            style={[styles.finalScoreBox, { backgroundColor: theme.background }]}
+                        >
+                            <Text style={[styles.finalScoreText, { color: theme.text }]}>
+                                {headerContent.scoreText}
+                            </Text>
+                        </GradientBorderView>
                     ) : (
                         <InfoPillGradient label="À venir" gradient={headerGradient} />
                     )}
@@ -140,10 +141,18 @@ const MatchHeader: React.FC<MatchHeaderProps> = ({ onOpenReport, scrollY, header
         ) : null;
 
     return (
-        <View style={[styles.container, { paddingTop: insets.top }]}>
+        <Animated.View
+            style={[
+                styles.container,
+                { paddingTop: insets.top, zIndex: 1 },
+                Platform.OS === "android" ? { elevation: containerElevation } : null,
+            ]}
+            collapsable={false}
+        >
             {BackgroundLayer}
 
-            <View style={styles.header}>
+            {/* Barre d’actions au-dessus du fond */}
+            <View style={[styles.header, { zIndex: 2 }]}>
                 <TouchableOpacity onPress={router.back} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
                     <Ionicons name={"chevron-back-outline"} size={28} color={theme.text} />
                 </TouchableOpacity>
@@ -154,7 +163,7 @@ const MatchHeader: React.FC<MatchHeaderProps> = ({ onOpenReport, scrollY, header
 
                 {CenterContent}
             </View>
-        </View>
+        </Animated.View>
     );
 };
 
@@ -167,7 +176,6 @@ const styles = StyleSheet.create({
         top: 0,
         left: 0,
         right: 0,
-        zIndex: 10,
     },
     header: {
         height: HEADER_HEIGHT,
@@ -200,9 +208,5 @@ const styles = StyleSheet.create({
         fontSize: 18,
         fontWeight: "800",
         letterSpacing: 0.3,
-    },
-    timeLarge: {
-        fontSize: 18,
-        fontWeight: "800",
     },
 });
