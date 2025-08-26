@@ -63,13 +63,13 @@ public class TeamService {
     /**
      * Récupère les équipes en appliquant des filtres facultatifs
      *
-     * @param name         fragment du nom (null pour ignorer)
+     * @param name fragment du nom (null pour ignorer)
      * @param divisionId code de division (null pour ignorer)
-     * @param format       format (null pour ignorer)
-     * @param gender       genre (null pour ignorer)
-     * @param season       saison (null pour ignorer)
-     * @param clubId       identifiant du club (null pour ignorer)
-     * @param ids          liste d'IDs (null pour ignorer)
+     * @param format format (null pour ignorer)
+     * @param gender genre (null pour ignorer)
+     * @param season saison (null pour ignorer)
+     * @param clubId identifiant du club (null pour ignorer)
+     * @param ids liste d'IDs (null pour ignorer)
      * @return Liste des équipes correspondantes
      */
     public List<Team> findTeams(String name, Long divisionId, Format format, Gender gender, String season, String clubId, List<Long> ids) {
