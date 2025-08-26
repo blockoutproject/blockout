@@ -6,3 +6,14 @@ CREATE TABLE user_favorites (
     created_at TIMESTAMP(6),
     CONSTRAINT fk_user_fav_user FOREIGN KEY (user_id) REFERENCES users (id)
 );
+
+CREATE INDEX IF NOT EXISTS idx_user_favorites_entity_team
+    ON user_favorites (entity_id)
+    WHERE entity_type = 'TEAM';
+
+CREATE INDEX IF NOT EXISTS idx_user_favorites_entity_pool
+    ON user_favorites (entity_id)
+    entity_type = 'POOL';
+
+CREATE INDEX IF NOT EXISTS idx_user_favorites_user
+    ON user_favorites (user_id);

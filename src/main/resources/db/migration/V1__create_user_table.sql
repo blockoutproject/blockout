@@ -7,10 +7,10 @@ CREATE TABLE users (
     pseudo VARCHAR(255) NOT NULL,
     phone_number VARCHAR(255),
     picture_url VARCHAR(255),
-    role VARCHAR(255) NOT NULL CHECK (role IN ('USER', 'ADMIN', 'MANAGER', 'REFEREE')),
     active BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMP(6),
     last_update TIMESTAMP(6),
     CONSTRAINT uix_user_auth0_id UNIQUE (auth0_id),
     CONSTRAINT uix_user_email UNIQUE (email)
+    CONSTRAINT uix_user_pseudo UNIQUE (pseudo)
 );
