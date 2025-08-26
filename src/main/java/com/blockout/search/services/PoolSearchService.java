@@ -6,6 +6,9 @@ import co.elastic.clients.elasticsearch._types.query_dsl.Operator;
 import co.elastic.clients.elasticsearch._types.query_dsl.Query;
 
 import lombok.RequiredArgsConstructor;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import com.blockout.search.models.docs.PoolSearchDoc;
@@ -20,6 +23,7 @@ import java.util.stream.Collectors;
 public class PoolSearchService {
 
     private final ElasticsearchClient elasticsearchClient;
+    private static final Logger logger = LoggerFactory.getLogger(PoolSearchService.class);
 
     public List<PoolSearchDoc> searchByKeyword(String keyword) {
         try {
@@ -47,6 +51,7 @@ public class PoolSearchService {
                     .toList();
 
         } catch (Exception e) {
+            logger.error("Error searching pools by keyword: {}", e.getMessage());
             return Collections.emptyList();
         }
     }

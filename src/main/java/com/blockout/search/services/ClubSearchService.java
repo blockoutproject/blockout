@@ -8,6 +8,9 @@ import co.elastic.clients.elasticsearch._types.query_dsl.Query;
 import com.blockout.search.models.docs.ClubSearchDoc;
 
 import lombok.RequiredArgsConstructor;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.Arrays;
@@ -20,6 +23,7 @@ import java.util.stream.Collectors;
 public class ClubSearchService {
 
     private final ElasticsearchClient elasticsearchClient;
+    private static final Logger logger = LoggerFactory.getLogger(ClubSearchService.class);
 
     public List<ClubSearchDoc> searchByKeyword(String keyword) {
         try {
@@ -47,6 +51,7 @@ public class ClubSearchService {
                     .toList();
 
         } catch (Exception e) {
+            logger.error("Error searching clubs by keyword: {}", e.getMessage());
             return Collections.emptyList();
         }
     }
