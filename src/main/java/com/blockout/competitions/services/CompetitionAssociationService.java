@@ -96,7 +96,7 @@ public class CompetitionAssociationService {
     /**
      * Désactive les associations qui ne figurent plus dans la liste des teams
      *
-     * @param poolId              L'identifiant de la pool
+     * @param poolId L'identifiant de la pool
      * @param teamIdsToDeactivate Liste des identifiants de teams encore actives
      */
     @Transactional
