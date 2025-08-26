@@ -11,6 +11,6 @@ CREATE TABLE users (
     created_at TIMESTAMP(6),
     last_update TIMESTAMP(6),
     CONSTRAINT uix_user_auth0_id UNIQUE (auth0_id),
-    CONSTRAINT uix_user_email UNIQUE (email)
+    CONSTRAINT uix_user_email UNIQUE (email),
     CONSTRAINT uix_user_pseudo UNIQUE (pseudo)
 );
