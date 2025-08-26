@@ -4,7 +4,8 @@ CREATE TABLE user_favorites (
     entity_id BIGINT NOT NULL,
     entity_type VARCHAR(255) NOT NULL CHECK (entity_type IN ('TEAM', 'POOL')),
     created_at TIMESTAMP(6),
-    CONSTRAINT fk_user_fav_user FOREIGN KEY (user_id) REFERENCES users (id)
+    CONSTRAINT fk_user_fav_user FOREIGN KEY (user_id) REFERENCES users (id),
+    CONSTRAINT uix_user_favorites_unique UNIQUE (user_id, entity_type, entity_id)
 );
 
 CREATE INDEX IF NOT EXISTS idx_user_favorites_entity_team
@@ -13,7 +14,7 @@ CREATE INDEX IF NOT EXISTS idx_user_favorites_entity_team
 
 CREATE INDEX IF NOT EXISTS idx_user_favorites_entity_pool
     ON user_favorites (entity_id)
-    entity_type = 'POOL';
+    WHERE entity_type = 'POOL';
 
 CREATE INDEX IF NOT EXISTS idx_user_favorites_user
     ON user_favorites (user_id);
