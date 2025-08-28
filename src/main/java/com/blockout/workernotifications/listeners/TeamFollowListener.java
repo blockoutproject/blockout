@@ -1,0 +1,45 @@
+package com.blockout.workernotifications.listeners;
+
+import com.blockout.workernotifications.config.RabbitMQConfig;
+import com.blockout.workernotifications.models.enums.EventType;
+import com.blockout.workernotifications.models.events.UserFollowEvent;
+import com.blockout.workernotifications.services.FollowersProjectionService;
+import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.stereotype.Component;
+
+import static net.logstash.logback.argument.StructuredArguments.keyValue;
+
+@Component
+@RequiredArgsConstructor
+public class TeamFollowListener {
+
+    private static final Logger logger = LoggerFactory.getLogger(TeamFollowListener.class);
+    private final FollowersProjectionService followersProjectionService;
+
+    @RabbitListener(queues = RabbitMQConfig.TEAM_FOLLOW_QUEUE_NOTIFICATIONS)
+    public void onTeamFollowChanged(UserFollowEvent event) {
+        logger.info("Received team.follow event",
+                keyValue("action", "team_follow_event"),
+                keyValue("userId", event.getUserId()),
+                keyValue("entityType", event.getEntityType()),
+                keyValue("entityId", event.getEntityId()),
+                keyValue("eventType", event.getEventType()));
+
+        if (event.getEventType() == EventType.CREATED) {
+            followersProjectionService.followTeam(event.getUserId(), event.getEntityId());
+            logger.info("Projection updated (FOLLOW team)",
+                    keyValue("action", "followers_projection_upsert_team"),
+                    keyValue("userId", event.getUserId()),
+                    keyValue("teamId", event.getEntityId()));
+        } else if (event.getEventType() == EventType.DELETED) {
+            followersProjectionService.unfollowTeam(event.getUserId(), event.getEntityId());
+            logger.info("Projection updated (UNFOLLOW team)",
+                    keyValue("action", "followers_projection_delete_team"),
+                    keyValue("userId", event.getUserId()),
+                    keyValue("teamId", event.getEntityId()));
+        }
+    }
+}
