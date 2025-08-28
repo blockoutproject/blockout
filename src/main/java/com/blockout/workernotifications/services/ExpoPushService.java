@@ -11,7 +11,6 @@ import java.util.stream.Collectors;
 
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
-// --- SDK Expo (hlspablo) ---
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.client5.http.impl.classic.HttpClients;
 

@@ -24,7 +24,7 @@ services:
       POSTGRES_PASSWORD: ${DATASOURCE_PASSWORD}
       POSTGRES_DB: ${DATASOURCE_NAME}
     ports:
-      - 5437:5432
+      - 5439:5432
     volumes:
       - ./local/postgres-data:/var/lib/postgresql/data
       - ./local/postgres-init:/docker-entrypoint-initdb.d
