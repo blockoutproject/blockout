@@ -7,6 +7,7 @@ import { useAppTheme } from '@/src/context/ThemeProvider';
 import { EnrichedPoolDTO } from '@/src/types/Pool';
 import { BOTTOM_TABBAR_HEIGHT, TABBAR_HEIGHT } from '@/src/theme/globals';
 import { TeamHighlight } from '@/src/types/Team';
+import FadeIn from '../animations/FadeIn';
 
 type Props = {
     enrichedPool: EnrichedPoolDTO
@@ -28,7 +29,9 @@ const RankingTab: React.FC<Props> = ({ enrichedPool, highlightTeams }) => {
                 },
             ]}
         >
-            <RankingCard enrichedPool={enrichedPool} highlightTeams={highlightTeams} />
+            <FadeIn>
+                <RankingCard enrichedPool={enrichedPool} highlightTeams={highlightTeams} />
+            </FadeIn>
         </View>
     );
 };

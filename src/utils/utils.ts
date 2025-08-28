@@ -4,7 +4,6 @@ import { Pool } from '../types/Pool';
 import tinycolor from 'tinycolor2';
 import { Division } from '../types/Division';
 import { TeamHighlight } from '../types/Team';
-import { useAppTheme } from '../context/ThemeProvider';
 import { AppTheme } from '../types/Theme';
 
 export type GradientVariants = {

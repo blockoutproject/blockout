@@ -32,8 +32,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     useEffect(() => {
         if (!authenticated || !error) return;
-        const status = (error as ApiError)?.status;
-        if ([401, 403, 404, 410, 500].includes(status)) {
+        if (error) {
             softResetAuth();
         }
     }, [authenticated, error, softResetAuth]);

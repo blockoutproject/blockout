@@ -1,5 +1,5 @@
-import React, { useRef } from "react";
-import { View, StyleSheet, ActivityIndicator, Text, Pressable } from "react-native";
+import React, { useRef, useState } from "react";
+import { View, StyleSheet, ActivityIndicator, Text, Pressable, Alert } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
@@ -30,14 +30,17 @@ const ProfileScreen: React.FC = () => {
     const { allowed: canEdit } = useHasScopes(["update:current_user"]);
     const version = Application.nativeApplicationVersion ?? "1.0.0";
 
-    // Sheets refs
+    // état pour loaders
+    const [isLoggingOut, setIsLoggingOut] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
+    const busy = isLoggingOut || isDeleting;
+
     const imprintRef = useRef<BottomSheetModal>(null);
     const termsRef = useRef<BottomSheetModal>(null);
     const privacyRef = useRef<BottomSheetModal>(null);
     const formSheetRef = useRef<BottomSheetModal>(null);
     const reportSheetRef = useRef<BottomSheetModal>(null);
 
-    // Open/close helpers
     const openLocal = (ref: React.RefObject<BottomSheetModal | null>) => () => {
         void Haptics.selectionAsync();
         ref.current?.present();
@@ -51,24 +54,48 @@ const ProfileScreen: React.FC = () => {
     };
     const closeForm = () => formSheetRef.current?.dismiss();
 
-    // Account actions
+    // Logout avec loader
     const handleLogout = async () => {
         try {
+            setIsLoggingOut(true);
             void Haptics.selectionAsync();
             await signOutSSO();
         } catch (e) {
             console.log("Erreur lors de la déconnexion :", e);
+        } finally {
+            setIsLoggingOut(false);
         }
     };
 
+    // Confirmation + suppression avec loader
     const handleDeleteAccount = async () => {
-        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-        try {
-            await UsersApi.getInstance().deleteCurrentUser();
-            await signOutSSO();
-        } catch (e) {
-            console.log("Erreur suppression compte :", e);
-        }
+        await Haptics.selectionAsync();
+        Alert.alert(
+            "Supprimer mon compte",
+            "Cette action est irréversible. Toutes vos données de compte seront supprimées. Confirmez-vous la suppression ?",
+            [
+                { text: "Annuler", style: "cancel" },
+                {
+                    text: "Supprimer",
+                    style: "destructive",
+                    onPress: async () => {
+                        setIsDeleting(true);
+                        try {
+                            await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+                            await UsersApi.getInstance().deleteCurrentUser();
+                            await signOutSSO();
+                            await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                        } catch (e) {
+                            console.log("Erreur suppression compte :", e);
+                            await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+                        } finally {
+                            setIsDeleting(false);
+                        }
+                    },
+                },
+            ],
+            { cancelable: true }
+        );
     };
 
     const LegalItemRow: React.FC<{
@@ -123,29 +150,48 @@ const ProfileScreen: React.FC = () => {
                         <Text style={[styles.sectionTitle, { color: withAlpha(theme.text, 0.7) }]}>Compte</Text>
 
                         <View style={styles.actions}>
+                            {/* Bouton Déconnexion avec loader */}
                             <Pressable
-                                onPress={handleLogout}
+                                onPress={isLoggingOut ? undefined : handleLogout}
+                                disabled={busy}
                                 android_ripple={{ color: withAlpha("#000", 0.05) }}
                                 style={({ pressed }) => [
                                     styles.btnFilledDanger,
-                                    { backgroundColor: pressed ? withAlpha(theme.error, 0.9) : theme.error },
+                                    { backgroundColor: pressed && !busy ? withAlpha(theme.error, 0.9) : theme.error, opacity: busy ? 0.75 : 1 },
                                 ]}
                             >
-                                <Text style={[styles.buttonText, { color: theme.text }]}>Se déconnecter</Text>
+                                {isLoggingOut ? (
+                                    <>
+                                        <ActivityIndicator size="small" color={theme.text} />
+                                        <Text style={[styles.buttonText, { color: theme.text }]}>Déconnexion…</Text>
+                                    </>
+                                ) : (
+                                    <Text style={[styles.buttonText, { color: theme.text }]}>Se déconnecter</Text>
+                                )}
                             </Pressable>
 
+                            {/* Bouton Suppression avec loader + confirmation */}
                             <Pressable
-                                onPress={handleDeleteAccount}
+                                onPress={isDeleting ? undefined : handleDeleteAccount}
+                                disabled={busy}
                                 android_ripple={{ color: withAlpha(theme.error, 0.08) }}
                                 style={({ pressed }) => [
                                     styles.btnOutlineDanger,
                                     {
                                         borderColor: theme.error,
-                                        backgroundColor: pressed ? withAlpha(theme.error, 0.08) : "transparent",
+                                        backgroundColor: pressed && !busy ? withAlpha(theme.error, 0.08) : "transparent",
+                                        opacity: busy ? 0.75 : 1,
                                     },
                                 ]}
                             >
-                                <Text style={[styles.buttonText, { color: theme.error }]}>Supprimer mon compte</Text>
+                                {isDeleting ? (
+                                    <>
+                                        <ActivityIndicator size="small" color={theme.error} />
+                                        <Text style={[styles.buttonText, { color: theme.error }]}>Suppression…</Text>
+                                    </>
+                                ) : (
+                                    <Text style={[styles.buttonText, { color: theme.error }]}>Supprimer mon compte</Text>
+                                )}
                             </Pressable>
 
                             <View style={styles.version}>
@@ -232,8 +278,8 @@ const styles = StyleSheet.create({
     itemText: { fontSize: 14, fontWeight: "700", flex: 1 },
 
     actions: { gap: 12, marginTop: 4 },
-    btnFilledDanger: { paddingVertical: 14, borderRadius: 999, alignItems: "center" },
-    btnOutlineDanger: { paddingVertical: 14, borderRadius: 999, alignItems: "center", borderWidth: 1 },
+    btnFilledDanger: { paddingVertical: 14, borderRadius: 999, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 10 },
+    btnOutlineDanger: { paddingVertical: 14, borderRadius: 999, alignItems: "center", borderWidth: 1, flexDirection: "row", justifyContent: "center", gap: 10 },
     buttonText: { fontSize: 14, fontWeight: "800" },
 
     version: { alignItems: "center", marginTop: 2 },

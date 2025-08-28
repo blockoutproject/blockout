@@ -15,7 +15,6 @@ type Props = { enrichedTeam: EnrichedTeamDTO };
 
 const TeamTabs: React.FC<Props> = ({ enrichedTeam }) => {
     const insets = useSafeAreaInsets();
-    const theme = useAppTheme()
 
     const staticTabs = [
         {

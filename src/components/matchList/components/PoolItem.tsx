@@ -10,6 +10,7 @@ import { withAlpha } from "@/src/utils/utils";
 import MaskedImage from "../../common/images/MaskedImage";
 import MatchRow from "./MatchRow";
 import GradientBorderView from "@/src/components/common/GradientBorderView";
+import FadeIn from "../../animations/FadeIn";
 
 type PoolItemProps = {
     enrichedPoolMatches: EnrichedPoolMatchesDTO;
@@ -45,39 +46,8 @@ const PoolItem: React.FC<PoolItemProps> = ({
         division.thirdGradientColor,
     ] as const;
 
-    const opacity = useRef(new Animated.Value(0)).current;
-    const translateY = useRef(new Animated.Value(8)).current;
-    const hasAnimated = useRef(false);
-
-    useEffect(() => {
-        if (hasAnimated.current) return;
-        hasAnimated.current = true;
-
-        const delay = staggerBase + appearIndex * staggerStep;
-
-        Animated.parallel([
-            Animated.timing(opacity, {
-                toValue: 1,
-                duration: 220,
-                delay,
-                useNativeDriver: true,
-            }),
-            Animated.timing(translateY, {
-                toValue: 0,
-                duration: 220,
-                delay,
-                useNativeDriver: true,
-            }),
-        ]).start();
-    }, [appearIndex, staggerBase, staggerStep, opacity, translateY]);
-
     return (
-        <Animated.View
-            style={{
-                opacity,
-                transform: [{ translateY }],
-            }}
-        >
+        <FadeIn appearIndex={appearIndex} >
             <GradientBorderView
                 gradient={gradient}
                 borderRadius={RADIUS}
@@ -96,7 +66,6 @@ const PoolItem: React.FC<PoolItemProps> = ({
                                 contentFit="cover"
                                 blurRadius={60}
                             />
-
                             <LinearGradient
                                 pointerEvents="none"
                                 colors={[
@@ -109,7 +78,6 @@ const PoolItem: React.FC<PoolItemProps> = ({
                                 end={{ x: 1, y: 0.5 }}
                                 style={StyleSheet.absoluteFill}
                             />
-
                             <View style={styles.headerRow}>
                                 <MaskedImage uri={division.logoUrl} size={22} radius={6} shadow={false} />
                                 <Text
@@ -129,7 +97,7 @@ const PoolItem: React.FC<PoolItemProps> = ({
                     )}
 
                     <View style={styles.matchList}>
-                        {enrichedPoolMatches.matches.map((enrichedMatch) => (
+                        {enrichedPoolMatches.matches.map((enrichedMatch, idx) => (
                             <TouchableOpacity
                                 key={enrichedMatch.id}
                                 activeOpacity={0.85}
@@ -141,7 +109,7 @@ const PoolItem: React.FC<PoolItemProps> = ({
                     </View>
                 </View>
             </GradientBorderView>
-        </Animated.View>
+        </FadeIn>
     );
 };
 

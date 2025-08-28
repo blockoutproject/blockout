@@ -1,5 +1,5 @@
 import React, { useCallback, useRef } from "react";
-import { RefreshControl, StyleSheet, View, Animated } from "react-native";
+import { RefreshControl, StyleSheet, View, Animated, ScrollView } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
 
@@ -19,8 +19,9 @@ import RankingCard from "@/src/components/ranking/RankingCard";
 import BottomSheetCustomModal from "@/src/components/common/BottomSheetCustomModal";
 import ReportForm from "@/src/components/report/ReportForm";
 import { useLocalSearchParams } from "expo-router";
+import FadeIn from "@/src/components/animations/FadeIn";
 
-const AnimatedScrollView = Animated.createAnimatedComponent(require("react-native").ScrollView);
+const AnimatedScrollView = Animated.createAnimatedComponent(ScrollView);
 
 const MatchScreen: React.FC = () => {
     const { id } = useLocalSearchParams();
@@ -76,19 +77,30 @@ const MatchScreen: React.FC = () => {
                 })}
                 scrollEventThrottle={16}
             >
-                <MatchScoreCard enrichedMatch={enrichedMatch} gradient={gradient} />
-                <MatchScoreDetailsCard enrichedMatch={enrichedMatch} />
-                <MatchInfoCard enrichedMatch={enrichedMatch} />
-                <RankingCard
-                    enrichedPool={enrichedMatch.pool}
-                    scrollable={false}
-                    highlightTeams={getTeamsRankingColor(theme, {
-                        teamA: enrichedMatch.teamA,
-                        teamB: enrichedMatch.teamB,
-                        set: enrichedMatch.set,
-                        highlightColor: division.mainColor,
-                    })}
-                />
+                <FadeIn appearIndex={0}>
+                    <MatchScoreCard enrichedMatch={enrichedMatch} gradient={gradient} />
+                </FadeIn>
+
+                <FadeIn appearIndex={1}>
+                    <MatchScoreDetailsCard enrichedMatch={enrichedMatch} />
+                </FadeIn>
+
+                <FadeIn appearIndex={2}>
+                    <MatchInfoCard enrichedMatch={enrichedMatch} />
+                </FadeIn>
+
+                <FadeIn appearIndex={3}>
+                    <RankingCard
+                        enrichedPool={enrichedMatch.pool}
+                        scrollable={false}
+                        highlightTeams={getTeamsRankingColor(theme, {
+                            teamA: enrichedMatch.teamA,
+                            teamB: enrichedMatch.teamB,
+                            set: enrichedMatch.set,
+                            highlightColor: division.mainColor,
+                        })}
+                    />
+                </FadeIn>
             </AnimatedScrollView>
         );
 

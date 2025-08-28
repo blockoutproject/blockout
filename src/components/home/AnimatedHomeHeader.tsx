@@ -263,7 +263,7 @@ const styles = StyleSheet.create({
         width: "auto",
         paddingHorizontal: 16,
     },
-    teamLogo: { height: LOGO_HEIGHT },
+    teamLogo: { height: 22 },
     indicator: { width: 0.5, height: 3 },
     actions: {
         flexDirection: "row",
