@@ -4,7 +4,7 @@ import com.blockout.users.exceptions.CustomUserNotFoundException;
 import com.blockout.users.models.CustomUser;
 import com.blockout.users.models.UserFavorite;
 import com.blockout.users.models.enums.EntityType;
-import com.blockout.users.models.events.UserFollowEvent.EventType;
+import com.blockout.users.models.enums.EventType;
 import com.blockout.users.repositories.UserFavoriteRepository;
 import com.blockout.users.repositories.UserRepository;
 

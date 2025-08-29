@@ -35,27 +35,29 @@ public class UserDeviceToken {
     @Column(name = "platform", nullable = false, length = 20)
     private DevicePlatform platform;
 
-    @Column(name = "last_seen_at", nullable = false)
-    private LocalDateTime lastSeenAt;
+    @Column(name = "device_id")
+    private String deviceId;
+
+    @Builder.Default
+    @Column(name = "active", nullable = false)
+    private Boolean active = true;
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
-    @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
+    @Column(name = "last_update", nullable = false)
+    private LocalDateTime lastUpdate;
 
     @PrePersist
     public void prePersist() {
-        LocalDateTime now = LocalDateTime.now();
-        if (createdAt == null)
-            createdAt = now;
-        if (lastSeenAt == null)
-            lastSeenAt = now;
-        updatedAt = now;
+        createdAt = LocalDateTime.now();
+        lastUpdate = LocalDateTime.now();
+        if (active == null)
+            active = true;
     }
 
     @PreUpdate
     public void preUpdate() {
-        updatedAt = LocalDateTime.now();
+        lastUpdate = LocalDateTime.now();
     }
 }

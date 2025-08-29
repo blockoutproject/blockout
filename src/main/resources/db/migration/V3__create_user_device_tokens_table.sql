@@ -3,8 +3,10 @@ CREATE TABLE user_device_tokens (
     user_id BIGINT NOT NULL,
     expo_push_token TEXT NOT NULL,
     platform VARCHAR(20) NOT NULL CHECK (platform IN ('IOS','ANDROID','WEB','UNKNOWN')),
+    device_id TEXT,
+    active BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMP(6) NOT NULL DEFAULT NOW(),
-    last_update TIMESTAMP(6),
+    last_update TIMESTAMP(6) NOT NULL DEFAULT NOW(),
 
     CONSTRAINT fk_user_device_tokens_user
         FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
@@ -13,8 +15,10 @@ CREATE TABLE user_device_tokens (
 CREATE UNIQUE INDEX uix_user_device_tokens_token
     ON user_device_tokens (expo_push_token);
 
-CREATE UNIQUE INDEX uix_user_device_tokens_user_token
-    ON user_device_tokens (user_id, expo_push_token);
+CREATE UNIQUE INDEX uix_user_device_tokens_user_device
+    ON user_device_tokens (user_id, device_id)
+    WHERE device_id IS NOT NULL;
 
-CREATE INDEX idx_user_device_tokens_user
-    ON user_device_tokens (user_id);
+CREATE INDEX idx_user_device_tokens_user_active_true
+    ON user_device_tokens (user_id)
+    WHERE active;

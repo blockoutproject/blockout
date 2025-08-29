@@ -42,7 +42,7 @@ public class Auth0TokenManager {
         }
     }
 
-    @Scheduled(fixedDelayString = "#{@auth0Properties.tokenRefreshDelay}")
+    @Scheduled(fixedDelayString = "#{@auth0Properties.tokenRefreshDelay.toMillis()}")
     public void refreshToken() {
         logger.info("Refreshing Auth0 Management token",
                 keyValue("action", "refresh_management_token"));

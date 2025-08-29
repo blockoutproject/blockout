@@ -10,7 +10,7 @@ import com.blockout.users.exceptions.CustomUserNotFoundException;
 import com.blockout.users.models.CustomUser;
 import com.blockout.users.models.dto.CustomUserDto;
 import com.blockout.users.models.dto.CustomUserUpdateDTO;
-import com.blockout.users.models.events.UserFollowEvent.EventType;
+import com.blockout.users.models.enums.EventType;
 import com.blockout.users.models.mappers.CustomUserMapper;
 import com.blockout.users.repositories.UserRepository;
 import com.blockout.users.services.clients.S3StorageClientService;

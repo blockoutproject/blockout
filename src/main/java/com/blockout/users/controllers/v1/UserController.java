@@ -86,7 +86,7 @@ public class UserController {
         return ResponseEntity.noContent().build();
     }
 
-    @Operation(summary = "Assigner un rôle par défaut", description = "Assigne un rôle par défaut à un utilisateur Auth0 s'il n'en a pas encore.")
+    @Operation(summary = "[INTERNAL] Assigner un rôle par défaut", description = "Assigne un rôle par défaut à un utilisateur Auth0 s'il n'en a pas encore.")
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "Rôle assigné avec succès"),
             @ApiResponse(responseCode = "401", description = "Clé API invalide ou manquante"),
