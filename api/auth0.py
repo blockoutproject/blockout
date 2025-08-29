@@ -55,7 +55,7 @@ async def refresh_token_task():
                 level="info",
                 message="Le token a été mis à jour."
             )
-            await asyncio.sleep(86400)
+            await asyncio.sleep(172800)
         except Exception as e:
             log_event(
                 action="refresh_token_error",
