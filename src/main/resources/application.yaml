@@ -4,10 +4,17 @@ server:
 spring:
   application:
     name: ${APPLICATION_NAME:clubs}
+
   servlet:
     multipart:
       max-file-size: 5MB
       max-request-size: 5MB
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${AUTH0_ISSUER}
 
   jackson:
     property-naming-strategy: SNAKE_CASE
@@ -42,10 +49,6 @@ logging:
   level:
     root: ${LOGGING_LEVEL_ROOT:INFO}
 
-okta:
-  oauth2:
-    issuer: ${AUTH0_ISSUER}
-    audience: ${AUTH0_AUDIENCE}
 
 aws:
   credentials:
