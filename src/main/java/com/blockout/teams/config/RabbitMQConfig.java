@@ -50,7 +50,7 @@ public class RabbitMQConfig {
     }
 
     public static final String USER_FOLLOW_EXCHANGE = "user.follow.exchange";
-    public static final String TEAM_FOLLOW_QUEUE = "team.follow.queue";
+    public static final String TEAM_FOLLOW_QUEUE = "team.follow.queue.teams";
 
     @Bean
     public TopicExchange userFollowExchange() {
