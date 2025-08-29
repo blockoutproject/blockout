@@ -35,7 +35,7 @@ public class RabbitMQConfig {
     }
 
     public static final String USER_FOLLOW_EXCHANGE = "user.follow.exchange";
-    public static final String POOL_FOLLOW_QUEUE = "pool.follow.queue";
+    public static final String POOL_FOLLOW_QUEUE = "pool.follow.queue.pools";
 
     @Bean
     public TopicExchange userFollowExchange() {
