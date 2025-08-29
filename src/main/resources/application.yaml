@@ -8,10 +8,6 @@ spring:
     multipart:
       max-file-size: 5MB
       max-request-size: 5MB
-
-  elasticsearch:
-    index:
-      create-index: false
   
   jackson:
     property-naming-strategy: SNAKE_CASE
@@ -40,7 +36,7 @@ auth0:
   client-id: ${AUTH0_CLIENT_ID}
   client-secret: ${AUTH0_CLIENT_SECRET}
   audience: ${AUTH0_AUDIENCE}
-  token-refresh-delay: 86400000
+  token-refresh-delay: 48h
   
 api:
   club:
