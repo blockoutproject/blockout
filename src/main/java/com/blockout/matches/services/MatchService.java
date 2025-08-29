@@ -35,6 +35,7 @@ public class MatchService {
     private static final Logger logger = LoggerFactory.getLogger(MatchService.class);
 
     private final MatchRepository matchRepository;
+    private final EventPublisher eventPublisher;
 
     /**
      * Crée un nouveau match
@@ -250,6 +251,10 @@ public class MatchService {
 
             if (!before.getActive() && match.getActive()) {
                 logger.info("Match réactivé", keyValue("matchId", id));
+            }
+
+            if (before.getStatus() != MatchStatus.FINISHED && match.getStatus() == MatchStatus.FINISHED) {
+                eventPublisher.publishMatchFinished(match);
             }
 
             Match saved = matchRepository.save(match);

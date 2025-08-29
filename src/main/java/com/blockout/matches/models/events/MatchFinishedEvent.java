@@ -1,16 +1,19 @@
 package com.blockout.matches.models.events;
 
-import java.io.Serializable;
-
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class MatchEndedEvent implements Serializable {
-    private Long matchId;
+public class MatchFinishedEvent {
+    private Long id;
+    private Long teamIdA;
+    private Long teamIdB;
+    private Long poolId;
+    private String set;
 }
