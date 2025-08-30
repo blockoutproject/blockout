@@ -29,6 +29,9 @@ public class Auth0Properties {
     @NotBlank
     private String defaultUserRoleId;
 
+    @NotBlank
+    private String audience;
+
     @DurationUnit(ChronoUnit.MILLIS)
     private Duration tokenRefreshDelay;
 }

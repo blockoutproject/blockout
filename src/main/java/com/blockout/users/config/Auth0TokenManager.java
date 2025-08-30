@@ -53,7 +53,7 @@ public class Auth0TokenManager {
                     properties.getClientId(),
                     properties.getClientSecret()).build();
 
-            TokenRequest tokenRequest = auth.requestToken("https://" + properties.getDomain() + "/api/v2/");
+            TokenRequest tokenRequest = auth.requestToken(properties.getAudience());
             TokenHolder holder = tokenRequest.execute().getBody();
 
             String accessToken = holder.getAccessToken();
