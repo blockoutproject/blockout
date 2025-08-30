@@ -16,6 +16,7 @@ import FormSelect from "@/src/components/common/FormSelect";
 import SelectSheet, { SelectOption, SelectSheetRef } from "@/src/components/common/SelectSheet";
 import { BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import useKeyboardVisible from "@/src/hooks/utils/useKeyboardVisible";
+import ApiErrorToast from "../../common/feedback/ApiErrorToast";
 
 export type RawDivisionMappingFormProps = {
     mapping: RawDivisionMapping;
@@ -35,33 +36,6 @@ const RawDivisionMappingForm: React.FC<RawDivisionMappingFormProps> = ({ mapping
     const [gender, setGender] = useState<EnumGender | "">(mapping.gender ?? "");
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [apiError, setApiError] = useState<string | null>(null);
-
-    const errorOpacity = useRef(new Animated.Value(0)).current;
-    const errorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-    useEffect(() => {
-        if (apiError) {
-            if (errorTimerRef.current) {
-                clearTimeout(errorTimerRef.current);
-                errorTimerRef.current = null;
-            }
-            errorOpacity.setValue(0);
-
-            Animated.timing(errorOpacity, { toValue: 1, duration: 180, useNativeDriver: true }).start();
-
-            errorTimerRef.current = setTimeout(() => {
-                Animated.timing(errorOpacity, { toValue: 0, duration: 220, useNativeDriver: true }).start(({ finished }) => {
-                    if (finished) setApiError(null);
-                });
-            }, 5000);
-        }
-        return () => {
-            if (errorTimerRef.current) {
-                clearTimeout(errorTimerRef.current);
-                errorTimerRef.current = null;
-            }
-        };
-    }, [apiError, errorOpacity]);
 
     const formatOptions: SelectOption[] = useMemo(
         () => Object.values(EnumFormat).map((val) => ({ value: val, label: FormatLabels[val] })),
@@ -153,31 +127,11 @@ const RawDivisionMappingForm: React.FC<RawDivisionMappingFormProps> = ({ mapping
             </BottomSheetScrollView>
 
             {/* Erreur flottante */}
-            {apiError ? (
-                <Animated.View
-                    style={[
-                        styles.apiErrorContainer,
-                        {
-                            backgroundColor: theme.error + "22",
-                            borderColor: theme.error,
-                            bottom: errorBottomOffset,
-                            opacity: errorOpacity,
-                            transform: [
-                                {
-                                    translateY: errorOpacity.interpolate({
-                                        inputRange: [0, 1],
-                                        outputRange: [8, 0],
-                                    }),
-                                },
-                            ],
-                        },
-                    ]}
-                    pointerEvents="box-none"
-                >
-                    <MaterialCommunityIcons name="alert-circle-outline" size={18} color={theme.error} />
-                    <Text style={[styles.apiErrorText, { color: theme.error }]}>{apiError}</Text>
-                </Animated.View>
-            ) : null}
+            <ApiErrorToast
+                message={apiError}
+                bottomOffset={errorBottomOffset}
+                onHidden={() => setApiError(null)}
+            />
 
             {/* Footer fixe avec safe area padding */}
             <View>

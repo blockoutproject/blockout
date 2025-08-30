@@ -7,7 +7,6 @@ import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import * as Application from "expo-application";
 
 import { useAppTheme } from "@/src/context/ThemeProvider";
-import { useUserContext } from "@/src/context/UserProvider";
 import { useSession } from "@/src/context/SessionProvider";
 import UsersApi from "@/src/api/UsersApi";
 import useHasScopes from "@/src/hooks/user/useHasScopes";
@@ -23,7 +22,7 @@ import ProfileHeader from "@/src/components/user/components/ProfileHeader";
 import { ScrollView } from "react-native-gesture-handler";
 
 const ProfileScreen: React.FC = () => {
-    const { refetch, customUser } = useUserContext();
+    const { refetch, customUser } = useSession();
     const theme = useAppTheme();
     const insets = useSafeAreaInsets();
     const { signOutSSO } = useSession();

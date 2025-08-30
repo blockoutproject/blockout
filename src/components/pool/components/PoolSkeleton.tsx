@@ -25,12 +25,6 @@ const PoolSkeleton: React.FC = () => {
                     </View>
                 </View>
             </View>
-
-            <View style={styles.actionsRow}>
-                <Skeleton width={85} height={34} style={{ borderRadius: 10 }} />
-                <Skeleton width={25} height={25} style={{ borderRadius: 18, marginLeft: 12 }} />
-                <Skeleton width={20} height={25} style={{ borderRadius: 18, marginLeft: 8 }} />
-            </View>
         </View>
     );
 };
@@ -39,8 +33,7 @@ export default PoolSkeleton;
 
 const styles = StyleSheet.create({
     container: {
-        paddingTop: 8,
-        paddingHorizontal: 16,
+        paddingHorizontal: 12,
     },
     row: {
         flexDirection: "row",

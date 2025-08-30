@@ -6,12 +6,12 @@ import { MatchStatus } from '@/src/types/Match';
 import { EntityType } from '@/src/types/User';
 import AnimatedHomeHeader from '@/src/components/home/AnimatedHomeHeader';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useUserContext } from '@/src/context/UserProvider';
 import { BOTTOM_TABBAR_HEIGHT, LOGO_HEIGHT, TABBAR_HEIGHT } from '@/src/theme/globals';
+import { useSession } from '@/src/context/SessionProvider';
 
 const FeedScreen: React.FC = () => {
     const insets = useSafeAreaInsets();
-    const { customUser } = useUserContext();
+    const { customUser } = useSession();
 
     const [index, setIndex] = useState(0);
 

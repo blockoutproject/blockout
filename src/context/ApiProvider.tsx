@@ -15,12 +15,10 @@ import ClubsApi from "@/src/api/ClubsApi";
 import ReportsApi from "../api/ReportsApi";
 
 export const ApiProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const { authenticated, softResetAuth } = useSession();
+    const { softResetAuth } = useSession();
     const { getCredentials } = useAuth0();
-    const qc = useQueryClient();
 
     useEffect(() => {
-
         (async () => {
             try {
                 const creds = await getCredentials(undefined, 60);
@@ -52,7 +50,7 @@ export const ApiProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 console.log("API init skipped (credentials not ready yet):", e);
             }
         })();
-    }, [authenticated, getCredentials, softResetAuth, qc]);
+    }, []);
 
     return <>{children}</>;
 };

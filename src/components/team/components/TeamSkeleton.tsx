@@ -25,12 +25,6 @@ const TeamSkeleton: React.FC = () => {
                     </View>
                 </View>
             </View>
-
-            <View style={styles.actionsRow}>
-                <Skeleton width={80} height={40} style={{ borderRadius: 10 }} />
-                <Skeleton width={40} height={40} style={{ borderRadius: 18, marginLeft: 16 }} />
-                <Skeleton width={20} height={30} style={{ borderRadius: 18, marginLeft: 8 }} />
-            </View>
         </View>
     );
 };
@@ -39,8 +33,7 @@ export default TeamSkeleton;
 
 const styles = StyleSheet.create({
     container: {
-        paddingTop: 8,
-        paddingHorizontal: 16,
+        paddingHorizontal: 12,
     },
     row: {
         flexDirection: "row",

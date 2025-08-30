@@ -25,11 +25,11 @@ import { useAppTheme } from "@/src/context/ThemeProvider";
 import ReportsApi from "@/src/api/ReportsApi";
 import { CORNERS } from "@/src/theme/globals";
 import { ReportType, type Report, type GitHubIssueResponse } from "@/src/types/Report";
-import { useUserContext } from "@/src/context/UserProvider";
 import Filters from "@/src/components/common/Filters";
 import type { Filter } from "@/src/types/Filter";
 import Field from "../common/Field";
 import useKeyboardVisible from "@/src/hooks/utils/useKeyboardVisible";
+import { useSession } from "@/src/context/SessionProvider";
 
 type ReportFormProps = {
     context?: {
@@ -52,7 +52,7 @@ const ReportForm: React.FC<ReportFormProps> = ({ context, onSuccess }) => {
     const theme = useAppTheme();
     const insets = useSafeAreaInsets();
     const api = ReportsApi.getInstance();
-    const { customUser } = useUserContext();
+    const { customUser } = useSession();
     const isKeyboardVisible = useKeyboardVisible();
 
     const [images, setImages] = useState<{ uri: string; name: string; type: string }[]>([]);

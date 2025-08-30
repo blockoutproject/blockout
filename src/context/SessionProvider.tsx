@@ -1,9 +1,10 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { Platform } from "react-native";
+import React, { createContext, useContext, useEffect, useMemo } from "react";
 import { useAuth0 } from "react-native-auth0";
-import { useQueryClient } from "@tanstack/react-query";
+import type { CustomUser } from "@/src/types/User";
+import { useEnsureUser } from "@/src/hooks/user/useEnsureUser";
 
-type SessionValue = {
+/** Actions d'auth exposées */
+export type SessionActions = {
     signIn: () => Promise<void>;
     /** Logout local (app only, pas de pop-up iOS) */
     signOutLocal: () => Promise<void>;
@@ -12,122 +13,123 @@ type SessionValue = {
      * - federated: true pour forcer la déconnexion des IdP fédérés (si besoin).
      */
     signOutSSO: (opts?: { federated?: boolean }) => Promise<void>;
+    /** Efface uniquement les credentials locaux */
     softResetAuth: () => Promise<void>;
-    authenticated: boolean;
-    isLoading: boolean;
 };
 
-const SessionContext = createContext<SessionValue | null>(null);
+/** État utilisateur exposé */
+export type SessionUserState = {
+    /** Utilisateur Auth0 brut (peut être undefined tant qu’on n’a pas d’info) */
+    auth0User: ReturnType<typeof useAuth0>["user"];
+    /** Ton utilisateur côté back */
+    customUser: CustomUser | undefined;
+
+    /** Chargement global (Auth0 OU custom user) */
+    isLoading: boolean;
+    /** Erreur globale (Auth0 OU custom user) */
+    isError: boolean;
+    /** Prêt à l’usage (on a auth0User ET customUser) */
+    isReady: boolean;
+
+    /** Erreurs détaillées */
+    error: Error | null;
+    customUserError: Error | null;
+    auth0UserError: Error | null;
+
+    /** Forcer un refetch du CustomUser */
+    refetch: () => void;
+};
+
+export type SessionContextValue = SessionActions & SessionUserState;
+
+const SessionContext = createContext<SessionContextValue | null>(null);
+
 export const useSession = () => {
     const c = useContext(SessionContext);
     if (!c) throw new Error("useSession must be used within <SessionProvider>");
     return c;
 };
 
-const isUserCancelled = (err: unknown) => {
-    const anyErr = err as any;
-    const code = anyErr?.code || anyErr?.error;
-    // Android: a0.session.user_cancelled | iOS: USER_CANCELLED | Newer: Authentication.Error.Cancelled
-    return (
-        code === "a0.session.user_cancelled" ||
-        code === "USER_CANCELLED" ||
-        code === "Authentication.Error.Cancelled"
-    );
-};
-
-export function SessionProvider({ children }: React.PropsWithChildren) {
-    const { authorize, clearSession, getCredentials, clearCredentials, hasValidCredentials } = useAuth0();
-    const qc = useQueryClient();
-
-    const [authenticated, setAuthenticated] = useState(false);
-    const [checking, setChecking] = useState(true);
-
-    useEffect(() => {
-        let alive = true;
-        (async () => {
-            try {
-                const has = await hasValidCredentials();
-                if (!alive) return;
-                setAuthenticated(has);
-
-                if (has) {
-                    try {
-                        // rafraîchit si besoin et charge le profil minimal
-                        await getCredentials("openid profile email", 60);
-                    } catch { }
-                }
-            } finally {
-                if (alive) setChecking(false);
-            }
-        })();
-        return () => {
-            alive = false;
-        };
-    }, [getCredentials, hasValidCredentials]);
+export const SessionProvider: React.FC<React.PropsWithChildren> = ({ children }) => {
+    const {
+        authorize,
+        clearSession,
+        clearCredentials,
+        user: auth0User,
+        error: auth0UserError,
+        isLoading: isAuth0UserLoading,
+    } = useAuth0();
 
     const signIn = async () => {
-        try {
-            // iOS: ephemeralSession pour éviter l’alerte SSO si tu n’as pas besoin de SSO partagé
-            const iosOptions = Platform.OS === "ios" ? { ephemeralSession: true as const } : undefined;
-            await authorize(
-                { audience: "https://api.blockoutproject.com/", scope: "openid profile email offline_access" },
-                iosOptions
-            );
-            // À ce stade, le SDK a stocké les credentials; on reflète l’état
-            setAuthenticated(true);
-            try {
-                await getCredentials("openid profile email", 60);
-            } catch { }
-        } catch (e) {
-            if (isUserCancelled(e)) {
-                // L’utilisateur a annulé -> on ne change pas l’état, pas d’erreur fatale
-                return;
-            }
-            // remonte l’erreur si tu veux l’afficher à l’UI
-            throw e;
-        }
+        await authorize({
+            audience: "https://api.blockoutproject.com/",
+            scope: "openid profile email offline_access",
+        });
     };
 
     const softResetAuth = async () => {
-        try {
-            await clearCredentials(); // efface uniquement côté app (Keychain/Keystore)
-        } catch { }
-        qc.clear();
-        setAuthenticated(false);
+        await clearCredentials();
     };
 
-    /** Logout local: aucun appel navigateur, aucune pop-up iOS */
     const signOutLocal = async () => {
         await softResetAuth();
     };
 
-    /** Logout SSO serveur: ouvre le navigateur et peut afficher l’alerte; on respecte l’annulation */
     const signOutSSO = async (opts?: { federated?: boolean }) => {
         try {
             await clearSession({ federated: opts?.federated });
-            // Navigateur OK => on purge l’app
             await softResetAuth();
         } catch (e) {
-            if (isUserCancelled(e)) {
-                // L’utilisateur a annulé la pop-up -> on ne déconnecte PAS localement
-                return;
-            }
-            // autre erreur réseau/config -> à traiter/afficher si besoin
             throw e;
         }
     };
 
-    const value = useMemo(
-        () => ({
+    const {
+        data: customUser,
+        isLoading: isCustomUserLoading,
+        error: customUserError,
+        refetch,
+    } = useEnsureUser({ enabled: !!auth0User });
+
+    const isLoading = isAuth0UserLoading || isCustomUserLoading;
+    const isError = !!auth0UserError || !!customUserError;
+    const isReady = !!customUser && !!auth0User;
+    const error = customUserError || auth0UserError;
+
+    useEffect(() => {
+        if (isReady && isError) {
+            softResetAuth();
+        }
+    }, [isReady, isError]);
+
+    const value = useMemo<SessionContextValue>(() => {
+        return {
             signIn,
             signOutLocal,
             signOutSSO,
             softResetAuth,
-            authenticated,
-            isLoading: checking,
-        }),
-        [authenticated, checking]
-    );
+
+            auth0User,
+            customUser,
+            isLoading,
+            isError,
+            isReady,
+            refetch,
+            error,
+            customUserError,
+            auth0UserError,
+        };
+    }, [
+        auth0User,
+        customUser,
+        isLoading,
+        isError,
+        isReady,
+        refetch,
+        customUserError,
+        auth0UserError,
+        error,
+    ]);
 
     return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
-}
+};

@@ -10,7 +10,6 @@ import { AUTH0_CONFIG } from "@/src/config/config";
 import { ThemeProvider } from "@/src/theme/theme-provider";
 
 import { ApiProvider } from "@/src/context/ApiProvider";
-import { UserProvider, useUserContext } from "@/src/context/UserProvider";
 import { SessionProvider, useSession } from "@/src/context/SessionProvider";
 import { SplashScreenController } from "@/src/session/splash";
 import { useAppTheme } from "../context/ThemeProvider";
@@ -36,10 +35,8 @@ export default function Root() {
                     <Auth0Provider domain={AUTH0_CONFIG.domain} clientId={AUTH0_CONFIG.clientId}>
                         <SessionProvider>
                             <ApiProvider>
-                                <UserProvider>
-                                    <SplashScreenController />
-                                    <RootNavigator />
-                                </UserProvider>
+                                <SplashScreenController />
+                                <RootNavigator />
                             </ApiProvider>
                         </SessionProvider>
                     </Auth0Provider>
@@ -50,15 +47,12 @@ export default function Root() {
 }
 
 function RootNavigator() {
-    const { authenticated, isLoading: authLoading } = useSession();
-    const { userReady, isLoading: userLoading } = useUserContext();
-
-    const ready = authenticated && !authLoading && userReady && !userLoading;
+    const { isReady } = useSession();
 
     return (
         <BottomSheetModalProvider>
             <Stack screenOptions={{ headerShown: false, animation: "none" }}>
-                <Stack.Protected guard={ready}>
+                <Stack.Protected guard={isReady}>
                     <Stack.Screen
                         name="(tabs)"
                         options={{
@@ -68,7 +62,7 @@ function RootNavigator() {
                     />
                 </Stack.Protected>
 
-                <Stack.Protected guard={!ready}>
+                <Stack.Protected guard={!isReady}>
                     <Stack.Screen
                         name="sign-in"
                         options={{

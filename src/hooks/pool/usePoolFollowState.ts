@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
-import { EnrichedPoolDTO, Pool } from "@/src/types/Pool";
-import { useUserContext } from "@/src/context/UserProvider";
+import { EnrichedPoolDTO } from "@/src/types/Pool";
 import UsersApi from "@/src/api/UsersApi";
 import { EntityType } from "@/src/types/User";
+import { useSession } from "@/src/context/SessionProvider";
 
 export function usePoolFollowState(enrichedPool: EnrichedPoolDTO) {
-    const { customUser, refetch } = useUserContext();
+    const { customUser, refetch } = useSession();
     const [followersCount, setFollowersCount] = useState(enrichedPool.followersCount);
     const [isFollowing, setIsFollowing] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);

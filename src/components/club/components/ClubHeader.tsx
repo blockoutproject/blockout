@@ -42,7 +42,7 @@ const ClubHeader: React.FC<ClubHeaderProps> = ({ title, onCloseSheet, onOpenRepo
                         style={styles.iconBtn}
                         activeOpacity={0.7}
                     >
-                        <MaterialCommunityIcons name="flag-outline" size={22} color={theme.text} />
+                        <MaterialCommunityIcons name="flag-outline" size={28} color={theme.text} />
                     </TouchableOpacity>
                 </View>
             </View>

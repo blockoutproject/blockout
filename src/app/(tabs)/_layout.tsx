@@ -4,12 +4,12 @@ import { Tabs } from "expo-router";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import TabBar from "@/src/components/navigation/TabBar";
 import { useAppTheme } from "@/src/context/ThemeProvider";
-import { useUserContext } from "@/src/context/UserProvider";
 import { Image } from "expo-image";
+import { useSession } from "@/src/context/SessionProvider";
 
 export default function TabLayout() {
     const theme = useAppTheme()
-    const { customUser } = useUserContext();
+    const { customUser } = useSession();
 
     return (
         <Tabs

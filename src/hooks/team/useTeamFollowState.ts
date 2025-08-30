@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
-import { useUserContext } from '@/src/context/UserProvider';
 import UsersApi from '@/src/api/UsersApi';
 import { EntityType } from '@/src/types/User';
-import { EnrichedTeamDTO, Team } from '@/src/types/Team';
+import { EnrichedTeamDTO } from '@/src/types/Team';
+import { useSession } from '@/src/context/SessionProvider';
 
 export function useTeamFollowState(enrichedTeam: EnrichedTeamDTO) {
-    const { customUser, refetch } = useUserContext();
+    const { customUser, refetch } = useSession();
     const [isProcessing, setIsProcessing] = useState(false);
     const [followersCount, setFollowersCount] = useState(enrichedTeam.followersCount);
     const [isFollowing, setIsFollowing] = useState(false);

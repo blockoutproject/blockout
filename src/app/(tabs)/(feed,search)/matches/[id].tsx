@@ -47,9 +47,9 @@ const MatchScreen: React.FC = () => {
     if (isLoading) {
         body = <MatchSkeleton />;
     } else if (error) {
-        body = <ErrorState message="Impossible de charger ce match." onRetry={refetch} />;
+        body = <ErrorState subtitle="Impossible de charger ce match." onRetry={refetch} />;
     } else if (!enrichedMatch) {
-        body = <ErrorState message="Ce match est introuvable." onRetry={refetch} />;
+        body = <ErrorState subtitle="Ce match est introuvable." onRetry={refetch} />;
     } else {
         const division = enrichedMatch.pool.division;
         const gradient: readonly [string, string, ...string[]] = [

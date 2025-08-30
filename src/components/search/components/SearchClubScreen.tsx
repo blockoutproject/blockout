@@ -81,7 +81,7 @@ const SearchClubScreen: React.FC<Props> = ({
 
             {isError && (
                 <ErrorState
-                    message="Impossible de charger la liste des clubs."
+                    subtitle="Impossible de charger la liste des clubs."
                     onRetry={refetch}
                 />
             )}

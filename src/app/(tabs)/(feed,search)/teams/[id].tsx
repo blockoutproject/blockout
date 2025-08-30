@@ -27,9 +27,9 @@ const TeamScreen: React.FC = () => {
     if (isLoading) {
         body = <TeamSkeleton />;
     } else if (error) {
-        body = <ErrorState message="Impossible de charger l'équipe." onRetry={refetch} />;
+        body = <ErrorState subtitle="Impossible de charger l'équipe." onRetry={refetch} />;
     } else if (!team) {
-        body = <ErrorState message="Cette équipe est introuvable." onRetry={refetch} />;
+        body = <ErrorState subtitle="Cette équipe est introuvable." onRetry={refetch} />;
     } else {
         body = (
             <>

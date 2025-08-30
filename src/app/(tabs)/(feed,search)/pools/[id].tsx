@@ -27,9 +27,9 @@ const PoolScreen: React.FC = () => {
     if (isLoading) {
         body = <PoolSkeleton />;
     } else if (error) {
-        body = <ErrorState message="Impossible de charger la poule." onRetry={refetch} />;
+        body = <ErrorState subtitle="Impossible de charger la poule." onRetry={refetch} />;
     } else if (!enrichedPool) {
-        body = <ErrorState message="Cette poule est introuvable." onRetry={refetch} />;
+        body = <ErrorState subtitle="Cette poule est introuvable." onRetry={refetch} />;
     } else {
         body = (
             <>

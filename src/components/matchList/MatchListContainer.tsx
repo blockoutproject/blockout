@@ -115,13 +115,6 @@ const MatchListContainer: React.FC<MatchListContainerProps> = ({
                 <ActivityIndicator size="large" color={theme.text} />
             </View>
         );
-    } else if (isError) {
-        body = (
-            <ErrorState
-                message="Impossible de charger la liste des matchs."
-                onRetry={refetch}
-            />
-        );
     } else {
         body = (
             <Animated.SectionList
@@ -150,17 +143,25 @@ const MatchListContainer: React.FC<MatchListContainerProps> = ({
                         progressViewOffset={headerOffset}
                     />
                 }
-                ListEmptyComponent={
-                    <EmptyState
-                        title="Aucun match trouvé"
-                        subtitle={
-                            poolIds?.length || teamIds?.length
-                                ? "Aucun match à venir pour les équipes ou poules sélectionnées."
-                                : "Commence par suivre une équipe ou une poule pour voir les matchs ici !"
-                        }
-                        home
-                    />
-                }
+                ListEmptyComponent={() => (
+                    isError ? (
+                        <ErrorState
+                            subtitle="Impossible de charger la liste des matchs."
+                            onRetry={refetch}
+                            home
+                        />
+                    ) : (
+                        <EmptyState
+                            title="Aucun match trouvé"
+                            subtitle={
+                                poolIds?.length || teamIds?.length
+                                    ? "Aucun match à venir pour les équipes ou poules sélectionnées."
+                                    : "Commence par suivre une équipe ou une poule pour voir les matchs ici !"
+                            }
+                            home
+                        />
+                    )
+                )}
                 scrollEnabled={sections.length > 0}
                 onScroll={
                     scrollY

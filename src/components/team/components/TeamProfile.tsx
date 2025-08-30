@@ -75,7 +75,6 @@ export default TeamProfile;
 const styles = StyleSheet.create({
     container: {
         paddingHorizontal: 12,
-        paddingTop: 8,
         flexDirection: "row",
         alignItems: "flex-start",
         gap: 12,

@@ -25,6 +25,7 @@ import { ApiError } from "@/src/api/AbstractApi";
 import { CORNERS } from "@/src/theme/globals";
 import Field from "../../common/Field";
 import useKeyboardVisible from "@/src/hooks/utils/useKeyboardVisible";
+import ApiErrorToast from "../../common/feedback/ApiErrorToast";
 
 type UserFormProps = { user: CustomUser; onSuccess: (updated: CustomUser) => void };
 
@@ -40,31 +41,6 @@ const ProfileForm: React.FC<UserFormProps> = ({ user, onSuccess }) => {
     const [previewUri, setPreviewUri] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
     const [apiError, setApiError] = useState<string | null>(null);
-
-    const errorOpacity = useRef(new Animated.Value(0)).current;
-    const errorTimerRef = useRef<number | null>(null);
-
-    useEffect(() => {
-        if (apiError) {
-            if (errorTimerRef.current) {
-                clearTimeout(errorTimerRef.current);
-                errorTimerRef.current = null;
-            }
-            errorOpacity.setValue(0);
-            Animated.timing(errorOpacity, { toValue: 1, duration: 180, useNativeDriver: true }).start();
-            errorTimerRef.current = setTimeout(() => {
-                Animated.timing(errorOpacity, { toValue: 0, duration: 220, useNativeDriver: true }).start(({ finished }) => {
-                    if (finished) setApiError(null);
-                });
-            }, 5000) as unknown as number;
-        }
-        return () => {
-            if (errorTimerRef.current) {
-                clearTimeout(errorTimerRef.current);
-                errorTimerRef.current = null;
-            }
-        };
-    }, [apiError, errorOpacity]);
 
     const handlePickImage = async () => {
         try {
@@ -137,7 +113,6 @@ const ProfileForm: React.FC<UserFormProps> = ({ user, onSuccess }) => {
 
     const avatarUri = previewUri ?? user.pictureUrl ?? null;
 
-    // === Metrics ===
     const outerPaddingBottom = isKeyboardVisible ? 8 : insets.bottom + 8;
     const errorBottomOffset = FOOTER_HEIGHT + outerPaddingBottom;
 
@@ -192,31 +167,11 @@ const ProfileForm: React.FC<UserFormProps> = ({ user, onSuccess }) => {
                 </View>
             </BottomSheetScrollView>
 
-            {apiError ? (
-                <Animated.View
-                    style={[
-                        styles.apiErrorContainer,
-                        {
-                            backgroundColor: theme.error + "22",
-                            borderColor: theme.error,
-                            bottom: errorBottomOffset,
-                            opacity: errorOpacity,
-                            transform: [
-                                {
-                                    translateY: errorOpacity.interpolate({
-                                        inputRange: [0, 1],
-                                        outputRange: [8, 0],
-                                    }),
-                                },
-                            ],
-                        },
-                    ]}
-                    pointerEvents="box-none"
-                >
-                    <MaterialCommunityIcons name="alert-circle-outline" size={18} color={theme.error} />
-                    <Text style={[styles.apiErrorText, { color: theme.error }]}>{apiError}</Text>
-                </Animated.View>
-            ) : null}
+            <ApiErrorToast
+                message={apiError}
+                bottomOffset={errorBottomOffset}
+                onHidden={() => setApiError(null)}
+            />
 
             <View>
                 <View

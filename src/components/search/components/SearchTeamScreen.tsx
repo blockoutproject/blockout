@@ -82,7 +82,7 @@ const SearchTeamScreen: React.FC<Props> = ({
 
             {isError && (
                 <ErrorState
-                    message="Impossible de charger la liste des matchs."
+                    message="Impossible de charger la liste des équipes."
                     onRetry={refetch}
                 />
             )}

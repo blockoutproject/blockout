@@ -1,6 +1,5 @@
 import React from "react";
 import StateCard from "./StateCard";
-import { useAppTheme } from "@/src/context/ThemeProvider";
 
 
 export type EmptyStateProps = {
@@ -15,7 +14,7 @@ const EmptyState: React.FC<EmptyStateProps> = ({ title, subtitle, home = false }
             title={title}
             subtitle={subtitle}
             fallbackIcon="playlist-remove"
-            containerStyle={home ? { paddingTop: "30%" } : undefined}
+            containerStyle={home ? { paddingTop: "20%" } : undefined}
         />
     );
 };

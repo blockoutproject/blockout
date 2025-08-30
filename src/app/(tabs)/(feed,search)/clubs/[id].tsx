@@ -11,7 +11,6 @@ import useHasScopes from "@/src/hooks/user/useHasScopes";
 import ReportForm from "@/src/components/report/ReportForm";
 import { ReportType } from "@/src/types/Report";
 import { useLocalSearchParams } from "expo-router";
-import PoolSkeleton from "@/src/components/pool/components/PoolSkeleton";
 import ClubHero from "@/src/components/club/components/ClubHero";
 import { InfoCard, InfoRow } from "@/src/components/club/components/ClubInfoCard";
 import BottomSheetCustomModal from "@/src/components/common/BottomSheetCustomModal";
@@ -19,6 +18,7 @@ import ClubForm from "@/src/components/club/components/ClubForm";
 import ClubHeader from "@/src/components/club/components/ClubHeader";
 import { BOTTOM_TABBAR_HEIGHT, SECTION_SEPARATOR_HEIGHT } from "@/src/theme/globals";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import ClubSkeleton from "@/src/components/club/components/ClubSkeleton";
 
 
 type ClubScreenProps = {
@@ -57,15 +57,11 @@ const ClubScreen: React.FC<ClubScreenProps> = ({ onCloseSheet }) => {
 
     let body: React.ReactNode;
     if (isLoading) {
-        body = (
-            <View style={styles.center}>
-                <PoolSkeleton />
-            </View>
-        );
+        body = <ClubSkeleton />;
     } else if (error) {
-        body = <ErrorState message="Impossible de charger ce club." onRetry={refetch} />;
+        body = <ErrorState subtitle="Impossible de charger ce club." onRetry={refetch} />;
     } else if (!club) {
-        body = <ErrorState message="Ce club est introuvable." onRetry={refetch} />;
+        body = <ErrorState subtitle="Ce club est introuvable." onRetry={refetch} />;
     } else {
         const websiteDisplay = club.website ? club.website.replace(/^https?:\/\//, "") : null;
 
@@ -133,6 +129,5 @@ export default ClubScreen;
 
 const styles = StyleSheet.create({
     container: { flex: 1 },
-    center: { flex: 1, justifyContent: "center", alignItems: "center" },
     scrollContent: { paddingHorizontal: 4, gap: 20 },
 });
