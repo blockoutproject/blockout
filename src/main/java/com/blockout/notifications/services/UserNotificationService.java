@@ -13,6 +13,8 @@ import com.blockout.notifications.models.enums.NotificationTargetType;
 import com.blockout.notifications.models.enums.NotificationType;
 import com.blockout.notifications.repositories.UserNotificationRepository;
 import com.blockout.notifications.services.clients.UsersClientService;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -27,6 +29,7 @@ public class UserNotificationService {
 
     private final UserNotificationRepository repository;
     private final UsersClientService usersClientService;
+    private final ObjectMapper objectMapper;
 
     private Long resolveUserIdOrThrow(String auth0Id) {
         CustomUserDto user = usersClientService.getUserByAuth0Id(auth0Id);
@@ -41,7 +44,8 @@ public class UserNotificationService {
 
     @Transactional
     public void createNotificationsBatch(List<UserNotification> items) {
-        if (items == null || items.isEmpty()) return;
+        if (items == null || items.isEmpty())
+            return;
         repository.saveAll(items);
         logger.info("Notification inbox batch created",
                 keyValue("action", "notification_inbox_create_batch"),
@@ -59,6 +63,15 @@ public class UserNotificationService {
             Long targetId,
             String metadataJson) {
 
+        JsonNode meta = null;
+        try {
+            if (metadataJson != null && !metadataJson.isBlank()) {
+                meta = objectMapper.readTree(metadataJson);
+            }
+        } catch (Exception e) {
+            logger.warn("Invalid metadata JSON", e);
+        }
+
         UserNotification entity = UserNotification.builder()
                 .userId(userId)
                 .type(type)
@@ -67,7 +80,7 @@ public class UserNotificationService {
                 .deepLink(deepLink)
                 .targetType(targetType)
                 .targetId(targetId)
-                .metadata(metadataJson)
+                .metadata(meta)
                 .isRead(false)
                 .isOpened(false)
                 .createdAt(LocalDateTime.now())

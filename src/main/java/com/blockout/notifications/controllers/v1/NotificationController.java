@@ -25,7 +25,7 @@ public class NotificationController {
 
     @Operation(summary = "List user notifications (paged)")
     @ApiResponses(@ApiResponse(responseCode = "200", description = "Notifications list"))
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasAuthority('SCOPE_read:current_user')")
     @GetMapping
     public ResponseEntity<Page<UserNotification>> list(
             @AuthenticationPrincipal Jwt jwt,
@@ -37,7 +37,7 @@ public class NotificationController {
 
     @Operation(summary = "Unread notifications count")
     @ApiResponses(@ApiResponse(responseCode = "200", description = "Unread count"))
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasAuthority('SCOPE_read:current_user')")
     @GetMapping("/unread-count")
     public ResponseEntity<UnreadCountDto> unreadCount(@AuthenticationPrincipal Jwt jwt) {
         String auth0Id = jwt.getSubject();
@@ -50,7 +50,7 @@ public class NotificationController {
             @ApiResponse(responseCode = "204", description = "Marked"),
             @ApiResponse(responseCode = "404", description = "Not found")
     })
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasAuthority('SCOPE_read:current_user')")
     @PostMapping("/{id}/read")
     public ResponseEntity<Void> markRead(
             @AuthenticationPrincipal Jwt jwt,
@@ -66,7 +66,7 @@ public class NotificationController {
             @ApiResponse(responseCode = "204", description = "Marked"),
             @ApiResponse(responseCode = "404", description = "Not found")
     })
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasAuthority('SCOPE_read:current_user')")
     @PostMapping("/{id}/opened")
     public ResponseEntity<Void> markOpened(
             @AuthenticationPrincipal Jwt jwt,
@@ -82,7 +82,7 @@ public class NotificationController {
             @ApiResponse(responseCode = "204", description = "Deleted"),
             @ApiResponse(responseCode = "404", description = "Not found")
     })
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasAuthority('SCOPE_read:current_user')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(
             @AuthenticationPrincipal Jwt jwt,

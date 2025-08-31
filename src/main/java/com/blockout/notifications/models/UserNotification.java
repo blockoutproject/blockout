@@ -5,8 +5,12 @@ import lombok.*;
 
 import java.time.LocalDateTime;
 
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
 import com.blockout.notifications.models.enums.NotificationTargetType;
 import com.blockout.notifications.models.enums.NotificationType;
+import com.fasterxml.jackson.databind.JsonNode;
 
 @Data
 @Builder(toBuilder = true)
@@ -47,8 +51,9 @@ public class UserNotification {
     @Column(name = "target_id")
     private Long targetId;
 
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "metadata", columnDefinition = "jsonb")
-    private String metadata;
+    private JsonNode metadata;
 
     @Builder.Default
     @Column(name = "is_read", nullable = false)
