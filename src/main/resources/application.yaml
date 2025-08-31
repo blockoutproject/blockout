@@ -3,7 +3,7 @@ server:
 
 spring:
   application:
-    name: ${APPLICATION_NAME:workernotifications}
+    name: ${APPLICATION_NAME:notifications}
 
   servlet:
     multipart:

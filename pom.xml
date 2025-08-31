@@ -9,9 +9,9 @@
 		<relativePath/>
 	</parent>
 	<groupId>com.blockout</groupId>
-	<artifactId>workernotifications</artifactId>
+	<artifactId>notifications</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>workernotifications</name>
+	<name>notifications</name>
 	<description>Demo project for Spring Boot</description>
 	<url/>
 	<licenses>
