@@ -1,0 +1,39 @@
+package com.blockout.workernotifications.repositories;
+
+import com.blockout.workernotifications.models.UserNotification;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.*;
+import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
+
+@Repository
+public interface UserNotificationRepository extends JpaRepository<UserNotification, Long> {
+
+    Page<UserNotification> findByUserIdOrderByCreatedAtDesc(Long userId, Pageable pageable);
+
+    long countByUserIdAndIsReadFalse(Long userId);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("""
+            UPDATE UserNotification n
+            SET n.isRead = TRUE, n.readAt = CURRENT_TIMESTAMP
+            WHERE n.id = :id AND n.userId = :userId AND n.isRead = FALSE
+            """)
+    int markRead(@Param("userId") Long userId, @Param("id") Long id);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("""
+            UPDATE UserNotification n
+            SET n.isOpened = TRUE, n.openedAt = CURRENT_TIMESTAMP
+            WHERE n.id = :id AND n.userId = :userId AND n.isOpened = FALSE
+            """)
+    int markOpened(@Param("userId") Long userId, @Param("id") Long id);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("""
+            DELETE FROM UserNotification n
+            WHERE n.id = :id AND n.userId = :userId
+            """)
+    int deleteForUser(@Param("userId") Long userId, @Param("id") Long id);
+}

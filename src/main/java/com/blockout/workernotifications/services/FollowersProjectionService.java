@@ -43,8 +43,6 @@ public class FollowersProjectionService {
         unfollow(userId, EntityType.POOL, poolId);
     }
 
-    // ---------- Privé ----------
-
     private void follow(Long userId, EntityType entityType, Long entityId) {
         boolean already = followersProjectionRepository
                 .existsByEntityTypeAndEntityIdAndUserId(entityType, entityId, userId);

@@ -3,7 +3,8 @@ package com.blockout.workernotifications.services;
 import com.blockout.workernotifications.models.dto.expo.ExpoBatchResult;
 import com.blockout.workernotifications.models.dto.expo.ExpoMessage;
 
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -21,44 +22,45 @@ import com.niamedtech.expo.exposerversdk.response.Status;
 
 /**
  * Service d’envoi Expo via le SDK "expo-server-sdk-java" (hlspablo).
- * - Construit 1 PushNotification par token pour conserver le mapping
- * index→(userId, token)
+ * - Construit 1 PushNotification par token pour conserver le mapping index→(userId, token)
  * - Envoie en lots (≤100) comme recommandé par Expo
  * - Agrège les tickets → { users OK, users KO, tokens invalides }
  */
-@Slf4j
 @Service
 public class ExpoPushService {
 
-    private static final int MAX_BATCH = 100; // limite Expo
+    private static final Logger logger = LoggerFactory.getLogger(ExpoPushService.class);
 
+    private static final int MAX_BATCH = 100; // limite Expo
     private final ExpoPushNotificationClient client;
 
     public ExpoPushService() {
-        // Client HTTP réutilisable
         CloseableHttpClient httpClient = HttpClients.createDefault();
 
-        // Si tu as un "Push Service Access Token", tu peux le passer via
-        // .setAccessToken("...")
+        // Si tu as un "Push Service Access Token", passe-le ici via .setAccessToken("...")
         this.client = ExpoPushNotificationClient
                 .builder()
                 .setHttpClient(httpClient)
                 // .setAccessToken("EXPO_PUSH_SERVICE_TOKEN")
                 .build();
+
+        logger.info("ExpoPushService initialized",
+                keyValue("action", "expo_service_init"));
     }
 
     /**
      * Envoie un lot (≤100) de notifications Expo.
-     * 
+     *
      * @param messages Liste de messages internes (un entry par token)
      * @return agrégat {userIdsOk, userIdsFailed, invalidTokens}
      */
     public ExpoBatchResult sendBatch(List<ExpoMessage> messages) {
         if (messages == null || messages.isEmpty()) {
+            logger.info("Empty batch, nothing to send",
+                    keyValue("action", "expo_sdk_batch_skip"));
             return new ExpoBatchResult(Set.of(), Set.of(), List.of());
         }
 
-        // Expo limite à 100 par appel
         List<ExpoMessage> batch = messages.size() > MAX_BATCH ? messages.subList(0, MAX_BATCH) : messages;
 
         // Mapping index -> userId/token pour corrélation
@@ -72,8 +74,6 @@ public class ExpoPushService {
             indexToToken.put(i, m.getTo());
 
             PushNotification pn = new PushNotification();
-            // Le SDK accepte une liste "to"; on met un seul token par notif pour un mapping
-            // simple
             pn.setTo(Collections.singletonList(m.getTo()));
             pn.setTitle(m.getTitle());
             pn.setBody(m.getBody());
@@ -86,7 +86,7 @@ public class ExpoPushService {
         try {
             List<TicketResponse.Ticket> tickets = client.sendPushNotifications(notifications);
 
-            log.info("Expo SDK batch sent",
+            logger.info("Expo SDK batch sent",
                     keyValue("action", "expo_sdk_batch_sent"),
                     keyValue("count", notifications.size()),
                     keyValue("tickets", tickets != null ? tickets.size() : 0));
@@ -94,7 +94,7 @@ public class ExpoPushService {
             return aggregateTickets(batch, tickets, indexToUser, indexToToken);
 
         } catch (Exception e) {
-            log.error("Expo SDK send failed",
+            logger.error("Expo SDK send failed",
                     keyValue("action", "expo_sdk_send_failed"),
                     keyValue("count", notifications.size()), e);
 
@@ -123,6 +123,10 @@ public class ExpoPushService {
 
             if (tk == null) {
                 perUserErr.merge(userId, 1, Integer::sum);
+                logger.warn("Null ticket received",
+                        keyValue("action", "expo_ticket_null"),
+                        keyValue("userId", userId),
+                        keyValue("token", mask(tokenUsed)));
                 continue;
             }
 
@@ -135,15 +139,13 @@ public class ExpoPushService {
             // status = ERROR
             perUserErr.merge(userId, 1, Integer::sum);
 
-            // Le SDK expose message + details (sentAt / expoPushToken). Pas toujours un
-            // "error code".
             String msg = tk.getMessage();
             String tokenFromDetails = null;
             if (tk.getDetails() != null) {
                 try {
-                    tokenFromDetails = tk.getDetails().getExpoPushToken(); // dispo sur certaines erreurs
+                    tokenFromDetails = tk.getDetails().getExpoPushToken(); // parfois dispo
                 } catch (Exception ignore) {
-                    // méthodes dépendantes de la version, on ignore si absent
+                    // selon versions du SDK/détails renvoyés
                 }
             }
 
@@ -153,7 +155,7 @@ public class ExpoPushService {
                 invalidTokens.add(candidate);
             }
 
-            log.warn("Expo ticket error",
+            logger.warn("Expo ticket error",
                     keyValue("action", "expo_ticket_error"),
                     keyValue("userId", userId),
                     keyValue("token", mask(candidate)),
@@ -170,12 +172,17 @@ public class ExpoPushService {
                 .filter(u -> !okUsers.contains(u) && perUserErr.getOrDefault(u, 0) > 0)
                 .collect(Collectors.toCollection(LinkedHashSet::new));
 
+        logger.info("Expo batch aggregated",
+                keyValue("action", "expo_batch_aggregate"),
+                keyValue("okUsers", okUsers.size()),
+                keyValue("failedUsers", failedUsers.size()),
+                keyValue("invalidTokens", invalidTokens.size()));
+
         return new ExpoBatchResult(okUsers, failedUsers, invalidTokens);
     }
 
     private boolean isDeviceNotRegistered(String message) {
-        if (message == null)
-            return false;
+        if (message == null) return false;
         String m = message.toLowerCase(Locale.ROOT);
         // Messages fréquents côté Expo pour token invalide
         return m.contains("devicenotregistered")
@@ -184,8 +191,7 @@ public class ExpoPushService {
     }
 
     private String mask(String token) {
-        if (token == null || token.length() < 12)
-            return token;
+        if (token == null || token.length() < 12) return token;
         return token.substring(0, 6) + "..." + token.substring(token.length() - 4);
     }
 }

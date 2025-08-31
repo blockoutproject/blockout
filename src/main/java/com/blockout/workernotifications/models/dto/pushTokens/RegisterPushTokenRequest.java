@@ -1,4 +1,4 @@
-package com.blockout.workernotifications.models.dto.user;
+package com.blockout.workernotifications.models.dto.pushTokens;
 
 import com.blockout.workernotifications.models.enums.DevicePlatform;
 import lombok.Builder;

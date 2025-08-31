@@ -8,11 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-/**
- * DTO interne pratique pour l’orchestrateur:
- * - tokensByUser : mapping userId -> [expoTokens]
- * - noTokenUserIds : users sans aucun token résolu
- */
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

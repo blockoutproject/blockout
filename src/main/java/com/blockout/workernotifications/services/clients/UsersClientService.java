@@ -1,25 +1,20 @@
 package com.blockout.workernotifications.services.clients;
 
 import com.blockout.workernotifications.config.ApiClientProperties;
-import com.blockout.workernotifications.models.dto.ResolvePage;
-import com.blockout.workernotifications.models.dto.user.DeactivatePushTokenRequest;
-import com.blockout.workernotifications.models.dto.user.ResolveTokensRequest;
-import com.blockout.workernotifications.models.dto.user.ResolveTokensResponse;
+import com.blockout.workernotifications.models.dto.users.CustomUserDto;
 
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-
-import java.util.*;
-import java.util.stream.Collectors;
+import org.springframework.web.client.HttpClientErrorException;
 
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
 /**
- * Client HTTP vers l'API Users (endpoints push tokens), calqué sur ton style.
- * Utilise ApiClientService (RestTemplate authentifié) + ApiClientProperties pour la base URL.
+ * Client HTTP vers l'API Users.
+ * Ne conserve désormais qu'un appel : récupérer un utilisateur par son Auth0 ID.
  */
 @Service
 @RequiredArgsConstructor
@@ -31,74 +26,48 @@ public class UsersClientService {
     private final ApiClientService apiClientService;
 
     /**
-     * Résout les tokens Expo pour une page de userIds, en utilisant /internal/push-tokens/resolve (DTOs de ton API Users).
+     * Récupère l'utilisateur (profil métier) via son identifiant Auth0.
+     * Endoint côté Users API : GET /api/v1/users/{auth0Id}
      *
-     * @param userIds page de userIds
-     * @return ResolvePage : tokensByUser + noTokenUserIds (dérivé de la réponse)
+     * @param auth0Id identifiant Auth0 (sub)
+     * @return l'utilisateur si trouvé, sinon null
      */
-    public ResolvePage resolveTokens(List<Long> userIds) {
-        if (userIds == null || userIds.isEmpty()) {
-            return new ResolvePage(Collections.emptyMap(), Collections.emptySet());
-        }
-
+    public CustomUserDto getUserByAuth0Id(String auth0Id) {
         String base = apiClientProperties.getUser().getUrl();
-        String url = base + "/internal/push-tokens/resolve";
+        String url = base + "/api/v1/users/" + auth0Id;
 
-        logger.info("Calling Users resolveTokens",
-                keyValue("action", "call_users_resolve_tokens"),
+        logger.info("Calling Users getUserByAuth0Id",
+                keyValue("action", "call_users_get_by_auth0_id"),
                 keyValue("url", url),
-                keyValue("userCount", userIds.size()));
+                keyValue("auth0Id", auth0Id));
 
-        ResolveTokensRequest req = new ResolveTokensRequest();
-        req.setUserIds(userIds);
+        try {
+            ResponseEntity<CustomUserDto> resp = apiClientService.get(url, CustomUserDto.class);
 
-        ResponseEntity<ResolveTokensResponse> response =
-                apiClientService.post(url, req, ResolveTokensResponse.class);
+            logger.info("Users getUserByAuth0Id success",
+                    keyValue("action", "users_get_by_auth0_id_success"),
+                    keyValue("status", resp.getStatusCode().value()),
+                    keyValue("auth0Id", auth0Id));
 
-        Map<Long, List<String>> tokensByUser =
-                Optional.ofNullable(response.getBody())
-                        .map(ResolveTokensResponse::getTokensByUserId)
-                        .orElseGet(Collections::emptyMap);
-
-        // Déduire les users sans token à partir de la page demandée et de la map retournée
-        Set<Long> present = tokensByUser.keySet();
-        Set<Long> noToken = userIds.stream()
-                .filter(id -> !present.contains(id))
-                .collect(Collectors.toCollection(LinkedHashSet::new));
-
-        logger.info("Users resolveTokens done",
-                keyValue("action", "users_resolve_tokens_done"),
-                keyValue("resolvedUsers", present.size()),
-                keyValue("noTokenUsers", noToken.size()));
-
-        return new ResolvePage(tokensByUser, noToken);
-    }
-
-    /**
-     * Désactive en batch des tokens invalides via /internal/push-tokens/deactivate.
-     * Ignore si la liste est vide.
-     */
-    public void deactivateTokens(List<String> tokens) {
-        if (tokens == null || tokens.isEmpty()) {
-            return;
+            return resp.getBody();
+        } catch (HttpClientErrorException.NotFound e) {
+            logger.warn("Users getUserByAuth0Id not found",
+                    keyValue("action", "users_get_by_auth0_id_not_found"),
+                    keyValue("auth0Id", auth0Id));
+            return null;
+        } catch (HttpClientErrorException e) {
+            logger.error("Users getUserByAuth0Id http error",
+                    keyValue("action", "users_get_by_auth0_id_http_error"),
+                    keyValue("auth0Id", auth0Id),
+                    keyValue("status", e.getStatusCode().value()),
+                    e);
+            throw e;
+        } catch (Exception e) {
+            logger.error("Users getUserByAuth0Id unexpected error",
+                    keyValue("action", "users_get_by_auth0_id_unexpected_error"),
+                    keyValue("auth0Id", auth0Id),
+                    e);
+            throw e;
         }
-
-        String base = apiClientProperties.getUser().getUrl();
-        String url = base + "/internal/push-tokens/deactivate";
-
-        logger.info("Calling Users deactivateTokens",
-                keyValue("action", "call_users_deactivate_tokens"),
-                keyValue("url", url),
-                keyValue("count", tokens.size()));
-
-        DeactivatePushTokenRequest req = DeactivatePushTokenRequest.builder()
-                .tokens(tokens)
-                .build();
-
-        apiClientService.post(url, req, Void.class);
-
-        logger.info("Users deactivateTokens completed",
-                keyValue("action", "users_deactivate_tokens_done"),
-                keyValue("count", tokens.size()));
     }
 }
