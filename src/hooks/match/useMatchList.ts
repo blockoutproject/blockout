@@ -35,9 +35,8 @@ export const useMatchList = (
             }),
         initialPageParam: 0,
         getNextPageParam: (lastPage) => lastPage?.nextPage ?? undefined,
-        placeholderData: keepPreviousData,
         staleTime: 5 * 60 * 1000,
-        refetchOnWindowFocus: false,
+        retry: false
     });
 
     const pages = query.data?.pages ?? [];

@@ -16,5 +16,6 @@ export const useEntityById = <T>(
             if (id == null) return undefined;
             return qc.getQueryData<T>([key, id]);
         },
+        retry: false
     });
 };

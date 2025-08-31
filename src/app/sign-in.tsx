@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { View, Text, StyleSheet, Pressable, ActivityIndicator } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
@@ -20,28 +20,33 @@ const HERO = {
 const LoginScreen: React.FC = () => {
     const theme = useAppTheme();
     const insets = useSafeAreaInsets();
-    const { signIn, isLoading } = useSession();
+    const { signIn, isLoading, error } = useSession();
 
     const [isSigningIn, setIsSigningIn] = useState(false);
     const [apiError, setApiError] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (!isSigningIn && error) {
+            setApiError("Erreur lors de la connexion.");
+        }
+    }, [error, isSigningIn]);
 
     const onPressLogin = async () => {
         try {
             setIsSigningIn(true);
             setApiError(null);
-
             await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
             await signIn();
         } catch (err) {
-            console.error(err);
-            setApiError("Erreur lors de la connexion.");
             await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+            setApiError("Erreur lors de la connexion.");
+            console.error(err);
         } finally {
             setIsSigningIn(false);
         }
     };
-
     const ctaGradient: [string, string, string] = ["#6EE7F9", "#A78BFA", "#F472B6"];
+    const disabled = isSigningIn || isLoading;
 
     return (
         <View style={styles.content}>
@@ -63,7 +68,7 @@ const LoginScreen: React.FC = () => {
             </View>
 
             {/* CTA avec SPINNER dans le bouton */}
-            <Pressable onPress={onPressLogin} style={styles.ctaPressable} disabled={isSigningIn}>
+            <Pressable onPress={onPressLogin} style={styles.ctaPressable} disabled={disabled}>
                 <LinearGradient
                     colors={ctaGradient}
                     start={{ x: 0, y: 0 }}

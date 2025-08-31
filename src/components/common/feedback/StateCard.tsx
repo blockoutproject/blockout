@@ -9,6 +9,7 @@ import {
     ViewStyle,
     StyleProp,
     Animated,
+    ActivityIndicator,
 } from "react-native";
 import * as Haptics from "expo-haptics";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -20,6 +21,8 @@ type Action = {
     onPress: () => void;
     icon?: React.ComponentProps<typeof MaterialCommunityIcons>["name"];
     testID?: string;
+    loading?: boolean;   // ⟵ NEW
+    disabled?: boolean;  // ⟵ NEW
 };
 
 export type StateViewProps = {
@@ -32,7 +35,7 @@ export type StateViewProps = {
     testID?: string;
 };
 
-const StateView: React.FC<StateViewProps> = ({
+const StateCard: React.FC<StateViewProps> = ({
     title,
     subtitle,
     illustrationSource,
@@ -49,10 +52,12 @@ const StateView: React.FC<StateViewProps> = ({
     }, [fade]);
 
     const onPressAction = async () => {
-        if (!action) return;
+        if (!action || action.disabled || action.loading) return;
         await Haptics.selectionAsync();
         action.onPress();
     };
+
+    const isActionDisabled = Boolean(action?.disabled || action?.loading);
 
     return (
         <Animated.View
@@ -63,15 +68,12 @@ const StateView: React.FC<StateViewProps> = ({
             <View style={styles.centerStack}>
                 {/* Illustration / Icône */}
                 <View
-                    style={[
-                        styles.visualWrap,
-                        { backgroundColor: withAlpha(theme.text, 0.06) },
-                    ]}
+                    style={[styles.visualWrap, { backgroundColor: withAlpha(theme.text, 0.06) }]}
                     accessible
                     accessibilityLabel="Illustration"
                 >
                     {illustrationSource ? (
-                        <Image source={illustrationSource} style={styles.image} resizeMode="contain" />
+                        <Image source={illustrationSource} style={styles.image} resizeMode="center" />
                     ) : (
                         <MaterialCommunityIcons
                             name={fallbackIcon ?? "information-outline"}
@@ -99,21 +101,34 @@ const StateView: React.FC<StateViewProps> = ({
                 {action && (
                     <Pressable
                         onPress={onPressAction}
+                        disabled={isActionDisabled}
                         android_ripple={{ color: withAlpha(theme.text, 0.12) }}
                         style={({ pressed }) => [
                             styles.button,
                             {
-                                backgroundColor: pressed ? withAlpha(theme.primary, 0.9) : theme.primary,
+                                backgroundColor: pressed && !isActionDisabled
+                                    ? withAlpha(theme.primary, 0.9)
+                                    : theme.primary,
+                                opacity: isActionDisabled ? 0.7 : 1,
                             },
                         ]}
                         accessibilityRole="button"
                         accessibilityLabel={action.label}
                         testID={action.testID}
                     >
-                        {action.icon && (
-                            <MaterialCommunityIcons name={action.icon} size={16} color={theme.text} />
+                        {action.loading ? (
+                            <>
+                                <ActivityIndicator size="small" color={theme.text} />
+                                <Text style={[styles.buttonText, { color: theme.text }]}>Chargement…</Text>
+                            </>
+                        ) : (
+                            <>
+                                {action.icon && (
+                                    <MaterialCommunityIcons name={action.icon} size={16} color={theme.text} />
+                                )}
+                                <Text style={[styles.buttonText, { color: theme.text }]}>{action.label}</Text>
+                            </>
                         )}
-                        <Text style={[styles.buttonText, { color: theme.text }]}>{action.label}</Text>
                     </Pressable>
                 )}
             </View>
@@ -121,59 +136,15 @@ const StateView: React.FC<StateViewProps> = ({
     );
 };
 
-export default StateView;
+export default StateCard;
 
 const styles = StyleSheet.create({
-    root: {
-        flex: 1,
-        paddingHorizontal: 16,
-    },
-    centerStack: {
-        alignItems: "center",
-        justifyContent: "center",
-        paddingTop: 24,
-        paddingBottom: 24,
-        gap: 12,
-    },
-    visualWrap: {
-        width: 120,
-        height: 120,
-        borderRadius: 28,
-        alignItems: "center",
-        justifyContent: "center",
-    },
-    image: {
-        width: 120,
-        height: 120,
-        borderRadius: 24,
-    },
-    title: {
-        marginTop: 4,
-        textAlign: "center",
-        fontSize: 20,
-        fontWeight: "900",
-        letterSpacing: 0.2,
-        paddingHorizontal: 8,
-    },
-    subtitle: {
-        textAlign: "center",
-        fontSize: 14,
-        lineHeight: 20,
-        paddingHorizontal: 8,
-        maxWidth: 320,
-    },
-    button: {
-        marginTop: 6,
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 8,
-        paddingVertical: 12,
-        paddingHorizontal: 18,
-        borderRadius: 999,
-    },
-    buttonText: {
-        fontSize: 14,
-        fontWeight: "800",
-        letterSpacing: 0.2,
-    },
+    root: { flex: 1, paddingHorizontal: 16 },
+    centerStack: { alignItems: "center", justifyContent: "center", paddingTop: 24, paddingBottom: 24, gap: 12 },
+    visualWrap: { width: 120, height: 120, borderRadius: 28, alignItems: "center", justifyContent: "center" },
+    image: { width: 120, height: 120, borderRadius: 24 },
+    title: { marginTop: 4, textAlign: "center", fontSize: 20, fontWeight: "900", letterSpacing: 0.2, paddingHorizontal: 8 },
+    subtitle: { textAlign: "center", fontSize: 14, lineHeight: 20, paddingHorizontal: 8, maxWidth: 320 },
+    button: { marginTop: 6, flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 12, paddingHorizontal: 18, borderRadius: 999 },
+    buttonText: { fontSize: 14, fontWeight: "800", letterSpacing: 0.2 },
 });

@@ -1,9 +1,6 @@
 import React from "react";
 import { View, StyleSheet } from "react-native";
 import * as Haptics from "expo-haptics";
-import { useNavigation } from "@react-navigation/native";
-import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-
 import { EnrichedTeamDTO } from "@/src/types/Team";
 import { useTeamFollowState } from "@/src/hooks/team/useTeamFollowState";
 import FollowButton from "@/src/components/common/FollowButton";
@@ -38,13 +35,11 @@ const TeamProfile: React.FC<TeamProfileProps> = ({ enrichedTeam }) => {
     return (
         <View style={styles.container}>
             <MaskedImage uri={enrichedTeam.club.logoUrl} size={LOGO_SIZE} radius={20} shadow />
-
             <View style={styles.infoCol}>
                 <View style={styles.pillRow}>
                     <InfoPill label={enrichedTeam.division.name} />
                     <InfoPill label={GenderLabels[enrichedTeam.gender]} />
                 </View>
-
                 <View style={styles.pillRow}>
                     <InfoPill label={FormatLabels[enrichedTeam.format]} />
                     <InfoPill label={String(enrichedTeam.season)} />
@@ -55,7 +50,6 @@ const TeamProfile: React.FC<TeamProfileProps> = ({ enrichedTeam }) => {
                         onPress={() => handleClubPress(enrichedTeam.club.id)}
                     />
                 </View>
-
                 <View style={styles.actionsRow}>
                     <FollowButton
                         isFollowing={isFollowing}

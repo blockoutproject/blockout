@@ -59,8 +59,6 @@ const SearchTeamScreen: React.FC<Props> = ({
         return null;
     };
 
-    console.log(teams)
-
     return (
         <KeyboardAvoidingView
             style={[styles.container, { backgroundColor: theme.background }]}
@@ -119,7 +117,7 @@ const styles = StyleSheet.create({
         alignItems: "center",
     },
     loader: {
-        marginTop: 24,
+        marginTop: 8,
     },
     emptyContainer: {
         alignItems: "center",

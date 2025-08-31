@@ -55,6 +55,7 @@ const TeamTabs: React.FC<Props> = ({ enrichedTeam }) => {
                             marginTop: TABBAR_HEIGHT + 4,
                             paddingBottom: insets.bottom + TABBAR_HEIGHT + BOTTOM_TABBAR_HEIGHT + 4,
                         }}
+                        home={false}
                     />
                 ),
             };
@@ -74,6 +75,7 @@ const TeamTabs: React.FC<Props> = ({ enrichedTeam }) => {
                             marginTop: TABBAR_HEIGHT + 4,
                             paddingBottom: insets.bottom + TABBAR_HEIGHT + BOTTOM_TABBAR_HEIGHT + 4,
                         }}
+                        home={false}
                     />
                 ),
             };
@@ -92,7 +94,7 @@ const TeamTabs: React.FC<Props> = ({ enrichedTeam }) => {
                             teamId: pool.ranking.find(t => t.id === enrichedTeam.id)?.id,
                             color: `${pool.division.mainColor}`,
                         },
-                    ]}/>
+                    ]} />
                 : null,
         };
     })

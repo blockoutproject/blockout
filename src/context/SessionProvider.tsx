@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useMemo } from "react";
+import React, { createContext, use, useContext, useEffect, useMemo } from "react";
 import { useAuth0 } from "react-native-auth0";
 import type { CustomUser } from "@/src/types/User";
 import { useEnsureUser } from "@/src/hooks/user/useEnsureUser";
@@ -60,11 +60,31 @@ export const SessionProvider: React.FC<React.PropsWithChildren> = ({ children })
         isLoading: isAuth0UserLoading,
     } = useAuth0();
 
+    const {
+        data: customUser,
+        isLoading: isCustomUserLoading,
+        error: customUserError,
+        refetch,
+    } = useEnsureUser();
+
+    const isLoading = isAuth0UserLoading || isCustomUserLoading;
+    const isError = !!auth0UserError || !!customUserError;
+    const isReady = !!customUser && !!auth0User;
+    const error = customUserError || auth0UserError;
+
+    useEffect(() => {
+        if (isReady && isError) {
+            softResetAuth();
+        }
+    }, [isReady, isError]);
+
     const signIn = async () => {
         await authorize({
             audience: "https://api.blockoutproject.com/",
             scope: "openid profile email offline_access",
         });
+        const r = await refetch({ cancelRefetch: true, throwOnError: true });
+        if (r.error) throw r.error;
     };
 
     const softResetAuth = async () => {
@@ -83,24 +103,6 @@ export const SessionProvider: React.FC<React.PropsWithChildren> = ({ children })
             throw e;
         }
     };
-
-    const {
-        data: customUser,
-        isLoading: isCustomUserLoading,
-        error: customUserError,
-        refetch,
-    } = useEnsureUser({ enabled: !!auth0User });
-
-    const isLoading = isAuth0UserLoading || isCustomUserLoading;
-    const isError = !!auth0UserError || !!customUserError;
-    const isReady = !!customUser && !!auth0User;
-    const error = customUserError || auth0UserError;
-
-    useEffect(() => {
-        if (isReady && isError) {
-            softResetAuth();
-        }
-    }, [isReady, isError]);
 
     const value = useMemo<SessionContextValue>(() => {
         return {

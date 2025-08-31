@@ -40,8 +40,8 @@ type MatchListContainerProps = {
     scrollY: Animated.Value;
     contentContainerStyle?: StyleProp<ViewStyle>;
     headerOffset: number;
-    home?: boolean;
     showPoolHeader?: boolean;
+    home?: boolean;
 };
 
 const MatchListContainer: React.FC<MatchListContainerProps> = ({
@@ -51,8 +51,8 @@ const MatchListContainer: React.FC<MatchListContainerProps> = ({
     scrollY,
     contentContainerStyle,
     headerOffset,
-    home = false,
     showPoolHeader = true,
+    home = false,
 }) => {
     const theme = useAppTheme();
     const router = useRouter();
@@ -64,7 +64,6 @@ const MatchListContainer: React.FC<MatchListContainerProps> = ({
         isFetchingNextPage,
         isLoading,
         isError,
-        error,
         refetch,
     } = useMatchList(status, poolIds, teamIds);
 
@@ -115,6 +114,14 @@ const MatchListContainer: React.FC<MatchListContainerProps> = ({
                 <ActivityIndicator size="large" color={theme.text} />
             </View>
         );
+    } else if (isError) {
+        body = (
+            <ErrorState
+                subtitle="Impossible de charger les matchs."
+                onRetry={refetch}
+                paddingTop={home ? "50%" : "30%"}
+            />
+        );
     } else {
         body = (
             <Animated.SectionList
@@ -144,23 +151,15 @@ const MatchListContainer: React.FC<MatchListContainerProps> = ({
                     />
                 }
                 ListEmptyComponent={() => (
-                    isError ? (
-                        <ErrorState
-                            subtitle="Impossible de charger la liste des matchs."
-                            onRetry={refetch}
-                            home
-                        />
-                    ) : (
-                        <EmptyState
-                            title="Aucun match trouvé"
-                            subtitle={
-                                poolIds?.length || teamIds?.length
-                                    ? "Aucun match à venir pour les équipes ou poules sélectionnées."
-                                    : "Commence par suivre une équipe ou une poule pour voir les matchs ici !"
-                            }
-                            home
-                        />
-                    )
+                    <EmptyState
+                        title="Aucun match trouvé"
+                        subtitle={
+                            poolIds?.length || teamIds?.length
+                                ? "Aucun match à venir pour les équipes ou poules sélectionnées."
+                                : "Commence par suivre une équipe ou une poule pour voir les matchs ici !"
+                        }
+                        paddingTop={home ? "40%" : "20%"}
+                    />
                 )}
                 scrollEnabled={sections.length > 0}
                 onScroll={
@@ -178,7 +177,7 @@ const MatchListContainer: React.FC<MatchListContainerProps> = ({
                     ) : null
                 }
                 maintainVisibleContentPosition={{
-                    minIndexForVisible: 1,
+                    minIndexForVisible: sections.length > 0 ? 1 : 0,
                 }}
             />
         );

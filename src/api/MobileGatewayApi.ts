@@ -20,6 +20,7 @@ class MobileGatewayApi extends AbstractApi {
         super(CONFIG.API_GATEWAY_BASE_URL, token, {
             tokenSupplier: opts?.tokenSupplier,
             onUnauthorized: opts?.onUnauthorized,
+            timeout: 10_000,
         });
     }
 
