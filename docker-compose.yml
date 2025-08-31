@@ -1,5 +1,5 @@
 services:
-  blockout-worker-notifications:
+  blockout-api-notifications:
     build: .
     ports:
       - ${SERVER_PORT}:8092

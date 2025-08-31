@@ -17,7 +17,7 @@ import com.blockout.notifications.services.PushTokenService;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/v1")
+@RequestMapping("/api/v1/notifications")
 public class PushTokenController {
 
     private final PushTokenService pushTokenService;
