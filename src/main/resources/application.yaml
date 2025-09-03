@@ -20,7 +20,11 @@ spring:
     host: ${RABBITMQ_HOST}
     port: ${RABBITMQ_PORT}
     username: ${RABBITMQ_USERNAME}
-    password: ${RABBITMQ_PASSWORD}
+    password: ${RABBITMQ_PASSWORD}``
+
+  elasticsearch:
+    index:
+      create-index: false
 
 logging:
   level:
