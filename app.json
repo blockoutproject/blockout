@@ -47,7 +47,8 @@
           "domain": "dev-jb2dhm4ou4owlr6e.eu.auth0.com"
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      "expo-notifications"
     ],
     "experiments": {
       "typedRoutes": true

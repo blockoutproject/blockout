@@ -31,7 +31,6 @@ class UsersApi extends AbstractApi {
         return UsersApi.instance;
     }
 
-    /** Idempotent côté serveur → mais on veut *fail fast* au login */
     public async ensureCurrentUser(): Promise<CustomUser> {
         return await this.request<CustomUser>(
             {

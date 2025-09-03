@@ -15,9 +15,7 @@ const SearchState: React.FC<SearchStateProps> = ({
         <StateCard
             title={title}
             subtitle={subtitle}
-            illustrationSource={{
-                uri: "https://cdn-icons-png.flaticon.com/512/4076/4076549.png",
-            }}
+            illustrationSource={require("@/assets/images/search.gif")}
             fallbackIcon="magnify"
             containerStyle={{ paddingTop: "30%" }}
         />

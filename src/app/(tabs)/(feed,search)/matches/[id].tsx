@@ -1,47 +1,108 @@
-import React, { useCallback, useRef } from "react";
+import React, { useCallback, useMemo, useRef, useState } from "react";
 import { RefreshControl, StyleSheet, View, Animated, ScrollView } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
+import * as Haptics from "expo-haptics";
+import { useLocalSearchParams } from "expo-router";
 
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import { useEnrichedMatchById } from "@/src/hooks/match/useEnrichedMatchById";
+
 import MatchSkeleton from "@/src/components/match/components/MatchSkeleton";
 import MatchScoreCard from "@/src/components/match/components/MatchScoreCard";
 import MatchScoreDetailsCard from "@/src/components/match/components/MatchScoreDetailsCard";
 import MatchInfoCard from "@/src/components/match/components/MatchInfoCard";
-import { getTeamsRankingColor, splitIsoDateFormatted } from "@/src/utils/utils";
-import ErrorState from "@/src/components/common/feedback/ErrorState";
-import MatchHeader from "@/src/components/match/components/MatchHeader";
-import { ReportType } from "@/src/types/Report";
-import * as Haptics from "expo-haptics";
-import { BOTTOM_TABBAR_HEIGHT, HEADER_HEIGHT, SECTION_SEPARATOR_HEIGHT } from "@/src/theme/globals";
 import RankingCard from "@/src/components/ranking/RankingCard";
+import MatchHeader from "@/src/components/match/components/MatchHeader";
 import BottomSheetCustomModal from "@/src/components/common/BottomSheetCustomModal";
 import ReportForm from "@/src/components/report/ReportForm";
-import { useLocalSearchParams } from "expo-router";
+import ErrorState from "@/src/components/common/feedback/ErrorState";
 import FadeIn from "@/src/components/animations/FadeIn";
+
+import { ReportType } from "@/src/types/Report";
+import { getTeamsRankingColor, splitIsoDateFormatted } from "@/src/utils/utils";
+import { BOTTOM_TABBAR_HEIGHT, HEADER_HEIGHT, SECTION_SEPARATOR_HEIGHT } from "@/src/theme/globals";
 
 const AnimatedScrollView = Animated.createAnimatedComponent(ScrollView);
 
 const MatchScreen: React.FC = () => {
     const { id } = useLocalSearchParams();
-
-    const { data: enrichedMatch, isLoading, error, refetch } = useEnrichedMatchById(Number(id));
     const theme = useAppTheme();
     const insets = useSafeAreaInsets();
 
+    const { data: enrichedMatch, isLoading, error, refetch } = useEnrichedMatchById(Number(id));
+
     const reportSheetRef = useRef<BottomSheetModal>(null);
-    const [isRefreshing, setIsRefreshing] = React.useState(false);
+    const [isRefreshing, setIsRefreshing] = useState(false);
+    const scrollY = useRef(new Animated.Value(0)).current;
 
-    const scrollY = React.useRef(new Animated.Value(0)).current;
-
+    // Handlers stabilisés
     const handleRefresh = useCallback(async () => {
         setIsRefreshing(true);
-        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => { });
         await refetch();
         setIsRefreshing(false);
     }, [refetch]);
 
+    const handleOpenReport = useCallback(() => {
+        reportSheetRef.current?.present();
+    }, []);
+
+    const handleCloseReport = useCallback(() => {
+        reportSheetRef.current?.dismiss();
+    }, []);
+
+    // États dérivés mémoïsés (évite de recréer des arrays/objets à chaque render)
+    const gradient = useMemo<readonly [string, string, ...string[]]>(() => {
+        if (!enrichedMatch) return ["#000", "#000", "#000"];
+        const d = enrichedMatch.pool.division;
+        return [d.firstGradientColor, d.secondGradientColor, d.thirdGradientColor] as const;
+    }, [enrichedMatch]);
+
+    const timeText = useMemo(() => {
+        if (!enrichedMatch) return null;
+        return splitIsoDateFormatted(enrichedMatch.matchDate).time ?? null;
+    }, [enrichedMatch]);
+
+    const highlightTeams = useMemo(() => {
+        if (!enrichedMatch) return [];
+        const division = enrichedMatch.pool.division;
+        return getTeamsRankingColor(theme, {
+            teamA: enrichedMatch.teamA,
+            teamB: enrichedMatch.teamB,
+            set: enrichedMatch.set,
+            highlightColor: division.mainColor,
+        });
+    }, [enrichedMatch, theme]);
+
+    // Sous-éléments mémoïsés (évite de recréer les éléments à chaque render)
+    const scoreCard = useMemo(() => {
+        if (!enrichedMatch) return null;
+        return <MatchScoreCard enrichedMatch={enrichedMatch} gradient={gradient} />;
+    }, [enrichedMatch, gradient]);
+
+    const detailsCard = useMemo(() => {
+        if (!enrichedMatch) return null;
+        return <MatchScoreDetailsCard enrichedMatch={enrichedMatch} />;
+    }, [enrichedMatch]);
+
+    const infoCard = useMemo(() => {
+        if (!enrichedMatch) return null;
+        return <MatchInfoCard enrichedMatch={enrichedMatch} />;
+    }, [enrichedMatch]);
+
+    const rankingCard = useMemo(() => {
+        if (!enrichedMatch) return null;
+        return (
+            <RankingCard
+                enrichedPool={enrichedMatch.pool}
+                scrollable={false}
+                highlightTeams={highlightTeams}
+            />
+        );
+    }, [enrichedMatch, highlightTeams]);
+
+    // Corps de l'écran
     let body: React.ReactNode;
 
     if (isLoading) {
@@ -51,56 +112,34 @@ const MatchScreen: React.FC = () => {
     } else if (!enrichedMatch) {
         body = <ErrorState subtitle="Ce match est introuvable." onRetry={refetch} paddingTop={"50%"} />;
     } else {
-        const division = enrichedMatch.pool.division;
-        const gradient: readonly [string, string, ...string[]] = [
-            division.firstGradientColor,
-            division.secondGradientColor,
-            division.thirdGradientColor,
-        ];
-
-        const { time } = splitIsoDateFormatted(enrichedMatch.matchDate);
-
         body = (
             <AnimatedScrollView
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={[
                     styles.scrollContent,
                     {
-                        backgroundColor: theme.background,
+                        backgroundColor: "transparent",
                         paddingTop: insets.top + HEADER_HEIGHT,
                         paddingBottom: insets.bottom + BOTTOM_TABBAR_HEIGHT + SECTION_SEPARATOR_HEIGHT,
                     },
                 ]}
-                refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />}
+                refreshControl={
+                    <RefreshControl
+                        refreshing={isRefreshing}
+                        onRefresh={handleRefresh}
+                        progressViewOffset={insets.top + HEADER_HEIGHT}
+                        tintColor={theme.text}
+                    />
+                }
                 onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], {
                     useNativeDriver: true,
                 })}
                 scrollEventThrottle={16}
             >
-                <FadeIn appearIndex={0}>
-                    <MatchScoreCard enrichedMatch={enrichedMatch} gradient={gradient} />
-                </FadeIn>
-
-                <FadeIn appearIndex={1}>
-                    <MatchScoreDetailsCard enrichedMatch={enrichedMatch} />
-                </FadeIn>
-
-                <FadeIn appearIndex={2}>
-                    <MatchInfoCard enrichedMatch={enrichedMatch} />
-                </FadeIn>
-
-                <FadeIn appearIndex={3}>
-                    <RankingCard
-                        enrichedPool={enrichedMatch.pool}
-                        scrollable={false}
-                        highlightTeams={getTeamsRankingColor(theme, {
-                            teamA: enrichedMatch.teamA,
-                            teamB: enrichedMatch.teamB,
-                            set: enrichedMatch.set,
-                            highlightColor: division.mainColor,
-                        })}
-                    />
-                </FadeIn>
+                <FadeIn appearIndex={0}>{scoreCard}</FadeIn>
+                <FadeIn appearIndex={1}>{detailsCard}</FadeIn>
+                <FadeIn appearIndex={2}>{infoCard}</FadeIn>
+                <FadeIn appearIndex={3}>{rankingCard}</FadeIn>
             </AnimatedScrollView>
         );
 
@@ -108,12 +147,12 @@ const MatchScreen: React.FC = () => {
             <View style={{ backgroundColor: theme.background, flex: 1 }}>
                 <MatchHeader
                     scrollY={scrollY}
-                    onOpenReport={() => reportSheetRef.current?.present()}
+                    onOpenReport={handleOpenReport}
                     headerContent={{
                         teamALogo: enrichedMatch.teamA.logoUrl,
                         teamBLogo: enrichedMatch.teamB.logoUrl,
                         scoreText: enrichedMatch.set ?? null,
-                        timeText: time ?? null,
+                        timeText,
                     }}
                     headerGradient={gradient}
                 />
@@ -123,9 +162,7 @@ const MatchScreen: React.FC = () => {
                 <BottomSheetCustomModal ref={reportSheetRef} snapPoint={"90%"}>
                     <ReportForm
                         context={{ screen: "Match", defaultType: ReportType.DISPLAY_BUG }}
-                        onSuccess={() => {
-                            reportSheetRef.current?.dismiss();
-                        }}
+                        onSuccess={handleCloseReport}
                     />
                 </BottomSheetCustomModal>
             </View>

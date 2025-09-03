@@ -33,7 +33,7 @@ const ErrorState: React.FC<ErrorStateProps> = ({
         <StateCard
             title={message}
             subtitle={subtitle}
-            illustrationSource={require("@/assets/images/error.jpg")}
+            illustrationSource={require("@/assets/images/error.gif")}
             fallbackIcon="alert-circle-outline"
             action={{
                 label: retryLabel,

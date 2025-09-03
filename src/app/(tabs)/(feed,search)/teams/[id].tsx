@@ -1,7 +1,8 @@
-import React, { useRef } from "react";
+// src/screens/team/TeamScreen.tsx
+import React, { useCallback, useMemo, useRef } from "react";
 import { StyleSheet, View } from "react-native";
-import { RouteProp, useRoute } from "@react-navigation/native";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
+import { useLocalSearchParams } from "expo-router";
 
 import { useEnrichedTeamById } from "@/src/hooks/team/useEnrichedTeamById";
 import TeamSkeleton from "@/src/components/team/components/TeamSkeleton";
@@ -13,8 +14,6 @@ import TeamHeader from "@/src/components/team/components/TeamHeader";
 import BottomSheetCustomModal from "@/src/components/common/BottomSheetCustomModal";
 import ReportForm from "@/src/components/report/ReportForm";
 import { ReportType } from "@/src/types/Report";
-import { useLocalSearchParams } from "expo-router";
-
 
 const TeamScreen: React.FC = () => {
     const theme = useAppTheme();
@@ -23,42 +22,57 @@ const TeamScreen: React.FC = () => {
 
     const reportSheetRef = useRef<BottomSheetModal>(null);
 
-    let body: React.ReactNode;
-    if (isLoading) {
-        body = <TeamSkeleton />;
-    } else if (error) {
-        body = <ErrorState subtitle="Impossible de charger l'équipe." onRetry={refetch} />;
-    } else if (!team) {
-        body = <ErrorState subtitle="Cette équipe est introuvable." onRetry={refetch} />;
-    } else {
-        body = (
+    // Handlers stables
+    const handleOpenReport = useCallback(() => {
+        reportSheetRef.current?.present();
+    }, []);
+
+    const handleCloseReport = useCallback(() => {
+        reportSheetRef.current?.dismiss();
+    }, []);
+
+    // Rendu principal mémoïsé (évite recréations inutiles)
+    const body = useMemo(() => {
+        if (isLoading) {
+            return <TeamSkeleton />;
+        }
+        if (error) {
+            return (
+                <ErrorState
+                    subtitle="Impossible de charger l'équipe."
+                    onRetry={refetch}
+                    paddingTop="40%"
+                />
+            );
+        }
+        if (!team) {
+            return (
+                <ErrorState
+                    subtitle="Cette équipe est introuvable."
+                    onRetry={refetch}
+                    paddingTop="40%"
+                />
+            );
+        }
+
+        return (
             <>
                 <TeamProfile enrichedTeam={team} />
                 <TeamTabs enrichedTeam={team} />
             </>
         );
-    }
+    }, [isLoading, error, team, refetch]);
 
     return (
         <View style={[styles.container, { backgroundColor: theme.background }]}>
-            <TeamHeader
-                title={team?.name}
-                onOpenReport={() => reportSheetRef.current?.present()}
-            />
+            <TeamHeader title={team?.name} onOpenReport={handleOpenReport} />
+
             {body}
 
-            <BottomSheetCustomModal
-                ref={reportSheetRef}
-                snapPoint={"90%"}
-            >
+            <BottomSheetCustomModal ref={reportSheetRef} snapPoint="90%">
                 <ReportForm
-                    context={{
-                        screen: "Team",
-                        defaultType: ReportType.DISPLAY_BUG,
-                    }}
-                    onSuccess={() => {
-                        reportSheetRef.current?.dismiss();
-                    }}
+                    context={{ screen: "Team", defaultType: ReportType.DISPLAY_BUG }}
+                    onSuccess={handleCloseReport}
                 />
             </BottomSheetCustomModal>
         </View>

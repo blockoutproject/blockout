@@ -1,4 +1,3 @@
-// src/api/MatchesApi.ts
 import { CONFIG } from '@/src/config/config';
 import AbstractApi, { ApiError } from './AbstractApi';
 import { DayPageDTO, Match, MatchStatus } from '@/src/types/Match';

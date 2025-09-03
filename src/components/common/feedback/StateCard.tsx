@@ -2,7 +2,6 @@ import React, { useRef, useEffect } from "react";
 import {
     View,
     Text,
-    Image,
     StyleSheet,
     Pressable,
     ImageSourcePropType,
@@ -11,6 +10,7 @@ import {
     Animated,
     ActivityIndicator,
 } from "react-native";
+import { Image } from "expo-image";
 import * as Haptics from "expo-haptics";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useAppTheme } from "@/src/context/ThemeProvider";
@@ -73,7 +73,7 @@ const StateCard: React.FC<StateViewProps> = ({
                     accessibilityLabel="Illustration"
                 >
                     {illustrationSource ? (
-                        <Image source={illustrationSource} style={styles.image} resizeMode="center" />
+                        <Image source={illustrationSource} style={styles.image} contentFit="contain" />
                     ) : (
                         <MaterialCommunityIcons
                             name={fallbackIcon ?? "information-outline"}

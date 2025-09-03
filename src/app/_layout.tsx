@@ -14,6 +14,7 @@ import { SessionProvider, useSession } from "@/src/context/SessionProvider";
 import { SplashScreenController } from "@/src/session/splash";
 import { useAppTheme } from "../context/ThemeProvider";
 import * as NavigationBar from "expo-navigation-bar";
+import { useOnboardingStore } from "../utils/onboardingStore";
 
 const queryClient = new QueryClient();
 
@@ -23,7 +24,7 @@ export default function Root() {
     useEffect(() => {
         (async () => {
             await NavigationBar.setPositionAsync("absolute");
-            await NavigationBar.setBackgroundColorAsync('#ffffff00')
+            await NavigationBar.setBackgroundColorAsync('#ffffff00');
         })();
     }, []);
 
@@ -48,13 +49,14 @@ export default function Root() {
 
 function RootNavigator() {
     const { isReady } = useSession();
+    const { hasCompletedOnboarding } = useOnboardingStore();
 
     return (
         <BottomSheetModalProvider>
             <Stack screenOptions={{ headerShown: false, animation: "none" }}>
-                <Stack.Protected guard={isReady}>
+                <Stack.Protected guard={!isReady}>
                     <Stack.Screen
-                        name="(tabs)"
+                        name="sign-in"
                         options={{
                             animation: "fade_from_bottom",
                             animationDuration: 300,
@@ -62,9 +64,18 @@ function RootNavigator() {
                     />
                 </Stack.Protected>
 
-                <Stack.Protected guard={!isReady}>
+                <Stack.Protected guard={isReady}>
+                    <Stack.Protected guard={!hasCompletedOnboarding}>
+                        <Stack.Screen
+                            name="onboarding"
+                            options={{
+                                animation: "fade_from_bottom",
+                                animationDuration: 300,
+                            }}
+                        />
+                    </Stack.Protected>
                     <Stack.Screen
-                        name="sign-in"
+                        name="(tabs)"
                         options={{
                             animation: "fade_from_bottom",
                             animationDuration: 300,

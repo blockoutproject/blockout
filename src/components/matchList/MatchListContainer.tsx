@@ -138,6 +138,7 @@ const MatchListContainer: React.FC<MatchListContainerProps> = ({
                         appearIndex={index}
                     />
                 )}
+                onEndReachedThreshold={0.5}
                 onEndReached={handleLoadMore}
                 ItemSeparatorComponent={() => <View style={styles.itemSeparator} />}
                 SectionSeparatorComponent={() => <View style={styles.sectionSeparator} />}

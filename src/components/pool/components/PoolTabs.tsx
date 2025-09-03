@@ -1,3 +1,4 @@
+// src/screens/pool/tabs/PoolTabs.tsx
 import React, { useMemo } from 'react';
 import { Animated } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -17,78 +18,72 @@ type PoolTabsProps = {
 const PoolTabs: React.FC<PoolTabsProps> = ({ enrichedPool }) => {
     const insets = useSafeAreaInsets();
 
-    const tabs = [
-        { key: 'ranking', title: 'Classement' },
-        { key: 'finished', title: 'Terminés' },
-        { key: 'upcoming', title: 'À Venir' },
-    ];
+    const tabs = useMemo(
+        () => [
+            { key: 'ranking', title: 'Classement' },
+            { key: 'finished', title: 'Terminés' },
+            { key: 'upcoming', title: 'À Venir' },
+        ],
+        []
+    );
 
     const scrollYs = useMemo(() => {
-        return Object.fromEntries(
-            tabs.map(tab => [tab.key, new Animated.Value(0)])
-        );
-    }, []);
+        return Object.fromEntries(tabs.map(tab => [tab.key, new Animated.Value(0)]));
+    }, [tabs]);
 
-    const renderTabs = tabs.map((tab) => {
-        if (tab.key === 'ranking') {
-            return {
-                ...tab,
-                render: () => <RankingTab enrichedPool={enrichedPool} />,
-            };
-        }
-
-        if (tab.key === 'finished') {
-            return {
-                ...tab,
-                render: () => (
-                    <MatchList
-                        poolIds={[enrichedPool.id]}
-                        status={MatchStatus.FINISHED}
-                        scrollY={scrollYs[tab.key]}
-                        headerOffset={TABBAR_HEIGHT}
-                        contentContainerStyle={{
-                            paddingHorizontal: 4,
-                            marginTop: TABBAR_HEIGHT + 4,
-                            paddingBottom: insets.bottom + TABBAR_HEIGHT + BOTTOM_TABBAR_HEIGHT + 4,
-                        }}
-                        showPoolHeader={false}
-                    />
-                ),
-            };
-        }
-
-        if (tab.key === 'upcoming') {
-            return {
-                ...tab,
-                render: () => (
-                    <MatchList
-                        poolIds={[enrichedPool.id]}
-                        status={MatchStatus.UPCOMING}
-                        scrollY={scrollYs[tab.key]}
-                        headerOffset={TABBAR_HEIGHT}
-                        contentContainerStyle={{
-                            paddingHorizontal: 4,
-                            marginTop: TABBAR_HEIGHT + 4,
-                            paddingBottom: insets.bottom + TABBAR_HEIGHT + BOTTOM_TABBAR_HEIGHT + 4,
-                        }}
-                        showPoolHeader={false}
-                    />
-                ),
-            };
-        }
-
-        return {
-            ...tab,
-            render: () => null,
-        };
-    });
-
-    return (
-        <GenericTabView
-            tabs={renderTabs}
-            scrollYs={scrollYs}
-        />
+    const ranking = useMemo(
+        () => <RankingTab enrichedPool={enrichedPool} />,
+        [enrichedPool]
     );
+
+    const finished = useMemo(
+        () => (
+            <MatchList
+                poolIds={[enrichedPool.id]}
+                status={MatchStatus.FINISHED}
+                scrollY={scrollYs['finished']}
+                headerOffset={TABBAR_HEIGHT}
+                contentContainerStyle={{
+                    paddingHorizontal: 4,
+                    marginTop: TABBAR_HEIGHT + 4,
+                    paddingBottom: insets.bottom + TABBAR_HEIGHT + BOTTOM_TABBAR_HEIGHT + 4,
+                }}
+                showPoolHeader={false}
+            />
+        ),
+        [enrichedPool.id, insets.bottom, scrollYs]
+    );
+
+    const upcoming = useMemo(
+        () => (
+            <MatchList
+                poolIds={[enrichedPool.id]}
+                status={MatchStatus.UPCOMING}
+                scrollY={scrollYs['upcoming']}
+                headerOffset={TABBAR_HEIGHT}
+                contentContainerStyle={{
+                    paddingHorizontal: 4,
+                    marginTop: TABBAR_HEIGHT + 4,
+                    paddingBottom: insets.bottom + TABBAR_HEIGHT + BOTTOM_TABBAR_HEIGHT + 4,
+                }}
+                showPoolHeader={false}
+            />
+        ),
+        [enrichedPool.id, insets.bottom, scrollYs]
+    );
+
+    const renderTabs = useMemo(
+        () =>
+            tabs.map(tab => {
+                if (tab.key === 'ranking') return { ...tab, render: () => ranking };
+                if (tab.key === 'finished') return { ...tab, render: () => finished };
+                if (tab.key === 'upcoming') return { ...tab, render: () => upcoming };
+                return { ...tab, render: () => null };
+            }),
+        [tabs, ranking, finished, upcoming]
+    );
+
+    return <GenericTabView tabs={renderTabs} scrollYs={scrollYs} />;
 };
 
 export default PoolTabs;

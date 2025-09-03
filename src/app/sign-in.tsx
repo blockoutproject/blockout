@@ -1,6 +1,6 @@
+// src/app/sign-in.tsx
 import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet, Pressable, ActivityIndicator } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
+import { View, Text, StyleSheet } from "react-native";
 import * as Haptics from "expo-haptics";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
@@ -8,9 +8,11 @@ import { useAppTheme } from "@/src/context/ThemeProvider";
 import { useSession } from "@/src/context/SessionProvider";
 import { withAlpha } from "@/src/utils/utils";
 import MaskedImage from "@/src/components/common/images/MaskedImage";
-import InfoPill from "../components/common/chips/InfoPill";
-import ApiErrorToast from "../components/common/feedback/ApiErrorToast";
+import InfoPill from "@/src/components/common/chips/InfoPill";
+import ApiErrorToast from "@/src/components/common/feedback/ApiErrorToast";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { GradientButton } from "@/src/components/common/GradientButton";
+import { useOnboardingStore } from "../utils/onboardingStore";
 
 const HERO = {
     title: "Blockout",
@@ -21,6 +23,7 @@ const LoginScreen: React.FC = () => {
     const theme = useAppTheme();
     const insets = useSafeAreaInsets();
     const { signIn, isLoading, error } = useSession();
+    const { resetOnboarding } = useOnboardingStore();
 
     const [isSigningIn, setIsSigningIn] = useState(false);
     const [apiError, setApiError] = useState<string | null>(null);
@@ -33,6 +36,7 @@ const LoginScreen: React.FC = () => {
 
     const onPressLogin = async () => {
         try {
+            resetOnboarding();
             setIsSigningIn(true);
             setApiError(null);
             await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -45,15 +49,22 @@ const LoginScreen: React.FC = () => {
             setIsSigningIn(false);
         }
     };
-    const ctaGradient: [string, string, string] = ["#6EE7F9", "#A78BFA", "#F472B6"];
+
     const disabled = isSigningIn || isLoading;
 
     return (
         <View style={styles.content}>
             {/* branding */}
             <View style={styles.brandRow}>
-                <MaskedImage fallback={require("@/assets/images/blockout-logo-dark.png")} size={36} radius={10} shadow />
-                <Text style={[styles.title, { color: theme.text }]} numberOfLines={1}>{HERO.title}</Text>
+                <MaskedImage
+                    fallback={require("@/assets/images/blockout-logo-dark.png")}
+                    size={36}
+                    radius={10}
+                    shadow
+                />
+                <Text style={[styles.title, { color: theme.text }]} numberOfLines={1}>
+                    {HERO.title}
+                </Text>
             </View>
 
             <Text style={[styles.tagline, { color: withAlpha(theme.text, 0.8) }]}>
@@ -67,27 +78,19 @@ const LoginScreen: React.FC = () => {
                 <InfoPill leftIconName="bell-outline" label="Suivi équipes" />
             </View>
 
-            {/* CTA avec SPINNER dans le bouton */}
-            <Pressable onPress={onPressLogin} style={styles.ctaPressable} disabled={disabled}>
-                <LinearGradient
-                    colors={ctaGradient}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={[styles.ctaButton, isSigningIn && { opacity: 0.75 }]}
-                >
-                    {(isSigningIn || isLoading) ? (
-                        <>
-                            <ActivityIndicator size="small" color={theme.background} />
-                            <Text style={[styles.ctaText, { color: theme.background }]}>Connexion…</Text>
-                        </>
-                    ) : (
-                        <>
-                            <MaterialCommunityIcons name="account" size={18} color={theme.background} />
-                            <Text style={[styles.ctaText, { color: theme.background }]}>Se connecter</Text>
-                        </>
-                    )}
-                </LinearGradient>
-            </Pressable>
+            {/* CTA principal avec GradientButton */}
+            <View style={{ alignItems: "center" }}>
+                <GradientButton
+                    onPress={onPressLogin}
+                    loading={isSigningIn || isLoading}
+                    disabled={disabled}
+                    label="Se connecter"
+                    loadingLabel="Connexion…"
+                    leftIcon={<MaterialCommunityIcons name="account" size={18} color={"#000"} />}
+                    style={{ width: "80%" }}
+                    textColor="#000"
+                />
+            </View>
 
             <Text style={[styles.legal, { color: withAlpha(theme.text, 0.6) }]}>
                 En continuant, tu acceptes nos CGU et notre politique de confidentialité.
@@ -112,7 +115,6 @@ const styles = StyleSheet.create({
         justifyContent: "center",
         gap: 18,
     },
-
     brandRow: {
         alignSelf: "center",
         flexDirection: "row",
@@ -130,7 +132,6 @@ const styles = StyleSheet.create({
         lineHeight: 22,
         fontWeight: "600",
     },
-
     pillsRow: {
         flexDirection: "row",
         alignSelf: "center",
@@ -149,27 +150,5 @@ const styles = StyleSheet.create({
         borderWidth: StyleSheet.hairlineWidth,
     },
     pillText: { fontSize: 12, fontWeight: "800" },
-
-    ctaPressable: {
-        alignSelf: "center",
-        width: "80%",
-        borderRadius: 999,
-        overflow: "hidden",
-    },
-    ctaButton: {
-        height: 54,
-        borderRadius: 999,
-        alignItems: "center",
-        justifyContent: "center",
-        flexDirection: "row",
-        gap: 10,
-        elevation: 4,
-        shadowColor: "#000",
-        shadowOpacity: 0.18,
-        shadowRadius: 12,
-        shadowOffset: { width: 0, height: 8 },
-    },
-    ctaText: { fontSize: 16, fontWeight: "900", letterSpacing: 0.3 },
-
     legal: { textAlign: "center", fontSize: 12, marginTop: 6 },
 });

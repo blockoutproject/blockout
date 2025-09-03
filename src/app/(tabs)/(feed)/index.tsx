@@ -10,107 +10,131 @@ import { BOTTOM_TABBAR_HEIGHT, LOGO_HEIGHT, TABBAR_HEIGHT } from '@/src/theme/gl
 import { useSession } from '@/src/context/SessionProvider';
 
 const FeedScreen: React.FC = () => {
-    const insets = useSafeAreaInsets();
-    const { customUser } = useSession();
+  const insets = useSafeAreaInsets();
+  const { customUser } = useSession();
+  const [index, setIndex] = useState(0);
 
-    const [index, setIndex] = useState(0);
+  // calcule dépend des insets => pas besoin de memo, c’est O(1)
+  const headerOffset = insets.top + TABBAR_HEIGHT + LOGO_HEIGHT;
 
-    const headerOffset = insets.top + TABBAR_HEIGHT + LOGO_HEIGHT;
+  const favorites = customUser?.favorites ?? [];
+  const userFavoritePools = useMemo(
+    () => favorites.filter(f => f.entityType === EntityType.POOL).map(f => f.entityId),
+    [favorites]
+  );
+  const userFavoriteTeams = useMemo(
+    () => favorites.filter(f => f.entityType === EntityType.TEAM).map(f => f.entityId),
+    [favorites]
+  );
 
-    const favorites = customUser?.favorites ?? [];
-    const userFavoritePools = useMemo(
-        () => favorites.filter(f => f.entityType === EntityType.POOL).map(f => f.entityId),
-        [favorites]
-    );
-    const userFavoriteTeams = useMemo(
-        () => favorites.filter(f => f.entityType === EntityType.TEAM).map(f => f.entityId),
-        [favorites]
-    );
+  const routes = useMemo(
+    () => [
+      { key: 'finished', title: 'Terminés' },
+      { key: 'upcoming', title: 'À Venir' },
+    ],
+    []
+  );
 
-    const routes = useMemo(() => [
-        { key: 'finished', title: 'Terminés' },
-        { key: 'upcoming', title: 'À Venir' },
-    ], []);
+  const scrollYs = useRef<Record<string, Animated.Value>>({
+    finished: new Animated.Value(0),
+    upcoming: new Animated.Value(0),
+  }).current;
 
-    const scrollYs = useRef<Record<string, Animated.Value>>({
-        finished: new Animated.Value(0),
-        upcoming: new Animated.Value(0),
-    }).current;
+  // ⚠️ Ajoute insets + headerOffset dans les deps (tu les utilises dans le JSX)
+  const finishedTab = useMemo(
+    () => (
+      <MatchList
+        poolIds={userFavoritePools}
+        teamIds={userFavoriteTeams}
+        status={MatchStatus.FINISHED}
+        scrollY={scrollYs.finished}
+        contentContainerStyle={{
+          paddingHorizontal: 4,
+          marginTop: insets.top + TABBAR_HEIGHT + 4,
+          paddingTop: LOGO_HEIGHT,
+          paddingBottom: insets.bottom + insets.top + TABBAR_HEIGHT + BOTTOM_TABBAR_HEIGHT + 4,
+        }}
+        headerOffset={headerOffset}
+        home
+      />
+    ),
+    [
+      userFavoritePools,
+      userFavoriteTeams,
+      insets.top,
+      insets.bottom,
+      headerOffset,
+      scrollYs, // ref stable, mais on le liste par clarté
+    ]
+  );
 
-    const finishedTab = useMemo(() => (
-        <MatchList
-            poolIds={userFavoritePools}
-            teamIds={userFavoriteTeams}
-            status={MatchStatus.FINISHED}
-            scrollY={scrollYs.finished}
-            contentContainerStyle={{
-                paddingHorizontal: 4,
-                marginTop: insets.top + TABBAR_HEIGHT + 4,
-                paddingTop: LOGO_HEIGHT,
-                paddingBottom: insets.bottom + insets.top + TABBAR_HEIGHT + BOTTOM_TABBAR_HEIGHT + 4,
-            }}
-            headerOffset={headerOffset}
-            home
-        />
-    ), [userFavoritePools, userFavoriteTeams, headerOffset, insets.bottom, scrollYs.finished]);
+  const upcomingTab = useMemo(
+    () => (
+      <MatchList
+        poolIds={userFavoritePools}
+        teamIds={userFavoriteTeams}
+        status={MatchStatus.UPCOMING}
+        scrollY={scrollYs.upcoming}
+        contentContainerStyle={{
+          paddingHorizontal: 4,
+          marginTop: insets.top + TABBAR_HEIGHT + 4,
+          paddingTop: LOGO_HEIGHT,
+          paddingBottom: insets.bottom + insets.top + TABBAR_HEIGHT + BOTTOM_TABBAR_HEIGHT + 4,
+        }}
+        headerOffset={headerOffset}
+        home
+      />
+    ),
+    [
+      userFavoritePools,
+      userFavoriteTeams,
+      insets.top,
+      insets.bottom,
+      headerOffset,
+      scrollYs,
+    ]
+  );
 
-    const upcomingTab = useMemo(() => (
-        <MatchList
-            poolIds={userFavoritePools}
-            teamIds={userFavoriteTeams}
-            status={MatchStatus.UPCOMING}
-            scrollY={scrollYs.upcoming}
-            contentContainerStyle={{
-                paddingHorizontal: 4,
-                marginTop: insets.top + TABBAR_HEIGHT + 4,
-                paddingTop: LOGO_HEIGHT,
-                paddingBottom: insets.bottom + insets.top + TABBAR_HEIGHT + BOTTOM_TABBAR_HEIGHT + 4,
-            }}
-            headerOffset={headerOffset}
-            home
-        />
-    ), [userFavoritePools, userFavoriteTeams, headerOffset, insets.bottom, scrollYs.upcoming]);
+  const onTabChange = useCallback((i: number) => setIndex(i), []);
 
-    const onTabChange = useCallback((i: number) => setIndex(i), []);
+  const renderScene = useCallback(
+    ({ route }: SceneRendererProps & { route: Route }) => {
+      switch (route.key) {
+        case 'finished':
+          return finishedTab;
+        case 'upcoming':
+          return upcomingTab;
+        default:
+          return null;
+      }
+    },
+    [finishedTab, upcomingTab]
+  );
 
-    const renderScene = useCallback(
-        ({ route }: SceneRendererProps & { route: Route }) => {
-            switch (route.key) {
-                case 'finished': return finishedTab;
-                case 'upcoming': return upcomingTab;
-                default: return null;
-            }
-        },
-        [finishedTab, upcomingTab]
-    );
+  const renderTabBar = useCallback(
+    (props: SceneRendererProps & { navigationState: NavigationState<Route> }) => (
+      <AnimatedHomeHeader {...props} scrollYs={scrollYs} />
+    ),
+    [scrollYs]
+  );
 
-    const renderTabBar = useCallback(
-        (props: SceneRendererProps & { navigationState: NavigationState<Route> }) => (
-            <AnimatedHomeHeader
-                {...props}
-                scrollYs={scrollYs}
-            />
-        ),
-        [scrollYs]
-    );
-
-    return (
-        <TabView
-            lazy={false}
-            navigationState={{ index, routes }}
-            onIndexChange={onTabChange}
-            renderScene={renderScene}
-            renderTabBar={renderTabBar}
-            commonOptions={{ labelStyle: styles.tabItem }}
-        />
-    );
+  return (
+    <TabView
+      // précharge l’onglet voisin pour un switch fluide
+      lazy
+      lazyPreloadDistance={1}
+      renderLazyPlaceholder={() => null} // optionnel: ou un mini skeleton
+      navigationState={{ index, routes }}
+      onIndexChange={onTabChange}
+      renderScene={renderScene}
+      renderTabBar={renderTabBar}
+      commonOptions={{ labelStyle: styles.tabItem }}
+    />
+  );
 };
 
 const styles = StyleSheet.create({
-    tabItem: {
-        fontSize: 14,
-        fontWeight: '700',
-    },
+  tabItem: { fontSize: 14, fontWeight: '700' },
 });
 
 export default FeedScreen;
