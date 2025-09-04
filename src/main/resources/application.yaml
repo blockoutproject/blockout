@@ -54,4 +54,4 @@ api:
     url: ${USER_API_URL}
 
 expo:
-  access-token: ${EXPO_ACCESS_TOKEN}
+  access-token: ${EXPO_PUSH_ACCESS_TOKEN}
