@@ -236,7 +236,7 @@ public class NotificationOrchestratorService {
         if (setInfo != null && !setInfo.isBlank()) {
             body.append(" (set : ").append(setInfo).append(")");
         }
-        body.append(". Appuie pour voir le résultat.");
+        body.append(".");
 
         return new ResolvedContent(poolName, body.toString());
     }
