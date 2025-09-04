@@ -18,27 +18,21 @@ public interface NotificationSendRepository extends JpaRepository<NotificationSe
 
     boolean existsByUserIdAndMatchId(Long userId, Long matchId);
 
-    /**
-     * Réservation atomique & idempotente :
-     * - sélectionne tous les followers des entités liées au match,
-     * - insère en PENDING avec (user_id, match_id) unique,
-     * - renvoie la liste des user_id réellement insérés (dédup en base).
-     *
-     * Requiert PostgreSQL (ON CONFLICT ... DO NOTHING RETURNING).
-     */
     @Modifying
     @Query(value = """
             INSERT INTO notification_send (user_id, match_id, status, created_at, last_update)
             SELECT DISTINCT fp.user_id, :matchId, 'PENDING', now(), now()
             FROM followers_projection fp
-            WHERE (fp.entity_type = 'TEAM' AND (cardinality(:teamIds) = 0 OR fp.entity_id = ANY(:teamIds)))
-                OR (fp.entity_type = 'POOL' AND (cardinality(:poolIds) = 0 OR fp.entity_id = ANY(:poolIds)))
+            WHERE
+                (fp.entity_type = 'TEAM' AND fp.entity_id IN (:teamIdA, :teamIdB))
+                OR (fp.entity_type = 'POOL' AND fp.entity_id = :poolId)
             ON CONFLICT (user_id, match_id) DO NOTHING
             RETURNING user_id
             """, nativeQuery = true)
     List<Long> insertPendingForMatch(@Param("matchId") Long matchId,
-            @Param("teamIds") Long[] teamIds,
-            @Param("poolIds") Long[] poolIds);
+            @Param("teamIdA") Long teamIdA,
+            @Param("teamIdB") Long teamIdB,
+            @Param("poolId") Long poolId);
 
     /**
      * Marque SENT pour un match et une liste d'utilisateurs (seulement si encore
@@ -107,7 +101,7 @@ public interface NotificationSendRepository extends JpaRepository<NotificationSe
                 SET ns.status = 'DELIVERED',
                     ns.deliveredAt = :deliveredAt,
                     ns.lastUpdate = :now
-            WHERE ns.matchId = :matchId 
+            WHERE ns.matchId = :matchId
                 AND ns.userId IN :userIds
             """)
     int markDelivered(@Param("matchId") Long matchId,

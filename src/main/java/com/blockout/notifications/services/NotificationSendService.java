@@ -24,32 +24,33 @@ public class NotificationSendService {
     private final NotificationSendRepository notificationSendRepository;
 
     /**
-     * Réserve (idempotent) tous les destinataires pour un match donné à partir des entités liées.
+     * Réserve (idempotent) tous les destinataires pour un match donné à partir des
+     * entités liées.
      * Renvoie la liste des userIds effectivement nouvellement insérés en PENDING.
      *
      * @param matchId id du match
-     * @param teamIds liste [homeTeamId, awayTeamId] (peut être vide)
-     * @param poolIds liste [poolId] (peut être vide)
+     * @param teamIdA id équipe A
+     * @param teamIdB id équipe B
+     * @param poolId  id poule
      */
     @Transactional
-    public List<Long> reservePendingForMatch(Long matchId, List<Long> teamIds, List<Long> poolIds) {
-        Long[] teamArray = (teamIds == null || teamIds.isEmpty()) ? new Long[0] : teamIds.toArray(Long[]::new);
-        Long[] poolArray = (poolIds == null || poolIds.isEmpty()) ? new Long[0] : poolIds.toArray(Long[]::new);
-
-        List<Long> reserved = notificationSendRepository.insertPendingForMatch(matchId, teamArray, poolArray);
+    public List<Long> reservePendingForMatch(Long matchId, Long teamIdA, Long teamIdB, Long poolId) {
+        List<Long> reserved = notificationSendRepository.insertPendingForMatch(matchId, teamIdA, teamIdB, poolId);
 
         logger.info("Recipients reserved for match",
                 keyValue("action", "notification_reserve"),
                 keyValue("matchId", matchId),
-                keyValue("teams", teamIds),
-                keyValue("pools", poolIds),
+                keyValue("teamIdA", teamIdA),
+                keyValue("teamIdB", teamIdB),
+                keyValue("poolId", poolId),
                 keyValue("reservedCount", reserved.size()));
 
         return reserved;
     }
 
     /**
-     * Marque les envois comme SENT (ou SENT_NO_TOKEN si noToken=true) pour un match et une liste d'utilisateurs.
+     * Marque les envois comme SENT (ou SENT_NO_TOKEN si noToken=true) pour un match
+     * et une liste d'utilisateurs.
      */
     @Transactional
     public int markSent(Long matchId, Collection<Long> userIds, boolean noToken) {

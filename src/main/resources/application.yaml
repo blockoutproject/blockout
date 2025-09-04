@@ -52,6 +52,10 @@ logging:
 api:
   user:
     url: ${USER_API_URL}
+  pool:
+    url: ${POOL_API_URL}
+  team:
+    url: ${TEAM_API_URL}
 
 expo:
   access-token: ${EXPO_PUSH_ACCESS_TOKEN}

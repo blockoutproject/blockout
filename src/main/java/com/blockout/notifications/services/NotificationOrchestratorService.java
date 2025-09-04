@@ -9,8 +9,12 @@ import com.blockout.notifications.models.UserNotification;
 import com.blockout.notifications.models.dto.ResolvePage;
 import com.blockout.notifications.models.dto.expo.ExpoBatchResult;
 import com.blockout.notifications.models.dto.expo.ExpoMessage;
+import com.blockout.notifications.models.dto.pool.PoolDTO;
+import com.blockout.notifications.models.dto.team.TeamDTO;
 import com.blockout.notifications.models.enums.NotificationTargetType;
 import com.blockout.notifications.models.enums.NotificationType;
+import com.blockout.notifications.services.clients.PoolClientService;
+import com.blockout.notifications.services.clients.TeamClientService;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -29,15 +33,17 @@ public class NotificationOrchestratorService {
     private final UserNotificationService userNotificationService;
     private final PushTokenService pushTokenService;
 
-    // Idéalement: @ConfigurationProperties(prefix = "notifications.push")
+    private final PoolClientService poolClientService;
+    private final TeamClientService teamClientService;
+
     private static final int RESOLVE_PAGE_SIZE = 2_000;
     private static final int EXPO_BATCH_SIZE = 100;
 
-    public void handleMatchFinished(Long matchId, List<Long> teamIds, List<Long> poolIds, String setInfo) {
+    public void handleMatchFinished(Long matchId, Long teamIdA, Long teamIdB, Long poolId, String setInfo) {
 
-        // Réservation en base (idempotent) – transaction courte à l’intérieur du
-        // service
-        List<Long> reservedUserIds = notificationSendService.reservePendingForMatch(matchId, teamIds, poolIds);
+        final ResolvedContent content = resolveContent(matchId, teamIdA, teamIdB, poolId, setInfo);
+
+        List<Long> reservedUserIds = notificationSendService.reservePendingForMatch(matchId, teamIdA, teamIdB, poolId);
         if (reservedUserIds.isEmpty()) {
             logger.info("No recipients reserved",
                     keyValue("action", "notification_reserve_empty"),
@@ -50,19 +56,17 @@ public class NotificationOrchestratorService {
                 keyValue("matchId", matchId),
                 keyValue("reservedCount", reservedUserIds.size()),
                 keyValue("resolvePageSize", RESOLVE_PAGE_SIZE),
-                keyValue("expoBatchSize", EXPO_BATCH_SIZE));
-
-        // 2) Créer une UserNotification pour chaque user réservé
-        String title = "Match terminé";
-        String body = buildBody(setInfo);
+                keyValue("expoBatchSize", EXPO_BATCH_SIZE),
+                keyValue("title", content.title),
+                keyValue("body", content.body));
 
         List<UserNotification> bulk = new ArrayList<>(reservedUserIds.size());
         for (Long userId : reservedUserIds) {
             bulk.add(UserNotification.builder()
                     .userId(userId)
                     .type(NotificationType.MATCH_FINISHED)
-                    .title(title)
-                    .body(body)
+                    .title(content.title)
+                    .body(content.body)
                     .deepLink("/matches/" + matchId)
                     .targetType(NotificationTargetType.MATCH)
                     .targetId(matchId)
@@ -78,7 +82,6 @@ public class NotificationOrchestratorService {
                 keyValue("matchId", matchId),
                 keyValue("count", reservedUserIds.size()));
 
-        // Résolution des tokens par pages
         int pageIndex = 0;
         for (int from = 0; from < reservedUserIds.size(); from += RESOLVE_PAGE_SIZE, pageIndex++) {
             int to = Math.min(from + RESOLVE_PAGE_SIZE, reservedUserIds.size());
@@ -91,7 +94,6 @@ public class NotificationOrchestratorService {
                 notificationSendService.markSent(matchId, page.getNoTokenUserIds(), true);
             }
 
-            // Construire les messages Expo (dedupe token par user)
             List<ExpoMessage> messages = new ArrayList<>();
             if (page.getTokensByUser() != null && !page.getTokensByUser().isEmpty()) {
                 for (Map.Entry<Long, List<String>> e : page.getTokensByUser().entrySet()) {
@@ -103,8 +105,8 @@ public class NotificationOrchestratorService {
                     for (String token : tokens) {
                         messages.add(ExpoMessage.builder()
                                 .to(token)
-                                .title("Match terminé")
-                                .body(buildBody(setInfo))
+                                .title(content.title)
+                                .body(content.body)
                                 .data(Map.of("matchId", matchId))
                                 .userId(userId)
                                 .matchId(matchId)
@@ -120,7 +122,6 @@ public class NotificationOrchestratorService {
                     keyValue("pageSize", pageUserIds.size()),
                     keyValue("messageCount", messages.size()));
 
-            // Envoi par lots Expo
             Set<Long> usersSent = new LinkedHashSet<>();
             Set<Long> usersFailed = new LinkedHashSet<>();
             List<String> invalidTokens = new ArrayList<>();
@@ -153,7 +154,6 @@ public class NotificationOrchestratorService {
                                     result.getInvalidTokens() != null ? result.getInvalidTokens().size() : 0));
 
                 } catch (Exception ex) {
-                    // Échec global du batch → tous les users de ce batch en failed
                     Set<Long> batchUsers = batch.stream().map(ExpoMessage::getUserId)
                             .collect(Collectors.toCollection(LinkedHashSet::new));
                     usersFailed.addAll(batchUsers);
@@ -168,7 +168,6 @@ public class NotificationOrchestratorService {
                 }
             }
 
-            // Marquages DB + nettoyage tokens invalides
             if (!usersSent.isEmpty()) {
                 notificationSendService.markSent(matchId, usersSent, false);
             }
@@ -176,7 +175,6 @@ public class NotificationOrchestratorService {
                 notificationSendService.markFailed(matchId, usersFailed, "EXPO_SEND_ERROR", "See logs for details");
             }
             if (!invalidTokens.isEmpty()) {
-                // dédupe pour éviter des POST inutiles
                 pushTokenService.deactivateByTokens(invalidTokens.stream().distinct().toList());
             }
 
@@ -195,10 +193,55 @@ public class NotificationOrchestratorService {
                 keyValue("time", LocalDateTime.now()));
     }
 
-    private String buildBody(String setInfo) {
-        if (setInfo == null || setInfo.isBlank()) {
-            return "Le match est terminé. Ouvre l'app pour voir le score !";
+    private ResolvedContent resolveContent(Long matchId, Long teamIdA, Long teamIdB, Long poolId, String setInfo) {
+        String poolName = "Match terminé";
+        String teamAName = "Équipe A";
+        String teamBName = "Équipe B";
+
+        try {
+            PoolDTO pool = poolClientService.getPoolById(poolId);
+            if (pool != null && pool.getName() != null && !pool.getName().isBlank()) {
+                poolName = pool.getName();
+            }
+
+        } catch (Exception ex) {
+            logger.warn("Failed to resolve pool name",
+                    keyValue("action", "pool_resolve_failed"),
+                    keyValue("matchId", matchId),
+                    ex);
         }
-        return "Le match est terminé (set : " + setInfo + "). Ouvre l'app pour voir le score !";
+
+        try {
+            TeamDTO ta = teamClientService.getTeamById(teamIdA);
+            if (ta != null && ta.getName() != null && !ta.getName().isBlank()) {
+                teamAName = ta.getName();
+            }
+
+            TeamDTO tb = teamClientService.getTeamById(teamIdB);
+            if (tb != null && tb.getName() != null && !tb.getName().isBlank()) {
+                teamBName = tb.getName();
+            }
+
+        } catch (Exception ex) {
+            logger.warn("Failed to resolve team names",
+                    keyValue("action", "teams_resolve_failed"),
+                    keyValue("matchId", matchId),
+                    keyValue("teamIdA", teamIdA),
+                    keyValue("teamIdB", teamIdB),
+                    ex);
+        }
+
+        StringBuilder body = new StringBuilder();
+        body.append("Match terminé : ").append(teamAName).append(" vs ").append(teamBName);
+        if (setInfo != null && !setInfo.isBlank()) {
+            body.append(" (set : ").append(setInfo).append(")");
+        }
+        body.append(". Appuie pour voir le résultat.");
+
+        return new ResolvedContent(poolName, body.toString());
+    }
+
+    /** Petite record interne pour transporter titre+corps */
+    private record ResolvedContent(String title, String body) {
     }
 }

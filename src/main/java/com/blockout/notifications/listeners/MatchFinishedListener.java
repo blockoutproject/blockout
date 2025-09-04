@@ -10,8 +10,6 @@ import com.blockout.notifications.config.RabbitMQConfig;
 import com.blockout.notifications.models.events.MatchFinishedEvent;
 import com.blockout.notifications.services.NotificationOrchestratorService;
 
-import java.util.List;
-
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
 @Component
@@ -25,6 +23,10 @@ public class MatchFinishedListener {
     @RabbitListener(queues = RabbitMQConfig.MATCH_FINISHED_QUEUE)
     public void onMatchFinished(MatchFinishedEvent event) {
         Long matchId = event.getId();
+        Long teamIdA = event.getTeamIdA();
+        Long teamIdB = event.getTeamIdB();
+        Long poolId = event.getPoolId();
+
         logger.info("Received match.finished",
                 keyValue("action", "match_finished_received"),
                 keyValue("matchId", matchId),
@@ -32,11 +34,6 @@ public class MatchFinishedListener {
                 keyValue("teamIdB", event.getTeamIdB()),
                 keyValue("poolId", event.getPoolId()));
 
-        // Prépare les listes (null-safe)
-        List<Long> teamIds = List.of(event.getTeamIdA(), event.getTeamIdB()).stream()
-                .filter(id -> id != null).toList();
-        List<Long> poolIds = event.getPoolId() == null ? List.of() : List.of(event.getPoolId());
-
-        orchestrator.handleMatchFinished(matchId, teamIds, poolIds, event.getSet());
+        orchestrator.handleMatchFinished(matchId, teamIdA, teamIdB, poolId, event.getSet());
     }
 }
