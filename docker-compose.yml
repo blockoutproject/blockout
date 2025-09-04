@@ -5,7 +5,6 @@ services:
       - ${SERVER_PORT}:8091
     environment:
       AUTH0_ISSUER: ${AUTH0_ISSUER}
-      AUTH0_AUDIENCE: ${AUTH0_AUDIENCE}
     depends_on:
       postgres:
         condition: service_healthy
