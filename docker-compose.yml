@@ -12,7 +12,6 @@ services:
       RABBITMQ_USERNAME: ${RABBITMQ_USERNAME}
       RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
       AUTH0_ISSUER: ${AUTH0_ISSUER}
-      AUTH0_AUDIENCE: ${AUTH0_AUDIENCE}
     depends_on:
       postgres:
         condition: service_healthy
