@@ -5,6 +5,8 @@ import com.auth0.client.mgmt.ManagementAPI;
 import com.auth0.json.auth.TokenHolder;
 import com.auth0.net.TokenRequest;
 import jakarta.annotation.PostConstruct;
+import lombok.RequiredArgsConstructor;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -15,16 +17,13 @@ import java.time.LocalDateTime;
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
 @Service
+@RequiredArgsConstructor
 public class Auth0TokenManager {
 
     private static final Logger logger = LoggerFactory.getLogger(Auth0TokenManager.class);
     private final Auth0Properties properties;
     private volatile ManagementAPI managementAPI;
     private volatile LocalDateTime tokenExpiry;
-
-    public Auth0TokenManager(Auth0Properties properties) {
-        this.properties = properties;
-    }
 
     @PostConstruct
     public void init() {
