@@ -1,6 +1,5 @@
 package com.blockout.notifications.services.clients;
 
-import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -12,16 +11,19 @@ import org.springframework.web.client.RestTemplate;
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
 @Service
-@RequiredArgsConstructor
 public class ApiClientService {
 
     private static final Logger logger = LoggerFactory.getLogger(ApiClientService.class);
 
-    @Qualifier("forwardRestTemplate")
     private final RestTemplate forwardRt;
-
-    @Qualifier("serviceRestTemplate")
     private final RestTemplate serviceRt;
+
+    public ApiClientService(
+            @Qualifier("forwardRestTemplate") RestTemplate forwardRt,
+            @Qualifier("serviceRestTemplate") RestTemplate serviceRt) {
+        this.forwardRt = forwardRt;
+        this.serviceRt = serviceRt;
+    }
 
     public <T> ResponseEntity<T> getForward(String url, Class<T> responseType) {
         return doGet(url, responseType, forwardRt, "forward");
@@ -52,7 +54,6 @@ public class ApiClientService {
                     keyValue("mode", mode),
                     keyValue("url", url));
             return response;
-
         } catch (HttpClientErrorException e) {
             logger.warn("Client error during GET request",
                     keyValue("url", url),
