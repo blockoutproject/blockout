@@ -37,7 +37,9 @@ public class ExpoPushService {
 
     public ExpoPushService(ExpoClientProperties expoClientProperties) {
         CloseableHttpClient httpClient = HttpClients.createDefault();
-
+        logger.info("null expo access token",
+                keyValue("action", "expo_service_init"),
+                keyValue("token", expoClientProperties.getAccessToken()));
         this.client = ExpoPushNotificationClient
                 .builder()
                 .setHttpClient(httpClient)
