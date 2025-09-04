@@ -52,7 +52,8 @@ class NotificationsApi extends AbstractApi {
         payload: RegisterPushTokenRequest,
     ): Promise<void> {
         try {
-            await this.request<void>({
+            console.log("NotificationsApi: registerPushToken", { userId, payload });
+            return await this.request<void>({
                 method: 'post',
                 url: `/users/${userId}/push-tokens`,
                 data: payload,

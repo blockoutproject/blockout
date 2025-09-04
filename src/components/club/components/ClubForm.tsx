@@ -104,14 +104,16 @@ const ClubForm: React.FC<ClubFormProps> = ({ club, onSuccess }) => {
 
     const logoUri = previewUri ?? club.logoUrl ?? null;
 
-    // === Metrics ===
     const outerPaddingBottom = isKeyboardVisible ? 8 : insets.bottom + 8;
     const errorBottomOffset = FOOTER_HEIGHT + outerPaddingBottom;
 
     return (
         <View style={{ flex: 1, paddingBottom: outerPaddingBottom }}>
             <BottomSheetScrollView
-                contentContainerStyle={[styles.scroll, { paddingBottom: FOOTER_HEIGHT + outerPaddingBottom }]}
+                contentContainerStyle={[
+                    styles.scroll, 
+                    { paddingBottom: FOOTER_HEIGHT + outerPaddingBottom }
+                ]}
                 showsVerticalScrollIndicator={false}
             >
                 <View style={[styles.card, { backgroundColor: theme.surface }]}>

@@ -19,7 +19,7 @@ const RankingHeader: React.FC<Props> = ({ division, theme, onPress }) => {
         : require("@/assets/clubs/default_club_logo.png");
 
     return (
-        <TouchableOpacity activeOpacity={0.85} onPress={onPress}>
+        <TouchableOpacity activeOpacity={1} onPress={onPress}>
             <Image
                 source={divisionLogo}
                 style={RNStyleSheet.absoluteFill}

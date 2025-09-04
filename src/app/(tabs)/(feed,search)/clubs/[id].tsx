@@ -85,7 +85,10 @@ const ClubScreen: React.FC<ClubScreenProps> = ({ onCloseSheet }) => {
                     </InfoCard>
                 </ScrollView>
 
-                <BottomSheetCustomModal ref={formSheetRef}>
+                <BottomSheetCustomModal
+                    ref={formSheetRef}
+                    snapPoint={"90%"}
+                >
                     <ClubForm
                         club={club}
                         onSuccess={async () => {

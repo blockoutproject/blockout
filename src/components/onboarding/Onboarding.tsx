@@ -24,7 +24,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import * as Haptics from "expo-haptics";
-import { OnboardingStep } from "@/src/onboarding/Steps";
+import { OnboardingStep } from "@/src/onboarding/steps";
 
 const { width: SCREEN_W } = Dimensions.get("window");
 
@@ -37,6 +37,7 @@ type Props = {
     nextText?: string;
     backText?: string;
     skipText?: string;
+    onStepNext?: (step: OnboardingStep) => Promise<void> | void;
 };
 
 export function FancyOnboarding({
@@ -48,6 +49,7 @@ export function FancyOnboarding({
     nextText = "Suivant",
     backText = "Précédent",
     skipText = "Passer",
+    onStepNext,
 }: Props) {
     const [index, setIndex] = useState(0);
     const isFirst = index === 0;
@@ -56,16 +58,14 @@ export function FancyOnboarding({
     const svX = useSharedValue(0);
     const scrollRef = useAnimatedRef<Animated.ScrollView>();
 
-    // ── Scroll handler (Reanimated) ────────────────────────────────────────────────
     const onScroll = useAnimatedScrollHandler({
         onScroll: (e) => {
             svX.value = e.contentOffset.x;
         },
     });
 
-    // ── Pan gesture (swipe “free”, au-dessus de la scroll) ────────────────────────
     const dragX = useSharedValue(0);
-    const jsGoTo = (i: number) => goTo(i); // alias clair côté JS
+    const jsGoTo = (i: number) => goTo(i);
 
     const pan = Gesture.Pan()
         .onEnd((e) => {
@@ -106,7 +106,17 @@ export function FancyOnboarding({
         setIndex(i);
     };
 
-    const onNext = () => {
+    const onNext = async () => {
+        const current = steps[index];
+
+        if (current?.id === "push" && onStepNext) {
+            try {
+                await onStepNext(current);
+            } catch {
+                // Ne bloque pas la navigation si erreur
+            }
+        }
+
         if (isLast) {
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => { });
             onComplete();

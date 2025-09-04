@@ -29,10 +29,13 @@ const ClubHeader: React.FC<ClubHeaderProps> = ({ title, onCloseSheet, onOpenRepo
                             color={theme.text}
                         />
                     </TouchableOpacity>
-
-                    <Text style={[styles.title, { color: theme.text }]} numberOfLines={1}>
-                        {title}
-                    </Text>
+                    <Text
+                        style={[styles.title, { color: theme.text }]}
+                        numberOfLines={1}
+                        ellipsizeMode="tail"
+                    >
+                            {title}
+                        </Text>
                 </View>
 
                 <View style={styles.rightGroup}>
@@ -63,7 +66,11 @@ const styles = StyleSheet.create({
     },
     leftGroup: { flexDirection: "row", alignItems: "center", flex: 1 },
     backButton: { marginRight: 4 },
-    title: { fontSize: 18, fontWeight: "700" },
+    title: { 
+        fontSize: 18, 
+        fontWeight: "700",
+        flexShrink: 1,
+    },
     rightGroup: { flexDirection: "row", alignItems: "center", gap: 12 },
     iconBtn: { padding: 4 },
 });

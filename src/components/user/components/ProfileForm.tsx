@@ -121,7 +121,7 @@ const ProfileForm: React.FC<UserFormProps> = ({ user, onSuccess }) => {
             <BottomSheetScrollView
                 contentContainerStyle={[
                     styles.fieldContainer,
-                    { paddingBottom: FOOTER_HEIGHT + outerPaddingBottom },
+                    { paddingBottom: FOOTER_HEIGHT + outerPaddingBottom }
                 ]}
                 showsVerticalScrollIndicator={false}
             >

@@ -13,6 +13,7 @@ import MobileGatewayApi from "@/src/api/MobileGatewayApi";
 import ConfigApi from "@/src/api/ConfigApi";
 import ClubsApi from "@/src/api/ClubsApi";
 import ReportsApi from "../api/ReportsApi";
+import NotificationsApi from "../api/NotificationsApi";
 
 export const ApiProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const { softResetAuth } = useSession();
@@ -46,6 +47,7 @@ export const ApiProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 ConfigApi.initInstance(token, { tokenSupplier, onUnauthorized });
                 ClubsApi.initInstance(token, { tokenSupplier, onUnauthorized });
                 ReportsApi.initInstance(token, { tokenSupplier, onUnauthorized });
+                NotificationsApi.initInstance(token, { tokenSupplier, onUnauthorized });
             } catch (e) {
                 console.log("API init skipped (credentials not ready yet):", e);
             }

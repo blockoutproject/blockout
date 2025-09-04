@@ -35,7 +35,7 @@ type HeaderProps = SceneRendererProps & {
     androidBackgroundAlpha?: number;
 };
 
-const AnimatedHomeHeader: React.FC<HeaderProps> = ({
+const AnimatedFeedHeader: React.FC<HeaderProps> = ({
     scrollYs,
     androidBackgroundAlpha = 0.88,
     ...props
@@ -183,12 +183,10 @@ const AnimatedHomeHeader: React.FC<HeaderProps> = ({
                     />
                 </Animated.View>
 
-                {/* TabBar + actions */}
                 <View
                     style={[
                         styles.tabBarContainer,
                         {
-                            // Android : on laisse la surface principale transparente, l’overlay s’occupe du fond
                             backgroundColor: Platform.OS === "android" ? "transparent" : "transparent",
                         },
                     ]}
@@ -207,19 +205,19 @@ const AnimatedHomeHeader: React.FC<HeaderProps> = ({
                     <View style={styles.actions}>
                         {canAccessRawDivisionMappings && (
                             <TouchableOpacity onPress={openLocal(mappingSheetRef)}>
-                                <MaterialCommunityIcons name="alpha-m-circle" size={25} color={theme.text} />
+                                <MaterialCommunityIcons name="alpha-m-circle" size={28} color={theme.text} />
                             </TouchableOpacity>
                         )}
 
                         {canAccessDivisions && (
                             <TouchableOpacity onPress={openLocal(divisionSheetRef)}>
-                                <MaterialCommunityIcons name="alpha-d-circle" size={25} color={theme.text} />
+                                <MaterialCommunityIcons name="alpha-d-circle" size={28} color={theme.text} />
                             </TouchableOpacity>
                         )}
 
                         {canAccessScrapersManagement && (
                             <TouchableOpacity onPress={openLocal(scraperSheetRef)}>
-                                <MaterialCommunityIcons name="power-standby" size={25} color={theme.text} />
+                                <MaterialCommunityIcons name="power-standby" size={28} color={theme.text} />
                             </TouchableOpacity>
                         )}
                     </View>
@@ -273,4 +271,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default AnimatedHomeHeader;
+export default AnimatedFeedHeader;
