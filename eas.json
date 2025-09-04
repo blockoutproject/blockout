@@ -6,13 +6,59 @@
   "build": {
     "development": {
       "developmentClient": true,
-      "distribution": "internal"
+      "distribution": "internal",
+      "channel": "dev",
+      "env": {
+        "EXPO_PUBLIC_AUTH0_DOMAIN": "auth.blockoutproject.com",
+        "EXPO_PUBLIC_AUTH0_CLIENT_ID": "L3AotVuEqikyNrCQexkf6S3D1LZjk69E",
+        "EXPO_PUBLIC_API_MATCHES_BASE_URL": "https://api.blockoutproject.com/api/v1/matches",
+        "EXPO_PUBLIC_API_POOLS_BASE_URL": "https://api.blockoutproject.com/api/v1/pools",
+        "EXPO_PUBLIC_API_TEAMS_BASE_URL": "https://api.blockoutproject.com/api/v1/teams",
+        "EXPO_PUBLIC_API_COMPETITIONS_BASE_URL": "https://api.blockoutproject.com/api/v1/competitions",
+        "EXPO_PUBLIC_API_USERS_BASE_URL": "https://api.blockoutproject.com/api/v1/users",
+        "EXPO_PUBLIC_API_SEARCH_BASE_URL": "https://api.blockoutproject.com/api/v1/search",
+        "EXPO_PUBLIC_API_GATEWAY_BASE_URL": "https://api.blockoutproject.com/api/v1/mobile",
+        "EXPO_PUBLIC_API_CONFIG_BASE_URL": "https://api.blockoutproject.com/api/v1/config",
+        "EXPO_PUBLIC_API_CLUBS_BASE_URL": "https://api.blockoutproject.com/api/v1/clubs",
+        "EXPO_PUBLIC_API_REPORTS_BASE_URL": "https://api.blockoutproject.com/api/v1/reports",
+        "EXPO_PUBLIC_API_NOTIFICATIONS_BASE_URL": "https://api.blockoutproject.com/api/v1/notifications"
+      }
     },
     "preview": {
-      "distribution": "internal"
+      "channel": "preview",
+      "env": {
+        "EXPO_PUBLIC_AUTH0_DOMAIN": "auth.blockoutproject.com",
+        "EXPO_PUBLIC_AUTH0_CLIENT_ID": "L3AotVuEqikyNrCQexkf6S3D1LZjk69E",
+        "EXPO_PUBLIC_API_MATCHES_BASE_URL": "https://api.blockoutproject.com/api/v1/matches",
+        "EXPO_PUBLIC_API_POOLS_BASE_URL": "https://api.blockoutproject.com/api/v1/pools",
+        "EXPO_PUBLIC_API_TEAMS_BASE_URL": "https://api.blockoutproject.com/api/v1/teams",
+        "EXPO_PUBLIC_API_COMPETITIONS_BASE_URL": "https://api.blockoutproject.com/api/v1/competitions",
+        "EXPO_PUBLIC_API_USERS_BASE_URL": "https://api.blockoutproject.com/api/v1/users",
+        "EXPO_PUBLIC_API_SEARCH_BASE_URL": "https://api.blockoutproject.com/api/v1/search",
+        "EXPO_PUBLIC_API_GATEWAY_BASE_URL": "https://api.blockoutproject.com/api/v1/mobile",
+        "EXPO_PUBLIC_API_CONFIG_BASE_URL": "https://api.blockoutproject.com/api/v1/config",
+        "EXPO_PUBLIC_API_CLUBS_BASE_URL": "https://api.blockoutproject.com/api/v1/clubs",
+        "EXPO_PUBLIC_API_REPORTS_BASE_URL": "https://api.blockoutproject.com/api/v1/reports",
+        "EXPO_PUBLIC_API_NOTIFICATIONS_BASE_URL": "https://api.blockoutproject.com/api/v1/notifications"
+      }
     },
     "production": {
-      "autoIncrement": true
+      "channel": "production",
+      "env": {
+        "EXPO_PUBLIC_AUTH0_DOMAIN": "auth.blockoutproject.com",
+        "EXPO_PUBLIC_AUTH0_CLIENT_ID": "L3AotVuEqikyNrCQexkf6S3D1LZjk69E",
+        "EXPO_PUBLIC_API_MATCHES_BASE_URL": "https://api.blockoutproject.com/api/v1/matches",
+        "EXPO_PUBLIC_API_POOLS_BASE_URL": "https://api.blockoutproject.com/api/v1/pools",
+        "EXPO_PUBLIC_API_TEAMS_BASE_URL": "https://api.blockoutproject.com/api/v1/teams",
+        "EXPO_PUBLIC_API_COMPETITIONS_BASE_URL": "https://api.blockoutproject.com/api/v1/competitions",
+        "EXPO_PUBLIC_API_USERS_BASE_URL": "https://api.blockoutproject.com/api/v1/users",
+        "EXPO_PUBLIC_API_SEARCH_BASE_URL": "https://api.blockoutproject.com/api/v1/search",
+        "EXPO_PUBLIC_API_GATEWAY_BASE_URL": "https://api.blockoutproject.com/api/v1/mobile",
+        "EXPO_PUBLIC_API_CONFIG_BASE_URL": "https://api.blockoutproject.com/api/v1/config",
+        "EXPO_PUBLIC_API_CLUBS_BASE_URL": "https://api.blockoutproject.com/api/v1/clubs",
+        "EXPO_PUBLIC_API_REPORTS_BASE_URL": "https://api.blockoutproject.com/api/v1/reports",
+        "EXPO_PUBLIC_API_NOTIFICATIONS_BASE_URL": "https://api.blockoutproject.com/api/v1/notifications"
+      }
     }
   },
   "submit": {

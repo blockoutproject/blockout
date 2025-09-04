@@ -44,7 +44,7 @@
       [
         "react-native-auth0",
         {
-          "domain": "dev-jb2dhm4ou4owlr6e.eu.auth0.com"
+          "domain": "auth.blockoutproject.com"
         }
       ],
       "expo-secure-store",
