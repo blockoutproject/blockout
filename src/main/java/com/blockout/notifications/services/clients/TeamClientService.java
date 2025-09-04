@@ -25,7 +25,7 @@ public class TeamClientService {
 
         logger.info("Calling getTeamById", keyValue("id", id), keyValue("url", url));
 
-        ResponseEntity<TeamDTO> response = apiClientService.get(url, TeamDTO.class);
+        ResponseEntity<TeamDTO> response = apiClientService.getService(url, TeamDTO.class);
         return response.getBody();
     }
 }

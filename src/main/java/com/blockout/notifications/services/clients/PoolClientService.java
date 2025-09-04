@@ -25,7 +25,7 @@ public class PoolClientService {
 
         logger.info("Calling getPoolById", keyValue("id", id), keyValue("url", url));
 
-        ResponseEntity<PoolDTO> response = apiClientService.get(url, PoolDTO.class);
+        ResponseEntity<PoolDTO> response = apiClientService.getService(url, PoolDTO.class);
         return response.getBody();
     }
 }
