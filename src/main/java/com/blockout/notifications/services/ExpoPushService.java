@@ -12,6 +12,7 @@ import static net.logstash.logback.argument.StructuredArguments.keyValue;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.client5.http.impl.classic.HttpClients;
 
+import com.blockout.notifications.config.ExpoClientProperties;
 import com.blockout.notifications.models.dto.expo.ExpoBatchResult;
 import com.blockout.notifications.models.dto.expo.ExpoMessage;
 import com.niamedtech.expo.exposerversdk.ExpoPushNotificationClient;
@@ -21,7 +22,8 @@ import com.niamedtech.expo.exposerversdk.response.Status;
 
 /**
  * Service d’envoi Expo via le SDK "expo-server-sdk-java" (hlspablo).
- * - Construit 1 PushNotification par token pour conserver le mapping index→(userId, token)
+ * - Construit 1 PushNotification par token pour conserver le mapping
+ * index→(userId, token)
  * - Envoie en lots (≤100) comme recommandé par Expo
  * - Agrège les tickets → { users OK, users KO, tokens invalides }
  */
@@ -29,18 +31,17 @@ import com.niamedtech.expo.exposerversdk.response.Status;
 public class ExpoPushService {
 
     private static final Logger logger = LoggerFactory.getLogger(ExpoPushService.class);
+    private static final int MAX_BATCH = 100;
 
-    private static final int MAX_BATCH = 100; // limite Expo
     private final ExpoPushNotificationClient client;
 
-    public ExpoPushService() {
+    public ExpoPushService(ExpoClientProperties expoClientProperties) {
         CloseableHttpClient httpClient = HttpClients.createDefault();
 
-        // Si tu as un "Push Service Access Token", passe-le ici via .setAccessToken("...")
         this.client = ExpoPushNotificationClient
                 .builder()
                 .setHttpClient(httpClient)
-                // .setAccessToken("EXPO_PUSH_SERVICE_TOKEN")
+                .setAccessToken(expoClientProperties.getAccessToken())
                 .build();
 
         logger.info("ExpoPushService initialized",
@@ -181,7 +182,8 @@ public class ExpoPushService {
     }
 
     private boolean isDeviceNotRegistered(String message) {
-        if (message == null) return false;
+        if (message == null)
+            return false;
         String m = message.toLowerCase(Locale.ROOT);
         // Messages fréquents côté Expo pour token invalide
         return m.contains("devicenotregistered")
@@ -190,7 +192,8 @@ public class ExpoPushService {
     }
 
     private String mask(String token) {
-        if (token == null || token.length() < 12) return token;
+        if (token == null || token.length() < 12)
+            return token;
         return token.substring(0, 6) + "..." + token.substring(token.length() - 4);
     }
 }
