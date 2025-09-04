@@ -41,4 +41,4 @@ github:
   repo: blockout-api-reports
 
 discord:
-  webhook-url: ${DISCORD_WEBHOOK_URL:}
+  webhook-url: ${DISCORD_WEBHOOK_URL}
