@@ -1,7 +1,7 @@
 package com.blockout.notifications.repositories;
 
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.*;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -11,7 +11,7 @@ import com.blockout.notifications.models.UserNotification;
 @Repository
 public interface UserNotificationRepository extends JpaRepository<UserNotification, Long> {
 
-    Page<UserNotification> findByUserIdOrderByCreatedAtDesc(Long userId, Pageable pageable);
+    Slice<UserNotification> findByUserIdOrderByCreatedAtDesc(Long userId, Pageable pageable);
 
     long countByUserIdAndIsReadFalse(Long userId);
 

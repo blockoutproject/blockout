@@ -15,6 +15,9 @@ import com.blockout.notifications.models.enums.NotificationTargetType;
 import com.blockout.notifications.models.enums.NotificationType;
 import com.blockout.notifications.services.clients.PoolClientService;
 import com.blockout.notifications.services.clients.TeamClientService;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -36,12 +39,18 @@ public class NotificationOrchestratorService {
     private final PoolClientService poolClientService;
     private final TeamClientService teamClientService;
 
+    // ⬇️ Injecte Jackson pour construire les metadatas JSON
+    private final ObjectMapper objectMapper;
+
     private static final int RESOLVE_PAGE_SIZE = 2_000;
     private static final int EXPO_BATCH_SIZE = 100;
 
     public void handleMatchFinished(Long matchId, Long teamIdA, Long teamIdB, Long poolId, String setInfo) {
 
         final ResolvedContent content = resolveContent(matchId, teamIdA, teamIdB, poolId, setInfo);
+
+        final ObjectNode baseMetadata = objectMapper.createObjectNode()
+                .put("divisionId", content.divisionId());
 
         List<Long> reservedUserIds = notificationSendService.reservePendingForMatch(matchId, teamIdA, teamIdB, poolId);
         if (reservedUserIds.isEmpty()) {
@@ -60,8 +69,10 @@ public class NotificationOrchestratorService {
                 keyValue("title", content.title),
                 keyValue("body", content.body));
 
+        // ⬇️ Crée les notifications DB, en posant metadata
         List<UserNotification> bulk = new ArrayList<>(reservedUserIds.size());
         for (Long userId : reservedUserIds) {
+            JsonNode meta = baseMetadata.deepCopy(); // évite de réutiliser la même instance mutable
             bulk.add(UserNotification.builder()
                     .userId(userId)
                     .type(NotificationType.MATCH_FINISHED)
@@ -70,6 +81,7 @@ public class NotificationOrchestratorService {
                     .deepLink("/matches/" + matchId)
                     .targetType(NotificationTargetType.MATCH)
                     .targetId(matchId)
+                    .metadata(meta)
                     .isRead(false)
                     .isOpened(false)
                     .createdAt(LocalDateTime.now())
@@ -89,7 +101,6 @@ public class NotificationOrchestratorService {
 
             ResolvePage page = pushTokenService.resolveTokensPage(pageUserIds);
 
-            // Marquer ceux sans token
             if (!page.getNoTokenUserIds().isEmpty()) {
                 notificationSendService.markSent(matchId, page.getNoTokenUserIds(), true);
             }
@@ -98,7 +109,6 @@ public class NotificationOrchestratorService {
             if (page.getTokensByUser() != null && !page.getTokensByUser().isEmpty()) {
                 for (Map.Entry<Long, List<String>> e : page.getTokensByUser().entrySet()) {
                     Long userId = e.getKey();
-                    // dédupe en conservant l’ordre
                     List<String> tokens = e.getValue() == null ? List.of()
                             : e.getValue().stream().distinct().toList();
 
@@ -107,7 +117,6 @@ public class NotificationOrchestratorService {
                                 .to(token)
                                 .title(content.title)
                                 .body(content.body)
-                                .data(Map.of("matchId", matchId))
                                 .userId(userId)
                                 .matchId(matchId)
                                 .build());
@@ -195,17 +204,22 @@ public class NotificationOrchestratorService {
 
     private ResolvedContent resolveContent(Long matchId, Long teamIdA, Long teamIdB, Long poolId, String setInfo) {
         String poolName = "Match terminé";
+        Long divisionId = null;
         String teamAName = "Équipe A";
         String teamBName = "Équipe B";
 
         try {
             PoolDTO pool = poolClientService.getPoolById(poolId);
-            if (pool != null && pool.getName() != null && !pool.getName().isBlank()) {
-                poolName = pool.getName();
+            if (pool != null) {
+                if (pool.getName() != null && !pool.getName().isBlank()) {
+                    poolName = pool.getName();
+                }
+                if (pool.getDivisionId() != null) {
+                    divisionId = pool.getDivisionId();
+                }
             }
-
         } catch (Exception ex) {
-            logger.warn("Failed to resolve pool name",
+            logger.warn("Failed to resolve pool name/logo",
                     keyValue("action", "pool_resolve_failed"),
                     keyValue("matchId", matchId),
                     ex);
@@ -232,16 +246,10 @@ public class NotificationOrchestratorService {
         }
 
         StringBuilder body = new StringBuilder();
-        body.append("Match terminé : ").append(teamAName).append(" vs ").append(teamBName);
-        if (setInfo != null && !setInfo.isBlank()) {
-            body.append(" (set : ").append(setInfo).append(")");
-        }
-        body.append(".");
-
-        return new ResolvedContent(poolName, body.toString());
+        body.append("Match terminé : ").append(teamAName).append(" vs ").append(teamBName).append(".");
+        return new ResolvedContent(poolName, body.toString(), divisionId);
     }
 
-    /** Petite record interne pour transporter titre+corps */
-    private record ResolvedContent(String title, String body) {
-    }
+    /** Petite record interne pour transporter titre+corps+logo */
+    private record ResolvedContent(String title, String body, Long divisionId) {}
 }

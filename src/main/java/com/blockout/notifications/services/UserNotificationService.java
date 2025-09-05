@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.blockout.notifications.models.UserNotification;
+import com.blockout.notifications.models.dto.notifications.UserNotificationPageDTO;
 import com.blockout.notifications.models.dto.users.CustomUserDto;
 import com.blockout.notifications.models.enums.NotificationTargetType;
 import com.blockout.notifications.models.enums.NotificationType;
@@ -97,10 +98,28 @@ public class UserNotificationService {
         return saved;
     }
 
-    public Page<UserNotification> listNotificationsByAuth0Id(String auth0Id, int page, int size) {
+    /**
+     * Pagination simple calquée sur ton pattern Matchs (DTO { items, hasNext, nextPage }).
+     */
+    public UserNotificationPageDTO getNotificationsByAuth0Id(String auth0Id, int page, int size) {
         Long userId = resolveUserIdOrThrow(auth0Id);
+
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
-        return repository.findByUserIdOrderByCreatedAtDesc(userId, pageable);
+        Slice<UserNotification> slice = repository.findByUserIdOrderByCreatedAtDesc(userId, pageable);
+
+        boolean hasNext = slice.hasNext();
+        Integer nextPage = hasNext ? page + 1 : null;
+
+        logger.debug("Returning paginated notifications",
+                keyValue("action", "get_notifications"),
+                keyValue("userId", userId),
+                keyValue("page", page),
+                keyValue("size", size),
+                keyValue("items", slice.getNumberOfElements()),
+                keyValue("hasNext", hasNext),
+                keyValue("nextPage", nextPage));
+
+        return new UserNotificationPageDTO(slice.getContent(), hasNext, nextPage);
     }
 
     public long unreadCountByAuth0Id(String auth0Id) {

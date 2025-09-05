@@ -5,6 +5,6 @@ import lombok.Data;
 
 @Data
 @AllArgsConstructor
-public class UnreadCountDto {
+public class UnreadCountDTO {
     private long unread;
 }
