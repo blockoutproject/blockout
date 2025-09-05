@@ -13,15 +13,14 @@
     </parent>
 
     <groupId>com.blockout</groupId>
-    <artifactId>pools</artifactId>
+    <artifactId>notifications</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>pools</name>
+    <name>notifications</name>
     <description>Demo project for Spring Boot</description>
 
     <properties>
         <java.version>21</java.version>
         <lombok.version>1.18.38</lombok.version>
-        <maven.compiler.plugin.version>3.13.0</maven.compiler.plugin.version>
     </properties>
 
     <dependencies>
@@ -84,13 +83,17 @@
     </dependencies>
 
     <build>
-        <plugins>
+		<plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>${maven.compiler.plugin.version}</version>
                 <configuration>
-                    <release>${java.version}</release>
+                    <source>${java.version}</source>
+                    <target>${java.version}</target>
                     <annotationProcessorPaths>
                         <path>
                             <groupId>org.projectlombok</groupId>
@@ -100,10 +103,6 @@
                     </annotationProcessorPaths>
                 </configuration>
             </plugin>
-            <plugin>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-maven-plugin</artifactId>
-            </plugin>
-        </plugins>
+		</plugins>
     </build>
 </project>
