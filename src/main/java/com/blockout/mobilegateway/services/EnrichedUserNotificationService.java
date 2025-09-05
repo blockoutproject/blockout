@@ -50,6 +50,16 @@ public class EnrichedUserNotificationService {
 
         UserNotificationPageDTO base = notificationClientService.getNotifications(page, size);
 
+        for (UserNotificationDTO n : base.getNotifications()) {
+            logger.warn("Notification fetched",
+                    keyValue("id", n.getId()),
+                    keyValue("userId", n.getUserId()),
+                    keyValue("type", n.getType()),
+                    keyValue("title", n.getTitle()),
+                    keyValue("isRead", n.getIsRead()),
+                    keyValue("createdAt", n.getCreatedAt()));
+        }
+
         List<UserNotificationDTO> rawItems = (base == null || base.getNotifications() == null)
                 ? Collections.emptyList()
                 : base.getNotifications();
@@ -91,18 +101,6 @@ public class EnrichedUserNotificationService {
         // 3) Construire la liste enrichie
         List<EnrichedUserNotificationDTO> enriched = new ArrayList<>(rawItems.size());
         for (UserNotificationDTO n : rawItems) {
-            logger.warn("Processing notification",
-                    keyValue("id", n.getId()),
-                    keyValue("userId", n.getUserId()),
-                    keyValue("type", n.getType()),
-                    keyValue("title", n.getTitle()),
-                    keyValue("targetType", n.getTargetType()),
-                    keyValue("targetId", n.getTargetId()),
-                    keyValue("isRead", n.getIsRead()),
-                    keyValue("isOpened", n.getIsOpened()),
-                    keyValue("createdAt", n.getCreatedAt()),
-                    keyValue("readAt", n.getReadAt()),
-                    keyValue("openedAt", n.getOpenedAt()));
             String divisionLogoUrl = extractDivisionIdSafely(n.getMetadata())
                     .map(divisionLogoCache::get)
                     .orElse(null);
