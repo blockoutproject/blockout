@@ -118,17 +118,6 @@ public class UserNotificationService {
                 keyValue("items", slice.getNumberOfElements()),
                 keyValue("hasNext", hasNext),
                 keyValue("nextPage", nextPage));
-        
-        for (UserNotification n : slice.getContent()) {
-            logger.warn("Notification detail",
-                    keyValue("id", n.getId()),
-                    keyValue("type", n.getType()),
-                    keyValue("title", n.getTitle()),
-                    keyValue("isRead", n.getIsRead()),
-                    keyValue("isOpened", n.getIsOpened()),
-                    keyValue("createdAt", n.getCreatedAt()),
-                    keyValue("metadata", n.getMetadata()));
-        }
 
         return new UserNotificationPageDTO(slice.getContent(), hasNext, nextPage);
     }
