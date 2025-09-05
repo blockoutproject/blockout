@@ -19,39 +19,39 @@ import lombok.NoArgsConstructor;
 public class EnrichedUserNotificationDTO {
     private Long id;
 
-    @JsonProperty("userId")
+    @JsonProperty("user_id")
     private Long userId;
 
     private String type;
     private String title;
     private String body;
 
-    @JsonProperty("deepLink")
+    @JsonProperty("deep_link")
     private String deepLink;
 
-    @JsonProperty("targetType")
+    @JsonProperty("target_type")
     private String targetType;
 
-    @JsonProperty("targetId")
+    @JsonProperty("target_id")
     private Long targetId;
 
     private String metadata;
 
-    @JsonProperty("isRead")
+    @JsonProperty("is_read")
     private Boolean isRead;
 
-    @JsonProperty("isOpened")
+    @JsonProperty("is_opened")
     private Boolean isOpened;
 
-    @JsonProperty("createdAt")
+    @JsonProperty("created_at")
     private String createdAt;
 
-    @JsonProperty("updatedAt")
+    @JsonProperty("read_at")
     private String readAt;
 
-    @JsonProperty("openedAt")
+    @JsonProperty("opened_at")
     private String openedAt;
 
-    @JsonProperty("divisionId")
+    @JsonProperty("division_logo_url")
     private String divisionLogoUrl;
 }
