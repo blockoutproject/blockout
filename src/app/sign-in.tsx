@@ -30,6 +30,7 @@ const LoginScreen: React.FC = () => {
 
     useEffect(() => {
         if (!isSigningIn && error) {
+            console.log("Sign-in error:", isSigningIn, error);
             setApiError("Erreur lors de la connexion.");
         }
     }, [error, isSigningIn]);

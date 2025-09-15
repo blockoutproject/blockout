@@ -1,5 +1,5 @@
 import React, { createContext, use, useContext, useEffect, useMemo } from "react";
-import { useAuth0 } from "react-native-auth0";
+import { useAuth0, User } from "react-native-auth0";
 import type { CustomUser } from "@/src/types/User";
 import { useEnsureUser } from "@/src/hooks/user/useEnsureUser";
 
@@ -20,7 +20,7 @@ export type SessionActions = {
 /** État utilisateur exposé */
 export type SessionUserState = {
     /** Utilisateur Auth0 brut (peut être undefined tant qu’on n’a pas d’info) */
-    auth0User: ReturnType<typeof useAuth0>["user"];
+    auth0User: User | null;
     /** Ton utilisateur côté back */
     customUser: CustomUser | undefined;
 
@@ -110,7 +110,6 @@ export const SessionProvider: React.FC<React.PropsWithChildren> = ({ children })
             signOutLocal,
             signOutSSO,
             softResetAuth,
-
             auth0User,
             customUser,
             isLoading,

@@ -11,6 +11,7 @@ export const useEnsureUser = () => {
         enabled: !!user,
         staleTime: 5 * 60 * 1000,
         queryFn: async () => {
+            console.log("Ensuring current user...");
             return await UsersApi.getInstance().ensureCurrentUser();
         },
         retry: false

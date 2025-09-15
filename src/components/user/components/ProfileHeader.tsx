@@ -44,5 +44,8 @@ const styles = StyleSheet.create({
         justifyContent: "space-between",
         paddingHorizontal: 12,
     },
-    title: { fontSize: 18, fontWeight: "700" },
+    title: {         
+        fontSize: 18,
+        fontWeight: '900',
+    }
 });

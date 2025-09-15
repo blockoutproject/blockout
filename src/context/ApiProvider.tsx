@@ -1,8 +1,6 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect } from "react";
 import { useAuth0 } from "react-native-auth0";
 import { useSession } from "@/src/context/SessionProvider";
-import { useQueryClient } from "@tanstack/react-query";
-
 import MatchesApi from "@/src/api/MatchesApi";
 import TeamsApi from "@/src/api/TeamsApi";
 import PoolsApi from "@/src/api/PoolsApi";

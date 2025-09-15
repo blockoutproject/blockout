@@ -29,7 +29,7 @@ class SearchApi extends AbstractApi {
     /** Retourne l'instance de l'API */
     public static getInstance(): SearchApi {
         if (!SearchApi.instance) {
-            throw new Error('Initialisez l’instance avant d’appeler getInstance().');
+            throw new Error('SEARCH - Initialisez l’instance avant d’appeler getInstance().');
         }
         return SearchApi.instance;
     }

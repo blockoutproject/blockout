@@ -27,7 +27,7 @@ class TeamsApi extends AbstractApi {
     /** Retourne l'instance de l'API */
     public static getInstance(): TeamsApi {
         if (!TeamsApi.instance) {
-            throw new Error('Initialisez l’instance avant d’appeler getInstance().');
+            throw new Error('TEAMS - Initialisez l’instance avant d’appeler getInstance().');
         }
         return TeamsApi.instance;
     }

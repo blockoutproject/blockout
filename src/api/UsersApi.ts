@@ -26,7 +26,7 @@ class UsersApi extends AbstractApi {
 
     public static getInstance(): UsersApi {
         if (!UsersApi.instance) {
-            throw new Error("Initialisez l’instance avant d’appeler getInstance().");
+            throw new Error("USERS - Initialisez l’instance avant d’appeler getInstance().");
         }
         return UsersApi.instance;
     }

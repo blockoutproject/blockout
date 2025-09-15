@@ -28,8 +28,8 @@ const FeedScreen: React.FC = () => {
 
     const routes = useMemo(
         () => [
-            { key: 'finished', title: 'Terminés' },
             { key: 'upcoming', title: 'À Venir' },
+            { key: 'finished', title: 'Terminés' },
         ],
         []
     );
@@ -98,10 +98,10 @@ const FeedScreen: React.FC = () => {
     const renderScene = useCallback(
         ({ route }: SceneRendererProps & { route: Route }) => {
             switch (route.key) {
-                case 'finished':
-                    return finishedTab;
                 case 'upcoming':
                     return upcomingTab;
+                case 'finished':
+                    return finishedTab;
                 default:
                     return null;
             }

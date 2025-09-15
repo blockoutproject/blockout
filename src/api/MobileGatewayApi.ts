@@ -7,6 +7,7 @@ import {
 } from '@/src/types/Match';
 import { EnrichedPoolDTO } from '../types/Pool';
 import { EnrichedTeamDTO } from '../types/Team';
+import { EnrichedUserNotificationPage } from '../types/Notification';
 
 type InitOpts = {
     tokenSupplier?: () => Promise<string | null>;
@@ -34,7 +35,7 @@ class MobileGatewayApi extends AbstractApi {
     /** Retourne l'instance de l’API */
     public static getInstance(): MobileGatewayApi {
         if (!MobileGatewayApi.instance) {
-            throw new Error('Initialisez l’instance avant d’appeler getInstance().');
+            throw new Error('MOBILEGATEWAY - Initialisez l’instance avant d’appeler getInstance().');
         }
         return MobileGatewayApi.instance;
     }
@@ -89,6 +90,23 @@ class MobileGatewayApi extends AbstractApi {
         return await this.request<EnrichedTeamDTO>({
             method: 'get',
             url: `/enriched-team/${id}`,
+        });
+    }
+
+    /**
+     * Récupère les notifications enrichies de l'utilisateur
+     */
+    public async getEnrichedNotifications({
+        page = 0,
+        size,
+    }: {
+        page?: number;
+        size?: number;
+    }): Promise<EnrichedUserNotificationPage> {
+        return await this.request<EnrichedUserNotificationPage>({
+            method: 'get',
+            url: '/enriched-notifications',
+            params: { page, size },
         });
     }
 }

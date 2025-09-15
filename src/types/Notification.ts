@@ -32,14 +32,14 @@ export interface PushToken {
     lastUpdate: string;
 }
 
-export interface UserNotification {
+export type EnrichedUserNotification = {
     id: number;
     userId: number;
-    type: NotificationType;
+    type: string;
     title: string;
     body: string;
     deepLink: string | null;
-    targetType: NotificationTargetType | null;
+    targetType: string | null;
     targetId: number | null;
     metadata: string | null;
     isRead: boolean;
@@ -47,4 +47,15 @@ export interface UserNotification {
     createdAt: string;
     readAt: string | null;
     openedAt: string | null;
+    divisionLogoUrl: string | null;
+};
+
+export type EnrichedUserNotificationPage = {
+    notifications: EnrichedUserNotification[];
+    hasNext: boolean;
+    nextPage: number | null;
+};
+
+export interface UnreadCount {
+    count: number;
 }

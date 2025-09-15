@@ -27,7 +27,7 @@ class PoolsApi extends AbstractApi {
     /** Retourne l'instance de l'API */
     public static getInstance(): PoolsApi {
         if (!PoolsApi.instance) {
-            throw new Error('Initialisez l’instance avant d’appeler getInstance().');
+            throw new Error('POOLS - Initialisez l’instance avant d’appeler getInstance().');
         }
         return PoolsApi.instance;
     }

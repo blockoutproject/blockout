@@ -27,61 +27,11 @@ class MatchesApi extends AbstractApi {
     /** Retourne l'instance de l'API */
     public static getInstance(): MatchesApi {
         if (!MatchesApi.instance) {
-            throw new Error('Initialisez l’instance avant d’appeler getInstance().');
+            throw new Error('MATCHES - Initialisez l’instance avant d’appeler getInstance().');
         }
         return MatchesApi.instance;
     }
 
-    /**
-     * Récupère les matchs regroupés par jour
-     */
-    public async getMatches({
-        page = 0,
-        size = 10,
-        poolIds = [],
-        teamIds = [],
-        status,
-    }: {
-        page?: number;
-        size?: number;
-        poolIds?: number[];
-        teamIds?: number[];
-        status?: MatchStatus;
-    }): Promise<DayPageDTO> {
-        try {
-            return await this.request<DayPageDTO>({
-                method: 'get',
-                url: '/day-groups',
-                params: { page, size, poolIds, teamIds, status },
-            });
-        } catch (error) {
-            if (error instanceof ApiError && error.status === 404) {
-                return {
-                    dayMatches: [],
-                    hasNext: false,
-                    nextPage: 0,
-                };
-            }
-            throw error;
-        }
-    }
-
-    /**
-     * Récupère un match par ID
-     */
-    public async getMatchById(matchId: number): Promise<Match | null> {
-        try {
-            return await this.request<Match>({
-                method: 'get',
-                url: `/${matchId}`,
-            });
-        } catch (error) {
-            if (error instanceof ApiError && error.status === 404) {
-                return null;
-            }
-            throw error;
-        }
-    }
 }
 
 export default MatchesApi;

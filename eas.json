@@ -5,11 +5,12 @@
   },
   "build": {
     "development": {
+      "autoIncrement": true,
       "developmentClient": true,
       "distribution": "internal",
       "channel": "dev",
       "env": {
-        "EXPO_PUBLIC_AUTH0_DOMAIN": "auth.blockoutproject.com",
+        "EXPO_PUBLIC_AUTH0_DOMAIN": "login.blockoutproject.com",
         "EXPO_PUBLIC_AUTH0_CLIENT_ID": "L3AotVuEqikyNrCQexkf6S3D1LZjk69E",
         "EXPO_PUBLIC_API_MATCHES_BASE_URL": "https://api.blockoutproject.com/api/v1/matches",
         "EXPO_PUBLIC_API_POOLS_BASE_URL": "https://api.blockoutproject.com/api/v1/pools",
@@ -25,9 +26,10 @@
       }
     },
     "preview": {
+      "autoIncrement": true,
       "channel": "preview",
       "env": {
-        "EXPO_PUBLIC_AUTH0_DOMAIN": "auth.blockoutproject.com",
+        "EXPO_PUBLIC_AUTH0_DOMAIN": "login.blockoutproject.com",
         "EXPO_PUBLIC_AUTH0_CLIENT_ID": "L3AotVuEqikyNrCQexkf6S3D1LZjk69E",
         "EXPO_PUBLIC_API_MATCHES_BASE_URL": "https://api.blockoutproject.com/api/v1/matches",
         "EXPO_PUBLIC_API_POOLS_BASE_URL": "https://api.blockoutproject.com/api/v1/pools",
@@ -43,9 +45,10 @@
       }
     },
     "production": {
+      "autoIncrement": true,
       "channel": "production",
       "env": {
-        "EXPO_PUBLIC_AUTH0_DOMAIN": "auth.blockoutproject.com",
+        "EXPO_PUBLIC_AUTH0_DOMAIN": "login.blockoutproject.com",
         "EXPO_PUBLIC_AUTH0_CLIENT_ID": "L3AotVuEqikyNrCQexkf6S3D1LZjk69E",
         "EXPO_PUBLIC_API_MATCHES_BASE_URL": "https://api.blockoutproject.com/api/v1/matches",
         "EXPO_PUBLIC_API_POOLS_BASE_URL": "https://api.blockoutproject.com/api/v1/pools",

@@ -38,7 +38,7 @@ class ConfigApi extends AbstractApi {
      */
     public static getInstance(): ConfigApi {
         if (!ConfigApi.instance) {
-            throw new Error('Initialisez l’instance avant d’appeler getInstance().');
+            throw new Error('CONFIG - Initialisez l’instance avant d’appeler getInstance().');
         }
         return ConfigApi.instance;
     }

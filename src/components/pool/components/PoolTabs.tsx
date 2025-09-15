@@ -21,8 +21,8 @@ const PoolTabs: React.FC<PoolTabsProps> = ({ enrichedPool }) => {
     const tabs = useMemo(
         () => [
             { key: 'ranking', title: 'Classement' },
-            { key: 'finished', title: 'Terminés' },
             { key: 'upcoming', title: 'À Venir' },
+            { key: 'finished', title: 'Terminés' },
         ],
         []
     );

@@ -45,5 +45,5 @@
 npm install
 npx expo prebuild
 npx expo start --dev-client
-eas build --platform ios --profile development
+eas build -p ios --profile development
 ```

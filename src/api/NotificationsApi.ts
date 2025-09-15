@@ -1,26 +1,13 @@
 import { CONFIG } from '@/src/config/config';
 import AbstractApi, { ApiError } from './AbstractApi';
+import { RegisterPushTokenRequest, UnreadCount } from '../types/Notification';
 
-// Enums / Types
-export enum DevicePlatform {
-    IOS = 'IOS',
-    ANDROID = 'ANDROID',
-    WEB = 'WEB',
-    UNKNOWN = 'UNKNOWN',
-}
-
-export interface RegisterPushTokenRequest {
-    expoPushToken: string;
-    platform: DevicePlatform;
-    deviceId?: string | null;
-}
 
 type InitOpts = {
     tokenSupplier?: () => Promise<string | null>;
     onUnauthorized?: (e: ApiError) => void | Promise<void>;
 };
 
-// Client API Notifications
 class NotificationsApi extends AbstractApi {
     private static instance: NotificationsApi | null = null;
 
@@ -31,7 +18,7 @@ class NotificationsApi extends AbstractApi {
         });
     }
 
-    /** Init l'API */
+    /** Initialise l'instance */
     public static initInstance(token: string, opts?: InitOpts): void {
         if (!NotificationsApi.instance) {
             NotificationsApi.instance = new NotificationsApi(token, opts);
@@ -41,18 +28,17 @@ class NotificationsApi extends AbstractApi {
     /** Récupère l'instance */
     public static getInstance(): NotificationsApi {
         if (!NotificationsApi.instance) {
-            throw new Error('Initialisez l’instance avant d’appeler getInstance().');
+            throw new Error("NOTIFICATIONS - Initialisez l’instance avant d’appeler getInstance().");
         }
         return NotificationsApi.instance;
     }
 
-    /** Enregistre/MAJ un push token */
+    /** Enregistre/MAJ un push token (déjà présent, je garde) */
     public async registerPushToken(
         userId: number,
         payload: RegisterPushTokenRequest,
     ): Promise<void> {
         try {
-            console.log("NotificationsApi: registerPushToken", { userId, payload });
             return await this.request<void>({
                 method: 'post',
                 url: `/users/${userId}/push-tokens`,
@@ -60,11 +46,43 @@ class NotificationsApi extends AbstractApi {
             });
         } catch (error) {
             if (error instanceof ApiError && error.status === 404) {
-                // Utilisateur introuvable
                 return;
             }
             throw error;
         }
+    }
+
+    /** Compteur d'UNREAD */
+    public async unreadCount(): Promise<number> {
+        const res = await this.request<UnreadCount>({
+            method: 'get',
+            url: '/unread-count',
+        });
+        return res.count ?? 0;
+    }
+
+    /** Marquer une notif en READ */
+    public async markRead(id: number): Promise<void> {
+        await this.request<void>({
+            method: 'post',
+            url: `/${id}/read`,
+        });
+    }
+
+    /** Marquer une notif en OPENED */
+    public async markOpened(id: number): Promise<void> {
+        await this.request<void>({
+            method: 'post',
+            url: `/${id}/opened`,
+        });
+    }
+
+    /** Supprimer une notif */
+    public async delete(id: number): Promise<void> {
+        await this.request<void>({
+            method: 'delete',
+            url: `/${id}`,
+        });
     }
 }
 

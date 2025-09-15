@@ -9,7 +9,7 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": false,
     "ios": {
-      "supportsTablet": true,
+      "supportsTablet": false,
       "bundleIdentifier": "com.blockoutproject.blockout",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
@@ -44,7 +44,7 @@
       [
         "react-native-auth0",
         {
-          "domain": "auth.blockoutproject.com"
+          "domain": "login.blockoutproject.com"
         }
       ],
       "expo-secure-store",
@@ -61,6 +61,12 @@
         "projectId": "10cdf86a-a81e-496a-bcaa-07c132678f6d"
       }
     },
-    "owner": "blockoutproject"
+    "owner": "blockoutproject",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/10cdf86a-a81e-496a-bcaa-07c132678f6d"
+    }
   }
 }

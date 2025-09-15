@@ -27,7 +27,7 @@ class CompetitionsApi extends AbstractApi {
     /** Retourne l'instance de l'API */
     public static getInstance(): CompetitionsApi {
         if (!CompetitionsApi.instance) {
-            throw new Error('Initialisez l’instance avant d’appeler getInstance().');
+            throw new Error('COMPETITION - Initialisez l’instance avant d’appeler getInstance().');
         }
         return CompetitionsApi.instance;
     }

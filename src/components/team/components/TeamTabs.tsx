@@ -18,8 +18,8 @@ const TeamTabs: React.FC<Props> = ({ enrichedTeam }) => {
 
     const tabs = useMemo(
         () => [
-            { key: 'finished', title: 'Terminés' },
             { key: 'upcoming', title: 'À Venir' },
+            { key: 'finished', title: 'Terminés' },
             ...enrichedTeam.pools.map((p) => ({ key: `pool-${p.id}`, title: p.name })),
         ],
         [enrichedTeam.pools]
