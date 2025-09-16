@@ -83,8 +83,6 @@ export const SessionProvider: React.FC<React.PropsWithChildren> = ({ children })
             audience: "https://api.blockoutproject.com/",
             scope: "openid profile email offline_access",
         });
-        const r = await refetch({ cancelRefetch: true, throwOnError: true });
-        if (r.error) throw r.error;
     };
 
     const softResetAuth = async () => {

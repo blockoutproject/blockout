@@ -14,12 +14,16 @@ import ReportsApi from "../api/ReportsApi";
 import NotificationsApi from "../api/NotificationsApi";
 
 export const ApiProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const { softResetAuth } = useSession();
+    const { softResetAuth, auth0User } = useSession();
     const { getCredentials } = useAuth0();
 
     useEffect(() => {
         (async () => {
             try {
+                if (!auth0User) {
+                    console.log("API init skipped (session not ready yet)");
+                    return;
+                }
                 const creds = await getCredentials(undefined, 60);
                 const token = creds?.accessToken;
                 if (!token) return;
@@ -50,7 +54,7 @@ export const ApiProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 console.log("API init skipped (credentials not ready yet):", e);
             }
         })();
-    }, []);
+    }, [auth0User, getCredentials, softResetAuth]);
 
     return <>{children}</>;
 };

@@ -31,6 +31,16 @@ class UsersApi extends AbstractApi {
         return UsersApi.instance;
     }
 
+    public static async ensureCurrentUserWithTokenSupplier(
+        tokenSupplier: () => Promise<string | null>,
+        opts?: { onUnauthorized?: (e: ApiError) => void | Promise<void> }
+    ): Promise<CustomUser> {
+        const token = await tokenSupplier();
+        if (!token) throw new Error("USERS - Aucun token disponible pour ensureCurrentUser.");
+        const tempClient = new UsersApi(token, { tokenSupplier, onUnauthorized: opts?.onUnauthorized, });
+        return await tempClient.ensureCurrentUser();
+    }
+
     public async ensureCurrentUser(): Promise<CustomUser> {
         return await this.request<CustomUser>(
             {
