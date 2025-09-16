@@ -33,7 +33,7 @@ public class UserNotificationService {
     private final ObjectMapper objectMapper;
 
     private Long resolveUserIdOrThrow(String auth0Id) {
-        CustomUserDto user = usersClientService.getUserByAuth0Id(auth0Id);
+        CustomUserDto user = usersClientService.getCurrentUser();
         if (user == null || user.getId() == null) {
             logger.warn("User not found for auth0Id",
                     keyValue("action", "resolve_user_id_failed"),

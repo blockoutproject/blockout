@@ -20,10 +20,10 @@ public class UsersClientService {
     private final ApiClientProperties apiClientProperties;
     private final ApiClientService apiClientService;
 
-    public CustomUserDto getUserByAuth0Id(String auth0Id) {
-        String url = apiClientProperties.getUser().getUrl() + "/" + auth0Id;
+    public CustomUserDto getCurrentUser() {
+        String url = apiClientProperties.getUser().getUrl() + "/me";
 
-        logger.info("Calling getUserByAuth0Id", keyValue("auth0Id", auth0Id), keyValue("url", url));
+        logger.info("Calling getCurrentUser", keyValue("url", url));
 
         ResponseEntity<CustomUserDto> response = apiClientService.getForward(url, CustomUserDto.class);
         return response.getBody();
