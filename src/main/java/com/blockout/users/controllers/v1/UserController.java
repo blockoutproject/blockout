@@ -11,7 +11,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
-
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.http.MediaType;
@@ -38,6 +37,19 @@ public class UserController {
     @PreAuthorize("hasAuthority('SCOPE_read:users')")
     @GetMapping("/{auth0Id}")
     public ResponseEntity<CustomUserDto> getUserByAuth0Id(@PathVariable String auth0Id) {
+        CustomUserDto user = userService.getUserByAuth0Id(auth0Id);
+        return ResponseEntity.ok(user);
+    }
+
+    @Operation(summary = "Récupérer l'utilisateur courant", description = "Récupère l'utilisateur à partir de l'ID Auth0 (sub) présent dans le JWT.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Utilisateur trouvé"),
+            @ApiResponse(responseCode = "404", description = "Utilisateur non trouvé")
+    })
+    @PreAuthorize("hasAuthority('SCOPE_read:current_user')")
+    @GetMapping("/me")
+    public ResponseEntity<CustomUserDto> getCurrentUser(@AuthenticationPrincipal Jwt jwt) {
+        String auth0Id = jwt.getSubject();
         CustomUserDto user = userService.getUserByAuth0Id(auth0Id);
         return ResponseEntity.ok(user);
     }
