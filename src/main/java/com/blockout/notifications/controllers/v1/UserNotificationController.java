@@ -7,8 +7,6 @@ import lombok.RequiredArgsConstructor;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import com.blockout.notifications.models.dto.notifications.UserNotificationPageDTO;
@@ -27,11 +25,9 @@ public class UserNotificationController {
     @PreAuthorize("hasAuthority('SCOPE_read:current_user')")
     @GetMapping
     public ResponseEntity<UserNotificationPageDTO> getNotifications(
-            @AuthenticationPrincipal Jwt jwt,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
-        String auth0Id = jwt.getSubject();
-        UserNotificationPageDTO dto = userNotificationService.getNotificationsByAuth0Id(auth0Id, page, size);
+        UserNotificationPageDTO dto = userNotificationService.getNotificationsByAuth0Id(page, size);
         return ResponseEntity.ok(dto);
     }
 
@@ -39,9 +35,8 @@ public class UserNotificationController {
     @ApiResponses(@ApiResponse(responseCode = "200", description = "Unread count"))
     @PreAuthorize("hasAuthority('SCOPE_read:current_user')")
     @GetMapping("/unread-count")
-    public ResponseEntity<UnreadCountDTO> unreadCount(@AuthenticationPrincipal Jwt jwt) {
-        String auth0Id = jwt.getSubject();
-        long count = userNotificationService.unreadCountByAuth0Id(auth0Id);
+    public ResponseEntity<UnreadCountDTO> unreadCount() {
+        long count = userNotificationService.unreadCount();
         return ResponseEntity.ok(new UnreadCountDTO(count));
     }
 
@@ -52,11 +47,8 @@ public class UserNotificationController {
     })
     @PreAuthorize("hasAuthority('SCOPE_read:current_user')")
     @PostMapping("/{id}/read")
-    public ResponseEntity<Void> markRead(
-            @AuthenticationPrincipal Jwt jwt,
-            @PathVariable Long id) {
-        String auth0Id = jwt.getSubject();
-        return userNotificationService.markReadByAuth0Id(auth0Id, id)
+    public ResponseEntity<Void> markRead(@PathVariable Long id) {
+        return userNotificationService.markRead(id)
                 ? ResponseEntity.noContent().build()
                 : ResponseEntity.notFound().build();
     }
@@ -68,11 +60,8 @@ public class UserNotificationController {
     })
     @PreAuthorize("hasAuthority('SCOPE_read:current_user')")
     @PostMapping("/{id}/opened")
-    public ResponseEntity<Void> markOpened(
-            @AuthenticationPrincipal Jwt jwt,
-            @PathVariable Long id) {
-        String auth0Id = jwt.getSubject();
-        return userNotificationService.markOpenedByAuth0Id(auth0Id, id)
+    public ResponseEntity<Void> markOpened(@PathVariable Long id) {
+        return userNotificationService.markOpened(id)
                 ? ResponseEntity.noContent().build()
                 : ResponseEntity.notFound().build();
     }
@@ -84,11 +73,8 @@ public class UserNotificationController {
     })
     @PreAuthorize("hasAuthority('SCOPE_read:current_user')")
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(
-            @AuthenticationPrincipal Jwt jwt,
-            @PathVariable Long id) {
-        String auth0Id = jwt.getSubject();
-        return userNotificationService.deleteByAuth0Id(auth0Id, id)
+    public ResponseEntity<Void> delete(@PathVariable Long id) {
+        return userNotificationService.delete(id)
                 ? ResponseEntity.noContent().build()
                 : ResponseEntity.notFound().build();
     }

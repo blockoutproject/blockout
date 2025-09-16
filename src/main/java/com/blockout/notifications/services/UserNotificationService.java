@@ -32,13 +32,12 @@ public class UserNotificationService {
     private final UsersClientService usersClientService;
     private final ObjectMapper objectMapper;
 
-    private Long resolveUserIdOrThrow(String auth0Id) {
+    private Long resolveUserIdOrThrow() {
         CustomUserDto user = usersClientService.getCurrentUser();
         if (user == null || user.getId() == null) {
             logger.warn("User not found for auth0Id",
-                    keyValue("action", "resolve_user_id_failed"),
-                    keyValue("auth0Id", auth0Id));
-            throw new IllegalArgumentException("Utilisateur introuvable pour auth0Id=" + auth0Id);
+                    keyValue("action", "resolve_user_id_failed"));
+            throw new IllegalArgumentException("Utilisateur introuvable");
         }
         return user.getId();
     }
@@ -101,8 +100,8 @@ public class UserNotificationService {
     /**
      * Pagination simple calquée sur ton pattern Matchs (DTO { items, hasNext, nextPage }).
      */
-    public UserNotificationPageDTO getNotificationsByAuth0Id(String auth0Id, int page, int size) {
-        Long userId = resolveUserIdOrThrow(auth0Id);
+    public UserNotificationPageDTO getNotificationsByAuth0Id(int page, int size) {
+        Long userId = resolveUserIdOrThrow();
 
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
         Slice<UserNotification> slice = repository.findByUserIdOrderByCreatedAtDesc(userId, pageable);
@@ -122,14 +121,14 @@ public class UserNotificationService {
         return new UserNotificationPageDTO(slice.getContent(), hasNext, nextPage);
     }
 
-    public long unreadCountByAuth0Id(String auth0Id) {
-        Long userId = resolveUserIdOrThrow(auth0Id);
+    public long unreadCount() {
+        Long userId = resolveUserIdOrThrow();
         return repository.countByUserIdAndIsReadFalse(userId);
     }
 
     @Transactional
-    public boolean markReadByAuth0Id(String auth0Id, Long notificationId) {
-        Long userId = resolveUserIdOrThrow(auth0Id);
+    public boolean markRead(Long notificationId) {
+        Long userId = resolveUserIdOrThrow();
         int n = repository.markRead(userId, notificationId);
         if (n > 0) {
             logger.info("Notification marked read",
@@ -142,8 +141,8 @@ public class UserNotificationService {
     }
 
     @Transactional
-    public boolean markOpenedByAuth0Id(String auth0Id, Long notificationId) {
-        Long userId = resolveUserIdOrThrow(auth0Id);
+    public boolean markOpened(Long notificationId) {
+        Long userId = resolveUserIdOrThrow();
         int n = repository.markOpened(userId, notificationId);
         if (n > 0) {
             logger.info("Notification marked opened",
@@ -156,8 +155,8 @@ public class UserNotificationService {
     }
 
     @Transactional
-    public boolean deleteByAuth0Id(String auth0Id, Long notificationId) {
-        Long userId = resolveUserIdOrThrow(auth0Id);
+    public boolean delete(Long notificationId) {
+        Long userId = resolveUserIdOrThrow();
         int n = repository.deleteForUser(userId, notificationId);
         if (n > 0) {
             logger.info("Notification deleted",
