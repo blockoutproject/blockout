@@ -1,6 +1,7 @@
 package com.blockout.mobilegateway.models.dto.notifications;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.JsonNode;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -35,7 +36,7 @@ public class EnrichedUserNotificationDTO {
     @JsonProperty("target_id")
     private Long targetId;
 
-    private String metadata;
+    private JsonNode metadata;
 
     @JsonProperty("is_read")
     private Boolean isRead;

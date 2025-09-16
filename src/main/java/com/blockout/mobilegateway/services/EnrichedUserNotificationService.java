@@ -8,7 +8,6 @@ import com.blockout.mobilegateway.models.dto.notifications.UserNotificationDTO;
 import com.blockout.mobilegateway.services.clients.ConfigClientService;
 import com.blockout.mobilegateway.services.clients.NotificationClientService;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import lombok.RequiredArgsConstructor;
 
@@ -31,7 +30,6 @@ public class EnrichedUserNotificationService {
 
     private final NotificationClientService notificationClientService;
     private final ConfigClientService configClientService;
-    private final ObjectMapper objectMapper;
 
     /**
      * Cache simple en mémoire pour éviter des fetchs répétés :
@@ -40,7 +38,8 @@ public class EnrichedUserNotificationService {
     private final ConcurrentMap<Long, String> divisionLogoCache = new ConcurrentHashMap<>();
 
     /**
-     * Récupère une page de notifications et renvoie la version enrichie avec logo de division.
+     * Récupère une page de notifications et renvoie la version enrichie avec logo
+     * de division.
      */
     public EnrichedUserNotificationPageDTO getEnrichedNotifications(int page, int size) {
         logger.info("Fetching notifications (unreached/enriched)",
@@ -138,32 +137,33 @@ public class EnrichedUserNotificationService {
     }
 
     /**
-     * Parse metadata JSON et récupère un divisionId s'il est présent (number ou string).
+     * Parse un JsonNode metadata et récupère un divisionId s'il est présent (number
+     * ou string).
      */
-    private Optional<Long> extractDivisionIdSafely(String metadata) {
-        if (metadata == null || metadata.isBlank()) return Optional.empty();
-        try {
-            JsonNode node = objectMapper.readTree(metadata);
-            if (node == null) return Optional.empty();
-            JsonNode div = node.get("divisionId");
-            if (div == null || div.isNull()) return Optional.empty();
-
-            if (div.isNumber()) {
-                return Optional.of(div.asLong());
-            } else if (div.isTextual()) {
-                String txt = div.asText();
-                if (txt == null || txt.isBlank()) return Optional.empty();
-                try {
-                    return Optional.of(Long.parseLong(txt));
-                } catch (NumberFormatException nfe) {
-                    logger.debug("divisionId textual but non-parsable",
-                            keyValue("value", txt));
-                }
-            }
-        } catch (Exception ex) {
-            logger.debug("Failed to parse metadata JSON",
-                    keyValue("metadata", metadata));
+    private Optional<Long> extractDivisionIdSafely(JsonNode metadata) {
+        if (metadata == null || metadata.isMissingNode() || metadata.isNull()) {
+            return Optional.empty();
         }
+
+        JsonNode div = metadata.get("divisionId");
+        if (div == null || div.isNull()) {
+            return Optional.empty();
+        }
+
+        if (div.isNumber()) {
+            return Optional.of(div.asLong());
+        } else if (div.isTextual()) {
+            String txt = div.asText();
+            if (txt == null || txt.isBlank())
+                return Optional.empty();
+            try {
+                return Optional.of(Long.parseLong(txt));
+            } catch (NumberFormatException nfe) {
+                logger.debug("divisionId textual but non-parsable",
+                        keyValue("value", txt));
+            }
+        }
+
         return Optional.empty();
     }
 }
