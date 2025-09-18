@@ -28,7 +28,17 @@ public class ClubSearchService {
     public List<ClubSearchDoc> searchByKeyword(String keyword) {
         try {
             if (keyword == null || keyword.isBlank()) {
-                return Collections.emptyList();
+                SearchResponse<ClubSearchDoc> response = elasticsearchClient.search(
+                        s -> s.index("clubs")
+                                .size(5)
+                                .query(q -> q.functionScore(fs -> fs
+                                        .query(inner -> inner.matchAll(m -> m))
+                                        .functions(f -> f.randomScore(rs -> rs)))),
+                        ClubSearchDoc.class);
+
+                return response.hits().hits().stream()
+                        .map(hit -> hit.source())
+                        .toList();
             }
 
             String wildcardQuery = Arrays.stream(keyword.trim().split("\\s+"))

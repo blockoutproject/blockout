@@ -28,7 +28,17 @@ public class PoolSearchService {
     public List<PoolSearchDoc> searchByKeyword(String keyword) {
         try {
             if (keyword == null || keyword.isBlank()) {
-                return Collections.emptyList();
+                SearchResponse<PoolSearchDoc> response = elasticsearchClient.search(
+                        s -> s.index("pools")
+                                .size(5)
+                                .query(q -> q.functionScore(fs -> fs
+                                        .query(inner -> inner.matchAll(m -> m))
+                                        .functions(f -> f.randomScore(rs -> rs)))),
+                        PoolSearchDoc.class);
+
+                return response.hits().hits().stream()
+                        .map(hit -> hit.source())
+                        .toList();
             }
 
             String wildcardQuery = Arrays.stream(keyword.trim().split("\\s+"))
