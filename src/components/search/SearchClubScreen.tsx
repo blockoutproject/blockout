@@ -18,33 +18,28 @@ import { useSearchClubs } from "@/src/hooks/search/useSearchClubs";
 import { useRouter } from "expo-router";
 import ErrorState from "@/src/components/common/feedback/ErrorState";
 import { BOTTOM_TABBAR_HEIGHT } from "@/src/theme/globals";
-import SearchState from "@/src/components/common/feedback/SearchState";
 
-/** Props for club search sub-screen. */
 export type SearchClubScreenProps = {
-    /** Current input value. */
     search: string;
-    /** Debounced query. */
     debouncedQuery: string;
-    /** Input setter. */
     setSearch: (text: string) => void;
-    /** Whether input is focused. */
-    isInputFocused: boolean;
-    /** Focus setter. */
-    setIsInputFocused: (focused: boolean) => void;
 };
 
 const SearchClubScreen: React.FC<SearchClubScreenProps> = ({
     search,
     debouncedQuery,
     setSearch,
-    isInputFocused,
-    setIsInputFocused,
 }) => {
     const theme = useAppTheme();
     const insets = useSafeAreaInsets();
-    const { data: clubs, isLoading, isError, refetch } = useSearchClubs(debouncedQuery);
     const router = useRouter();
+
+    const triggerOnEmpty = search.length === 0;
+
+    const { data: clubs, isLoading, isError, refetch } = useSearchClubs(
+        debouncedQuery,
+        triggerOnEmpty
+    );
 
     const handleClubPress = (clubId: string) => {
         Haptics.selectionAsync();
@@ -52,22 +47,13 @@ const SearchClubScreen: React.FC<SearchClubScreenProps> = ({
     };
 
     const renderEmpty = () => {
-        if (!search && !isInputFocused) {
-            return (
-                <SearchState />
-            );
-        }
         if (debouncedQuery.length > 1 && !isLoading && !isError) {
             return (
-                <View
-                    style={styles.emptyContainer}
-                >
+                <View style={styles.emptyContainer}>
                     <Text
                         style={[
                             styles.emptyText,
-                            {
-                                color: theme.textInactive,
-                            },
+                            { color: theme.textInactive },
                         ]}
                     >
                         Aucun club trouvé pour cette recherche.
@@ -82,22 +68,16 @@ const SearchClubScreen: React.FC<SearchClubScreenProps> = ({
         <KeyboardAvoidingView
             style={[
                 styles.container,
-                {
-                    backgroundColor: theme.background,
-                },
+                { backgroundColor: theme.background },
             ]}
             behavior={Platform.OS === "ios" ? "padding" : undefined}
             testID="search-club-screen"
         >
-            <View
-                style={styles.searchRow}
-            >
+            <View style={styles.searchRow}>
                 <SearchBar
                     value={search}
                     onChangeText={setSearch}
                     placeholder="Rechercher un club..."
-                    onFocus={() => setIsInputFocused(true)}
-                    onBlur={() => setIsInputFocused(false)}
                     inSheet={false}
                 />
             </View>
@@ -130,13 +110,23 @@ const SearchClubScreen: React.FC<SearchClubScreenProps> = ({
                     />
                 )}
                 ListEmptyComponent={renderEmpty}
+                ListHeaderComponent={
+                    search.length === 0 && clubs && clubs.length > 0 ? (
+                        <Text
+                            style={[
+                                styles.exampleLabel,
+                                { color: theme.textInactive },
+                            ]}
+                        >
+                            Exemples de clubs
+                        </Text>
+                    ) : null
+                }
                 showsVerticalScrollIndicator={false}
                 keyboardShouldPersistTaps="handled"
                 onScrollBeginDrag={Keyboard.dismiss}
                 contentContainerStyle={[
-                    {
-                        paddingBottom: insets.bottom + BOTTOM_TABBAR_HEIGHT,
-                    },
+                    { paddingBottom: insets.bottom + BOTTOM_TABBAR_HEIGHT },
                 ]}
                 scrollEnabled={Boolean(clubs && clubs.length > 0)}
                 testID="search-club-list"
@@ -166,6 +156,12 @@ const styles = StyleSheet.create({
     },
     emptyText: {
         fontSize: 14,
+        textAlign: "center",
+    },
+    exampleLabel: {
+        fontSize: 13,
+        fontStyle: "italic",
+        marginBottom: 8,
         textAlign: "center",
     },
 });

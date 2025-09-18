@@ -20,7 +20,6 @@ const SearchScreen: React.FC = () => {
     ]);
     const [search, setSearch] = useState("");
     const [debouncedQuery] = useDebounce(search, 300);
-    const [isInputFocused, setIsInputFocused] = useState(false);
 
     const activeIndex = filters.findIndex((f) => f.isActive);
     const activeEntity = filters[activeIndex]?.name ?? "Équipes";
@@ -43,24 +42,18 @@ const SearchScreen: React.FC = () => {
                     search={search}
                     debouncedQuery={debouncedQuery}
                     setSearch={setSearch}
-                    isInputFocused={isInputFocused}
-                    setIsInputFocused={setIsInputFocused}
                 />
             ) : activeEntity === "Clubs" ? (
                 <SearchClubScreen
                     search={search}
                     debouncedQuery={debouncedQuery}
                     setSearch={setSearch}
-                    isInputFocused={isInputFocused}
-                    setIsInputFocused={setIsInputFocused}
                 />
             ) : (
                 <SearchPoolScreen
                     search={search}
                     debouncedQuery={debouncedQuery}
                     setSearch={setSearch}
-                    isInputFocused={isInputFocused}
-                    setIsInputFocused={setIsInputFocused}
                 />
             )}
 

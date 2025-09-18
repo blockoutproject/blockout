@@ -16,34 +16,29 @@ import { useSearchTeams } from "@/src/hooks/search/useSearchTeams";
 import { FlatList } from "react-native-gesture-handler";
 import ErrorState from "@/src/components/common/feedback/ErrorState";
 import { useRouter } from "expo-router";
-import SearchState from "@/src/components/common/feedback/SearchState";
 import { BOTTOM_TABBAR_HEIGHT } from "@/src/theme/globals";
 
-/** Props for team search sub-screen. */
 export type SearchTeamScreenProps = {
-    /** Current input value. */
     search: string;
-    /** Debounced query. */
     debouncedQuery: string;
-    /** Input setter. */
     setSearch: (text: string) => void;
-    /** Whether input is focused. */
-    isInputFocused: boolean;
-    /** Focus setter. */
-    setIsInputFocused: (focused: boolean) => void;
 };
 
 const SearchTeamScreen: React.FC<SearchTeamScreenProps> = ({
     search,
     debouncedQuery,
     setSearch,
-    isInputFocused,
-    setIsInputFocused,
 }) => {
     const theme = useAppTheme();
     const insets = useSafeAreaInsets();
     const router = useRouter();
-    const { data: teams, isLoading, isError, refetch } = useSearchTeams(debouncedQuery);
+
+    const triggerOnEmpty = search.length === 0;
+
+    const { data: teams, isLoading, isError, refetch } = useSearchTeams(
+        debouncedQuery,
+        triggerOnEmpty
+    );
 
     const handleTeamPress = (teamId: number) => {
         Haptics.selectionAsync();
@@ -51,22 +46,13 @@ const SearchTeamScreen: React.FC<SearchTeamScreenProps> = ({
     };
 
     const renderEmpty = () => {
-        if (!search && !isInputFocused) {
-            return (
-                <SearchState />
-            );
-        }
         if (debouncedQuery.length > 1 && !isLoading && !isError) {
             return (
-                <View
-                    style={styles.emptyContainer}
-                >
+                <View style={styles.emptyContainer}>
                     <Text
                         style={[
                             styles.emptyText,
-                            {
-                                color: theme.textInactive,
-                            },
+                            { color: theme.textInactive },
                         ]}
                     >
                         Aucune équipe trouvée pour cette recherche.
@@ -81,21 +67,15 @@ const SearchTeamScreen: React.FC<SearchTeamScreenProps> = ({
         <KeyboardAvoidingView
             style={[
                 styles.container,
-                {
-                    backgroundColor: theme.background,
-                },
+                { backgroundColor: theme.background },
             ]}
             testID="search-team-screen"
         >
-            <View
-                style={styles.searchRow}
-            >
+            <View style={styles.searchRow}>
                 <SearchBar
                     value={search}
                     onChangeText={setSearch}
                     placeholder="Rechercher une équipe..."
-                    onFocus={() => setIsInputFocused(true)}
-                    onBlur={() => setIsInputFocused(false)}
                     inSheet={false}
                 />
             </View>
@@ -128,13 +108,23 @@ const SearchTeamScreen: React.FC<SearchTeamScreenProps> = ({
                     />
                 )}
                 ListEmptyComponent={renderEmpty}
+                ListHeaderComponent={
+                    search.length === 0 && teams && teams.length > 0 ? (
+                        <Text
+                            style={[
+                                styles.exampleLabel,
+                                { color: theme.textInactive },
+                            ]}
+                        >
+                            Exemples d’équipes
+                        </Text>
+                    ) : null
+                }
                 showsVerticalScrollIndicator={false}
                 keyboardShouldPersistTaps="handled"
                 onScrollBeginDrag={Keyboard.dismiss}
                 contentContainerStyle={[
-                    {
-                        paddingBottom: insets.bottom + BOTTOM_TABBAR_HEIGHT,
-                    },
+                    { paddingBottom: insets.bottom + BOTTOM_TABBAR_HEIGHT },
                 ]}
                 scrollEnabled={Boolean(teams && teams.length > 0)}
                 testID="search-team-list"
@@ -164,6 +154,12 @@ const styles = StyleSheet.create({
     },
     emptyText: {
         fontSize: 14,
+        textAlign: "center",
+    },
+    exampleLabel: {
+        fontSize: 13,
+        fontStyle: "italic",
+        marginBottom: 8,
         textAlign: "center",
     },
 });

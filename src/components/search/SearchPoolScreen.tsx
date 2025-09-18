@@ -17,34 +17,29 @@ import PoolCard from "@/src/components/search/PoolCard";
 import { useSearchPools } from "@/src/hooks/search/useSearchPools";
 import { useRouter } from "expo-router";
 import ErrorState from "@/src/components/common/feedback/ErrorState";
-import SearchState from "@/src/components/common/feedback/SearchState";
 import { BOTTOM_TABBAR_HEIGHT } from "@/src/theme/globals";
 
-/** Props for pool search sub-screen. */
 export type SearchPoolScreenProps = {
-    /** Current input value. */
     search: string;
-    /** Debounced query. */
     debouncedQuery: string;
-    /** Input setter. */
     setSearch: (text: string) => void;
-    /** Whether input is focused. */
-    isInputFocused: boolean;
-    /** Focus setter. */
-    setIsInputFocused: (focused: boolean) => void;
 };
 
 const SearchPoolScreen: React.FC<SearchPoolScreenProps> = ({
     search,
     debouncedQuery,
     setSearch,
-    isInputFocused,
-    setIsInputFocused,
 }) => {
     const theme = useAppTheme();
     const insets = useSafeAreaInsets();
     const router = useRouter();
-    const { data: pools, isLoading, isError, refetch } = useSearchPools(debouncedQuery);
+
+    const triggerOnEmpty = search.length === 0;
+
+    const { data: pools, isLoading, isError, refetch } = useSearchPools(
+        debouncedQuery,
+        triggerOnEmpty
+    );
 
     const handlePoolPress = (poolId: number) => {
         Haptics.selectionAsync();
@@ -52,22 +47,13 @@ const SearchPoolScreen: React.FC<SearchPoolScreenProps> = ({
     };
 
     const renderEmpty = () => {
-        if (!search && !isInputFocused) {
-            return (
-                <SearchState />
-            );
-        }
         if (debouncedQuery.length > 1 && !isLoading && !isError) {
             return (
-                <View
-                    style={styles.emptyContainer}
-                >
+                <View style={styles.emptyContainer}>
                     <Text
                         style={[
                             styles.emptyText,
-                            {
-                                color: theme.textInactive,
-                            },
+                            { color: theme.textInactive },
                         ]}
                     >
                         Aucune poule trouvée pour cette recherche.
@@ -82,22 +68,16 @@ const SearchPoolScreen: React.FC<SearchPoolScreenProps> = ({
         <KeyboardAvoidingView
             style={[
                 styles.container,
-                {
-                    backgroundColor: theme.background,
-                },
+                { backgroundColor: theme.background },
             ]}
             behavior={Platform.OS === "ios" ? "padding" : undefined}
             testID="search-pool-screen"
         >
-            <View
-                style={styles.searchRow}
-            >
+            <View style={styles.searchRow}>
                 <SearchBar
                     value={search}
                     onChangeText={setSearch}
                     placeholder="Rechercher une poule..."
-                    onFocus={() => setIsInputFocused(true)}
-                    onBlur={() => setIsInputFocused(false)}
                     inSheet={false}
                 />
             </View>
@@ -130,13 +110,23 @@ const SearchPoolScreen: React.FC<SearchPoolScreenProps> = ({
                     />
                 )}
                 ListEmptyComponent={renderEmpty}
+                ListHeaderComponent={
+                    search.length === 0 && pools && pools.length > 0 ? (
+                        <Text
+                            style={[
+                                styles.exampleLabel,
+                                { color: theme.textInactive },
+                            ]}
+                        >
+                            Exemples de poules
+                        </Text>
+                    ) : null
+                }
                 showsVerticalScrollIndicator={false}
                 keyboardShouldPersistTaps="handled"
                 onScrollBeginDrag={Keyboard.dismiss}
                 contentContainerStyle={[
-                    {
-                        paddingBottom: insets.bottom + BOTTOM_TABBAR_HEIGHT,
-                    },
+                    { paddingBottom: insets.bottom + BOTTOM_TABBAR_HEIGHT },
                 ]}
                 scrollEnabled={Boolean(pools && pools.length > 0)}
                 testID="search-pool-list"
@@ -166,6 +156,12 @@ const styles = StyleSheet.create({
     },
     emptyText: {
         fontSize: 14,
+        textAlign: "center",
+    },
+    exampleLabel: {
+        fontSize: 13,
+        fontStyle: "italic",
+        marginBottom: 8,
         textAlign: "center",
     },
 });
