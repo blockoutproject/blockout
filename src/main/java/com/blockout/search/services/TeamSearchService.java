@@ -30,8 +30,11 @@ public class TeamSearchService {
             if (keyword == null || keyword.isBlank()) {
                 SearchResponse<TeamSearchDoc> response = elasticsearchClient.search(
                         s -> s.index("teams")
-                                .query(q -> q.matchAll(m -> m))
-                                .size(5),
+                                .size(5)
+                                .query(q -> q.functionScore(fs -> fs
+                                        .query(inner -> inner.matchAll(m -> m))
+                                        .functions(f -> f.randomScore(rs -> rs))
+                                )),
                         TeamSearchDoc.class);
 
                 return response.hits().hits().stream()
