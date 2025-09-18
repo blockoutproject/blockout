@@ -19,7 +19,7 @@ import { Filter } from "@/src/types/Filter";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import SearchBar from "../common/SearchBar";
 import Filters from "../common/Filters";
-import BottomSheetCustomModal from "../common/BottomSheetCustomModal";
+import BottomSheetCustomModal from "../common/bottomSheet/BottomSheetCustomModal";
 import DivisionItem from "./components/DivisionItem";
 import DivisionForm from "./components/DivisionForm";
 

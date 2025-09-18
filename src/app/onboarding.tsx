@@ -1,12 +1,14 @@
 import React from "react";
-import { useOnboardingStore } from "../utils/onboardingStore";
-import { FancyOnboarding } from "../components/onboarding/Onboarding";
-import { ONBOARDING_STEPS } from "../onboarding/steps";
-import { registerForPushNotificationsAsync, registerPushTokenOnBackend } from "../utils/notifications";
-import { useSession } from "../context/SessionProvider";
+import { useOnboardingStore } from "@/src/utils/onboardingStore";
+import { FancyOnboarding } from "@/src/components/onboarding/Onboarding";
+import { ONBOARDING_STEPS } from "@/src/onboarding/steps";
+import {
+    registerForPushNotificationsAsync,
+    registerPushTokenOnBackend,
+} from "@/src/utils/notifications";
+import { useSession } from "@/src/context/SessionProvider";
 
-
-export default function OnboardingScreen() {
+const OnboardingScreen: React.FC = () => {
     const { completeOnboarding } = useOnboardingStore();
     const { customUser } = useSession();
 
@@ -17,16 +19,13 @@ export default function OnboardingScreen() {
             onSkip={completeOnboarding}
             onStepNext={async (step) => {
                 if (step.id !== "push") return;
-                console.log("Onboarding: registering for push notifications...");
-                // 1) Demande la permission + récup token (style Expo)
                 const token = await registerForPushNotificationsAsync().catch(() => null);
-                console.log("Onboarding: push token =", token);
-                // 2) Enregistre côté backend si on a un userId et un token
                 if (customUser?.id && token) {
-                    console.log("Onboarding: registering push token on backend...");
                     await registerPushTokenOnBackend(customUser.id, token).catch(() => { });
                 }
             }}
         />
     );
-}
+};
+
+export default OnboardingScreen;

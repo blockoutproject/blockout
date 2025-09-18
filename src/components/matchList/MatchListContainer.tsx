@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import {
     RefreshControl,
     View,
@@ -9,17 +9,17 @@ import {
     ViewStyle,
 } from "react-native";
 import * as Haptics from "expo-haptics";
+import { useRouter } from "expo-router";
+
 import { MatchStatus } from "@/src/types/Match";
 import { formatDateFrenchLocale } from "@/src/utils/utils";
-import EmptyState from "../common/feedback/EmptyState";
-import PoolItem from "./components/PoolItem";
+import { useAppTheme } from "@/src/context/ThemeProvider";
 import { useMatchList } from "@/src/hooks/match/useMatchList";
 import SectionDateHeader from "./components/SectionDateHeader";
-import { useAppTheme } from "@/src/context/ThemeProvider";
+import PoolItem from "./components/PoolItem";
+import EmptyState from "../common/feedback/EmptyState";
 import ErrorState from "../common/feedback/ErrorState";
-import { useRouter } from "expo-router";
 import { SECTION_SEPARATOR_HEIGHT } from "@/src/theme/globals";
-
 
 export type RowItem = {
     id: string;
@@ -33,14 +33,23 @@ export type Section = {
     data: RowItem[];
 };
 
-type MatchListContainerProps = {
+/** Container de liste de matchs avec grouping par date. */
+export type MatchListContainerProps = {
+    /** Filtre par IDs de poules. */
     poolIds?: number[];
+    /** Filtre par IDs d’équipes. */
     teamIds?: number[];
+    /** Statut des matchs à afficher. */
     status: MatchStatus;
+    /** Valeur animée pour synchroniser le scroll. */
     scrollY: Animated.Value;
+    /** Styles du content container. */
     contentContainerStyle?: StyleProp<ViewStyle>;
+    /** Décalage du header pour le refresh control. */
     headerOffset: number;
+    /** Affiche l’en-tête de poule dans chaque carte. */
     showPoolHeader?: boolean;
+    /** Spécifique à la Home (padding différent). */
     home?: boolean;
 };
 
@@ -80,21 +89,24 @@ const MatchListContainer: React.FC<MatchListContainerProps> = ({
         if (hasNextPage && !isFetchingNextPage) fetchNextPage();
     }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-    const handleMatchPress = useCallback((matchId: number) => {
-        Haptics.selectionAsync();
+    const handleMatchPress = useCallback(async (matchId: number) => {
+        await Haptics.selectionAsync();
         router.push(`/matches/${matchId}`);
-    }, []);
+    }, [router]);
 
-    const handlePoolPress = useCallback((poolId: number) => {
-        Haptics.selectionAsync();
+    const handlePoolPress = useCallback(async (poolId: number) => {
+        await Haptics.selectionAsync();
         router.push(`/pools/${poolId}`);
-    }, []);
+    }, [router]);
 
     const sections = useMemo(
         () =>
             dayMatches.map((d) => ({
                 title: formatDateFrenchLocale(d.date),
-                data: d.pools.map((p, idx) => ({ ...p, __sectionKey: d.date })),
+                data: d.pools.map((p, idx) => ({
+                    ...p,
+                    __sectionKey: d.date,
+                })),
             })),
         [dayMatches]
     );
@@ -110,8 +122,19 @@ const MatchListContainer: React.FC<MatchListContainerProps> = ({
 
     if (isLoading) {
         body = (
-            <View style={[styles.center, { backgroundColor: theme.background }]}>
-                <ActivityIndicator size="large" color={theme.text} />
+            <View
+                style={[
+                    styles.center,
+                    {
+                        backgroundColor: theme.background,
+                    },
+                ]}
+                testID="matchlist-loading"
+            >
+                <ActivityIndicator
+                    size="large"
+                    color={theme.text}
+                />
             </View>
         );
     } else if (isError) {
@@ -125,11 +148,11 @@ const MatchListContainer: React.FC<MatchListContainerProps> = ({
     } else {
         body = (
             <Animated.SectionList
-                sections={sections}
-                keyExtractor={(it) => `${it.pool.id}-${it.__sectionKey}`}
+                sections={sections as any}
+                keyExtractor={(it: any) => `${it.pool.id}-${it.__sectionKey}`}
                 stickySectionHeadersEnabled
                 renderSectionHeader={renderSectionHeader}
-                renderItem={({ item, index }) => (
+                renderItem={({ item, index }: any) => (
                     <PoolItem
                         enrichedPoolMatches={item}
                         handlePoolPress={handlePoolPress}
@@ -140,17 +163,25 @@ const MatchListContainer: React.FC<MatchListContainerProps> = ({
                 )}
                 onEndReachedThreshold={0.5}
                 onEndReached={handleLoadMore}
-                ItemSeparatorComponent={() => <View style={styles.itemSeparator} />}
-                SectionSeparatorComponent={() => <View style={styles.sectionSeparator} />}
+                ItemSeparatorComponent={() => (
+                    <View
+                        style={styles.itemSeparator}
+                    />
+                )}
+                SectionSeparatorComponent={() => (
+                    <View
+                        style={styles.sectionSeparator}
+                    />
+                )}
                 showsVerticalScrollIndicator={false}
-                refreshControl={
+                refreshControl={(
                     <RefreshControl
                         refreshing={isRefreshing}
                         onRefresh={handleRefresh}
                         tintColor={theme.text}
                         progressViewOffset={headerOffset}
                     />
-                }
+                )}
                 ListEmptyComponent={() => (
                     <EmptyState
                         title="Aucun match trouvé"
@@ -166,26 +197,48 @@ const MatchListContainer: React.FC<MatchListContainerProps> = ({
                 onScroll={
                     scrollY
                         ? Animated.event(
-                            [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-                            { useNativeDriver: true }
+                            [
+                                {
+                                    nativeEvent: {
+                                        contentOffset: {
+                                            y: scrollY,
+                                        },
+                                    },
+                                },
+                            ],
+                            {
+                                useNativeDriver: true,
+                            }
                         )
                         : undefined
                 }
                 contentContainerStyle={contentContainerStyle}
                 ListFooterComponent={
-                    (isFetchingNextPage && hasNextPage) ? (
-                        <ActivityIndicator style={{ marginBottom: SECTION_SEPARATOR_HEIGHT }} />
+                    isFetchingNextPage && hasNextPage ? (
+                        <ActivityIndicator
+                            style={{
+                                marginBottom: SECTION_SEPARATOR_HEIGHT,
+                            }}
+                        />
                     ) : null
                 }
                 maintainVisibleContentPosition={{
                     minIndexForVisible: sections.length > 0 ? 1 : 0,
                 }}
+                testID="matchlist-sectionlist"
             />
         );
     }
 
     return (
-        <View style={[styles.container, { backgroundColor: theme.background }]}>
+        <View
+            style={[
+                styles.container,
+                {
+                    backgroundColor: theme.background,
+                },
+            ]}
+        >
             {body}
         </View>
     );
@@ -194,8 +247,18 @@ const MatchListContainer: React.FC<MatchListContainerProps> = ({
 export default MatchListContainer;
 
 const styles = StyleSheet.create({
-    container: { flex: 1 },
-    center: { flex: 1, justifyContent: "center", alignItems: "center" },
-    itemSeparator: { height: 6 },
-    sectionSeparator: { height: SECTION_SEPARATOR_HEIGHT },
+    container: {
+        flex: 1,
+    },
+    center: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+    },
+    itemSeparator: {
+        height: 6,
+    },
+    sectionSeparator: {
+        height: SECTION_SEPARATOR_HEIGHT,
+    },
 });

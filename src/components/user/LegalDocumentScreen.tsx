@@ -1,22 +1,25 @@
-// LegalDocumentScreen.tsx
 import React, { useRef } from "react";
 import { ActivityIndicator, View, StyleSheet, Text } from "react-native";
 import { BottomSheetModal, BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import * as Haptics from "expo-haptics";
 import Markdown from "react-native-markdown-display";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import { useLegalDocument } from "@/src/hooks/config/legalDocument/useLegalDocument";
-import BottomSheetCustomModal from "../common/BottomSheetCustomModal";
-import LegalDocumentForm from "./components/LegalDocumentForm";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import LegalDocumentHeader from "./components/LegalDocumentHeader";
+import BottomSheetCustomModal from "@/src/components/common/bottomSheet/BottomSheetCustomModal";
+import LegalDocumentForm from "@/src/components/user/LegalDocumentForm";
+import LegalDocumentHeader from "@/src/components/user/LegalDocumentHeader";
 import useHasScopes from "@/src/hooks/user/useHasScopes";
 import ErrorState from "@/src/components/common/feedback/ErrorState";
 
-type LegalDocumentScreenProps = {
+/** Legal document screen in sheet. */
+export type LegalDocumentScreenProps = {
+    /** Document type. */
     type: "imprint" | "privacy" | "terms";
+    /** Header title. */
     title: string;
+    /** Close the parent sheet. */
     onCloseSheet: () => void;
 };
 
@@ -29,7 +32,7 @@ const LegalDocumentScreen: React.FC<LegalDocumentScreenProps> = ({ type, title, 
 
     const openEdit = () => {
         if (!data) return;
-        void Haptics.selectionAsync();
+        Haptics.selectionAsync();
         sheetRef.current?.present();
     };
     const closeEdit = () => sheetRef.current?.dismiss();
@@ -37,33 +40,68 @@ const LegalDocumentScreen: React.FC<LegalDocumentScreenProps> = ({ type, title, 
     let body: React.ReactNode;
     if (isLoading) {
         body = (
-            <View style={[styles.center, { backgroundColor: theme.background }]}>
-                <ActivityIndicator color={theme.primary} />
+            <View
+                style={[
+                    styles.center,
+                    {
+                        backgroundColor: theme.background,
+                    },
+                ]}
+            >
+                <ActivityIndicator
+                    color={theme.primary}
+                />
             </View>
         );
     } else if (error) {
-        body = <ErrorState subtitle="Impossible de charger le document." onRetry={refetch} />;
+        body = (
+            <ErrorState
+                subtitle="Impossible de charger le document."
+                onRetry={refetch}
+            />
+        );
     } else if (!data) {
-        body = <ErrorState subtitle="Ce document est introuvable." onRetry={refetch} />;
+        body = (
+            <ErrorState
+                subtitle="Ce document est introuvable."
+                onRetry={refetch}
+            />
+        );
     } else {
         body = (
             <>
-                <BottomSheetScrollView contentContainerStyle={{ paddingTop: 8, paddingBottom: insets.bottom }}>
-                        <Markdown
-                            style={{
-                                body: { paddingHorizontal: 16 },
-                                paragraph: { paddingLeft: 8, color: theme.text, fontSize: 14, lineHeight: 22, marginBottom: 24 },
-                                heading1: { color: theme.text, fontSize: 24, fontWeight: "700", lineHeight: 30, marginBottom: 12 },
-                                heading2: { color: theme.text, fontSize: 20, fontWeight: "700", lineHeight: 26 },
-                                heading3: { color: theme.text, fontSize: 16, fontWeight: "600", lineHeight: 22 },
-                                bullet_list: { marginBottom: 8 },
-                                list_item: { fontSize: 14, lineHeight: 22, color: theme.text },
-                            }}
-                        >
-                            {data.content}
-                        </Markdown>
+                <BottomSheetScrollView
+                    contentContainerStyle={[
+                        {
+                            paddingTop: 8,
+                            paddingBottom: insets.bottom,
+                        },
+                    ]}
+                >
+                    <Markdown
+                        style={{
+                            body: { paddingHorizontal: 16 },
+                            paragraph: { paddingLeft: 8, color: theme.text, fontSize: 14, lineHeight: 22, marginBottom: 24 },
+                            heading1: { color: theme.text, fontSize: 24, fontWeight: "700", lineHeight: 30, marginBottom: 12 },
+                            heading2: { color: theme.text, fontSize: 20, fontWeight: "700", lineHeight: 26 },
+                            heading3: { color: theme.text, fontSize: 16, fontWeight: "600", lineHeight: 22 },
+                            bullet_list: { marginBottom: 8 },
+                            list_item: { fontSize: 14, lineHeight: 22, color: theme.text },
+                        }}
+                    >
+                        {data.content}
+                    </Markdown>
 
-                        <Text style={[styles.update, { color: theme.textInactive }]}>Dernière mise à jour : {data.version}</Text>
+                    <Text
+                        style={[
+                            styles.update,
+                            {
+                                color: theme.textInactive,
+                            },
+                        ]}
+                    >
+                        Dernière mise à jour : {data.version}
+                    </Text>
                 </BottomSheetScrollView>
 
                 <BottomSheetCustomModal
@@ -84,8 +122,20 @@ const LegalDocumentScreen: React.FC<LegalDocumentScreenProps> = ({ type, title, 
     }
 
     return (
-        <View style={[styles.screen, { backgroundColor: theme.background }]}>
-            <LegalDocumentHeader title={title} onCloseSheet={onCloseSheet} onEdit={canEdit ? openEdit : undefined} />
+        <View
+            style={[
+                styles.screen,
+                {
+                    backgroundColor: theme.background,
+                },
+            ]}
+            testID="legal-document-screen"
+        >
+            <LegalDocumentHeader
+                title={title}
+                onCloseSheet={onCloseSheet}
+                onEdit={canEdit ? openEdit : undefined}
+            />
             {body}
         </View>
     );
@@ -94,7 +144,17 @@ const LegalDocumentScreen: React.FC<LegalDocumentScreenProps> = ({ type, title, 
 export default LegalDocumentScreen;
 
 const styles = StyleSheet.create({
-    screen: { flex: 1 },
-    center: { flex: 1, justifyContent: "center", alignItems: "center" },
-    update: { textAlign: "center", fontSize: 12, marginTop: 12 },
+    screen: {
+        flex: 1,
+    },
+    center: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+    },
+    update: {
+        textAlign: "center",
+        fontSize: 12,
+        marginTop: 12,
+    },
 });

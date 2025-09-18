@@ -4,16 +4,17 @@ import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import { useLocalSearchParams } from "expo-router";
 
 import { useEnrichedPoolById } from "@/src/hooks/pool/useEnrichedPoolById";
-import PoolSkeleton from "@/src/components/pool/components/PoolSkeleton";
-import PoolProfile from "@/src/components/pool/components/PoolProfile";
-import PoolTabs from "@/src/components/pool/components/PoolTabs";
+import PoolSkeleton from "@/src/components/pool/PoolSkeleton";
+import PoolProfile from "@/src/components/pool/PoolProfile";
+import PoolTabs from "@/src/components/pool/PoolTabs";
 import ErrorState from "@/src/components/common/feedback/ErrorState";
 import { useAppTheme } from "@/src/context/ThemeProvider";
-import PoolHeader from "@/src/components/pool/components/PoolHeader";
-import BottomSheetCustomModal from "@/src/components/common/BottomSheetCustomModal";
+import PoolHeader from "@/src/components/pool/PoolHeader";
+import BottomSheetCustomModal from "@/src/components/common/bottomSheet/BottomSheetCustomModal";
 import ReportForm from "@/src/components/report/ReportForm";
 import { ReportType } from "@/src/types/Report";
 
+/** Pool root screen. */
 const PoolScreen: React.FC = () => {
     const theme = useAppTheme();
     const { id } = useLocalSearchParams();
@@ -21,7 +22,6 @@ const PoolScreen: React.FC = () => {
 
     const reportSheetRef = useRef<BottomSheetModal>(null);
 
-    // Handlers stabilisés
     const handleOpenReport = useCallback(() => {
         reportSheetRef.current?.present();
     }, []);
@@ -30,10 +30,11 @@ const PoolScreen: React.FC = () => {
         reportSheetRef.current?.dismiss();
     }, []);
 
-    // Body mémoïsé
     const body = useMemo(() => {
         if (isLoading) {
-            return <PoolSkeleton />;
+            return (
+                <PoolSkeleton />
+            );
         }
         if (error) {
             return (
@@ -53,7 +54,6 @@ const PoolScreen: React.FC = () => {
                 />
             );
         }
-
         return (
             <>
                 <PoolProfile enrichedPool={enrichedPool} />
@@ -63,12 +63,26 @@ const PoolScreen: React.FC = () => {
     }, [isLoading, error, enrichedPool, refetch]);
 
     return (
-        <View style={[styles.container, { backgroundColor: theme.background }]}>
-            <PoolHeader title={enrichedPool?.name} onOpenReport={handleOpenReport} />
+        <View
+            style={[
+                styles.container,
+                {
+                    backgroundColor: theme.background,
+                },
+            ]}
+            testID="pool-screen"
+        >
+            <PoolHeader
+                title={enrichedPool?.name}
+                onOpenReport={handleOpenReport}
+            />
 
             {body}
 
-            <BottomSheetCustomModal ref={reportSheetRef} snapPoint="90%">
+            <BottomSheetCustomModal
+                ref={reportSheetRef}
+                snapPoint={"90%"}
+            >
                 <ReportForm
                     context={{
                         screen: "Pool",
@@ -84,5 +98,7 @@ const PoolScreen: React.FC = () => {
 export default PoolScreen;
 
 const styles = StyleSheet.create({
-    container: { flex: 1 },
+    container: {
+        flex: 1,
+    },
 });

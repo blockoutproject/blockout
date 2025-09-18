@@ -13,19 +13,31 @@ export const INFOCHIP_METRICS = {
     fontWeight: "800" as const,
 };
 
-type Props = {
+type InfoChipProps = {
+    /** Icône à gauche. */
     icon: React.ComponentProps<typeof MaterialCommunityIcons>["name"];
+    /** Libellé. */
     label: string;
+    /** Largeur max du contenu. */
     maxWidth?: number;
 };
 
-const InfoChip: React.FC<Props> = memo(({ icon, label, maxWidth }) => {
+const InfoChip: React.FC<InfoChipProps> = ({
+    icon,
+    label,
+    maxWidth
+}) => {
     const theme = useAppTheme();
+
     return (
         <View
             style={[
                 styles.chipOuter,
-                { backgroundColor: theme.surface, borderColor: theme.border, borderWidth: INFOCHIP_METRICS.border },
+                {
+                    backgroundColor: theme.surface,
+                    borderColor: theme.border,
+                    borderWidth: INFOCHIP_METRICS.border,
+                },
                 maxWidth ? { maxWidth } : null,
             ]}
         >
@@ -37,7 +49,7 @@ const InfoChip: React.FC<Props> = memo(({ icon, label, maxWidth }) => {
             </View>
         </View>
     );
-});
+};
 
 export default InfoChip;
 

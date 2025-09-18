@@ -1,0 +1,124 @@
+import React from "react";
+import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+
+import { useAppTheme } from "@/src/context/ThemeProvider";
+import { HEADER_HEIGHT } from "@/src/theme/globals";
+import { useBackOrClose } from "@/src/hooks/utils/useBackOrClose";
+
+/** Header for club screen with back/close and report. */
+export type ClubHeaderProps = {
+    /** Screen title. */
+    title: string;
+    /** Close handler for sheet mode. */
+    onCloseSheet: () => void;
+    /** Open report modal. */
+    onOpenReport: () => void;
+};
+
+const ClubHeader: React.FC<ClubHeaderProps> = ({ title, onCloseSheet, onOpenReport }) => {
+    const theme = useAppTheme();
+    const insets = useSafeAreaInsets();
+    const { handleBack, canGoBack } = useBackOrClose(onCloseSheet);
+
+    return (
+        <View
+            style={[
+                {
+                    paddingTop: insets.top,
+                },
+            ]}
+        >
+            <View
+                style={styles.header}
+            >
+                <View
+                    style={styles.leftGroup}
+                >
+                    <TouchableOpacity
+                        onPress={handleBack}
+                        style={styles.backButton}
+                    >
+                        <Ionicons
+                            name={canGoBack ? "chevron-back-outline" : "close"}
+                            size={25}
+                            color={theme.text}
+                        />
+                    </TouchableOpacity>
+
+                    <Text
+                        style={[
+                            styles.title,
+                            {
+                                color: theme.text,
+                            },
+                        ]}
+                        numberOfLines={1}
+                        ellipsizeMode="tail"
+                    >
+                        {title}
+                    </Text>
+                </View>
+
+                <View
+                    style={styles.rightGroup}
+                >
+                    <TouchableOpacity
+                        onPress={onOpenReport}
+                        hitSlop={{
+                            top: 10,
+                            bottom: 10,
+                            left: 10,
+                            right: 10,
+                        }}
+                        style={styles.iconBtn}
+                        activeOpacity={0.7}
+                    >
+                        <MaterialCommunityIcons
+                            name="flag-outline"
+                            size={28}
+                            color={theme.text}
+                        />
+                    </TouchableOpacity>
+                </View>
+            </View>
+        </View>
+    );
+};
+
+export default ClubHeader;
+
+const styles = StyleSheet.create({
+    container: {
+        backgroundColor: "transparent",
+    },
+    header: {
+        height: HEADER_HEIGHT,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        paddingHorizontal: 12,
+    },
+    leftGroup: {
+        flexDirection: "row",
+        alignItems: "center",
+        flex: 1,
+    },
+    backButton: {
+        marginRight: 4,
+    },
+    title: {
+        fontSize: 18,
+        fontWeight: "700",
+        flexShrink: 1,
+    },
+    rightGroup: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 12,
+    },
+    iconBtn: {
+        padding: 4,
+    },
+});

@@ -1,17 +1,16 @@
-// src/screens/team/TeamScreen.tsx
 import React, { useCallback, useMemo, useRef } from "react";
 import { StyleSheet, View } from "react-native";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import { useLocalSearchParams } from "expo-router";
 
 import { useEnrichedTeamById } from "@/src/hooks/team/useEnrichedTeamById";
-import TeamSkeleton from "@/src/components/team/components/TeamSkeleton";
-import TeamProfile from "@/src/components/team/components/TeamProfile";
-import TeamTabs from "@/src/components/team/components/TeamTabs";
+import TeamSkeleton from "@/src/components/team/TeamSkeleton";
+import TeamProfile from "@/src/components/team/TeamProfile";
+import TeamTabs from "@/src/components/team/TeamTabs";
 import ErrorState from "@/src/components/common/feedback/ErrorState";
 import { useAppTheme } from "@/src/context/ThemeProvider";
-import TeamHeader from "@/src/components/team/components/TeamHeader";
-import BottomSheetCustomModal from "@/src/components/common/BottomSheetCustomModal";
+import TeamHeader from "@/src/components/team/TeamHeader";
+import BottomSheetCustomModal from "@/src/components/common/bottomSheet/BottomSheetCustomModal";
 import ReportForm from "@/src/components/report/ReportForm";
 import { ReportType } from "@/src/types/Report";
 
@@ -22,7 +21,6 @@ const TeamScreen: React.FC = () => {
 
     const reportSheetRef = useRef<BottomSheetModal>(null);
 
-    // Handlers stables
     const handleOpenReport = useCallback(() => {
         reportSheetRef.current?.present();
     }, []);
@@ -31,17 +29,18 @@ const TeamScreen: React.FC = () => {
         reportSheetRef.current?.dismiss();
     }, []);
 
-    // Rendu principal mémoïsé (évite recréations inutiles)
     const body = useMemo(() => {
         if (isLoading) {
-            return <TeamSkeleton />;
+            return (
+                <TeamSkeleton />
+            );
         }
         if (error) {
             return (
                 <ErrorState
                     subtitle="Impossible de charger l'équipe."
                     onRetry={refetch}
-                    paddingTop="40%"
+                    paddingTop={"40%"}
                 />
             );
         }
@@ -50,11 +49,10 @@ const TeamScreen: React.FC = () => {
                 <ErrorState
                     subtitle="Cette équipe est introuvable."
                     onRetry={refetch}
-                    paddingTop="40%"
+                    paddingTop={"40%"}
                 />
             );
         }
-
         return (
             <>
                 <TeamProfile enrichedTeam={team} />
@@ -64,14 +62,31 @@ const TeamScreen: React.FC = () => {
     }, [isLoading, error, team, refetch]);
 
     return (
-        <View style={[styles.container, { backgroundColor: theme.background }]}>
-            <TeamHeader title={team?.name} onOpenReport={handleOpenReport} />
+        <View
+            style={[
+                styles.container,
+                {
+                    backgroundColor: theme.background,
+                },
+            ]}
+            testID="team-screen"
+        >
+            <TeamHeader
+                title={team?.name}
+                onOpenReport={handleOpenReport}
+            />
 
             {body}
 
-            <BottomSheetCustomModal ref={reportSheetRef} snapPoint="90%">
+            <BottomSheetCustomModal
+                ref={reportSheetRef}
+                snapPoint={"90%"}
+            >
                 <ReportForm
-                    context={{ screen: "Team", defaultType: ReportType.DISPLAY_BUG }}
+                    context={{
+                        screen: "Team",
+                        defaultType: ReportType.DISPLAY_BUG,
+                    }}
                     onSuccess={handleCloseReport}
                 />
             </BottomSheetCustomModal>
@@ -82,5 +97,7 @@ const TeamScreen: React.FC = () => {
 export default TeamScreen;
 
 const styles = StyleSheet.create({
-    container: { flex: 1 },
+    container: {
+        flex: 1,
+    },
 });

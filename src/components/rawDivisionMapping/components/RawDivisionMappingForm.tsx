@@ -12,8 +12,8 @@ import { EnumFormat, FormatLabels } from "@/src/types/enums/Format";
 import { EnumGender, GenderLabels } from "@/src/types/enums/Gender";
 import { CORNERS } from "@/src/theme/globals";
 
-import FormSelect from "@/src/components/common/FormSelect";
-import SelectSheet, { SelectOption, SelectSheetRef } from "@/src/components/common/SelectSheet";
+import FormSelect from "@/src/components/common/form/FormSelect";
+import SelectSheet, { SelectOption, SelectSheetRef } from "@/src/components/common/bottomSheet/SelectSheet";
 import { BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import useKeyboardVisible from "@/src/hooks/utils/useKeyboardVisible";
 import ApiErrorToast from "../../common/feedback/ApiErrorToast";

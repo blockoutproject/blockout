@@ -21,9 +21,9 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import { Division } from "@/src/types/Division";
 import ConfigApi from "@/src/api/ConfigApi";
-import CircleColorPicker from "@/src/components/common/CircleColorPicker";
+import CircleColorPicker from "@/src/components/common/form/CircleColorPicker";
 import { CORNERS } from "@/src/theme/globals";
-import Field from "../../common/Field";
+import Field from "../../common/form/Field";
 import useKeyboardVisible from "@/src/hooks/utils/useKeyboardVisible";
 import ApiErrorToast from "../../common/feedback/ApiErrorToast";
 

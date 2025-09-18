@@ -2,16 +2,22 @@ import React, { useState } from "react";
 import StateCard from "./StateCard";
 import { DimensionValue } from "react-native";
 
+/** Props for the error state. */
 export type ErrorStateProps = {
-    message?: string;
+    /** Main message. */
+    title?: string;
+    /** Optional subtitle. */
     subtitle?: string;
+    /** Retry handler. */
     onRetry: () => void;
+    /** Optional top padding. */
     paddingTop?: DimensionValue;
+    /** Label for the retry action. */
     retryLabel?: string;
 };
 
 const ErrorState: React.FC<ErrorStateProps> = ({
-    message = "Oups ! Une erreur est survenue.",
+    title = "Oups ! Une erreur est survenue.",
     subtitle,
     onRetry,
     paddingTop = "20%",
@@ -20,10 +26,12 @@ const ErrorState: React.FC<ErrorStateProps> = ({
     const [retrying, setRetrying] = useState(false);
 
     const handleRetry = async () => {
-        if (retrying) return;
+        if (retrying) {
+            return;
+        }
         setRetrying(true);
         try {
-            await Promise.resolve(onRetry()); // support sync/async
+            await Promise.resolve(onRetry());
         } finally {
             setRetrying(false);
         }
@@ -31,7 +39,7 @@ const ErrorState: React.FC<ErrorStateProps> = ({
 
     return (
         <StateCard
-            title={message}
+            title={title}
             subtitle={subtitle}
             illustrationSource={require("@/assets/images/error.gif")}
             fallbackIcon="alert-circle-outline"
@@ -43,7 +51,12 @@ const ErrorState: React.FC<ErrorStateProps> = ({
                 disabled: retrying,
                 testID: "error-retry",
             }}
-            containerStyle={{ paddingTop }}
+            containerStyle={[
+                {
+                    paddingTop: paddingTop,
+                },
+            ]}
+            testID="error-state"
         />
     );
 };

@@ -4,19 +4,19 @@ import { Animated, StyleProp, ViewStyle } from "react-native";
 type FadeInProps = PropsWithChildren<{
     /** Démarre l’anim au montage. */
     playOnMount?: boolean;
-    /** Permet de rejouer l’anim si cette clé change (ex: id, index, filtre, etc.). */
+    /** Rejoue l’anim si cette clé change (id, index, filtre, etc.). */
     triggerKey?: string | number | boolean;
 
-    /** Durée de l’animation (ms). */
+    /** Durée (ms). */
     duration?: number;
-    /** Délai avant démarrage (ms). */
+    /** Délai (ms). */
     delay?: number;
 
     /** Opacité initiale et finale. */
     fromOpacity?: number;
     toOpacity?: number;
 
-    /** Décalage vertical de départ (ex: 8px vers le bas) et d’arrivée. */
+    /** Décalage Y initial et final. */
     fromTranslateY?: number;
     toTranslateY?: number;
 
@@ -25,20 +25,15 @@ type FadeInProps = PropsWithChildren<{
     /** Désactive l’anim et affiche directement l’état final. */
     disabled?: boolean;
 
-    /** Stagger utilitaire : index * step + base. (S’applique en plus de `delay`.) */
+    /** Stagger utilitaire : index * step + base. (S’ajoute à `delay`.) */
     appearIndex?: number;
     staggerBase?: number;
     staggerStep?: number;
 
-    /** Style supplémentaire sur le conteneur Animated.View. */
+    /** Style du conteneur Animated.View. */
     style?: StyleProp<ViewStyle>;
 }>;
 
-/**
- * FadeIn — enveloppe vos éléments et applique une anim "opacity + translateY".
- * Usage:
- * <FadeIn appearIndex={i}><MyRow /></FadeIn>
- */
 const FadeIn: React.FC<FadeInProps> = ({
     children,
     playOnMount = true,
@@ -60,21 +55,23 @@ const FadeIn: React.FC<FadeInProps> = ({
     const translateY = useRef(new Animated.Value(disabled ? toTranslateY : fromTranslateY)).current;
     const hasAnimated = useRef(false);
 
-    const effectiveDelay = (staggerBase + appearIndex * staggerStep) + delay;
+    const effectiveDelay = staggerBase + appearIndex * staggerStep + delay;
 
     useEffect(() => {
         if (disabled) {
-            // Snap direct à l’état final
             opacity.setValue(toOpacity);
             translateY.setValue(toTranslateY);
             return;
         }
 
-        if (!playOnMount) return;
+        const shouldRun = playOnMount || triggerKey !== undefined;
+        if (!shouldRun) return;
 
         if (once && hasAnimated.current) return;
-
         hasAnimated.current = true;
+
+        opacity.setValue(fromOpacity);
+        translateY.setValue(fromTranslateY);
 
         Animated.parallel([
             Animated.timing(opacity, {
@@ -90,10 +87,31 @@ const FadeIn: React.FC<FadeInProps> = ({
                 useNativeDriver: true,
             }),
         ]).start();
-    }, [playOnMount, triggerKey, disabled, duration, effectiveDelay, toOpacity, toTranslateY, once]);
+    }, [
+        playOnMount,
+        triggerKey,
+        disabled,
+        duration,
+        effectiveDelay,
+        fromOpacity,
+        toOpacity,
+        fromTranslateY,
+        toTranslateY,
+        once,
+        opacity,
+        translateY,
+    ]);
 
     return (
-        <Animated.View style={[style, { opacity, transform: [{ translateY }] }]}>
+        <Animated.View
+            style={[
+                style,
+                {
+                    opacity,
+                    transform: [{ translateY }],
+                },
+            ]}
+        >
             {children}
         </Animated.View>
     );

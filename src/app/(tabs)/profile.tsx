@@ -1,6 +1,5 @@
 import React, { useRef, useState } from "react";
 import { View, StyleSheet, ActivityIndicator, Text, Pressable, Alert } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
@@ -13,23 +12,21 @@ import useHasScopes from "@/src/hooks/user/useHasScopes";
 import ReportForm from "@/src/components/report/ReportForm";
 import { ReportType } from "@/src/types/Report";
 import { withAlpha } from "@/src/utils/utils";
-import BottomSheetCustomPage from "@/src/components/common/BottomSheetCustomPage";
+import BottomSheetCustomPage from "@/src/components/common/bottomSheet/BottomSheetCustomPage";
 import LegalDocumentScreen from "@/src/components/user/LegalDocumentScreen";
-import BottomSheetCustomModal from "@/src/components/common/BottomSheetCustomModal";
-import ProfileHero from "@/src/components/user/components/ProfileHero";
-import ProfileForm from "@/src/components/user/components/ProfileForm";
-import ProfileHeader from "@/src/components/user/components/ProfileHeader";
-import { ScrollView } from "react-native-gesture-handler";
+import BottomSheetCustomModal from "@/src/components/common/bottomSheet/BottomSheetCustomModal";
+import ProfileHero from "@/src/components/user/ProfileHero";
+import ProfileForm from "@/src/components/user/ProfileForm";
+import ProfileHeader from "@/src/components/user/ProfileHeader";
+
+const SPINNER_BOX = 18;
 
 const ProfileScreen: React.FC = () => {
-    const { refetch, customUser } = useSession();
     const theme = useAppTheme();
-    const insets = useSafeAreaInsets();
-    const { signOutSSO } = useSession();
+    const { refetch, customUser, signOutSSO } = useSession();
     const { allowed: canEdit } = useHasScopes(["update:current_user"]);
     const version = Application.nativeApplicationVersion ?? "1.0.0";
 
-    // état pour loaders
     const [isLoggingOut, setIsLoggingOut] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
     const busy = isLoggingOut || isDeleting;
@@ -41,34 +38,31 @@ const ProfileScreen: React.FC = () => {
     const reportSheetRef = useRef<BottomSheetModal>(null);
 
     const openLocal = (ref: React.RefObject<BottomSheetModal | null>) => () => {
-        void Haptics.selectionAsync();
+        Haptics.selectionAsync();
         ref.current?.present();
     };
     const dismissLocal = (ref: React.RefObject<BottomSheetModal | null>) => () => ref.current?.dismiss();
 
     const openForm = () => {
         if (!customUser) return;
-        void Haptics.selectionAsync();
+        Haptics.selectionAsync();
         formSheetRef.current?.present();
     };
     const closeForm = () => formSheetRef.current?.dismiss();
 
-    // Logout avec loader
     const handleLogout = async () => {
         try {
             setIsLoggingOut(true);
-            void Haptics.selectionAsync();
+            Haptics.selectionAsync();
             await signOutSSO();
-        } catch (e) {
-            console.log("Erreur lors de la déconnexion :", e);
+        } catch {
         } finally {
             setIsLoggingOut(false);
         }
     };
 
-    // Confirmation + suppression avec loader
     const handleDeleteAccount = async () => {
-        await Haptics.selectionAsync();
+        Haptics.selectionAsync();
         Alert.alert(
             "Supprimer mon compte",
             "Cette action est irréversible. Toutes vos données de compte seront supprimées. Confirmez-vous la suppression ?",
@@ -84,8 +78,7 @@ const ProfileScreen: React.FC = () => {
                             await UsersApi.getInstance().deleteCurrentUser();
                             await signOutSSO();
                             await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-                        } catch (e) {
-                            console.log("Erreur suppression compte :", e);
+                        } catch {
                             await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
                         } finally {
                             setIsDeleting(false);
@@ -98,8 +91,11 @@ const ProfileScreen: React.FC = () => {
     };
 
     const LegalItemRow: React.FC<{
+        /** Left icon name. */
         icon: React.ComponentProps<typeof MaterialCommunityIcons>["name"];
+        /** Row label. */
         label: string;
+        /** Press handler. */
         onPress: () => void;
     }> = ({ icon, label, onPress }) => (
         <Pressable
@@ -112,64 +108,101 @@ const ProfileScreen: React.FC = () => {
                     borderColor: withAlpha(theme.text, 0.1),
                 },
             ]}
+            testID={`legal-item-${label}`}
         >
             <View style={styles.itemLeft}>
-                <MaterialCommunityIcons name={icon} size={18} color={withAlpha(theme.text, 0.8)} />
-                <Text style={[styles.itemText, { color: theme.text }]} numberOfLines={1}>
+                <MaterialCommunityIcons
+                    name={icon}
+                    size={18}
+                    color={withAlpha(theme.text, 0.8)}
+                />
+                <Text
+                    style={[styles.itemText, { color: theme.text }]}
+                    numberOfLines={1}
+                >
                     {label}
                 </Text>
             </View>
-            <Ionicons name="chevron-forward-outline" size={20} color={withAlpha(theme.text, 0.5)} />
+            <Ionicons
+                name="chevron-forward-outline"
+                size={20}
+                color={withAlpha(theme.text, 0.5)}
+            />
         </Pressable>
     );
 
-    let body: React.ReactNode;
-    if (!customUser) {
-        body = (
-            <View style={[styles.center, { backgroundColor: theme.background }]}>
-                <ActivityIndicator size="large" color={theme.text} />
-            </View>
-        );
-    } else {
-        body = (
+    const renderBody = () => {
+        if (!customUser) {
+            return (
+                <View style={[styles.center, { backgroundColor: theme.background }]}>
+                    <ActivityIndicator size="large" color={theme.text} />
+                </View>
+            );
+        }
+
+        return (
             <>
-                <View style={styles.content} >
-                    <ProfileHero user={customUser} onEdit={canEdit ? openForm : undefined} />
+                <View style={styles.content}>
+                    <ProfileHero
+                        user={customUser}
+                        onEdit={canEdit ? openForm : undefined}
+                    />
 
                     <View style={styles.section}>
-                        <Text style={[styles.sectionTitle, { color: withAlpha(theme.text, 0.7) }]}>Légal</Text>
+                        <Text style={[styles.sectionTitle, { color: withAlpha(theme.text, 0.7) }]}>
+                            Légal
+                        </Text>
+
                         <View style={styles.cardList}>
-                            <LegalItemRow icon="file-document-outline" label="Mentions légales" onPress={openLocal(imprintRef)} />
-                            <LegalItemRow icon="script-text-outline" label="Conditions d'utilisation" onPress={openLocal(termsRef)} />
-                            <LegalItemRow icon="shield-lock-outline" label="Politique de confidentialité" onPress={openLocal(privacyRef)} />
+                            <LegalItemRow
+                                icon="file-document-outline"
+                                label="Mentions légales"
+                                onPress={openLocal(imprintRef)}
+                            />
+                            <LegalItemRow
+                                icon="script-text-outline"
+                                label="Conditions d'utilisation"
+                                onPress={openLocal(termsRef)}
+                            />
+                            <LegalItemRow
+                                icon="shield-lock-outline"
+                                label="Politique de confidentialité"
+                                onPress={openLocal(privacyRef)}
+                            />
                         </View>
                     </View>
 
                     <View style={styles.section}>
-                        <Text style={[styles.sectionTitle, { color: withAlpha(theme.text, 0.7) }]}>Compte</Text>
+                        <Text style={[styles.sectionTitle, { color: withAlpha(theme.text, 0.7) }]}>
+                            Compte
+                        </Text>
 
                         <View style={styles.actions}>
-                            {/* Bouton Déconnexion avec loader */}
                             <Pressable
                                 onPress={isLoggingOut ? undefined : handleLogout}
                                 disabled={busy}
                                 android_ripple={{ color: withAlpha("#000", 0.05) }}
                                 style={({ pressed }) => [
                                     styles.btnFilledDanger,
-                                    { backgroundColor: pressed && !busy ? withAlpha(theme.error, 0.9) : theme.error, opacity: busy ? 0.75 : 1 },
+                                    {
+                                        backgroundColor: pressed && !busy ? withAlpha(theme.error, 0.9) : theme.error,
+                                        opacity: busy ? 0.75 : 1,
+                                    },
                                 ]}
+                                testID="logout-btn"
                             >
-                                {isLoggingOut ? (
-                                    <>
-                                        <ActivityIndicator size="small" color={theme.text} />
-                                        <Text style={[styles.buttonText, { color: theme.text }]}>Déconnexion…</Text>
-                                    </>
-                                ) : (
-                                    <Text style={[styles.buttonText, { color: theme.text }]}>Se déconnecter</Text>
-                                )}
+                                <View style={styles.btnInner}>
+                                    <View style={styles.spinnerBox}>
+                                        {isLoggingOut ? (
+                                            <ActivityIndicator size="small" color={theme.text} />
+                                        ) : null}
+                                    </View>
+                                    <Text style={[styles.buttonText, { color: theme.text }]}>
+                                        {isLoggingOut ? "Déconnexion…" : "Se déconnecter"}
+                                    </Text>
+                                </View>
                             </Pressable>
 
-                            {/* Bouton Suppression avec loader + confirmation */}
                             <Pressable
                                 onPress={isDeleting ? undefined : handleDeleteAccount}
                                 disabled={busy}
@@ -182,40 +215,54 @@ const ProfileScreen: React.FC = () => {
                                         opacity: busy ? 0.75 : 1,
                                     },
                                 ]}
+                                testID="delete-account-btn"
                             >
-                                {isDeleting ? (
-                                    <>
-                                        <ActivityIndicator size="small" color={theme.error} />
-                                        <Text style={[styles.buttonText, { color: theme.error }]}>Suppression…</Text>
-                                    </>
-                                ) : (
-                                    <Text style={[styles.buttonText, { color: theme.error }]}>Supprimer mon compte</Text>
-                                )}
+                                <View style={styles.btnInner}>
+                                    <View style={styles.spinnerBox}>
+                                        {isDeleting ? (
+                                            <ActivityIndicator size="small" color={theme.error} />
+                                        ) : null}
+                                    </View>
+                                    <Text style={[styles.buttonText, { color: theme.error }]}>
+                                        {isDeleting ? "Suppression…" : "Supprimer mon compte"}
+                                    </Text>
+                                </View>
                             </Pressable>
 
                             <View style={styles.version}>
-                                <Text style={[styles.versionText, { color: theme.textInactive }]}>Version {version}</Text>
+                                <Text style={[styles.versionText, { color: theme.textInactive }]}>
+                                    Version {version}
+                                </Text>
                             </View>
                         </View>
                     </View>
                 </View>
 
                 <BottomSheetCustomPage ref={imprintRef}>
-                    <LegalDocumentScreen type="imprint" title="Mentions Légales" onCloseSheet={dismissLocal(imprintRef)} />
+                    <LegalDocumentScreen
+                        type="imprint"
+                        title="Mentions Légales"
+                        onCloseSheet={dismissLocal(imprintRef)}
+                    />
                 </BottomSheetCustomPage>
 
                 <BottomSheetCustomPage ref={termsRef}>
-                    <LegalDocumentScreen type="terms" title="Conditions Générales d'Utilisation" onCloseSheet={dismissLocal(termsRef)} />
+                    <LegalDocumentScreen
+                        type="terms"
+                        title="Conditions Générales d'Utilisation"
+                        onCloseSheet={dismissLocal(termsRef)}
+                    />
                 </BottomSheetCustomPage>
 
                 <BottomSheetCustomPage ref={privacyRef}>
-                    <LegalDocumentScreen type="privacy" title="Politique de Confidentialité" onCloseSheet={dismissLocal(privacyRef)} />
+                    <LegalDocumentScreen
+                        type="privacy"
+                        title="Politique de Confidentialité"
+                        onCloseSheet={dismissLocal(privacyRef)}
+                    />
                 </BottomSheetCustomPage>
 
-                <BottomSheetCustomModal
-                    ref={formSheetRef}
-                    snapPoint={"90%"}
-                >
+                <BottomSheetCustomModal ref={formSheetRef} snapPoint={"90%"}>
                     <ProfileForm
                         user={customUser}
                         onSuccess={async () => {
@@ -226,10 +273,7 @@ const ProfileScreen: React.FC = () => {
                     />
                 </BottomSheetCustomModal>
 
-                <BottomSheetCustomModal
-                    ref={reportSheetRef}
-                    snapPoint={"90%"}
-                >
+                <BottomSheetCustomModal ref={reportSheetRef} snapPoint={"90%"}>
                     <ReportForm
                         context={{
                             screen: "Profile",
@@ -242,28 +286,46 @@ const ProfileScreen: React.FC = () => {
                 </BottomSheetCustomModal>
             </>
         );
-    }
+    };
 
     return (
-        <View style={styles.container}>
+        <View style={styles.container} testID="profile-screen">
             <ProfileHeader
                 title="Profil"
                 onOpenReport={() => reportSheetRef.current?.present()}
             />
-            {body}
+            {renderBody()}
         </View>
     );
 };
 
+export default ProfileScreen;
+
 const styles = StyleSheet.create({
-    container: { flex: 1 },
-    center: { flex: 1, justifyContent: "center", alignItems: "center" },
-    content: { paddingHorizontal: 12, gap: 20 },
-
-    section: { gap: 12 },
-    sectionTitle: { fontSize: 12, fontWeight: "800", letterSpacing: 0.3, textTransform: "uppercase" },
-    cardList: { gap: 10 },
-
+    container: {
+        flex: 1,
+    },
+    center: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+    },
+    content: {
+        paddingHorizontal: 12,
+        gap: 20,
+    },
+    section: {
+        gap: 12,
+    },
+    sectionTitle: {
+        fontSize: 12,
+        fontWeight: "800",
+        letterSpacing: 0.3,
+        textTransform: "uppercase",
+    },
+    cardList: {
+        gap: 10,
+    },
     itemRow: {
         paddingHorizontal: 14,
         paddingVertical: 14,
@@ -273,16 +335,60 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "space-between",
     },
-    itemLeft: { flexDirection: "row", alignItems: "center", gap: 10, flex: 1, minWidth: 0 },
-    itemText: { fontSize: 14, fontWeight: "700", flex: 1 },
-
-    actions: { gap: 12, marginTop: 4 },
-    btnFilledDanger: { paddingVertical: 14, borderRadius: 999, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 10 },
-    btnOutlineDanger: { paddingVertical: 14, borderRadius: 999, alignItems: "center", borderWidth: 1, flexDirection: "row", justifyContent: "center", gap: 10 },
-    buttonText: { fontSize: 14, fontWeight: "800" },
-
-    version: { alignItems: "center", marginTop: 2 },
-    versionText: { fontSize: 12, fontWeight: "700", letterSpacing: 0.2 },
+    itemLeft: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 10,
+        flex: 1,
+        minWidth: 0,
+    },
+    itemText: {
+        fontSize: 14,
+        fontWeight: "700",
+        flex: 1,
+    },
+    actions: {
+        gap: 12,
+        marginTop: 4,
+    },
+    btnInner: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 10,
+    },
+    spinnerBox: {
+        width: SPINNER_BOX,
+        height: SPINNER_BOX,
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    btnFilledDanger: {
+        paddingVertical: 14,
+        borderRadius: 999,
+        alignItems: "center",
+        flexDirection: "row",
+        justifyContent: "center",
+    },
+    btnOutlineDanger: {
+        paddingVertical: 14,
+        borderRadius: 999,
+        alignItems: "center",
+        borderWidth: 1,
+        flexDirection: "row",
+        justifyContent: "center",
+    },
+    buttonText: {
+        fontSize: 14,
+        fontWeight: "800",
+    },
+    version: {
+        alignItems: "center",
+        marginTop: 2,
+    },
+    versionText: {
+        fontSize: 12,
+        fontWeight: "700",
+        letterSpacing: 0.2,
+    },
 });
-
-export default ProfileScreen;

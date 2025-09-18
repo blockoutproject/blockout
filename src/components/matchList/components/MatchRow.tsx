@@ -1,14 +1,17 @@
 import React from "react";
 import { Text, View, StyleSheet } from "react-native";
 import { EnrichedMatchDTO, MatchStatus } from "@/src/types/Match";
+import { Division } from "@/src/types/Division";
 import { withAlpha } from "@/src/utils/utils";
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import MaskedImage from "../../common/images/MaskedImage";
 import GradientBorderView from "../../common/GradientBorderView";
-import { Division } from "@/src/types/Division";
 
-type MatchRowProps = {
+/** Ligne compacte d’un match (logos, noms, heure/score). */
+export type MatchRowProps = {
+    /** Match enrichi à afficher. */
     enrichedMatch: EnrichedMatchDTO;
+    /** Division du match (pour le gradient du score). */
     division: Division;
 };
 
@@ -32,12 +35,26 @@ const MatchRow: React.FC<MatchRowProps> = ({ enrichedMatch, division }) => {
         <View
             style={[
                 styles.row,
-                { borderColor: withAlpha(theme.text, 0.15), backgroundColor: theme.surface },
+                {
+                    borderColor: withAlpha(theme.text, 0.15),
+                    backgroundColor: theme.surface,
+                },
             ]}
+            testID={`match-row-${enrichedMatch.id}`}
         >
-            <View style={[styles.team, styles.teamRight]}>
+            <View
+                style={[
+                    styles.team,
+                    styles.teamRight,
+                ]}
+            >
                 <Text
-                    style={[styles.teamName, { color: theme.text }]}
+                    style={[
+                        styles.teamName,
+                        {
+                            color: theme.text,
+                        },
+                    ]}
                     numberOfLines={2}
                     ellipsizeMode="tail"
                     adjustsFontSizeToFit
@@ -45,10 +62,17 @@ const MatchRow: React.FC<MatchRowProps> = ({ enrichedMatch, division }) => {
                 >
                     {enrichedMatch.teamA.shortName || "Équipe A"}
                 </Text>
-                <MaskedImage uri={enrichedMatch.teamA.logoUrl} size={28} radius={8} />
+
+                <MaskedImage
+                    uri={enrichedMatch.teamA.logoUrl}
+                    size={28}
+                    radius={8}
+                />
             </View>
 
-            <View style={styles.center}>
+            <View
+                style={styles.center}
+            >
                 {upcoming ? (
                     <View
                         style={[
@@ -59,12 +83,34 @@ const MatchRow: React.FC<MatchRowProps> = ({ enrichedMatch, division }) => {
                             },
                         ]}
                     >
-                        <Text style={[styles.timeText, { color: theme.text }]}>{matchTime}</Text>
+                        <Text
+                            style={[
+                                styles.timeText,
+                                {
+                                    color: theme.text,
+                                },
+                            ]}
+                        >
+                            {matchTime}
+                        </Text>
                     </View>
                 ) : (
-                    <GradientBorderView gradient={gradient} borderRadius={14} borderWidth={1}>
-                        <View style={styles.scoreBox}>
-                            <Text style={[styles.scoreText, { color: theme.text }]}>
+                    <GradientBorderView
+                        gradient={gradient}
+                        borderRadius={14}
+                        borderWidth={1}
+                    >
+                        <View
+                            style={styles.scoreBox}
+                        >
+                            <Text
+                                style={[
+                                    styles.scoreText,
+                                    {
+                                        color: theme.text,
+                                    },
+                                ]}
+                            >
                                 {enrichedMatch.set || "-"}
                             </Text>
                         </View>
@@ -72,10 +118,25 @@ const MatchRow: React.FC<MatchRowProps> = ({ enrichedMatch, division }) => {
                 )}
             </View>
 
-            <View style={[styles.team, styles.teamLeft]}>
-                <MaskedImage uri={enrichedMatch.teamB.logoUrl} size={28} radius={8} />
+            <View
+                style={[
+                    styles.team,
+                    styles.teamLeft,
+                ]}
+            >
+                <MaskedImage
+                    uri={enrichedMatch.teamB.logoUrl}
+                    size={28}
+                    radius={8}
+                />
+
                 <Text
-                    style={[styles.teamName, { color: theme.text }]}
+                    style={[
+                        styles.teamName,
+                        {
+                            color: theme.text,
+                        },
+                    ]}
                     numberOfLines={2}
                     ellipsizeMode="tail"
                     adjustsFontSizeToFit
@@ -105,8 +166,12 @@ const styles = StyleSheet.create({
         alignItems: "center",
         gap: 4,
     },
-    teamRight: { justifyContent: "flex-end" },
-    teamLeft: { justifyContent: "flex-start" },
+    teamRight: {
+        justifyContent: "flex-end",
+    },
+    teamLeft: {
+        justifyContent: "flex-start",
+    },
     teamName: {
         fontSize: 14,
         fontWeight: "700",
@@ -124,7 +189,18 @@ const styles = StyleSheet.create({
         borderRadius: 999,
         borderWidth: StyleSheet.hairlineWidth,
     },
-    timeText: { fontSize: 14, fontWeight: "700", letterSpacing: 0.2 },
-    scoreBox: { paddingHorizontal: 8, paddingVertical: 6 },
-    scoreText: { fontSize: 18, fontWeight: "700", letterSpacing: 0.2 },
+    timeText: {
+        fontSize: 14,
+        fontWeight: "700",
+        letterSpacing: 0.2,
+    },
+    scoreBox: {
+        paddingHorizontal: 8,
+        paddingVertical: 6,
+    },
+    scoreText: {
+        fontSize: 18,
+        fontWeight: "700",
+        letterSpacing: 0.2,
+    },
 });

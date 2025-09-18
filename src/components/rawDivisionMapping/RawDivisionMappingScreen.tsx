@@ -19,7 +19,7 @@ import Filters from "../common/Filters";
 import RawDivisionMappingItem from "./components/RawDivisionMappingItem";
 import RawDivisionMappingForm from "./components/RawDivisionMappingForm";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
-import BottomSheetCustomModal from "../common/BottomSheetCustomModal";
+import BottomSheetCustomModal from "../common/bottomSheet/BottomSheetCustomModal";
 import SearchBar from "../common/SearchBar";
 
 type FilterName = string;

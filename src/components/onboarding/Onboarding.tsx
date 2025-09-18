@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from "react";
+import React, { useState } from "react";
 import {
     Dimensions,
     Platform,
@@ -67,18 +67,19 @@ export function FancyOnboarding({
     const dragX = useSharedValue(0);
     const jsGoTo = (i: number) => goTo(i);
 
-    const pan = Gesture.Pan()
-        .onEnd((e) => {
-            const should = Math.abs(e.translationX) > SCREEN_W * 0.25 || Math.abs(e.velocityX) > 600;
-            if (should) {
-                if (e.translationX < 0 && !isLast) {
-                    runOnJS(jsGoTo)(index + 1);
-                } else if (e.translationX > 0 && !isFirst) {
-                    runOnJS(jsGoTo)(index - 1);
-                }
+    const pan = Gesture.Pan().onEnd((e) => {
+        const should =
+            Math.abs(e.translationX) > SCREEN_W * 0.25 ||
+            Math.abs(e.velocityX) > 600;
+        if (should) {
+            if (e.translationX < 0 && !isLast) {
+                runOnJS(jsGoTo)(index + 1);
+            } else if (e.translationX > 0 && !isFirst) {
+                runOnJS(jsGoTo)(index - 1);
             }
-            dragX.value = withSpring(0);
-        });
+        }
+        dragX.value = withSpring(0);
+    });
 
     const dragStyle = useAnimatedStyle(() => ({
         transform: [{ translateX: dragX.value * 0.08 }],
@@ -92,8 +93,10 @@ export function FancyOnboarding({
         };
     });
 
+    // ✅ Une seule source de vérité: le scroll
     useDerivedValue(() => {
         const next = Math.round(svX.value / SCREEN_W);
+        // évite les appels redondants
         if (next !== index) {
             runOnJS(setIndex)(next);
         }
@@ -103,7 +106,8 @@ export function FancyOnboarding({
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => { });
         // @ts-ignore
         scrollRef.current?.scrollTo({ x: i * SCREEN_W, animated: true });
-        setIndex(i);
+        // ❌ NE PLUS toucher à setIndex ici
+        // setIndex(i); // 👈 CHANGED (supprimé)
     };
 
     const onNext = async () => {
@@ -118,7 +122,9 @@ export function FancyOnboarding({
         }
 
         if (isLast) {
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => { });
+            Haptics.notificationAsync(
+                Haptics.NotificationFeedbackType.Success
+            ).catch(() => { });
             onComplete();
         } else {
             goTo(index + 1);
@@ -143,10 +149,13 @@ export function FancyOnboarding({
                         onScroll={onScroll}
                         scrollEventThrottle={16}
                         contentContainerStyle={{ alignItems: "stretch" }}
-                        onMomentumScrollEnd={(e) => {
-                            const i = Math.round(e.nativeEvent.contentOffset.x / SCREEN_W);
-                            setIndex(i);
-                        }}
+                    // ❌ Ne plus recaler l'index ici
+                    // onMomentumScrollEnd={(e) => {
+                    //   const i = Math.round(
+                    //     e.nativeEvent.contentOffset.x / SCREEN_W
+                    //   );
+                    //   setIndex(i); // 👈 CHANGED (supprimé)
+                    // }}
                     >
                         {steps.map((step, i) => (
                             <Slide key={step.id} step={step} i={i} svX={svX} />

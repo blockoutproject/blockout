@@ -3,14 +3,22 @@ import { View, ViewStyle, StyleProp } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useAppTheme } from "@/src/context/ThemeProvider";
 
-type GradientBorderViewProps = {
+export type GradientBorderViewProps = {
+    /** Contenu enfant */
     children: React.ReactNode;
+    /** Style du panneau intérieur */
     style?: StyleProp<ViewStyle>;
+    /** Style du conteneur extérieur */
     outerStyle?: StyleProp<ViewStyle>;
+    /** Rayon extérieur */
     borderRadius?: number;
+    /** Largeur de la bordure */
     borderWidth?: number;
+    /** Couleurs du dégradé */
     gradient: readonly [string, string, ...string[]];
+    /** Point de départ du dégradé */
     start?: { x: number; y: number };
+    /** Point d’arrivée du dégradé */
     end?: { x: number; y: number };
 };
 
@@ -28,12 +36,22 @@ const GradientBorderView: React.FC<GradientBorderViewProps> = ({
     const innerRadius = Math.max(0, borderRadius - borderWidth);
 
     return (
-        <View style={[{ borderRadius, overflow: "hidden" }, outerStyle]}>
+        <View
+            style={[
+                {
+                    borderRadius,
+                    overflow: "hidden",
+                },
+                outerStyle,
+            ]}
+        >
             <LinearGradient
                 colors={gradient}
                 start={start}
                 end={end}
-                style={{ borderRadius }}
+                style={{
+                    borderRadius,
+                }}
             >
                 <View
                     style={[

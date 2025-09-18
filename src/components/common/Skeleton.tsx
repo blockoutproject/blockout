@@ -1,22 +1,27 @@
-import { useThemeColor } from '@/src/hooks/useThemeColor';
-import { BORDER_RADIUS, CORNERS } from '@/src/theme/globals';
-import React, { useEffect, useRef } from 'react';
-import { Animated, ViewStyle } from 'react-native';
+import React, { useEffect, useRef } from "react";
+import { Animated, StyleSheet, ViewStyle } from "react-native";
+import { useThemeColor } from "@/src/hooks/useThemeColor";
+import { BORDER_RADIUS, CORNERS } from "@/src/theme/globals";
 
-interface SkeletonProps {
+/** Composant skeleton animé. */
+export type SkeletonProps = {
+    /** Largeur (par défaut "100%"). */
     width?: number | string;
+    /** Hauteur (par défaut 100). */
     height?: number;
+    /** Styles additionnels. */
     style?: ViewStyle;
-    variant?: 'default' | 'rounded';
-}
+    /** Forme : coins arrondis ou rayon constant. */
+    variant?: "default" | "rounded";
+};
 
-export function Skeleton({
-    width = '100%',
+export const Skeleton: React.FC<SkeletonProps> = ({
+    width = "100%",
     height = 100,
     style,
-    variant = 'default',
-}: SkeletonProps) {
-    const mutedColor = useThemeColor({}, 'muted');
+    variant = "default",
+}) => {
+    const mutedColor = useThemeColor({}, "muted");
     const opacity = useRef(new Animated.Value(0.5)).current;
 
     useEffect(() => {
@@ -34,17 +39,16 @@ export function Skeleton({
                 }),
             ])
         );
-
         animation.start();
-
         return () => animation.stop();
     }, [opacity]);
 
     return (
         <Animated.View
             style={[
+                styles.base,
                 {
-                    width: width as any, // Type assertion to bypass the strict typing
+                    width: width as any,
                     height,
                     backgroundColor: mutedColor,
                     borderRadius: variant === 'default' ? CORNERS : BORDER_RADIUS,
@@ -54,4 +58,10 @@ export function Skeleton({
             ]}
         />
     );
-}
+};
+
+const styles = StyleSheet.create({
+    base: {
+        overflow: "hidden",
+    },
+});

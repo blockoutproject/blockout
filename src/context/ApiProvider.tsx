@@ -1,6 +1,7 @@
 import React, { useEffect } from "react";
 import { useAuth0 } from "react-native-auth0";
 import { useSession } from "@/src/context/SessionProvider";
+
 import MatchesApi from "@/src/api/MatchesApi";
 import TeamsApi from "@/src/api/TeamsApi";
 import PoolsApi from "@/src/api/PoolsApi";
@@ -10,9 +11,10 @@ import SearchApi from "@/src/api/SearchApi";
 import MobileGatewayApi from "@/src/api/MobileGatewayApi";
 import ConfigApi from "@/src/api/ConfigApi";
 import ClubsApi from "@/src/api/ClubsApi";
-import ReportsApi from "../api/ReportsApi";
-import NotificationsApi from "../api/NotificationsApi";
+import ReportsApi from "@/src/api/ReportsApi";
+import NotificationsApi from "@/src/api/NotificationsApi";
 
+/** Props: { children } Arbre rendu après initialisation des clients API */
 export const ApiProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const { softResetAuth, auth0User } = useSession();
     const { getCredentials } = useAuth0();
@@ -21,14 +23,14 @@ export const ApiProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         (async () => {
             try {
                 if (!auth0User) {
-                    console.log("API init skipped (session not ready yet)");
                     return;
                 }
+
                 const creds = await getCredentials(undefined, 60);
                 const token = creds?.accessToken;
-                if (!token) return;
-
-                console.log("API init with token:", token);
+                if (!token) {
+                    return;
+                }
 
                 const tokenSupplier = async () => {
                     const c = await getCredentials(undefined, 60);
@@ -50,8 +52,8 @@ export const ApiProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 ClubsApi.initInstance(token, { tokenSupplier, onUnauthorized });
                 ReportsApi.initInstance(token, { tokenSupplier, onUnauthorized });
                 NotificationsApi.initInstance(token, { tokenSupplier, onUnauthorized });
-            } catch (e) {
-                console.log("API init skipped (credentials not ready yet):", e);
+            } catch {
+                return;
             }
         })();
     }, [auth0User, getCredentials, softResetAuth]);

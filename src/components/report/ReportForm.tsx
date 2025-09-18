@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
     View,
     Text,
@@ -27,17 +27,32 @@ import { CORNERS } from "@/src/theme/globals";
 import { ReportType, type Report, type GitHubIssueResponse } from "@/src/types/Report";
 import Filters from "@/src/components/common/Filters";
 import type { Filter } from "@/src/types/Filter";
-import Field from "../common/Field";
+import Field from "@/src/components/common/form/Field";
 import useKeyboardVisible from "@/src/hooks/utils/useKeyboardVisible";
 import { useSession } from "@/src/context/SessionProvider";
 
-type ReportFormProps = {
+/** Lightweight context to prefill the form. */
+export type ReportFormProps = {
+    /** Optional context to enrich the report. */
     context?: {
+        /** Screen where the report is created. */
         screen?: string;
+        /** Default category. */
         defaultType?: ReportType;
+        /** Explicit user id if different from session. */
         userId?: string;
     };
+    /** Callback when the report has been created. */
     onSuccess: (created: GitHubIssueResponse) => void;
+};
+
+type FormValues = {
+    /** Report category. */
+    type: ReportType;
+    /** Short title. */
+    title: string;
+    /** Detailed description. */
+    description?: string;
 };
 
 const FOOTER_HEIGHT = 60;
@@ -69,15 +84,11 @@ const ReportForm: React.FC<ReportFormProps> = ({ context, onSuccess }) => {
                 errorTimerRef.current = null;
             }
             errorOpacity.setValue(0);
-
             Animated.timing(errorOpacity, { toValue: 1, duration: 180, useNativeDriver: true }).start();
-
             errorTimerRef.current = setTimeout(() => {
-                Animated.timing(errorOpacity, { toValue: 0, duration: 220, useNativeDriver: true }).start(
-                    ({ finished }) => {
-                        if (finished) setApiError(null);
-                    }
-                );
+                Animated.timing(errorOpacity, { toValue: 0, duration: 220, useNativeDriver: true }).start(({ finished }) => {
+                    if (finished) setApiError(null);
+                });
             }, 5000);
         }
         return () => {
@@ -92,33 +103,33 @@ const ReportForm: React.FC<ReportFormProps> = ({ context, onSuccess }) => {
         try {
             await Haptics.selectionAsync();
             const pickerResult = await ImagePicker.launchImageLibraryAsync({
-                mediaTypes: ["images"] as any,
+                mediaTypes: ImagePicker.MediaTypeOptions.Images,
                 quality: 1,
             });
             if (pickerResult.canceled) return;
-            const selected = pickerResult.assets[0];
-            if (!selected?.uri) return;
 
-            const manipContext = ImageManipulator.ImageManipulator.manipulate(selected.uri);
-            manipContext.resize({ width: 1280 });
-            const rendered = await manipContext.renderAsync();
+            const asset = pickerResult.assets[0];
+            if (!asset?.uri) return;
+
+            const manip = ImageManipulator.ImageManipulator.manipulate(asset.uri);
+            manip.resize({ width: 1280 });
+            const rendered = await manip.renderAsync();
             const saved = await rendered.saveAsync({
                 format: ImageManipulator.SaveFormat.JPEG,
                 compress: 0.9,
             });
 
-            const fileObj = { uri: saved.uri, name: `report-${images.length + 1}.jpg`, type: "image/jpeg" };
-            setImages((prev) => [...prev, fileObj]);
-        } catch (e) {
-            console.error(e);
+            setImages((prev) => [
+                ...prev,
+                {
+                    uri: saved.uri,
+                    name: `report-${prev.length + 1}.jpg`,
+                    type: "image/jpeg",
+                },
+            ]);
+        } catch {
             Alert.alert("Erreur", "Impossible de traiter l’image.");
         }
-    };
-
-    type FormValues = {
-        type: ReportType;
-        title: string;
-        description?: string;
     };
 
     const initialType = context?.defaultType ?? ReportType.DISPLAY_BUG;
@@ -155,8 +166,7 @@ const ReportForm: React.FC<ReportFormProps> = ({ context, onSuccess }) => {
                 const created = await api.createReport(payload, images);
                 await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
                 onSuccess(created);
-            } catch (err) {
-                console.error(err);
+            } catch {
                 setApiError("Création impossible, réessaie.");
                 await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
             } finally {
@@ -166,7 +176,10 @@ const ReportForm: React.FC<ReportFormProps> = ({ context, onSuccess }) => {
     });
 
     const [filters, setFilters] = useState<Filter[]>(
-        CATEGORY_OPTIONS.map((opt) => ({ name: opt.name, isActive: opt.value === initialType }))
+        CATEGORY_OPTIONS.map((opt) => ({
+            name: opt.name,
+            isActive: opt.value === initialType,
+        }))
     );
 
     useEffect(() => {
@@ -176,51 +189,101 @@ const ReportForm: React.FC<ReportFormProps> = ({ context, onSuccess }) => {
         if (found && found.value !== formik.values.type) {
             formik.setFieldValue("type", found.value);
         }
-    }, [filters]);
-
-    const typeLabel = useMemo(
-        () => CATEGORY_OPTIONS.find((c) => c.value === formik.values.type)?.name ?? "Catégorie",
-        [formik.values.type]
-    );
+    }, [filters, formik]);
 
     const outerPaddingBottom = isKeyboardVisible ? 8 : insets.bottom + 8;
     const errorBottomOffset = FOOTER_HEIGHT + outerPaddingBottom;
 
     return (
-        <View style={{ flex: 1, paddingBottom: outerPaddingBottom }}>
+        <View
+            style={{
+                flex: 1,
+                paddingBottom: outerPaddingBottom,
+            }}
+            testID="report-form"
+        >
             <BottomSheetScrollView
                 contentContainerStyle={[
                     styles.scroll,
-                    { paddingBottom: FOOTER_HEIGHT + outerPaddingBottom },
+                    {
+                        paddingBottom: FOOTER_HEIGHT + outerPaddingBottom,
+                    },
                 ]}
                 showsVerticalScrollIndicator={false}
             >
-                <View style={[styles.card, { backgroundColor: theme.surface }]}>
-                    <Text style={[styles.sectionTitle, { color: theme.text }]}>Catégorie</Text>
+                <View
+                    style={[
+                        styles.card,
+                        {
+                            backgroundColor: theme.surface,
+                        },
+                    ]}
+                >
+                    <Text
+                        style={[
+                            styles.sectionTitle,
+                            {
+                                color: theme.text,
+                            },
+                        ]}
+                    >
+                        Catégorie
+                    </Text>
+
                     <Filters
                         filters={filters}
                         setFilters={setFilters}
                         singleSelect
                         requireSelection
-                        containerStyle={{ paddingHorizontal: 0 }}
+                        containerStyle={{
+                            paddingHorizontal: 0,
+                        }}
                     />
                 </View>
 
-                <View style={[styles.card, { backgroundColor: theme.surface }]}>
-                    <Text style={[styles.sectionTitle, { color: theme.text }]}>Détails</Text>
+                <View
+                    style={[
+                        styles.card,
+                        {
+                            backgroundColor: theme.surface,
+                        },
+                    ]}
+                >
+                    <Text
+                        style={[
+                            styles.sectionTitle,
+                            {
+                                color: theme.text,
+                            },
+                        ]}
+                    >
+                        Détails
+                    </Text>
 
-                    <Field label="Titre" error={formik.errors.title as string} touched={formik.touched.title}>
+                    <Field
+                        label="Titre"
+                        error={formik.errors.title as string}
+                        touched={formik.touched.title}
+                    >
                         <BottomSheetTextInput
                             style={[
                                 styles.input,
-                                { borderColor: theme.border, color: theme.text },
-                                formik.touched.title && formik.errors.title ? { borderColor: theme.error } : null,
+                                {
+                                    borderColor: theme.border,
+                                    color: theme.text,
+                                },
+                                formik.touched.title && formik.errors.title
+                                    ? {
+                                        borderColor: theme.error,
+                                    }
+                                    : null,
                             ]}
                             value={formik.values.title}
                             onChangeText={formik.handleChange("title")}
                             onBlur={formik.handleBlur("title")}
                             placeholder="Titre"
                             placeholderTextColor={theme.textInactive}
+                            testID="report-title-input"
                         />
                     </Field>
 
@@ -235,34 +298,99 @@ const ReportForm: React.FC<ReportFormProps> = ({ context, onSuccess }) => {
                             style={[
                                 styles.input,
                                 styles.textarea,
-                                { borderColor: theme.border, color: theme.text },
-                                formik.touched.description && formik.errors.description ? { borderColor: theme.error } : null,
+                                {
+                                    borderColor: theme.border,
+                                    color: theme.text,
+                                },
+                                formik.touched.description && formik.errors.description
+                                    ? {
+                                        borderColor: theme.error,
+                                    }
+                                    : null,
                             ]}
                             value={formik.values.description}
                             onChangeText={formik.handleChange("description")}
                             onBlur={formik.handleBlur("description")}
                             placeholder="Décris le problème, les étapes pour le reproduire, le contexte…"
                             placeholderTextColor={theme.textInactive}
+                            testID="report-description-input"
                         />
                     </Field>
                 </View>
 
-                <View style={[styles.card, { backgroundColor: theme.surface }]}>
-                    <Text style={[styles.sectionTitle, { color: theme.text }]}>Captures</Text>
+                <View
+                    style={[
+                        styles.card,
+                        {
+                            backgroundColor: theme.surface,
+                        },
+                    ]}
+                >
+                    <Text
+                        style={[
+                            styles.sectionTitle,
+                            {
+                                color: theme.text,
+                            },
+                        ]}
+                    >
+                        Captures
+                    </Text>
 
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>
+                    <ScrollView
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        contentContainerStyle={{
+                            gap: 10,
+                        }}
+                    >
                         {images.map((img, i) => (
-                            <View key={i} style={[styles.thumbWrap, { borderColor: theme.border }]}>
-                                <Image source={{ uri: img.uri }} style={styles.thumb} contentFit="cover" />
+                            <View
+                                key={i}
+                                style={[
+                                    styles.thumbWrap,
+                                    {
+                                        borderColor: theme.border,
+                                    },
+                                ]}
+                            >
+                                <Image
+                                    source={{
+                                        uri: img.uri,
+                                    }}
+                                    style={styles.thumb}
+                                    contentFit="cover"
+                                />
                             </View>
                         ))}
+
                         <TouchableOpacity
                             onPress={handlePickImage}
                             activeOpacity={0.85}
-                            style={[styles.addBtn, { borderColor: theme.border, backgroundColor: theme.backgroundSecondary }]}
+                            style={[
+                                styles.addBtn,
+                                {
+                                    borderColor: theme.border,
+                                    backgroundColor: theme.backgroundSecondary,
+                                },
+                            ]}
+                            testID="add-image-btn"
                         >
-                            <MaterialCommunityIcons name="image-plus" size={20} color={theme.textInactive} />
-                            <Text style={[styles.addBtnText, { color: theme.textInactive }]}>Ajouter</Text>
+                            <MaterialCommunityIcons
+                                name="image-plus"
+                                size={20}
+                                color={theme.textInactive}
+                            />
+                            <Text
+                                style={[
+                                    styles.addBtnText,
+                                    {
+                                        color: theme.textInactive,
+                                    },
+                                ]}
+                            >
+                                Ajouter
+                            </Text>
                         </TouchableOpacity>
                     </ScrollView>
                 </View>
@@ -273,7 +401,7 @@ const ReportForm: React.FC<ReportFormProps> = ({ context, onSuccess }) => {
                     style={[
                         styles.apiErrorContainer,
                         {
-                            backgroundColor: theme.error + "22",
+                            backgroundColor: `${theme.error}22`,
                             borderColor: theme.error,
                             bottom: errorBottomOffset,
                             opacity: errorOpacity,
@@ -288,13 +416,26 @@ const ReportForm: React.FC<ReportFormProps> = ({ context, onSuccess }) => {
                         },
                     ]}
                     pointerEvents="box-none"
+                    testID="report-error-toast"
                 >
-                    <MaterialCommunityIcons name="alert-circle-outline" size={18} color={theme.error} />
-                    <Text style={[styles.apiErrorText, { color: theme.error }]}>{apiError}</Text>
+                    <MaterialCommunityIcons
+                        name="alert-circle-outline"
+                        size={18}
+                        color={theme.error}
+                    />
+                    <Text
+                        style={[
+                            styles.apiErrorText,
+                            {
+                                color: theme.error,
+                            },
+                        ]}
+                    >
+                        {apiError}
+                    </Text>
                 </Animated.View>
             ) : null}
 
-            {/* Footer fixe */}
             <View>
                 <View
                     style={[
@@ -306,16 +447,38 @@ const ReportForm: React.FC<ReportFormProps> = ({ context, onSuccess }) => {
                     ]}
                 >
                     <TouchableOpacity
-                        style={[styles.submitBtn, { backgroundColor: theme.primary, opacity: loading ? 0.7 : 1 }]}
+                        style={[
+                            styles.submitBtn,
+                            {
+                                backgroundColor: theme.primary,
+                                opacity: loading ? 0.7 : 1,
+                            },
+                        ]}
                         disabled={loading}
                         onPress={() => formik.handleSubmit()}
+                        testID="submit-report-btn"
                     >
                         {loading ? (
-                            <ActivityIndicator color={theme.text} />
+                            <ActivityIndicator
+                                color={theme.text}
+                            />
                         ) : (
                             <>
-                                <MaterialCommunityIcons name="send" size={18} color={theme.text} />
-                                <Text style={[styles.submitText, { color: theme.text }]}>Envoyer</Text>
+                                <MaterialCommunityIcons
+                                    name="send"
+                                    size={18}
+                                    color={theme.text}
+                                />
+                                <Text
+                                    style={[
+                                        styles.submitText,
+                                        {
+                                            color: theme.text,
+                                        },
+                                    ]}
+                                >
+                                    Envoyer
+                                </Text>
                             </>
                         )}
                     </TouchableOpacity>
@@ -328,7 +491,10 @@ const ReportForm: React.FC<ReportFormProps> = ({ context, onSuccess }) => {
 export default ReportForm;
 
 const styles = StyleSheet.create({
-    scroll: { gap: 12, paddingHorizontal: 8 },
+    scroll: {
+        gap: 12,
+        paddingHorizontal: 8,
+    },
     card: {
         borderRadius: 18,
         padding: 14,
@@ -339,9 +505,24 @@ const styles = StyleSheet.create({
         shadowRadius: 10,
         shadowOffset: { width: 0, height: 6 },
     },
-    sectionTitle: { fontSize: 13, fontWeight: "800", textTransform: "uppercase", opacity: 0.85 },
-    input: { borderWidth: 1.5, borderRadius: 16, paddingVertical: 12, paddingHorizontal: 14, fontSize: 14 },
-    textarea: { maxHeight: 200, textAlignVertical: "top", minHeight: 180 },
+    sectionTitle: {
+        fontSize: 13,
+        fontWeight: "800",
+        textTransform: "uppercase",
+        opacity: 0.85,
+    },
+    input: {
+        borderWidth: 1.5,
+        borderRadius: 16,
+        paddingVertical: 12,
+        paddingHorizontal: 14,
+        fontSize: 14,
+    },
+    textarea: {
+        maxHeight: 200,
+        textAlignVertical: "top",
+        minHeight: 180,
+    },
     thumbWrap: {
         width: 84,
         height: 84,
@@ -349,7 +530,10 @@ const styles = StyleSheet.create({
         overflow: "hidden",
         borderWidth: 1.5,
     },
-    thumb: { width: "100%", height: "100%" },
+    thumb: {
+        width: "100%",
+        height: "100%",
+    },
     addBtn: {
         height: 84,
         paddingHorizontal: 14,
@@ -360,7 +544,10 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         gap: 6,
     },
-    addBtnText: { fontSize: 12, fontWeight: "700" },
+    addBtnText: {
+        fontSize: 12,
+        fontWeight: "700",
+    },
     apiErrorContainer: {
         position: "absolute",
         left: 12,
@@ -375,7 +562,11 @@ const styles = StyleSheet.create({
         gap: 8,
         zIndex: 20,
     },
-    apiErrorText: { flex: 1, fontSize: 14, fontWeight: "600" },
+    apiErrorText: {
+        flex: 1,
+        fontSize: 14,
+        fontWeight: "600",
+    },
     footer: {
         height: FOOTER_HEIGHT,
         position: "absolute",
@@ -395,5 +586,8 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         gap: 8,
     },
-    submitText: { fontWeight: "800", fontSize: 16 },
+    submitText: {
+        fontWeight: "800",
+        fontSize: 16,
+    },
 });

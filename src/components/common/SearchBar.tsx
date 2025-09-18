@@ -1,16 +1,22 @@
 import React from "react";
 import { View, StyleSheet, TextInput, TouchableOpacity } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { useAppTheme } from "@/src/context/ThemeProvider";
 import { BottomSheetTextInput } from "@gorhom/bottom-sheet";
+import { useAppTheme } from "@/src/context/ThemeProvider";
 import { SEARCHBAR_HEIGHT } from "@/src/theme/globals";
 
-type SearchBarProps = {
+export type SearchBarProps = {
+    /** Valeur contrôlée. */
     value: string;
+    /** Mise à jour du texte. */
     onChangeText: (text: string) => void;
+    /** Placeholder. */
     placeholder?: string;
+    /** Focus callback. */
     onFocus?: () => void;
+    /** Blur callback. */
     onBlur?: () => void;
+    /** Utilisation dans un BottomSheet. */
     inSheet?: boolean;
 };
 
@@ -26,13 +32,19 @@ const SearchBar: React.FC<SearchBarProps> = ({
     const Input = inSheet ? BottomSheetTextInput : TextInput;
 
     return (
-        <View style={[styles.container, { backgroundColor: theme.surface }]}>
+        <View
+            style={[
+                styles.container,
+                { backgroundColor: theme.surface },
+            ]}
+        >
             <MaterialCommunityIcons
                 name="magnify"
                 size={18}
                 color={theme.textInactive}
                 style={styles.icon}
             />
+
             <Input
                 value={value}
                 onChangeText={onChangeText}
@@ -42,10 +54,11 @@ const SearchBar: React.FC<SearchBarProps> = ({
                 onBlur={onBlur}
                 style={[
                     styles.input,
-                    { color: theme.text, flex: 1 }
+                    { color: theme.text },
                 ]}
             />
-            {value.length > 0 && (
+
+            {value.length > 0 ? (
                 <TouchableOpacity onPress={() => onChangeText("")}>
                     <MaterialCommunityIcons
                         name="close-circle"
@@ -54,10 +67,12 @@ const SearchBar: React.FC<SearchBarProps> = ({
                         style={styles.clearIcon}
                     />
                 </TouchableOpacity>
-            )}
+            ) : null}
         </View>
     );
 };
+
+export default SearchBar;
 
 const styles = StyleSheet.create({
     container: {
@@ -73,11 +88,10 @@ const styles = StyleSheet.create({
         marginLeft: 12,
     },
     input: {
+        flex: 1,
         fontSize: 14,
     },
     clearIcon: {
         marginRight: 8,
     },
 });
-
-export default SearchBar;

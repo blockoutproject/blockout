@@ -1,8 +1,8 @@
-// src/app/sign-in.tsx
 import React, { useEffect, useState } from "react";
 import { View, Text, StyleSheet } from "react-native";
 import * as Haptics from "expo-haptics";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import { useSession } from "@/src/context/SessionProvider";
@@ -10,14 +10,10 @@ import { withAlpha } from "@/src/utils/utils";
 import MaskedImage from "@/src/components/common/images/MaskedImage";
 import InfoPill from "@/src/components/common/chips/InfoPill";
 import ApiErrorToast from "@/src/components/common/feedback/ApiErrorToast";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { GradientButton } from "@/src/components/common/GradientButton";
 import { useOnboardingStore } from "../utils/onboardingStore";
 
-const HERO = {
-    title: "Blockout",
-    bg: { uri: "https://blockout-assets.s3.eu-west-3.amazonaws.com/blockout-logo-dark.png" },
-};
+const APP_TITLE = "Blockout";
 
 const LoginScreen: React.FC = () => {
     const theme = useAppTheme();
@@ -30,7 +26,6 @@ const LoginScreen: React.FC = () => {
 
     useEffect(() => {
         if (!isSigningIn && error) {
-            console.log("Sign-in error:", isSigningIn, error);
             setApiError("Erreur lors de la connexion.");
         }
     }, [error, isSigningIn]);
@@ -42,10 +37,9 @@ const LoginScreen: React.FC = () => {
             setApiError(null);
             await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
             await signIn();
-        } catch (err) {
+        } catch {
             await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
             setApiError("Erreur lors de la connexion.");
-            console.error(err);
         } finally {
             setIsSigningIn(false);
         }
@@ -54,33 +48,62 @@ const LoginScreen: React.FC = () => {
     const disabled = isSigningIn || isLoading;
 
     return (
-        <View style={styles.content}>
-            {/* branding */}
-            <View style={styles.brandRow}>
+        <View
+            style={styles.content}
+        >
+            <View
+                style={styles.brandRow}
+            >
                 <MaskedImage
                     fallback={require("@/assets/images/blockout-logo-dark.png")}
                     size={36}
                     radius={10}
                     shadow
                 />
-                <Text style={[styles.title, { color: theme.text }]} numberOfLines={1}>
-                    {HERO.title}
+                <Text
+                    style={[
+                        styles.title,
+                        {
+                            color: theme.text,
+                        },
+                    ]}
+                    numberOfLines={1}
+                >
+                    {APP_TITLE}
                 </Text>
             </View>
 
-            <Text style={[styles.tagline, { color: withAlpha(theme.text, 0.8) }]}>
+            <Text
+                style={[
+                    styles.tagline,
+                    {
+                        color: withAlpha(theme.text, 0.8),
+                    },
+                ]}
+            >
                 Ton appli pour suivre le volley : scores en direct, classements et équipes.
             </Text>
 
-            {/* micro-features */}
-            <View style={styles.pillsRow}>
-                <InfoPill leftIconName="flash" label="Live scores" />
-                <InfoPill leftIconName="trophy" label="Classements" />
-                <InfoPill leftIconName="bell-outline" label="Suivi équipes" />
+            <View
+                style={styles.pillsRow}
+            >
+                <InfoPill
+                    leftIconName="flash"
+                    label="Live scores"
+                />
+                <InfoPill
+                    leftIconName="trophy"
+                    label="Classements"
+                />
+                <InfoPill
+                    leftIconName="bell-outline"
+                    label="Suivi équipes"
+                />
             </View>
 
-            {/* CTA principal avec GradientButton */}
-            <View style={{ alignItems: "center" }}>
+            <View
+                style={styles.ctaRow}
+            >
                 <GradientButton
                     onPress={onPressLogin}
                     loading={isSigningIn || isLoading}
@@ -88,12 +111,19 @@ const LoginScreen: React.FC = () => {
                     label="Se connecter"
                     loadingLabel="Connexion…"
                     leftIcon={<MaterialCommunityIcons name="account" size={18} color={"#000"} />}
-                    style={{ width: "80%" }}
+                    style={styles.ctaButton}
                     textColor="#000"
                 />
             </View>
 
-            <Text style={[styles.legal, { color: withAlpha(theme.text, 0.6) }]}>
+            <Text
+                style={[
+                    styles.legal,
+                    {
+                        color: withAlpha(theme.text, 0.6),
+                    },
+                ]}
+            >
                 En continuant, tu acceptes nos CGU et notre politique de confidentialité.
             </Text>
 
@@ -141,15 +171,15 @@ const styles = StyleSheet.create({
         justifyContent: "center",
         maxWidth: "100%",
     },
-    pill: {
-        flexDirection: "row",
+    ctaRow: {
         alignItems: "center",
-        gap: 6,
-        paddingHorizontal: 10,
-        paddingVertical: 6,
-        borderRadius: 999,
-        borderWidth: StyleSheet.hairlineWidth,
     },
-    pillText: { fontSize: 12, fontWeight: "800" },
-    legal: { textAlign: "center", fontSize: 12, marginTop: 6 },
+    ctaButton: {
+        width: "80%",
+    },
+    legal: {
+        textAlign: "center",
+        fontSize: 12,
+        marginTop: 6,
+    },
 });

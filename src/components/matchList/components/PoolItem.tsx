@@ -1,5 +1,5 @@
-import React, { useEffect, useRef } from "react";
-import { Text, TouchableOpacity, View, StyleSheet, Animated } from "react-native";
+import React from "react";
+import { Text, TouchableOpacity, View, StyleSheet } from "react-native";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
@@ -12,14 +12,18 @@ import MatchRow from "./MatchRow";
 import GradientBorderView from "@/src/components/common/GradientBorderView";
 import FadeIn from "../../animations/FadeIn";
 
-type PoolItemProps = {
+/** Carte listant les matchs d’une poule. */
+export type PoolItemProps = {
+    /** Données enrichies de la poule + matches. */
     enrichedPoolMatches: EnrichedPoolMatchesDTO;
+    /** Callback ouverture de la poule. */
     handlePoolPress: (id: number) => void;
+    /** Callback ouverture d’un match. */
     handleMatchPress: (id: number) => void;
+    /** Affiche l’en-tête cliquable de la poule. */
     showHeader?: boolean;
+    /** Index d’apparition pour le stagger. */
     appearIndex?: number;
-    staggerBase?: number;
-    staggerStep?: number;
 };
 
 const RADIUS = 16;
@@ -29,9 +33,7 @@ const PoolItem: React.FC<PoolItemProps> = ({
     handlePoolPress,
     handleMatchPress,
     showHeader = true,
-    appearIndex = 0,
-    staggerBase = 0,
-    staggerStep = 40,
+    appearIndex = 0
 }) => {
     const theme = useAppTheme();
     const division = enrichedPoolMatches.pool.division;
@@ -52,13 +54,26 @@ const PoolItem: React.FC<PoolItemProps> = ({
                 gradient={gradient}
                 borderRadius={RADIUS}
                 borderWidth={1}
-                style={[styles.card, { backgroundColor: theme.surface }]}
+                style={[
+                    styles.card,
+                    {
+                        backgroundColor: theme.surface,
+                    },
+                ]}
             >
-                <View style={styles.innerClip}>
-                    {showHeader && (
+                <View
+                    style={styles.innerClip}
+                >
+                    {showHeader ? (
                         <TouchableOpacity
                             activeOpacity={0.85}
                             onPress={() => handlePoolPress(enrichedPoolMatches.pool.id)}
+                            hitSlop={{
+                                top: 8,
+                                right: 8,
+                                bottom: 8,
+                                left: 8,
+                            }}
                         >
                             <Image
                                 source={divisionLogo}
@@ -66,6 +81,7 @@ const PoolItem: React.FC<PoolItemProps> = ({
                                 contentFit="cover"
                                 blurRadius={60}
                             />
+
                             <LinearGradient
                                 pointerEvents="none"
                                 colors={[
@@ -73,15 +89,38 @@ const PoolItem: React.FC<PoolItemProps> = ({
                                     withAlpha(theme.surface, 0.5),
                                     withAlpha(theme.surface, 0.8),
                                 ]}
-                                locations={[0, 0.5, 1]}
-                                start={{ x: 0, y: 0.5 }}
-                                end={{ x: 1, y: 0.5 }}
+                                locations={[
+                                    0,
+                                    0.5,
+                                    1,
+                                ]}
+                                start={{
+                                    x: 0,
+                                    y: 0.5,
+                                }}
+                                end={{
+                                    x: 1,
+                                    y: 0.5,
+                                }}
                                 style={StyleSheet.absoluteFill}
                             />
-                            <View style={styles.headerRow}>
-                                <MaskedImage uri={division.logoUrl} size={22} radius={6} shadow={false} />
+
+                            <View
+                                style={styles.headerRow}
+                            >
+                                <MaskedImage
+                                    uri={division.logoUrl}
+                                    size={22}
+                                    radius={6}
+                                    shadow={false}
+                                />
                                 <Text
-                                    style={[styles.poolTitle, { color: theme.text }]}
+                                    style={[
+                                        styles.poolTitle,
+                                        {
+                                            color: theme.text,
+                                        },
+                                    ]}
                                     numberOfLines={1}
                                     ellipsizeMode="tail"
                                 >
@@ -94,16 +133,21 @@ const PoolItem: React.FC<PoolItemProps> = ({
                                 />
                             </View>
                         </TouchableOpacity>
-                    )}
+                    ) : null}
 
-                    <View style={styles.matchList}>
-                        {enrichedPoolMatches.matches.map((enrichedMatch, idx) => (
+                    <View
+                        style={styles.matchList}
+                    >
+                        {enrichedPoolMatches.matches.map((enrichedMatch) => (
                             <TouchableOpacity
                                 key={enrichedMatch.id}
                                 activeOpacity={0.85}
                                 onPress={() => handleMatchPress(enrichedMatch.id)}
                             >
-                                <MatchRow enrichedMatch={enrichedMatch} division={division} />
+                                <MatchRow
+                                    enrichedMatch={enrichedMatch}
+                                    division={division}
+                                />
                             </TouchableOpacity>
                         ))}
                     </View>
@@ -130,7 +174,11 @@ const styles = StyleSheet.create({
         alignItems: "center",
         gap: 10,
     },
-    poolTitle: { flex: 1, fontSize: 14, fontWeight: "800" },
+    poolTitle: {
+        flex: 1,
+        fontSize: 14,
+        fontWeight: "800",
+    },
     matchList: {
         padding: 8,
         gap: 8,

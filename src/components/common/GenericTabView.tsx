@@ -1,42 +1,45 @@
-import React, { JSX, useState, useMemo } from "react";
+// src/components/common/GenericTabView.tsx
+import React, { JSX, useMemo, useState } from "react";
+import { Animated, Platform, StyleSheet, View } from "react-native";
 import {
-    StyleSheet,
-    Animated,
-    View,
-    Platform,
-} from "react-native";
-import {
-    TabView,
-    SceneRendererProps,
     NavigationState,
     Route,
+    SceneRendererProps,
     TabBar,
+    TabView,
 } from "react-native-tab-view";
-import { useAppTheme } from "@/src/context/ThemeProvider";
-import * as Haptics from "expo-haptics";
 import { BlurView } from "expo-blur";
+import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
+import { useAppTheme } from "@/src/context/ThemeProvider";
 import { TABBAR_HEIGHT, TABBAR_INDICATOR_HEIGHT } from "@/src/theme/globals";
 
-type TabDefinition = {
+/** Définition d’un onglet. */
+export type TabDefinition = {
+    /** Clé unique. */
     key: string;
+    /** Titre d’onglet. */
     title: string;
+    /** Rendu de scène. */
     render: () => JSX.Element | null;
 };
 
-type GenericTabViewProps = {
+/** TabView générique avec barre sticky et blur iOS. */
+export type GenericTabViewProps = {
+    /** Liste des onglets. */
     tabs: TabDefinition[];
+    /** Map des scrollY par clé d’onglet. */
     scrollYs: Record<string, Animated.Value>;
 };
 
-const GenericTabView: React.FC<GenericTabViewProps> = ({
-    tabs,
-    scrollYs,
-}) => {
-    const [index, setIndex] = useState(0);
+const GenericTabView: React.FC<GenericTabViewProps> = ({ tabs, scrollYs }) => {
     const theme = useAppTheme();
+    const [index, setIndex] = useState(0);
 
-    const routes = useMemo(() => tabs.map(({ key, title }) => ({ key, title })), [tabs]);
+    const routes = useMemo(
+        () => tabs.map(({ key, title }) => ({ key, title })),
+        [tabs]
+    );
 
     const renderScene = ({
         route,
@@ -50,33 +53,41 @@ const GenericTabView: React.FC<GenericTabViewProps> = ({
     ) => {
         const { position } = props;
 
-        // Calcule l’opacité combinée selon scrollY de chaque tab + transition swipe
-        const interpolatedOpacity = routes.reduce<Animated.AnimatedAddition<number>>((acc, route, i) => {
-            const input = position.interpolate({
-                inputRange: routes.map((_, idx) => idx),
-                outputRange: routes.map((_, idx) => (idx === i ? 1 : 0)),
-                extrapolate: "clamp",
-            });
+        const interpolatedOpacity = routes.reduce<Animated.AnimatedAddition<number>>(
+            (acc, route, i) => {
+                const pageWeight = position.interpolate({
+                    inputRange: routes.map((_, idx) => idx),
+                    outputRange: routes.map((_, idx) => (idx === i ? 1 : 0)),
+                    extrapolate: "clamp",
+                });
 
-            const verticalOpacity = scrollYs[route.key].interpolate({
-                inputRange: [0, 40],
-                outputRange: [0, 1],
-                extrapolate: "clamp",
-            });
+                const vertical = scrollYs[route.key].interpolate({
+                    inputRange: [0, 40],
+                    outputRange: [0, 1],
+                    extrapolate: "clamp",
+                });
 
-            const contribution = Animated.multiply(input, verticalOpacity);
-
-            return acc ? Animated.add(acc, contribution) : contribution;
-        }, new Animated.Value(0));
+                const contribution = Animated.multiply(pageWeight, vertical);
+                return acc ? Animated.add(acc, contribution) : contribution;
+            },
+            new Animated.Value(0)
+        );
 
         return (
             <View style={styles.container}>
-                {Platform.OS === "ios" && (
+                {Platform.OS === "ios" ? (
                     <View style={StyleSheet.absoluteFill}>
                         <Animated.View
-                            style={[StyleSheet.absoluteFill, { opacity: interpolatedOpacity }]}
+                            style={[
+                                StyleSheet.absoluteFill,
+                                { opacity: interpolatedOpacity },
+                            ]}
                         >
-                            <BlurView intensity={60} tint="dark" style={StyleSheet.absoluteFill} />
+                            <BlurView
+                                intensity={60}
+                                tint="dark"
+                                style={StyleSheet.absoluteFill}
+                            />
                         </Animated.View>
 
                         <LinearGradient
@@ -86,7 +97,7 @@ const GenericTabView: React.FC<GenericTabViewProps> = ({
                             style={StyleSheet.absoluteFill}
                         />
                     </View>
-                )}
+                ) : null}
 
                 <View
                     style={[
@@ -101,7 +112,10 @@ const GenericTabView: React.FC<GenericTabViewProps> = ({
                         {...props}
                         onTabPress={Haptics.selectionAsync}
                         scrollEnabled
-                        indicatorStyle={[styles.indicator, { backgroundColor: theme.text }]}
+                        indicatorStyle={[
+                            styles.indicator,
+                            { backgroundColor: theme.text },
+                        ]}
                         tabStyle={styles.tabStyle}
                         style={styles.tabBar}
                         activeColor={theme.text}
@@ -123,6 +137,8 @@ const GenericTabView: React.FC<GenericTabViewProps> = ({
         />
     );
 };
+
+export default GenericTabView;
 
 const styles = StyleSheet.create({
     container: {
@@ -155,5 +171,3 @@ const styles = StyleSheet.create({
         fontWeight: "700",
     },
 });
-
-export default GenericTabView;

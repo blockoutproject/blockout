@@ -45,16 +45,22 @@ const NotificationsContainer: React.FC = () => {
     }, [refetch]);
 
     const handleLoadMore = useCallback(() => {
-        if (hasNextPage && !isFetchingNextPage) fetchNextPage();
+        if (hasNextPage && !isFetchingNextPage) {
+            fetchNextPage();
+        }
     }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
     const handleOpen = useCallback(async (n: EnrichedUserNotification) => {
         await Haptics.selectionAsync();
-        if (n.deepLink) router.push(n.deepLink as Href);
+        if (n.deepLink) {
+            router.push(n.deepLink as Href);
+        }
     }, []);
 
     const contentPadding = useMemo(
-        () => ({ paddingBottom: insets.bottom + BOTTOM_TABBAR_HEIGHT + 12 }),
+        () => ({
+            paddingBottom: insets.bottom + BOTTOM_TABBAR_HEIGHT + 12,
+        }),
         [insets.bottom]
     );
 
@@ -62,8 +68,14 @@ const NotificationsContainer: React.FC = () => {
 
     if (isLoading) {
         body = (
-            <View style={styles.center}>
-                <ActivityIndicator size="large" color={theme.text} />
+            <View
+                style={styles.center}
+                testID="notifications-loading"
+            >
+                <ActivityIndicator
+                    size="large"
+                    color={theme.text}
+                />
             </View>
         );
     } else if (isError) {
@@ -75,42 +87,71 @@ const NotificationsContainer: React.FC = () => {
             />
         );
     } else {
+        const hasData = items.length > 0;
+
         body = (
             <FlatList
                 data={items}
                 keyExtractor={(n) => String(n.id)}
                 renderItem={({ item }) => (
-                    <NotificationItem notification={item} onOpen={handleOpen} />
+                    <NotificationItem
+                        notification={item}
+                        onOpen={handleOpen}
+                    />
                 )}
-                contentContainerStyle={contentPadding}
+                contentContainerStyle={[
+                    {
+                        paddingBottom: contentPadding.paddingBottom,
+                    },
+                ]}
                 showsVerticalScrollIndicator={false}
                 onEndReachedThreshold={0.5}
-                onEndReached={handleLoadMore}
+                onEndReached={hasData ? handleLoadMore : undefined}
+                scrollEnabled={hasData}
+                bounces={hasData}
+                overScrollMode={hasData ? "auto" : "never"}
                 refreshControl={
-                    <RefreshControl
-                        refreshing={isRefreshing}
-                        onRefresh={handleRefresh}
-                        tintColor={theme.text}
-                    />
+                    hasData
+                        ? (
+                            <RefreshControl
+                                refreshing={isRefreshing}
+                                onRefresh={handleRefresh}
+                                tintColor={theme.text}
+                            />
+                        )
+                        : undefined
                 }
                 ListEmptyComponent={() => (
                     <EmptyState
                         title="Aucune notification"
                         subtitle="Vous n’avez pas encore reçu de notification."
                         paddingTop="40%"
+                        onRetry={refetch}
                     />
                 )}
                 ListFooterComponent={
-                    isFetchingNextPage && hasNextPage ? (
-                        <ActivityIndicator style={{ marginBottom: 20 }} />
-                    ) : null
+                    isFetchingNextPage && hasNextPage
+                        ? (
+                            <ActivityIndicator
+                                style={styles.footerLoader}
+                            />
+                        )
+                        : null
                 }
+                testID="notifications-list"
             />
         );
     }
 
     return (
-        <View style={[styles.container, { backgroundColor: theme.background }]}>
+        <View
+            style={[
+                styles.container,
+                {
+                    backgroundColor: theme.background,
+                },
+            ]}
+        >
             <NotificationsHeader />
             {body}
         </View>
@@ -120,6 +161,15 @@ const NotificationsContainer: React.FC = () => {
 export default NotificationsContainer;
 
 const styles = StyleSheet.create({
-    container: { flex: 1 },
-    center: { flex: 1, justifyContent: "center", alignItems: "center" },
+    container: {
+        flex: 1,
+    },
+    center: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+    },
+    footerLoader: {
+        marginBottom: 20,
+    },
 });
