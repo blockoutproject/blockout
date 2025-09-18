@@ -28,7 +28,15 @@ public class TeamSearchService {
     public List<TeamSearchDoc> searchByKeyword(String keyword) {
         try {
             if (keyword == null || keyword.isBlank()) {
-                return Collections.emptyList();
+                SearchResponse<TeamSearchDoc> response = elasticsearchClient.search(
+                        s -> s.index("teams")
+                                .query(q -> q.matchAll(m -> m))
+                                .size(5),
+                        TeamSearchDoc.class);
+
+                return response.hits().hits().stream()
+                        .map(hit -> hit.source())
+                        .toList();
             }
 
             String wildcardQuery = Arrays.stream(keyword.trim().split("\\s+"))
