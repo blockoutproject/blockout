@@ -87,7 +87,7 @@ public class MatchController {
     @GetMapping("/day-groups")
     public ResponseEntity<DayPageDTO> dayGroups(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam int size,
+            @RequestParam(defaultValue = "4") int size,
             @RequestParam(required = false, name = "pool_ids") List<Long> poolIds,
             @RequestParam(required = false, name = "team_ids") List<Long> teamIds,
             @RequestParam(required = false) MatchStatus status) {

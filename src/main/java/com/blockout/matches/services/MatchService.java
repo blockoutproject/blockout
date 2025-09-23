@@ -91,11 +91,10 @@ public class MatchService {
      *
      * @param poolIds listes des pools à inclure
      * @param teamIds listes des équipes à inclure
-     * @param status  statut des matchs (UPCOMING pour futurs, autre pour passés)
-     * @param page    indice de la page (0-based)
-     * @param size    nombre de jours par page
-     * @return un DayPageDTO contenant les groupes de matchs par jour, un indicateur
-     *         hasNext et le numéro de nextPage
+     * @param status statut des matchs (UPCOMING pour futurs, autre pour passés)
+     * @param page indice de la page (0-based)
+     * @param size nombre de jours par page
+     * @return un DayPageDTO contenant les groupes de matchs par jour, un indicateur hasNext et le numéro de nextPage
      */
     public DayPageDTO getMatchesByDay(
             List<Long> poolIds,
