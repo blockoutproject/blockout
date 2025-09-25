@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { View, StyleSheet, Text, TouchableOpacity, ActivityIndicator, Alert } from "react-native";
 import { BottomSheetTextInput, BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -9,31 +9,32 @@ import * as ImagePicker from "expo-image-picker";
 import * as ImageManipulator from "expo-image-manipulator";
 import { Image } from "expo-image";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import UsersApi from "@/src/api/UsersApi";
-import type { CustomUser } from "@/src/types/User";
 import { ApiError } from "@/src/api/AbstractApi";
 import { CORNERS } from "@/src/theme/globals";
 import Field from "@/src/components/common/form/Field";
-import useKeyboardVisible from "@/src/hooks/utils/useKeyboardVisible";
 import ApiErrorToast from "@/src/components/common/feedback/ApiErrorToast";
+import useKeyboardVisible from "@/src/hooks/utils/useKeyboardVisible";
+import { CustomUser } from "@/src/types/User";
 
-/** Profile form in a bottom sheet. */
-export type UserFormProps = {
-    /** Current user. */
-    user: CustomUser;
-    /** Callback on success. */
-    onSuccess: (updated: CustomUser) => void;
+export type ProfileFormExternalState = {
+    loading: boolean;
+    canSubmit: boolean;
 };
 
-const FOOTER_HEIGHT = 60;
+export type UserFormProps = {
+    user: CustomUser;
+    onSuccess: (updated: CustomUser) => void;
+    onRegisterSubmit: (submit: () => void) => void;
+    onStateChange?: (state: ProfileFormExternalState) => void;
+};
 
-const ProfileForm: React.FC<UserFormProps> = ({ user, onSuccess }) => {
+const ProfileForm: React.FC<UserFormProps> = ({ user, onSuccess, onRegisterSubmit, onStateChange }) => {
     const theme = useAppTheme();
     const insets = useSafeAreaInsets();
     const api = UsersApi.getInstance();
-    const isKeyboardVisible = useKeyboardVisible();
+    const isKeyboardOpen = useKeyboardVisible();
 
     const [imageFile, setImageFile] = useState<{ uri: string; name: string; type: string } | null>(null);
     const [previewUri, setPreviewUri] = useState<string | null>(null);
@@ -44,16 +45,14 @@ const ProfileForm: React.FC<UserFormProps> = ({ user, onSuccess }) => {
         try {
             await Haptics.selectionAsync();
             const pickerResult = await ImagePicker.launchImageLibraryAsync({
-                mediaTypes: ["images"],
+                mediaTypes: ["images"] as unknown as ImagePicker.MediaTypeOptions,
                 allowsEditing: true,
                 aspect: [1, 1],
                 quality: 1,
             });
             if (pickerResult.canceled) return;
-
             const asset = pickerResult.assets[0];
             if (!asset?.uri) return;
-
             const manipContext = ImageManipulator.ImageManipulator.manipulate(asset.uri);
             manipContext.resize({ width: 512 });
             const rendered = await manipContext.renderAsync();
@@ -61,13 +60,8 @@ const ProfileForm: React.FC<UserFormProps> = ({ user, onSuccess }) => {
                 format: ImageManipulator.SaveFormat.PNG,
                 compress: 1,
             });
-
             setPreviewUri(saved.uri);
-            setImageFile({
-                uri: saved.uri,
-                name: "avatar.png",
-                type: "image/png",
-            });
+            setImageFile({ uri: saved.uri, name: "avatar.png", type: "image/png" });
         } catch {
             Alert.alert("Erreur", "Impossible de traiter l’image.");
         }
@@ -87,17 +81,15 @@ const ProfileForm: React.FC<UserFormProps> = ({ user, onSuccess }) => {
                 await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
                 setLoading(true);
                 setApiError(null);
-
                 const dto: Record<string, unknown> = {};
                 const trimmed = values.pseudo.trim();
                 if (trimmed && trimmed !== user.pseudo) dto.pseudo = trimmed;
-
                 const updated = await api.updateUser(user.auth0Id, dto, imageFile ?? undefined);
                 await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
                 onSuccess(updated);
             } catch (err) {
                 if (err instanceof ApiError && err.status === 409) {
-                    const serverMsg = (err.data && (err.data.message || err.data.error)) || "Ce pseudo est déjà utilisé.";
+                    const serverMsg = (err.data && ((err.data as any).message || (err.data as any).error)) || "Ce pseudo est déjà utilisé.";
                     await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
                     formik.setFieldError("pseudo", serverMsg);
                     setApiError(null);
@@ -111,144 +103,51 @@ const ProfileForm: React.FC<UserFormProps> = ({ user, onSuccess }) => {
         },
     });
 
+    React.useEffect(() => {
+        onRegisterSubmit(formik.submitForm);
+    }, [formik.submitForm, onRegisterSubmit]);
+
+    const canSubmit = useMemo(() => formik.isValid && !loading, [formik.isValid, loading]);
+
+    React.useEffect(() => {
+        onStateChange?.({ loading, canSubmit });
+    }, [loading, canSubmit, onStateChange]);
+
     const avatarUri = previewUri ?? user.pictureUrl ?? null;
 
-    const outerPaddingBottom = isKeyboardVisible ? 8 : insets.bottom + 8;
-    const errorBottomOffset = FOOTER_HEIGHT + outerPaddingBottom;
-
     return (
-        <View
-            style={{
-                flex: 1,
-                paddingBottom: outerPaddingBottom,
-            }}
-            testID="profile-form"
-        >
+        <View style={{ paddingBottom: isKeyboardOpen ? 0 : insets.bottom, flex: 1 }}>
             <BottomSheetScrollView
-                contentContainerStyle={[
-                    styles.fieldContainer,
-                    {
-                        paddingBottom: FOOTER_HEIGHT + outerPaddingBottom,
-                    },
-                ]}
+                contentContainerStyle={[styles.fieldContainer, { paddingBottom: 60 }]}
                 showsVerticalScrollIndicator={false}
             >
-                <View
-                    style={[
-                        styles.card,
-                        {
-                            backgroundColor: theme.surface,
-                        },
-                    ]}
-                >
-                    <Text
-                        style={[
-                            styles.sectionTitle,
-                            {
-                                color: theme.text,
-                            },
-                        ]}
-                    >
-                        Photo de profil
-                    </Text>
-
-                    <TouchableOpacity
-                        onPress={handlePickImage}
-                        activeOpacity={0.85}
-                        style={[
-                            styles.logoWrap,
-                            {
-                                borderColor: theme.border,
-                            },
-                        ]}
-                    >
-                        <View
-                            style={styles.logoMask}
-                        >
+                <View style={[styles.card, { backgroundColor: theme.surface }]}>
+                    <Text style={[styles.sectionTitle, { color: theme.text }]}>Photo de profil</Text>
+                    <TouchableOpacity onPress={handlePickImage} activeOpacity={0.85} style={[styles.logoWrap, { borderColor: theme.border }]}>
+                        <View style={styles.logoMask}>
                             {avatarUri ? (
-                                <Image
-                                    source={{
-                                        uri: avatarUri,
-                                    }}
-                                    style={styles.logo}
-                                    contentFit="cover"
-                                />
+                                <Image source={{ uri: avatarUri }} style={styles.logo} contentFit="cover" />
                             ) : (
-                                <View
-                                    style={styles.logoPlaceholder}
-                                >
-                                    <MaterialCommunityIcons
-                                        name="camera-plus-outline"
-                                        size={28}
-                                        color={theme.textInactive}
-                                    />
-                                    <Text
-                                        style={[
-                                            styles.logoHint,
-                                            {
-                                                color: theme.textInactive,
-                                            },
-                                        ]}
-                                    >
-                                        Ajouter une photo
-                                    </Text>
+                                <View style={styles.logoPlaceholder}>
+                                    <MaterialCommunityIcons name="camera-plus-outline" size={28} color={theme.textInactive} />
+                                    <Text style={[styles.logoHint, { color: theme.textInactive }]}>Ajouter une photo</Text>
                                 </View>
                             )}
                         </View>
                     </TouchableOpacity>
-
-                    <TouchableOpacity
-                        onPress={handlePickImage}
-                        style={[
-                            styles.logoBtn,
-                            {
-                                backgroundColor: theme.backgroundSecondary,
-                            },
-                        ]}
-                    >
-                        <MaterialCommunityIcons
-                            name="pencil-outline"
-                            size={16}
-                            color={theme.text}
-                        />
-                        <Text
-                            style={[
-                                styles.logoBtnText,
-                                {
-                                    color: theme.text,
-                                },
-                            ]}
-                        >
-                            Changer la photo
-                        </Text>
+                    <TouchableOpacity onPress={handlePickImage} style={[styles.logoBtn, { backgroundColor: theme.backgroundSecondary }]}>
+                        <MaterialCommunityIcons name="pencil-outline" size={16} color={theme.text} />
+                        <Text style={[styles.logoBtnText, { color: theme.text }]}>Changer la photo</Text>
                     </TouchableOpacity>
                 </View>
 
-                <View
-                    style={[
-                        styles.card,
-                        {
-                            backgroundColor: theme.surface,
-                        },
-                    ]}
-                >
-                    <Field
-                        label="Pseudo"
-                        error={formik.errors.pseudo}
-                        touched={formik.touched.pseudo}
-                    >
+                <View style={[styles.card, { backgroundColor: theme.surface }]}>
+                    <Field label="Pseudo" error={formik.errors.pseudo} touched={formik.touched.pseudo}>
                         <BottomSheetTextInput
                             style={[
                                 styles.input,
-                                {
-                                    borderColor: theme.border,
-                                    color: theme.text,
-                                },
-                                formik.touched.pseudo && formik.errors.pseudo
-                                    ? {
-                                        borderColor: theme.error,
-                                    }
-                                    : null,
+                                { borderColor: theme.border, color: theme.text },
+                                formik.touched.pseudo && formik.errors.pseudo ? { borderColor: theme.error } : null,
                             ]}
                             value={formik.values.pseudo}
                             onChangeText={formik.handleChange("pseudo")}
@@ -262,59 +161,7 @@ const ProfileForm: React.FC<UserFormProps> = ({ user, onSuccess }) => {
                 </View>
             </BottomSheetScrollView>
 
-            <ApiErrorToast
-                message={apiError}
-                bottomOffset={errorBottomOffset}
-                onHidden={() => setApiError(null)}
-            />
-
-            <View>
-                <View
-                    style={[
-                        styles.footer,
-                        {
-                            backgroundColor: theme.backgroundSecondary,
-                            borderTopColor: theme.border,
-                        },
-                    ]}
-                >
-                    <TouchableOpacity
-                        style={[
-                            styles.submitBtn,
-                            {
-                                backgroundColor: theme.primary,
-                                opacity: loading ? 0.7 : 1,
-                            },
-                        ]}
-                        disabled={loading}
-                        onPress={() => formik.handleSubmit()}
-                    >
-                        {loading ? (
-                            <ActivityIndicator
-                                color={theme.text}
-                            />
-                        ) : (
-                            <>
-                                <MaterialCommunityIcons
-                                    name="content-save-outline"
-                                    size={18}
-                                    color={theme.text}
-                                />
-                                <Text
-                                    style={[
-                                        styles.submitText,
-                                        {
-                                            color: theme.text,
-                                        },
-                                    ]}
-                                >
-                                    Enregistrer
-                                </Text>
-                            </>
-                        )}
-                    </TouchableOpacity>
-                </View>
-            </View>
+            <ApiErrorToast message={apiError} bottomOffset={60} onHidden={() => setApiError(null)} />
         </View>
     );
 };
@@ -388,28 +235,5 @@ const styles = StyleSheet.create({
         paddingVertical: 12,
         paddingHorizontal: 14,
         fontSize: 14,
-    },
-    footer: {
-        height: FOOTER_HEIGHT,
-        position: "absolute",
-        left: 0,
-        right: 0,
-        bottom: 0,
-        paddingHorizontal: 12,
-        paddingTop: 8,
-        borderTopWidth: 1,
-        justifyContent: "center",
-    },
-    submitBtn: {
-        borderRadius: CORNERS,
-        paddingVertical: 14,
-        alignItems: "center",
-        justifyContent: "center",
-        flexDirection: "row",
-        gap: 8,
-    },
-    submitText: {
-        fontWeight: "800",
-        fontSize: 16,
     },
 });

@@ -10,9 +10,8 @@ import PoolTabs from "@/src/components/pool/PoolTabs";
 import ErrorState from "@/src/components/common/feedback/ErrorState";
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import PoolHeader from "@/src/components/pool/PoolHeader";
-import BottomSheetCustomModal from "@/src/components/common/bottomSheet/BottomSheetCustomModal";
-import ReportForm from "@/src/components/report/ReportForm";
 import { ReportType } from "@/src/types/Report";
+import ReportFormSheet from "@/src/components/report/ReportFormSheet";
 
 /** Pool root screen. */
 const PoolScreen: React.FC = () => {
@@ -24,10 +23,6 @@ const PoolScreen: React.FC = () => {
 
     const handleOpenReport = useCallback(() => {
         reportSheetRef.current?.present();
-    }, []);
-
-    const handleCloseReport = useCallback(() => {
-        reportSheetRef.current?.dismiss();
     }, []);
 
     const body = useMemo(() => {
@@ -79,18 +74,15 @@ const PoolScreen: React.FC = () => {
 
             {body}
 
-            <BottomSheetCustomModal
+            <ReportFormSheet
                 ref={reportSheetRef}
-                snapPoint={"90%"}
-            >
-                <ReportForm
-                    context={{
-                        screen: "Pool",
-                        defaultType: ReportType.DISPLAY_BUG,
-                    }}
-                    onSuccess={handleCloseReport}
-                />
-            </BottomSheetCustomModal>
+                context={{ screen: "Pool", defaultType: ReportType.DISPLAY_BUG }}
+                onSuccess={() => {
+                    reportSheetRef.current?.dismiss();
+                }}
+                snapPoint="90%"
+                footerLabel="Envoyer"
+            />
         </View>
     );
 };

@@ -1,9 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View, Animated } from "react-native";
+import { View, StyleSheet, Text, TouchableOpacity, ActivityIndicator, Animated } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-
+import { BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import ConfigApi from "@/src/api/ConfigApi";
 import { useDivisions } from "@/src/hooks/config/division/useDivisions";
@@ -11,21 +11,31 @@ import { RawDivisionMapping } from "@/src/types/RawDivisionMapping";
 import { EnumFormat, FormatLabels } from "@/src/types/enums/Format";
 import { EnumGender, GenderLabels } from "@/src/types/enums/Gender";
 import { CORNERS } from "@/src/theme/globals";
-
 import FormSelect from "@/src/components/common/form/FormSelect";
 import SelectSheet, { SelectOption, SelectSheetRef } from "@/src/components/common/bottomSheet/SelectSheet";
-import { BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import useKeyboardVisible from "@/src/hooks/utils/useKeyboardVisible";
-import ApiErrorToast from "../../common/feedback/ApiErrorToast";
+import ApiErrorToast from "@/src/components/common/feedback/ApiErrorToast";
+
+export type RawDivisionMappingFormExternalState = {
+    loading: boolean;
+    canSubmit: boolean;
+};
 
 export type RawDivisionMappingFormProps = {
     mapping: RawDivisionMapping;
     onSuccess: () => void;
+    onRegisterSubmit: (submit: () => void) => void;
+    onStateChange?: (state: RawDivisionMappingFormExternalState) => void;
 };
 
-const FOOTER_HEIGHT = 60;
+const FOOTER_SPACE = 60;
 
-const RawDivisionMappingForm: React.FC<RawDivisionMappingFormProps> = ({ mapping, onSuccess }) => {
+const RawDivisionMappingForm: React.FC<RawDivisionMappingFormProps> = ({
+    mapping,
+    onSuccess,
+    onRegisterSubmit,
+    onStateChange,
+}) => {
     const theme = useAppTheme();
     const insets = useSafeAreaInsets();
     const isKeyboardVisible = useKeyboardVisible();
@@ -62,7 +72,6 @@ const RawDivisionMappingForm: React.FC<RawDivisionMappingFormProps> = ({ mapping
         await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
         setIsSubmitting(true);
         setApiError(null);
-
         try {
             await ConfigApi.getInstance().updateRawDivisionMapping(mapping.id, {
                 divisionId: divisionId === "" ? null : divisionId,
@@ -71,7 +80,7 @@ const RawDivisionMappingForm: React.FC<RawDivisionMappingFormProps> = ({ mapping
             });
             await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
             onSuccess();
-        } catch (e) {
+        } catch {
             await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
             setApiError("Une erreur est survenue lors de la sauvegarde.");
         } finally {
@@ -79,17 +88,20 @@ const RawDivisionMappingForm: React.FC<RawDivisionMappingFormProps> = ({ mapping
         }
     };
 
-    // === Metrics ===
+    useEffect(() => {
+        onRegisterSubmit(handleSubmit);
+    }, [divisionId, format, gender, onRegisterSubmit]);
+
+    useEffect(() => {
+        onStateChange?.({ loading: isSubmitting, canSubmit: !isSubmitting });
+    }, [isSubmitting, onStateChange]);
+
     const outerPaddingBottom = isKeyboardVisible ? 8 : insets.bottom + 8;
-    const errorBottomOffset = FOOTER_HEIGHT + outerPaddingBottom;
 
     return (
         <View style={{ flex: 1, paddingBottom: outerPaddingBottom }}>
             <BottomSheetScrollView
-                contentContainerStyle={[
-                    styles.fieldContainer,
-                    { paddingBottom: FOOTER_HEIGHT + outerPaddingBottom },
-                ]}
+                contentContainerStyle={[styles.fieldContainer, { paddingBottom: FOOTER_SPACE + outerPaddingBottom }]}
                 showsVerticalScrollIndicator={false}
             >
                 <View style={[styles.card, { backgroundColor: theme.surface }]}>
@@ -126,41 +138,11 @@ const RawDivisionMappingForm: React.FC<RawDivisionMappingFormProps> = ({ mapping
                 </View>
             </BottomSheetScrollView>
 
-            {/* Erreur flottante */}
             <ApiErrorToast
                 message={apiError}
-                bottomOffset={errorBottomOffset}
+                bottomOffset={FOOTER_SPACE + outerPaddingBottom}
                 onHidden={() => setApiError(null)}
             />
-
-            {/* Footer fixe avec safe area padding */}
-            <View>
-                <View
-                    style={[
-                        styles.footer,
-                        {
-                            backgroundColor: theme.backgroundSecondary,
-                            borderTopColor: theme.border,
-                        },
-                    ]}
-                >
-                    <TouchableOpacity
-                        onPress={handleSubmit}
-                        disabled={isSubmitting}
-                        activeOpacity={0.85}
-                        style={[styles.submitBtn, { backgroundColor: theme.primary, opacity: isSubmitting ? 0.7 : 1 }]}
-                    >
-                        {isSubmitting ? (
-                            <ActivityIndicator color={theme.text} />
-                        ) : (
-                            <>
-                                <MaterialCommunityIcons name="content-save-outline" size={18} color={theme.text} />
-                                <Text style={[styles.submitText, { color: theme.text }]}>Enregistrer</Text>
-                            </>
-                        )}
-                    </TouchableOpacity>
-                </View>
-            </View>
 
             <SelectSheet
                 ref={formatRef}
@@ -201,48 +183,13 @@ const styles = StyleSheet.create({
         shadowRadius: 10,
         shadowOffset: { width: 0, height: 6 },
     },
-    sectionTitle: {
-        fontSize: 13,
-        fontWeight: "800",
-        textTransform: "uppercase",
-        opacity: 0.85,
+    sectionTitle: { 
+        fontSize: 13, 
+        fontWeight: "800", 
+        textTransform: "uppercase", 
+        opacity: 0.85 
     },
     sourceBlock: { gap: 4 },
     sourceName: { fontSize: 16, fontWeight: "700" },
     sourceMeta: { fontSize: 12, fontWeight: "600" },
-    apiErrorContainer: {
-        position: "absolute",
-        left: 12,
-        right: 12,
-        borderRadius: 12,
-        borderWidth: 1,
-        flexDirection: "row",
-        alignItems: "center",
-        paddingVertical: 8,
-        paddingHorizontal: 12,
-        marginBottom: 8,
-        gap: 8,
-        zIndex: 20,
-    },
-    apiErrorText: { flex: 1, fontSize: 14, fontWeight: "600" },
-    footer: {
-        height: FOOTER_HEIGHT,
-        position: "absolute",
-        left: 0,
-        right: 0,
-        bottom: 0,
-        paddingHorizontal: 12,
-        paddingTop: 8,
-        borderTopWidth: 1,
-        justifyContent: "center",
-    },
-    submitBtn: {
-        borderRadius: CORNERS,
-        paddingVertical: 14,
-        alignItems: "center",
-        justifyContent: "center",
-        flexDirection: "row",
-        gap: 8,
-    },
-    submitText: { fontWeight: "800", fontSize: 16 },
 });

@@ -1,15 +1,7 @@
-import React, { useEffect, useRef, useState } from "react";
-import {
-    View,
-    Text,
-    StyleSheet,
-    TouchableOpacity,
-    ActivityIndicator,
-    Alert,
-    Animated,
-} from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import React, { useEffect, useMemo, useState } from "react";
+import { View, StyleSheet, Text, TouchableOpacity, ActivityIndicator, Alert } from "react-native";
 import { BottomSheetScrollView, BottomSheetTextInput } from "@gorhom/bottom-sheet";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import * as Haptics from "expo-haptics";
@@ -17,24 +9,31 @@ import * as ImagePicker from "expo-image-picker";
 import * as ImageManipulator from "expo-image-manipulator";
 import { Image } from "expo-image";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import { Division } from "@/src/types/Division";
 import ConfigApi from "@/src/api/ConfigApi";
 import CircleColorPicker from "@/src/components/common/form/CircleColorPicker";
 import { CORNERS } from "@/src/theme/globals";
-import Field from "../../common/form/Field";
 import useKeyboardVisible from "@/src/hooks/utils/useKeyboardVisible";
-import ApiErrorToast from "../../common/feedback/ApiErrorToast";
+import ApiErrorToast from "@/src/components/common/feedback/ApiErrorToast";
+import Field from "@/src/components/common/form/Field";
 
-type DivisionFormProps = {
-    division: Division | null;
-    onSuccess: () => void;
+export type DivisionFormExternalState = {
+    loading: boolean;
+    canSubmit: boolean;
+    accentColor?: string;
 };
 
-const FOOTER_HEIGHT = 60;
+export type DivisionFormProps = {
+    division: Division | null;
+    onSuccess: () => void;
+    onRegisterSubmit: (submit: () => void) => void;
+    onStateChange?: (state: DivisionFormExternalState) => void;
+};
 
-const DivisionForm: React.FC<DivisionFormProps> = ({ division, onSuccess }) => {
+const FOOTER_SPACE = 60;
+
+const DivisionForm: React.FC<DivisionFormProps> = ({ division, onSuccess, onRegisterSubmit, onStateChange }) => {
     const theme = useAppTheme();
     const insets = useSafeAreaInsets();
     const api = ConfigApi.getInstance();
@@ -50,31 +49,24 @@ const DivisionForm: React.FC<DivisionFormProps> = ({ division, onSuccess }) => {
         try {
             await Haptics.selectionAsync();
             const pickerResult = await ImagePicker.launchImageLibraryAsync({
-                mediaTypes: ["images"],
+                mediaTypes: ["images"] as unknown as ImagePicker.MediaTypeOptions,
                 allowsEditing: true,
                 aspect: [1, 1],
                 quality: 1,
             });
-
             if (pickerResult.canceled) return;
-
             const selected = pickerResult.assets[0];
-            if (!selected.uri) return;
-
+            if (!selected?.uri) return;
             const manipContext = ImageManipulator.ImageManipulator.manipulate(selected.uri);
             manipContext.resize({ width: 512 });
-
             const rendered = await manipContext.renderAsync();
             const saved = await rendered.saveAsync({
                 format: ImageManipulator.SaveFormat.JPEG,
                 compress: 1,
             });
-
-            const fileObj = { uri: saved.uri, name: "division.jpg", type: "image/jpeg" };
             setPreviewUri(saved.uri);
-            setImageFile(fileObj);
-        } catch (e) {
-            console.error("Erreur image:", e);
+            setImageFile({ uri: saved.uri, name: "division.jpg", type: "image/jpeg" });
+        } catch {
             Alert.alert("Erreur", "Impossible de traiter l'image.");
         }
     };
@@ -100,17 +92,14 @@ const DivisionForm: React.FC<DivisionFormProps> = ({ division, onSuccess }) => {
                 await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
                 setLoading(true);
                 setApiError(null);
-
                 if (isEditMode) {
                     await api.updateDivision(division!.id, values, imageFile ?? undefined);
                 } else {
                     await api.createOrUpdateDivision(values, imageFile ?? undefined);
                 }
-
                 await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
                 onSuccess();
-            } catch (error) {
-                console.error("Erreur API:", error);
+            } catch {
                 setApiError("La sauvegarde a échoué. Veuillez réessayer.");
                 await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
             } finally {
@@ -119,27 +108,28 @@ const DivisionForm: React.FC<DivisionFormProps> = ({ division, onSuccess }) => {
         },
     });
 
-    const logoUri = previewUri ?? formik.values.logoUrl ?? null;
+    useEffect(() => {
+        onRegisterSubmit(formik.submitForm);
+    }, [formik.submitForm, onRegisterSubmit]);
 
+    const canSubmit = useMemo(() => formik.isValid && !loading, [formik.isValid, loading]);
+
+    useEffect(() => {
+        onStateChange?.({ loading, canSubmit, accentColor: formik.values.mainColor || undefined });
+    }, [loading, canSubmit, formik.values.mainColor, onStateChange]);
+
+    const logoUri = previewUri ?? formik.values.logoUrl ?? null;
     const outerPaddingBottom = isKeyboardVisible ? 8 : insets.bottom + 8;
-    const errorBottomOffset = FOOTER_HEIGHT + outerPaddingBottom;
 
     return (
         <View style={{ flex: 1, paddingBottom: outerPaddingBottom }}>
             <BottomSheetScrollView
-                contentContainerStyle={[
-                    styles.scroll,
-                    { paddingBottom: FOOTER_HEIGHT + outerPaddingBottom },
-                ]}
+                contentContainerStyle={[styles.scroll, { paddingBottom: FOOTER_SPACE + outerPaddingBottom }]}
                 showsVerticalScrollIndicator={false}
             >
                 <View style={[styles.card, { backgroundColor: theme.surface }]}>
                     <Text style={[styles.sectionTitle, { color: theme.text }]}>Logo</Text>
-                    <TouchableOpacity
-                        onPress={handlePickImage}
-                        activeOpacity={0.85}
-                        style={[styles.logoWrap, { borderColor: theme.border }]}
-                    >
+                    <TouchableOpacity onPress={handlePickImage} activeOpacity={0.85} style={[styles.logoWrap, { borderColor: theme.border }]}>
                         <View style={styles.logoMask}>
                             {logoUri ? (
                                 <Image source={{ uri: logoUri }} style={styles.logo} contentFit="contain" />
@@ -152,10 +142,7 @@ const DivisionForm: React.FC<DivisionFormProps> = ({ division, onSuccess }) => {
                         </View>
                     </TouchableOpacity>
 
-                    <TouchableOpacity
-                        onPress={handlePickImage}
-                        style={[styles.logoBtn, { backgroundColor: theme.backgroundSecondary }]}
-                    >
+                    <TouchableOpacity onPress={handlePickImage} style={[styles.logoBtn, { backgroundColor: theme.backgroundSecondary }]}>
                         <MaterialCommunityIcons name="pencil-outline" size={16} color={theme.text} />
                         <Text style={[styles.logoBtnText, { color: theme.text }]}>Changer le logo</Text>
                     </TouchableOpacity>
@@ -181,70 +168,21 @@ const DivisionForm: React.FC<DivisionFormProps> = ({ division, onSuccess }) => {
                 <View style={[styles.card, { backgroundColor: theme.surface }]}>
                     <Text style={[styles.sectionTitle, { color: theme.text }]}>Couleur principale</Text>
                     <View style={styles.colorRow}>
-                        <CircleColorPicker
-                            value={formik.values.mainColor}
-                            onChange={(color) => formik.setFieldValue("mainColor", color)}
-                        />
+                        <CircleColorPicker value={formik.values.mainColor} onChange={(c) => formik.setFieldValue("mainColor", c)} />
                     </View>
                 </View>
 
                 <View style={[styles.card, { backgroundColor: theme.surface }]}>
                     <Text style={[styles.sectionTitle, { color: theme.text }]}>Dégradé</Text>
                     <View style={styles.colorRow}>
-                        <CircleColorPicker
-                            value={formik.values.firstGradientColor}
-                            onChange={(color) => formik.setFieldValue("firstGradientColor", color)}
-                        />
-                        <CircleColorPicker
-                            value={formik.values.secondGradientColor}
-                            onChange={(color) => formik.setFieldValue("secondGradientColor", color)}
-                        />
-                        <CircleColorPicker
-                            value={formik.values.thirdGradientColor}
-                            onChange={(color) => formik.setFieldValue("thirdGradientColor", color)}
-                        />
+                        <CircleColorPicker value={formik.values.firstGradientColor} onChange={(c) => formik.setFieldValue("firstGradientColor", c)} />
+                        <CircleColorPicker value={formik.values.secondGradientColor} onChange={(c) => formik.setFieldValue("secondGradientColor", c)} />
+                        <CircleColorPicker value={formik.values.thirdGradientColor} onChange={(c) => formik.setFieldValue("thirdGradientColor", c)} />
                     </View>
                 </View>
             </BottomSheetScrollView>
 
-            <ApiErrorToast
-                message={apiError}
-                bottomOffset={errorBottomOffset}
-                onHidden={() => setApiError(null)}
-            />
-
-            {/* Footer fixe */}
-            <View>
-                <View
-                    style={[
-                        styles.footer,
-                        {
-                            backgroundColor: theme.backgroundSecondary,
-                            borderTopColor: theme.border,
-                        },
-                    ]}
-                >
-                    <TouchableOpacity
-                        style={[
-                            styles.submitBtn,
-                            { backgroundColor: formik.values.mainColor || theme.primary, opacity: loading ? 0.7 : 1 },
-                        ]}
-                        disabled={loading}
-                        onPress={() => formik.handleSubmit()}
-                    >
-                        {loading ? (
-                            <ActivityIndicator color={theme.text} />
-                        ) : (
-                            <>
-                                <MaterialCommunityIcons name="content-save-outline" size={18} color={theme.text} />
-                                <Text style={[styles.submitText, { color: theme.text }]}>
-                                    {isEditMode ? (!division?.active ? "Réactiver" : "Modifier") : "Créer"}
-                                </Text>
-                            </>
-                        )}
-                    </TouchableOpacity>
-                </View>
-            </View>
+            <ApiErrorToast message={apiError} bottomOffset={FOOTER_SPACE + outerPaddingBottom} onHidden={() => setApiError(null)} />
         </View>
     );
 };
@@ -300,39 +238,4 @@ const styles = StyleSheet.create({
         fontSize: 14,
     },
     colorRow: { flexDirection: "row", gap: 16, marginTop: 8, marginLeft: 8 },
-    apiErrorContainer: {
-        position: "absolute",
-        left: 12,
-        right: 12,
-        borderRadius: 12,
-        borderWidth: 1,
-        flexDirection: "row",
-        alignItems: "center",
-        paddingVertical: 8,
-        paddingHorizontal: 12,
-        marginBottom: 8,
-        gap: 8,
-        zIndex: 20,
-    },
-    apiErrorText: { flex: 1, fontSize: 14, fontWeight: "600" },
-    footer: {
-        height: FOOTER_HEIGHT,
-        position: "absolute",
-        left: 0,
-        right: 0,
-        bottom: 0,
-        paddingHorizontal: 12,
-        paddingTop: 8,
-        borderTopWidth: 1,
-        justifyContent: "center",
-    },
-    submitBtn: {
-        borderRadius: CORNERS,
-        paddingVertical: 14,
-        alignItems: "center",
-        justifyContent: "center",
-        flexDirection: "row",
-        gap: 8,
-    },
-    submitText: { fontWeight: "800", fontSize: 16 },
 });

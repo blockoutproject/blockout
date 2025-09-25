@@ -66,7 +66,6 @@ const AnimatedFeedHeader: React.FC<HeaderProps> = ({
     const { routes } = props.navigationState;
     const { position } = props;
 
-    // Poids par route (1 pour la route visible, 0 sinon)
     const weights = routes.map((_, i) =>
         position.interpolate({
             inputRange: routes.map((__, idx) => idx),
@@ -75,7 +74,6 @@ const AnimatedFeedHeader: React.FC<HeaderProps> = ({
         })
     );
 
-    // Progression verticale (0→1) pour chaque route via son scrollY
     const progressByRoute = routes.map((r) =>
         (scrollYs[r.key] ?? new Animated.Value(0)).interpolate({
             inputRange: [0, LOGO_HEIGHT],
@@ -84,7 +82,6 @@ const AnimatedFeedHeader: React.FC<HeaderProps> = ({
         })
     );
 
-    // Somme pondérée → progression combinée (0→1)
     const combinedProgress = progressByRoute
         .map((p, i) => Animated.multiply(p, weights[i]))
         .reduce<Animated.AnimatedAddition<number>>(
@@ -92,7 +89,6 @@ const AnimatedFeedHeader: React.FC<HeaderProps> = ({
             new Animated.Value(0)
         );
 
-    // Dérivés
     const translateY = combinedProgress.interpolate({
         inputRange: [0, 1],
         outputRange: [0, -LOGO_HEIGHT],
@@ -107,18 +103,12 @@ const AnimatedFeedHeader: React.FC<HeaderProps> = ({
 
     const blurOpacity = combinedProgress;
 
-    const titleScale = combinedProgress.interpolate({
-        inputRange: [0, 1],
-        outputRange: [1, 2],
-        extrapolate: "clamp",
-    });
-
     const openLocal = (ref: React.RefObject<BottomSheetModal | null>) => () => {
         Haptics.selectionAsync();
         ref.current?.present();
     };
 
-    // ✅ Fond Android semi-transparent dérivé du thème (pas noir “brut”)
+
     const androidTint = withAlpha(theme.background, androidBackgroundAlpha);
 
     return (
@@ -129,8 +119,6 @@ const AnimatedFeedHeader: React.FC<HeaderProps> = ({
                     { paddingTop: insets.top, transform: [{ translateY }] },
                 ]}
             >
-                {/* iOS : blur animé + gradient.
-            Android : overlay colorisé semi-transparent + le même gradient pour adoucir */}
                 <View style={StyleSheet.absoluteFill}>
                     {Platform.OS === "ios" ? (
                         <>
@@ -150,14 +138,12 @@ const AnimatedFeedHeader: React.FC<HeaderProps> = ({
                                 style={[
                                     StyleSheet.absoluteFill,
                                     {
-                                        // 🎯 teinte issue du thème + opacité douce
                                         backgroundColor: androidTint,
-                                        opacity: blurOpacity, // suit la progression comme iOS
+                                        opacity: blurOpacity,
                                     },
                                 ]}
                             />
                             <LinearGradient
-                                // Gradient identique pour lisser la jonction haut/centre
                                 colors={[androidTint, "transparent"]}
                                 start={{ x: 0, y: 0.35 }}
                                 end={{ x: 0, y: 1 }}
@@ -168,12 +154,13 @@ const AnimatedFeedHeader: React.FC<HeaderProps> = ({
                     )}
                 </View>
 
-                {/* Logo animé (échelle + fade out) */}
                 <Animated.View
                     style={{
                         height: LOGO_HEIGHT,
                         opacity: titleOpacity,
-                        transform: [{ scale: titleScale }],
+                        justifyContent: "center",
+                        alignItems: "flex-start",
+                        paddingLeft: 16,
                     }}
                 >
                     <Image
@@ -261,7 +248,7 @@ const styles = StyleSheet.create({
         width: "auto",
         paddingHorizontal: 16,
     },
-    teamLogo: { height: 22 },
+    teamLogo: { flex: 1, aspectRatio: 5 },
     indicator: { width: 0.5, height: 3 },
     actions: {
         flexDirection: "row",

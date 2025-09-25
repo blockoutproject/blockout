@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Auth0Provider } from "react-native-auth0";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
+import { KeyboardProvider } from "react-native-keyboard-controller";
 
 import { AUTH0_CONFIG } from "@/src/config/config";
 import { ThemeProvider } from "@/src/theme/theme-provider";
@@ -22,28 +23,28 @@ export default function Root() {
     const theme = useAppTheme();
 
     useEffect(() => {
-        (async () => {
-            await NavigationBar.setPositionAsync("absolute");
-            await NavigationBar.setBackgroundColorAsync('#ffffff00');
-        })();
+        NavigationBar.setPositionAsync("absolute");
+        NavigationBar.setBackgroundColorAsync('#ffffff00')
     }, []);
 
     return (
         <GestureHandlerRootView style={{ flex: 1 }}>
-            <QueryClientProvider client={queryClient}>
-                <ThemeProvider>
-                    <StatusBar barStyle={"light-content"} backgroundColor={theme.background} />
-                    <Auth0Provider domain={AUTH0_CONFIG.domain} clientId={AUTH0_CONFIG.clientId}>
-                        <SessionProvider>
-                            <ApiProvider>
-                                <SplashScreenController />
-                                <RootNavigator />
-                            </ApiProvider>
-                        </SessionProvider>
-                    </Auth0Provider>
-                </ThemeProvider>
-            </QueryClientProvider>
-        </GestureHandlerRootView>
+            <KeyboardProvider>
+                <QueryClientProvider client={queryClient}>
+                    <ThemeProvider>
+                        <StatusBar barStyle={"light-content"} backgroundColor={theme.background} />
+                        <Auth0Provider domain={AUTH0_CONFIG.domain} clientId={AUTH0_CONFIG.clientId}>
+                            <SessionProvider>
+                                <ApiProvider>
+                                    <SplashScreenController />
+                                    <RootNavigator />
+                                </ApiProvider>
+                            </SessionProvider>
+                        </Auth0Provider>
+                    </ThemeProvider>
+                </QueryClientProvider>
+            </KeyboardProvider>
+        </GestureHandlerRootView >
     );
 }
 

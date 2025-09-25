@@ -1,27 +1,17 @@
 import React, { useState, useMemo, useRef, useCallback } from "react";
-import {
-    View,
-    Text,
-    TouchableOpacity,
-    StyleSheet,
-    ActivityIndicator,
-    Keyboard,
-    RefreshControl,
-} from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Keyboard, RefreshControl } from "react-native";
 import { FlatList } from "react-native-gesture-handler";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
-
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import { useDivisions } from "@/src/hooks/config/division/useDivisions";
 import { Division } from "@/src/types/Division";
 import { Filter } from "@/src/types/Filter";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
-import SearchBar from "../common/SearchBar";
-import Filters from "../common/Filters";
-import BottomSheetCustomModal from "../common/bottomSheet/BottomSheetCustomModal";
-import DivisionItem from "./components/DivisionItem";
-import DivisionForm from "./components/DivisionForm";
+import DivisionItem from "@/src/components/division/DivisionItem";
+import SearchBar from "@/src/components/common/SearchBar";
+import Filters from "@/src/components/common/Filters";
+import DivisionFormSheet from "@/src/components/division/DisivisionFormSheet";
 
 const DivisionScreen: React.FC = () => {
     const theme = useAppTheme();
@@ -58,10 +48,7 @@ const DivisionScreen: React.FC = () => {
         if (!data) return [];
         return data.filter((d) => {
             const matchSearch = d.name.toLowerCase().includes(search.toLowerCase());
-            const matchStatus =
-                activeStatus === "" ||
-                (activeStatus === "Actives" && d.active) ||
-                (activeStatus === "Inactives" && !d.active);
+            const matchStatus = activeStatus === "" || (activeStatus === "Actives" && d.active) || (activeStatus === "Inactives" && !d.active);
             return matchSearch && matchStatus;
         });
     }, [data, search, activeStatus]);
@@ -80,16 +67,8 @@ const DivisionScreen: React.FC = () => {
         <>
             <View style={[styles.container, { backgroundColor: theme.background }]}>
                 <View style={styles.searchRow}>
-                    <SearchBar
-                        value={search}
-                        onChangeText={setSearch}
-                        placeholder="Rechercher une division..."
-                    />
-                    <TouchableOpacity
-                        onPress={() => openForm(null)}
-                        style={[styles.addButton, { backgroundColor: theme.primary }]}
-                        activeOpacity={0.8}
-                    >
+                    <SearchBar value={search} onChangeText={setSearch} placeholder="Rechercher une division..." />
+                    <TouchableOpacity onPress={() => openForm(null)} style={[styles.addButton, { backgroundColor: theme.primary }]} activeOpacity={0.8}>
                         <Text style={styles.addButtonText}>Ajouter</Text>
                     </TouchableOpacity>
                 </View>
@@ -103,15 +82,9 @@ const DivisionScreen: React.FC = () => {
                     data={sorted}
                     keyExtractor={(item) => item.id.toString()}
                     renderItem={({ item }) => (
-                        <DivisionItem
-                            division={item}
-                            onPress={() => openForm(item)}
-                            onDeactivated={refetchDivisions}
-                        />
+                        <DivisionItem division={item} onPress={() => openForm(item)} onDeactivated={refetchDivisions} />
                     )}
-                    refreshControl={
-                        <RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} tintColor={theme.text} />
-                    }
+                    refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} tintColor={theme.text} />}
                     contentContainerStyle={{ paddingBottom: insets.bottom + 16 }}
                     ListEmptyComponent={
                         <View style={styles.emptyState}>
@@ -123,19 +96,15 @@ const DivisionScreen: React.FC = () => {
                 />
             </View>
 
-            <BottomSheetCustomModal
+            <DivisionFormSheet
                 ref={formSheetRef}
+                division={editedDivision}
+                onSuccess={() => {
+                    refetchDivisions();
+                    closeForm();
+                }}
                 snapPoint="90%"
-            >
-                <DivisionForm
-                    division={editedDivision}
-                    onSuccess={async () => {
-                        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-                        refetchDivisions();
-                        closeForm();
-                    }}
-                />
-            </BottomSheetCustomModal>
+            />
         </>
     );
 };
@@ -144,18 +113,22 @@ export default DivisionScreen;
 
 const styles = StyleSheet.create({
     container: { flex: 1, gap: 16 },
-    center: { flex: 1, justifyContent: "center", alignItems: "center" },
-    searchRow: {
-        flexDirection: "row",
-        alignItems: "center",
-        marginHorizontal: 8,
-        marginTop: 16,
-        gap: 12,
+    center: { 
+        flex: 1, 
+        justifyContent: "center", 
+        alignItems: "center" 
     },
-    addButton: {
-        paddingVertical: 10,
-        paddingHorizontal: 16,
-        borderRadius: 18,
+    searchRow: { 
+        flexDirection: "row", 
+        alignItems: "center", 
+        marginHorizontal: 8, 
+        marginTop: 16, 
+        gap: 12 
+    },
+    addButton: { 
+        paddingVertical: 10, 
+        paddingHorizontal: 16, 
+        borderRadius: 18 
     },
     addButtonText: { color: "white", fontWeight: "bold" },
     filtersWrapper: { paddingHorizontal: 8 },

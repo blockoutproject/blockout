@@ -35,7 +35,6 @@ export const useSession = () => {
     return ctx;
 };
 
-/** Props: { children } Contenu de l'application protégé par la session */
 export const SessionProvider: React.FC<React.PropsWithChildren> = ({ children }) => {
     const { authorize, clearSession, clearCredentials, user: auth0User, error: auth0UserError, isLoading: isAuth0UserLoading } = useAuth0();
     const { data: customUser, isLoading: isCustomUserLoading, error: customUserError, refetch } = useEnsureUser();
@@ -59,22 +58,27 @@ export const SessionProvider: React.FC<React.PropsWithChildren> = ({ children })
     };
 
     const softResetAuth = async () => {
+        console.log("Soft resetting auth");
         await clearCredentials();
         await clearRQCache();
     };
 
     const signOutLocal = async () => {
+        console.log("Signing out locally");
         await softResetAuth();
     };
 
-    const signOutSSO = async (opts?: { federated?: boolean }) => {
-        await clearSession({ federated: opts?.federated });
-        await softResetAuth();
+    const signOutSSO = async () => {
+        console.log("Signing out SSO");
+        await clearSession();
+        console.log("Cleared session", customUser, auth0User);
+        await clearRQCache();
     };
 
     useEffect(() => {
+        console.log("Session state changed:", { isReady, isError, error, customUser, auth0User });
         if (isReady && isError) {
-            void softResetAuth();
+            softResetAuth();
         }
     }, [isReady, isError]);
 

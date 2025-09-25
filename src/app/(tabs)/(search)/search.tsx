@@ -7,10 +7,9 @@ import SearchTeamScreen from "@/src/components/search/SearchTeamScreen";
 import SearchClubScreen from "@/src/components/search/SearchClubScreen";
 import SearchPoolScreen from "@/src/components/search/SearchPoolScreen";
 import SearchHeader from "@/src/components/search/SearchHeader";
-import BottomSheetCustomModal from "@/src/components/common/bottomSheet/BottomSheetCustomModal";
-import ReportForm from "@/src/components/report/ReportForm";
 import { ReportType } from "@/src/types/Report";
 import { Filter } from "@/src/types/Filter";
+import ReportFormSheet from "@/src/components/report/ReportFormSheet";
 
 const SearchScreen: React.FC = () => {
     const [filters, setFilters] = useState<Filter[]>([
@@ -57,20 +56,15 @@ const SearchScreen: React.FC = () => {
                 />
             )}
 
-            <BottomSheetCustomModal
+            <ReportFormSheet
                 ref={reportSheetRef}
-                snapPoint={"90%"}
-            >
-                <ReportForm
-                    context={{
-                        screen: "Search",
-                        defaultType: ReportType.DISPLAY_BUG,
-                    }}
-                    onSuccess={() => {
-                        reportSheetRef.current?.dismiss();
-                    }}
-                />
-            </BottomSheetCustomModal>
+                context={{ screen: "Search", defaultType: ReportType.DISPLAY_BUG }}
+                onSuccess={() => {
+                    reportSheetRef.current?.dismiss();
+                }}
+                snapPoint="90%"
+                footerLabel="Envoyer"
+            />
         </View>
     );
 };

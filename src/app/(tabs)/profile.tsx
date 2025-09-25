@@ -9,15 +9,14 @@ import { useAppTheme } from "@/src/context/ThemeProvider";
 import { useSession } from "@/src/context/SessionProvider";
 import UsersApi from "@/src/api/UsersApi";
 import useHasScopes from "@/src/hooks/user/useHasScopes";
-import ReportForm from "@/src/components/report/ReportForm";
 import { ReportType } from "@/src/types/Report";
 import { withAlpha } from "@/src/utils/utils";
 import BottomSheetCustomPage from "@/src/components/common/bottomSheet/BottomSheetCustomPage";
 import LegalDocumentScreen from "@/src/components/user/LegalDocumentScreen";
-import BottomSheetCustomModal from "@/src/components/common/bottomSheet/BottomSheetCustomModal";
 import ProfileHero from "@/src/components/user/ProfileHero";
-import ProfileForm from "@/src/components/user/ProfileForm";
 import ProfileHeader from "@/src/components/user/ProfileHeader";
+import ProfileFormSheet from "@/src/components/user/ProfileFormSheet";
+import ReportFormSheet from "@/src/components/report/ReportFormSheet";
 
 const SPINNER_BOX = 18;
 
@@ -262,28 +261,24 @@ const ProfileScreen: React.FC = () => {
                     />
                 </BottomSheetCustomPage>
 
-                <BottomSheetCustomModal ref={formSheetRef} snapPoint={"90%"}>
-                    <ProfileForm
-                        user={customUser}
-                        onSuccess={async () => {
-                            await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-                            refetch();
-                            closeForm();
-                        }}
-                    />
-                </BottomSheetCustomModal>
+                <ProfileFormSheet
+                    ref={formSheetRef}
+                    user={customUser}
+                    onSuccess={() => {
+                        refetch();
+                        formSheetRef.current?.dismiss();
+                    }}
+                />
 
-                <BottomSheetCustomModal ref={reportSheetRef} snapPoint={"90%"}>
-                    <ReportForm
-                        context={{
-                            screen: "Profile",
-                            defaultType: ReportType.DISPLAY_BUG,
-                        }}
-                        onSuccess={() => {
-                            reportSheetRef.current?.dismiss();
-                        }}
-                    />
-                </BottomSheetCustomModal>
+                <ReportFormSheet
+                    ref={reportSheetRef}
+                    context={{ screen: "Profile", defaultType: ReportType.DISPLAY_BUG }}
+                    onSuccess={() => {
+                        reportSheetRef.current?.dismiss();
+                    }}
+                    snapPoint="90%"
+                    footerLabel="Envoyer"
+                />
             </>
         );
     };

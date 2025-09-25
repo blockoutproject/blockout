@@ -19,6 +19,7 @@
       }
     },
     "android": {
+      "edgeToEdgeEnabled": true,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/blockout-logo-light.png",
         "backgroundColor": "#ffffff"

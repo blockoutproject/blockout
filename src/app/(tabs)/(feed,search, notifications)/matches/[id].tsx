@@ -14,14 +14,13 @@ import MatchScoreDetailsCard from "@/src/components/match/MatchScoreDetailsCard"
 import MatchInfoCard from "@/src/components/match/MatchInfoCard";
 import RankingCard from "@/src/components/ranking/RankingCard";
 import MatchHeader from "@/src/components/match/MatchHeader";
-import BottomSheetCustomModal from "@/src/components/common/bottomSheet/BottomSheetCustomModal";
-import ReportForm from "@/src/components/report/ReportForm";
 import ErrorState from "@/src/components/common/feedback/ErrorState";
 import FadeIn from "@/src/components/animations/FadeIn";
 
 import { ReportType } from "@/src/types/Report";
 import { getTeamsRankingColor, splitIsoDateFormatted } from "@/src/utils/utils";
 import { BOTTOM_TABBAR_HEIGHT, HEADER_HEIGHT, SECTION_SEPARATOR_HEIGHT } from "@/src/theme/globals";
+import ReportFormSheet from "@/src/components/report/ReportFormSheet";
 
 const AnimatedScrollView = Animated.createAnimatedComponent(ScrollView);
 
@@ -45,10 +44,6 @@ const MatchScreen: React.FC = () => {
 
     const handleOpenReport = useCallback(() => {
         reportSheetRef.current?.present();
-    }, []);
-
-    const handleCloseReport = useCallback(() => {
-        reportSheetRef.current?.dismiss();
     }, []);
 
     const gradient = useMemo<readonly [string, string, ...string[]]>(() => {
@@ -214,18 +209,15 @@ const MatchScreen: React.FC = () => {
 
                 {body}
 
-                <BottomSheetCustomModal
+                <ReportFormSheet
                     ref={reportSheetRef}
-                    snapPoint={"90%"}
-                >
-                    <ReportForm
-                        context={{
-                            screen: "Match",
-                            defaultType: ReportType.DISPLAY_BUG,
-                        }}
-                        onSuccess={handleCloseReport}
-                    />
-                </BottomSheetCustomModal>
+                    context={{ screen: "Match", defaultType: ReportType.DISPLAY_BUG }}
+                    onSuccess={() => {
+                        reportSheetRef.current?.dismiss();
+                    }}
+                    snapPoint="90%"
+                    footerLabel="Envoyer"
+                />
             </View>
         );
     }

@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { useInfiniteQuery, keepPreviousData } from "@tanstack/react-query";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import MobileGatewayApi from "@/src/api/MobileGatewayApi";
 import { EnrichedDayMatchesDTO, MatchStatus } from "@/src/types/Match";
 
@@ -7,7 +7,7 @@ export const useMatchList = (
     status: MatchStatus,
     poolIds?: number[],
     teamIds?: number[],
-    pageSize = 10
+    pageSize?: number
 ) => {
     const poolsKey = useMemo(
         () => (poolIds?.length ? [...poolIds].sort((a, b) => a - b).join(",") : "none"),

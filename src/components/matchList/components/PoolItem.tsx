@@ -1,4 +1,4 @@
-import React from "react";
+import React, { memo } from "react";
 import { Text, TouchableOpacity, View, StyleSheet } from "react-native";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
@@ -22,8 +22,6 @@ export type PoolItemProps = {
     handleMatchPress: (id: number) => void;
     /** Affiche l’en-tête cliquable de la poule. */
     showHeader?: boolean;
-    /** Index d’apparition pour le stagger. */
-    appearIndex?: number;
 };
 
 const RADIUS = 16;
@@ -33,7 +31,6 @@ const PoolItem: React.FC<PoolItemProps> = ({
     handlePoolPress,
     handleMatchPress,
     showHeader = true,
-    appearIndex = 0
 }) => {
     const theme = useAppTheme();
     const division = enrichedPoolMatches.pool.division;
@@ -49,7 +46,6 @@ const PoolItem: React.FC<PoolItemProps> = ({
     ] as const;
 
     return (
-        <FadeIn appearIndex={appearIndex} >
             <GradientBorderView
                 gradient={gradient}
                 borderRadius={RADIUS}
@@ -153,11 +149,10 @@ const PoolItem: React.FC<PoolItemProps> = ({
                     </View>
                 </View>
             </GradientBorderView>
-        </FadeIn>
     );
 };
 
-export default PoolItem;
+export default memo(PoolItem);
 
 const styles = StyleSheet.create({
     card: {

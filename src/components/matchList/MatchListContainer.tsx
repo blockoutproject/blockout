@@ -33,7 +33,6 @@ export type Section = {
     data: RowItem[];
 };
 
-/** Container de liste de matchs avec grouping par date. */
 export type MatchListContainerProps = {
     /** Filtre par IDs de poules. */
     poolIds?: number[];
@@ -102,6 +101,7 @@ const MatchListContainer: React.FC<MatchListContainerProps> = ({
     const sections = useMemo(
         () =>
             dayMatches.map((d) => ({
+                key: String(d.date),
                 title: formatDateFrenchLocale(d.date),
                 data: d.pools.map((p, idx) => ({
                     ...p,
@@ -148,17 +148,16 @@ const MatchListContainer: React.FC<MatchListContainerProps> = ({
     } else {
         body = (
             <Animated.SectionList
-                sections={sections as any}
-                keyExtractor={(it: any) => `${it.pool.id}-${it.__sectionKey}`}
+                sections={sections}
+                keyExtractor={(it) => `${it.pool.id}-${it.__sectionKey}`}
                 stickySectionHeadersEnabled
                 renderSectionHeader={renderSectionHeader}
-                renderItem={({ item, index }: any) => (
+                renderItem={({ item }) => (
                     <PoolItem
                         enrichedPoolMatches={item}
                         handlePoolPress={handlePoolPress}
                         handleMatchPress={handleMatchPress}
                         showHeader={showPoolHeader}
-                        appearIndex={index}
                     />
                 )}
                 onEndReachedThreshold={0.5}
@@ -185,12 +184,14 @@ const MatchListContainer: React.FC<MatchListContainerProps> = ({
                 ListEmptyComponent={() => (
                     <EmptyState
                         title="Aucun match trouvé"
+                        onRetry={(poolIds?.length || teamIds?.length) ? refetch : undefined}
+                        retryLabel={(poolIds?.length || teamIds?.length) ? "Réessayer" : undefined}
                         subtitle={
-                            poolIds?.length || teamIds?.length
+                            (poolIds?.length || teamIds?.length)
                                 ? "Aucun match à venir pour les équipes ou poules sélectionnées."
                                 : "Commence par suivre une équipe ou une poule pour voir les matchs ici !"
                         }
-                        paddingTop={home ? "40%" : "20%"}
+                        paddingTop={home ? "30%" : "10%"}
                     />
                 )}
                 scrollEnabled={sections.length > 0}

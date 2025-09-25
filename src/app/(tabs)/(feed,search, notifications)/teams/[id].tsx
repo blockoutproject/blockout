@@ -10,9 +10,8 @@ import TeamTabs from "@/src/components/team/TeamTabs";
 import ErrorState from "@/src/components/common/feedback/ErrorState";
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import TeamHeader from "@/src/components/team/TeamHeader";
-import BottomSheetCustomModal from "@/src/components/common/bottomSheet/BottomSheetCustomModal";
-import ReportForm from "@/src/components/report/ReportForm";
 import { ReportType } from "@/src/types/Report";
+import ReportFormSheet from "@/src/components/report/ReportFormSheet";
 
 const TeamScreen: React.FC = () => {
     const theme = useAppTheme();
@@ -23,10 +22,6 @@ const TeamScreen: React.FC = () => {
 
     const handleOpenReport = useCallback(() => {
         reportSheetRef.current?.present();
-    }, []);
-
-    const handleCloseReport = useCallback(() => {
-        reportSheetRef.current?.dismiss();
     }, []);
 
     const body = useMemo(() => {
@@ -78,18 +73,15 @@ const TeamScreen: React.FC = () => {
 
             {body}
 
-            <BottomSheetCustomModal
+            <ReportFormSheet
                 ref={reportSheetRef}
-                snapPoint={"90%"}
-            >
-                <ReportForm
-                    context={{
-                        screen: "Team",
-                        defaultType: ReportType.DISPLAY_BUG,
-                    }}
-                    onSuccess={handleCloseReport}
-                />
-            </BottomSheetCustomModal>
+                context={{ screen: "Team", defaultType: ReportType.DISPLAY_BUG }}
+                onSuccess={() => {
+                    reportSheetRef.current?.dismiss();
+                }}
+                snapPoint="90%"
+                footerLabel="Envoyer"
+            />
         </View>
     );
 };
