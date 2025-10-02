@@ -187,11 +187,11 @@ async def handle_csv_download_and_parse(
                 matched_team = team_lookup.get(normalized_name)
                 if not matched_team:
                     log_event(
-                        "club_stats_match_fail", 
+                        "team_stats_match_fail", 
                         "warning", 
                         pool_id=new_pool.id, 
                         team_name=team_name, 
-                        message="Aucune équipe existante ne correspond à ce nom de club"
+                        message="Aucune équipe existante ne correspond à ce nom"
                     )
                     continue
 

@@ -208,10 +208,20 @@
             "gender": "F"
         },
         {
+            "full": "Saint Dié Des Vosges VB",
+            "short": "St-Dié",
+            "aliases": [
+                "St-Dié",
+                "SAINT DIE DES VOSGES VB"
+            ],
+            "gender": "F"
+        },
+        {
             "full": "Terville Florange Olympique Club",
             "short": "TFOC",
             "aliases": [
                 "Terville Florange Olympique Club",
+                "Terville Florange Olympique",
                 "Terville Florange",
                 "TFOC"
             ],
@@ -226,7 +236,8 @@
                 "Bordeaux Mérignac Volley",
                 "Bordeaux VB",
                 "Bordeaux Mérignac",
-                "Burdies"
+                "Burdies",
+                "BMV"
             ],
             "gender": "F"
         },
@@ -249,7 +260,8 @@
                 "VC Marcq-en-Baroeul Lille Metropole",
                 "VC Marcq-en-Baroeul",
                 "Marcq-en-Baroeul",
-                "Marcq en Baroeul"
+                "Marcq en Baroeul",
+                "VCMB LM"
             ],
             "gender": "F"
         },
@@ -302,6 +314,17 @@
                 "France Avenir 2024",
                 "FA2024",
                 "France Avenir"
+            ],
+            "gender": "F"
+        },
+        {
+            "full": "Évreux Volley-Ball",
+            "short": "Évreux",
+            "aliases": [
+                "Evreux Volley-Ball",
+                "Évreux Volley-Ball",
+                "Évreux",
+                "Evreux"
             ],
             "gender": "F"
         },
