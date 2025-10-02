@@ -1,119 +1,76 @@
 import React, { useCallback, useMemo } from "react";
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
-import Animated, { FadeInUp, FadeOut } from "react-native-reanimated";
 import { useAppTheme } from "@/src/context/ThemeProvider";
+import FadeIn from "../common/animations/FadeIn";
 import { EnrichedUserNotification } from "@/src/types/Notification";
+import SwipeableRow from "../common/animations/SwipeableRow";
 
-/** Single notification row. */
 export type NotificationItemProps = {
-    /** Notification payload. */
     notification: EnrichedUserNotification;
-    /** Called when the row is pressed. */
     onOpen: (notification: EnrichedUserNotification) => void;
+    onDelete: (notification: EnrichedUserNotification) => Promise<void>;
 };
 
-const NotificationItem: React.FC<NotificationItemProps> = ({ notification, onOpen }) => {
+const NotificationItem: React.FC<NotificationItemProps> = ({ notification, onOpen, onDelete }) => {
     const theme = useAppTheme();
 
-    const ago = useMemo(
-        () => formatAgo(notification.createdAt),
-        [notification.createdAt]
-    );
+    const ago = useMemo(() => formatAgo(notification.createdAt), [notification.createdAt]);
 
     const handlePress = useCallback(() => {
         onOpen(notification);
     }, [notification, onOpen]);
 
+    const handleDelete = useCallback(() => {
+        console.log("delete", notification.id);
+        return onDelete(notification);
+    }, [notification, onDelete]);
+
     return (
-        <Animated.View
-            entering={FadeInUp.springify().damping(18).stiffness(120)}
-            exiting={FadeOut}
-        >
-            <Pressable
-                onPress={handlePress}
-                style={({ pressed }) => [
-                    styles.card,
-                    {
-                        backgroundColor: theme.surface,
-                        transform: [
-                            {
-                                scale: pressed ? 0.97 : 1,
-                            },
-                        ],
-                        shadowColor: theme.text,
-                    },
-                ]}
-                testID="notification-item"
-            >
-                {notification.divisionLogoUrl && (
-                    <Image
-                        source={{ uri: notification.divisionLogoUrl }}
-                        style={styles.logo}
-                    />
-                )}
-
-                <View
-                    style={styles.content}
+        <FadeIn>
+            <SwipeableRow onDelete={handleDelete}>
+                <Pressable
+                    onPress={handlePress}
+                    style={[
+                        styles.card,
+                        {
+                            backgroundColor: theme.surface,
+                            shadowColor: theme.text,
+                        },
+                    ]}
+                    testID="notification-item"
                 >
-                    <Text
-                        style={[
-                            styles.title,
-                            {
-                                color: theme.text,
-                            },
-                        ]}
-                        numberOfLines={1}
-                    >
-                        {notification.title}
-                    </Text>
+                    {notification.divisionLogoUrl && (
+                        <Image source={{ uri: notification.divisionLogoUrl }} style={styles.logo} />
+                    )}
 
-                    <Text
-                        style={[
-                            styles.body,
-                            {
-                                color: theme.textInactive,
-                            },
-                        ]}
-                        numberOfLines={2}
-                    >
-                        {notification.body}
-                    </Text>
+                    <View style={styles.content}>
+                        <Text style={[styles.title, { color: theme.text }]} numberOfLines={1}>
+                            {notification.title}
+                        </Text>
 
-                    <Text
-                        style={[
-                            styles.time,
-                            {
-                                color: theme.text,
-                            },
-                        ]}
-                    >
-                        {ago}
-                    </Text>
-                </View>
-            </Pressable>
-        </Animated.View>
+                        <Text style={[styles.body, { color: theme.textInactive }]} numberOfLines={2}>
+                            {notification.body}
+                        </Text>
+
+                        <Text style={[styles.time, { color: theme.text }]}>{ago}</Text>
+                    </View>
+                </Pressable>
+            </SwipeableRow>
+        </FadeIn>
     );
 };
 
 export default NotificationItem;
 
 function formatAgo(iso?: string | null): string {
-    if (!iso) {
-        return "";
-    }
+    if (!iso) return "";
     const d = new Date(iso).getTime();
     const diff = Date.now() - d;
-    if (diff < 60000) {
-        return "à l’instant";
-    }
+    if (diff < 60000) return "à l’instant";
     const min = Math.floor(diff / 60000);
-    if (min < 60) {
-        return `il y a ${min} min`;
-    }
+    if (min < 60) return `il y a ${min} min`;
     const h = Math.floor(min / 60);
-    if (h < 24) {
-        return `il y a ${h} h`;
-    }
+    if (h < 24) return `il y a ${h} h`;
     const day = Math.floor(h / 24);
     return `il y a ${day} j`;
 }

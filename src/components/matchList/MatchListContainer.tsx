@@ -1,58 +1,52 @@
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-    RefreshControl,
     View,
-    Animated,
     ActivityIndicator,
+    Animated,
     StyleSheet,
     StyleProp,
     ViewStyle,
+    RefreshControl,
 } from "react-native";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
+import { FlashList, FlashListRef, ListRenderItemInfo } from "@shopify/flash-list";
+import { useRecyclingState } from "@shopify/flash-list";
 
-import { MatchStatus } from "@/src/types/Match";
-import { formatDateFrenchLocale } from "@/src/utils/utils";
+import {
+    MatchStatus,
+    EnrichedDayMatchesDTO,
+    EnrichedPoolMatchesDTO,
+} from "@/src/types/Match";
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import { useMatchList } from "@/src/hooks/match/useMatchList";
-import SectionDateHeader from "./components/SectionDateHeader";
-import PoolItem from "./components/PoolItem";
+import { formatDateFrenchLocale } from "@/src/utils/utils";
+
+import SectionDateHeader from "./SectionDateHeader";
+import PoolItem from "./PoolItem";
 import EmptyState from "../common/feedback/EmptyState";
 import ErrorState from "../common/feedback/ErrorState";
 import { SECTION_SEPARATOR_HEIGHT } from "@/src/theme/globals";
+import { set } from "date-fns";
 
-export type RowItem = {
-    id: string;
-    title: string;
-    subtitle?: string;
-};
-
-export type Section = {
-    key: string;
-    title: string;
-    data: RowItem[];
-};
-
-export type MatchListContainerProps = {
-    /** Filtre par IDs de poules. */
+export type MatchListProps = {
     poolIds?: number[];
-    /** Filtre par IDs d’équipes. */
     teamIds?: number[];
-    /** Statut des matchs à afficher. */
     status: MatchStatus;
-    /** Valeur animée pour synchroniser le scroll. */
     scrollY: Animated.Value;
-    /** Styles du content container. */
     contentContainerStyle?: StyleProp<ViewStyle>;
-    /** Décalage du header pour le refresh control. */
     headerOffset: number;
-    /** Affiche l’en-tête de poule dans chaque carte. */
     showPoolHeader?: boolean;
-    /** Spécifique à la Home (padding différent). */
     home?: boolean;
 };
 
-const MatchListContainer: React.FC<MatchListContainerProps> = ({
+type HeaderRow = { type: "sectionHeader"; title: string; sectionKey: string };
+type PoolRow = { type: "pool"; pool: EnrichedPoolMatchesDTO; sectionKey: string };
+type Row = HeaderRow | PoolRow;
+
+const AnimatedFlashList = Animated.createAnimatedComponent(FlashList<Row>);
+
+const MatchList: React.FC<MatchListProps> = ({
     poolIds,
     teamIds,
     status,
@@ -64,6 +58,8 @@ const MatchListContainer: React.FC<MatchListContainerProps> = ({
 }) => {
     const theme = useAppTheme();
     const router = useRouter();
+    const listRef = useRef<FlashListRef<Row>>(null);
+    const lastOffsetRef = useRef(0);
 
     const {
         dayMatches,
@@ -80,61 +76,103 @@ const MatchListContainer: React.FC<MatchListContainerProps> = ({
     const handleRefresh = useCallback(async () => {
         setIsRefreshing(true);
         await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-        await refetch();
-        setIsRefreshing(false);
+        try {
+            await refetch();
+        } finally {
+            setIsRefreshing(false);
+        }
     }, [refetch]);
 
     const handleLoadMore = useCallback(() => {
         if (hasNextPage && !isFetchingNextPage) fetchNextPage();
     }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-    const handleMatchPress = useCallback(async (matchId: number) => {
-        await Haptics.selectionAsync();
-        router.push(`/matches/${matchId}`);
-    }, [router]);
-
-    const handlePoolPress = useCallback(async (poolId: number) => {
-        await Haptics.selectionAsync();
-        router.push(`/pools/${poolId}`);
-    }, [router]);
-
-    const sections = useMemo(
-        () =>
-            dayMatches.map((d) => ({
-                key: String(d.date),
-                title: formatDateFrenchLocale(d.date),
-                data: d.pools.map((p, idx) => ({
-                    ...p,
-                    __sectionKey: d.date,
-                })),
-            })),
-        [dayMatches]
+    const handleMatchPress = useCallback(
+        async (matchId: number) => {
+            await Haptics.selectionAsync();
+            router.push(`/matches/${matchId}`);
+        },
+        [router]
     );
 
-    const renderSectionHeader = useCallback(
-        ({ section: { title } }: { section: { title: string } }) => (
-            <SectionDateHeader title={title} />
-        ),
-        []
+    const handlePoolPress = useCallback(
+        async (poolId: number) => {
+            await Haptics.selectionAsync();
+            router.push(`/pools/${poolId}`);
+        },
+        [router]
+    );
+
+    const flatData = useMemo(() => {
+        const rows: Row[] = [];
+        dayMatches.forEach((d: EnrichedDayMatchesDTO) => {
+            const sectionKey = String(d.date);
+            rows.push({
+                type: "sectionHeader",
+                title: formatDateFrenchLocale(d.date),
+                sectionKey,
+            });
+            d.pools.forEach((p) => rows.push({ type: "pool", pool: p, sectionKey }));
+        });
+        return rows;
+    }, [dayMatches]);
+
+    const dataSignature = useMemo(() => {
+        const len = dayMatches.length;
+        const first = len ? String(dayMatches[0].date) : "∅";
+        const last = len ? String(dayMatches[len - 1].date) : "∅";
+        const poolsSig = (poolIds || []).join(",");
+        const teamsSig = (teamIds || []).join(",");
+        return `${status}|${len}|${first}|${last}|P:${poolsSig}|T:${teamsSig}`;
+    }, [dayMatches, status, poolIds, teamIds]);
+
+    const [_recycleTick, setRecycleTick] = useRecyclingState(
+        0,
+        [dataSignature],
+        () => {
+
+            scrollY.setValue(0);
+        }
+    );
+
+    const getItemType = useCallback((item: Row) => {
+        return item.type === "sectionHeader" ? "sectionHeader" : "row";
+    }, []);
+
+    const keyExtractor = useCallback((item: Row) => {
+        return item.type === "sectionHeader"
+            ? `h-${item.sectionKey}`
+            : `p-${item.pool.pool.id}-${item.sectionKey}`;
+    }, []);
+
+    const renderItem = useCallback(
+        ({ item }: ListRenderItemInfo<Row>) => {
+            switch (item.type) {
+                case "sectionHeader":
+                    return <SectionDateHeader title={item.title} />;
+                case "pool":
+                    return (
+                        <PoolItem
+                            enrichedPoolMatches={item.pool}
+                            handlePoolPress={handlePoolPress}
+                            handleMatchPress={handleMatchPress}
+                            showHeader={showPoolHeader}
+                        />
+                    );
+                default:
+                    return null;
+            }
+        },
+        [handlePoolPress, handleMatchPress, showPoolHeader]
     );
 
     let body: React.ReactNode;
-
     if (isLoading) {
         body = (
             <View
-                style={[
-                    styles.center,
-                    {
-                        backgroundColor: theme.background,
-                    },
-                ]}
-                testID="matchlist-loading"
+                style={[styles.center, { backgroundColor: theme.background }]}
             >
-                <ActivityIndicator
-                    size="large"
-                    color={theme.text}
-                />
+                <ActivityIndicator size="large" color={theme.text} />
             </View>
         );
     } else if (isError) {
@@ -147,119 +185,69 @@ const MatchListContainer: React.FC<MatchListContainerProps> = ({
         );
     } else {
         body = (
-            <Animated.SectionList
-                sections={sections}
-                keyExtractor={(it) => `${it.pool.id}-${it.__sectionKey}`}
-                stickySectionHeadersEnabled
-                renderSectionHeader={renderSectionHeader}
-                renderItem={({ item }) => (
-                    <PoolItem
-                        enrichedPoolMatches={item}
-                        handlePoolPress={handlePoolPress}
-                        handleMatchPress={handleMatchPress}
-                        showHeader={showPoolHeader}
-                    />
-                )}
+            <AnimatedFlashList
+                ref={listRef}
+                data={flatData}
+                renderItem={renderItem}
+                getItemType={getItemType}
+                keyExtractor={keyExtractor}
                 onEndReachedThreshold={0.5}
                 onEndReached={handleLoadMore}
-                ItemSeparatorComponent={() => (
-                    <View
-                        style={styles.itemSeparator}
-                    />
-                )}
-                SectionSeparatorComponent={() => (
-                    <View
-                        style={styles.sectionSeparator}
-                    />
-                )}
                 showsVerticalScrollIndicator={false}
-                refreshControl={(
+                refreshControl={
                     <RefreshControl
                         refreshing={isRefreshing}
                         onRefresh={handleRefresh}
                         tintColor={theme.text}
                         progressViewOffset={headerOffset}
                     />
-                )}
+                }
+                contentContainerStyle={contentContainerStyle}
+                alwaysBounceVertical
+                bounces
+                onScroll={
+                    scrollY
+                        ? Animated.event(
+                            [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+                            {
+                                useNativeDriver: true,
+                                listener: (e: any) => {
+                                    lastOffsetRef.current = e.nativeEvent.contentOffset?.y ?? 0;
+                                },
+                            }
+                        )
+                        : undefined
+                }
+                scrollEventThrottle={16}
                 ListEmptyComponent={() => (
                     <EmptyState
                         title="Aucun match trouvé"
-                        onRetry={(poolIds?.length || teamIds?.length) ? refetch : undefined}
-                        retryLabel={(poolIds?.length || teamIds?.length) ? "Réessayer" : undefined}
+                        onRetry={poolIds?.length || teamIds?.length ? refetch : undefined}
+                        retryLabel={poolIds?.length || teamIds?.length ? "Réessayer" : undefined}
                         subtitle={
-                            (poolIds?.length || teamIds?.length)
+                            poolIds?.length || teamIds?.length
                                 ? "Aucun match à venir pour les équipes ou poules sélectionnées."
                                 : "Commence par suivre une équipe ou une poule pour voir les matchs ici !"
                         }
                         paddingTop={home ? "30%" : "10%"}
                     />
                 )}
-                scrollEnabled={sections.length > 0}
-                onScroll={
-                    scrollY
-                        ? Animated.event(
-                            [
-                                {
-                                    nativeEvent: {
-                                        contentOffset: {
-                                            y: scrollY,
-                                        },
-                                    },
-                                },
-                            ],
-                            {
-                                useNativeDriver: true,
-                            }
-                        )
-                        : undefined
-                }
-                contentContainerStyle={contentContainerStyle}
                 ListFooterComponent={
                     isFetchingNextPage && hasNextPage ? (
-                        <ActivityIndicator
-                            style={{
-                                marginBottom: SECTION_SEPARATOR_HEIGHT,
-                            }}
-                        />
+                        <ActivityIndicator style={{ marginBottom: SECTION_SEPARATOR_HEIGHT }} />
                     ) : null
                 }
-                maintainVisibleContentPosition={{
-                    minIndexForVisible: sections.length > 0 ? 1 : 0,
-                }}
-                testID="matchlist-sectionlist"
+                testID="matchlist-flashlist"
             />
         );
     }
 
-    return (
-        <View
-            style={[
-                styles.container,
-                {
-                    backgroundColor: theme.background,
-                },
-            ]}
-        >
-            {body}
-        </View>
-    );
+    return body;
 };
 
-export default MatchListContainer;
+export default MatchList;
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-    },
-    center: {
-        flex: 1,
-        justifyContent: "center",
-        alignItems: "center",
-    },
-    itemSeparator: {
-        height: 6,
-    },
-    sectionSeparator: {
-        height: SECTION_SEPARATOR_HEIGHT,
-    },
+    container: { flex: 1 },
+    center: { flex: 1, justifyContent: "center", alignItems: "center" },
 });

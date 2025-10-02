@@ -1,8 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { View, StyleSheet, Text, TouchableOpacity, ActivityIndicator, Animated } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { View, StyleSheet, Text } from "react-native";
 import * as Haptics from "expo-haptics";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import ConfigApi from "@/src/api/ConfigApi";
@@ -10,10 +8,8 @@ import { useDivisions } from "@/src/hooks/config/division/useDivisions";
 import { RawDivisionMapping } from "@/src/types/RawDivisionMapping";
 import { EnumFormat, FormatLabels } from "@/src/types/enums/Format";
 import { EnumGender, GenderLabels } from "@/src/types/enums/Gender";
-import { CORNERS } from "@/src/theme/globals";
 import FormSelect from "@/src/components/common/form/FormSelect";
 import SelectSheet, { SelectOption, SelectSheetRef } from "@/src/components/common/bottomSheet/SelectSheet";
-import useKeyboardVisible from "@/src/hooks/utils/useKeyboardVisible";
 import ApiErrorToast from "@/src/components/common/feedback/ApiErrorToast";
 
 export type RawDivisionMappingFormExternalState = {
@@ -28,8 +24,6 @@ export type RawDivisionMappingFormProps = {
     onStateChange?: (state: RawDivisionMappingFormExternalState) => void;
 };
 
-const FOOTER_SPACE = 60;
-
 const RawDivisionMappingForm: React.FC<RawDivisionMappingFormProps> = ({
     mapping,
     onSuccess,
@@ -37,8 +31,6 @@ const RawDivisionMappingForm: React.FC<RawDivisionMappingFormProps> = ({
     onStateChange,
 }) => {
     const theme = useAppTheme();
-    const insets = useSafeAreaInsets();
-    const isKeyboardVisible = useKeyboardVisible();
     const { data: divisions = [], isLoading: loadingDivisions } = useDivisions();
 
     const [divisionId, setDivisionId] = useState<number | "">(mapping.divisionId ?? "");
@@ -96,12 +88,10 @@ const RawDivisionMappingForm: React.FC<RawDivisionMappingFormProps> = ({
         onStateChange?.({ loading: isSubmitting, canSubmit: !isSubmitting });
     }, [isSubmitting, onStateChange]);
 
-    const outerPaddingBottom = isKeyboardVisible ? 8 : insets.bottom + 8;
-
     return (
-        <View style={{ flex: 1, paddingBottom: outerPaddingBottom }}>
+        <>
             <BottomSheetScrollView
-                contentContainerStyle={[styles.fieldContainer, { paddingBottom: FOOTER_SPACE + outerPaddingBottom }]}
+                contentContainerStyle={styles.fieldContainer}
                 showsVerticalScrollIndicator={false}
             >
                 <View style={[styles.card, { backgroundColor: theme.surface }]}>
@@ -140,7 +130,6 @@ const RawDivisionMappingForm: React.FC<RawDivisionMappingFormProps> = ({
 
             <ApiErrorToast
                 message={apiError}
-                bottomOffset={FOOTER_SPACE + outerPaddingBottom}
                 onHidden={() => setApiError(null)}
             />
 
@@ -165,7 +154,7 @@ const RawDivisionMappingForm: React.FC<RawDivisionMappingFormProps> = ({
                 selectedValue={divisionId || ""}
                 onSelect={(opt) => setDivisionId((opt.value as number) || "")}
             />
-        </View>
+        </>
     );
 };
 

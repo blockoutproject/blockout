@@ -13,7 +13,7 @@ export function usePoolFollowState(enrichedPool: EnrichedPoolDTO) {
     const [isFollowing, setIsFollowing] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
 
-    const { data: poolFromCache } = useEnrichedPoolById(enrichedPool.id);
+    const { data: poolFromCache } = useEnrichedPoolById(enrichedPool.id, false);
     const followersCount = poolFromCache?.followersCount ?? enrichedPool.followersCount;
 
     useEffect(() => {
@@ -54,13 +54,12 @@ export function usePoolFollowState(enrichedPool: EnrichedPoolDTO) {
                 } else {
                     await api.unfollow(EntityType.POOL, enrichedPool.id);
                 }
-                refetch?.();
+                refetch();
             } catch {
                 qc.setQueryData<EnrichedPoolDTO>(poolKey, prevPool);
                 setIsFollowing(!next);
             } finally {
                 setIsProcessing(false);
-                qc.invalidateQueries({ queryKey: poolKey });
             }
         },
         [customUser, isProcessing, isFollowing, qc, enrichedPool, refetch]

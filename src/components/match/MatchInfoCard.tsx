@@ -26,14 +26,16 @@ const MatchInfoCard: React.FC<MatchInfoCardProps> = ({ enrichedMatch }) => {
         division.thirdGradientColor,
     ] as const;
 
-    const dateLabel = new Date(enrichedMatch.matchDate).toLocaleString("fr-FR", {
+    const rawDateLabel = new Date(enrichedMatch.matchDate).toLocaleString("fr-FR", {
         weekday: "short",
-        day: "2-digit",
+        day: "numeric",
         month: "short",
         year: "numeric",
         hour: "2-digit",
         minute: "2-digit",
     });
+
+    const dateLabel = rawDateLabel.charAt(0).toUpperCase() + rawDateLabel.slice(1);
 
     const leagueLabel = enrichedMatch.pool.leagueName === "PRO" ? "Professionnel" : division.name;
     const venue = enrichedMatch.venue || "Lieu à confirmer";

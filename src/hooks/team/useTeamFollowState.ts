@@ -23,7 +23,7 @@ export function useTeamFollowState(enrichedTeam: EnrichedTeamDTO) {
         }
     }, [customUser, enrichedTeam.id]);
 
-    const { data: teamFromCache } = useEnrichedTeamById(enrichedTeam.id);
+    const { data: teamFromCache } = useEnrichedTeamById(enrichedTeam.id, false);
     const followersCount = teamFromCache?.followersCount ?? enrichedTeam.followersCount;
 
     const onToggleFollow = useMemo(
@@ -51,7 +51,7 @@ export function useTeamFollowState(enrichedTeam: EnrichedTeamDTO) {
                     await api.unfollow(EntityType.TEAM, enrichedTeam.id);
                 }
 
-                refetch?.();
+                refetch();
             } catch (error) {
                 qc.setQueryData<EnrichedTeamDTO>(teamKey, prevTeam);
                 setIsFollowing(!next);

@@ -1,7 +1,6 @@
 import React, { useMemo, useState, useEffect } from "react";
-import { View, StyleSheet } from "react-native";
+import { StyleSheet } from "react-native";
 import { BottomSheetTextInput, BottomSheetScrollView } from "@gorhom/bottom-sheet";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import * as Haptics from "expo-haptics";
@@ -9,7 +8,6 @@ import { useAppTheme } from "@/src/context/ThemeProvider";
 import type { LegalDocument } from "@/src/types/LegalDocument";
 import ConfigApi from "@/src/api/ConfigApi";
 import Field from "@/src/components/common/form/Field";
-import useKeyboardVisible from "@/src/hooks/utils/useKeyboardVisible";
 import ApiErrorToast from "@/src/components/common/feedback/ApiErrorToast";
 
 export type LegalDocumentFormExternalState = {
@@ -31,9 +29,7 @@ const LegalDocumentForm: React.FC<LegalDocumentFormProps> = ({
     onStateChange,
 }) => {
     const theme = useAppTheme();
-    const insets = useSafeAreaInsets();
     const api = ConfigApi.getInstance();
-    const isKeyboardVisible = useKeyboardVisible();
 
     const [loading, setLoading] = useState(false);
     const [apiError, setApiError] = useState<string | null>(null);
@@ -76,13 +72,10 @@ const LegalDocumentForm: React.FC<LegalDocumentFormProps> = ({
         onStateChange?.({ loading, canSubmit });
     }, [loading, canSubmit, onStateChange]);
 
-    const outerPaddingBottom = isKeyboardVisible ? 8 : insets.bottom + 8;
-
     return (
-        <View style={{ flex: 1, paddingBottom: outerPaddingBottom }} testID="legal-document-form">
+        <>
             <BottomSheetScrollView
-                contentContainerStyle={[styles.content, { paddingBottom: 60 + outerPaddingBottom }]}
-                keyboardShouldPersistTaps="handled"
+                contentContainerStyle={styles.content}
                 showsVerticalScrollIndicator={false}
             >
                 <Field label="Titre" error={formik.errors.title} touched={formik.touched.title}>
@@ -134,8 +127,8 @@ const LegalDocumentForm: React.FC<LegalDocumentFormProps> = ({
                 </Field>
             </BottomSheetScrollView>
 
-            <ApiErrorToast message={apiError} bottomOffset={60 + outerPaddingBottom} onHidden={() => setApiError(null)} />
-        </View>
+            <ApiErrorToast message={apiError} onHidden={() => setApiError(null)} />
+        </>
     );
 };
 

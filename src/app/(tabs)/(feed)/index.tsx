@@ -8,6 +8,7 @@ import AnimatedFeedHeader from '@/src/components/home/AnimatedFeedHeader';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BOTTOM_TABBAR_HEIGHT, LOGO_HEIGHT, TABBAR_HEIGHT } from '@/src/theme/globals';
 import { useSession } from '@/src/context/SessionProvider';
+import { View } from 'moti';
 
 const FeedScreen: React.FC = () => {
     const insets = useSafeAreaInsets();
@@ -39,18 +40,18 @@ const FeedScreen: React.FC = () => {
         upcoming: new Animated.Value(0),
     }).current;
 
-    const finishedTab = useMemo(
+    const upcomingTab = useMemo(
         () => (
             <MatchList
                 poolIds={userFavoritePools}
                 teamIds={userFavoriteTeams}
-                status={MatchStatus.FINISHED}
-                scrollY={scrollYs.finished}
+                status={MatchStatus.UPCOMING}
+                scrollY={scrollYs.upcoming}
                 contentContainerStyle={{
                     paddingHorizontal: 4,
                     marginTop: insets.top + TABBAR_HEIGHT + 4,
                     paddingTop: LOGO_HEIGHT,
-                    paddingBottom: insets.bottom + insets.top + TABBAR_HEIGHT + BOTTOM_TABBAR_HEIGHT + 4,
+                    paddingBottom: insets.bottom + BOTTOM_TABBAR_HEIGHT + 4,
                 }}
                 headerOffset={headerOffset}
                 home
@@ -66,18 +67,18 @@ const FeedScreen: React.FC = () => {
         ]
     );
 
-    const upcomingTab = useMemo(
+    const finishedTab = useMemo(
         () => (
             <MatchList
                 poolIds={userFavoritePools}
                 teamIds={userFavoriteTeams}
-                status={MatchStatus.UPCOMING}
-                scrollY={scrollYs.upcoming}
+                status={MatchStatus.FINISHED}
+                scrollY={scrollYs.finished}
                 contentContainerStyle={{
                     paddingHorizontal: 4,
                     marginTop: insets.top + TABBAR_HEIGHT + 4,
                     paddingTop: LOGO_HEIGHT,
-                    paddingBottom: insets.bottom + insets.top + TABBAR_HEIGHT + BOTTOM_TABBAR_HEIGHT + 4,
+                    paddingBottom: insets.bottom + BOTTOM_TABBAR_HEIGHT + 4,
                 }}
                 headerOffset={headerOffset}
                 home

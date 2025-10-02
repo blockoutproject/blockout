@@ -8,7 +8,7 @@ import RankingTab from "@/src/components/ranking/RankingTab";
 
 import { MatchStatus } from "@/src/types/Match";
 import { EnrichedTeamDTO } from "@/src/types/Team";
-import { BOTTOM_TABBAR_HEIGHT, TABBAR_HEIGHT } from "@/src/theme/globals";
+import { BOTTOM_TABBAR_HEIGHT, SECTION_SEPARATOR_HEIGHT, TABBAR_HEIGHT } from "@/src/theme/globals";
 
 /** Tabs for team: Upcoming / Finished / Pools-as-ranking. */
 export type TeamTabsProps = {
@@ -43,7 +43,7 @@ const TeamTabs: React.FC<TeamTabsProps> = ({ enrichedTeam }) => {
                     {
                         paddingHorizontal: 4,
                         marginTop: TABBAR_HEIGHT + 4,
-                        paddingBottom: insets.bottom + TABBAR_HEIGHT + BOTTOM_TABBAR_HEIGHT + 4,
+                        paddingBottom: insets.bottom + BOTTOM_TABBAR_HEIGHT + 4,
                     },
                 ]}
                 home={false}
@@ -63,7 +63,7 @@ const TeamTabs: React.FC<TeamTabsProps> = ({ enrichedTeam }) => {
                     {
                         paddingHorizontal: 4,
                         marginTop: TABBAR_HEIGHT + 4,
-                        paddingBottom: insets.bottom + TABBAR_HEIGHT + BOTTOM_TABBAR_HEIGHT + 4,
+                        paddingBottom: insets.bottom + BOTTOM_TABBAR_HEIGHT + 4,
                     },
                 ]}
                 home={false}

@@ -15,7 +15,7 @@ import MatchInfoCard from "@/src/components/match/MatchInfoCard";
 import RankingCard from "@/src/components/ranking/RankingCard";
 import MatchHeader from "@/src/components/match/MatchHeader";
 import ErrorState from "@/src/components/common/feedback/ErrorState";
-import FadeIn from "@/src/components/animations/FadeIn";
+import FadeIn from "@/src/components/common/animations/FadeIn";
 
 import { ReportType } from "@/src/types/Report";
 import { getTeamsRankingColor, splitIsoDateFormatted } from "@/src/utils/utils";
@@ -150,9 +150,8 @@ const MatchScreen: React.FC = () => {
                 contentContainerStyle={[
                     styles.scrollContent,
                     {
-                        backgroundColor: "transparent",
                         paddingTop: insets.top + HEADER_HEIGHT,
-                        paddingBottom: insets.bottom + BOTTOM_TABBAR_HEIGHT + SECTION_SEPARATOR_HEIGHT,
+                        paddingBottom: insets.bottom + BOTTOM_TABBAR_HEIGHT + SECTION_SEPARATOR_HEIGHT + 4,
                     },
                 ]}
                 refreshControl={

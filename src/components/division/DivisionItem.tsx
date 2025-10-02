@@ -103,7 +103,7 @@ const styles = StyleSheet.create({
     },
     id: {
         fontSize: 12,
-        width: 20,
+        width: 24,
         textAlign: "left",
     },
     avatar: {

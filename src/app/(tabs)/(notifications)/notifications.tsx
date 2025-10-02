@@ -1,10 +1,6 @@
 import React, { useState, useMemo, useCallback } from "react";
 import {
-    View,
-    FlatList,
-    RefreshControl,
-    ActivityIndicator,
-    StyleSheet,
+    View, FlatList, RefreshControl, ActivityIndicator, StyleSheet,
 } from "react-native";
 import * as Haptics from "expo-haptics";
 import { Href, router } from "expo-router";
@@ -18,12 +14,16 @@ import EmptyState from "@/src/components/common/feedback/EmptyState";
 import NotificationsHeader from "@/src/components/notifications/NotificationsHeader";
 import { BOTTOM_TABBAR_HEIGHT } from "@/src/theme/globals";
 import { EnrichedUserNotification } from "@/src/types/Notification";
+import { useDeleteNotification } from "@/src/hooks/notification/useDeleteNotification";
+import NotificationsSkeleton from "@/src/components/notifications/NotificationsSkeleton";
+import { FlashList } from "@shopify/flash-list";
 
 const PAGE_SIZE = 20;
 
-const NotificationsContainer: React.FC = () => {
+const NotificationsScreen: React.FC = () => {
     const theme = useAppTheme();
     const insets = useSafeAreaInsets();
+    const { mutateAsync: deleteNotif } = useDeleteNotification(PAGE_SIZE);
 
     const {
         items,
@@ -45,22 +45,21 @@ const NotificationsContainer: React.FC = () => {
     }, [refetch]);
 
     const handleLoadMore = useCallback(() => {
-        if (hasNextPage && !isFetchingNextPage) {
-            fetchNextPage();
-        }
+        if (hasNextPage && !isFetchingNextPage) fetchNextPage();
     }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+    const handleDelete = useCallback(async (n: EnrichedUserNotification) => {
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        await deleteNotif(n.id);
+    }, [deleteNotif]);
 
     const handleOpen = useCallback(async (n: EnrichedUserNotification) => {
         await Haptics.selectionAsync();
-        if (n.deepLink) {
-            router.push(n.deepLink as Href);
-        }
+        if (n.deepLink) router.push(n.deepLink as Href);
     }, []);
 
     const contentPadding = useMemo(
-        () => ({
-            paddingBottom: insets.bottom + BOTTOM_TABBAR_HEIGHT + 12,
-        }),
+        () => ({ paddingBottom: insets.bottom + BOTTOM_TABBAR_HEIGHT + 12 }),
         [insets.bottom]
     );
 
@@ -68,15 +67,7 @@ const NotificationsContainer: React.FC = () => {
 
     if (isLoading) {
         body = (
-            <View
-                style={styles.center}
-                testID="notifications-loading"
-            >
-                <ActivityIndicator
-                    size="large"
-                    color={theme.text}
-                />
-            </View>
+            <NotificationsSkeleton/>
         );
     } else if (isError) {
         body = (
@@ -88,22 +79,18 @@ const NotificationsContainer: React.FC = () => {
         );
     } else {
         const hasData = items.length > 0;
-
         body = (
-            <FlatList
+            <FlashList
                 data={items}
                 keyExtractor={(n) => String(n.id)}
                 renderItem={({ item }) => (
                     <NotificationItem
                         notification={item}
                         onOpen={handleOpen}
+                        onDelete={handleDelete}
                     />
                 )}
-                contentContainerStyle={[
-                    {
-                        paddingBottom: contentPadding.paddingBottom,
-                    },
-                ]}
+                contentContainerStyle={[{ paddingBottom: contentPadding.paddingBottom }]}
                 showsVerticalScrollIndicator={false}
                 onEndReachedThreshold={0.5}
                 onEndReached={hasData ? handleLoadMore : undefined}
@@ -111,15 +98,14 @@ const NotificationsContainer: React.FC = () => {
                 bounces={hasData}
                 overScrollMode={hasData ? "auto" : "never"}
                 refreshControl={
-                    hasData
-                        ? (
-                            <RefreshControl
-                                refreshing={isRefreshing}
-                                onRefresh={handleRefresh}
-                                tintColor={theme.text}
-                            />
-                        )
-                        : undefined
+                    hasData ? (
+                        <RefreshControl
+                            refreshing={isRefreshing}
+                            onRefresh={handleRefresh}
+                            tintColor={theme.text}
+                            progressViewOffset={100}
+                        />
+                    ) : undefined
                 }
                 ListEmptyComponent={() => (
                     <EmptyState
@@ -131,11 +117,7 @@ const NotificationsContainer: React.FC = () => {
                 )}
                 ListFooterComponent={
                     isFetchingNextPage && hasNextPage
-                        ? (
-                            <ActivityIndicator
-                                style={styles.footerLoader}
-                            />
-                        )
+                        ? <ActivityIndicator style={styles.footerLoader} />
                         : null
                 }
                 testID="notifications-list"
@@ -144,32 +126,17 @@ const NotificationsContainer: React.FC = () => {
     }
 
     return (
-        <View
-            style={[
-                styles.container,
-                {
-                    backgroundColor: theme.background,
-                },
-            ]}
-        >
+        <View style={[styles.container, { backgroundColor: theme.background }]}>
             <NotificationsHeader />
             {body}
         </View>
     );
 };
 
-export default NotificationsContainer;
+export default NotificationsScreen;
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-    },
-    center: {
-        flex: 1,
-        justifyContent: "center",
-        alignItems: "center",
-    },
-    footerLoader: {
-        marginBottom: 20,
-    },
+    container: { flex: 1 },
+    center: { flex: 1, justifyContent: "center", alignItems: "center" },
+    footerLoader: { marginBottom: 20 },
 });

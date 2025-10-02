@@ -1,4 +1,4 @@
-import React, { memo } from "react";
+import React, { useEffect } from "react";
 import { Text, TouchableOpacity, View, StyleSheet } from "react-native";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
@@ -7,10 +7,12 @@ import { Ionicons } from "@expo/vector-icons";
 import { EnrichedPoolMatchesDTO } from "@/src/types/Match";
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import { withAlpha } from "@/src/utils/utils";
-import MaskedImage from "../../common/images/MaskedImage";
+import MaskedImage from "../common/images/MaskedImage";
 import MatchRow from "./MatchRow";
 import GradientBorderView from "@/src/components/common/GradientBorderView";
-import FadeIn from "../../animations/FadeIn";
+import FadeIn from "../common/animations/FadeIn";
+import { SECTION_SEPARATOR_HEIGHT } from "@/src/theme/globals";
+import { useMappingHelper } from "@shopify/flash-list";
 
 /** Carte listant les matchs d’une poule. */
 export type PoolItemProps = {
@@ -33,6 +35,7 @@ const PoolItem: React.FC<PoolItemProps> = ({
     showHeader = true,
 }) => {
     const theme = useAppTheme();
+    const { getMappingKey } = useMappingHelper();
     const division = enrichedPoolMatches.pool.division;
 
     const divisionLogo = division.logoUrl
@@ -44,8 +47,10 @@ const PoolItem: React.FC<PoolItemProps> = ({
         division.secondGradientColor,
         division.thirdGradientColor,
     ] as const;
-
+    
     return (
+        <FadeIn >
+            <View style={styles.wrapper}>
             <GradientBorderView
                 gradient={gradient}
                 borderRadius={RADIUS}
@@ -134,9 +139,9 @@ const PoolItem: React.FC<PoolItemProps> = ({
                     <View
                         style={styles.matchList}
                     >
-                        {enrichedPoolMatches.matches.map((enrichedMatch) => (
+                        {enrichedPoolMatches.matches.map((enrichedMatch, index) => (
                             <TouchableOpacity
-                                key={enrichedMatch.id}
+                                key={getMappingKey(enrichedMatch.id, index)}
                                 activeOpacity={0.85}
                                 onPress={() => handleMatchPress(enrichedMatch.id)}
                             >
@@ -149,12 +154,17 @@ const PoolItem: React.FC<PoolItemProps> = ({
                     </View>
                 </View>
             </GradientBorderView>
+            </View>
+        </FadeIn>
     );
 };
 
-export default memo(PoolItem);
+export default React.memo(PoolItem);
 
 const styles = StyleSheet.create({
+    wrapper: {
+        marginBottom: SECTION_SEPARATOR_HEIGHT,
+    },  
     card: {
         borderRadius: RADIUS,
     },

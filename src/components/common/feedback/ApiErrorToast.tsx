@@ -7,7 +7,7 @@ type ApiErrorToastProps = {
     /** Le message d'erreur à afficher. Null/undefined => caché */
     message?: string | null;
     /** Décalage depuis le bas (typiquement FOOTER_HEIGHT + padding bottom extérieur) */
-    bottomOffset: number;
+    bottomOffset?: number;
     /** Masquage auto (ms). Mettre 0 pour désactiver l’auto-hide. */
     autoHideMs?: number;
     /** Callback quand l’animation de hide est terminée (utile pour clear le state parent) */
@@ -24,7 +24,7 @@ type ApiErrorToastProps = {
  */
 const ApiErrorToast: React.FC<ApiErrorToastProps> = ({
     message,
-    bottomOffset,
+    bottomOffset = 0,
     autoHideMs = 5000,
     onHidden,
     containerStyle,

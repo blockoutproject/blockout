@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { View, StyleSheet, Text, TouchableOpacity, ActivityIndicator, Alert } from "react-native";
+import { View, StyleSheet, Text, TouchableOpacity, Alert } from "react-native";
 import { BottomSheetScrollView, BottomSheetTextInput } from "@gorhom/bottom-sheet";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import * as Haptics from "expo-haptics";
@@ -14,7 +13,6 @@ import { Division } from "@/src/types/Division";
 import ConfigApi from "@/src/api/ConfigApi";
 import CircleColorPicker from "@/src/components/common/form/CircleColorPicker";
 import { CORNERS } from "@/src/theme/globals";
-import useKeyboardVisible from "@/src/hooks/utils/useKeyboardVisible";
 import ApiErrorToast from "@/src/components/common/feedback/ApiErrorToast";
 import Field from "@/src/components/common/form/Field";
 
@@ -31,14 +29,10 @@ export type DivisionFormProps = {
     onStateChange?: (state: DivisionFormExternalState) => void;
 };
 
-const FOOTER_SPACE = 60;
-
 const DivisionForm: React.FC<DivisionFormProps> = ({ division, onSuccess, onRegisterSubmit, onStateChange }) => {
     const theme = useAppTheme();
-    const insets = useSafeAreaInsets();
     const api = ConfigApi.getInstance();
     const isEditMode = !!division;
-    const isKeyboardVisible = useKeyboardVisible();
 
     const [imageFile, setImageFile] = useState<{ uri: string; name: string; type: string } | null>(null);
     const [previewUri, setPreviewUri] = useState<string | null>(null);
@@ -119,12 +113,11 @@ const DivisionForm: React.FC<DivisionFormProps> = ({ division, onSuccess, onRegi
     }, [loading, canSubmit, formik.values.mainColor, onStateChange]);
 
     const logoUri = previewUri ?? formik.values.logoUrl ?? null;
-    const outerPaddingBottom = isKeyboardVisible ? 8 : insets.bottom + 8;
 
     return (
-        <View style={{ flex: 1, paddingBottom: outerPaddingBottom }}>
+        <>
             <BottomSheetScrollView
-                contentContainerStyle={[styles.scroll, { paddingBottom: FOOTER_SPACE + outerPaddingBottom }]}
+                contentContainerStyle={styles.scroll}
                 showsVerticalScrollIndicator={false}
             >
                 <View style={[styles.card, { backgroundColor: theme.surface }]}>
@@ -182,8 +175,8 @@ const DivisionForm: React.FC<DivisionFormProps> = ({ division, onSuccess, onRegi
                 </View>
             </BottomSheetScrollView>
 
-            <ApiErrorToast message={apiError} bottomOffset={FOOTER_SPACE + outerPaddingBottom} onHidden={() => setApiError(null)} />
-        </View>
+            <ApiErrorToast message={apiError} onHidden={() => setApiError(null)} />
+        </>
     );
 };
 

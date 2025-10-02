@@ -39,7 +39,7 @@ const TeamCard: React.FC<TeamCardProps> = ({ team, onPress }) => {
                         backgroundColor: theme.text,
                     },
                 ]}
-                contentFit="contain"
+                contentFit="cover"
             />
 
             <View

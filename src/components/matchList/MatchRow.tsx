@@ -4,8 +4,8 @@ import { EnrichedMatchDTO, MatchStatus } from "@/src/types/Match";
 import { Division } from "@/src/types/Division";
 import { withAlpha } from "@/src/utils/utils";
 import { useAppTheme } from "@/src/context/ThemeProvider";
-import MaskedImage from "../../common/images/MaskedImage";
-import GradientBorderView from "../../common/GradientBorderView";
+import MaskedImage from "../common/images/MaskedImage";
+import GradientBorderView from "../common/GradientBorderView";
 
 /** Ligne compacte d’un match (logos, noms, heure/score). */
 export type MatchRowProps = {
@@ -149,7 +149,7 @@ const MatchRow: React.FC<MatchRowProps> = ({ enrichedMatch, division }) => {
     );
 };
 
-export default MatchRow;
+export default React.memo(MatchRow);
 
 const styles = StyleSheet.create({
     row: {

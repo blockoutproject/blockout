@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { View, StyleSheet, Text, TouchableOpacity, ActivityIndicator, Alert } from "react-native";
+import { View, StyleSheet, Text, TouchableOpacity, Alert } from "react-native";
 import { BottomSheetTextInput, BottomSheetScrollView } from "@gorhom/bottom-sheet";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import * as Haptics from "expo-haptics";
@@ -15,7 +14,6 @@ import { ApiError } from "@/src/api/AbstractApi";
 import { CORNERS } from "@/src/theme/globals";
 import Field from "@/src/components/common/form/Field";
 import ApiErrorToast from "@/src/components/common/feedback/ApiErrorToast";
-import useKeyboardVisible from "@/src/hooks/utils/useKeyboardVisible";
 import { CustomUser } from "@/src/types/User";
 
 export type ProfileFormExternalState = {
@@ -32,9 +30,7 @@ export type UserFormProps = {
 
 const ProfileForm: React.FC<UserFormProps> = ({ user, onSuccess, onRegisterSubmit, onStateChange }) => {
     const theme = useAppTheme();
-    const insets = useSafeAreaInsets();
     const api = UsersApi.getInstance();
-    const isKeyboardOpen = useKeyboardVisible();
 
     const [imageFile, setImageFile] = useState<{ uri: string; name: string; type: string } | null>(null);
     const [previewUri, setPreviewUri] = useState<string | null>(null);
@@ -103,22 +99,22 @@ const ProfileForm: React.FC<UserFormProps> = ({ user, onSuccess, onRegisterSubmi
         },
     });
 
-    React.useEffect(() => {
+    useEffect(() => {
         onRegisterSubmit(formik.submitForm);
     }, [formik.submitForm, onRegisterSubmit]);
 
     const canSubmit = useMemo(() => formik.isValid && !loading, [formik.isValid, loading]);
 
-    React.useEffect(() => {
+    useEffect(() => {
         onStateChange?.({ loading, canSubmit });
     }, [loading, canSubmit, onStateChange]);
 
     const avatarUri = previewUri ?? user.pictureUrl ?? null;
 
     return (
-        <View style={{ paddingBottom: isKeyboardOpen ? 0 : insets.bottom, flex: 1 }}>
+        <>
             <BottomSheetScrollView
-                contentContainerStyle={[styles.fieldContainer, { paddingBottom: 60 }]}
+                contentContainerStyle={styles.fieldContainer}
                 showsVerticalScrollIndicator={false}
             >
                 <View style={[styles.card, { backgroundColor: theme.surface }]}>
@@ -161,8 +157,8 @@ const ProfileForm: React.FC<UserFormProps> = ({ user, onSuccess, onRegisterSubmi
                 </View>
             </BottomSheetScrollView>
 
-            <ApiErrorToast message={apiError} bottomOffset={60} onHidden={() => setApiError(null)} />
-        </View>
+            <ApiErrorToast message={apiError} onHidden={() => setApiError(null)} />
+        </>
     );
 };
 

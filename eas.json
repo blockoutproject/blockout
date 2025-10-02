@@ -62,6 +62,14 @@
         "EXPO_PUBLIC_API_REPORTS_BASE_URL": "https://api.blockoutproject.com/api/v1/reports",
         "EXPO_PUBLIC_API_NOTIFICATIONS_BASE_URL": "https://api.blockoutproject.com/api/v1/notifications"
       }
+    },
+    "development-simulator": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "ios": {
+        "simulator": true
+      },
+      "environment": "development"
     }
   },
   "submit": {

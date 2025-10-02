@@ -12,6 +12,7 @@ import DivisionItem from "@/src/components/division/DivisionItem";
 import SearchBar from "@/src/components/common/SearchBar";
 import Filters from "@/src/components/common/Filters";
 import DivisionFormSheet from "@/src/components/division/DisivisionFormSheet";
+import { FlashList } from "@shopify/flash-list";
 
 const DivisionScreen: React.FC = () => {
     const theme = useAppTheme();
@@ -77,14 +78,19 @@ const DivisionScreen: React.FC = () => {
                     <Filters filters={statusFilters} setFilters={setStatusFilters} singleSelect size="sm" />
                 </View>
 
-                <FlatList
+                <FlashList
                     style={styles.flatList}
                     data={sorted}
                     keyExtractor={(item) => item.id.toString()}
                     renderItem={({ item }) => (
                         <DivisionItem division={item} onPress={() => openForm(item)} onDeactivated={refetchDivisions} />
                     )}
-                    refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} tintColor={theme.text} />}
+                    refreshControl={
+                        <RefreshControl
+                            refreshing={isRefreshing}
+                            onRefresh={handleRefresh}
+                            tintColor={theme.text}
+                        />}
                     contentContainerStyle={{ paddingBottom: insets.bottom + 16 }}
                     ListEmptyComponent={
                         <View style={styles.emptyState}>
@@ -113,22 +119,22 @@ export default DivisionScreen;
 
 const styles = StyleSheet.create({
     container: { flex: 1, gap: 16 },
-    center: { 
-        flex: 1, 
-        justifyContent: "center", 
-        alignItems: "center" 
+    center: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center"
     },
-    searchRow: { 
-        flexDirection: "row", 
-        alignItems: "center", 
-        marginHorizontal: 8, 
-        marginTop: 16, 
-        gap: 12 
+    searchRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        marginHorizontal: 8,
+        marginTop: 16,
+        gap: 12
     },
-    addButton: { 
-        paddingVertical: 10, 
-        paddingHorizontal: 16, 
-        borderRadius: 18 
+    addButton: {
+        paddingVertical: 10,
+        paddingHorizontal: 16,
+        borderRadius: 18
     },
     addButtonText: { color: "white", fontWeight: "bold" },
     filtersWrapper: { paddingHorizontal: 8 },

@@ -58,25 +58,20 @@ export const SessionProvider: React.FC<React.PropsWithChildren> = ({ children })
     };
 
     const softResetAuth = async () => {
-        console.log("Soft resetting auth");
         await clearCredentials();
         await clearRQCache();
     };
 
     const signOutLocal = async () => {
-        console.log("Signing out locally");
         await softResetAuth();
     };
 
     const signOutSSO = async () => {
-        console.log("Signing out SSO");
         await clearSession();
-        console.log("Cleared session", customUser, auth0User);
         await clearRQCache();
     };
 
     useEffect(() => {
-        console.log("Session state changed:", { isReady, isError, error, customUser, auth0User });
         if (isReady && isError) {
             softResetAuth();
         }

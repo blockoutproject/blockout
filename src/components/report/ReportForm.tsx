@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { View, StyleSheet, Text, TouchableOpacity, ActivityIndicator, Alert, ScrollView, Animated } from "react-native";
+import { View, StyleSheet, Text, TouchableOpacity, Alert, ScrollView, Animated } from "react-native";
 import { BottomSheetScrollView, BottomSheetTextInput } from "@gorhom/bottom-sheet";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import * as Haptics from "expo-haptics";
@@ -13,13 +12,12 @@ import * as Device from "expo-device";
 import * as Application from "expo-application";
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import ReportsApi from "@/src/api/ReportsApi";
-import { CORNERS } from "@/src/theme/globals";
 import { ReportType, type Report, type GitHubIssueResponse } from "@/src/types/Report";
 import Filters from "@/src/components/common/Filters";
 import type { Filter } from "@/src/types/Filter";
 import Field from "@/src/components/common/form/Field";
-import useKeyboardVisible from "@/src/hooks/utils/useKeyboardVisible";
 import { useSession } from "@/src/context/SessionProvider";
+import ApiErrorToast from "../common/feedback/ApiErrorToast";
 
 export type ReportFormExternalState = {
     loading: boolean;
@@ -43,8 +41,6 @@ type FormValues = {
     description?: string;
 };
 
-const FOOTER_SPACE = 60;
-
 const CATEGORY_OPTIONS = [
     { name: "Bug d'affichage", value: ReportType.DISPLAY_BUG },
     { name: "Données", value: ReportType.DATA_ERROR },
@@ -53,10 +49,8 @@ const CATEGORY_OPTIONS = [
 
 const ReportForm: React.FC<ReportFormProps> = ({ context, onSuccess, onRegisterSubmit, onStateChange }) => {
     const theme = useAppTheme();
-    const insets = useSafeAreaInsets();
     const api = ReportsApi.getInstance();
     const { customUser } = useSession();
-    const isKeyboardVisible = useKeyboardVisible();
 
     const [images, setImages] = useState<{ uri: string; name: string; type: string }[]>([]);
     const [loading, setLoading] = useState(false);
@@ -91,7 +85,7 @@ const ReportForm: React.FC<ReportFormProps> = ({ context, onSuccess, onRegisterS
         try {
             await Haptics.selectionAsync();
             const pickerResult = await ImagePicker.launchImageLibraryAsync({
-                mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                mediaTypes: ["images"],
                 quality: 1,
             });
             if (pickerResult.canceled) return;
@@ -170,12 +164,10 @@ const ReportForm: React.FC<ReportFormProps> = ({ context, onSuccess, onRegisterS
         onStateChange?.({ loading, canSubmit });
     }, [loading, canSubmit, onStateChange]);
 
-    const outerPaddingBottom = isKeyboardVisible ? 8 : insets.bottom + 8;
-
     return (
-        <View style={{ flex: 1, paddingBottom: outerPaddingBottom }} testID="report-form">
+        <>
             <BottomSheetScrollView
-                contentContainerStyle={[styles.scroll, { paddingBottom: FOOTER_SPACE + outerPaddingBottom }]}
+                contentContainerStyle={styles.scroll}
                 showsVerticalScrollIndicator={false}
             >
                 <View style={[styles.card, { backgroundColor: theme.surface }]}>
@@ -251,40 +243,18 @@ const ReportForm: React.FC<ReportFormProps> = ({ context, onSuccess, onRegisterS
                 </View>
             </BottomSheetScrollView>
 
-            {apiError ? (
-                <Animated.View
-                    style={[
-                        styles.apiErrorContainer,
-                        {
-                            backgroundColor: `${theme.error}22`,
-                            borderColor: theme.error,
-                            bottom: FOOTER_SPACE + outerPaddingBottom,
-                            opacity: errorOpacity,
-                            transform: [
-                                {
-                                    translateY: errorOpacity.interpolate({
-                                        inputRange: [0, 1],
-                                        outputRange: [8, 0],
-                                    }),
-                                },
-                            ],
-                        },
-                    ]}
-                    pointerEvents="box-none"
-                    testID="report-error-toast"
-                >
-                    <MaterialCommunityIcons name="alert-circle-outline" size={18} color={theme.error} />
-                    <Text style={[styles.apiErrorText, { color: theme.error }]}>{apiError}</Text>
-                </Animated.View>
-            ) : null}
-        </View>
+            <ApiErrorToast
+                message={apiError}
+                onHidden={() => setApiError(null)}
+            />
+        </>
     );
 };
 
 export default ReportForm;
 
 const styles = StyleSheet.create({
-    scroll: { gap: 12, paddingHorizontal: 8 },
+    scroll: { gap: 12, padding: 8 },
     card: {
         borderRadius: 18,
         padding: 14,

@@ -39,7 +39,7 @@ const PoolCard: React.FC<PoolCardProps> = ({ pool, onPress }) => {
                         backgroundColor: theme.text,
                     },
                 ]}
-                contentFit="contain"
+                contentFit="cover"
             />
 
             <View

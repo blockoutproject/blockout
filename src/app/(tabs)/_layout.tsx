@@ -6,6 +6,7 @@ import TabBar from "@/src/components/navigation/TabBar";
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import { Image } from "expo-image";
 import { useSession } from "@/src/context/SessionProvider";
+import { withAlpha } from "@/src/utils/utils";
 
 export default function TabLayout() {
     const theme = useAppTheme()
@@ -21,7 +22,7 @@ export default function TabLayout() {
                     {...props}
                     activeColor={theme.text}
                     inactiveColor={theme.textInactive}
-                    backgroundColorAndroid="rgba(17, 17, 17, 0.92)"
+                    backgroundColorAndroid={ withAlpha(theme.background, 0.92) }
                     blurTintIOS="dark"
                 />
             )}

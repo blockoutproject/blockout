@@ -25,6 +25,7 @@ import Animated, {
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import * as Haptics from "expo-haptics";
 import { OnboardingStep } from "@/src/onboarding/steps";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const { width: SCREEN_W } = Dimensions.get("window");
 
@@ -51,6 +52,7 @@ export function FancyOnboarding({
     skipText = "Passer",
     onStepNext,
 }: Props) {
+    const insets = useSafeAreaInsets();
     const [index, setIndex] = useState(0);
     const isFirst = index === 0;
     const isLast = index === steps.length - 1;
@@ -175,7 +177,10 @@ export function FancyOnboarding({
             </View>
 
             {/* Controls */}
-            <View style={styles.controls}>
+            <View style={[
+                styles.controls,
+                { paddingBottom: insets.bottom }
+            ]}>
                 {!isFirst ? (
                     <GhostButton label={backText} onPress={onBack} />
                 ) : (
@@ -431,10 +436,6 @@ const styles = StyleSheet.create({
     },
 
     controls: {
-        position: "absolute",
-        left: 0,
-        right: 0,
-        bottom: 32,
         paddingHorizontal: 16,
         flexDirection: "row",
         alignItems: "center",

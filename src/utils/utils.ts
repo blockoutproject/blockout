@@ -29,11 +29,13 @@ export const getGradientVariants = (
 export function formatDateFrenchLocale(dateString: string): string {
     const date = new Date(dateString);
 
-    return date.toLocaleDateString('fr-FR', {
+    const stringifiedDate = date.toLocaleDateString('fr-FR', {
+        weekday: "short",
         day: 'numeric',
         month: 'long',
         year: 'numeric',
     });
+    return stringifiedDate.charAt(0).toUpperCase() + stringifiedDate.slice(1);
 }
 
 export function splitIsoDate(isoString: string) {

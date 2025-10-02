@@ -89,7 +89,7 @@ const LoginScreen: React.FC = () => {
             >
                 <InfoPill
                     leftIconName="flash"
-                    label="Live scores"
+                    label="Scores"
                 />
                 <InfoPill
                     leftIconName="trophy"
