@@ -48,7 +48,7 @@ class ProScraper(Scraper):
                 "lnv_xml_rank_url": "https://www.lnv.fr/xml/classement-LBM.xml"
             },
             {
-                "pool_code": "LAF",
+                "pool_code": "SPS",
                 "name": "Saforelle Power 6",
                 "lnv_url": "https://lnv-web.dataproject.com/CompetitionMatches.aspx?ID=124",
                 "lnv_xml_matches_url": "https://www.lnv.fr/xml/calendrier-LAF.xml",                
