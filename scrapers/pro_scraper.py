@@ -36,21 +36,21 @@ class ProScraper(Scraper):
             {
                 "pool_code": "MSL",
                 "name": "Marmara SpikeLigue",
-                "lnv_url": "http://lnv-web.dataproject.com/CompetitionMatches.aspx?ID=115",
+                "lnv_url": "https://lnv-web.dataproject.com/CompetitionMatches.aspx?ID=125",
                 "lnv_xml_matches_url": "https://www.lnv.fr/xml/calendrier-LAM.xml",
                 "lnv_xml_rank_url": "https://www.lnv.fr/xml/classement-LAM.xml"
             },
             {
                 "pool_code": "LBM",
                 "name": "Ligue B Masculine",
-                "lnv_url": "http://lnv-web.dataproject.com/CompetitionMatches.aspx?ID=116",
+                "lnv_url": "https://lnv-web.dataproject.com/CompetitionMatches.aspx?ID=126",
                 "lnv_xml_matches_url": "https://www.lnv.fr/xml/calendrier-LBM.xml",
                 "lnv_xml_rank_url": "https://www.lnv.fr/xml/classement-LBM.xml"
             },
             {
                 "pool_code": "LAF",
                 "name": "Saforelle Power 6",
-                "lnv_url": "http://lnv-web.dataproject.com/CompetitionMatches.aspx?ID=113",
+                "lnv_url": "https://lnv-web.dataproject.com/CompetitionMatches.aspx?ID=124",
                 "lnv_xml_matches_url": "https://www.lnv.fr/xml/calendrier-LAF.xml",                
                 "lnv_xml_rank_url": "https://www.lnv.fr/xml/classement-LAF.xml"
             },
