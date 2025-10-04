@@ -33,7 +33,6 @@ const SwipeableRow: React.FC<Props> = ({ children, onDelete, rightThreshold = 72
                 onSwipeableOpen={async (direction) => {
                     if (direction === "left") {
                         try {
-                            console.log("delete");
                             await onDelete(); 
                         } finally {
                             ref.current?.close();

@@ -21,7 +21,7 @@ const SectionDateHeader: React.FC<SectionDateHeaderProps> = ({ title }) => {
             >
                 <InfoPill
                     style={{
-                        borderColor: withAlpha(theme.text, 0.2),
+                        width: 220
                     }}
                     label={title}
                     blurEnabled
@@ -34,9 +34,6 @@ const SectionDateHeader: React.FC<SectionDateHeaderProps> = ({ title }) => {
                         fontSize: 14,
                         fontWeight: "800",
                     }}
-                    shadowEnabled
-                    shadowColor="#000"
-                    shadowLevel={5}
                 />
             </View>
         </FadeIn>

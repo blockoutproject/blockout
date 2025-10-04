@@ -43,7 +43,6 @@ const TeamTabs: React.FC<TeamTabsProps> = ({ enrichedTeam }) => {
                     {
                         paddingHorizontal: 4,
                         marginTop: TABBAR_HEIGHT + 4,
-                        paddingBottom: insets.bottom + BOTTOM_TABBAR_HEIGHT + 4,
                     },
                 ]}
                 home={false}
@@ -63,7 +62,6 @@ const TeamTabs: React.FC<TeamTabsProps> = ({ enrichedTeam }) => {
                     {
                         paddingHorizontal: 4,
                         marginTop: TABBAR_HEIGHT + 4,
-                        paddingBottom: insets.bottom + BOTTOM_TABBAR_HEIGHT + 4,
                     },
                 ]}
                 home={false}

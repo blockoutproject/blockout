@@ -2,10 +2,9 @@ import { Platform } from "react-native";
 import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
 import Constants from "expo-constants";
-import NotificationsApi, {
-    DevicePlatform,
-    RegisterPushTokenRequest,
-} from "@/src/api/NotificationsApi";
+import NotificationsApi from "@/src/api/NotificationsApi";
+import { DevicePlatform, RegisterPushTokenRequest } from "../types/Notification";
+import { useAppTheme } from "../context/ThemeProvider";
 
 Notifications.setNotificationHandler({
     handleNotification: async () => ({
@@ -24,12 +23,13 @@ export function platformToEnum(): DevicePlatform {
 }
 
 export async function registerForPushNotificationsAsync(): Promise<string | null> {
+    const theme = useAppTheme();
     if (Platform.OS === "android") {
         await Notifications.setNotificationChannelAsync("default", {
             name: "default",
             importance: Notifications.AndroidImportance.MAX,
             vibrationPattern: [0, 250, 250, 250],
-            lightColor: "#FF231F7C",
+            lightColor: theme.error,
         });
     }
 
@@ -76,15 +76,12 @@ export async function registerPushTokenOnBackend(
         ? Device.osInternalBuildId ?? Device.osBuildId ?? null
         : null;
 
-    console.log("Registering push token on backend:", { userId, expoPushToken, deviceId });
-
     const payload: RegisterPushTokenRequest = {
         expoPushToken,
         platform: platformToEnum(),
         deviceId,
     };
 
-    console.log("Payload:", payload);
     await NotificationsApi.getInstance().registerPushToken(userId, payload);
 }
 

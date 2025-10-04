@@ -21,7 +21,6 @@ const NotificationItem: React.FC<NotificationItemProps> = ({ notification, onOpe
     }, [notification, onOpen]);
 
     const handleDelete = useCallback(() => {
-        console.log("delete", notification.id);
         return onDelete(notification);
     }, [notification, onDelete]);
 

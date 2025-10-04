@@ -11,7 +11,6 @@ import {
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import { FlashList, FlashListRef, ListRenderItemInfo } from "@shopify/flash-list";
-import { useRecyclingState } from "@shopify/flash-list";
 
 import {
     MatchStatus,
@@ -26,8 +25,9 @@ import SectionDateHeader from "./SectionDateHeader";
 import PoolItem from "./PoolItem";
 import EmptyState from "../common/feedback/EmptyState";
 import ErrorState from "../common/feedback/ErrorState";
-import { SECTION_SEPARATOR_HEIGHT } from "@/src/theme/globals";
-import { set } from "date-fns";
+import { BOTTOM_TABBAR_HEIGHT, LOGO_HEIGHT, SECTION_SEPARATOR_HEIGHT } from "@/src/theme/globals";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { he } from "date-fns/locale";
 
 export type MatchListProps = {
     poolIds?: number[];
@@ -57,9 +57,9 @@ const MatchList: React.FC<MatchListProps> = ({
     home = false,
 }) => {
     const theme = useAppTheme();
+    const insets = useSafeAreaInsets();
     const router = useRouter();
     const listRef = useRef<FlashListRef<Row>>(null);
-    const lastOffsetRef = useRef(0);
 
     const {
         dayMatches,
@@ -103,37 +103,26 @@ const MatchList: React.FC<MatchListProps> = ({
         [router]
     );
 
-    const flatData = useMemo(() => {
+    const { flatData, stickyHeaderIndices } = useMemo(() => {
         const rows: Row[] = [];
+        const sticky: number[] = [];
         dayMatches.forEach((d: EnrichedDayMatchesDTO) => {
             const sectionKey = String(d.date);
+            const headerIndex = rows.length;
             rows.push({
                 type: "sectionHeader",
                 title: formatDateFrenchLocale(d.date),
                 sectionKey,
             });
+            sticky.push(headerIndex);
             d.pools.forEach((p) => rows.push({ type: "pool", pool: p, sectionKey }));
         });
-        return rows;
+        return { flatData: rows, stickyHeaderIndices: sticky };
     }, [dayMatches]);
 
-    const dataSignature = useMemo(() => {
-        const len = dayMatches.length;
-        const first = len ? String(dayMatches[0].date) : "∅";
-        const last = len ? String(dayMatches[len - 1].date) : "∅";
-        const poolsSig = (poolIds || []).join(",");
-        const teamsSig = (teamIds || []).join(",");
-        return `${status}|${len}|${first}|${last}|P:${poolsSig}|T:${teamsSig}`;
-    }, [dayMatches, status, poolIds, teamIds]);
-
-    const [_recycleTick, setRecycleTick] = useRecyclingState(
-        0,
-        [dataSignature],
-        () => {
-
-            scrollY.setValue(0);
-        }
-    );
+    useEffect(() => {
+        scrollY.setValue(0);
+    }, [scrollY, poolIds, teamIds]);
 
     const getItemType = useCallback((item: Row) => {
         return item.type === "sectionHeader" ? "sectionHeader" : "row";
@@ -166,6 +155,23 @@ const MatchList: React.FC<MatchListProps> = ({
         [handlePoolPress, handleMatchPress, showPoolHeader]
     );
 
+    const header = useMemo(() => {
+        return (
+            <View style={{ height: home ? LOGO_HEIGHT + 4 : 0 }} />
+        );
+    }, [home]);
+
+    const footer = useMemo(() => {
+        if (isFetchingNextPage && hasNextPage) {
+            return <ActivityIndicator style={{ marginBottom: SECTION_SEPARATOR_HEIGHT }} />;
+        }
+        if (!hasNextPage) {
+            return <View style={{ height: insets.bottom + BOTTOM_TABBAR_HEIGHT + 4 }} />;
+        }
+        return null;
+    }, [isFetchingNextPage, hasNextPage, insets]);
+
+
     let body: React.ReactNode;
     if (isLoading) {
         body = (
@@ -188,20 +194,16 @@ const MatchList: React.FC<MatchListProps> = ({
             <AnimatedFlashList
                 ref={listRef}
                 data={flatData}
+                // stickyHeaderIndices={stickyHeaderIndices}
                 renderItem={renderItem}
                 getItemType={getItemType}
                 keyExtractor={keyExtractor}
-                onEndReachedThreshold={0.5}
                 onEndReached={handleLoadMore}
                 showsVerticalScrollIndicator={false}
-                refreshControl={
-                    <RefreshControl
-                        refreshing={isRefreshing}
-                        onRefresh={handleRefresh}
-                        tintColor={theme.text}
-                        progressViewOffset={headerOffset}
-                    />
-                }
+                ListHeaderComponent={<View style={{ height: home ? LOGO_HEIGHT + 4 : 0 }} />}
+                refreshing={isRefreshing}
+                onRefresh={handleRefresh}
+                progressViewOffset={headerOffset}
                 contentContainerStyle={contentContainerStyle}
                 alwaysBounceVertical
                 bounces
@@ -211,9 +213,6 @@ const MatchList: React.FC<MatchListProps> = ({
                             [{ nativeEvent: { contentOffset: { y: scrollY } } }],
                             {
                                 useNativeDriver: true,
-                                listener: (e: any) => {
-                                    lastOffsetRef.current = e.nativeEvent.contentOffset?.y ?? 0;
-                                },
                             }
                         )
                         : undefined
@@ -232,11 +231,7 @@ const MatchList: React.FC<MatchListProps> = ({
                         paddingTop={home ? "30%" : "10%"}
                     />
                 )}
-                ListFooterComponent={
-                    isFetchingNextPage && hasNextPage ? (
-                        <ActivityIndicator style={{ marginBottom: SECTION_SEPARATOR_HEIGHT }} />
-                    ) : null
-                }
+                ListFooterComponent={footer}
                 testID="matchlist-flashlist"
             />
         );
