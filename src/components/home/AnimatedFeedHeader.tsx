@@ -33,11 +33,13 @@ type HeaderProps = SceneRendererProps & {
     navigationState: NavigationState<Route>;
     scrollYs: Record<string, Animated.Value>;
     androidBackgroundAlpha?: number;
+    onOpenReport: () => void;
 };
 
 const AnimatedFeedHeader: React.FC<HeaderProps> = ({
     scrollYs,
     androidBackgroundAlpha = 0.88,
+    onOpenReport,
     ...props
 }) => {
     const insets = useSafeAreaInsets();
@@ -207,6 +209,10 @@ const AnimatedFeedHeader: React.FC<HeaderProps> = ({
                                 <MaterialCommunityIcons name="power-standby" size={28} color={theme.text} />
                             </TouchableOpacity>
                         )}
+
+                        <TouchableOpacity onPress={onOpenReport}>
+                            <MaterialCommunityIcons name="flag-outline" size={28} color={theme.text} />
+                        </TouchableOpacity>
                     </View>
                 </View>
             </Animated.View>
@@ -255,6 +261,9 @@ const styles = StyleSheet.create({
         alignItems: "center",
         gap: 10,
         paddingRight: 10,
+    },
+    iconBtn: {
+        padding: 4,
     },
 });
 

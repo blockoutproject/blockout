@@ -26,6 +26,7 @@ import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import * as Haptics from "expo-haptics";
 import { OnboardingStep } from "@/src/onboarding/steps";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import GradientButton from "../common/GradientButton";
 
 const { width: SCREEN_W } = Dimensions.get("window");
 
@@ -151,13 +152,6 @@ export function FancyOnboarding({
                         onScroll={onScroll}
                         scrollEventThrottle={16}
                         contentContainerStyle={{ alignItems: "stretch" }}
-                    // ❌ Ne plus recaler l'index ici
-                    // onMomentumScrollEnd={(e) => {
-                    //   const i = Math.round(
-                    //     e.nativeEvent.contentOffset.x / SCREEN_W
-                    //   );
-                    //   setIndex(i); // 👈 CHANGED (supprimé)
-                    // }}
                     >
                         {steps.map((step, i) => (
                             <Slide key={step.id} step={step} i={i} svX={svX} />
@@ -186,7 +180,7 @@ export function FancyOnboarding({
                 ) : (
                     <View style={{ flex: 1 }} />
                 )}
-                <WowButton
+                <GradientButton
                     label={isLast ? primaryText : nextText}
                     onPress={onNext}
                     fullWidth={isFirst}
@@ -290,34 +284,6 @@ const Dots = ({ steps, svX }: { steps: OnboardingStep[]; svX: SharedValue<number
                 return <Animated.View key={i} style={[styles.dot, dotStyle]} />;
             })}
         </View>
-    );
-};
-
-// ────────────────────────────────────────────────────────────────────────────────
-// Boutons
-// ────────────────────────────────────────────────────────────────────────────────
-const WowButton = ({
-    label,
-    onPress,
-    fullWidth,
-}: {
-    label: string;
-    onPress: () => void;
-    fullWidth?: boolean;
-}) => {
-    const scale = useSharedValue(1);
-    const s = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
-    return (
-        <Animated.View style={[fullWidth ? styles.btnFull : { flex: 2 }, s]}>
-            <Pressable
-                onPressIn={() => (scale.value = withSpring(0.98))}
-                onPressOut={() => (scale.value = withSpring(1))}
-                onPress={onPress}
-                style={styles.wowBtn}
-            >
-                <Text style={styles.wowTxt}>{label}</Text>
-            </Pressable>
-        </Animated.View>
     );
 };
 

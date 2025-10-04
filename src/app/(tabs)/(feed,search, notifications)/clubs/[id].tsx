@@ -18,11 +18,7 @@ import { ReportType } from "@/src/types/Report";
 import { BOTTOM_TABBAR_HEIGHT, SECTION_SEPARATOR_HEIGHT } from "@/src/theme/globals";
 import ReportFormSheet from "@/src/components/report/ReportFormSheet";
 
-type ClubScreenProps = {
-    onCloseSheet: () => void;
-};
-
-const ClubScreen: React.FC<ClubScreenProps> = ({ onCloseSheet }) => {
+const ClubScreen: React.FC = () => {
     const { id } = useLocalSearchParams();
     const insets = useSafeAreaInsets();
     const theme = useAppTheme();
@@ -108,7 +104,7 @@ const ClubScreen: React.FC<ClubScreenProps> = ({ onCloseSheet }) => {
 
     return (
         <View style={[styles.container, { backgroundColor: theme.background }]} testID="club-screen">
-            <ClubHeader title={club?.name ?? ""} onCloseSheet={onCloseSheet} onOpenReport={() => reportSheetRef.current?.present()} />
+            <ClubHeader title={club?.name ?? ""} onOpenReport={() => reportSheetRef.current?.present()} />
             {body}
             <ReportFormSheet
                 ref={reportSheetRef}

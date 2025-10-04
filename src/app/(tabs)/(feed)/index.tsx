@@ -9,11 +9,15 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BOTTOM_TABBAR_HEIGHT, LOGO_HEIGHT, TABBAR_HEIGHT } from '@/src/theme/globals';
 import { useSession } from '@/src/context/SessionProvider';
 import { View } from 'moti';
+import ReportFormSheet from '@/src/components/report/ReportFormSheet';
+import { BottomSheetModal } from '@gorhom/bottom-sheet';
+import { ReportType } from '@/src/types/Report';
 
 const FeedScreen: React.FC = () => {
     const insets = useSafeAreaInsets();
     const { customUser } = useSession();
     const [index, setIndex] = useState(0);
+    const reportSheetRef = useRef<BottomSheetModal>(null);
 
     const headerOffset = insets.top + TABBAR_HEIGHT + LOGO_HEIGHT;
 
@@ -49,8 +53,7 @@ const FeedScreen: React.FC = () => {
                 scrollY={scrollYs.upcoming}
                 contentContainerStyle={{
                     paddingHorizontal: 4,
-                    marginTop: insets.top + TABBAR_HEIGHT + 4,
-                    paddingTop: LOGO_HEIGHT,
+                    paddingTop: headerOffset + 4,
                     paddingBottom: insets.bottom + BOTTOM_TABBAR_HEIGHT + 4,
                 }}
                 headerOffset={headerOffset}
@@ -76,8 +79,7 @@ const FeedScreen: React.FC = () => {
                 scrollY={scrollYs.finished}
                 contentContainerStyle={{
                     paddingHorizontal: 4,
-                    marginTop: insets.top + TABBAR_HEIGHT + 4,
-                    paddingTop: LOGO_HEIGHT,
+                    paddingTop: headerOffset + 4,
                     paddingBottom: insets.bottom + BOTTOM_TABBAR_HEIGHT + 4,
                 }}
                 headerOffset={headerOffset}
@@ -112,22 +114,34 @@ const FeedScreen: React.FC = () => {
 
     const renderTabBar = useCallback(
         (props: SceneRendererProps & { navigationState: NavigationState<Route> }) => (
-            <AnimatedFeedHeader {...props} scrollYs={scrollYs} />
+            <AnimatedFeedHeader {...props} scrollYs={scrollYs} onOpenReport={() => reportSheetRef.current?.present()} />
         ),
         [scrollYs]
     );
 
     return (
-        <TabView
-            lazy
-            lazyPreloadDistance={1}
-            renderLazyPlaceholder={() => null}
-            navigationState={{ index, routes }}
-            onIndexChange={onTabChange}
-            renderScene={renderScene}
-            renderTabBar={renderTabBar}
-            commonOptions={{ labelStyle: styles.tabItem }}
-        />
+        <>
+
+            <TabView
+                lazy
+                lazyPreloadDistance={1}
+                renderLazyPlaceholder={() => null}
+                navigationState={{ index, routes }}
+                onIndexChange={onTabChange}
+                renderScene={renderScene}
+                renderTabBar={renderTabBar}
+                commonOptions={{ labelStyle: styles.tabItem }}
+            />
+            <ReportFormSheet
+                ref={reportSheetRef}
+                context={{ screen: "Feed", defaultType: ReportType.DISPLAY_BUG }}
+                onSuccess={() => {
+                    reportSheetRef.current?.dismiss();
+                }}
+                snapPoint="90%"
+                footerLabel="Envoyer"
+            />
+        </>
     );
 };
 

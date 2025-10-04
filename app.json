@@ -35,6 +35,15 @@
       "favicon": "./assets/images/blockout-logo-dark.png"
     },
     "plugins": [
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "enableProguardInReleaseBuild": true,
+            "enableShrinkResourcesInReleaseBuild": true
+          }
+        }
+      ],
       "expo-router",
       [
         "expo-splash-screen",
@@ -64,7 +73,8 @@
       ],
       "expo-secure-store",
       "expo-notifications",
-      "expo-web-browser"
+      "expo-web-browser",
+      "expo-build-properties"
     ],
     "experiments": {
       "typedRoutes": true

@@ -41,6 +41,16 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
         bg: "#111827",
     },
     {
+        id: "advice",
+        title: "📢 Aide-nous à améliorer Blockout",
+        description:
+            "Les données viennent de la Fédération Française de Volley et peuvent parfois contenir des erreurs. Grâce au bouton avec le drapeau (en haut à droite), tu peux signaler un souci et participer à rendre l’app plus fiable et utile pour tous.",
+        visual: {
+            image: require("@/assets/images/flag.png"),
+        },
+        bg: "#0e0f13",
+    },
+    {
         id: "start",
         title: "🚀 C’est parti",
         description:

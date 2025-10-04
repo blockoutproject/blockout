@@ -11,16 +11,14 @@ import { useBackOrClose } from "@/src/hooks/utils/useBackOrClose";
 export type ClubHeaderProps = {
     /** Screen title. */
     title: string;
-    /** Close handler for sheet mode. */
-    onCloseSheet: () => void;
     /** Open report modal. */
     onOpenReport: () => void;
 };
 
-const ClubHeader: React.FC<ClubHeaderProps> = ({ title, onCloseSheet, onOpenReport }) => {
+const ClubHeader: React.FC<ClubHeaderProps> = ({ title, onOpenReport }) => {
     const theme = useAppTheme();
     const insets = useSafeAreaInsets();
-    const { handleBack, canGoBack } = useBackOrClose(onCloseSheet);
+    const { handleBack, canGoBack } = useBackOrClose();
 
     return (
         <View
