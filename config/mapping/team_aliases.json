@@ -427,6 +427,28 @@
                 "Fréjus"
             ],
             "gender": "M"
+        },
+        {
+            "full": "REC Volley",
+            "short": "REC",
+            "aliases": [
+                "RENNES Etudiants Club VB",
+                "REC",
+                "Rennes",
+                "REC Volley-ball",
+                "REC Volley"
+            ],
+            "gender": "M"
+        },
+        {
+            "full": "VBC Chalon-Sur-Saône",
+            "short": "Chalon",
+            "aliases": [
+                "VBC CHALON-SUR-SAÔNE",
+                "Chalon",
+                "VBC"
+            ],
+            "gender": "M"
         }
     ]
 }
