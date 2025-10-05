@@ -28,6 +28,8 @@ def parse_float(text: str) -> float:
         return 0.0
 
 def parse_stat_line(cols: list[str]) -> AssociationStats:
+    print(cols[15].text)
+    print(parse_float(cols[15].text))
     return AssociationStats(
         points=parse_int(cols[2].text),
         played=parse_int(cols[3].text),
