@@ -16,9 +16,15 @@ def parse_int(text: str) -> int:
 
 def parse_float(text: str) -> float:
     try:
-        return float(text.strip().replace(",", ".")) if text else 1000.0
+        return float(text.strip().replace(",", ".")) if text else 0.0
     except ValueError:
         return 0.0
+
+def parse_float_set(text: str) -> float:
+    try:
+        return float(text.strip().replace(",", ".")) if text else 0.0
+    except ValueError:
+        return 1000.0
 
 def parse_stat_line(cols: list[str]) -> AssociationStats:
     return AssociationStats(
@@ -34,7 +40,7 @@ def parse_stat_line(cols: list[str]) -> AssociationStats:
         losses_zero_to_three=parse_int(cols[12].text),
         won_sets=parse_int(cols[13].text),
         lost_sets=parse_int(cols[14].text),
-        coef_sets=parse_float(cols[15].text),
+        coef_sets=parse_float_set(cols[15].text),
         won_points=parse_int(cols[16].text),
         lost_points=parse_int(cols[17].text),
         coef_points=parse_float(cols[18].text),
