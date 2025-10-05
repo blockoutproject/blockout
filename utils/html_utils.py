@@ -28,8 +28,6 @@ def parse_float(text: str) -> float:
         return 0.0
 
 def parse_stat_line(cols: list[str]) -> AssociationStats:
-    print(cols[15].text)
-    print(parse_float(cols[15].text))
     return AssociationStats(
         points=parse_int(cols[2].text),
         played=parse_int(cols[3].text),
@@ -63,7 +61,7 @@ async def extract_club_stats_list(scraper: Scraper, raw_season: str, pool: Pool)
     target_table = tables[0]
     rows = target_table.find_all("tr")[1:]  # skip header
 
-    clubs_stats = []
+    teams_stats = []
 
     for row in rows:
         cols = row.find_all("td")
@@ -73,9 +71,12 @@ async def extract_club_stats_list(scraper: Scraper, raw_season: str, pool: Pool)
         try:
             name = cols[1].get_text(strip=True)
             stats = parse_stat_line(cols)
+            if pool.id == 11:
+                print(f"Parsed stats for {name}: {stats}")
+                
             if not name or not stats:
                 continue
-            clubs_stats.append((name, stats))
+            teams_stats.append((name, stats))
         except Exception as e:
             log_event(
                 action="extract_club_stats_list",
@@ -85,4 +86,4 @@ async def extract_club_stats_list(scraper: Scraper, raw_season: str, pool: Pool)
             )
             continue
 
-    return clubs_stats
+    return teams_stats

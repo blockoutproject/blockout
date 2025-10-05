@@ -179,6 +179,8 @@ async def handle_csv_download_and_parse(
         # Fallback classement si anomalie
         # if has_anomalous_match:
         stats_list = await extract_club_stats_list(scraper, raw_season, new_pool)
+        if pool.id == 11:
+            print(f"Extracted {stats_list} club stats from HTML for pool {pool.name}")
         fallback_teams = await get_teams(scraper.session, ids=list(active_team_ids)) or []
         team_lookup = {normalize(t.name): t for t in fallback_teams}
 
