@@ -16,7 +16,7 @@ def parse_int(text: str) -> int:
 
 def parse_float(text: str) -> float:
     try:
-        return float(text.strip().replace(",", ".")) if text else 0.0
+        return float(text.strip().replace(",", ".")) if text else 1000.0
     except ValueError:
         return 0.0
 

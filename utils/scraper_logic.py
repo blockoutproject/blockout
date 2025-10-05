@@ -13,7 +13,7 @@ from api.competitions_api import add_team_to_pool, bulk_deactivate_teams_by_pool
 from api.teams_api import get_teams
 from utils.file_utils import download_and_parse_csv
 from utils.html_utils import extract_club_stats_list
-from utils.match_utils import compute_volleyball_match_stats, is_anomalous_set_format
+from utils.match_utils import is_anomalous_set_format
 from utils.team_utils import get_full_name, get_short_name, normalize
 from utils.utils import parse_date
 from models.enums.datasource_priority import DataSourcePriority
