@@ -36,7 +36,7 @@ class AssociationStats:
         lost_sets: int,
         won_points: int,
         lost_points: int,
-        points_penalty: int
+        points_penalty: int,
     ):
         """
         Ajoute une nouvelle ligne de statistiques (pour un match) 
