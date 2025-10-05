@@ -39,7 +39,6 @@ def parse_team_score(score: str) -> int:
 def compute_volleyball_match_stats(
     sets_a: str,
     sets_b: str,
-    pool: Pool,
     score_detail: str
 ) -> Tuple[AssociationStats, AssociationStats]:
     """
@@ -188,4 +187,7 @@ def compute_volleyball_match_stats(
                 stats_b.wins_three_to_zero = 1
                 stats_a.losses_zero_to_three = 1
 
+    stats_a.played = 1
+    stats_b.played = 1
+    
     return stats_a, stats_b

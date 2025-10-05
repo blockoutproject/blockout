@@ -23,6 +23,7 @@ class AssociationStats:
 
     def add(
         self, 
+        played: int,
         wins: int, 
         losses: int, 
         points: int,
@@ -42,7 +43,7 @@ class AssociationStats:
         Ajoute une nouvelle ligne de statistiques (pour un match) 
         aux statistiques cumulées.
         """
-        self.played += 1
+        self.played += played
         self.wins += wins
         self.losses += losses
         self.points += points

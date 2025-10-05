@@ -347,9 +347,8 @@ class Scraper(ABC):
         original, updated = self._associations_cache[key]
 
         try:
-            if pool_id == 11:
-                print(f"BEFORE Scheduled update for association (pool: {pool_id}, team: {team_id}) with stats: {updated}")
             updated.add(
+                played=team_stats.played,
                 wins=team_stats.wins, 
                 losses=team_stats.losses, 
                 points=team_stats.points,
@@ -365,8 +364,6 @@ class Scraper(ABC):
                 lost_sets=team_stats.lost_sets,
                 points_penalty=team_stats.points_penalty
             )
-            if pool_id == 11:
-                print(f"AFTER Scheduled update for association (pool: {pool_id}, team: {team_id}) with stats: {updated}")
         except Exception as e:
             log_event(
                 action="schedule_association_update_error",

@@ -13,7 +13,7 @@ from api.competitions_api import add_team_to_pool, bulk_deactivate_teams_by_pool
 from api.teams_api import get_teams
 from utils.file_utils import download_and_parse_csv
 from utils.html_utils import extract_club_stats_list
-from utils.match_utils import is_anomalous_set_format
+from utils.match_utils import compute_volleyball_match_stats, is_anomalous_set_format
 from utils.team_utils import get_full_name, get_short_name, normalize
 from utils.utils import parse_date
 from models.enums.datasource_priority import DataSourcePriority
@@ -158,44 +158,44 @@ async def handle_csv_download_and_parse(
                     active_team_ids.add(team_obj.id)
 
             # Association stats
-            # if not has_anomalous_match and updated_match.status == MatchStatus.FINISHED.value and updated_match.set:
-            #     try:
-            #         set_a, set_b = updated_match.set.split('-')
-            #         team_a_stats, team_b_stats = compute_volleyball_match_stats(set_a, set_b, new_pool, updated_match.score)
-            #         scraper.schedule_association_update(new_pool.id, new_team_a.id, team_a_stats)
-            #         scraper.schedule_association_update(new_pool.id, new_team_b.id, team_b_stats)
-            #     except Exception as e:
-            #         log_event(
-            #             "score_parsing_exception", 
-            #             "error", 
-            #             match_code=match_code, 
-            #             set=updated_match.set,
-            #             error=str(e), 
-            #             message="Erreur parsing score pour calcul des stats"
-            #         )
+            if not has_anomalous_match and updated_match.status == MatchStatus.FINISHED.value and updated_match.set:
+                try:
+                    set_a, set_b = updated_match.set.split('-')
+                    team_a_stats, team_b_stats = compute_volleyball_match_stats(set_a, set_b, updated_match.score)
+                    scraper.schedule_association_update(new_pool.id, new_team_a.id, team_a_stats)
+                    scraper.schedule_association_update(new_pool.id, new_team_b.id, team_b_stats)
+                except Exception as e:
+                    log_event(
+                        "score_parsing_exception", 
+                        "error", 
+                        match_code=match_code, 
+                        set=updated_match.set,
+                        error=str(e), 
+                        message="Erreur parsing score pour calcul des stats"
+                    )
 
             scraper.schedule_match_changes(updated_match=updated_match, prefix="CSV", priority=DataSourcePriority.FFVB)
 
         # Fallback classement si anomalie
-        # if has_anomalous_match:
-        stats_list = await extract_club_stats_list(scraper, raw_season, new_pool)
-        fallback_teams = await get_teams(scraper.session, ids=list(active_team_ids)) or []
-        team_lookup = {normalize(t.name): t for t in fallback_teams}
+        if has_anomalous_match:
+            stats_list = await extract_club_stats_list(scraper, raw_season, new_pool)
+            fallback_teams = await get_teams(scraper.session, ids=list(active_team_ids)) or []
+            team_lookup = {normalize(t.name): t for t in fallback_teams}
 
-        for team_name, stats in stats_list:
-            normalized_name = normalize(get_full_name(team_name, new_pool.gender))
-            matched_team = team_lookup.get(normalized_name)
-            if not matched_team:
-                log_event(
-                    "team_stats_match_fail", 
-                    "warning", 
-                    pool_id=new_pool.id, 
-                    team_name=team_name, 
-                    message="Aucune équipe existante ne correspond à ce nom"
-                )
-                continue
+            for team_name, stats in stats_list:
+                normalized_name = normalize(get_full_name(team_name, new_pool.gender))
+                matched_team = team_lookup.get(normalized_name)
+                if not matched_team:
+                    log_event(
+                        "team_stats_match_fail", 
+                        "warning", 
+                        pool_id=new_pool.id, 
+                        team_name=team_name, 
+                        message="Aucune équipe existante ne correspond à ce nom"
+                    )
+                    continue
 
-            scraper.schedule_association_update(new_pool.id, matched_team.id, stats)
+                scraper.schedule_association_update(new_pool.id, matched_team.id, stats)
 
         if not scraped_match_codes:
             return
