@@ -77,7 +77,6 @@ const FeedScreen: React.FC = () => {
                 scrollY={scrollYs.finished}
                 contentContainerStyle={{
                     paddingHorizontal: 4,
-                    marginTop: insets.top + TABBAR_HEIGHT + 4,
                 }}
                 headerOffset={headerOffset}
                 home

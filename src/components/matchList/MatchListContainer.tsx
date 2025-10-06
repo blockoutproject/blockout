@@ -124,6 +124,11 @@ const MatchList: React.FC<MatchListProps> = ({
         scrollY.setValue(0);
     }, [scrollY, poolIds, teamIds]);
 
+    const onRetry = useCallback(() => {
+        scrollY.setValue(0);
+        refetch();
+    }, [scrollY, refetch]);
+
     const getItemType = useCallback((item: Row) => {
         return item.type === "sectionHeader" ? "sectionHeader" : "row";
     }, []);
@@ -162,13 +167,20 @@ const MatchList: React.FC<MatchListProps> = ({
     }, [home]);
 
     const footer = useMemo(() => {
+        const footerBase = (
+            <View style={{ height: insets.bottom + BOTTOM_TABBAR_HEIGHT + 4 }} />
+        );
+
         if (isFetchingNextPage && hasNextPage) {
-            return <ActivityIndicator style={{ marginBottom: SECTION_SEPARATOR_HEIGHT }} />;
+            return (
+                <View>
+                    <ActivityIndicator style={{ marginBottom: SECTION_SEPARATOR_HEIGHT }} />
+                    {footerBase}
+                </View>
+            );
         }
-        if (!hasNextPage) {
-            return <View style={{ height: insets.bottom + BOTTOM_TABBAR_HEIGHT + 4 }} />;
-        }
-        return null;
+
+        return footerBase;
     }, [isFetchingNextPage, hasNextPage, insets]);
 
 
@@ -185,7 +197,7 @@ const MatchList: React.FC<MatchListProps> = ({
         body = (
             <ErrorState
                 subtitle="Impossible de charger les matchs."
-                onRetry={refetch}
+                onRetry={onRetry}
                 paddingTop={home ? "50%" : "30%"}
             />
         );
