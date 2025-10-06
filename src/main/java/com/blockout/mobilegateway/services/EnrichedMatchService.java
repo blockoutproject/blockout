@@ -118,12 +118,12 @@ public class EnrichedMatchService {
                             .coefPoints(assoc.getCoefPoints())
                             .build();
                 })
-                .sorted(Comparator
-                        .comparingInt(TeamWithStatsDTO::getPoints)
-                        .thenComparingInt(TeamWithStatsDTO::getPointsPenalty).reversed()
-                        .thenComparingInt(TeamWithStatsDTO::getWins)
-                        .thenComparingDouble(TeamWithStatsDTO::getCoefSets)
-                        .thenComparingDouble(TeamWithStatsDTO::getCoefPoints))
+                .sorted(
+                        Comparator.comparingInt(TeamWithStatsDTO::getPoints).reversed()
+                                .thenComparingInt(TeamWithStatsDTO::getPointsPenalty)
+                                .thenComparing(Comparator.comparingInt(TeamWithStatsDTO::getWins).reversed())
+                                .thenComparing(Comparator.comparingDouble(TeamWithStatsDTO::getCoefSets).reversed())
+                                .thenComparing(Comparator.comparingDouble(TeamWithStatsDTO::getCoefPoints).reversed()))
                 .toList();
 
         // Construction de l’objet pool enrichi
