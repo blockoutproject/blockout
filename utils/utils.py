@@ -30,6 +30,23 @@ def extract_season_from_url(url: str) -> Optional[str]:
         )
         raise
     
+def capitalize_words(text: str) -> str:
+    """
+    Transforme une chaîne tout en majuscules en capitalisant chaque mot.
+    Gère les séparateurs espaces et tirets.
+
+    Exemples :
+        - "NOUVELLE AQUITAINE" → "Nouvelle Aquitaine"
+        - "PROVENCE-ALPES-CÔTE D'AZUR" → "Provence-Alpes-Côte D'Azur"
+    """
+    # On sépare tout en gardant les séparateurs (espaces et tirets)
+    parts = re.split(r'([- ])', text)
+    # On transforme seulement les parties alphanumériques
+    return ''.join(
+        p.capitalize() if p not in [' ', '-'] else p
+        for p in parts
+    )
+    
 def parse_date(date_str: str, time_str: str) -> Optional[datetime]:
     """
     Convertit des chaînes de date et d'heure en objet datetime.

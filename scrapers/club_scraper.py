@@ -8,6 +8,7 @@ from config.logger_config import log_event
 from models.scraper import Scraper
 from models.club import Club
 from services.clubs_service import add_or_update_club
+from utils.utils import capitalize_words
 
 class ClubScraper(Scraper):
     def __init__(self, session: aiohttp.ClientSession):
@@ -164,7 +165,7 @@ class ClubScraper(Scraper):
                 phone_number=phone_number,
                 email=email,
                 website=website,
-                city=city,
+                city=capitalize_words(city),
                 postal_code=postal_code
             )
 
