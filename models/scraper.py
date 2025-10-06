@@ -401,8 +401,8 @@ class Scraper(ABC):
         """
         update_tasks = []
         for (pool_id, team_id), (original, updated) in self._associations_cache.items():
-            updated.coef_sets = round(updated.won_sets / updated.lost_sets, 3) if updated.lost_sets > 0 else updated.won_sets
-            updated.coef_points = round(updated.won_points / updated.lost_points, 3) if updated.lost_points > 0 else updated.won_points
+            updated.coef_sets = round(updated.won_sets / updated.lost_sets, 3) if updated.lost_sets > 0 else 1000.0
+            updated.coef_points = round(updated.won_points / updated.lost_points, 3) if updated.lost_points > 0 else 1000.0
             if original is None or original != updated:
                 try:
                     update_tasks.append(
