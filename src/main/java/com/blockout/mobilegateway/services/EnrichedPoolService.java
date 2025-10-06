@@ -99,9 +99,9 @@ public class EnrichedPoolService {
                 .sorted(
                         Comparator.comparingInt(TeamWithStatsDTO::getPoints).reversed()
                                 .thenComparingInt(TeamWithStatsDTO::getPointsPenalty)
-                                .thenComparingInt(TeamWithStatsDTO::getWins).reversed()
-                                .thenComparingDouble(TeamWithStatsDTO::getCoefSets).reversed()
-                                .thenComparingDouble(TeamWithStatsDTO::getCoefPoints).reversed())
+                                .thenComparing(Comparator.comparingInt(TeamWithStatsDTO::getWins).reversed())
+                                .thenComparing(Comparator.comparingDouble(TeamWithStatsDTO::getCoefSets).reversed())
+                                .thenComparing(Comparator.comparingDouble(TeamWithStatsDTO::getCoefPoints).reversed()))
                 .toList();
 
         // Construction de l'objet enrichi
