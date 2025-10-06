@@ -18,7 +18,7 @@ class NationalScraper(Scraper):
             priority_validation_enabled=False
         )
         self.league_code = "ABCCS"
-        self.league_name = "NATIONAL"
+        self.league_name = "Nationale"
 
     async def run_scraping(self):
         try:
