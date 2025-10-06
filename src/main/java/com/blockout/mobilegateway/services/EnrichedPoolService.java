@@ -107,6 +107,7 @@ public class EnrichedPoolService {
         return EnrichedPoolDTO.builder()
                 .id(rawPool.getId())
                 .season(rawPool.getSeason())
+                .leagueCode(rawPool.getLeagueCode())
                 .leagueName(rawPool.getLeagueName())
                 .name(rawPool.getName())
                 .division(division)

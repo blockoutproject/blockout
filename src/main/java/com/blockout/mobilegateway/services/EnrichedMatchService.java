@@ -130,6 +130,7 @@ public class EnrichedMatchService {
         EnrichedPoolDTO enrichedPool = EnrichedPoolDTO.builder()
                 .id(rawPool.getId())
                 .season(rawPool.getSeason())
+                .leagueCode(rawPool.getLeagueCode())
                 .leagueName(rawPool.getLeagueName())
                 .name(rawPool.getName())
                 .format(rawPool.getFormat())

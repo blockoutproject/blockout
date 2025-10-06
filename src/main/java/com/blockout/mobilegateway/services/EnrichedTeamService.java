@@ -114,6 +114,7 @@ public class EnrichedTeamService {
 
                     return EnrichedPoolDTO.builder()
                             .id(basePool.getId())
+                            .leagueCode(basePool.getLeagueCode())
                             .leagueName(basePool.getLeagueName())
                             .name(basePool.getName())
                             .format(basePool.getFormat())

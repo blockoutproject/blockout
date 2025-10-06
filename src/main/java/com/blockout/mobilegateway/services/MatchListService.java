@@ -125,6 +125,7 @@ public class MatchListService {
                     return EnrichedPoolDTO.builder()
                             .id(pool.getId())
                             .season(pool.getSeason())
+                            .leagueCode(pool.getLeagueCode())
                             .leagueName(pool.getLeagueName())
                             .name(pool.getName())
                             .format(pool.getFormat())
