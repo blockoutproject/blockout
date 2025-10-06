@@ -95,7 +95,6 @@ public class EnrichedPoolService {
                             .coefPoints(assoc.getCoefPoints())
                             .build();
                 })
-                .filter(Objects::nonNull)
                 .sorted(
                         Comparator.comparingInt(TeamWithStatsDTO::getPoints).reversed()
                                 .thenComparingInt(TeamWithStatsDTO::getPointsPenalty)

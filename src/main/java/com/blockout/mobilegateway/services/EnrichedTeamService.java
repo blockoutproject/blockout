@@ -83,7 +83,8 @@ public class EnrichedTeamService {
                             .map(r -> {
                                 TeamDTO t = teamsMap.get(r.getTeamId());
                                 if (t == null) {
-                                    throw new InconsistentStateException("Missing team with ID " + r.getTeamId());
+                                    throw new InconsistentStateException(
+                                            "Missing team with ID " + r.getTeamId());
                                 }
                                 return TeamWithStatsDTO.builder()
                                         .id(t.getId())
@@ -98,7 +99,18 @@ public class EnrichedTeamService {
                                         .coefSets(r.getCoefSets())
                                         .coefPoints(r.getCoefPoints())
                                         .build();
-                            }).toList();
+                            })
+                            .filter(Objects::nonNull)
+                            .sorted(
+                                    Comparator.comparingInt(TeamWithStatsDTO::getPoints).reversed()
+                                            .thenComparingInt(TeamWithStatsDTO::getPointsPenalty)
+                                            .thenComparing(
+                                                    Comparator.comparingInt(TeamWithStatsDTO::getWins).reversed())
+                                            .thenComparing(Comparator.comparingDouble(TeamWithStatsDTO::getCoefSets)
+                                                    .reversed())
+                                            .thenComparing(Comparator.comparingDouble(TeamWithStatsDTO::getCoefPoints)
+                                                    .reversed()))
+                            .toList();
 
                     return EnrichedPoolDTO.builder()
                             .id(basePool.getId())
