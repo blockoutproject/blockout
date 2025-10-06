@@ -23,7 +23,7 @@ public class TeamCacheJob {
     @Scheduled(fixedRate = 600000)
     public void refreshTeamCache() {
         try {
-            var teams = teamClientService.listAllTeams();
+            var teams = teamClientService.listActiveTeams();
             var events = teams.stream()
                     .map(team -> TeamUpsertEvent.builder()
                             .id(team.getId())

@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -24,11 +25,16 @@ public class ClubClientService {
     private final ApiClientProperties apiClientProperties;
     private final ApiClientService apiClientService;
 
-    public List<ClubDTO> listClubs() {
-        String url = apiClientProperties.getClub().getUrl();
+    public List<ClubDTO> listActiveClubs() {
+        String baseUrl = apiClientProperties.getClub().getUrl();
+        String url = UriComponentsBuilder
+                .fromUriString(baseUrl)
+                .queryParam("active", true)
+                .build()
+                .toUriString();
 
         logger.info("Calling listClubs endpoint",
-                keyValue("action", "call_club_list_endpoint"),
+                keyValue("action", "call_club_list_active"),
                 keyValue("url", url));
 
         ResponseEntity<ClubDTO[]> response = apiClientService.get(url, ClubDTO[].class);

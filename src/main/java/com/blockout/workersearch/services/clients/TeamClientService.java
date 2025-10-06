@@ -25,11 +25,16 @@ public class TeamClientService {
     private final ApiClientProperties apiClientProperties;
     private final ApiClientService apiClientService;
 
-    public List<TeamDTO> listAllTeams() {
-        String url = apiClientProperties.getTeam().getUrl();
+    public List<TeamDTO> listActiveTeams() {
+        String baseUrl = apiClientProperties.getTeam().getUrl();
+        String url = UriComponentsBuilder
+                .fromUriString(baseUrl)
+                .queryParam("active", true)
+                .build()
+                .toUriString();
 
         logger.info("Calling listAllTeams endpoint",
-                keyValue("action", "call_team_list_all"),
+                keyValue("action", "call_team_list_active"),
                 keyValue("url", url));
 
         ResponseEntity<TeamDTO[]> response = apiClientService.get(url, TeamDTO[].class);

@@ -23,7 +23,7 @@ public class ClubCacheJob {
     @Scheduled(fixedRate = 600000)
     public void refreshClubCache() {
         try {
-            var clubs = clubClientService.listClubs();
+            var clubs = clubClientService.listActiveClubs();
             var events = clubs.stream()
                     .map(club -> ClubUpsertEvent.builder()
                             .id(club.getId())

@@ -49,7 +49,7 @@ public class IndexerJob {
     }
 
     private void reindexClubs() {
-        List<ClubDTO> clubs = clubClientService.listClubs();
+        List<ClubDTO> clubs = clubClientService.listActiveClubs();
         List<ClubUpsertEvent> events = clubs.stream()
                 .map(club -> ClubUpsertEvent.builder()
                         .id(club.getId())
@@ -64,7 +64,7 @@ public class IndexerJob {
     }
 
     private void reindexTeams() {
-        List<TeamDTO> teams = teamClientService.listAllTeams();
+        List<TeamDTO> teams = teamClientService.listActiveTeams();
         List<TeamUpsertEvent> events = teams.stream()
                 .map(team -> TeamUpsertEvent.builder()
                         .id(team.getId())
