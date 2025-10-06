@@ -14,8 +14,14 @@ public interface ClubRepository extends JpaRepository<Club, String> {
     @Query("""
             SELECT c
             FROM Club c
-            WHERE (:idsSize = 0 OR c.id IN :ids)
+            WHERE (
+                (:idsSize = 0 OR c.id IN :ids)
+                AND (:active IS NULL OR c.active = :active)
+            )
             ORDER BY c.name ASC
             """)
-    List<Club> findFiltered(@Param("ids") List<String> ids, @Param("idsSize") int idsSize);
+    List<Club> findFiltered(
+            @Param("ids") List<String> ids,
+            @Param("idsSize") int idsSize,
+            @Param("active") Boolean active);
 }

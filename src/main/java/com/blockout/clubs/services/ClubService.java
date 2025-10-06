@@ -38,9 +38,9 @@ public class ClubService {
      * @param ids liste d'IDs (null pour ignorer)
      * @return Liste des clubs correspondants
      */
-    public List<Club> findClubs(List<String> ids) {
+    public List<Club> findClubs(List<String> ids, Boolean active) {
         List<String> safeIds = (ids == null) ? Collections.emptyList() : ids;
-        List<Club> clubs = clubRepository.findFiltered(safeIds, safeIds.size());
+        List<Club> clubs = clubRepository.findFiltered(safeIds, safeIds.size(), active);
 
         logger.debug("Filtered clubs by IDs",
                 keyValue("action", "list_clubs_by_ids"),

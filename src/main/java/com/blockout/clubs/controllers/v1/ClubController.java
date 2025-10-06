@@ -35,8 +35,10 @@ public class ClubController {
             @ApiResponse(responseCode = "200", description = "Liste des clubs"),
     })
     @GetMapping
-    public ResponseEntity<List<Club>> listClubs(@RequestParam(required = false) List<String> ids) {
-        List<Club> clubs = clubService.findClubs(ids);
+    public ResponseEntity<List<Club>> listClubs(
+            @RequestParam(required = false) List<String> ids,
+            @RequestParam(required = false) Boolean active) {
+        List<Club> clubs = clubService.findClubs(ids, active);
         return ResponseEntity.ok(clubs);
     }
 
