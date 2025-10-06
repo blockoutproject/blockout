@@ -8,6 +8,7 @@ import com.blockout.competitions.models.dto.TeamRankingDTO;
 import com.blockout.competitions.repositories.CompetitionAssociationRepository;
 import com.blockout.competitions.utils.DiffUtils;
 
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 
 import org.slf4j.Logger;
@@ -96,7 +97,7 @@ public class CompetitionAssociationService {
     /**
      * Désactive les associations qui ne figurent plus dans la liste des teams
      *
-     * @param poolId L'identifiant de la pool
+     * @param poolId              L'identifiant de la pool
      * @param teamIdsToDeactivate Liste des identifiants de teams encore actives
      */
     @Transactional
@@ -287,12 +288,14 @@ public class CompetitionAssociationService {
                                     .coefSets(assoc.getCoefSets())
                                     .coefPoints(assoc.getCoefPoints())
                                     .build())
-                            .sorted(Comparator
-                                    .comparingInt(TeamRankingDTO::getPoints)
-                                    .thenComparingInt(TeamRankingDTO::getPointsPenalty).reversed()
-                                    .thenComparingInt(TeamRankingDTO::getWins)
-                                    .thenComparingDouble(TeamRankingDTO::getCoefSets)
-                                    .thenComparingDouble(TeamRankingDTO::getCoefPoints))
+                            .sorted(
+                                    Comparator.comparingInt(TeamRankingDTO::getPoints).reversed()
+                                            .thenComparingInt(TeamRankingDTO::getPointsPenalty)
+                                            .thenComparing(Comparator.comparingInt(TeamRankingDTO::getWins).reversed())
+                                            .thenComparing(
+                                                    Comparator.comparingDouble(TeamRankingDTO::getCoefSets).reversed())
+                                            .thenComparing(Comparator.comparingDouble(TeamRankingDTO::getCoefPoints)
+                                                    .reversed()))
                             .toList();
 
                     return PoolWithRankingDTO.builder()
