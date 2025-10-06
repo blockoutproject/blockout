@@ -25,7 +25,7 @@ import SectionDateHeader from "./SectionDateHeader";
 import PoolItem from "./PoolItem";
 import EmptyState from "../common/feedback/EmptyState";
 import ErrorState from "../common/feedback/ErrorState";
-import { BOTTOM_TABBAR_HEIGHT, LOGO_HEIGHT, SECTION_SEPARATOR_HEIGHT } from "@/src/theme/globals";
+import { BOTTOM_TABBAR_HEIGHT, LOGO_HEIGHT, SECTION_SEPARATOR_HEIGHT, TABBAR_HEIGHT } from "@/src/theme/globals";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { he } from "date-fns/locale";
 
@@ -157,7 +157,7 @@ const MatchList: React.FC<MatchListProps> = ({
 
     const header = useMemo(() => {
         return (
-            <View style={{ height: home ? LOGO_HEIGHT + 4 : 0 }} />
+            <View style={{ height: headerOffset + 4 }} />
         );
     }, [home]);
 
@@ -200,7 +200,7 @@ const MatchList: React.FC<MatchListProps> = ({
                 keyExtractor={keyExtractor}
                 onEndReached={handleLoadMore}
                 showsVerticalScrollIndicator={false}
-                ListHeaderComponent={<View style={{ height: home ? LOGO_HEIGHT + 4 : 0 }} />}
+                ListHeaderComponent={header}
                 refreshing={isRefreshing}
                 onRefresh={handleRefresh}
                 progressViewOffset={headerOffset}

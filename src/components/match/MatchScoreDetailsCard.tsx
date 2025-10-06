@@ -1,9 +1,11 @@
 import React from "react";
-import { View, Text, StyleSheet, Image } from "react-native";
+import { View, Text, StyleSheet, Image, Pressable } from "react-native";
 import { EnrichedMatchDTO } from "@/src/types/Match";
 import { Team } from "@/src/types/Team";
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import GradientBorderView from "@/src/components/common/GradientBorderView";
+import { useRouter } from "expo-router";
+import * as Haptics from "expo-haptics";
 
 /** Per-set score breakdown. */
 export type MatchScoreDetailsCardProps = {
@@ -16,13 +18,14 @@ export type MatchScoreDetailsCardProps = {
 const RADIUS = 18;
 const LOGO = 30;
 const SET_COL_W = 32;
-const PTS_BADGE_RADIUS = 10;
 
 const MatchScoreDetailsCard: React.FC<MatchScoreDetailsCardProps> = ({
     title = "Score",
     enrichedMatch,
 }) => {
     const theme = useAppTheme();
+    const router = useRouter();
+
     const gradient = [
         enrichedMatch.pool.division.firstGradientColor,
         enrichedMatch.pool.division.secondGradientColor,
@@ -37,6 +40,11 @@ const MatchScoreDetailsCard: React.FC<MatchScoreDetailsCardProps> = ({
 
     const homeSets = setsArray.map(([h]) => h);
     const awaySets = setsArray.map(([, a]) => a);
+
+    const handleTeamPress = (teamId: number) => {
+        Haptics.selectionAsync();
+        router.push(`/teams/${teamId}`);
+    };
 
     const HeaderRow: React.FC = () => (
         <View
@@ -85,8 +93,11 @@ const MatchScoreDetailsCard: React.FC<MatchScoreDetailsCardProps> = ({
         /** Opponent points per set. */
         opponentSets: number[];
     }> = ({ team, finalScore, sets, opponentSets }) => (
-        <View
-            style={styles.row}
+        <Pressable
+            style={[
+                styles.row
+            ]}
+            onPress={() => handleTeamPress(team.id)}
         >
             <View
                 style={styles.identityBlock}
@@ -170,7 +181,7 @@ const MatchScoreDetailsCard: React.FC<MatchScoreDetailsCardProps> = ({
                     </View>
                 );
             })}
-        </View>
+        </Pressable>
     );
 
     return (
@@ -238,7 +249,7 @@ const styles = StyleSheet.create({
     teamLogo: {
         width: LOGO,
         aspectRatio: 1,
-        borderRadius: 10,
+        borderRadius: 8,
     },
     teamName: {
         flex: 1,

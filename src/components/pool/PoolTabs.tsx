@@ -51,7 +51,6 @@ const PoolTabs: React.FC<PoolTabsProps> = ({ enrichedPool }) => {
                 contentContainerStyle={[
                     {
                         paddingHorizontal: 4,
-                        marginTop: TABBAR_HEIGHT + 4,
                     },
                 ]}
                 showPoolHeader={false}
@@ -70,7 +69,6 @@ const PoolTabs: React.FC<PoolTabsProps> = ({ enrichedPool }) => {
                 contentContainerStyle={[
                     {
                         paddingHorizontal: 4,
-                        marginTop: TABBAR_HEIGHT + 4,
                     },
                 ]}
                 showPoolHeader={false}

@@ -2,7 +2,6 @@ import React from "react";
 import { View, StyleSheet } from "react-native";
 import { FlatList } from "react-native-gesture-handler";
 import * as Haptics from "expo-haptics";
-
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import GradientBorderView from "@/src/components/common/GradientBorderView";
 import type { EnrichedPoolDTO } from "@/src/types/Pool";
