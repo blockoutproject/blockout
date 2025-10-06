@@ -1,6 +1,7 @@
 package com.blockout.workersearch.listeners.club;
 
 import com.blockout.workersearch.config.RabbitMQConfig;
+import com.blockout.workersearch.models.events.ClubDeactivationEvent;
 import com.blockout.workersearch.services.index.ClubIndexService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -18,7 +19,9 @@ public class ClubDeactivationListener {
     private final ClubIndexService clubIndexService;
 
     @RabbitListener(queues = RabbitMQConfig.CLUB_DEACTIVATION_QUEUE_SEARCH)
-    public void onClubDeactivated(String clubId) {
+    public void onClubDeactivated(ClubDeactivationEvent event) {
+        String clubId = event.getClubId();
+        
         logger.info("Received club deactivation event",
                 keyValue("action", "club_deactivated"),
                 keyValue("clubId", clubId));
