@@ -80,7 +80,6 @@ public class EnrichedPoolService {
                         throw new InconsistentStateException(
                                 "Missing team with ID " + assoc.getTeamId() + " for pool " + poolId);
                     }
-                    ;
 
                     return TeamWithStatsDTO.builder()
                             .id(team.getId())
@@ -98,11 +97,11 @@ public class EnrichedPoolService {
                 })
                 .filter(Objects::nonNull)
                 .sorted(
-                        Comparator.comparingInt(TeamWithStatsDTO::getPoints)
-                                .thenComparingInt(TeamWithStatsDTO::getPointsPenalty).reversed()
-                                .thenComparingInt(TeamWithStatsDTO::getWins)
-                                .thenComparingDouble(TeamWithStatsDTO::getCoefSets)
-                                .thenComparingDouble(TeamWithStatsDTO::getCoefPoints))
+                        Comparator.comparingInt(TeamWithStatsDTO::getPoints).reversed()
+                                .thenComparingInt(TeamWithStatsDTO::getPointsPenalty)
+                                .thenComparingInt(TeamWithStatsDTO::getWins).reversed()
+                                .thenComparingDouble(TeamWithStatsDTO::getCoefSets).reversed()
+                                .thenComparingDouble(TeamWithStatsDTO::getCoefPoints).reversed())
                 .toList();
 
         // Construction de l'objet enrichi
