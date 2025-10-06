@@ -37,8 +37,9 @@ public class TeamController {
             @RequestParam(required = false) Gender gender,
             @RequestParam(required = false) String season,
             @RequestParam(required = false, name = "club_id") String clubId,
-            @RequestParam(required = false) List<Long> ids) {
-        List<Team> teams = teamService.findTeams(name, divisionId, format, gender, season, clubId, ids);
+            @RequestParam(required = false) List<Long> ids,
+            @RequestParam(required = false) Boolean active) {
+        List<Team> teams = teamService.findTeams(name, divisionId, format, gender, season, clubId, ids, active);
         return ResponseEntity.ok(teams);
     }
 

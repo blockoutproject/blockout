@@ -28,6 +28,7 @@ public interface TeamRepository extends JpaRepository<Team, Long> {
                 AND (:season IS NULL OR t.season = :season)
                 AND (:clubId IS NULL OR t.clubId = :clubId)
                 AND (:idsSize = 0 OR t.id IN :ids)
+                AND (:active IS NULL OR t.active = :active)
             ORDER BY t.name ASC
             """)
     List<Team> findFiltered(@Param("name") String name,
@@ -37,6 +38,7 @@ public interface TeamRepository extends JpaRepository<Team, Long> {
             @Param("season") String season,
             @Param("clubId") String clubId,
             @Param("ids") List<Long> ids,
-            @Param("idsSize") int idsSize);
+            @Param("idsSize") int idsSize,
+            @Param("active") Boolean active);
 
 }

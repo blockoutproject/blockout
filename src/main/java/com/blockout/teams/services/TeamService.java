@@ -70,12 +70,13 @@ public class TeamService {
      * @param season saison (null pour ignorer)
      * @param clubId identifiant du club (null pour ignorer)
      * @param ids liste d'IDs (null pour ignorer)
+     * @param active statut actif (null pour ignorer)
      * @return Liste des équipes correspondantes
      */
-    public List<Team> findTeams(String name, Long divisionId, Format format, Gender gender, String season, String clubId, List<Long> ids) {
+    public List<Team> findTeams(String name, Long divisionId, Format format, Gender gender, String season, String clubId, List<Long> ids, Boolean active) {
         List<Long> safeIds = (ids == null) ? Collections.emptyList() : ids;
 
-        List<Team> teams = teamRepository.findFiltered(name, divisionId, format, gender, season, clubId, safeIds, safeIds.size());
+        List<Team> teams = teamRepository.findFiltered(name, divisionId, format, gender, season, clubId, safeIds, safeIds.size(), active);
 
         logger.debug("Listing teams",
                 keyValue("action", "list_teams"),
@@ -86,6 +87,7 @@ public class TeamService {
                 keyValue("season", season),
                 keyValue("clubId", clubId),
                 keyValue("ids", safeIds),
+                keyValue("active", active),
                 keyValue("resultCount", teams.size()));
         return teams;
     }
