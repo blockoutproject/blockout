@@ -29,7 +29,7 @@ class ProScraper(Scraper):
         )
         self.raw_season = "2025/2026"
         self.league_code = "AALNV"
-        self.league_name = "PRO"
+        self.league_name = "Pro"
 
         # Définition des poules à traiter
         self.pools_json = [

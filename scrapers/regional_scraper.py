@@ -9,6 +9,7 @@ from models.raw_division_mapping import RawDivisionMapping
 from models.scraper import Scraper
 from utils.scraper_logic import handle_csv_download_and_parse
 from config.logger_config import log_event
+from utils.utils import capitalize_words
 
 class RegionalScraper(Scraper):
     def __init__(self, session):
@@ -45,7 +46,7 @@ class RegionalScraper(Scraper):
                     if not league_name_tag:
                         continue
 
-                    league_name = league_name_tag.get_text(strip=True)
+                    league_name = capitalize_words(league_name_tag.get_text(strip=True))
 
                     # On cherche un lien contenant 'codent='
                     a_tag = table.find('a', href=lambda href: href and 'codent=' in href)

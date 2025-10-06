@@ -20,22 +20,22 @@ except Exception as e:
     )
     standardized_divisions = {}
 
-# def parse_season(season_str: str) -> int:
-#     """
-#     Convertit une chaîne de saison 'YYYY/YYYY' en un entier combiné 'YYYYYY'.
-#     """
-#     try:
-#         start_year, end_year = season_str.split('/')
-#         combined_years = int(start_year[-2:] + end_year[-2:])
-#         return combined_years
-#     except Exception as e:
-#         log_event(
-#             action="parse_season",
-#             level="error",
-#             message=f"Erreur inattendue lors du parsing de la saison '{season_str}'",
-#             error=str(e)
-#         )
-#         raise
+def capitalize_words(text: str) -> str:
+    """
+    Transforme une chaîne tout en majuscules en capitalisant chaque mot.
+    Gère les séparateurs espaces et tirets.
+
+    Exemples :
+        - "NOUVELLE AQUITAINE" → "Nouvelle Aquitaine"
+        - "PROVENCE-ALPES-CÔTE D'AZUR" → "Provence-Alpes-Côte D'Azur"
+    """
+    # On sépare tout en gardant les séparateurs (espaces et tirets)
+    parts = re.split(r'([- ])', text)
+    # On transforme seulement les parties alphanumériques
+    return ''.join(
+        p.capitalize() if p not in [' ', '-'] else p
+        for p in parts
+    )
 
 def extract_season_from_url(url: str) -> Optional[str]:
     """
