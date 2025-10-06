@@ -288,14 +288,6 @@ public class CompetitionAssociationService {
                                     .coefSets(assoc.getCoefSets())
                                     .coefPoints(assoc.getCoefPoints())
                                     .build())
-                            .sorted(
-                                    Comparator.comparingInt(TeamRankingDTO::getPoints).reversed()
-                                            .thenComparingInt(TeamRankingDTO::getPointsPenalty)
-                                            .thenComparing(Comparator.comparingInt(TeamRankingDTO::getWins).reversed())
-                                            .thenComparing(
-                                                    Comparator.comparingDouble(TeamRankingDTO::getCoefSets).reversed())
-                                            .thenComparing(Comparator.comparingDouble(TeamRankingDTO::getCoefPoints)
-                                                    .reversed()))
                             .toList();
 
                     return PoolWithRankingDTO.builder()
