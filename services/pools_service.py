@@ -21,7 +21,7 @@ async def add_or_update_pool(
         changes_list = []
         pool.id = existing_pool.id
 
-        for field in ['name', 'division_id', 'format', 'gender']:
+        for field in ['name', 'division_id', 'league_name', 'format', 'gender']:
             if getattr(existing_pool, field, None) != getattr(pool, field, None):
                 changes_list.append(f"{field}: {getattr(existing_pool, field)} -> {getattr(pool, field)}")
 
