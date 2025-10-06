@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -24,9 +25,14 @@ public class PoolClientService {
     private final ApiClientProperties apiClientProperties;
     private final ApiClientService apiClientService;
 
-    public List<PoolDTO> listPools() {
-        String url = apiClientProperties.getPool().getUrl();
-
+    public List<PoolDTO> listActivePools() {
+        String baseUrl = apiClientProperties.getPool().getUrl();
+        String url = UriComponentsBuilder
+                .fromUriString(baseUrl)
+                .queryParam("active", true)
+                .build()
+                .toUriString();
+                
         logger.info("Calling listPools endpoint",
                 keyValue("action", "call_pool_list_endpoint"),
                 keyValue("url", url));

@@ -82,7 +82,7 @@ public class IndexerJob {
     }
 
     private void reindexPools() {
-        List<PoolDTO> pools = poolClientService.listPools();
+        List<PoolDTO> pools = poolClientService.listActivePools();
         List<PoolUpsertEvent> events = pools.stream()
                 .map(pool -> PoolUpsertEvent.builder()
                         .id(pool.getId())
