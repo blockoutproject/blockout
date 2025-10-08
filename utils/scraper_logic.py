@@ -15,7 +15,7 @@ from utils.file_utils import download_and_parse_csv
 from utils.html_utils import extract_club_stats_list
 from utils.match_utils import compute_volleyball_match_stats, is_anomalous_set_format
 from utils.team_utils import get_full_name, get_short_name, normalize
-from utils.utils import parse_date
+from utils.utils import capitalize_words, parse_date
 from models.enums.datasource_priority import DataSourcePriority
 
 
@@ -139,9 +139,9 @@ async def handle_csv_download_and_parse(
                 set=row.get('set').replace('/', '-') if row.get('set') else None,
                 score=row.get('score') or None,
                 status=MatchStatus.FINISHED.value if row.get('set') else MatchStatus.UPCOMING.value,
-                venue=row.get('venue'),
-                first_referee=row.get('first_referee'),
-                second_referee=row.get('second_referee')
+                venue=capitalize_words(row.get('venue')),
+                first_referee=capitalize_words(row.get('first_referee')),
+                second_referee=capitalize_words(row.get('second_referee'))
             )
             scraped_match_codes.add(match_code)
 
