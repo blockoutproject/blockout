@@ -1,22 +1,9 @@
 import React from "react";
-import {
-    KeyboardAvoidingView,
-    StyleSheet,
-    View,
-    Text,
-    ActivityIndicator,
-    Keyboard,
-} from "react-native";
-import { useAppTheme } from "@/src/context/ThemeProvider";
-import SearchBar from "@/src/components/common/SearchBar";
-import TeamCard from "@/src/components/search/TeamCard";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import * as Haptics from "expo-haptics";
 import { useSearchTeams } from "@/src/hooks/search/useSearchTeams";
-import { FlatList } from "react-native-gesture-handler";
-import ErrorState from "@/src/components/common/feedback/ErrorState";
+import TeamCard from "@/src/components/search/TeamCard";
 import { useRouter } from "expo-router";
-import { BOTTOM_TABBAR_HEIGHT } from "@/src/theme/globals";
+import * as Haptics from "expo-haptics";
+import { GenericSearchScreen } from "./GenericSearchScreen";
 
 export type SearchTeamScreenProps = {
     search: string;
@@ -29,137 +16,34 @@ const SearchTeamScreen: React.FC<SearchTeamScreenProps> = ({
     debouncedQuery,
     setSearch,
 }) => {
-    const theme = useAppTheme();
-    const insets = useSafeAreaInsets();
+    const { data, isLoading, isError, refetch, error } = useSearchTeams(
+        debouncedQuery,
+        search.length === 0
+    );
     const router = useRouter();
 
-    const triggerOnEmpty = search.length === 0;
-
-    const { data: teams, isLoading, isError, refetch } = useSearchTeams(
-        debouncedQuery,
-        triggerOnEmpty
-    );
-
-    const handleTeamPress = (teamId: number) => {
+    const handlePress = (id: number) => {
         Haptics.selectionAsync();
-        router.push(`/teams/${teamId}`);
-    };
-
-    const renderEmpty = () => {
-        if (debouncedQuery.length > 1 && !isLoading && !isError) {
-            return (
-                <View style={styles.emptyContainer}>
-                    <Text
-                        style={[
-                            styles.emptyText,
-                            { color: theme.textInactive },
-                        ]}
-                    >
-                        Aucune équipe trouvée pour cette recherche.
-                    </Text>
-                </View>
-            );
-        }
-        return null;
+        router.push(`/teams/${id}`);
     };
 
     return (
-        <KeyboardAvoidingView
-            style={[
-                styles.container,
-                { backgroundColor: theme.background },
-            ]}
-            testID="search-team-screen"
-        >
-            <View style={styles.searchRow}>
-                <SearchBar
-                    value={search}
-                    onChangeText={setSearch}
-                    placeholder="Rechercher une équipe..."
-                    inSheet={false}
-                />
-            </View>
-
-            {isLoading && (
-                <ActivityIndicator
-                    size="small"
-                    color={theme.text}
-                    style={styles.loader}
-                />
+        <GenericSearchScreen
+            search={search}
+            debouncedQuery={debouncedQuery}
+            setSearch={setSearch}
+            data={data}
+            isLoading={isLoading}
+            isError={isError}
+            refetch={refetch}
+            placeholder="Rechercher une équipe..."
+            exampleLabel="Exemples d’équipes"
+            emptyMessage="Aucune équipe trouvée pour cette recherche."
+            renderItem={({ item }) => (
+                <TeamCard team={item} onPress={() => handlePress(item.id)} />
             )}
-
-            {isError && (
-                <ErrorState
-                    subtitle="Impossible de charger la liste des équipes."
-                    onRetry={refetch}
-                />
-            )}
-
-            <FlatList
-                data={teams}
-                keyExtractor={(item) => item.id.toString()}
-                renderItem={({ item }) => (
-                    <TeamCard
-                        team={item}
-                        onPress={() => {
-                            Keyboard.dismiss();
-                            handleTeamPress(item.id);
-                        }}
-                    />
-                )}
-                ListEmptyComponent={renderEmpty}
-                ListHeaderComponent={
-                    search.length === 0 && teams && teams.length > 0 ? (
-                        <Text
-                            style={[
-                                styles.exampleLabel,
-                                { color: theme.textInactive },
-                            ]}
-                        >
-                            Exemples d’équipes
-                        </Text>
-                    ) : null
-                }
-                showsVerticalScrollIndicator={false}
-                keyboardShouldPersistTaps="handled"
-                onScrollBeginDrag={Keyboard.dismiss}
-                contentContainerStyle={[
-                    { paddingBottom: insets.bottom + BOTTOM_TABBAR_HEIGHT },
-                ]}
-                scrollEnabled={Boolean(teams && teams.length > 0)}
-                testID="search-team-list"
-            />
-        </KeyboardAvoidingView>
+        />
     );
 };
 
 export default SearchTeamScreen;
-
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        paddingHorizontal: 8,
-    },
-    searchRow: {
-        marginTop: 8,
-        marginBottom: 16,
-        flexDirection: "row",
-        alignItems: "center",
-    },
-    loader: {
-        marginTop: 8,
-    },
-    emptyContainer: {
-        alignItems: "center",
-    },
-    emptyText: {
-        fontSize: 14,
-        textAlign: "center",
-    },
-    exampleLabel: {
-        fontSize: 13,
-        fontStyle: "italic",
-        marginBottom: 8,
-        textAlign: "center",
-    },
-});

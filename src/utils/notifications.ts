@@ -83,6 +83,7 @@ export async function registerPushTokenOnBackend(
     };
 
     await NotificationsApi.getInstance().registerPushToken(userId, payload);
+    console.log("Push token registered on backend");
 }
 
 /**

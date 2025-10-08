@@ -38,7 +38,6 @@ const SearchHeader: React.FC<SearchHeaderProps> = ({ filters, setFilters, onOpen
                     setFilters={setFilters}
                     singleSelect
                     requireSelection
-                    size="sm"
                     scrollable={false}
                     containerStyle={{ paddingHorizontal: 0 }}
                 />

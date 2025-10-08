@@ -8,7 +8,7 @@ import { EnrichedUserNotification, EnrichedUserNotificationPage } from "@/src/ty
  * - Contrat aligné sur { notifications, hasNext, nextPage }
  * - getNextPageParam via nextPage (comme useMatchList)
  */
-export const useNotifications = (pageSize = 20) => {
+export const useNotifications = (pageSize = 3) => {
     const queryKey = useMemo(
         () => ["notifications", "enriched", `size:${pageSize}`],
         [pageSize]

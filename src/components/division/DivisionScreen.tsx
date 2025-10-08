@@ -74,9 +74,7 @@ const DivisionScreen: React.FC = () => {
                     </TouchableOpacity>
                 </View>
 
-                <View style={styles.filtersWrapper}>
-                    <Filters filters={statusFilters} setFilters={setStatusFilters} singleSelect size="sm" />
-                </View>
+                <Filters filters={statusFilters} setFilters={setStatusFilters} singleSelect/>
 
                 <FlashList
                     style={styles.flatList}

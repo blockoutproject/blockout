@@ -1,13 +1,12 @@
-import React from "react";
+import React, { memo } from "react";
 import { View, StyleSheet, TouchableOpacity, Text, ActivityIndicator } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import type { BottomSheetFooterProps } from "@gorhom/bottom-sheet";
+import { BottomSheetFooter, type BottomSheetFooterProps } from "@gorhom/bottom-sheet";
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import { CORNERS } from "@/src/theme/globals";
-import useKeyboardVisible from "@/src/hooks/utils/useKeyboardVisible";
 
-export type BottomSheetFormFooterProps = BottomSheetFooterProps & {
+export type BottomSheetFormFooterProps = Omit<BottomSheetFooterProps, "children"> & {
     label: string;
     loading?: boolean;
     disabled?: boolean;
@@ -21,19 +20,14 @@ const BottomSheetFormFooter: React.FC<BottomSheetFormFooterProps> = ({
     disabled,
     onPress,
     backgroundColor,
+    ...footerProps
 }) => {
     const theme = useAppTheme();
     const insets = useSafeAreaInsets();
-    const iskeyboardVisible = useKeyboardVisible();
     const bg = backgroundColor ?? theme.primary;
+
     return (
-        <View
-            style={[
-                {
-                    paddingBottom: iskeyboardVisible ? 0 : insets.bottom
-                },
-            ]}
-        >
+        <BottomSheetFooter {...footerProps} bottomInset={insets.bottom}>
             <View
                 style={[
                     styles.footer,
@@ -44,7 +38,10 @@ const BottomSheetFormFooter: React.FC<BottomSheetFormFooterProps> = ({
                 ]}
             >
                 <TouchableOpacity
-                    style={[styles.submitBtn, { backgroundColor: bg, opacity: loading || disabled ? 0.7 : 1 }]}
+                    style={[
+                        styles.submitBtn,
+                        { backgroundColor: bg, opacity: loading || disabled ? 0.7 : 1 },
+                    ]}
                     disabled={loading || disabled}
                     onPress={onPress}
                     activeOpacity={0.85}
@@ -54,17 +51,21 @@ const BottomSheetFormFooter: React.FC<BottomSheetFormFooterProps> = ({
                         <ActivityIndicator color={theme.text} />
                     ) : (
                         <>
-                            <MaterialCommunityIcons name="content-save-outline" size={18} color={theme.text} />
+                            <MaterialCommunityIcons
+                                name="content-save-outline"
+                                size={18}
+                                color={theme.text}
+                            />
                             <Text style={[styles.submitText, { color: theme.text }]}>{label}</Text>
                         </>
                     )}
                 </TouchableOpacity>
             </View>
-        </View>
+        </BottomSheetFooter>
     );
 };
 
-export default BottomSheetFormFooter;
+export default memo(BottomSheetFormFooter);
 
 const styles = StyleSheet.create({
     footer: {

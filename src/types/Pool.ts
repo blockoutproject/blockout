@@ -22,6 +22,7 @@ export interface Pool {
 export interface EnrichedPoolDTO {
     id: number;
     season: number;
+    leagueCode: string;
     leagueName: string;
     name: string;
     format: EnumFormat;

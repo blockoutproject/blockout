@@ -1,5 +1,5 @@
 import { useAppTheme } from "@/src/context/ThemeProvider";
-import React, { useMemo } from "react";
+import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 
 const Field: React.FC<{ label: string; children: React.ReactNode; error?: string; touched?: boolean }> = ({

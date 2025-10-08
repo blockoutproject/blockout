@@ -7,14 +7,17 @@ import GradientBorderView from "@/src/components/common/GradientBorderView";
 import GradientView from "@/src/components/common/GradientView";
 
 type Variant = "border" | "filled";
+type Size = "md" | "lg";
 
 type InfoPillGradientProps = {
     /** Libellé. */
-    label: string;
+    label?: string;
     /** Dégradé. */
     gradient: readonly [string, string, ...string[]];
     /** Variante. */
     variant?: Variant;
+    /** Taille de la pill (md = défaut, lg = +2 de padding H/V). */
+    size?: Size;
     /** Press. */
     onPress?: () => void;
     /** Désactivation. */
@@ -27,31 +30,39 @@ type InfoPillGradientProps = {
     leftIcon?: React.ComponentProps<typeof MaterialCommunityIcons>["name"];
     /** Icône droite (Ionicons). */
     rightIcon?: React.ComponentProps<typeof Ionicons>["name"];
-    /** Taille des icônes. */
-    iconSize?: number;
+    /** Couleur du texte (fallback theme.text). */
+    textColor?: string;
 };
 
 const BASE_VPAD = 6;
 const BASE_HPAD = 10;
 const GAP = 6;
+const ICON_SIZE = 14;
 
 const InfoPillGradient: React.FC<InfoPillGradientProps> = ({
     label,
     gradient,
     variant = "border",
+    size = "md",
     onPress,
     disabled,
     borderWidth = 1,
     maxWidth,
     leftIcon,
     rightIcon,
-    iconSize = 14
+    textColor,
 }) => {
     const theme = useAppTheme();
 
     const delta = variant === "border" ? borderWidth : 0;
-    const padV = Math.max(2, BASE_VPAD - delta);
-    const padH = Math.max(4, BASE_HPAD - delta);
+
+    // +2 sur H/V en mode lg
+    const add = size === "lg" ? 2 : 0;
+    const baseV = BASE_VPAD + add;
+    const baseH = BASE_HPAD + add;
+
+    const padV = Math.max(2, baseV - delta);
+    const padH = Math.max(4, baseH - delta);
 
     const content = (
         <View
@@ -66,11 +77,15 @@ const InfoPillGradient: React.FC<InfoPillGradientProps> = ({
                 maxWidth ? { maxWidth } : undefined,
             ]}
         >
-            {leftIcon ? <MaterialCommunityIcons name={leftIcon} size={iconSize} color={theme.text} /> : null}
-            <Text style={[styles.text, { color: theme.text }]} numberOfLines={1}>
-                {label}
-            </Text>
-            {rightIcon ? <Ionicons name={rightIcon} size={iconSize} color={theme.text} /> : null}
+            {leftIcon ? (
+                <MaterialCommunityIcons name={leftIcon} size={ICON_SIZE} color={theme.text} />
+            ) : null}
+            {label && (
+                <Text style={[styles.text, { color: textColor ?? theme.text }]} numberOfLines={1}>
+                    {label}
+                </Text>
+            )}
+            {rightIcon ? <Ionicons name={rightIcon} size={ICON_SIZE} color={theme.text} /> : null}
         </View>
     );
 
@@ -101,7 +116,7 @@ const InfoPillGradient: React.FC<InfoPillGradientProps> = ({
     );
 };
 
-export default InfoPillGradient;
+export default memo(InfoPillGradient);
 
 const styles = StyleSheet.create({
     outer: {

@@ -1,8 +1,10 @@
-import React, { createContext, useContext, useEffect, useMemo } from "react";
+import React, { createContext, use, useContext, useEffect, useMemo } from "react";
 import { useAuth0, User } from "react-native-auth0";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEnsureUser } from "@/src/hooks/user/useEnsureUser";
 import type { CustomUser } from "@/src/types/User";
+import { registerForPushNotificationsAsync, registerPushTokenOnBackend } from "../utils/notifications";
+import { is } from "date-fns/locale";
 
 export type SessionActions = {
     signIn: () => Promise<void>;
@@ -10,6 +12,7 @@ export type SessionActions = {
     signOutSSO: (opts?: { federated?: boolean }) => Promise<void>;
     softResetAuth: () => Promise<void>;
 };
+
 
 export type SessionUserState = {
     auth0User: User | null;
@@ -45,6 +48,24 @@ export const SessionProvider: React.FC<React.PropsWithChildren> = ({ children })
     const isReady = !!customUser && !!auth0User;
     const error = customUserError || auth0UserError;
 
+    useEffect(() => {
+        if (!isReady) return;
+
+        (async () => {
+            try {
+                const freshUser = (await refetch()).data;
+
+                const token = await registerForPushNotificationsAsync().catch(() => null);
+
+                if (freshUser?.id && token) {
+                    await registerPushTokenOnBackend(freshUser.id, token).catch(() => { });
+                }
+            } catch (err) {
+                console.warn("Erreur lors de l’enregistrement du push token :", err);
+            }
+        })();
+    }, [isReady]);
+
     const clearRQCache = async () => {
         await queryClient.cancelQueries();
         queryClient.clear();
@@ -67,12 +88,12 @@ export const SessionProvider: React.FC<React.PropsWithChildren> = ({ children })
     };
 
     const signOutSSO = async () => {
-        await clearSession();
+        try { await clearSession() } catch { } // Ignore if the user cancelled the logout
         await clearRQCache();
     };
 
     useEffect(() => {
-        if (isReady && isError) {
+        if (isReady && isError && !(error?.name === "USER_CANCELLED")) {
             softResetAuth();
         }
     }, [isReady, isError]);

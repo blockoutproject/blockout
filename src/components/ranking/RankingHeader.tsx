@@ -6,17 +6,22 @@ import { LinearGradient } from "expo-linear-gradient";
 
 import MaskedImage from "../common/images/MaskedImage";
 import { withAlpha } from "@/src/utils/utils";
+import { EnrichedPoolDTO } from "@/src/types/Pool";
+import { useAppTheme } from "@/src/context/ThemeProvider";
+import { GenderLabels } from "@/src/types/enums/Gender";
 
 type Props = {
-    division: any;
-    theme: any;
+    pool: EnrichedPoolDTO;
     onPress: () => void;
 };
 
-const RankingHeader: React.FC<Props> = ({ division, theme, onPress }) => {
-    const divisionLogo = division.logoUrl
-        ? { uri: division.logoUrl }
+const RankingHeader: React.FC<Props> = ({ pool, onPress }) => {
+    const theme = useAppTheme();
+    const divisionLogo = pool.division.logoUrl
+        ? { uri: pool.division.logoUrl }
         : require("@/assets/clubs/default_club_logo.png");
+
+    const isRegional = !["ABCCS", "AALNV"].includes(pool.leagueCode);
 
     return (
         <TouchableOpacity activeOpacity={1} onPress={onPress}>
@@ -41,10 +46,24 @@ const RankingHeader: React.FC<Props> = ({ division, theme, onPress }) => {
             />
             <View style={styles.headerRow}>
                 <View style={styles.headerLeft}>
-                    <MaskedImage uri={division.logoUrl} size={24} radius={6} shadow />
-                    <Text style={[styles.headerTitle, { color: theme.text }]} numberOfLines={1}>
-                        {division.name} - Classement
-                    </Text>
+                    <MaskedImage uri={pool.division.logoUrl} size={24} radius={6} shadow />
+                    <View style={{ flex: 1 }}>
+                        <Text style={[styles.headerTitle, { color: theme.text }]} numberOfLines={1}>
+                            {pool.name}
+                        </Text>
+                        <Text
+                            style={[
+                                styles.divisionTitle,
+                                {
+                                    color: theme.textSecondary,
+                                },
+                            ]}
+                            numberOfLines={1}
+                            ellipsizeMode="tail"
+                        >
+                            {`${isRegional ? `${pool.leagueName} • ` : ''}${pool.division.name} • ${GenderLabels[pool.gender]}`}
+                        </Text>
+                    </View>
                 </View>
                 <Ionicons
                     name="chevron-forward-outline"
@@ -76,6 +95,11 @@ const styles = StyleSheet.create({
     headerTitle: {
         fontSize: 14,
         fontWeight: "700",
-        letterSpacing: 0.2,
+        flexShrink: 1
+    },
+    divisionTitle: {
+        flex: 1,
+        fontSize: 10,
+        fontWeight: "600",
     },
 });

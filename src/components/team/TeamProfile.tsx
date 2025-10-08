@@ -10,9 +10,9 @@ import FollowersCounter from "@/src/components/common/follow/FollowersCount";
 import { GenderLabels } from "@/src/types/enums/Gender";
 import { FormatLabels } from "@/src/types/enums/Format";
 import { LOGO_SIZE } from "@/src/theme/globals";
-import InfoChipGradient from "@/src/components/common/chips/InfoChipGradientTwoIcons";
 import InfoPill from "@/src/components/common/chips/InfoPill";
 import MaskedImage from "@/src/components/common/images/MaskedImage";
+import InfoPillGradient from "../common/chips/InfoPillGradient";
 
 /** Team profile header with logo, tags, club link and follow. */
 export type TeamProfileProps = {
@@ -62,9 +62,10 @@ const TeamProfile: React.FC<TeamProfileProps> = ({ enrichedTeam }) => {
                 >
                     <InfoPill label={FormatLabels[enrichedTeam.format]} />
                     <InfoPill label={String(enrichedTeam.season)} />
-                    <InfoChipGradient
-                        firstIcon="home"
-                        secondIcon="chevron-forward-outline"
+                    <InfoPillGradient
+                        leftIcon="home"
+                        rightIcon="chevron-forward-outline"
+                        variant="filled"
                         gradient={gradient}
                         onPress={() => handleClubPress(enrichedTeam.club.id)}
                     />

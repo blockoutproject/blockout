@@ -18,7 +18,7 @@ export type LegalDocumentHeaderProps = {
 
 const LegalDocumentHeader: React.FC<LegalDocumentHeaderProps> = ({ title, onCloseSheet, onEdit }) => {
     const theme = useAppTheme();
-    const { handleBack, canGoBack } = useBackOrClose(onCloseSheet);
+    const { handleBack } = useBackOrClose(onCloseSheet);
 
     return (
         <View
@@ -34,10 +34,16 @@ const LegalDocumentHeader: React.FC<LegalDocumentHeaderProps> = ({ title, onClos
                     <TouchableOpacity
                         onPress={handleBack}
                         style={styles.backButton}
+                        hitSlop={{
+                            top: 10,
+                            bottom: 10,
+                            left: 10,
+                            right: 10,
+                        }}
                     >
                         <Ionicons
-                            name={canGoBack ? "chevron-back-outline" : "close"}
-                            size={canGoBack ? 30 : 35}
+                            name={"close"}
+                            size={35}
                             color={theme.text}
                         />
                     </TouchableOpacity>
@@ -95,7 +101,7 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
-        paddingHorizontal: 12,
+        paddingHorizontal: 8,
     },
     leftGroup: {
         flexDirection: "row",

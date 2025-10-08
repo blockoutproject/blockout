@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { View, StyleSheet, Text, TouchableOpacity, Alert } from "react-native";
-import { BottomSheetScrollView, BottomSheetTextInput } from "@gorhom/bottom-sheet";
+import { BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import * as Haptics from "expo-haptics";
@@ -8,13 +8,17 @@ import * as ImagePicker from "expo-image-picker";
 import * as ImageManipulator from "expo-image-manipulator";
 import { Image } from "expo-image";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import { Division } from "@/src/types/Division";
 import ConfigApi from "@/src/api/ConfigApi";
 import CircleColorPicker from "@/src/components/common/form/CircleColorPicker";
 import { CORNERS } from "@/src/theme/globals";
 import ApiErrorToast from "@/src/components/common/feedback/ApiErrorToast";
+
+import FormCard from "@/src/components/common/form/FormCard";
 import Field from "@/src/components/common/form/Field";
+import SheetTextInput from "@/src/components/common/form/SheetTextInput";
 
 export type DivisionFormExternalState = {
     loading: boolean;
@@ -54,10 +58,7 @@ const DivisionForm: React.FC<DivisionFormProps> = ({ division, onSuccess, onRegi
             const manipContext = ImageManipulator.ImageManipulator.manipulate(selected.uri);
             manipContext.resize({ width: 512 });
             const rendered = await manipContext.renderAsync();
-            const saved = await rendered.saveAsync({
-                format: ImageManipulator.SaveFormat.JPEG,
-                compress: 1,
-            });
+            const saved = await rendered.saveAsync({ format: ImageManipulator.SaveFormat.JPEG, compress: 1 });
             setPreviewUri(saved.uri);
             setImageFile({ uri: saved.uri, name: "division.jpg", type: "image/jpeg" });
         } catch {
@@ -116,12 +117,8 @@ const DivisionForm: React.FC<DivisionFormProps> = ({ division, onSuccess, onRegi
 
     return (
         <>
-            <BottomSheetScrollView
-                contentContainerStyle={styles.scroll}
-                showsVerticalScrollIndicator={false}
-            >
-                <View style={[styles.card, { backgroundColor: theme.surface }]}>
-                    <Text style={[styles.sectionTitle, { color: theme.text }]}>Logo</Text>
+            <BottomSheetScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+                <FormCard title="Logo">
                     <TouchableOpacity onPress={handlePickImage} activeOpacity={0.85} style={[styles.logoWrap, { borderColor: theme.border }]}>
                         <View style={styles.logoMask}>
                             {logoUri ? (
@@ -139,40 +136,33 @@ const DivisionForm: React.FC<DivisionFormProps> = ({ division, onSuccess, onRegi
                         <MaterialCommunityIcons name="pencil-outline" size={16} color={theme.text} />
                         <Text style={[styles.logoBtnText, { color: theme.text }]}>Changer le logo</Text>
                     </TouchableOpacity>
-                </View>
+                </FormCard>
 
-                <View style={[styles.card, { backgroundColor: theme.surface }]}>
+                <FormCard>
                     <Field label="Nom" error={formik.errors.name} touched={formik.touched.name}>
-                        <BottomSheetTextInput
-                            style={[
-                                styles.input,
-                                { borderColor: theme.border, color: theme.text },
-                                formik.touched.name && formik.errors.name ? { borderColor: theme.error } : null,
-                            ]}
+                        <SheetTextInput
                             value={formik.values.name}
                             onChangeText={formik.handleChange("name")}
                             onBlur={formik.handleBlur("name")}
                             placeholder="Nom de la division"
-                            placeholderTextColor={theme.textInactive}
+                            style={formik.touched.name && formik.errors.name ? { borderColor: theme.error } : undefined}
                         />
                     </Field>
-                </View>
+                </FormCard>
 
-                <View style={[styles.card, { backgroundColor: theme.surface }]}>
-                    <Text style={[styles.sectionTitle, { color: theme.text }]}>Couleur principale</Text>
+                <FormCard title="Couleur principale">
                     <View style={styles.colorRow}>
                         <CircleColorPicker value={formik.values.mainColor} onChange={(c) => formik.setFieldValue("mainColor", c)} />
                     </View>
-                </View>
+                </FormCard>
 
-                <View style={[styles.card, { backgroundColor: theme.surface }]}>
-                    <Text style={[styles.sectionTitle, { color: theme.text }]}>Dégradé</Text>
+                <FormCard title="Dégradé">
                     <View style={styles.colorRow}>
                         <CircleColorPicker value={formik.values.firstGradientColor} onChange={(c) => formik.setFieldValue("firstGradientColor", c)} />
                         <CircleColorPicker value={formik.values.secondGradientColor} onChange={(c) => formik.setFieldValue("secondGradientColor", c)} />
                         <CircleColorPicker value={formik.values.thirdGradientColor} onChange={(c) => formik.setFieldValue("thirdGradientColor", c)} />
                     </View>
-                </View>
+                </FormCard>
             </BottomSheetScrollView>
 
             <ApiErrorToast message={apiError} onHidden={() => setApiError(null)} />
@@ -184,51 +174,12 @@ export default DivisionForm;
 
 const styles = StyleSheet.create({
     scroll: { gap: 12, padding: 8 },
-    card: {
-        borderRadius: 18,
-        padding: 14,
-        gap: 12,
-        elevation: 2,
-        shadowColor: "#000",
-        shadowOpacity: 0.08,
-        shadowRadius: 10,
-        shadowOffset: { width: 0, height: 6 },
-    },
-    sectionTitle: { fontSize: 13, fontWeight: "800", textTransform: "uppercase", opacity: 0.85 },
-    logoWrap: {
-        borderWidth: 1.5,
-        borderRadius: 22,
-        alignItems: "center",
-        justifyContent: "center",
-        overflow: "hidden",
-    },
-    logoMask: {
-        width: 100,
-        aspectRatio: 1,
-        borderRadius: 18,
-        overflow: "hidden",
-        alignItems: "center",
-        justifyContent: "center",
-        marginVertical: 16,
-    },
+    logoWrap: { borderWidth: 1.5, borderRadius: 22, alignItems: "center", justifyContent: "center", overflow: "hidden" },
+    logoMask: { width: 100, aspectRatio: 1, borderRadius: 18, overflow: "hidden", alignItems: "center", justifyContent: "center", marginVertical: 16 },
     logo: { width: "100%", height: "100%" },
     logoPlaceholder: { alignItems: "center", gap: 6 },
     logoHint: { fontSize: 12, fontWeight: "600" },
-    logoBtn: {
-        alignSelf: "flex-start",
-        flexDirection: "row",
-        gap: 6,
-        paddingHorizontal: 12,
-        paddingVertical: 8,
-        borderRadius: CORNERS,
-    },
+    logoBtn: { alignSelf: "flex-start", flexDirection: "row", gap: 6, paddingHorizontal: 12, paddingVertical: 8, borderRadius: CORNERS },
     logoBtnText: { fontSize: 12, fontWeight: "700" },
-    input: {
-        borderWidth: 1.5,
-        borderRadius: 16,
-        paddingVertical: 12,
-        paddingHorizontal: 14,
-        fontSize: 14,
-    },
     colorRow: { flexDirection: "row", gap: 16, marginTop: 8, marginLeft: 8 },
 });

@@ -66,8 +66,7 @@ const RankingCard: React.FC<RankingCardProps> = ({
                     )}
                     ListHeaderComponent={
                         <RankingHeader
-                            division={division}
-                            theme={theme}
+                            pool={enrichedPool}
                             onPress={handleHeaderPress}
                         />
                     }

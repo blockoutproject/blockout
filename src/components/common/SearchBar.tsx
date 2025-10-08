@@ -47,6 +47,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
 
             <Input
                 value={value}
+                autoCorrect={false}
                 onChangeText={onChangeText}
                 placeholder={placeholder}
                 placeholderTextColor={theme.textInactive}

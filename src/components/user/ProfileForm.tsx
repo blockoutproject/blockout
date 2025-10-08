@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { View, StyleSheet, Text, TouchableOpacity, Alert } from "react-native";
-import { BottomSheetTextInput, BottomSheetScrollView } from "@gorhom/bottom-sheet";
+import { BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import * as Haptics from "expo-haptics";
@@ -8,13 +8,17 @@ import * as ImagePicker from "expo-image-picker";
 import * as ImageManipulator from "expo-image-manipulator";
 import { Image } from "expo-image";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import UsersApi from "@/src/api/UsersApi";
 import { ApiError } from "@/src/api/AbstractApi";
 import { CORNERS } from "@/src/theme/globals";
-import Field from "@/src/components/common/form/Field";
-import ApiErrorToast from "@/src/components/common/feedback/ApiErrorToast";
 import { CustomUser } from "@/src/types/User";
+import ApiErrorToast from "@/src/components/common/feedback/ApiErrorToast";
+
+import FormCard from "@/src/components/common/form/FormCard";
+import Field from "@/src/components/common/form/Field";
+import SheetTextInput from "@/src/components/common/form/SheetTextInput";
 
 export type ProfileFormExternalState = {
     loading: boolean;
@@ -52,10 +56,7 @@ const ProfileForm: React.FC<UserFormProps> = ({ user, onSuccess, onRegisterSubmi
             const manipContext = ImageManipulator.ImageManipulator.manipulate(asset.uri);
             manipContext.resize({ width: 512 });
             const rendered = await manipContext.renderAsync();
-            const saved = await rendered.saveAsync({
-                format: ImageManipulator.SaveFormat.PNG,
-                compress: 1,
-            });
+            const saved = await rendered.saveAsync({ format: ImageManipulator.SaveFormat.PNG, compress: 1 });
             setPreviewUri(saved.uri);
             setImageFile({ uri: saved.uri, name: "avatar.png", type: "image/png" });
         } catch {
@@ -116,9 +117,10 @@ const ProfileForm: React.FC<UserFormProps> = ({ user, onSuccess, onRegisterSubmi
             <BottomSheetScrollView
                 contentContainerStyle={styles.fieldContainer}
                 showsVerticalScrollIndicator={false}
+                keyboardDismissMode="none"
+                keyboardShouldPersistTaps="always"
             >
-                <View style={[styles.card, { backgroundColor: theme.surface }]}>
-                    <Text style={[styles.sectionTitle, { color: theme.text }]}>Photo de profil</Text>
+                <FormCard title="Photo de profil">
                     <TouchableOpacity onPress={handlePickImage} activeOpacity={0.85} style={[styles.logoWrap, { borderColor: theme.border }]}>
                         <View style={styles.logoMask}>
                             {avatarUri ? (
@@ -135,26 +137,21 @@ const ProfileForm: React.FC<UserFormProps> = ({ user, onSuccess, onRegisterSubmi
                         <MaterialCommunityIcons name="pencil-outline" size={16} color={theme.text} />
                         <Text style={[styles.logoBtnText, { color: theme.text }]}>Changer la photo</Text>
                     </TouchableOpacity>
-                </View>
+                </FormCard>
 
-                <View style={[styles.card, { backgroundColor: theme.surface }]}>
+                <FormCard>
                     <Field label="Pseudo" error={formik.errors.pseudo} touched={formik.touched.pseudo}>
-                        <BottomSheetTextInput
-                            style={[
-                                styles.input,
-                                { borderColor: theme.border, color: theme.text },
-                                formik.touched.pseudo && formik.errors.pseudo ? { borderColor: theme.error } : null,
-                            ]}
+                        <SheetTextInput
                             value={formik.values.pseudo}
                             onChangeText={formik.handleChange("pseudo")}
                             onBlur={formik.handleBlur("pseudo")}
                             placeholder="Ton pseudo"
-                            placeholderTextColor={theme.textInactive}
                             autoCapitalize="none"
                             returnKeyType="done"
+                            style={formik.touched.pseudo && formik.errors.pseudo ? { borderColor: theme.error } : undefined}
                         />
                     </Field>
-                </View>
+                </FormCard>
             </BottomSheetScrollView>
 
             <ApiErrorToast message={apiError} onHidden={() => setApiError(null)} />
@@ -165,71 +162,12 @@ const ProfileForm: React.FC<UserFormProps> = ({ user, onSuccess, onRegisterSubmi
 export default ProfileForm;
 
 const styles = StyleSheet.create({
-    fieldContainer: {
-        padding: 8,
-        gap: 12,
-    },
-    card: {
-        borderRadius: 18,
-        padding: 14,
-        gap: 12,
-        elevation: 2,
-        shadowColor: "#000",
-        shadowOpacity: 0.08,
-        shadowRadius: 10,
-        shadowOffset: { width: 0, height: 6 },
-    },
-    sectionTitle: {
-        fontSize: 13,
-        fontWeight: "800",
-        textTransform: "uppercase",
-        opacity: 0.85,
-    },
-    logoWrap: {
-        borderWidth: 1.5,
-        borderRadius: 22,
-        alignItems: "center",
-        justifyContent: "center",
-        overflow: "hidden",
-    },
-    logoMask: {
-        width: 100,
-        aspectRatio: 1,
-        borderRadius: 18,
-        overflow: "hidden",
-        alignItems: "center",
-        justifyContent: "center",
-        marginVertical: 16,
-    },
-    logo: {
-        width: "100%",
-        height: "100%",
-    },
-    logoPlaceholder: {
-        alignItems: "center",
-        gap: 6,
-    },
-    logoHint: {
-        fontSize: 12,
-        fontWeight: "600",
-    },
-    logoBtn: {
-        alignSelf: "flex-start",
-        flexDirection: "row",
-        gap: 6,
-        paddingHorizontal: 12,
-        paddingVertical: 8,
-        borderRadius: CORNERS,
-    },
-    logoBtnText: {
-        fontSize: 12,
-        fontWeight: "700",
-    },
-    input: {
-        borderWidth: 1.5,
-        borderRadius: 16,
-        paddingVertical: 12,
-        paddingHorizontal: 14,
-        fontSize: 14,
-    },
+    fieldContainer: { padding: 8, gap: 12 },
+    logoWrap: { borderWidth: 1.5, borderRadius: 22, alignItems: "center", justifyContent: "center", overflow: "hidden" },
+    logoMask: { width: 100, aspectRatio: 1, borderRadius: 18, overflow: "hidden", alignItems: "center", justifyContent: "center", marginVertical: 16 },
+    logo: { width: "100%", height: "100%" },
+    logoPlaceholder: { alignItems: "center", gap: 6 },
+    logoHint: { fontSize: 12, fontWeight: "600" },
+    logoBtn: { alignSelf: "flex-start", flexDirection: "row", gap: 6, paddingHorizontal: 12, paddingVertical: 8, borderRadius: CORNERS },
+    logoBtnText: { fontSize: 12, fontWeight: "700" },
 });

@@ -39,7 +39,7 @@ export type GradientButtonProps = {
     fullWidth?: boolean;
 };
 
-const CTA_GRADIENT: [string, string, string] = ["#6EE7F9", "#A78BFA", "#F472B6"];
+export const CTA_GRADIENT: [string, string, string] = ["#24b3c9ff", "#8f8bfaff", "#F472B6"];
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 export const GradientButton: React.FC<GradientButtonProps> = ({

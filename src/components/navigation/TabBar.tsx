@@ -165,10 +165,7 @@ export default function TabBar({
                                 ],
                                 opacity: withSpring(activeIndex.value === index ? 1 : 0.9, {
                                     duration: 150,
-                                    dampingRatio: 0.8,
-                                    stiffness: 200,
-                                    // @ts-ignore
-                                    easing: Easing.out(Easing.quad),
+                                    dampingRatio: 0.8
                                 }),
                             };
                         });

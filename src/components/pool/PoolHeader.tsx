@@ -58,8 +58,8 @@ const PoolHeader: React.FC<PoolHeaderProps> = ({ title, onOpenReport }) => {
                                 color: theme.text,
                             },
                         ]}
+                        adjustsFontSizeToFit
                         numberOfLines={1}
-                        ellipsizeMode="tail"
                     >
                         {title}
                     </Text>
@@ -88,14 +88,12 @@ const PoolHeader: React.FC<PoolHeaderProps> = ({ title, onOpenReport }) => {
 export default PoolHeader;
 
 const styles = StyleSheet.create({
-    container: {
-        backgroundColor: "transparent",
-    },
     header: {
         height: HEADER_HEIGHT,
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
+        gap: 4,
         paddingHorizontal: 12,
     },
     leftGroup: {

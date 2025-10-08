@@ -47,17 +47,12 @@ const ProfileScreen: React.FC = () => {
         Haptics.selectionAsync();
         formSheetRef.current?.present();
     };
-    const closeForm = () => formSheetRef.current?.dismiss();
 
     const handleLogout = async () => {
-        try {
-            setIsLoggingOut(true);
-            Haptics.selectionAsync();
-            await signOutSSO();
-        } catch {
-        } finally {
-            setIsLoggingOut(false);
-        }
+        setIsLoggingOut(true);
+        Haptics.selectionAsync();
+        await signOutSSO();
+        setIsLoggingOut(false);
     };
 
     const handleDeleteAccount = async () => {

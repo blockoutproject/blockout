@@ -44,14 +44,9 @@ const PoolProfile: React.FC<PoolProfileProps> = ({ enrichedPool }) => {
                 <View
                     style={styles.pillRow}
                 >
+                    <InfoPill label={enrichedPool.leagueName} />
                     <InfoPill label={division.name} />
                     <InfoPill label={GenderLabels[enrichedPool.gender]} />
-                </View>
-
-                <View
-                    style={styles.pillRow}
-                >
-                    <InfoPill label={enrichedPool.leagueName} />
                     <InfoPill label={String(enrichedPool.season)} />
                 </View>
 

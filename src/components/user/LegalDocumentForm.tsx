@@ -1,14 +1,18 @@
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { StyleSheet } from "react-native";
-import { BottomSheetTextInput, BottomSheetScrollView } from "@gorhom/bottom-sheet";
+import { BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import * as Haptics from "expo-haptics";
+
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import type { LegalDocument } from "@/src/types/LegalDocument";
 import ConfigApi from "@/src/api/ConfigApi";
-import Field from "@/src/components/common/form/Field";
 import ApiErrorToast from "@/src/components/common/feedback/ApiErrorToast";
+
+import FormCard from "@/src/components/common/form/FormCard";
+import Field from "@/src/components/common/form/Field";
+import SheetTextInput from "@/src/components/common/form/SheetTextInput";
 
 export type LegalDocumentFormExternalState = {
     loading: boolean;
@@ -74,57 +78,47 @@ const LegalDocumentForm: React.FC<LegalDocumentFormProps> = ({
 
     return (
         <>
-            <BottomSheetScrollView
-                contentContainerStyle={styles.content}
-                showsVerticalScrollIndicator={false}
-            >
-                <Field label="Titre" error={formik.errors.title} touched={formik.touched.title}>
-                    <BottomSheetTextInput
-                        style={[
-                            styles.input,
-                            { borderColor: theme.border, color: theme.text },
-                            formik.touched.title && formik.errors.title ? { borderColor: theme.error } : null,
-                        ]}
-                        value={formik.values.title}
-                        onChangeText={formik.handleChange("title")}
-                        onBlur={formik.handleBlur("title")}
-                        placeholder="Titre"
-                        placeholderTextColor={theme.textInactive}
-                    />
-                </Field>
+            <BottomSheetScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+                <FormCard>
+                    <Field label="Titre" error={formik.errors.title} touched={formik.touched.title}>
+                        <SheetTextInput
+                            value={formik.values.title}
+                            onChangeText={formik.handleChange("title")}
+                            onBlur={formik.handleBlur("title")}
+                            placeholder="Titre"
+                            style={formik.touched.title && formik.errors.title ? { borderColor: theme.error } : undefined}
+                        />
+                    </Field>
+                </FormCard>
 
-                <Field label="Version" error={formik.errors.version} touched={formik.touched.version}>
-                    <BottomSheetTextInput
-                        style={[
-                            styles.input,
-                            { borderColor: theme.border, color: theme.text },
-                            formik.touched.version && formik.errors.version ? { borderColor: theme.error } : null,
-                        ]}
-                        value={formik.values.version}
-                        onChangeText={formik.handleChange("version")}
-                        onBlur={formik.handleBlur("version")}
-                        placeholder="2025-08-08"
-                        placeholderTextColor={theme.textInactive}
-                    />
-                </Field>
+                <FormCard>
+                    <Field label="Version" error={formik.errors.version} touched={formik.touched.version}>
+                        <SheetTextInput
+                            value={formik.values.version}
+                            onChangeText={formik.handleChange("version")}
+                            onBlur={formik.handleBlur("version")}
+                            placeholder="2025-08-08"
+                            style={formik.touched.version && formik.errors.version ? { borderColor: theme.error } : undefined}
+                        />
+                    </Field>
+                </FormCard>
 
-                <Field label="Contenu (Markdown)" error={formik.errors.content} touched={formik.touched.content}>
-                    <BottomSheetTextInput
-                        multiline
-                        scrollEnabled
-                        style={[
-                            styles.input,
-                            { borderColor: theme.border, color: theme.text },
-                            formik.touched.content && formik.errors.content ? { borderColor: theme.error } : null,
-                            styles.textarea,
-                        ]}
-                        value={formik.values.content}
-                        onChangeText={formik.handleChange("content")}
-                        onBlur={formik.handleBlur("content")}
-                        placeholder="Contenu du document légal..."
-                        placeholderTextColor={theme.textInactive}
-                    />
-                </Field>
+                <FormCard>
+                    <Field label="Contenu (Markdown)" error={formik.errors.content} touched={formik.touched.content}>
+                        <SheetTextInput
+                            multiline
+                            scrollEnabled
+                            value={formik.values.content}
+                            onChangeText={formik.handleChange("content")}
+                            onBlur={formik.handleBlur("content")}
+                            placeholder="Contenu du document légal..."
+                            style={[
+                                { maxHeight: 300, textAlignVertical: "top", minHeight: 180 },
+                                formik.touched.content && formik.errors.content ? { borderColor: theme.error } : undefined,
+                            ]}
+                        />
+                    </Field>
+                </FormCard>
             </BottomSheetScrollView>
 
             <ApiErrorToast message={apiError} onHidden={() => setApiError(null)} />
@@ -135,20 +129,5 @@ const LegalDocumentForm: React.FC<LegalDocumentFormProps> = ({
 export default LegalDocumentForm;
 
 const styles = StyleSheet.create({
-    content: {
-        padding: 8,
-        gap: 12,
-    },
-    input: {
-        borderWidth: 1.5,
-        borderRadius: 16,
-        paddingVertical: 12,
-        paddingHorizontal: 14,
-        fontSize: 14,
-    },
-    textarea: {
-        maxHeight: 300,
-        textAlignVertical: "top",
-        minHeight: 180,
-    },
+    content: { padding: 8, gap: 12 },
 });

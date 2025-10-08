@@ -58,8 +58,8 @@ const TeamHeader: React.FC<TeamHeaderProps> = ({ title, onOpenReport }) => {
                                 color: theme.text,
                             },
                         ]}
+                        adjustsFontSizeToFit
                         numberOfLines={1}
-                        ellipsizeMode="tail"
                     >
                         {title}
                     </Text>
@@ -94,6 +94,7 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "space-between",
         paddingHorizontal: 12,
+        gap: 4,
     },
     leftGroup: {
         flexDirection: "row",

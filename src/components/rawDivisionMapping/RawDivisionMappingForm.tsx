@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { View, StyleSheet, Text } from "react-native";
 import * as Haptics from "expo-haptics";
 import { BottomSheetScrollView } from "@gorhom/bottom-sheet";
+
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import ConfigApi from "@/src/api/ConfigApi";
 import { useDivisions } from "@/src/hooks/config/division/useDivisions";
@@ -9,8 +10,9 @@ import { RawDivisionMapping } from "@/src/types/RawDivisionMapping";
 import { EnumFormat, FormatLabels } from "@/src/types/enums/Format";
 import { EnumGender, GenderLabels } from "@/src/types/enums/Gender";
 import FormSelect from "@/src/components/common/form/FormSelect";
-import SelectSheet, { SelectOption, SelectSheetRef } from "@/src/components/common/bottomSheet/SelectSheet";
+import SelectSheet, { SelectOption, SelectSheetRef } from "@/src/components/common/form/SelectSheet";
 import ApiErrorToast from "@/src/components/common/feedback/ApiErrorToast";
+import FormCard from "@/src/components/common/form/FormCard";
 
 export type RawDivisionMappingFormExternalState = {
     loading: boolean;
@@ -90,34 +92,27 @@ const RawDivisionMappingForm: React.FC<RawDivisionMappingFormProps> = ({
 
     return (
         <>
-            <BottomSheetScrollView
-                contentContainerStyle={styles.fieldContainer}
-                showsVerticalScrollIndicator={false}
-            >
-                <View style={[styles.card, { backgroundColor: theme.surface }]}>
-                    <Text style={[styles.sectionTitle, { color: theme.text }]}>Source</Text>
+            <BottomSheetScrollView contentContainerStyle={styles.fieldContainer} showsVerticalScrollIndicator={false}>
+                <FormCard title="Source">
                     <View style={styles.sourceBlock}>
                         <Text style={[styles.sourceName, { color: theme.text }]} numberOfLines={2}>
                             {mapping.rawDivisionName}
                         </Text>
-                        <Text style={[styles.sourceMeta, { color: theme.textInactive }]}>
+                        <Text style={{ color: theme.textInactive, fontSize: 12, fontWeight: "600" }}>
                             {mapping.leagueCode} • {mapping.season}
                         </Text>
                     </View>
-                </View>
+                </FormCard>
 
-                <View style={[styles.card, { backgroundColor: theme.surface }]}>
-                    <Text style={[styles.sectionTitle, { color: theme.text }]}>Format</Text>
+                <FormCard title="Format">
                     <FormSelect label="Format" valueLabel={formatLabel} onPress={() => formatRef.current?.present()} />
-                </View>
+                </FormCard>
 
-                <View style={[styles.card, { backgroundColor: theme.surface }]}>
-                    <Text style={[styles.sectionTitle, { color: theme.text }]}>Genre</Text>
+                <FormCard title="Genre">
                     <FormSelect label="Genre" valueLabel={genderLabel} onPress={() => genderRef.current?.present()} />
-                </View>
+                </FormCard>
 
-                <View style={[styles.card, { backgroundColor: theme.surface }]}>
-                    <Text style={[styles.sectionTitle, { color: theme.text }]}>Division</Text>
+                <FormCard title="Division">
                     <FormSelect
                         label="Division"
                         valueLabel={divisionLabel}
@@ -125,13 +120,10 @@ const RawDivisionMappingForm: React.FC<RawDivisionMappingFormProps> = ({
                         loading={loadingDivisions}
                         disabled={loadingDivisions}
                     />
-                </View>
+                </FormCard>
             </BottomSheetScrollView>
 
-            <ApiErrorToast
-                message={apiError}
-                onHidden={() => setApiError(null)}
-            />
+            <ApiErrorToast message={apiError} onHidden={() => setApiError(null)} />
 
             <SelectSheet
                 ref={formatRef}
@@ -162,23 +154,6 @@ export default RawDivisionMappingForm;
 
 const styles = StyleSheet.create({
     fieldContainer: { padding: 8, gap: 12 },
-    card: {
-        borderRadius: 18,
-        padding: 14,
-        gap: 12,
-        elevation: 2,
-        shadowColor: "#000",
-        shadowOpacity: 0.08,
-        shadowRadius: 10,
-        shadowOffset: { width: 0, height: 6 },
-    },
-    sectionTitle: { 
-        fontSize: 13, 
-        fontWeight: "800", 
-        textTransform: "uppercase", 
-        opacity: 0.85 
-    },
     sourceBlock: { gap: 4 },
     sourceName: { fontSize: 16, fontWeight: "700" },
-    sourceMeta: { fontSize: 12, fontWeight: "600" },
 });

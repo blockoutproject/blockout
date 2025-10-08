@@ -1,5 +1,5 @@
 import React, { memo } from "react";
-import { View, Text, StyleSheet, StyleProp, ViewStyle, TextStyle } from "react-native";
+import { View, Text, StyleSheet, StyleProp, ViewStyle, TextStyle, DimensionValue } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import { useAppTheme } from "@/src/context/ThemeProvider";
@@ -31,6 +31,8 @@ type InfoPillProps = {
     shadowLevel?: 0 | 1 | 2 | 3 | 4 | 5;
     /** Couleur d’ombre. */
     shadowColor?: string;
+    /** Largeur max. */
+    maxWidth?: DimensionValue;
 };
 
 const GAP = 6;
@@ -68,17 +70,27 @@ const InfoPill: React.FC<InfoPillProps> = ({
     shadowEnabled = false,
     shadowLevel = 2,
     shadowColor,
+    maxWidth
 }) => {
     const theme = useAppTheme();
 
     const baseColor = overlayColor ?? theme.surface;
     const overlayBg = withAlpha(baseColor, clamp01(overlayAlpha));
     const showBlur = blurEnabled && overlayAlpha < 1;
-    const textColor = theme.text;
     const shColor = shadowColor ?? theme.text;
 
+    // Détermine la couleur du texte (et donc de l’icône)
+    const flattened = StyleSheet.flatten(labelStyle);
+    const textColor = flattened?.color ?? theme.text;
+
     return (
-        <View style={[styles.wrapper, { borderRadius: CORNERS }, shadowEnabled ? shadow(shadowLevel, shColor) : null]}>
+        <View
+            style={[
+                styles.wrapper,
+                { borderRadius: CORNERS },
+                shadowEnabled ? shadow(shadowLevel, shColor) : null,
+            ]}
+        >
             <View
                 style={[
                     styles.pill,
@@ -86,6 +98,7 @@ const InfoPill: React.FC<InfoPillProps> = ({
                         backgroundColor: showBlur ? "transparent" : overlayBg,
                         borderColor: withAlpha(theme.text, 0.12),
                         borderRadius: CORNERS,
+                        maxWidth
                     },
                     style,
                 ]}
@@ -100,7 +113,13 @@ const InfoPill: React.FC<InfoPillProps> = ({
                 ) : null}
 
                 <View style={styles.row}>
-                    {leftIconName ? <MaterialCommunityIcons name={leftIconName} size={leftIconSize} color={textColor} /> : null}
+                    {leftIconName ? (
+                        <MaterialCommunityIcons
+                            name={leftIconName}
+                            size={leftIconSize}
+                            color={textColor}
+                        />
+                    ) : null}
                     <Text style={[styles.text, { color: textColor }, labelStyle]} numberOfLines={1}>
                         {label}
                     </Text>
@@ -119,7 +138,7 @@ const styles = StyleSheet.create({
     pill: {
         borderWidth: StyleSheet.hairlineWidth,
         paddingVertical: 6,
-        paddingHorizontal: 10,
+        paddingHorizontal: 8,
         overflow: "hidden",
     },
     row: {
