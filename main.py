@@ -30,7 +30,7 @@ async def scraper_enabled() -> bool:
     Vérifie via l'API si le scraper est activé.
     """
     try:
-        async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=10)) as session:
+        async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=10), trust_env=True) as session:
             status = await get_scraper_status(session, SCRAPER_NAME)
             if not status.enabled:
                 log_event(
