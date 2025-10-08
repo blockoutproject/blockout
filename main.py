@@ -55,7 +55,7 @@ async def run_scraper():
     (Pas de métrique ici : la durée est mesurée dans main())
     """
     async with lock:
-        async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=60)) as session:
+        async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=60), trust_env=True) as session:
             tasks = []
             for scraper_type in SCRAPER_TYPES:
                 current_scraper.set(scraper_type)
