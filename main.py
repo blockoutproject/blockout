@@ -24,7 +24,7 @@ async def main():
     skipped = False
 
     try:
-        async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=10)) as tmp_session:
+        async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=10), trust_env=True) as tmp_session:
             try:
                 status = await get_scraper_status(tmp_session, 'SCRAPER')
                 if not status.enabled:
