@@ -20,18 +20,20 @@ except Exception as e:
     )
     standardized_divisions = {}
 
-def capitalize_words(text: str) -> str:
+def capitalize_words(text: str | None) -> str:
     """
     Transforme une chaîne tout en majuscules en capitalisant chaque mot.
-    Gère les séparateurs espaces et tirets.
+    Gère les séparateurs espaces et tirets, et supporte None ou chaînes vides.
 
     Exemples :
         - "NOUVELLE AQUITAINE" → "Nouvelle Aquitaine"
         - "PROVENCE-ALPES-CÔTE D'AZUR" → "Provence-Alpes-Côte D'Azur"
+        - None → ""
     """
-    # On sépare tout en gardant les séparateurs (espaces et tirets)
-    parts = re.split(r'([- ])', text)
-    # On transforme seulement les parties alphanumériques
+    if not text:
+        return ""
+
+    parts = re.split(r'([- ])', text.strip())
     return ''.join(
         p.capitalize() if p not in [' ', '-'] else p
         for p in parts
