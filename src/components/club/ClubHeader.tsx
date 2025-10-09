@@ -52,8 +52,10 @@ const ClubHeader: React.FC<ClubHeaderProps> = ({ title, onOpenReport }) => {
                                 color: theme.text,
                             },
                         ]}
-                        numberOfLines={1}
-                        ellipsizeMode="tail"
+                        adjustsFontSizeToFit
+                        numberOfLines={2}
+                        lineBreakStrategyIOS="push-out"
+                        textBreakStrategy="highQuality"
                     >
                         {title}
                     </Text>

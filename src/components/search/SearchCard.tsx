@@ -90,7 +90,9 @@ const SearchCard: React.FC<SearchCardProps> = ({
                             },
                         ]}
                         adjustsFontSizeToFit
-                        numberOfLines={1}
+                        lineBreakStrategyIOS="push-out"
+                        textBreakStrategy="highQuality"
+                        numberOfLines={2}
                     >
                         {title}
                     </Text>
@@ -137,11 +139,10 @@ const styles = StyleSheet.create({
     },
     content: {
         flex: 1,
-        minWidth: 0,
     },
     title: {
-        fontSize: 16,
-        fontWeight: "800",
+        fontSize: 14,
+        fontWeight: "900",
     },
     chipsRow: {
         flexDirection: "row",

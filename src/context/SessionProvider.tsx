@@ -4,7 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useEnsureUser } from "@/src/hooks/user/useEnsureUser";
 import type { CustomUser } from "@/src/types/User";
 import { registerForPushNotificationsAsync, registerPushTokenOnBackend } from "../utils/notifications";
-import { is } from "date-fns/locale";
+import { useOnboardingStore } from "../utils/onboardingStore";
 
 export type SessionActions = {
     signIn: () => Promise<void>;
@@ -42,6 +42,7 @@ export const SessionProvider: React.FC<React.PropsWithChildren> = ({ children })
     const { authorize, clearSession, clearCredentials, user: auth0User, error: auth0UserError, isLoading: isAuth0UserLoading } = useAuth0();
     const { data: customUser, isLoading: isCustomUserLoading, error: customUserError, refetch } = useEnsureUser();
     const queryClient = useQueryClient();
+    const { hasCompletedOnboarding } = useOnboardingStore();
 
     const isLoading = isAuth0UserLoading || isCustomUserLoading;
     const isError = !!auth0UserError || !!customUserError;
@@ -49,22 +50,19 @@ export const SessionProvider: React.FC<React.PropsWithChildren> = ({ children })
     const error = customUserError || auth0UserError;
 
     useEffect(() => {
-        if (!isReady) return;
+        if (!hasCompletedOnboarding || !isReady) return;
 
         (async () => {
             try {
-                const freshUser = (await refetch()).data;
-
                 const token = await registerForPushNotificationsAsync().catch(() => null);
-
-                if (freshUser?.id && token) {
-                    await registerPushTokenOnBackend(freshUser.id, token).catch(() => { });
+                if (customUser.id && token) {
+                    await registerPushTokenOnBackend(customUser.id, token).catch(() => { });
                 }
             } catch (err) {
                 console.warn("Erreur lors de l’enregistrement du push token :", err);
             }
         })();
-    }, [isReady]);
+    }, [isReady, hasCompletedOnboarding]);
 
     const clearRQCache = async () => {
         await queryClient.cancelQueries();
@@ -79,8 +77,12 @@ export const SessionProvider: React.FC<React.PropsWithChildren> = ({ children })
     };
 
     const softResetAuth = async () => {
-        await clearCredentials();
-        await clearRQCache();
+        try {
+            await clearCredentials();
+            await clearRQCache();
+        } catch (err) {
+            console.warn("Erreur inattendue lors du softResetAuth :", err);
+        }
     };
 
     const signOutLocal = async () => {
@@ -88,8 +90,12 @@ export const SessionProvider: React.FC<React.PropsWithChildren> = ({ children })
     };
 
     const signOutSSO = async () => {
-        try { await clearSession() } catch { } // Ignore if the user cancelled the logout
-        await clearRQCache();
+        try {
+            await clearSession();
+            await clearRQCache();
+        } catch (err) {
+            console.warn("Erreur inattendue lors du logout SSO :", err);
+        }
     };
 
     useEffect(() => {

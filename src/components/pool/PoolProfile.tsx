@@ -72,6 +72,7 @@ export default PoolProfile;
 
 const styles = StyleSheet.create({
     container: {
+        paddingTop: 4,
         paddingHorizontal: 12,
         flexDirection: "row",
         alignItems: "flex-start",
@@ -86,12 +87,12 @@ const styles = StyleSheet.create({
     pillRow: {
         flexDirection: "row",
         alignItems: "center",
-        gap: 8,
+        gap: 6,
         flexWrap: "wrap",
     },
     actionsRow: {
         flexDirection: "row",
         alignItems: "center",
-        gap: 6,
+        gap: 10,
     },
 });

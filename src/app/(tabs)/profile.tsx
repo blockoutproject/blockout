@@ -1,5 +1,5 @@
 import React, { useRef, useState } from "react";
-import { View, StyleSheet, ActivityIndicator, Text, Pressable, Alert } from "react-native";
+import { View, StyleSheet, ActivityIndicator, Text, Pressable, Alert, ScrollView } from "react-native";
 import * as Haptics from "expo-haptics";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
@@ -17,11 +17,14 @@ import ProfileHero from "@/src/components/user/ProfileHero";
 import ProfileHeader from "@/src/components/user/ProfileHeader";
 import ProfileFormSheet from "@/src/components/user/ProfileFormSheet";
 import ReportFormSheet from "@/src/components/report/ReportFormSheet";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { BOTTOM_TABBAR_HEIGHT, SECTION_SEPARATOR_HEIGHT } from "@/src/theme/globals";
 
 const SPINNER_BOX = 18;
 
 const ProfileScreen: React.FC = () => {
     const theme = useAppTheme();
+    const insets = useSafeAreaInsets();
     const { refetch, customUser, signOutSSO } = useSession();
     const { allowed: canEdit } = useHasScopes(["update:current_user"]);
     const version = Application.nativeApplicationVersion ?? "1.0.0";
@@ -136,7 +139,14 @@ const ProfileScreen: React.FC = () => {
 
         return (
             <>
-                <View style={styles.content}>
+                <ScrollView
+                    showsVerticalScrollIndicator={false}
+                    contentContainerStyle={[
+                        styles.scrollContent,
+                        { backgroundColor: theme.background, paddingBottom: insets.bottom + BOTTOM_TABBAR_HEIGHT + SECTION_SEPARATOR_HEIGHT + 4 },
+                    ]}
+                    testID="club-scroll"
+                >
                     <ProfileHero
                         user={customUser}
                         onEdit={canEdit ? openForm : undefined}
@@ -230,7 +240,7 @@ const ProfileScreen: React.FC = () => {
                             </View>
                         </View>
                     </View>
-                </View>
+                </ScrollView>
 
                 <BottomSheetCustomPage ref={imprintRef}>
                     <LegalDocumentScreen
@@ -300,7 +310,7 @@ const styles = StyleSheet.create({
         justifyContent: "center",
         alignItems: "center",
     },
-    content: {
+    scrollContent: {
         paddingHorizontal: 12,
         gap: 20,
     },

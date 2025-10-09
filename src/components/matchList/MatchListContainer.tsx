@@ -95,14 +95,6 @@ const MatchList: React.FC<MatchListProps> = ({
         [router]
     );
 
-    const handlePoolPress = useCallback(
-        async (poolId: number) => {
-            await Haptics.selectionAsync();
-            router.push(`/pools/${poolId}`);
-        },
-        [router]
-    );
-
     const { flatData, stickyHeaderIndices } = useMemo(() => {
         const rows: Row[] = [];
         const sticky: number[] = [];
@@ -148,7 +140,6 @@ const MatchList: React.FC<MatchListProps> = ({
                     return (
                         <PoolItem
                             enrichedPoolMatches={item.pool}
-                            handlePoolPress={handlePoolPress}
                             handleMatchPress={handleMatchPress}
                             showHeader={showPoolHeader}
                         />
@@ -157,7 +148,7 @@ const MatchList: React.FC<MatchListProps> = ({
                     return null;
             }
         },
-        [handlePoolPress, handleMatchPress, showPoolHeader]
+        [handleMatchPress, showPoolHeader]
     );
 
     const header = useMemo(() => {

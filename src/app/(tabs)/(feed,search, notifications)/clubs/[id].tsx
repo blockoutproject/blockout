@@ -70,7 +70,7 @@ const ClubScreen: React.FC = () => {
                     showsVerticalScrollIndicator={false}
                     contentContainerStyle={[
                         styles.scrollContent,
-                        { backgroundColor: theme.background, paddingBottom: insets.bottom + BOTTOM_TABBAR_HEIGHT + SECTION_SEPARATOR_HEIGHT },
+                        { backgroundColor: theme.background, paddingBottom: insets.bottom + BOTTOM_TABBAR_HEIGHT + SECTION_SEPARATOR_HEIGHT + 4 },
                     ]}
                     testID="club-scroll"
                 >
@@ -123,5 +123,5 @@ export default ClubScreen;
 
 const styles = StyleSheet.create({
     container: { flex: 1 },
-    scrollContent: { paddingHorizontal: 4, gap: 20 },
+    scrollContent: { paddingHorizontal: 12, gap: 20 },
 });

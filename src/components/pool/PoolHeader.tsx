@@ -59,7 +59,9 @@ const PoolHeader: React.FC<PoolHeaderProps> = ({ title, onOpenReport }) => {
                             },
                         ]}
                         adjustsFontSizeToFit
-                        numberOfLines={1}
+                        lineBreakStrategyIOS="push-out"
+                        textBreakStrategy="highQuality"
+                        numberOfLines={2}
                     >
                         {title}
                     </Text>
@@ -106,8 +108,8 @@ const styles = StyleSheet.create({
         marginRight: 4,
     },
     title: {
-        fontSize: 16,
-        fontWeight: "700",
+        fontSize: 15,
+        fontWeight: "900",
         flexShrink: 1,
     },
 });

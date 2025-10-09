@@ -59,7 +59,9 @@ const TeamHeader: React.FC<TeamHeaderProps> = ({ title, onOpenReport }) => {
                             },
                         ]}
                         adjustsFontSizeToFit
-                        numberOfLines={1}
+                        lineBreakStrategyIOS="push-out"
+                        textBreakStrategy="highQuality"
+                        numberOfLines={2}
                     >
                         {title}
                     </Text>
@@ -106,8 +108,8 @@ const styles = StyleSheet.create({
         marginRight: 4,
     },
     title: {
-        fontSize: 16,
-        fontWeight: "700",
+        fontSize: 15,
+        fontWeight: "800",
         flexShrink: 1,
     },
 });

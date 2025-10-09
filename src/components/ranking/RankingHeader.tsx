@@ -24,7 +24,7 @@ const RankingHeader: React.FC<Props> = ({ pool, onPress }) => {
     const isRegional = !["ABCCS", "AALNV"].includes(pool.leagueCode);
 
     return (
-        <TouchableOpacity activeOpacity={1} onPress={onPress}>
+        <TouchableOpacity activeOpacity={0.85} onPress={onPress}>
             <Image
                 source={divisionLogo}
                 style={RNStyleSheet.absoluteFill}
@@ -46,9 +46,18 @@ const RankingHeader: React.FC<Props> = ({ pool, onPress }) => {
             />
             <View style={styles.headerRow}>
                 <View style={styles.headerLeft}>
-                    <MaskedImage uri={pool.division.logoUrl} size={24} radius={6} shadow />
+                    <MaskedImage uri={pool.division.logoUrl} size={26} radius={6} shadow />
                     <View style={{ flex: 1 }}>
-                        <Text style={[styles.headerTitle, { color: theme.text }]} numberOfLines={1}>
+                        <Text
+                            style={[
+                                styles.headerTitle,
+                                { color: theme.text }
+                            ]}
+                            adjustsFontSizeToFit
+                            lineBreakStrategyIOS="push-out"
+                            textBreakStrategy="highQuality"
+                            numberOfLines={2}
+                        >
                             {pool.name}
                         </Text>
                         <Text
@@ -58,8 +67,8 @@ const RankingHeader: React.FC<Props> = ({ pool, onPress }) => {
                                     color: theme.textSecondary,
                                 },
                             ]}
+                            adjustsFontSizeToFit
                             numberOfLines={1}
-                            ellipsizeMode="tail"
                         >
                             {`${isRegional ? `${pool.leagueName} • ` : ''}${pool.division.name} • ${GenderLabels[pool.gender]}`}
                         </Text>
@@ -94,12 +103,12 @@ const styles = StyleSheet.create({
     },
     headerTitle: {
         fontSize: 14,
-        fontWeight: "700",
-        flexShrink: 1
+        fontWeight: "800",
+        flexShrink: 1,
     },
     divisionTitle: {
         flex: 1,
-        fontSize: 10,
+        fontSize: 11,
         fontWeight: "600",
     },
 });

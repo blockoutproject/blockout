@@ -55,11 +55,6 @@ const TeamProfile: React.FC<TeamProfileProps> = ({ enrichedTeam }) => {
                 >
                     <InfoPill label={enrichedTeam.division.name} />
                     <InfoPill label={GenderLabels[enrichedTeam.gender]} />
-                </View>
-
-                <View
-                    style={styles.pillRow}
-                >
                     <InfoPill label={FormatLabels[enrichedTeam.format]} />
                     <InfoPill label={String(enrichedTeam.season)} />
                     <InfoPillGradient
@@ -93,6 +88,7 @@ export default TeamProfile;
 
 const styles = StyleSheet.create({
     container: {
+        paddingTop: 4,
         paddingHorizontal: 12,
         flexDirection: "row",
         alignItems: "flex-start",
@@ -107,12 +103,12 @@ const styles = StyleSheet.create({
     pillRow: {
         flexDirection: "row",
         alignItems: "center",
-        gap: 8,
+        gap: 6,
         flexWrap: "wrap",
     },
     actionsRow: {
         flexDirection: "row",
         alignItems: "center",
-        gap: 6,
+        gap: 10,
     },
 });

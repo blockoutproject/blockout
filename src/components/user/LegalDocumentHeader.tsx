@@ -55,6 +55,7 @@ const LegalDocumentHeader: React.FC<LegalDocumentHeaderProps> = ({ title, onClos
                                 color: theme.text,
                             },
                         ]}
+                        adjustsFontSizeToFit
                         numberOfLines={1}
                     >
                         {title}
@@ -113,6 +114,6 @@ const styles = StyleSheet.create({
     },
     title: {
         fontSize: 18,
-        fontWeight: "700",
+        fontWeight: "900",
     },
 });
