@@ -78,8 +78,22 @@ public class UserService {
      */
     @Transactional
     public CustomUser ensureCurrentUser(String auth0Id) throws Auth0Exception {
-        ManagementAPI managementAPI = tokenManager.getManagementAPI();
-        User auth0User = managementAPI.users().get(auth0Id, null).execute().getBody();
+        ManagementAPI managementAPI;
+        User auth0User;
+        try {
+            managementAPI = tokenManager.getManagementAPI();
+            auth0User = managementAPI.users().get(auth0Id, null).execute().getBody();
+        } catch (Auth0Exception e) {
+            logger.error("Erreur lors de la récupération de l'utilisateur Auth0",
+                    keyValue("action", "ensure_current_user"),
+                    keyValue("auth0Id", auth0Id), e);
+            throw e;
+        } catch (RuntimeException e) {
+            logger.error("Erreur inattendue lors de l'appel à l'API Auth0",
+                    keyValue("action", "ensure_current_user"),
+                    keyValue("auth0Id", auth0Id), e);
+            throw e;
+        }
 
         return userRepository.findByAuth0Id(auth0Id).map(user -> {
             CustomUser before = user.toBuilder().build();
@@ -106,10 +120,23 @@ public class UserService {
                 return user;
 
             user.setLastUpdate(LocalDateTime.now());
-            CustomUser saved = userRepository.save(user);
-            DiffUtils.logChanges(before, saved, logger, "update_user", saved.getId());
-
-            return saved;
+            try {
+                CustomUser saved = userRepository.save(user);
+                DiffUtils.logChanges(before, saved, logger, "update_user", saved.getId());
+                return saved;
+            } catch (DataIntegrityViolationException e) {
+                logger.error("Violation d'intégrité lors de la mise à jour de l'utilisateur",
+                        keyValue("action", "update_user"),
+                        keyValue("auth0Id", auth0Id),
+                        keyValue("userId", user.getId()), e);
+                throw e;
+            } catch (RuntimeException e) {
+                logger.error("Erreur inattendue lors de la sauvegarde de l'utilisateur",
+                        keyValue("action", "update_user"),
+                        keyValue("auth0Id", auth0Id),
+                        keyValue("userId", user.getId()), e);
+                throw e;
+            }
         }).orElseGet(() -> {
             CustomUser newUser = CustomUser.builder()
                     .auth0Id(auth0User.getId())
@@ -124,15 +151,29 @@ public class UserService {
                     .lastUpdate(LocalDateTime.now())
                     .build();
 
-            CustomUser created = userRepository.save(newUser);
+            try {
+                CustomUser created = userRepository.save(newUser);
 
-            logger.info("User created successfully",
-                    keyValue("action", "create_user"),
-                    keyValue("auth0Id", auth0Id),
-                    keyValue("userId", created.getId()),
-                    keyValue("email", created.getEmail()));
+                logger.info("User created successfully",
+                        keyValue("action", "create_user"),
+                        keyValue("auth0Id", auth0Id),
+                        keyValue("userId", created.getId()),
+                        keyValue("email", created.getEmail()));
 
-            return created;
+                return created;
+            } catch (DataIntegrityViolationException e) {
+                logger.error("Violation d'intégrité lors de la création de l'utilisateur",
+                        keyValue("action", "create_user"),
+                        keyValue("auth0Id", auth0Id),
+                        keyValue("email", newUser.getEmail()), e);
+                throw e;
+            } catch (RuntimeException e) {
+                logger.error("Erreur inattendue lors de la création de l'utilisateur",
+                        keyValue("action", "create_user"),
+                        keyValue("auth0Id", auth0Id),
+                        keyValue("email", newUser.getEmail()), e);
+                throw e;
+            }
         });
     }
 
@@ -151,18 +192,51 @@ public class UserService {
                     return new CustomUserNotFoundException(auth0Id);
                 });
 
-        ManagementAPI managementAPI = tokenManager.getManagementAPI();
-        managementAPI.users().delete(auth0Id).execute();
+        try {
+            ManagementAPI managementAPI = tokenManager.getManagementAPI();
+            managementAPI.users().delete(auth0Id).execute();
+        } catch (Auth0Exception e) {
+            logger.error("Erreur Auth0 lors de la suppression de l'utilisateur",
+                    keyValue("action", "delete_user"),
+                    keyValue("auth0Id", auth0Id),
+                    keyValue("userId", user.getId()), e);
+            throw e;
+        } catch (RuntimeException e) {
+            logger.error("Erreur inattendue lors de l'appel à l'API Auth0 pour supprimer l'utilisateur",
+                    keyValue("action", "delete_user"),
+                    keyValue("auth0Id", auth0Id),
+                    keyValue("userId", user.getId()), e);
+            throw e;
+        }
 
-        user.getFavorites().forEach(fav -> eventPublisher.publishFollowEvent(
-                user.getId(),
-                fav.getEntityType(),
-                fav.getEntityId(),
-                EventType.DELETED));
+        try {
+            user.getFavorites().forEach(fav -> {
+                try {
+                    eventPublisher.publishFollowEvent(
+                            user.getId(),
+                            fav.getEntityType(),
+                            fav.getEntityId(),
+                            EventType.DELETED);
+                } catch (RuntimeException e) {
+                    logger.error("Erreur lors de la publication de l'évènement de suppression de favori",
+                            keyValue("action", "delete_user_publish_event"),
+                            keyValue("userId", user.getId()),
+                            keyValue("entityType", fav.getEntityType()),
+                            keyValue("entityId", fav.getEntityId()), e);
+                    throw e;
+                }
+            });
 
-        userRepository.delete(user);
+            userRepository.delete(user);
 
-        logger.info("Utilisateur (et ses favoris) supprimé avec succès", keyValue("auth0Id", auth0Id));
+            logger.info("Utilisateur (et ses favoris) supprimé avec succès", keyValue("auth0Id", auth0Id));
+        } catch (RuntimeException e) {
+            logger.error("Erreur lors de la suppression locale de l'utilisateur",
+                    keyValue("action", "delete_user_local"),
+                    keyValue("auth0Id", auth0Id),
+                    keyValue("userId", user.getId()), e);
+            throw e;
+        }
     }
 
     public void assignDefaultRole(String auth0Id) {
@@ -220,10 +294,25 @@ public class UserService {
                 existing.setLastName(dto.getLastName());
 
             if (image != null && !image.isEmpty()) {
-                ImageUtils.validateImage(image);
+                try {
+                    ImageUtils.validateImage(image);
+                } catch (RuntimeException e) {
+                    logger.error("Validation de l'image invalide",
+                            keyValue("action", "update_user_validate_image"),
+                            keyValue("fileName", image.getOriginalFilename()),
+                            keyValue("contentType", image.getContentType()), e);
+                    throw e;
+                }
                 try {
                     if (existing.getPictureUrl() != null) {
-                        s3StorageClient.deleteObjectByUrl(existing.getPictureUrl());
+                        try {
+                            s3StorageClient.deleteObjectByUrl(existing.getPictureUrl());
+                        } catch (RuntimeException e) {
+                            logger.error("Erreur lors de la suppression de l'ancienne image",
+                                    keyValue("action", "update_user_delete_old_image"),
+                                    keyValue("oldUrl", existing.getPictureUrl()), e);
+                            throw e;
+                        }
                     }
                     String url = s3StorageClient.uploadProfileImage(image, "users");
                     existing.setPictureUrl(url);
@@ -231,6 +320,11 @@ public class UserService {
                     logger.error("Erreur lors de l'upload de l'image",
                             keyValue("fileName", image.getOriginalFilename()), e);
                     throw new RuntimeException("Échec de l’upload de l’image");
+                } catch (RuntimeException e) {
+                    logger.error("Erreur inattendue lors du traitement de l'image",
+                            keyValue("action", "update_user_upload_image"),
+                            keyValue("fileName", image.getOriginalFilename()), e);
+                    throw e;
                 }
             }
 
@@ -247,8 +341,17 @@ public class UserService {
                 DiffUtils.logChanges(before, updated, logger, "update_user", updated.getId());
                 return updated;
             } catch (DataIntegrityViolationException dive) {
-                // Filet de sécurité si la contrainte UNIQUE (DB) remonte
+                logger.error("Violation d'intégrité lors de la mise à jour de l'utilisateur (pseudo probablement en double)",
+                        keyValue("action", "update_user"),
+                        keyValue("auth0Id", auth0Id),
+                        keyValue("requestedPseudo", dto.getPseudo()), dive);
                 throw new ConflictException("Ce pseudo est déjà utilisé.");
+            } catch (RuntimeException e) {
+                logger.error("Erreur inattendue lors de la sauvegarde de l'utilisateur",
+                        keyValue("action", "update_user"),
+                        keyValue("auth0Id", auth0Id),
+                        keyValue("userId", existing.getId()), e);
+                throw e;
             }
 
         }).orElseThrow(() -> {
