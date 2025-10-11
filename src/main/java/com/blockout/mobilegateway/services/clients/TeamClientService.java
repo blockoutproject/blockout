@@ -55,7 +55,7 @@ public class TeamClientService {
     public List<TeamDTO> getTeamsByClubId(String clubId) {
         String url = UriComponentsBuilder
                 .fromUriString(apiClientProperties.getTeam().getUrl())
-                .queryParam("clubId", clubId)
+                .queryParam("club_id", clubId)
                 .build()
                 .toUriString();
 
