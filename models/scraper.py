@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 import asyncio
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Any, Mapping, Optional
 import aiohttp
 from prometheus_client import Gauge
 from api.clubs_api import get_all_clubs
@@ -65,60 +65,76 @@ class Scraper(ABC):
             duration = (end_time - start_time).total_seconds()
             self.scraping_duration_gauge.set(duration)
             
-    async def fetch(self, url: str, retries: int = 3, delay: int = 2, sem: int = 5, timeout: int = 20) -> str:
+    async def fetch(
+        self,
+        url: str,
+        form_data: Mapping[str, Any],
+        retries: int = 3,
+        delay: int = 2,
+        sem: int = 5,
+        timeout: int = 20,
+    ) -> str:
         """
-        Récupère le contenu d'une URL avec gestion des retries, timeout global et semaphore.
+        Récupère le contenu d'une URL via POST form-data,
+        avec gestion des retries, timeout global et semaphore.
         """
 
-        async with asyncio.Semaphore(sem):  # Limiter les connexions simultanées
+        semaphore = asyncio.Semaphore(sem)  # Limiter les connexions simultanées
+
+        async with semaphore:
             for attempt in range(1, retries + 1):
                 try:
-                    # Tentative de récupération
-                    async with self.session.get(url, ssl=False, timeout=aiohttp.ClientTimeout(total=timeout)) as response:
+                    client_timeout = aiohttp.ClientTimeout(total=timeout)
+
+                    async with self.session.post(
+                        url,
+                        data=form_data,
+                        ssl=False,
+                        timeout=client_timeout,
+                    ) as response:
                         response.raise_for_status()
                         raw_content = await response.content.read()
-                        
-                        # Détection de l'encodage
-                        if url.startswith("http://www.ffvb.org/") or url.startswith("http://www.ffvbbeach.org/"):
+
+                        # Détection de l'encodage spécifique au domaine
+                        if "ffvbbeach.org" in url or "ffvb.org" in url:
                             decoded_content = raw_content.decode("windows-1252", errors="replace")
                         else:
                             decoded_content = raw_content.decode("utf-8", errors="replace")
 
-                        # Log en cas de succès après un retry
+                        # Log succès après retry éventuel
                         if attempt > 1:
                             log_event(
                                 action="http_request_retry_success",
                                 level="info",
                                 attempt=attempt,
                                 url=url,
-                                message=f"Succès après retry {attempt}/{retries}: Contenu récupéré pour l'URL {url}."
+                                method="POST",
+                                message=f"Succès après retry {attempt}/{retries} pour l'URL {url}."
                             )
+
                         return decoded_content
 
                 except aiohttp.ClientConnectorDNSError as e:
-                    # Problème spécifique à la résolution DNS
                     log_event(
                         action="http_request_dns_error",
                         level="error",
                         url=url,
                         attempt=attempt,
                         error=str(e),
-                        message=f"Erreur DNS lors de la récupération de l'URL '{url}' (tentative {attempt}/{retries})."
+                        message=f"Erreur DNS lors du POST '{url}' (tentative {attempt}/{retries})."
                     )
 
                 except aiohttp.ClientConnectorError as e:
-                    # Problème de connexion générale (autre que DNS)
                     log_event(
                         action="http_request_connector_error",
                         level="error",
                         url=url,
                         attempt=attempt,
                         error=str(e),
-                        message=f"Erreur de connexion réseau lors de la récupération de l'URL '{url}' (tentative {attempt}/{retries})."
+                        message=f"Erreur de connexion réseau lors du POST '{url}' (tentative {attempt}/{retries})."
                     )
 
                 except aiohttp.ClientResponseError as e:
-                    # Erreurs HTTP spécifiques (codes 4xx, 5xx)
                     log_event(
                         action="http_request_http_error",
                         level="warning",
@@ -126,32 +142,30 @@ class Scraper(ABC):
                         attempt=attempt,
                         status=e.status,
                         error=str(e),
-                        message=f"Erreur HTTP {e.status} lors de la récupération de l'URL '{url}' (tentative {attempt}/{retries})."
+                        message=f"Erreur HTTP {e.status} lors du POST '{url}' (tentative {attempt}/{retries})."
                     )
 
                 except asyncio.TimeoutError as e:
-                    # Timeout
                     log_event(
                         action="http_request_timeout",
                         level="warning",
                         url=url,
                         attempt=attempt,
                         error=str(e),
-                        message=f"Timeout lors de la récupération de l'URL '{url}' (tentative {attempt}/{retries})."
+                        message=f"Timeout lors du POST '{url}' (tentative {attempt}/{retries})."
                     )
 
                 except Exception as e:
-                    # Autres erreurs imprévues
                     log_event(
                         action="http_request_unexpected_error",
                         level="error",
                         url=url,
                         attempt=attempt,
                         error=str(e),
-                        message=f"Erreur inattendue lors de la récupération de l'URL '{url}' (tentative {attempt}/{retries})."
+                        message=f"Erreur inattendue lors du POST '{url}' (tentative {attempt}/{retries})."
                     )
 
-                # Gestion des retries
+                # Retry si échec
                 if attempt < retries:
                     log_event(
                         action="http_request_retry",
@@ -159,19 +173,19 @@ class Scraper(ABC):
                         url=url,
                         attempt=attempt,
                         delay=delay,
-                        message=f"Nouvelle tentative pour l'URL '{url}' après un délai de {delay} secondes."
+                        message=f"Nouvelle tentative POST pour '{url}' après {delay} secondes."
                     )
                     await asyncio.sleep(delay)
                 else:
-                    # Log en cas d'échec complet après toutes les tentatives
+                    # Échec final
                     log_event(
                         action="http_request_failed",
                         level="error",
                         url=url,
                         attempt=retries,
-                        message=f"Échec complet après {retries} tentatives pour l'URL '{url}'."
+                        message=f"Échec complet après {retries} tentatives pour '{url}'."
                     )
-                    raise Exception(f"Échec complet pour l'URL '{url}' après {retries} tentatives.")
+                    raise Exception(f"Échec complet du POST '{url}' après {retries} tentatives.")
                 
     async def init_clubs_cache(self):
         """

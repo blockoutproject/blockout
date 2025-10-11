@@ -26,7 +26,7 @@ class ClubScraper(Scraper):
         try:
             tasks = []
             for club_id in club_id_list:
-                url = f"https://www.ffvbbeach.org/ffvbapp/adressier/rech_aff.php?id_club={club_id}"
+                url = "https://www.ffvbbeach.org/ffvbapp/adressier/rech_aff.php"
                 tasks.append(self.scrape_one_club(url, club_id))
 
             await asyncio.gather(*tasks)
@@ -57,7 +57,10 @@ class ClubScraper(Scraper):
     async def scrape_one_club(self, url: str, club_id: str):
         """Scrape et enregistre un club unique."""
         try:
-            html_content = await self.fetch(url)
+            form_data = {
+                "id_club": club_id,
+            }
+            html_content = await self.fetch(url, form_data)
             if not html_content:
                 log_event(
                     action="club_scraper_fetch_html_error",
