@@ -311,7 +311,7 @@ const styles = StyleSheet.create({
         alignItems: "center",
     },
     scrollContent: {
-        paddingHorizontal: 12,
+        paddingHorizontal: 8,
         gap: 20,
     },
     section: {

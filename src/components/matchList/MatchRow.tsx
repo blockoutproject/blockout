@@ -56,11 +56,11 @@ const MatchRow: React.FC<MatchRowProps> = ({ enrichedMatch, division }) => {
                         },
                     ]}
                     numberOfLines={2}
-                    ellipsizeMode="tail"
+                    lineBreakStrategyIOS="push-out"
+                    textBreakStrategy="highQuality"
                     adjustsFontSizeToFit
-                    minimumFontScale={0.85}
                 >
-                    {enrichedMatch.teamA.shortName || "Équipe A"}
+                    {enrichedMatch.teamA.shortName}
                 </Text>
 
                 <MaskedImage
@@ -138,11 +138,11 @@ const MatchRow: React.FC<MatchRowProps> = ({ enrichedMatch, division }) => {
                         },
                     ]}
                     numberOfLines={2}
-                    ellipsizeMode="tail"
+                    lineBreakStrategyIOS="push-out"
+                    textBreakStrategy="highQuality"
                     adjustsFontSizeToFit
-                    minimumFontScale={0.85}
                 >
-                    {enrichedMatch.teamB.shortName || "Équipe B"}
+                    {enrichedMatch.teamB.shortName}
                 </Text>
             </View>
         </View>

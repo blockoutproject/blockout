@@ -18,7 +18,7 @@ const PoolCard: React.FC<PoolCardProps> = ({ pool, onPress }) => {
             fallbackImage={require("@/assets/clubs/default_club_logo.png")}
             chips={[
                 { label: pool.divisionName, labelStyle: { fontSize: 11, color: theme.textSecondary } },
-                { label: pool.leagueName, labelStyle: { fontSize: 11, color: theme.textSecondary }, maxWidth: 140 },
+                { label: pool.leagueName, labelStyle: { fontSize: 11, color: theme.textSecondary }, maxWidth: 125 },
                 { label: pool.season, labelStyle: { fontSize: 11, color: theme.textSecondary } },
             ]}
             onPress={onPress}

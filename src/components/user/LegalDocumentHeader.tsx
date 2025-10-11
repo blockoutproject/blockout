@@ -113,7 +113,7 @@ const styles = StyleSheet.create({
         marginRight: 4,
     },
     title: {
-        fontSize: 18,
+        fontSize: 16,
         fontWeight: "900",
     },
 });

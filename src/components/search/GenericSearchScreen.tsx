@@ -18,6 +18,7 @@ import { BOTTOM_TABBAR_HEIGHT } from "@/src/theme/globals";
 import InfoPill from "../common/chips/InfoPill";
 import InfoPillGradient from "../common/chips/InfoPillGradient";
 import { CTA_GRADIENT } from "../common/GradientButton";
+import FadeIn from "../common/animations/FadeIn";
 
 type GenericSearchScreenProps<T> = {
     search: string;
@@ -70,14 +71,16 @@ export const GenericSearchScreen = <T,>({
     const showHeader = search.length === 0 && !!data && data.length > 0;
 
     const Header = showHeader ? (
-        <View
-            style={[
-                styles.examplePillContainer,
-                { backgroundColor: 'transparent' },
-            ]}
-        >
-            <InfoPillGradient label={exampleLabel} gradient={CTA_GRADIENT} />
-        </View>
+        <FadeIn>
+            <View
+                style={[
+                    styles.examplePillContainer,
+                    { backgroundColor: 'transparent' },
+                ]}
+            >
+                <InfoPillGradient label={exampleLabel} gradient={CTA_GRADIENT} />
+            </View>
+        </FadeIn>
     ) : null;
 
     return (
@@ -112,7 +115,6 @@ export const GenericSearchScreen = <T,>({
                 renderItem={renderItem}
                 ListEmptyComponent={renderEmpty}
                 ListHeaderComponent={Header}
-                stickyHeaderIndices={showHeader ? [0] : undefined}
                 showsVerticalScrollIndicator={false}
                 keyboardShouldPersistTaps="handled"
                 onScrollBeginDrag={Keyboard.dismiss}

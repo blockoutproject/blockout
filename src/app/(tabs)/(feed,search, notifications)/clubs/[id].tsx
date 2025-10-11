@@ -123,5 +123,5 @@ export default ClubScreen;
 
 const styles = StyleSheet.create({
     container: { flex: 1 },
-    scrollContent: { paddingHorizontal: 12, gap: 20 },
+    scrollContent: { paddingHorizontal: 8, gap: 20 },
 });

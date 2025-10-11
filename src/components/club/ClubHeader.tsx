@@ -109,8 +109,8 @@ const styles = StyleSheet.create({
         marginRight: 4,
     },
     title: {
-        fontSize: 18,
-        fontWeight: "700",
+        fontSize: 15,
+        fontWeight: "800",
         flexShrink: 1,
     },
     rightGroup: {
