@@ -50,5 +50,19 @@ public class TeamClientService {
 
         ResponseEntity<TeamDTO> response = apiClientService.get(url, TeamDTO.class);
         return response.getBody();
+    }   
+
+    public List<TeamDTO> getTeamsByClubId(String clubId) {
+        String url = UriComponentsBuilder
+                .fromUriString(apiClientProperties.getTeam().getUrl())
+                .queryParam("clubId", clubId)
+                .build()
+                .toUriString();
+
+        logger.info("Calling getTeamsByClubId", keyValue("clubId", clubId), keyValue("url", url));
+
+        ResponseEntity<TeamDTO[]> response = apiClientService.get(url, TeamDTO[].class);
+        TeamDTO[] body = response.getBody();
+        return body != null ? Arrays.asList(body) : Collections.emptyList();
     }
 }
