@@ -24,7 +24,8 @@ public class TeamService {
 
     /**
      * Retourne une liste d’équipes “light” pour un club donné.
-     * Champs renvoyés: id, name, shortName, format, gender, season, division, club (pour le logo).
+     * Champs renvoyés: id, name, shortName, format, gender, season, division, club
+     * (pour le logo).
      */
     public List<TeamSummaryDTO> getTeamsByClubId(String clubId) {
         if (clubId == null || clubId.isBlank()) {
@@ -71,6 +72,61 @@ public class TeamService {
                         .season(t.getSeason())
                         .division(divisionById.get(t.getDivisionId()))
                         .club(club) // contient le logoUrl attendu
+                        .build())
+                .toList();
+    }
+
+    /**
+     * Retourne une liste d’équipes “light” par leurs IDs.
+     * Champs renvoyés: id, name, shortName, format, gender, season, division, club
+     * (pour le logo).
+     */
+    public List<TeamSummaryDTO> getTeamsByIds(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            throw new InconsistentStateException("ids must be a non-empty list");
+        }
+
+        // 1) Récupérer les équipes
+        List<TeamDTO> teams = teamClientService.getTeamsByIds(Set.copyOf(ids));
+        if (teams == null || teams.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        // 2) Préparer les divisions
+        Set<Long> divisionIds = teams.stream()
+                .map(TeamDTO::getDivisionId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        Map<Long, DivisionDTO> divisionById = new HashMap<>();
+        for (Long divId : divisionIds) {
+            DivisionDTO div = configClientService.getDivisionById(divId);
+            if (div != null) {
+                divisionById.put(divId, div);
+            }
+        }
+
+        // 3) Récupérer les clubs liés aux équipes
+        Set<String> clubIds = teams.stream()
+                .map(TeamDTO::getClubId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        Map<String, ClubDTO> clubById = clubClientService.getClubsByIds(clubIds)
+                .stream()
+                .collect(Collectors.toMap(ClubDTO::getId, c -> c));
+
+        // 4) Mapper vers le DTO final
+        return teams.stream()
+                .map(t -> TeamSummaryDTO.builder()
+                        .id(t.getId())
+                        .name(t.getName())
+                        .shortName(t.getShortName())
+                        .format(t.getFormat())
+                        .gender(t.getGender())
+                        .season(t.getSeason())
+                        .division(divisionById.get(t.getDivisionId()))
+                        .club(clubById.get(t.getClubId()))
                         .build())
                 .toList();
     }
