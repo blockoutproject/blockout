@@ -55,7 +55,9 @@ async def run_scraper():
     (Pas de métrique ici : la durée est mesurée dans main())
     """
     async with lock:
-        async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=60), trust_env=True) as session:
+        connector = aiohttp.TCPConnector(limit=20, ssl=False)
+        timeout = aiohttp.ClientTimeout(total=60)
+        async with aiohttp.ClientSession(timeout=timeout, trust_env=True, connector=connector) as session:
             tasks = []
             for scraper_type in SCRAPER_TYPES:
                 current_scraper.set(scraper_type)
@@ -90,7 +92,14 @@ def schedule_scraper():
     """
     loop = asyncio.get_event_loop()
     scheduler = AsyncIOScheduler(event_loop=loop)
-    scheduler.add_job(main, 'interval', minutes=1, next_run_time=datetime.now(timezone.utc))
+    scheduler.add_job(
+        main, 
+        'interval', 
+        minutes=1, 
+        next_run_time=datetime.now(timezone.utc),
+        misfire_grace_time=30,
+        replace_existing=True
+    )
     scheduler.start()
 
     log_event(

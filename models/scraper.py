@@ -19,10 +19,13 @@ class Scraper(ABC):
         session: aiohttp.ClientSession, 
         name: str, 
         url: str = None, 
+        max_concurrency: int = 10
     ):
         self.session = session
         self.name = name
         self.url = url
+        self._max_concurrency = max_concurrency
+        self._sema = asyncio.Semaphore(self._max_concurrency)
         
         # Cache local : dict[(club_id), (existing_club, updated_club, changes_list)]
         self._clubs_cache: dict[
@@ -79,9 +82,7 @@ class Scraper(ABC):
         avec gestion des retries, timeout global et semaphore.
         """
 
-        semaphore = asyncio.Semaphore(sem)  # Limiter les connexions simultanées
-
-        async with semaphore:
+        async with self._sema:
             for attempt in range(1, retries + 1):
                 try:
                     client_timeout = aiohttp.ClientTimeout(total=timeout)

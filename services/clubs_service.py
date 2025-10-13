@@ -8,7 +8,7 @@ async def add_or_update_club(session: aiohttp.ClientSession, club: Club, existin
     """
     Vérifie si un club existe et le met à jour ou le crée selon les besoins.
     """
-    required_fields = ['id', 'name']
+    required_fields = ['id', 'raw_name']
     missing_fields = [field for field in required_fields if not getattr(club, field, None)]
     if missing_fields:
         raise ValueError(f"Les champs obligatoires suivants sont manquants : {', '.join(missing_fields)}.")
