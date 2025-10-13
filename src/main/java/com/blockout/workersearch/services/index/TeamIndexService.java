@@ -67,6 +67,7 @@ public class TeamIndexService {
         DivisionUpsertEvent division = configCacheService.getDivisionById(e.getDivisionId());
 
         String name = e.getName();
+        String shortName = e.getShortName();
         String clubName = club != null ? club.getName() : null;
         String clubCity = club != null ? club.getCity() : null;
         String logoUrl = club != null ? club.getLogoUrl() : null;
@@ -77,6 +78,7 @@ public class TeamIndexService {
         // Contenu brut
         String raw = String.join(" ",
                 name != null ? name : "",
+                shortName != null ? shortName : "",
                 clubName != null ? clubName : "",
                 clubCity != null ? clubCity : "",
                 divisionName,
@@ -89,6 +91,7 @@ public class TeamIndexService {
         return TeamDoc.builder()
                 .id(e.getId())
                 .name(name)
+                .shortName(shortName)
                 .clubId(e.getClubId())
                 .clubName(clubName)
                 .clubCity(clubCity)

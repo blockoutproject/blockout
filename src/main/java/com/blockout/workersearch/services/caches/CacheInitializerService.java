@@ -38,7 +38,6 @@ public class CacheInitializerService {
     public void initializeCaches() {
 
         // Initialisation du cache des clubs
-        
         List<ClubDTO> clubs = clubClientService.listActiveClubs();
         List<ClubUpsertEvent> clubEvents = clubs.stream()
                 .map(club -> ClubUpsertEvent.builder()
@@ -62,6 +61,7 @@ public class CacheInitializerService {
                 .map(team -> TeamUpsertEvent.builder()
                         .id(team.getId())
                         .name(team.getName())
+                        .shortName(team.getShortName())
                         .clubId(team.getClubId())
                         .divisionId(team.getDivisionId())
                         .format(team.getFormat())

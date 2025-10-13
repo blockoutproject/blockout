@@ -17,6 +17,7 @@ public class TeamDoc {
     @Id
     private Long id;
     private String name;
+    private String shortName;
     private String clubId;
     private String clubName;
     private String clubCity;

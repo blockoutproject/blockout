@@ -28,6 +28,7 @@ public class TeamCacheJob {
                     .map(team -> TeamUpsertEvent.builder()
                             .id(team.getId())
                             .name(team.getName())
+                            .shortName(team.getShortName())
                             .clubId(team.getClubId())
                             .divisionId(team.getDivisionId())
                             .format(team.getFormat())
