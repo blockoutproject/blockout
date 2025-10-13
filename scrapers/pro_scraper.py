@@ -382,7 +382,7 @@ class ProScraper(Scraper):
 
     async def process_matches_in_day(self, soup: BeautifulSoup, main_id: str, total_days: int, pool: Pool):
         match_count = 0
-        tasks = []  # Liste de tasks asynchrones
+        coros = []  # Liste de tasks asynchrones
 
         while True:
             match_block = soup.find(
@@ -391,14 +391,13 @@ class ProScraper(Scraper):
             if not match_block:
                 break
 
-            # Au lieu d'appeler directement, on crée un task
-            task = asyncio.create_task(self.process_match_block(match_block, pool))
-            tasks.append(task)
+            # Au lieu d'appeler directement, on crée une coroutine
+            coros.append(self.process_match_block(match_block, pool))
 
             match_count += 2
 
         # Une fois tous les match_block de cette journée récupérés, on exécute en parallèle
-        await asyncio.gather(*tasks)
+        await asyncio.gather(*coros)
 
     async def process_match_block(self, match_block, pool: Pool):
         # Récupération du live code (mID=XXX)
