@@ -97,6 +97,7 @@ async def handle_csv_download_and_parse(
             existing_team_a = existing_teams_dict.get(team_a_key)
 
             new_team_a = await add_or_update_team(scraper.session, Team(
+                raw_name=team_a_full,
                 name=team_a_full,
                 short_name=team_a_short,
                 club_id=row['club_a_id'],
@@ -116,6 +117,7 @@ async def handle_csv_download_and_parse(
             existing_team_b = existing_teams_dict.get(team_b_key)
 
             new_team_b = await add_or_update_team(scraper.session, Team(
+                raw_name=team_b_full,
                 name=team_b_full,
                 short_name=team_b_short,
                 club_id=row['club_b_id'],

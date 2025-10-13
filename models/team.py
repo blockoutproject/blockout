@@ -5,6 +5,7 @@ from typing import Optional
 @dataclass
 class Team:
     club_id: str
+    raw_name: str
     name: str
     short_name: str
     league_code: str
