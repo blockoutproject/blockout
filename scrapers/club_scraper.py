@@ -124,7 +124,7 @@ class ClubScraper(Scraper):
 
             # 2) Téléphone portable
             phone_number = None
-            portable_label = soup.find(text=re.compile(r"Portable", re.IGNORECASE))
+            portable_label = soup.find(text=re.compile(r"(Portable|T[ée]l\.?)", re.IGNORECASE))
             if portable_label:
                 parent_td = portable_label.find_parent("td")
                 if parent_td:
