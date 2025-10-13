@@ -21,7 +21,7 @@ public interface TeamRepository extends JpaRepository<Team, Long> {
     @Query("""
             SELECT t
             FROM Team t
-            WHERE (:name IS NULL OR t.name = :name)
+            WHERE (:rawName IS NULL OR t.rawName = :rawName)
                 AND (:divisionId IS NULL OR t.divisionId = :divisionId)
                 AND (:format IS NULL OR t.format = :format)
                 AND (:gender IS NULL OR t.gender = :gender)
@@ -31,7 +31,8 @@ public interface TeamRepository extends JpaRepository<Team, Long> {
                 AND (:active IS NULL OR t.active = :active)
             ORDER BY t.name ASC
             """)
-    List<Team> findFiltered(@Param("name") String name,
+    List<Team> findFiltered(
+            @Param("raw_name") String rawName,
             @Param("divisionId") Long divisionId,
             @Param("format") Format format,
             @Param("gender") Gender gender,

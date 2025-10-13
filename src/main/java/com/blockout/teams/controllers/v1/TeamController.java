@@ -1,6 +1,7 @@
 package com.blockout.teams.controllers.v1;
 
 import com.blockout.teams.models.Team;
+import com.blockout.teams.models.dto.TeamUpdateDTO;
 import com.blockout.teams.models.enums.Format;
 import com.blockout.teams.models.enums.Gender;
 import com.blockout.teams.services.TeamService;
@@ -31,7 +32,7 @@ public class TeamController {
     })
     @GetMapping
     public ResponseEntity<List<Team>> listTeams(
-            @RequestParam(required = false) String name,
+            @RequestParam(required = false, name= "raw_name") String rawName,
             @RequestParam(required = false, name = "division_id") Long divisionId,
             @RequestParam(required = false) Format format,
             @RequestParam(required = false) Gender gender,
@@ -39,7 +40,7 @@ public class TeamController {
             @RequestParam(required = false, name = "club_id") String clubId,
             @RequestParam(required = false) List<Long> ids,
             @RequestParam(required = false) Boolean active) {
-        List<Team> teams = teamService.findTeams(name, divisionId, format, gender, season, clubId, ids, active);
+        List<Team> teams = teamService.findTeams(rawName, divisionId, format, gender, season, clubId, ids, active);
         return ResponseEntity.ok(teams);
     }
 
@@ -76,9 +77,12 @@ public class TeamController {
             @ApiResponse(responseCode = "404", description = "Équipe introuvable")
     })
     @PreAuthorize("hasAuthority('SCOPE_update:teams')")
-    @PutMapping("/{id}")
-    public ResponseEntity<Team> updateTeam(@PathVariable Long id, @RequestBody Team updated) {
-        Team result = teamService.updateTeam(id, updated);
+    @PutMapping(path = "/{id}")
+    public ResponseEntity<Team> updateTeam(
+            @PathVariable Long id,
+            @RequestBody TeamUpdateDTO dto) {
+
+        Team result = teamService.updateTeam(id, dto);
         return ResponseEntity.ok(result);
     }
 

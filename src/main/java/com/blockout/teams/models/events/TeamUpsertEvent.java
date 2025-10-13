@@ -15,6 +15,7 @@ import lombok.NoArgsConstructor;
 public class TeamUpsertEvent {
     private Long id;
     private String name;
+    private String shortName;
     private String clubId;
     private Long divisionId;
     private Format format;

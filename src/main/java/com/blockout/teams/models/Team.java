@@ -16,7 +16,7 @@ import com.blockout.teams.models.enums.Gender;
 @AllArgsConstructor
 @Entity
 @Table(name = "teams", uniqueConstraints = {
-        @UniqueConstraint(columnNames = { "club_id", "division_id", "format", "gender", "name", "season" }, name = "uix_team")
+        @UniqueConstraint(columnNames = { "club_id", "division_id", "format", "gender", "raw_name", "season" }, name = "uix_team")
 })
 public class Team {
 
@@ -26,6 +26,9 @@ public class Team {
 
     @Column(name = "club_id", nullable = false)
     private String clubId;
+
+    @Column(name = "raw_name", nullable = false)
+    private String rawName;
 
     @Column(name = "name", nullable = false)
     private String name;

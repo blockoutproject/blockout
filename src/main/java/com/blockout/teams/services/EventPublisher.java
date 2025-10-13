@@ -26,6 +26,7 @@ public class EventPublisher {
         TeamUpsertEvent event = TeamUpsertEvent.builder()
                 .id(team.getId())
                 .name(team.getName())
+                .shortName(team.getShortName())
                 .clubId(team.getClubId())
                 .divisionId(team.getDivisionId())
                 .format(team.getFormat())

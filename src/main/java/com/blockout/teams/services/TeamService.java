@@ -2,6 +2,7 @@ package com.blockout.teams.services;
 
 import com.blockout.teams.exceptions.TeamNotFoundException;
 import com.blockout.teams.models.Team;
+import com.blockout.teams.models.dto.TeamUpdateDTO;
 import com.blockout.teams.models.enums.Format;
 import com.blockout.teams.models.enums.Gender;
 import com.blockout.teams.repositories.TeamRepository;
@@ -63,24 +64,26 @@ public class TeamService {
     /**
      * Récupère les équipes en appliquant des filtres facultatifs
      *
-     * @param name fragment du nom (null pour ignorer)
+     * @param name       fragment du nom (null pour ignorer)
      * @param divisionId code de division (null pour ignorer)
-     * @param format format (null pour ignorer)
-     * @param gender genre (null pour ignorer)
-     * @param season saison (null pour ignorer)
-     * @param clubId identifiant du club (null pour ignorer)
-     * @param ids liste d'IDs (null pour ignorer)
-     * @param active statut actif (null pour ignorer)
+     * @param format     format (null pour ignorer)
+     * @param gender     genre (null pour ignorer)
+     * @param season     saison (null pour ignorer)
+     * @param clubId     identifiant du club (null pour ignorer)
+     * @param ids        liste d'IDs (null pour ignorer)
+     * @param active     statut actif (null pour ignorer)
      * @return Liste des équipes correspondantes
      */
-    public List<Team> findTeams(String name, Long divisionId, Format format, Gender gender, String season, String clubId, List<Long> ids, Boolean active) {
+    public List<Team> findTeams(String rawName, Long divisionId, Format format, Gender gender, String season,
+            String clubId, List<Long> ids, Boolean active) {
         List<Long> safeIds = (ids == null) ? Collections.emptyList() : ids;
 
-        List<Team> teams = teamRepository.findFiltered(name, divisionId, format, gender, season, clubId, safeIds, safeIds.size(), active);
+        List<Team> teams = teamRepository.findFiltered(rawName, divisionId, format, gender, season, clubId, safeIds,
+                safeIds.size(), active);
 
         logger.debug("Listing teams",
                 keyValue("action", "list_teams"),
-                keyValue("name", name),
+                keyValue("rawName", rawName),
                 keyValue("divisionId", divisionId),
                 keyValue("format", format),
                 keyValue("gender", gender),
@@ -95,26 +98,38 @@ public class TeamService {
     /**
      * Met à jour une équipe existante
      *
-     * @param id          L'identifiant de l'équipe
-     * @param updatedTeam Les nouvelles données
+     * @param id  L'identifiant de l'équipe
+     * @param dto Les nouvelles données (tous les champs optionnels)
      * @return L'équipe mise à jour
      * @throws TeamNotFoundException si l'équipe est introuvable
      */
     @Transactional
-    public Team updateTeam(Long id, Team updatedTeam) {
+    public Team updateTeam(Long id, TeamUpdateDTO dto) {
         return teamRepository.findById(id).map(team -> {
             Team before = team.toBuilder().build();
 
-            team.setClubId(updatedTeam.getClubId());
-            team.setName(updatedTeam.getName());
-            team.setShortName(updatedTeam.getShortName());
-            team.setDivisionId(updatedTeam.getDivisionId());
-            team.setSeason(updatedTeam.getSeason());
-            team.setFormat(updatedTeam.getFormat());
-            team.setGender(updatedTeam.getGender());
-            team.setActive(updatedTeam.getActive());
+            if (dto.getClubId() != null)
+                team.setClubId(dto.getClubId());
+            if (dto.getRawName() != null)
+                team.setRawName(dto.getRawName());
+            if (dto.getName() != null)
+                team.setName(dto.getName());
+            if (dto.getShortName() != null)
+                team.setShortName(dto.getShortName());
+            if (dto.getLeagueCode() != null)
+                team.setLeagueCode(dto.getLeagueCode());
+            if (dto.getDivisionId() != null)
+                team.setDivisionId(dto.getDivisionId());
+            if (dto.getSeason() != null)
+                team.setSeason(dto.getSeason());
+            if (dto.getFormat() != null)
+                team.setFormat(dto.getFormat());
+            if (dto.getGender() != null)
+                team.setGender(dto.getGender());
+            if (dto.getActive() != null)
+                team.setActive(dto.getActive());
 
-            if (!before.getActive() && team.getActive()) {
+            if (!before.getActive() && Boolean.TRUE.equals(team.getActive())) {
                 logger.info("Team réactivée",
                         keyValue("action", "reactivate_team"),
                         keyValue("teamId", id));
