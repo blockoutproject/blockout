@@ -32,7 +32,7 @@ public interface TeamRepository extends JpaRepository<Team, Long> {
             ORDER BY t.name ASC
             """)
     List<Team> findFiltered(
-            @Param("raw_name") String rawName,
+            @Param("rawName") String rawName,
             @Param("divisionId") Long divisionId,
             @Param("format") Format format,
             @Param("gender") Gender gender,
