@@ -16,6 +16,8 @@ class ClubScraper(Scraper):
             session=session,
             name="club_scraper",
         )
+        # Compteur de succès de requêtes vers l'adressier (HTML non vide récupéré)
+        self.scrape_success: int = 0
 
     async def run_scraping(self, club_id_list: list[str]):
         """
@@ -26,25 +28,36 @@ class ClubScraper(Scraper):
         try:
             tasks = []
             for club_id in club_id_list:
-                url = "https://www.ffvbbeach.org/ffvbapp/adressier/rech_aff.php"
+                url = "https://www.ffvbbeach.org/ffvbapp/adressier/rech_aff_club.php"
                 tasks.append(self.scrape_one_club(url, club_id))
 
             await asyncio.gather(*tasks)
-            
-            # Désactivation des clubs non scrapées
-            missing_clubs_ids = {
-                updated.id for (_, updated) in self._clubs_cache.values()
-                if updated.id not in self.scraped_club_ids
-            }
-            if missing_clubs_ids:
+
+            # Ne désactiver que si on a AU MOINS un succès de requête vers l'adressier
+            if self.scrape_success > 0:
+                # Désactivation des clubs non scrapés
+                missing_clubs_ids = {
+                    updated.id for (_, updated) in self._clubs_cache.values()
+                    if updated.id not in self.scraped_club_ids
+                }
+                if missing_clubs_ids:
+                    log_event(
+                        action="bulk_deactivate_clubs",
+                        level="info",
+                        missing_pool_ids=missing_clubs_ids,
+                        message="Désactivation en masse des clubs non scrapés (au moins une requête réussie)."
+                    )
+                    await bulk_deactivate_clubs(self.session, missing_clubs_ids)
+            else:
+                # Aucune requête réussie -> on NE désactive PAS
                 log_event(
-                    action="bulk_deactivate_clubs",
-                    level="info",
-                    missing_pool_ids=missing_clubs_ids,
-                    message="Désactivation en masse des poules non scrapées."
+                    action="skip_bulk_deactivate_no_contact",
+                    level="warning",
+                    message=(
+                        "Aucune page de l'adressier n'a pu être récupérée (HTML vide/erreur réseau). "
+                        "On saute la désactivation pour éviter un faux positif (IP bloquée, site indisponible, etc.)."
+                    )
                 )
-                    
-                await bulk_deactivate_clubs(self.session, missing_clubs_ids)
 
         except Exception as e:
             log_event(
@@ -61,6 +74,7 @@ class ClubScraper(Scraper):
                 "id_club": club_id,
             }
             html_content = await self.fetch(url, form_data)
+
             if not html_content:
                 log_event(
                     action="club_scraper_fetch_html_error",
@@ -69,7 +83,10 @@ class ClubScraper(Scraper):
                     message=f"{url} - Contenu HTML vide ou inexistant."
                 )
                 return
-            
+
+            # À partir d'ici, on considère qu'on a bien contacté l'adressier au moins une fois
+            self.scrape_success += 1
+
             # On parse le HTML
             club = self.parse_club_page(html_content, club_id)
             if club is None:
@@ -78,13 +95,14 @@ class ClubScraper(Scraper):
             club_key = club.id
             existing_obj, updated_obj = self._clubs_cache.get(club_key, (None, club))
 
-            # Si le club existe déjà en cache (donc cloné via replace), on met à jour le clone avec les nouvelles données scrapées
+            # Si le club existe déjà en cache (donc cloné via replace), on met à jour le clone
             if existing_obj:
                 for field in ['name', 'city', 'postal_code', 'email', 'phone_number', 'website']:
                     setattr(updated_obj, field, getattr(club, field, None))
 
             new_club = await add_or_update_club(self.session, updated_obj, existing_obj)
             self.scraped_club_ids.add(new_club.id)
+
         except Exception as e:
             log_event(
                 action="club_scraper_error",
@@ -93,7 +111,7 @@ class ClubScraper(Scraper):
                 error=str(e),
                 message=f"{url} - Erreur lors du scraping d'un club."
             )
-            
+
     def parse_club_page(self, html_content: str, club_id: str) -> Optional[Club]:
         try:
             soup = BeautifulSoup(html_content, 'html.parser')
