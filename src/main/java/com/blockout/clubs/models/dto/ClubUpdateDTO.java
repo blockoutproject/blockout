@@ -2,9 +2,7 @@ package com.blockout.clubs.models.dto;
 
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
 import com.fasterxml.jackson.annotation.JsonProperty;
-
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 
