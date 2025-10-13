@@ -19,6 +19,9 @@ public class TeamDTO {
     @JsonProperty("club_id")
     private String clubId;
 
+    @JsonProperty("raw_name")
+    private String rawName;
+
     private String name;
 
     @JsonProperty("short_name")
