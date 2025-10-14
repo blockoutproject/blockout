@@ -17,7 +17,7 @@ async def create_team(session: aiohttp.ClientSession, team: Team) -> Team:
     team_dict = to_dict(team)
     url = f"{TEAM_API_URL}"
     response = await session.post(url, json=team_dict, headers=headers)
-    log_event(action="create_team", level="info", name=team.name, club_id=team.club_id)
+    log_event(action="create_team", level="info", name=team.raw_name, club_id=team.club_id)
     return response
 
 
@@ -37,7 +37,7 @@ async def update_team(
     log_event(
         action="update_team",
         level="info",
-        name=team.name,
+        name=team.raw_name,
         changes_list=changes_list
     )
     return response

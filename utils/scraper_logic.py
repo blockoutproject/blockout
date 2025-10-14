@@ -70,7 +70,7 @@ async def handle_csv_download_and_parse(
         }
 
         existing_teams_dict = {
-            (t.club_id, t.division_id, t.format, t.gender, normalize(t.name)): t
+            (t.club_id, t.division_id, t.format, t.gender, normalize(t.raw_name)): t
             for t in existing_teams
         }
 
@@ -184,7 +184,7 @@ async def handle_csv_download_and_parse(
         if has_anomalous_match:
             stats_list = await extract_club_stats_list(scraper, raw_season, new_pool)
             fallback_teams = await get_teams(scraper.session, ids=list(active_team_ids)) or []
-            team_lookup = {normalize(t.name): t for t in fallback_teams}
+            team_lookup = {normalize(t.raw_name): t for t in fallback_teams}
 
             for team_name, stats in stats_list:
                 normalized_name = normalize(get_full_name(team_name, new_pool.gender))
