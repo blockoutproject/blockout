@@ -16,7 +16,7 @@ async def add_or_update_team(session: aiohttp.ClientSession, team: Team, existin
         changes_list = []
         team.id = existing_team.id
         
-        for field in ['club_id', 'raw_name', 'division_id', 'format', 'gender']:
+        for field in ['club_id', 'division_id', 'format', 'gender']:
             if getattr(existing_team, field, None) != getattr(team, field, None):
                 changes_list.append(f"{field}: {getattr(existing_team, field)} -> {getattr(team, field)}")
 
