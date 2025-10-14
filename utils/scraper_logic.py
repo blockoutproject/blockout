@@ -95,17 +95,8 @@ async def handle_csv_download_and_parse(
             team_a_short = get_short_name(row['team_a_name'], new_pool.gender)
             team_a_key = (row['club_a_id'], new_pool.division_id, new_pool.format, new_pool.gender, normalize(team_a_full))
             existing_team_a = existing_teams_dict.get(team_a_key)
-            
-            if existing_team_a.raw_name == "MONTAUBAN VOLLEY-BALL 82":
-                print("11111111111111")
-                print("-------- Existing team before changes check:", existing_team_a)
-                print("Name:", row['team_a_name'], team_a_full, team_a_short)
-                print("row", row)
-                print("pool", new_pool)
-                print("teamA key:", team_a_key)
-                print(f"{"raw_name"}: {existing_team_a.raw_name} -> {team_a_full}")
-
-            new_team_a = await add_or_update_team(scraper.session, Team(
+                            
+            team_a_obj = Team(
                 raw_name=team_a_full,
                 name=team_a_full,
                 short_name=team_a_short,
@@ -115,7 +106,19 @@ async def handle_csv_download_and_parse(
                 division_id=new_pool.division_id,
                 format=new_pool.format,
                 gender=new_pool.gender
-            ), existing_team_a)
+            )
+            
+            if existing_team_a.raw_name == "MONTAUBAN VOLLEY-BALL 82":
+                print("11111111111111 AAAAAAAAAAAA")
+                print("-------- Existing team before changes check:", existing_team_a)
+                print("Name:", row['team_a_name'], team_a_full, team_a_short)
+                print("-------- team obj team before changes check:", team_a_obj)
+                print("row", row)
+                print("pool", new_pool)
+                print("teamA key:", team_a_key)
+                print(f"{"raw_name"}: {existing_team_a.raw_name} -> {team_a_full}")
+
+            new_team_a = await add_or_update_team(scraper.session, team_a_obj, existing_team_a)
             existing_teams_dict[team_a_key] = new_team_a
             scraped_team_ids.add(new_team_a.id)
 
@@ -125,7 +128,7 @@ async def handle_csv_download_and_parse(
             team_b_key = (row['club_b_id'], new_pool.division_id, new_pool.format, new_pool.gender, normalize(team_b_full))
             existing_team_b = existing_teams_dict.get(team_b_key)
 
-            new_team_b = await add_or_update_team(scraper.session, Team(
+            team_b_obj = Team(
                 raw_name=team_b_full,
                 name=team_b_full,
                 short_name=team_b_short,
@@ -135,7 +138,19 @@ async def handle_csv_download_and_parse(
                 division_id=new_pool.division_id,
                 format=new_pool.format,
                 gender=new_pool.gender
-            ), existing_team_b)
+            )
+            
+            if existing_team_b.raw_name == "MONTAUBAN VOLLEY-BALL 82":
+                print("11111111111111 BBBBBBBBBBB")
+                print("-------- Existing team before changes check:", existing_team_b)
+                print("-------- team obj team before changes check:", team_b_obj)
+                print("Name:", row['team_b_name'], team_b_full, team_b_short)
+                print("row", row)
+                print("pool", new_pool)
+                print("teamb key:", team_a_key)
+                print(f"{"raw_name"}: {existing_team_b.raw_name} -> {team_b_full}")
+
+            new_team_b = await add_or_update_team(scraper.session, team_b_obj, existing_team_b)
             existing_teams_dict[team_b_key] = new_team_b
             scraped_team_ids.add(new_team_b.id)
 
