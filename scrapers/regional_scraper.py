@@ -150,8 +150,8 @@ class RegionalScraper(Scraper):
                         mapping_dict[raw_division_name] = created_mapping
                         continue
                     
-                    if raw_division_name == "MOINS 13 ANS FÉMININES OCCITANIE EST":
-                        print("-------- is mapped:", mapping.is_mapped())
+                    if league_code == "LILR":
+                        print("-------- is mapped:", raw_division_name, mapping.is_mapped())
 
                     if not mapping.is_mapped():
                         continue
