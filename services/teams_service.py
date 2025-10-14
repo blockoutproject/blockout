@@ -17,6 +17,11 @@ async def add_or_update_team(session: aiohttp.ClientSession, team: Team, existin
         team.id = existing_team.id
         
         for field in ['club_id', 'division_id', 'format', 'gender', 'raw_name']: # A revoir car pas forcement bon, ici on cherche à modifer les champs uniques ...
+            if existing_team.raw_name == "MONTAUBAN VOLLEY-BALL 82" and team.raw_name == "MONTAUBAN VOLLEY BALL 82" and field == 'raw_name':
+                print("222222222222")
+                print("-------- Existing team before changes check:", existing_team)
+                print("New team data:", team)
+                print(f"{field}: {getattr(existing_team, field)} -> {getattr(team, field)}")
             if getattr(existing_team, field, None) != getattr(team, field, None):
                 changes_list.append(f"{field}: {getattr(existing_team, field)} -> {getattr(team, field)}")
 

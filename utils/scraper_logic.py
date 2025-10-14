@@ -97,6 +97,7 @@ async def handle_csv_download_and_parse(
             existing_team_a = existing_teams_dict.get(team_a_key)
             
             if existing_team_a.raw_name == "MONTAUBAN VOLLEY-BALL 82":
+                print("11111111111111")
                 print("-------- Existing team before changes check:", existing_team_a)
                 print("Name:", row['team_a_name'], team_a_full, team_a_short)
                 print("row", row)
