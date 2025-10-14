@@ -74,16 +74,15 @@ public class TeamService {
      * @param active     statut actif (null pour ignorer)
      * @return Liste des équipes correspondantes
      */
-    public List<Team> findTeams(String rawName, Long divisionId, Format format, Gender gender, String season,
+    public List<Team> findTeams(Long divisionId, Format format, Gender gender, String season,
             String clubId, List<Long> ids, Boolean active) {
         List<Long> safeIds = (ids == null) ? Collections.emptyList() : ids;
 
-        List<Team> teams = teamRepository.findFiltered(rawName, divisionId, format, gender, season, clubId, safeIds,
+        List<Team> teams = teamRepository.findFiltered(divisionId, format, gender, season, clubId, safeIds,
                 safeIds.size(), active);
 
         logger.debug("Listing teams",
                 keyValue("action", "list_teams"),
-                keyValue("rawName", rawName),
                 keyValue("divisionId", divisionId),
                 keyValue("format", format),
                 keyValue("gender", gender),

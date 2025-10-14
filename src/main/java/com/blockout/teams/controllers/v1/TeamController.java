@@ -32,7 +32,6 @@ public class TeamController {
     })
     @GetMapping
     public ResponseEntity<List<Team>> listTeams(
-            @RequestParam(required = false, name= "raw_name") String rawName,
             @RequestParam(required = false, name = "division_id") Long divisionId,
             @RequestParam(required = false) Format format,
             @RequestParam(required = false) Gender gender,
@@ -40,7 +39,7 @@ public class TeamController {
             @RequestParam(required = false, name = "club_id") String clubId,
             @RequestParam(required = false) List<Long> ids,
             @RequestParam(required = false) Boolean active) {
-        List<Team> teams = teamService.findTeams(rawName, divisionId, format, gender, season, clubId, ids, active);
+        List<Team> teams = teamService.findTeams(divisionId, format, gender, season, clubId, ids, active);
         return ResponseEntity.ok(teams);
     }
 
