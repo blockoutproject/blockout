@@ -51,7 +51,7 @@ async def get_teams(
     gender: Optional[str] = None,
     season: Optional[str] = None,
     club_id: Optional[str] = None,
-    name: Optional[str] = None,
+    raw_name: Optional[str] = None,
     ids: Optional[List[int]] = None
 ) -> List[Team]:
     """
@@ -60,8 +60,8 @@ async def get_teams(
     headers = _get_headers()
     params = {}
 
-    if name:
-        params["name"] = name
+    if raw_name:
+        params["raw_name"] = raw_name
     if division_id:
         params["division_id"] = division_id
     if format:

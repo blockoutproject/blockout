@@ -414,7 +414,7 @@ class ProScraper(Scraper):
                 action="missing_name",
                 level="error",
                 pool_id=pool.id,
-                name=home_name,
+                raw_name=home_name,
                 message="Nom d'équipe domicile non trouvé dans les alias."
             )
         if not guest_team_full:
@@ -422,7 +422,7 @@ class ProScraper(Scraper):
                 action="missing_name",
                 level="error",
                 pool_id=pool.id,
-                name=guest_name,
+                raw_name=guest_name,
                 message="Nom d'équipe visiteur non trouvé dans les alias."
             )
 
