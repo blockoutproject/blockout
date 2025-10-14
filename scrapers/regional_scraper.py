@@ -180,17 +180,12 @@ class RegionalScraper(Scraper):
                     log_event(action="pool_processing_error", level="error", error=str(e))
 
             await asyncio.gather(*tasks)
-            
-            if league_code == "LILR":
-                print("----------- existing_pools", existing_pools)
-                print("----------- scraped_pool_ids", scraped_pool_ids)
 
             missing_pool_ids = {
                 pool.id for pool in existing_pools
                 if pool.active and pool.id not in scraped_pool_ids
             }
-            if league_code == "LILR":
-                print("-----------missing_pool_ids", missing_pool_ids)
+
             if missing_pool_ids:
                 await bulk_deactivate_pools(self.session, missing_pool_ids)
 

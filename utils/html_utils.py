@@ -71,9 +71,7 @@ async def extract_club_stats_list(scraper: Scraper, raw_season: str, pool: Pool)
         try:
             name = cols[1].get_text(strip=True)
             stats = parse_stat_line(cols)
-            if pool.id == 11:
-                print(f"Parsed stats for {name}: {stats}")
-                
+
             if not name or not stats:
                 continue
             teams_stats.append((name, stats))
