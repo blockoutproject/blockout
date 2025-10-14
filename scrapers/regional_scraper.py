@@ -137,9 +137,6 @@ class RegionalScraper(Scraper):
                     raw_division_tag = a_tag.find_parent('ul').find_previous_sibling('a')
                     raw_division_name = raw_division_tag.get_text(strip=True) if raw_division_tag else ""
                     
-                    if league_code == "LILR":
-                        print("-------- raw_division_name:", raw_division_name)
-
                     mapping = mapping_dict.get(raw_division_name)
 
                     # Enregistre un nouveau mapping vide en base si aucun n'existe pour standardiser la pool
@@ -153,9 +150,6 @@ class RegionalScraper(Scraper):
                         mapping_dict[raw_division_name] = created_mapping
                         continue
                     
-                    if league_code == "LILR":
-                        print("-------- is mapped:", raw_division_name, mapping.is_mapped())
-
                     if not mapping.is_mapped():
                         continue
                     
@@ -186,6 +180,10 @@ class RegionalScraper(Scraper):
                     log_event(action="pool_processing_error", level="error", error=str(e))
 
             await asyncio.gather(*tasks)
+            
+            if league_code == "LILR":
+                print("----------- existing_pools", existing_pools)
+                print("----------- scraped_pool_ids", scraped_pool_ids)
 
             missing_pool_ids = {
                 pool.id for pool in existing_pools
