@@ -136,6 +136,9 @@ class RegionalScraper(Scraper):
                     name = a_tag.get_text(strip=True)
                     raw_division_tag = a_tag.find_parent('ul').find_previous_sibling('a')
                     raw_division_name = raw_division_tag.get_text(strip=True) if raw_division_tag else ""
+                    
+                    if league_code == "LILR":
+                        print("-------- raw_division_name:", raw_division_name)
 
                     mapping = mapping_dict.get(raw_division_name)
 
