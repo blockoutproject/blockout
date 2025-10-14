@@ -96,7 +96,7 @@ async def handle_csv_download_and_parse(
             team_a_key = (row['club_a_id'], new_pool.division_id, new_pool.format, new_pool.gender, normalize(team_a_full))
             existing_team_a = existing_teams_dict.get(team_a_key)
             
-            if existing_team_a.raw_name == "MONTAUBAN VOLLEY-BALL 82" and team_a_full == "MONTAUBAN VOLLEY BALL 82":
+            if existing_team_a.raw_name == "MONTAUBAN VOLLEY-BALL 82":
                 print("-------- Existing team before changes check:", existing_team_a)
                 print("Name:", row['team_a_name'], team_a_full, team_a_short)
                 print("row", row)
