@@ -91,8 +91,8 @@ async def handle_csv_download_and_parse(
                 continue
 
             # Team A
-            team_a_full = get_full_name(row['team_a_name'], new_pool.gender)
-            team_a_short = get_short_name(row['team_a_name'], new_pool.gender)
+            team_a_full = normalize(get_full_name(row['team_a_name'], new_pool.gender))
+            team_a_short = normalize(get_short_name(row['team_a_name'], new_pool.gender))
             team_a_key = (row['club_a_id'], new_pool.division_id, new_pool.format, new_pool.gender, normalize(team_a_full))
             existing_team_a = existing_teams_dict.get(team_a_key)
 
@@ -111,8 +111,8 @@ async def handle_csv_download_and_parse(
             scraped_team_ids.add(new_team_a.id)
 
             # Team B
-            team_b_full = get_full_name(row['team_b_name'], new_pool.gender)
-            team_b_short = get_short_name(row['team_b_name'], new_pool.gender)
+            team_b_full = normalize(get_full_name(row['team_b_name'], new_pool.gender))
+            team_b_short = normalize(get_short_name(row['team_b_name'], new_pool.gender))
             team_b_key = (row['club_b_id'], new_pool.division_id, new_pool.format, new_pool.gender, normalize(team_b_full))
             existing_team_b = existing_teams_dict.get(team_b_key)
 
