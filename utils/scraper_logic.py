@@ -108,15 +108,15 @@ async def handle_csv_download_and_parse(
                 gender=new_pool.gender
             )
             
-            if existing_team_a.raw_name == "MONTAUBAN VOLLEY-BALL 82":
-                print("11111111111111 AAAAAAAAAAAA")
-                print("-------- Existing team before changes check:", existing_team_a)
-                print("Name:", row['team_a_name'], team_a_full, team_a_short)
-                print("-------- team obj team before changes check:", team_a_obj)
-                print("row", row)
-                print("pool", new_pool)
-                print("teamA key:", team_a_key)
-                print(f"{"raw_name"}: {existing_team_a.raw_name} -> {team_a_full}")
+            # if existing_team_a.raw_name == "MONTAUBAN VOLLEY-BALL 82":
+            #     print("11111111111111 AAAAAAAAAAAA")
+            #     print("-------- Existing team before changes check:", existing_team_a)
+            #     print("Name:", row['team_a_name'], team_a_full, team_a_short)
+            #     print("-------- team obj team before changes check:", team_a_obj)
+            #     print("row", row)
+            #     print("pool", new_pool)
+            #     print("teamA key:", team_a_key)
+            #     print(f"{"raw_name"}: {existing_team_a.raw_name} -> {team_a_full}")
 
             new_team_a = await add_or_update_team(scraper.session, team_a_obj, existing_team_a)
             existing_teams_dict[team_a_key] = new_team_a
@@ -140,15 +140,15 @@ async def handle_csv_download_and_parse(
                 gender=new_pool.gender
             )
             
-            if existing_team_b.raw_name == "MONTAUBAN VOLLEY-BALL 82":
-                print("11111111111111 BBBBBBBBBBB")
-                print("-------- Existing team before changes check:", existing_team_b)
-                print("-------- team obj team before changes check:", team_b_obj)
-                print("Name:", row['team_b_name'], team_b_full, team_b_short)
-                print("row", row)
-                print("pool", new_pool)
-                print("teamb key:", team_a_key)
-                print(f"{"raw_name"}: {existing_team_b.raw_name} -> {team_b_full}")
+            # if existing_team_b.raw_name == "MONTAUBAN VOLLEY-BALL 82":
+            #     print("11111111111111 BBBBBBBBBBB")
+            #     print("-------- Existing team before changes check:", existing_team_b)
+            #     print("-------- team obj team before changes check:", team_b_obj)
+            #     print("Name:", row['team_b_name'], team_b_full, team_b_short)
+            #     print("row", row)
+            #     print("pool", new_pool)
+            #     print("teamb key:", team_a_key)
+            #     print(f"{"raw_name"}: {existing_team_b.raw_name} -> {team_b_full}")
 
             new_team_b = await add_or_update_team(scraper.session, team_b_obj, existing_team_b)
             existing_teams_dict[team_b_key] = new_team_b
