@@ -95,6 +95,10 @@ async def handle_csv_download_and_parse(
             team_a_short = get_short_name(row['team_a_name'], new_pool.gender)
             team_a_key = (row['club_a_id'], new_pool.division_id, new_pool.format, new_pool.gender, normalize(team_a_full))
             existing_team_a = existing_teams_dict.get(team_a_key)
+            
+            if existing_team_a and existing_team_a.raw_name == "MONTAUBAN VOLLEY BALL 82":
+                print("-------- Existing team found:", existing_team_a)
+                print("Raw Name used :", team_a_full)
 
             new_team_a = await add_or_update_team(scraper.session, Team(
                 raw_name=team_a_full,
