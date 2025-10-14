@@ -149,6 +149,9 @@ class RegionalScraper(Scraper):
                         created_mapping = await create_raw_division_mapping(self.session, new_mapping)
                         mapping_dict[raw_division_name] = created_mapping
                         continue
+                    
+                    if raw_division_name == "MOINS 13 ANS FÉMININES OCCITANIE EST":
+                        print("-------- is mapped:", mapping.is_mapped())
 
                     if not mapping.is_mapped():
                         continue
@@ -185,6 +188,8 @@ class RegionalScraper(Scraper):
                 pool.id for pool in existing_pools
                 if pool.active and pool.id not in scraped_pool_ids
             }
+            if league_code == "LILR":
+                print("-----------missing_pool_ids", missing_pool_ids)
             if missing_pool_ids:
                 await bulk_deactivate_pools(self.session, missing_pool_ids)
 
