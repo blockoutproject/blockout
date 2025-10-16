@@ -88,6 +88,7 @@ public class IndexerJob {
                 .map(pool -> PoolUpsertEvent.builder()
                         .id(pool.getId())
                         .name(pool.getName())
+                        .shortName(pool.getShortName())
                         .divisionId(pool.getDivisionId())
                         .leagueName(pool.getLeagueName())
                         .season(pool.getSeason())

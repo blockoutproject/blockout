@@ -58,6 +58,7 @@ public class PoolIndexService {
 
         String raw = String.join(" ",
                 e.getName() != null ? e.getName() : "",
+                e.getShortName() != null ? e.getShortName() : "",
                 divisionName != null ? divisionName : "",
                 e.getLeagueName() != null ? e.getLeagueName() : "",
                 e.getSeason() != null ? e.getSeason() : "");
@@ -67,6 +68,7 @@ public class PoolIndexService {
         return PoolDoc.builder()
                 .id(e.getId())
                 .name(e.getName())
+                .shortName(e.getShortName())
                 .divisionName(divisionName)
                 .leagueName(e.getLeagueName())
                 .season(e.getSeason())
