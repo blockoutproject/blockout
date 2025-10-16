@@ -56,9 +56,11 @@ public class PoolIndexService {
                 .name(e.getName())
                 .shortName(e.getShortName())
                 .divisionName(divisionName)
+                .leagueCode(e.getLeagueCode())
                 .leagueName(e.getLeagueName())
                 .season(e.getSeason())
                 .logoUrl(logoUrl)
+                .gender(e.getGender().getLabel())
                 .build();
     }
 }
