@@ -14,6 +14,9 @@ public class PoolSummaryDTO {
     private Long id;
     private String name;
 
+    @JsonProperty("short_name")
+    private String shortName;
+
     @JsonProperty("league_name")
     public String leagueName;
 

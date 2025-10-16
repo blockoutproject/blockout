@@ -110,6 +110,7 @@ public class EnrichedPoolService {
                 .leagueCode(rawPool.getLeagueCode())
                 .leagueName(rawPool.getLeagueName())
                 .name(rawPool.getName())
+                .shortName(rawPool.getShortName())
                 .division(division)
                 .format(rawPool.getFormat())
                 .gender(rawPool.getGender())

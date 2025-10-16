@@ -133,6 +133,7 @@ public class EnrichedMatchService {
                 .leagueCode(rawPool.getLeagueCode())
                 .leagueName(rawPool.getLeagueName())
                 .name(rawPool.getName())
+                .shortName(rawPool.getShortName())
                 .format(rawPool.getFormat())
                 .gender(rawPool.getGender())
                 .followersCount(rawPool.getFollowersCount())

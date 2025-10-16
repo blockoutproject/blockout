@@ -2,8 +2,8 @@ package com.blockout.mobilegateway.services;
 
 import com.blockout.mobilegateway.exceptions.InconsistentStateException;
 import com.blockout.mobilegateway.models.dto.config.DivisionDTO;
-import com.blockout.mobilegateway.models.dto.pool.EnrichedPoolDTO;
 import com.blockout.mobilegateway.models.dto.pool.PoolDTO;
+import com.blockout.mobilegateway.models.dto.pool.PoolSummaryDTO;
 import com.blockout.mobilegateway.services.clients.ConfigClientService;
 import com.blockout.mobilegateway.services.clients.PoolClientService;
 import lombok.RequiredArgsConstructor;
@@ -23,7 +23,7 @@ public class PoolService {
      * Retourne une liste de poules “enrichies” par leurs IDs.
      * Champs renvoyés : id, leagueName, gender, season, division.
      */
-    public List<EnrichedPoolDTO> getPoolsByIds(List<Long> ids) {
+    public List<PoolSummaryDTO> getPoolsByIds(List<Long> ids) {
         if (ids == null || ids.isEmpty()) {
             throw new InconsistentStateException("ids must be a non-empty list");
         }
@@ -47,7 +47,7 @@ public class PoolService {
         }
 
         return pools.stream()
-                .map(p -> EnrichedPoolDTO.builder()
+                .map(p -> PoolSummaryDTO.builder()
                         .id(p.getId())
                         .leagueName(p.getLeagueName())
                         .season(p.getSeason())

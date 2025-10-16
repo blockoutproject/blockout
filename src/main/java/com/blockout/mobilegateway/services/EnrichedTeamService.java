@@ -117,6 +117,7 @@ public class EnrichedTeamService {
                             .leagueCode(basePool.getLeagueCode())
                             .leagueName(basePool.getLeagueName())
                             .name(basePool.getName())
+                            .shortName(basePool.getShortName())
                             .format(basePool.getFormat())
                             .gender(basePool.getGender())
                             .followersCount(basePool.getFollowersCount())

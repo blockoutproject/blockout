@@ -128,6 +128,7 @@ public class MatchListService {
                             .leagueCode(pool.getLeagueCode())
                             .leagueName(pool.getLeagueName())
                             .name(pool.getName())
+                            .shortName(pool.getShortName())
                             .format(pool.getFormat())
                             .gender(pool.getGender())
                             .followersCount(pool.getFollowersCount())
