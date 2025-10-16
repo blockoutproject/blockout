@@ -72,7 +72,13 @@ public class PoolSearchService {
                             .timeout(TIMEOUT)
                             .query(q)
                             .source(src -> src.filter(f -> f
-                                    .includes("id", "name", "shortName", "divisionName", "leagueName", "season",
+                                    .includes(
+                                            "id",
+                                            "name",
+                                            "shortName",
+                                            "divisionName",
+                                            "leagueName",
+                                            "season",
                                             "logoUrl"))),
                     PoolSearchDoc.class);
 
