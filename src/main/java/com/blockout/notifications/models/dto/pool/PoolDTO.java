@@ -26,13 +26,19 @@ public class PoolDTO {
     @JsonProperty("league_name")
     private String leagueName;
 
+    @JsonProperty("raw_name")
+    private String rawName;
+
     private String name;
+
+    @JsonProperty("short_name")
+    private String shortName;
 
     @JsonProperty("division_id")
     private Long divisionId;
 
     private Format format;
-    
+
     private Gender gender;
 
     @JsonProperty("followers_count")
