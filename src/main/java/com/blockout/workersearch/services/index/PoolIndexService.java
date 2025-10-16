@@ -1,11 +1,8 @@
 package com.blockout.workersearch.services.index;
 
 import java.util.List;
-
 import lombok.RequiredArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
+import org.slf4j.*;
 import org.springframework.stereotype.Service;
 
 import com.blockout.workersearch.models.docs.PoolDoc;
@@ -13,7 +10,6 @@ import com.blockout.workersearch.models.events.DivisionUpsertEvent;
 import com.blockout.workersearch.models.events.PoolUpsertEvent;
 import com.blockout.workersearch.repositories.PoolRepository;
 import com.blockout.workersearch.services.caches.ConfigCacheService;
-import com.blockout.workersearch.utils.TextNormalizer;
 
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
@@ -37,7 +33,6 @@ public class PoolIndexService {
 
     public void upsertBatch(List<PoolUpsertEvent> events) {
         List<PoolDoc> docs = events.stream().map(this::map).toList();
-
         logger.info("Upserting batch of pools",
                 keyValue("action", "upsert_pool_batch"),
                 keyValue("count", docs.size()));
@@ -56,15 +51,6 @@ public class PoolIndexService {
         String divisionName = division != null ? division.getName() : "Division inconnue";
         String logoUrl = division != null ? division.getLogoUrl() : null;
 
-        String raw = String.join(" ",
-                e.getName() != null ? e.getName() : "",
-                e.getShortName() != null ? e.getShortName() : "",
-                divisionName != null ? divisionName : "",
-                e.getLeagueName() != null ? e.getLeagueName() : "",
-                e.getSeason() != null ? e.getSeason() : "");
-
-        String simplified = TextNormalizer.simplify(raw);
-
         return PoolDoc.builder()
                 .id(e.getId())
                 .name(e.getName())
@@ -73,8 +59,6 @@ public class PoolIndexService {
                 .leagueName(e.getLeagueName())
                 .season(e.getSeason())
                 .logoUrl(logoUrl)
-                .keywordsAutocomplete(raw)
-                .keywordsAutocompleteSimplified(simplified)
                 .build();
     }
 }

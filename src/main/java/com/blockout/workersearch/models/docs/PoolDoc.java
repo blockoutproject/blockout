@@ -22,7 +22,5 @@ public class PoolDoc {
     private String leagueName;
     private String season;
     private String logoUrl;
-
-    private String keywordsAutocomplete;
-    private String keywordsAutocompleteSimplified;
+    private String all;
 }

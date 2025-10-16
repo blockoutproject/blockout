@@ -2,26 +2,34 @@
     "settings": {
         "analysis": {
             "filter": {
-                "autocomplete_filter": {
-                    "type": "edge_ngram",
-                    "min_gram": 1,
-                    "max_gram": 20
+                "french_elision": {
+                    "type": "elision",
+                    "articles_case": true,
+                    "articles": [
+                        "l",
+                        "m",
+                        "t",
+                        "qu",
+                        "n",
+                        "s",
+                        "j",
+                        "d",
+                        "c",
+                        "jusqu",
+                        "quoiqu",
+                        "lorsqu",
+                        "puisqu"
+                    ]
                 }
             },
             "analyzer": {
-                "autocomplete": {
+                "folded_autocomplete": {
                     "type": "custom",
                     "tokenizer": "standard",
                     "filter": [
                         "lowercase",
-                        "autocomplete_filter"
-                    ]
-                },
-                "autocomplete_search": {
-                    "type": "custom",
-                    "tokenizer": "standard",
-                    "filter": [
-                        "lowercase"
+                        "asciifolding",
+                        "french_elision"
                     ]
                 }
             }
@@ -33,32 +41,52 @@
                 "type": "long"
             },
             "name": {
-                "type": "keyword"
+                "type": "search_as_you_type",
+                "analyzer": "folded_autocomplete",
+                "copy_to": [
+                    "all"
+                ]
             },
             "shortName": {
-                "type": "keyword"
+                "type": "search_as_you_type",
+                "analyzer": "folded_autocomplete",
+                "copy_to": [
+                    "all"
+                ]
             },
             "divisionName": {
-                "type": "keyword"
+                "type": "search_as_you_type",
+                "analyzer": "folded_autocomplete",
+                "copy_to": [
+                    "all"
+                ]
             },
             "leagueName": {
-                "type": "keyword"
+                "type": "search_as_you_type",
+                "analyzer": "folded_autocomplete",
+                "copy_to": [
+                    "all"
+                ]
             },
             "season": {
-                "type": "keyword"
+                "type": "search_as_you_type",
+                "analyzer": "folded_autocomplete",
+                "copy_to": [
+                    "all"
+                ]
             },
             "logoUrl": {
                 "type": "keyword"
             },
-            "keywordsAutocomplete": {
+            "all": {
                 "type": "text",
-                "analyzer": "autocomplete",
-                "search_analyzer": "autocomplete_search"
+                "analyzer": "folded_autocomplete"
             },
-            "keywordsAutocompleteSimplified": {
-                "type": "text",
-                "analyzer": "autocomplete",
-                "search_analyzer": "autocomplete_search"
+            "name_suggest": {
+                "type": "completion",
+                "analyzer": "folded_autocomplete",
+                "preserve_separators": true,
+                "preserve_position_increments": true
             }
         }
     }
