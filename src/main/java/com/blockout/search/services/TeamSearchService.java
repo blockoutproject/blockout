@@ -46,11 +46,14 @@ public class TeamSearchService {
                                                 "id",
                                                 "name",
                                                 "shortName",
+                                                "clubId",
                                                 "clubName",
                                                 "clubCity",
+                                                "logoUrl",
                                                 "divisionName",
-                                                "season",
-                                                "logoUrl"))),
+                                                "format",
+                                                "gender",
+                                                "season"))),
                         TeamSearchDoc.class);
                 return response.hits().hits().stream().map(h -> h.source()).toList();
             }
@@ -80,11 +83,14 @@ public class TeamSearchService {
                                             "id",
                                             "name",
                                             "shortName",
+                                            "clubId",
                                             "clubName",
                                             "clubCity",
+                                            "logoUrl",
                                             "divisionName",
-                                            "season",
-                                            "logoUrl"))),
+                                            "format",
+                                            "gender",
+                                            "season"))),
                     TeamSearchDoc.class);
 
             return response.hits().hits().stream().map(h -> h.source()).toList();
