@@ -15,7 +15,5 @@ public class ClubDoc {
     private String logoUrl;
     private String name;
     private String city;
-    
-    private String keywordsAutocomplete;
-    private String keywordsAutocompleteSimplified;
+    private String all;
 }
