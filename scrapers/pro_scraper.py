@@ -98,7 +98,9 @@ class ProScraper(Scraper):
                         league_code=self.league_code,
                         season=self.raw_season,
                         league_name=self.league_name,
+                        raw_name=name,
                         name=name,
+                        short_name=name,
                         division_id=mapping.division_id,
                         format=mapping.format,
                         gender=mapping.gender

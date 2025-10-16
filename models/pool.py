@@ -9,7 +9,9 @@ class Pool:
     season: str
     division_id: str
     league_name: str
+    raw_name: str
     name: str
+    short_name: str
     format: str
     gender: str
     followers_count: Optional[int] = 0
