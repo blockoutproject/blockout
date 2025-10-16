@@ -38,8 +38,14 @@ public class Pool {
     @Column(name = "league_name")
     private String leagueName;
 
+    @Column(name = "raw_name")
+    private String rawName;
+
     @Column(name = "name")
     private String name;
+
+    @Column(name = "short_name")
+    private String shortName;
 
     @Column(name = "division_id", nullable = false)
     private Long divisionId;

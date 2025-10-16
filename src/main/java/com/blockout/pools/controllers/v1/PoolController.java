@@ -1,6 +1,7 @@
 package com.blockout.pools.controllers.v1;
 
 import com.blockout.pools.models.Pool;
+import com.blockout.pools.models.dto.PoolUpdateDTO;
 import com.blockout.pools.services.PoolService;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -70,11 +71,12 @@ public class PoolController {
             @ApiResponse(responseCode = "404", description = "Pool introuvable")
     })
     @PreAuthorize("hasAuthority('SCOPE_update:pools')")
-    @PutMapping("/{id}")
+    @PutMapping(path = "/{id}")
     public ResponseEntity<Pool> updatePool(
             @PathVariable Long id,
-            @RequestBody Pool updatedPool) {
-        Pool result = poolService.updatePool(id, updatedPool);
+            @RequestBody PoolUpdateDTO dto) {
+
+        Pool result = poolService.updatePool(id, dto);
         return ResponseEntity.ok(result);
     }
 

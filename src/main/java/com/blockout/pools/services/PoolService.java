@@ -2,6 +2,7 @@ package com.blockout.pools.services;
 
 import com.blockout.pools.exceptions.PoolNotFoundException;
 import com.blockout.pools.models.Pool;
+import com.blockout.pools.models.dto.PoolUpdateDTO;
 import com.blockout.pools.repositories.PoolRepository;
 import com.blockout.pools.utils.DiffUtils;
 
@@ -73,32 +74,45 @@ public class PoolService {
     /**
      * Met à jour une pool existante
      *
-     * @param id          L'identifiant de la pool à mettre à jour
-     * @param updatedPool Les nouvelles données de la pool
+     * @param id  L'identifiant de la pool à mettre à jour
+     * @param dto Les nouvelles données (tous les champs optionnels)
      * @return La pool mise à jour
      * @throws PoolNotFoundException si la pool n'existe pas
      */
     @Transactional
-    public Pool updatePool(Long id, Pool updatedPool) {
+    public Pool updatePool(Long id, PoolUpdateDTO dto) {
         return poolRepository.findById(id).map(pool -> {
             Pool before = pool.toBuilder().build();
 
-            pool.setPoolCode(updatedPool.getPoolCode());
-            pool.setLeagueCode(updatedPool.getLeagueCode());
-            pool.setSeason(updatedPool.getSeason());
-            pool.setLeagueName(updatedPool.getLeagueName());
-            pool.setName(updatedPool.getName());
-            pool.setDivisionId(updatedPool.getDivisionId());
-            pool.setFormat(updatedPool.getFormat());
-            pool.setGender(updatedPool.getGender());
-            pool.setActive(updatedPool.getActive());
+            if (dto.getPoolCode() != null)
+                pool.setPoolCode(dto.getPoolCode());
+            if (dto.getLeagueCode() != null)
+                pool.setLeagueCode(dto.getLeagueCode());
+            if (dto.getSeason() != null)
+                pool.setSeason(dto.getSeason());
+            if (dto.getLeagueName() != null)
+                pool.setLeagueName(dto.getLeagueName());
+            if (dto.getRawName() != null)
+                pool.setRawName(dto.getRawName());
+            if (dto.getName() != null)
+                pool.setName(dto.getName());
+            if (dto.getShortName() != null)
+                pool.setShortName(dto.getShortName());
+            if (dto.getDivisionId() != null)
+                pool.setDivisionId(dto.getDivisionId());
+            if (dto.getFormat() != null)
+                pool.setFormat(dto.getFormat());
+            if (dto.getGender() != null)
+                pool.setGender(dto.getGender());
+            if (dto.getActive() != null)
+                pool.setActive(dto.getActive());
 
-            if (!before.getActive() && pool.getActive()) {
+            if (!Boolean.TRUE.equals(before.getActive()) && Boolean.TRUE.equals(pool.getActive())) {
                 logger.info("Pool réactivée",
                         keyValue("action", "reactivate_pool"),
                         keyValue("poolId", id),
-                        keyValue("league_code", updatedPool.getLeagueCode()),
-                        keyValue("name", updatedPool.getName()));
+                        keyValue("league_code", pool.getLeagueCode()),
+                        keyValue("name", pool.getName()));
             }
 
             Pool saved = poolRepository.save(pool);
