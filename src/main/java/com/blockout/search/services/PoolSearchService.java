@@ -45,7 +45,15 @@ public class PoolSearchService {
                                         .query(inner -> inner.matchAll(m -> m))
                                         .functions(f -> f.randomScore(rs -> rs))))
                                 .source(src -> src.filter(f -> f
-                                        .includes("id", "name", "shortName", "divisionName", "leagueName", "season",
+                                        .includes(
+                                            "id", 
+                                            "name", 
+                                            "shortName", 
+                                            "divisionName", 
+                                            "leagueCode",
+                                            "leagueName", 
+                                            "season",
+                                            "gender",
                                                 "logoUrl"))),
                         PoolSearchDoc.class);
                 return response.hits().hits().stream().map(h -> h.source()).toList();
@@ -77,8 +85,10 @@ public class PoolSearchService {
                                             "name",
                                             "shortName",
                                             "divisionName",
+                                            "leagueCode",
                                             "leagueName",
                                             "season",
+                                            "gender",
                                             "logoUrl"))),
                     PoolSearchDoc.class);
 
