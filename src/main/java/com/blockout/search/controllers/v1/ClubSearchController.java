@@ -25,7 +25,7 @@ public class ClubSearchController {
     })
     @GetMapping
     public ResponseEntity<List<ClubSearchDoc>> search(@RequestParam String query) {
-        List<ClubSearchDoc> results = clubSearchService.searchByKeyword(query);
+        List<ClubSearchDoc> results = clubSearchService.autocomplete(query);
         return ResponseEntity.ok(results);
     }
 }

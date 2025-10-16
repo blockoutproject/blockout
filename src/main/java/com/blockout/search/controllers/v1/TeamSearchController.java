@@ -25,7 +25,7 @@ public class TeamSearchController {
     })
     @GetMapping
     public ResponseEntity<List<TeamSearchDoc>> search(@RequestParam String query) {
-        List<TeamSearchDoc> results = teamSearchService.searchByKeyword(query);
+        List<TeamSearchDoc> results = teamSearchService.autocomplete(query);
         return ResponseEntity.ok(results);
     }
 }
