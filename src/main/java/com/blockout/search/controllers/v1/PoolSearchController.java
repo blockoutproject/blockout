@@ -25,7 +25,7 @@ public class PoolSearchController {
     })
     @GetMapping
     public ResponseEntity<List<PoolSearchDoc>> search(@RequestParam String query) {
-        List<PoolSearchDoc> results = poolSearchService.searchByKeyword(query);
+        List<PoolSearchDoc> results = poolSearchService.autocomplete(query);
         return ResponseEntity.ok(results);
     }
 }

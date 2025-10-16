@@ -18,6 +18,7 @@ public class PoolSearchDoc {
     @Id
     private Long id;
     private String name;
+    private String shortName;
     private String divisionName;
     private String leagueName;
     private String season;
