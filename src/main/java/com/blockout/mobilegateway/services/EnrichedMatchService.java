@@ -4,6 +4,8 @@ import com.blockout.mobilegateway.exceptions.InconsistentStateException;
 import com.blockout.mobilegateway.models.dto.club.ClubDTO;
 import com.blockout.mobilegateway.models.dto.competition.CompetitionAssociationDTO;
 import com.blockout.mobilegateway.models.dto.config.DivisionDTO;
+import com.blockout.mobilegateway.models.dto.http.HttpAction;
+import com.blockout.mobilegateway.models.dto.http.MatchDocumentLink;
 import com.blockout.mobilegateway.models.dto.match.EnrichedMatchDTO;
 import com.blockout.mobilegateway.models.dto.match.MatchDTO;
 import com.blockout.mobilegateway.models.dto.pool.EnrichedPoolDTO;
@@ -34,6 +36,31 @@ public class EnrichedMatchService {
     private final ConfigClientService configClientService;
     private final CompetitionClientService competitionClientService;
     private final ClubClientService clubClientService;
+
+    private List<MatchDocumentLink> buildDocumentsForFfvb(String saison, String codent, String codmatch) {
+        var sheet = new MatchDocumentLink(
+                "feuille-de-match",
+                "Feuille de match (FFVB)",
+                new HttpAction(
+                        HttpAction.Method.POST, HttpAction.Encoding.URLENCODED,
+                        "https://www.ffvbbeach.org/ffvbapp/resu/ffvolley_fdme.php?saison=" + saison + "&codent="
+                                + codent + "&codmatch=" + codmatch,
+                        List.of() // corps vide (POST requis, params dans l'URL)
+                ));
+
+        var address = new MatchDocumentLink(
+                "fiche-adresse",
+                "Fiche adresse (FFVB)",
+                new HttpAction(
+                        HttpAction.Method.POST, HttpAction.Encoding.MULTIPART,
+                        "https://www.ffvbbeach.org/ffvbapp/adressier/fiche_match_ffvb.php",
+                        List.of(
+                                new HttpAction.NameValue("wss_saison", saison),
+                                new HttpAction.NameValue("codmatch", codmatch),
+                                new HttpAction.NameValue("codent", codent))));
+
+        return List.of(sheet, address);
+    }
 
     public EnrichedMatchDTO getEnrichedMatchById(Long matchId) {
         MatchDTO match = matchClientService.getMatchById(matchId);
@@ -158,6 +185,10 @@ public class EnrichedMatchService {
                 .teamA(teamA)
                 .teamB(teamB)
                 .pool(enrichedPool)
+                .documents(buildDocumentsForFfvb(
+                        match.getSeason(),
+                        match.getLeagueCode(),
+                        match.getMatchCode()))
                 .build();
     }
 }

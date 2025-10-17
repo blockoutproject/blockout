@@ -1,5 +1,8 @@
 package com.blockout.mobilegateway.models.dto.match;
 
+import java.util.List;
+
+import com.blockout.mobilegateway.models.dto.http.MatchDocumentLink;
 import com.blockout.mobilegateway.models.dto.pool.EnrichedPoolDTO;
 import com.blockout.mobilegateway.models.dto.team.TeamDTO;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -46,11 +49,7 @@ public class EnrichedMatchDTO {
     @JsonProperty("team_b")
     private TeamDTO teamB;
 
-    @JsonProperty("match_address_pdf_url")
-    private String matchAddressPdfUrl;
-
-    @JsonProperty("match_sheet_pdf_url")
-    private String matchSheetPdfUrl;
+    private List<MatchDocumentLink> documents;
 
     private EnrichedPoolDTO pool;
 }
