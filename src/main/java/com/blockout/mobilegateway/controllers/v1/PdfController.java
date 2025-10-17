@@ -17,7 +17,7 @@ import java.util.Map;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/pdf")
+@RequestMapping("/api/v1/mobile/pdf")
 public class PdfController {
 
     private final PdfTokenService tokenService;
