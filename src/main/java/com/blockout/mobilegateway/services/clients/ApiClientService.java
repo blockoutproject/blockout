@@ -1,6 +1,5 @@
 package com.blockout.mobilegateway.services.clients;
 
-import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -12,13 +11,15 @@ import org.springframework.web.client.RestTemplate;
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
 @Service
-@RequiredArgsConstructor
 public class ApiClientService {
 
     private static final Logger logger = LoggerFactory.getLogger(ApiClientService.class);
 
-    @Qualifier("internalRestTemplate")
     private final RestTemplate restTemplate;
+
+    public ApiClientService(@Qualifier("internalRestTemplate") RestTemplate restTemplate) {
+        this.restTemplate = restTemplate;
+    }
 
     public <T> ResponseEntity<T> get(String url, Class<T> responseType) {
         logger.info("Performing external GET request",

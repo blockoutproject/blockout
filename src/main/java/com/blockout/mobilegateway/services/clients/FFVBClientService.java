@@ -1,6 +1,5 @@
 package com.blockout.mobilegateway.services.clients;
 
-import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -15,13 +14,15 @@ import org.springframework.web.util.UriComponentsBuilder;
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
 @Service
-@RequiredArgsConstructor
 public class FFVBClientService {
 
     private static final Logger log = LoggerFactory.getLogger(FFVBClientService.class);
 
-    @Qualifier("externalRestTemplate")
     private final RestTemplate restTemplate;
+
+    public FFVBClientService(@Qualifier("externalRestTemplate") RestTemplate restTemplate) {
+        this.restTemplate = restTemplate;
+    }
 
     /**
      * POST:
@@ -66,8 +67,8 @@ public class FFVBClientService {
 
         MultiValueMap<String, Object> form = new LinkedMultiValueMap<>();
         form.add("wss_saison", saison);
-        form.add("codmatch",   codmatch);
-        form.add("codent",     codent);
+        form.add("codmatch", codmatch);
+        form.add("codent", codent);
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.MULTIPART_FORM_DATA);
