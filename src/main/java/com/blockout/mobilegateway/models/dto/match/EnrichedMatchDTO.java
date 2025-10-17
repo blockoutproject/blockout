@@ -46,5 +46,11 @@ public class EnrichedMatchDTO {
     @JsonProperty("team_b")
     private TeamDTO teamB;
 
+    @JsonProperty("match_address_pdf_url")
+    private String matchAddressPdfUrl;
+
+    @JsonProperty("match_sheet_pdf_url")
+    private String matchSheetPdfUrl;
+
     private EnrichedPoolDTO pool;
 }

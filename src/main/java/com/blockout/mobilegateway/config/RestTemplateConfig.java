@@ -1,5 +1,7 @@
 package com.blockout.mobilegateway.config;
 
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.client.ClientHttpRequestInterceptor;
@@ -8,28 +10,53 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.web.client.RestTemplate;
 
-import java.util.List;
+import java.time.Duration;
 
 @Configuration
 public class RestTemplateConfig {
 
+    /**
+     * RestTemplate INTERNE
+     */
     @Bean
-    public RestTemplate restTemplate() {
-        RestTemplate restTemplate = new RestTemplate();
-        restTemplate.setInterceptors(List.of(bearerTokenInterceptor()));
-        return restTemplate;
+    @Qualifier("internalRestTemplate")
+    public RestTemplate internalRestTemplate(RestTemplateBuilder builder) {
+        return builder
+                .additionalInterceptors(bearerTokenInterceptor())
+                .connectTimeout(Duration.ofSeconds(5))
+                .readTimeout(Duration.ofSeconds(15))
+                .build();
+    }
+
+    /**
+     * RestTemplate EXTERNE (FFVB)
+     */
+    @Bean
+    @Qualifier("externalRestTemplate")
+    public RestTemplate externalRestTemplate(RestTemplateBuilder builder) {
+        return builder
+                .additionalInterceptors(userAgentInterceptor("Blockout-MobileGateway/1.0"))
+                .connectTimeout(Duration.ofSeconds(5))
+                .readTimeout(Duration.ofSeconds(15))
+                .build();
     }
 
     @Bean
     public ClientHttpRequestInterceptor bearerTokenInterceptor() {
         return (request, body, execution) -> {
             Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-
             if (auth instanceof JwtAuthenticationToken jwtAuth) {
-                String token = jwtAuth.getToken().getTokenValue();
-                request.getHeaders().setBearerAuth(token);
+                request.getHeaders().setBearerAuth(jwtAuth.getToken().getTokenValue());
             }
+            return execution.execute(request, body);
+        };
+    }
 
+    private ClientHttpRequestInterceptor userAgentInterceptor(String ua) {
+        return (request, body, execution) -> {
+            if (!request.getHeaders().containsKey("User-Agent")) {
+                request.getHeaders().add("User-Agent", ua);
+            }
             return execution.execute(request, body);
         };
     }

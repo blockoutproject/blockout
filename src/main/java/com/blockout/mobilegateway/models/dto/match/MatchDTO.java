@@ -42,7 +42,7 @@ public class MatchDTO {
     private String score;
 
     private String status;
-    
+
     private String venue;
 
     @JsonProperty("first_referee")
@@ -50,7 +50,7 @@ public class MatchDTO {
 
     @JsonProperty("second_referee")
     private String secondReferee;
-    
+
     private Boolean active;
 
     @JsonProperty("created_at")
