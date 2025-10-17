@@ -30,6 +30,6 @@ public class PdfLinkService {
 
         String base = ServletUriComponentsBuilder.fromCurrentContextPath().build().toUriString();
 
-        return base + "/api/pdf/fetch?t=" + token;
+        return base + "/api/v1/mobile/pdf/fetch?t=" + token;
     }
 }
