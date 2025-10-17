@@ -1,6 +1,5 @@
 package com.blockout.mobilegateway.controllers.v1;
 
-import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.*;
 import org.springframework.util.LinkedMultiValueMap;
@@ -16,14 +15,17 @@ import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
 @RestController
-@RequiredArgsConstructor
 @RequestMapping("/api/v1/mobile/pdf")
 public class PdfController {
 
     private final PdfTokenService tokenService;
 
-    @Qualifier("externalRestTemplate")
-    private final RestTemplate externalRt;
+    private final RestTemplate restTemplate;
+
+    PdfController(PdfTokenService tokenService, @Qualifier("externalRestTemplate") RestTemplate restTemplate) {
+        this.tokenService = tokenService;
+        this.restTemplate = restTemplate;
+    }
 
     @GetMapping("/fetch")
     public void fetch(@RequestParam("t") String token, HttpServletResponse resp) throws Exception {
@@ -43,7 +45,7 @@ public class PdfController {
 
             HttpHeaders h = new HttpHeaders();
             h.setAccept(MediaType.parseMediaTypes("application/pdf,*/*"));
-            upstream = externalRt.exchange(url, HttpMethod.POST, new HttpEntity<>(h), byte[].class);
+            upstream = restTemplate.exchange(url, HttpMethod.POST, new HttpEntity<>(h), byte[].class);
 
         } else if ("address".equals(kind)) {
             String url = "https://www.ffvbbeach.org/ffvbapp/adressier/fiche_match_ffvb.php";
@@ -56,7 +58,7 @@ public class PdfController {
             form.add("codmatch", codmatch);
             form.add("codent", codent);
 
-            upstream = externalRt.exchange(url, HttpMethod.POST, new HttpEntity<>(form, h), byte[].class);
+            upstream = restTemplate.exchange(url, HttpMethod.POST, new HttpEntity<>(form, h), byte[].class);
 
         } else {
             resp.sendError(400, "Unknown kind");
