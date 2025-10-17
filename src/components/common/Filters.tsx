@@ -22,6 +22,8 @@ export type FiltersProps = {
     singleSelect?: boolean;
     /** Au moins un filtre actif requis */
     requireSelection?: boolean;
+    /** Style du composant */
+    style?: StyleProp<ViewStyle>;
     /** Style du conteneur */
     containerStyle?: StyleProp<ViewStyle>;
     /** Autorise le scroll horizontal */
@@ -38,6 +40,7 @@ const Filters: React.FC<FiltersProps> = ({
     setFilters,
     singleSelect = false,
     requireSelection = false,
+    style,
     containerStyle,
     scrollable = true,
     activeGradient,
@@ -84,7 +87,7 @@ const Filters: React.FC<FiltersProps> = ({
     }, [activeGradient, borderWidth, inactiveGradient, theme.border, toggleFilter]);
 
     return (
-        <View style={[containerStyle]}>
+        <View style={[style]}>
             <FlatList
                 data={filters}
                 keyExtractor={(item) => item.name}
@@ -93,7 +96,7 @@ const Filters: React.FC<FiltersProps> = ({
                 scrollEnabled={scrollable}
                 keyboardShouldPersistTaps="always"
                 showsHorizontalScrollIndicator={false}
-                contentContainerStyle={[styles.row, { columnGap: 8 }]}
+                contentContainerStyle={[styles.row, containerStyle, { columnGap: 8 }]}
             />
         </View>
     );

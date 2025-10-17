@@ -6,7 +6,6 @@ import {
     StyleSheet,
     StyleProp,
     ViewStyle,
-    RefreshControl,
 } from "react-native";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
@@ -20,14 +19,12 @@ import {
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import { useMatchList } from "@/src/hooks/match/useMatchList";
 import { formatDateFrenchLocale } from "@/src/utils/utils";
-
 import SectionDateHeader from "./SectionDateHeader";
 import PoolItem from "./PoolItem";
 import EmptyState from "../common/feedback/EmptyState";
 import ErrorState from "../common/feedback/ErrorState";
-import { BOTTOM_TABBAR_HEIGHT, LOGO_HEIGHT, SECTION_SEPARATOR_HEIGHT, TABBAR_HEIGHT } from "@/src/theme/globals";
+import { BOTTOM_TABBAR_HEIGHT, SECTION_SEPARATOR_HEIGHT } from "@/src/theme/globals";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { he } from "date-fns/locale";
 
 export type MatchListProps = {
     poolIds?: number[];
@@ -90,7 +87,7 @@ const MatchList: React.FC<MatchListProps> = ({
     const handleMatchPress = useCallback(
         async (matchId: number) => {
             await Haptics.selectionAsync();
-            router.push(`/matches/${matchId}`);
+            router.push(`/match/${matchId}`);
         },
         [router]
     );

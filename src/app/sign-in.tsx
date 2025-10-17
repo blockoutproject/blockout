@@ -12,6 +12,7 @@ import InfoPill from "@/src/components/common/chips/InfoPill";
 import ApiErrorToast from "@/src/components/common/feedback/ApiErrorToast";
 import { GradientButton } from "@/src/components/common/GradientButton";
 import { useOnboardingStore } from "../utils/onboardingStore";
+import { useAuth0 } from "react-native-auth0";
 
 const APP_TITLE = "Blockout";
 
@@ -25,6 +26,7 @@ const LoginScreen: React.FC = () => {
     const [apiError, setApiError] = useState<string | null>(null);
 
     useEffect(() => {
+        console.log("--------", error);
         if (!isSigningIn && error) {
             setApiError("Erreur lors de la connexion.");
         }
@@ -35,9 +37,11 @@ const LoginScreen: React.FC = () => {
             resetOnboarding();
             setIsSigningIn(true);
             setApiError(null);
+            console.log("Revoking refresh token...");
             await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
             await signIn();
-        } catch {
+        } catch (err) {
+            console.error(err);
             await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
             setApiError("Erreur lors de la connexion.");
         } finally {

@@ -24,7 +24,7 @@ const SearchClubScreen: React.FC<SearchClubScreenProps> = ({
 
     const handlePress = (id: string) => {
         Haptics.selectionAsync();
-        router.push(`/clubs/${id}`);
+        router.push(`/club/${id}`);
     };
 
     return (

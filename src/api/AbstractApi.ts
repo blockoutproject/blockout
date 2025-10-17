@@ -238,8 +238,8 @@ export default abstract class AbstractApi {
 
             const code = isTimeout ? "ERR_TIMEOUT" : "ERR_NETWORK";
             const message = isTimeout
-                ? "Délai dépassé. Le serveur ne répond pas."
-                : "Serveur injoignable. Vérifie ta connexion ou réessaie plus tard.";
+                ? "[ERR_TIMEOUT] Délai dépassé. Le serveur ne répond pas."
+                : "[ERR_NETWORK] Serveur injoignable. Vérifie ta connexion ou réessaie plus tard.";
 
             console.error("[API Error] Aucune réponse reçue", {
                 url: error.config?.url,

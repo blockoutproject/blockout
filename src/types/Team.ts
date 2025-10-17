@@ -7,6 +7,7 @@ import { EnrichedPoolDTO, Pool } from "./Pool";
 export interface Team {
     id: number;
     clubId: string;
+    rawName: string;
     name: string;
     shortName: string;
     leagueCode: string;
@@ -47,7 +48,18 @@ export interface EnrichedTeamDTO {
     pools: EnrichedPoolDTO[];
 }
 
-export interface TeamHighlight { 
-    teamId?: number; 
-    color: string 
+export interface TeamHighlight {
+    teamId?: number;
+    color: string
 };
+
+export interface TeamSummaryDTO {
+    id: number;
+    name: string;
+    season: string;
+    gender: EnumGender;
+    format: EnumFormat;
+    division: Division;
+    club: Club;
+    shortName: string;
+}

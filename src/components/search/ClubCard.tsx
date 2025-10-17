@@ -15,13 +15,11 @@ const ClubCard: React.FC<ClubCardProps> = ({ club, onPress }) => {
         <SearchCard
             title={club.name}
             imageUri={club.logoUrl}
-            fallbackImage={require("@/assets/clubs/default_club_logo.png")}
             chips={[
-                { label: club.city, icon: "map-marker", labelStyle: { fontSize: 11, color: theme.textSecondary } },
+                { label: club.city, icon: "map-marker", labelStyle: { fontSize: 12, color: theme.textSecondary } },
             ]}
             onPress={onPress}
             testID="club-card"
-            contentFit="contain"
             marginBottom={12}
         />
     );

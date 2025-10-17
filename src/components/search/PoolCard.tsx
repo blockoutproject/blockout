@@ -10,20 +10,20 @@ export type PoolCardProps = {
 
 const PoolCard: React.FC<PoolCardProps> = ({ pool, onPress }) => {
     const theme = useAppTheme();
+    const isRegional = !["ABCCS", "AALNV"].includes(pool.leagueCode);
 
     return (
         <SearchCard
             title={pool.name}
             imageUri={pool.logoUrl}
-            fallbackImage={require("@/assets/clubs/default_club_logo.png")}
             chips={[
-                { label: pool.divisionName, labelStyle: { fontSize: 11, color: theme.textSecondary } },
-                { label: pool.leagueName, labelStyle: { fontSize: 11, color: theme.textSecondary }, maxWidth: 125 },
-                { label: pool.season, labelStyle: { fontSize: 11, color: theme.textSecondary } },
+                ...(isRegional
+                    ? [{ label: pool.leagueName, labelStyle: { fontSize: 12, color: theme.textSecondary } }]
+                    : []),
+                { label: pool.season, labelStyle: { fontSize: 12, color: theme.textSecondary } },
             ]}
             onPress={onPress}
             testID="pool-card"
-            contentFit="contain"
             marginBottom={12}
         />
     );

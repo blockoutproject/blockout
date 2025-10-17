@@ -133,3 +133,50 @@ export function withAlpha(color: string, alpha: number): string {
     if (alpha === 1) return color;
     return `rgba(0,0,0,${alpha})`;
 }
+
+export function computeMaxFitCount(params: {
+    containerWidth: number;
+    pillWidths: number[];
+    gap: number;
+}): number {
+    const { containerWidth, pillWidths, gap } = params;
+    let count = 0;
+    let current = 0;
+
+    for (let i = 0; i < pillWidths.length; i++) {
+        const w = pillWidths[i];
+        const next = count === 0 ? w : current + gap + w;
+        if (next <= containerWidth) {
+            count += 1;
+            current = next;
+        } else {
+            break;
+        }
+    }
+    return count;
+}
+
+export function computeBalancedRowsByCount(params: {
+    containerWidth: number;
+    pillWidths: number[];
+    gap: number;
+}): { topIndices: number[]; bottomIndices: number[] } {
+    const { containerWidth, pillWidths, gap } = params;
+    const n = pillWidths.length;
+    if (n === 0) return { topIndices: [], bottomIndices: [] };
+
+    // Cible équilibrée par NOMBRE
+    const desiredTop = Math.ceil(n / 2);
+
+    // Capacité réelle maximale de la 1ʳᵉ ligne
+    const maxFitTop = computeMaxFitCount({ containerWidth, pillWidths, gap });
+
+    // On prend le minimum entre la cible et la capacité réelle
+    const topCount = Math.max(1, Math.min(desiredTop, maxFitTop));
+
+    const indices = Array.from({ length: n }, (_, i) => i);
+    return {
+        topIndices: indices.slice(0, topCount),
+        bottomIndices: indices.slice(topCount),
+    };
+}

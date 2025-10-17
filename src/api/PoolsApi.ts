@@ -85,6 +85,18 @@ class PoolsApi extends AbstractApi {
             throw error;
         }
     }
+
+    /**
+     * Met à jour une poule existante
+     * @param payload le payload de la poule à modifier
+     */
+    public async updatePool(id: number, payload: Partial<Pool>): Promise<Pool> {
+        return await this.request<Pool>({
+            method: 'put',
+            url: `/${id}`,
+            data: payload
+        });
+    }
 }
 
 export default PoolsApi;

@@ -35,12 +35,12 @@ const RankingCard: React.FC<RankingCardProps> = ({
 
     const handleTeamPress = (teamId: number) => {
         Haptics.selectionAsync();
-        router.push(`/teams/${teamId}`);
+        router.push(`/team/${teamId}`);
     };
 
     const handleHeaderPress = () => {
         Haptics.selectionAsync();
-        router.push(`/pools/${enrichedPool.id}`);
+        router.push(`/pool/${enrichedPool.id}`);
     };
 
     return (

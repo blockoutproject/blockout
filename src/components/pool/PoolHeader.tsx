@@ -12,9 +12,11 @@ export type PoolHeaderProps = {
     title?: string;
     /** Open report modal. */
     onOpenReport: () => void;
+    /** Open edit team form. */
+    onEdit?: () => void;
 };
 
-const PoolHeader: React.FC<PoolHeaderProps> = ({ title, onOpenReport }) => {
+const PoolHeader: React.FC<PoolHeaderProps> = ({ title, onOpenReport, onEdit }) => {
     const theme = useAppTheme();
     const insets = useSafeAreaInsets();
     const router = useRouter();
@@ -67,21 +69,39 @@ const PoolHeader: React.FC<PoolHeaderProps> = ({ title, onOpenReport }) => {
                     </Text>
                 </View>
 
-                <TouchableOpacity
-                    onPress={onOpenReport}
-                    hitSlop={{
-                        top: 8,
-                        bottom: 8,
-                        left: 8,
-                        right: 8,
-                    }}
-                >
-                    <MaterialCommunityIcons
-                        name="flag-outline"
-                        size={28}
-                        color={theme.text}
-                    />
-                </TouchableOpacity>
+                <View style={styles.rightGroup}>
+                    <TouchableOpacity
+                        onPress={onEdit}
+                        hitSlop={{
+                            top: 8,
+                            bottom: 8,
+                            left: 8,
+                            right: 8,
+                        }}
+                    >
+                        <MaterialCommunityIcons
+                            name="pencil-outline"
+                            size={28}
+                            color={theme.text}
+                        />
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                        onPress={onOpenReport}
+                        hitSlop={{
+                            top: 8,
+                            bottom: 8,
+                            left: 8,
+                            right: 8,
+                        }}
+                    >
+                        <MaterialCommunityIcons
+                            name="flag-outline"
+                            size={28}
+                            color={theme.text}
+                        />
+                    </TouchableOpacity>
+                </View>
             </View>
         </View>
     );
@@ -103,6 +123,11 @@ const styles = StyleSheet.create({
         alignItems: "center",
         flexShrink: 1,
         flexGrow: 1,
+    },
+    rightGroup: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 10,
     },
     backButton: {
         marginRight: 4,

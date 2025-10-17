@@ -252,7 +252,7 @@ const styles = StyleSheet.create({
     },
     tabStyle: {
         width: "auto",
-        paddingHorizontal: 16,
+        paddingHorizontal: 8,
     },
     teamLogo: { flex: 1, aspectRatio: 5 },
     indicator: { width: 0.5, height: 3 },

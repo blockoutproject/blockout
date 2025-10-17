@@ -74,6 +74,8 @@ export const SessionProvider: React.FC<React.PropsWithChildren> = ({ children })
             audience: "https://api.blockoutproject.com/",
             scope: "openid profile email offline_access",
         });
+        await refetch();
+        console.log("Sign-in successful");
     };
 
     const softResetAuth = async () => {
@@ -99,9 +101,10 @@ export const SessionProvider: React.FC<React.PropsWithChildren> = ({ children })
     };
 
     useEffect(() => {
-        if (isReady && isError && !(error?.name === "USER_CANCELLED")) {
-            softResetAuth();
-        }
+        console.log({ isReady, isError, error });
+        // if (isReady && isError && !(error?.name === "USER_CANCELLED")) {
+        //     softResetAuth();
+        // }
     }, [isReady, isError]);
 
     const value = useMemo<SessionContextValue>(() => {

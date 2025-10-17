@@ -5,8 +5,8 @@ import {
     EnrichedMatchDTO,
     MatchStatus,
 } from '@/src/types/Match';
-import { EnrichedPoolDTO } from '../types/Pool';
-import { EnrichedTeamDTO } from '../types/Team';
+import { EnrichedPoolDTO, PoolSummaryDTO } from '../types/Pool';
+import { EnrichedTeamDTO, TeamSummaryDTO } from '../types/Team';
 import { EnrichedUserNotificationPage } from '../types/Notification';
 
 type InitOpts = {
@@ -90,6 +90,38 @@ class MobileGatewayApi extends AbstractApi {
         return await this.request<EnrichedTeamDTO>({
             method: 'get',
             url: `/enriched-team/${id}`,
+        });
+    }
+
+    /**
+     * Récupère une liste d'équipes par un clubId
+     */
+    public async getTeamListByClubId(id: string): Promise<TeamSummaryDTO[]> {
+        return await this.request<TeamSummaryDTO[]>({
+            method: 'get',
+            url: `/teams/by-club/${id}`,
+        });
+    }
+
+    /**
+     * Récupère une liste d'équipes par ids
+     */
+    public async getTeamListByIds(ids: number[]): Promise<TeamSummaryDTO[]> {
+        return await this.request<TeamSummaryDTO[]>({
+            method: 'get',
+            url: `/teams/by-ids`,
+            params: { ids },
+        });
+    }
+
+    /**
+     * Récupère une liste de poules par ids
+     */
+    public async getPoolListByIds(ids: number[]): Promise<PoolSummaryDTO[]> {
+        return await this.request<PoolSummaryDTO[]>({
+            method: 'get',
+            url: `/pools/by-ids`,
+            params: { ids },
         });
     }
 

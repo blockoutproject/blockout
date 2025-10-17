@@ -2,7 +2,7 @@ import React, { useCallback, useMemo, useRef } from "react";
 import { StyleSheet, View } from "react-native";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import { useLocalSearchParams } from "expo-router";
-
+import * as Haptics from "expo-haptics";
 import { useEnrichedTeamById } from "@/src/hooks/team/useEnrichedTeamById";
 import TeamSkeleton from "@/src/components/team/TeamSkeleton";
 import TeamProfile from "@/src/components/team/TeamProfile";
@@ -12,13 +12,24 @@ import { useAppTheme } from "@/src/context/ThemeProvider";
 import TeamHeader from "@/src/components/team/TeamHeader";
 import { ReportType } from "@/src/types/Report";
 import ReportFormSheet from "@/src/components/report/ReportFormSheet";
+import TeamFormSheet from "@/src/components/team/TeamFormSheet";
+import useHasScopes from "@/src/hooks/user/useHasScopes";
 
 const TeamScreen: React.FC = () => {
     const theme = useAppTheme();
     const { id } = useLocalSearchParams();
     const { data: team, isLoading, error, refetch } = useEnrichedTeamById(Number(id));
+    const { allowed: canUpdateTeam } = useHasScopes(["update:teams"]);
 
+    const formSheetRef = useRef<BottomSheetModal>(null);
     const reportSheetRef = useRef<BottomSheetModal>(null);
+
+    const openForm = () => {
+        if (!team) return;
+        Haptics.selectionAsync();
+        formSheetRef.current?.present();
+    };
+    const closeForm = () => formSheetRef.current?.dismiss();
 
     const handleOpenReport = useCallback(() => {
         reportSheetRef.current?.present();
@@ -52,6 +63,16 @@ const TeamScreen: React.FC = () => {
             <>
                 <TeamProfile enrichedTeam={team} />
                 <TeamTabs enrichedTeam={team} />
+                <TeamFormSheet
+                    ref={formSheetRef}
+                    team={team}
+                    onSuccess={() => {
+                        refetch();
+                        closeForm();
+                    }}
+                    snapPoint="90%"
+                    footerLabel="Enregistrer"
+                />
             </>
         );
     }, [isLoading, error, team, refetch]);
@@ -69,6 +90,7 @@ const TeamScreen: React.FC = () => {
             <TeamHeader
                 title={team?.name}
                 onOpenReport={handleOpenReport}
+                onEdit={canUpdateTeam ? openForm : undefined}
             />
 
             {body}

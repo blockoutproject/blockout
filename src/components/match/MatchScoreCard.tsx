@@ -29,7 +29,7 @@ const MatchScoreCard: React.FC<MatchScoreCardProps> = ({ enrichedMatch, gradient
 
     const handleTeamPress = (teamId: number) => {
         Haptics.selectionAsync();
-        router.push(`/teams/${teamId}`);
+        router.push(`/team/${teamId}`);
     };
 
     const TeamBlock: React.FC<{

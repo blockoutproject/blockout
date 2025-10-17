@@ -42,7 +42,7 @@ const PoolItem: React.FC<PoolItemProps> = ({
 
     const handleHeaderPress = () => {
         Haptics.selectionAsync();
-        router.push(`/pools/${enrichedPoolMatches.pool.id}`);
+        router.push(`/pool/${enrichedPoolMatches.pool.id}`);
     };
 
     return (

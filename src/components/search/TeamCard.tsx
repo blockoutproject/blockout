@@ -15,7 +15,6 @@ const TeamCard: React.FC<TeamCardProps> = ({ team, onPress }) => {
         <SearchCard
             title={team.name}
             imageUri={team.logoUrl}
-            fallbackImage={require("@/assets/clubs/default_club_logo.png")}
             chips={[
                 { label: team.divisionName, labelStyle: { fontSize: 11, color: theme.textSecondary } },
                 { label: team.gender, labelStyle: { fontSize: 11, color: theme.textSecondary } },
@@ -23,7 +22,6 @@ const TeamCard: React.FC<TeamCardProps> = ({ team, onPress }) => {
             ]}
             onPress={onPress}
             testID="team-card"
-            contentFit="contain"
             marginBottom={12}
         />
     );

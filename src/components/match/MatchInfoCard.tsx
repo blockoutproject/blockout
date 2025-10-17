@@ -6,6 +6,7 @@ import GradientBorderView from "@/src/components/common/GradientBorderView";
 import type { EnrichedMatchDTO } from "@/src/types/Match";
 import InfoPillGradient from "@/src/components/common/chips/InfoPillGradient";
 import { useRouter } from "expo-router";
+import { useHttpActionExecutor } from "@/src/hooks/utils/useHttpActionExecutor";
 
 /** Info card with league/pool/date/venue/referees. */
 export type MatchInfoCardProps = {
@@ -18,6 +19,7 @@ const RADIUS = 18;
 const MatchInfoCard: React.FC<MatchInfoCardProps> = ({ enrichedMatch }) => {
     const theme = useAppTheme();
     const router = useRouter();
+    const { execute } = useHttpActionExecutor();
 
     const division = enrichedMatch.pool.division;
     const gradient = [
@@ -44,7 +46,7 @@ const MatchInfoCard: React.FC<MatchInfoCardProps> = ({ enrichedMatch }) => {
 
     const handlePoolPress = (poolId: number) => {
         Haptics.selectionAsync();
-        router.push(`/pools/${poolId}`);
+        router.push(`/pool/${poolId}`);
     };
 
     return (
@@ -114,6 +116,17 @@ const MatchInfoCard: React.FC<MatchInfoCardProps> = ({ enrichedMatch }) => {
                         borderWidth={1}
                     />
                 )}
+
+                {enrichedMatch.documents?.map((doc) => (
+                    <InfoPillGradient
+                        key={doc.id}
+                        label={doc.title}
+                        gradient={gradient}
+                        variant="filled"
+                        onPress={() => execute(doc.action)}
+                        rightIcon="document-text-outline"
+                    />
+                ))}
             </View>
         </GradientBorderView>
     );

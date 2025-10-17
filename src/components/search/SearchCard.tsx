@@ -5,6 +5,7 @@ import { useAppTheme } from "@/src/context/ThemeProvider";
 import InfoPill from "@/src/components/common/chips/InfoPill";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import FadeIn from "../common/animations/FadeIn";
+import MaskedImage from "../common/images/MaskedImage";
 
 export type SearchCardChip = {
     label: string;
@@ -18,16 +19,12 @@ export type SearchCardProps = {
     title: string;
     /** URL du logo si disponible. */
     imageUri?: string | null;
-    /** Fallback local si pas d’URL (require). */
-    fallbackImage: any;
     /** Liste des chips (une seule ligne, troncature si besoin). */
     chips?: SearchCardChip[];
     /** Handler press. */
     onPress: () => void;
     /** Pour tester (e2e). */
     testID?: string;
-    /** Ajuste le fit de l’image (contain recommandé pour logos). */
-    contentFit?: "contain" | "cover" | "fill" | "none" | "scale-down";
     /** Hauteur du logo (pour uniformiser selon contexte). */
     logoSize?: number;
     /** Rayon des coins de la carte. */
@@ -41,11 +38,9 @@ export type SearchCardProps = {
 const SearchCard: React.FC<SearchCardProps> = ({
     title,
     imageUri,
-    fallbackImage,
     chips = [],
     onPress,
     testID,
-    contentFit = "contain",
     logoSize = 44,
     borderRadius = 16,
     padding = 12,
@@ -69,16 +64,12 @@ const SearchCard: React.FC<SearchCardProps> = ({
                 ]}
                 testID={testID}
             >
-                <Image
-                    source={imageUri ? { uri: imageUri } : fallbackImage}
-                    style={[
-                        styles.logo,
-                        {
-                            height: logoSize,
-                            backgroundColor: theme.text,
-                        },
-                    ]}
-                    contentFit={contentFit}
+                <MaskedImage
+                    uri={imageUri}
+                    size={logoSize}
+                    radius={12}
+                    style={styles.logo}
+                    shadow
                 />
 
                 <View style={styles.content}>
@@ -101,9 +92,6 @@ const SearchCard: React.FC<SearchCardProps> = ({
                         <View
                             style={[
                                 styles.chipsRow,
-                                { /* clés pour contenir sur 1 ligne sans débordement */
-                                    minWidth: 0,
-                                },
                             ]}
                         >
                             {chips.map((chip, idx) => (
@@ -113,7 +101,7 @@ const SearchCard: React.FC<SearchCardProps> = ({
                                     leftIconName={chip.icon}
                                     labelStyle={chip.labelStyle ?? { fontSize: 11, color: theme.textSecondary }}
                                     maxWidth={chip.maxWidth}
-                                    style={{ flexShrink: 1, minWidth: 0 }}
+                                    style={{ flexShrink: 1 }}
                                 />
                             ))}
                         </View>
@@ -132,25 +120,19 @@ const styles = StyleSheet.create({
         alignItems: "center",
     },
     logo: {
-        aspectRatio: 1,
         marginRight: 10,
-        borderRadius: 12,
-        flexShrink: 0,
     },
     content: {
         flex: 1,
     },
     title: {
         fontSize: 14,
-        fontWeight: "900",
+        fontWeight: "800",
     },
     chipsRow: {
         flexDirection: "row",
-        alignItems: "center",
+        flexWrap: "wrap",
         gap: 4,
         marginTop: 6,
-        /** On force une seule ligne, mais on évite le débordement */
-        flexWrap: "nowrap",
-        overflow: "hidden",
     },
 });

@@ -4,6 +4,7 @@ import TeamCard from "@/src/components/search/TeamCard";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { GenericSearchScreen } from "./GenericSearchScreen";
+import { da } from "date-fns/locale";
 
 export type SearchTeamScreenProps = {
     search: string;
@@ -20,11 +21,12 @@ const SearchTeamScreen: React.FC<SearchTeamScreenProps> = ({
         debouncedQuery,
         search.length === 0
     );
+
     const router = useRouter();
 
     const handlePress = (id: number) => {
         Haptics.selectionAsync();
-        router.push(`/teams/${id}`);
+        router.push(`/team/${id}`);
     };
 
     return (

@@ -32,6 +32,8 @@ export const ApiProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                     return;
                 }
 
+                console.log(token);
+
                 const tokenSupplier = async () => {
                     const c = await getCredentials(undefined, 60);
                     return c?.accessToken ?? null;

@@ -6,12 +6,12 @@ import { MatchStatus } from '@/src/types/Match';
 import { EntityType } from '@/src/types/User';
 import AnimatedFeedHeader from '@/src/components/home/AnimatedFeedHeader';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { BOTTOM_TABBAR_HEIGHT, LOGO_HEIGHT, TABBAR_HEIGHT } from '@/src/theme/globals';
+import { LOGO_HEIGHT, TABBAR_HEIGHT } from '@/src/theme/globals';
 import { useSession } from '@/src/context/SessionProvider';
-import { View } from 'moti';
 import ReportFormSheet from '@/src/components/report/ReportFormSheet';
 import { BottomSheetModal } from '@gorhom/bottom-sheet';
 import { ReportType } from '@/src/types/Report';
+import FollowedScreen from '@/src/components/followed/FollowedScreen';
 
 const FeedScreen: React.FC = () => {
     const insets = useSafeAreaInsets();
@@ -35,6 +35,7 @@ const FeedScreen: React.FC = () => {
         () => [
             { key: 'upcoming', title: 'À Venir' },
             { key: 'finished', title: 'Terminés' },
+            { key: 'followed', title: 'Suivis' },
         ],
         []
     );
@@ -42,6 +43,7 @@ const FeedScreen: React.FC = () => {
     const scrollYs = useRef<Record<string, Animated.Value>>({
         finished: new Animated.Value(0),
         upcoming: new Animated.Value(0),
+        followed: new Animated.Value(0),
     }).current;
 
     const upcomingTab = useMemo(
@@ -61,8 +63,6 @@ const FeedScreen: React.FC = () => {
         [
             userFavoritePools,
             userFavoriteTeams,
-            insets.top,
-            insets.bottom,
             headerOffset,
             scrollYs,
         ]
@@ -85,8 +85,22 @@ const FeedScreen: React.FC = () => {
         [
             userFavoritePools,
             userFavoriteTeams,
-            insets.top,
-            insets.bottom,
+            headerOffset,
+            scrollYs,
+        ]
+    );
+
+    const followedTab = useMemo(
+        () => (
+            <FollowedScreen
+                poolIds={userFavoritePools}
+                teamIds={userFavoriteTeams}
+                headerOffset={headerOffset}
+            />
+        ),
+        [
+            userFavoritePools,
+            userFavoriteTeams,
             headerOffset,
             scrollYs,
         ]
@@ -101,11 +115,13 @@ const FeedScreen: React.FC = () => {
                     return upcomingTab;
                 case 'finished':
                     return finishedTab;
+                case 'followed':
+                    return followedTab;
                 default:
                     return null;
             }
         },
-        [finishedTab, upcomingTab]
+        [finishedTab, upcomingTab, followedTab]
     );
 
     const renderTabBar = useCallback(

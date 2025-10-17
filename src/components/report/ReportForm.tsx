@@ -177,7 +177,7 @@ const ReportForm: React.FC<ReportFormProps> = ({ context, onSuccess, onRegisterS
                         setFilters={setFilters}
                         singleSelect
                         requireSelection
-                        containerStyle={{ paddingHorizontal: 0 }}
+                        style={{ paddingHorizontal: 0 }}
                     />
                 </View>
 

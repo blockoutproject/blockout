@@ -98,9 +98,9 @@ const RawDivisionMappingScreen: React.FC = () => {
                 </View>
 
                 <View style={styles.filterWrapper}>
-                    <Filters filters={mappingFilters} setFilters={setMappingFilters} singleSelect size="sm" />
-                    <Filters filters={leagueFilters} setFilters={setLeagueFilters} size="sm" />
-                    <Filters filters={seasonFilters} setFilters={setSeasonFilters} size="sm" />
+                    <Filters filters={mappingFilters} setFilters={setMappingFilters} singleSelect />
+                    <Filters filters={leagueFilters} setFilters={setLeagueFilters} />
+                    <Filters filters={seasonFilters} setFilters={setSeasonFilters} />
                 </View>
 
                 <FlatList

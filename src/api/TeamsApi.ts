@@ -73,6 +73,18 @@ class TeamsApi extends AbstractApi {
             throw error;
         }
     }
+
+    /**
+     * Met à jour une équipe existante
+     * @param payload le payload de l’équipe à modifier
+     */
+    public async updateTeam(id: number, payload: Partial<Team>): Promise<Team> {
+        return await this.request<Team>({
+            method: 'put',
+            url: `/${id}`,
+            data: payload
+        });
+    }
 }
 
 export default TeamsApi;

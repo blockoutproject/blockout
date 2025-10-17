@@ -24,7 +24,7 @@ const SearchPoolScreen: React.FC<SearchPoolScreenProps> = ({
 
     const handlePress = (id: number) => {
         Haptics.selectionAsync();
-        router.push(`/pools/${id}`);
+        router.push(`/pool/${id}`);
     };
 
     return (

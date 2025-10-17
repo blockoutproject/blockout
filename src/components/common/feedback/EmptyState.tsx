@@ -52,7 +52,7 @@ const EmptyState: React.FC<EmptyStateProps> = ({
         <StateCard
             title={title}
             subtitle={subtitle}
-            fallbackIcon="playlist-remove"
+            illustrationSource={require("@/assets/images/empty.gif")}
             action={action}
             containerStyle={[
                 {

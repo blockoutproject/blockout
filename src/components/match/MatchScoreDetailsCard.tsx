@@ -43,7 +43,7 @@ const MatchScoreDetailsCard: React.FC<MatchScoreDetailsCardProps> = ({
 
     const handleTeamPress = (teamId: number) => {
         Haptics.selectionAsync();
-        router.push(`/teams/${teamId}`);
+        router.push(`/team/${teamId}`);
     };
 
     const HeaderRow: React.FC = () => (
