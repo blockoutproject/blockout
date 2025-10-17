@@ -4,8 +4,6 @@ import com.blockout.mobilegateway.exceptions.InconsistentStateException;
 import com.blockout.mobilegateway.models.dto.club.ClubDTO;
 import com.blockout.mobilegateway.models.dto.competition.CompetitionAssociationDTO;
 import com.blockout.mobilegateway.models.dto.config.DivisionDTO;
-import com.blockout.mobilegateway.models.dto.http.HttpAction;
-import com.blockout.mobilegateway.models.dto.http.MatchDocumentLink;
 import com.blockout.mobilegateway.models.dto.match.EnrichedMatchDTO;
 import com.blockout.mobilegateway.models.dto.match.MatchDTO;
 import com.blockout.mobilegateway.models.dto.pool.EnrichedPoolDTO;
@@ -15,6 +13,7 @@ import com.blockout.mobilegateway.models.dto.team.TeamWithStatsDTO;
 import com.blockout.mobilegateway.services.clients.MatchClientService;
 import com.blockout.mobilegateway.services.clients.PoolClientService;
 import com.blockout.mobilegateway.services.clients.TeamClientService;
+import com.blockout.mobilegateway.services.pdf.PdfLinkService;
 import com.blockout.mobilegateway.services.clients.ConfigClientService;
 import com.blockout.mobilegateway.services.clients.ClubClientService;
 import com.blockout.mobilegateway.services.clients.CompetitionClientService;
@@ -36,31 +35,7 @@ public class EnrichedMatchService {
     private final ConfigClientService configClientService;
     private final CompetitionClientService competitionClientService;
     private final ClubClientService clubClientService;
-
-    private List<MatchDocumentLink> buildDocumentsForFfvb(String saison, String codent, String codmatch) {
-        var sheet = new MatchDocumentLink(
-                "feuille-de-match",
-                "Feuille de match (FFVB)",
-                new HttpAction(
-                        HttpAction.Method.POST, HttpAction.Encoding.URLENCODED,
-                        "https://www.ffvbbeach.org/ffvbapp/resu/ffvolley_fdme.php?saison=" + saison + "&codent="
-                                + codent + "&codmatch=" + codmatch,
-                        List.of() // corps vide (POST requis, params dans l'URL)
-                ));
-
-        var address = new MatchDocumentLink(
-                "fiche-adresse",
-                "Fiche adresse (FFVB)",
-                new HttpAction(
-                        HttpAction.Method.POST, HttpAction.Encoding.MULTIPART,
-                        "https://www.ffvbbeach.org/ffvbapp/adressier/fiche_match_ffvb.php",
-                        List.of(
-                                new HttpAction.NameValue("wss_saison", saison),
-                                new HttpAction.NameValue("codmatch", codmatch),
-                                new HttpAction.NameValue("codent", codent))));
-
-        return List.of(sheet, address);
-    }
+    private final PdfLinkService pdfLinkService;
 
     public EnrichedMatchDTO getEnrichedMatchById(Long matchId) {
         MatchDTO match = matchClientService.getMatchById(matchId);
@@ -172,6 +147,13 @@ public class EnrichedMatchService {
         teamA.setLogoUrl(teamsMap.get(teamA.getId()).getLogoUrl());
         teamB.setLogoUrl(teamsMap.get(teamB.getId()).getLogoUrl());
 
+        String saison = match.getSeason();
+        String codent = match.getLeagueCode();
+        String codmatch = match.getMatchCode();
+
+        String matchSheetPdfUrl = pdfLinkService.sheetUrl(saison, codent, codmatch);
+        String matchAddressPdfUrl = pdfLinkService.addressUrl(saison, codent, codmatch);
+
         return EnrichedMatchDTO.builder()
                 .id(match.getId())
                 .matchDate(match.getMatchDate())
@@ -185,10 +167,8 @@ public class EnrichedMatchService {
                 .teamA(teamA)
                 .teamB(teamB)
                 .pool(enrichedPool)
-                .documents(buildDocumentsForFfvb(
-                        match.getSeason(),
-                        match.getLeagueCode(),
-                        match.getMatchCode()))
+                .matchSheetPdfUrl(matchSheetPdfUrl)
+                .matchAddressPdfUrl(matchAddressPdfUrl)
                 .build();
     }
 }
