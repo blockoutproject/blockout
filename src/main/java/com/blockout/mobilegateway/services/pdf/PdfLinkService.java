@@ -1,20 +1,18 @@
 package com.blockout.mobilegateway.services.pdf;
 
-
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+import com.blockout.mobilegateway.config.PdfProperties;
 
 @Service
 public class PdfLinkService {
 
     private final PdfTokenService tokenService;
-    private final long ttlSeconds;
+    private final PdfProperties pdfProperties;
 
-    public PdfLinkService(PdfTokenService tokenService,
-            @Value("${pdf.link.ttl-seconds:120}") long ttlSeconds) {
+    public PdfLinkService(PdfTokenService tokenService, PdfProperties pdfProperties) {
         this.tokenService = tokenService;
-        this.ttlSeconds = ttlSeconds;
+        this.pdfProperties = pdfProperties;
     }
 
     public String sheetUrl(String saison, String codent, String codmatch) {
@@ -26,6 +24,8 @@ public class PdfLinkService {
     }
 
     private String build(String kind, String saison, String codent, String codmatch) {
+        long ttlSeconds = pdfProperties.getLink().getTtlSeconds();
+
         String token = tokenService.mint(kind, saison, codent, codmatch, ttlSeconds);
 
         String base = ServletUriComponentsBuilder.fromCurrentContextPath().build().toUriString();
