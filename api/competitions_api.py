@@ -1,6 +1,7 @@
 from typing import Optional, List
 import aiohttp
 from config.env_config import COMPETITION_API_URL
+from config.logger_config import log_event
 from models.association_stats import AssociationStats
 from models.competition_association import CompetitionAssociation
 from utils.handlers.api_handler import handle_api_response
@@ -80,6 +81,13 @@ async def update_team_association_stats(
     """
     Met à jour les statistiques de l'association (poule–équipe).
     """
+    log_event(
+        action="update_team_association_stats",
+        level="info",
+        pool_id=pool_id,
+        team_id=team_id,
+        message=f"Log pour debug (pool: {pool_id}, team: {team_id})."
+    )
     headers = _get_headers()
     url = f"{COMPETITION_API_URL}/pools/{pool_id}/teams/{team_id}/stats"
     response = await session.put(url, json=to_dict(stats), headers=headers)
