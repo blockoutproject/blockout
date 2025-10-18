@@ -110,7 +110,6 @@ const AnimatedFeedHeader: React.FC<HeaderProps> = ({
         ref.current?.present();
     };
 
-
     const androidTint = withAlpha(theme.background, androidBackgroundAlpha);
 
     return (
@@ -247,12 +246,13 @@ const styles = StyleSheet.create({
     },
     tabBar: {
         flex: 1,
+        marginLeft: 6,
         height: TABBAR_HEIGHT,
         backgroundColor: "transparent",
     },
     tabStyle: {
         width: "auto",
-        paddingHorizontal: 8,
+        paddingHorizontal: 4,
     },
     teamLogo: { flex: 1, aspectRatio: 5 },
     indicator: { width: 0.5, height: 3 },

@@ -1,7 +1,14 @@
 import React, { memo } from "react";
-import { View, StyleSheet, ViewStyle, StyleProp } from "react-native";
+import {
+    View,
+    StyleSheet,
+    ViewStyle,
+    StyleProp,
+    Pressable,
+} from "react-native";
 import { Image } from "expo-image";
 import { useAppTheme } from "@/src/context/ThemeProvider";
+import * as Haptics from "expo-haptics";
 
 export type MaskedImageProps = {
     /** URL de l’image distante */
@@ -24,6 +31,8 @@ export type MaskedImageProps = {
     shadow?: boolean;
     /** Style additionnel */
     style?: StyleProp<ViewStyle>;
+    /** Action exécutée lors du clic */
+    onPress?: () => void;
 };
 
 const MaskedImage: React.FC<MaskedImageProps> = memo(
@@ -33,18 +42,30 @@ const MaskedImage: React.FC<MaskedImageProps> = memo(
         size,
         radius,
         backgroundColor,
-        contentFit = "contain",
+        contentFit = "cover",
         borderWidth = 0,
         borderColor,
         shadow = false,
         style,
+        onPress,
     }) => {
         const theme = useAppTheme();
         const r = radius ?? Math.round(size * 0.28);
 
+        const Container = onPress ? Pressable : View;
+
+        const handlePress = async () => {
+            if (onPress) {
+                // Petit feedback tactile facultatif
+                await Haptics.selectionAsync();
+                onPress();
+            }
+        };
+
         return (
             <View style={[shadow && styles.shadow]}>
-                <View
+                <Container
+                    onPress={handlePress}
                     style={[
                         {
                             width: size,
@@ -68,7 +89,7 @@ const MaskedImage: React.FC<MaskedImageProps> = memo(
                         }}
                         contentFit={contentFit}
                     />
-                </View>
+                </Container>
             </View>
         );
     }

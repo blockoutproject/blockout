@@ -11,6 +11,9 @@ import MaskedImage from "@/src/components/common/images/MaskedImage";
 import GradientBorderView from "@/src/components/common/GradientBorderView";
 import InfoPillGradient from "@/src/components/common/chips/InfoPillGradient";
 import { withAlpha } from "@/src/utils/utils";
+import * as WebBrowser from "expo-web-browser";
+import * as Haptics from "expo-haptics";
+import { he } from "date-fns/locale";
 
 /** Header content rendered over the scroll view. */
 export type HeaderContent = {
@@ -22,6 +25,9 @@ export type HeaderContent = {
     scoreText: string | null;
     /** Time text for upcoming match. */
     timeText: string | null;
+    season: string;
+    poolCode: string;
+    leagueCode: string;
 };
 
 /** Props for the match header. */
@@ -31,7 +37,7 @@ export type MatchHeaderProps = {
     /** Scroll animated value. */
     scrollY: Animated.Value;
     /** Optional header content. */
-    headerContent?: HeaderContent;
+    headerContent: HeaderContent;
     /** Gradient colors for the header widgets. */
     headerGradient?: readonly [string, string, ...string[]];
 };
@@ -48,6 +54,34 @@ const MatchHeader: React.FC<MatchHeaderProps> = ({ onOpenReport, scrollY, header
     const BG_FADE_IN_END = 48;
     const APPEAR_START = 72;
     const APPEAR_END = 140;
+
+    const handleOpenFfvbCalendar = async () => {
+        try {
+            const { season, leagueCode, poolCode } = headerContent;
+
+            if (!season || !leagueCode || !poolCode) {
+                console.warn("handleOpenFfvbCalendar: paramètres manquants");
+                return;
+            }
+
+            await Haptics.selectionAsync();
+
+            const query = new URLSearchParams({
+                saison: season,
+                codent: leagueCode,
+                poule: poolCode,
+            }).toString();
+
+            const url = `https://www.ffvbbeach.org/ffvbapp/resu/vbspo_calendrier.php?${query}`;
+
+            await WebBrowser.openBrowserAsync(url, {
+                enableBarCollapsing: true,
+                showTitle: true,
+            });
+        } catch (err) {
+            console.error("[FFVB] Erreur ouverture calendrier :", err);
+        }
+    };
 
     const bgOpacity = scrollY.interpolate({
         inputRange: [0, BG_FADE_IN_START, BG_FADE_IN_END],
@@ -252,23 +286,30 @@ const MatchHeader: React.FC<MatchHeaderProps> = ({ onOpenReport, scrollY, header
                         color={theme.text}
                     />
                 </TouchableOpacity>
-
-                <TouchableOpacity
-                    onPress={onOpenReport}
-                    hitSlop={{
-                        top: 8,
-                        bottom: 8,
-                        left: 8,
-                        right: 8,
-                    }}
-                >
-                    <MaterialCommunityIcons
-                        name="flag-outline"
+                <View style={styles.rightGroup}>
+                    <MaskedImage
+                        fallback={require("@/assets/images/ffvb-logo.png")}
                         size={28}
-                        color={theme.text}
+                        radius={6}
+                        onPress={handleOpenFfvbCalendar}
+                        shadow
                     />
-                </TouchableOpacity>
-
+                    <TouchableOpacity
+                        onPress={onOpenReport}
+                        hitSlop={{
+                            top: 8,
+                            bottom: 8,
+                            left: 8,
+                            right: 8,
+                        }}
+                    >
+                        <MaterialCommunityIcons
+                            name="flag-outline"
+                            size={28}
+                            color={theme.text}
+                        />
+                    </TouchableOpacity>
+                </View>
                 {CenterContent}
             </View>
         </Animated.View>
@@ -284,6 +325,11 @@ const styles = StyleSheet.create({
         top: 0,
         left: 0,
         right: 0,
+    },
+    rightGroup: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 16,
     },
     header: {
         height: HEADER_HEIGHT,

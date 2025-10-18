@@ -6,18 +6,17 @@ import { HEADER_HEIGHT } from "@/src/theme/globals";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 
-/** Header for team screen with back + report. */
-export type TeamHeaderProps = {
+/** Header for pdf viewer screen with back + report. */
+export type PdfViewerHeaderProps = {
     /** Screen title. */
     title?: string;
     /** Open report modal. */
     onOpenReport: () => void;
     /** Open edit team form. */
     onEdit?: () => void;
-
 };
 
-const TeamHeader: React.FC<TeamHeaderProps> = ({ title, onOpenReport, onEdit }) => {
+const PdfViewerHeader: React.FC<PdfViewerHeaderProps> = ({ title, onOpenReport, onEdit }) => {
     const theme = useAppTheme();
     const insets = useSafeAreaInsets();
     const router = useRouter();
@@ -29,7 +28,7 @@ const TeamHeader: React.FC<TeamHeaderProps> = ({ title, onOpenReport, onEdit }) 
                     paddingTop: insets.top,
                 },
             ]}
-            testID="team-header"
+            testID="pdf-viewer-header"
         >
             <View
                 style={styles.header}
@@ -48,7 +47,7 @@ const TeamHeader: React.FC<TeamHeaderProps> = ({ title, onOpenReport, onEdit }) 
                         }}
                     >
                         <Ionicons
-                            name={"chevron-back-outline"}
+                            name={"chevron-down-outline"}
                             size={28}
                             color={theme.text}
                         />
@@ -70,46 +69,27 @@ const TeamHeader: React.FC<TeamHeaderProps> = ({ title, onOpenReport, onEdit }) 
                     </Text>
                 </View>
 
-                <View style={styles.rightGroup}>
-                    {onEdit && (
-                        <TouchableOpacity
-                            onPress={onEdit}
-                            hitSlop={{
-                                top: 8,
-                                bottom: 8,
-                                left: 8,
-                                right: 8,
-                            }}
-                        >
-                            <MaterialCommunityIcons
-                                name="pencil-outline"
-                                size={28}
-                                color={theme.text}
-                            />
-                        </TouchableOpacity>
-                    )}
-                    <TouchableOpacity
-                        onPress={onOpenReport}
-                        hitSlop={{
-                            top: 8,
-                            bottom: 8,
-                            left: 8,
-                            right: 8,
-                        }}
-                    >
-                        <MaterialCommunityIcons
-                            name="flag-outline"
-                            size={28}
-                            color={theme.text}
-                        />
-                    </TouchableOpacity>
-                </View>
+                <TouchableOpacity
+                    onPress={onOpenReport}
+                    hitSlop={{
+                        top: 8,
+                        bottom: 8,
+                        left: 8,
+                        right: 8,
+                    }}
+                >
+                    <MaterialCommunityIcons
+                        name="flag-outline"
+                        size={28}
+                        color={theme.text}
+                    />
+                </TouchableOpacity>
             </View>
         </View>
     );
 };
 
-export default TeamHeader;
+export default PdfViewerHeader;
 
 const styles = StyleSheet.create({
     header: {

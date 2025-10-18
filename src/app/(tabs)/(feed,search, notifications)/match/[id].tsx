@@ -202,6 +202,9 @@ const MatchScreen: React.FC = () => {
                         teamBLogo: enrichedMatch.teamB.logoUrl,
                         scoreText: enrichedMatch.set ?? null,
                         timeText,
+                        poolCode: enrichedMatch.pool.poolCode,
+                        leagueCode: enrichedMatch.pool.leagueCode,
+                        season: enrichedMatch.pool.season,
                     }}
                     headerGradient={gradient}
                 />

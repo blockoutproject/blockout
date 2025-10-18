@@ -21,7 +21,7 @@ export default function Root() {
         <GestureHandlerRootView style={{ flex: 1 }}>
             <QueryClientProvider client={queryClient}>
                 <ThemeProvider>
-                    <StatusBar barStyle={"light-content"}/>
+                    <StatusBar barStyle={"light-content"} />
                     <Auth0Provider domain={AUTH0_CONFIG.domain} clientId={AUTH0_CONFIG.clientId}>
                         <SessionProvider>
                             <ApiProvider>
@@ -66,6 +66,15 @@ function RootNavigator() {
                     <Stack.Screen
                         name="(tabs)"
                         options={{
+                            animation: "fade_from_bottom",
+                            animationDuration: 300,
+                        }}
+                    />
+                    <Stack.Screen
+                        name="pdf-viewer"
+                        options={{
+                            title: "Document",
+                            presentation: "modal",
                             animation: "fade_from_bottom",
                             animationDuration: 300,
                         }}

@@ -36,7 +36,7 @@ const MatchScoreCard: React.FC<MatchScoreCardProps> = ({ enrichedMatch, gradient
         /** Team entity with logo. */
         team: Team & { logoUrl: string | null };
         /** Home/Away role. */
-        role: "Home" | "Away";
+        role: "Locaux" | "Visiteurs";
     }> = ({ team, role }) => (
         <Pressable
             onPress={() => handleTeamPress(team.id)}
@@ -61,7 +61,7 @@ const MatchScoreCard: React.FC<MatchScoreCardProps> = ({ enrichedMatch, gradient
                 adjustsFontSizeToFit
                 minimumFontScale={0.85}
             >
-                {team.name}
+                {team.shortName}
             </Text>
             <Text
                 style={[
@@ -100,7 +100,7 @@ const MatchScoreCard: React.FC<MatchScoreCardProps> = ({ enrichedMatch, gradient
             >
                 <TeamBlock
                     team={enrichedMatch.teamA}
-                    role="Home"
+                    role="Locaux"
                 />
 
                 <View
@@ -158,7 +158,7 @@ const MatchScoreCard: React.FC<MatchScoreCardProps> = ({ enrichedMatch, gradient
 
                 <TeamBlock
                     team={enrichedMatch.teamB}
-                    role="Away"
+                    role="Visiteurs"
                 />
             </View>
         </GradientBorderView>

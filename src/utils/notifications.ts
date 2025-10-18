@@ -4,7 +4,6 @@ import * as Notifications from "expo-notifications";
 import Constants from "expo-constants";
 import NotificationsApi from "@/src/api/NotificationsApi";
 import { DevicePlatform, RegisterPushTokenRequest } from "../types/Notification";
-import { useAppTheme } from "../context/ThemeProvider";
 
 Notifications.setNotificationHandler({
     handleNotification: async () => ({
@@ -43,7 +42,6 @@ export async function registerForPushNotificationsAsync(): Promise<string | null
         finalStatus = status;
     }
     if (finalStatus !== "granted") {
-        alert("Permission not granted to get push token for push notification!");
         return null;
     }
 

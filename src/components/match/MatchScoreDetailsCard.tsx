@@ -127,7 +127,7 @@ const MatchScoreDetailsCard: React.FC<MatchScoreDetailsCardProps> = ({
                     adjustsFontSizeToFit
                     minimumFontScale={0.85}
                 >
-                    {team.shortName || team.name}
+                    {team.shortName}
                 </Text>
             </View>
 

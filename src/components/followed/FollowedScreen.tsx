@@ -4,6 +4,7 @@ import { useAppTheme } from "@/src/context/ThemeProvider";
 import { Filter } from "@/src/types/Filter";
 import FollowedTeamsList from "./FollowedTeamsList";
 import FollowedPoolsList from "./FollowedPoolsList";
+import FollowedListHeader from "./FollowedListHeader";
 
 export type FollowedScreenListProps = {
     poolIds?: number[];
@@ -29,28 +30,19 @@ const FollowedScreen: React.FC<FollowedScreenListProps> = ({
     );
 
     return (
-        <View
-            style={[
-                styles.container,
-                { backgroundColor: theme.background, },
-            ]}
-        >
-            {activeFilter === "Équipes" && (
-                <FollowedTeamsList
-                    teamIds={teamIds}
-                    headerOffset={headerOffset}
-                    filters={filters}
-                    setFilters={setFilters}
-                />
-            )}
+        <View style={[styles.container, { backgroundColor: theme.background }]}>
+            {/* Header rendu ICI (parent) */}
+            <FollowedListHeader
+                filters={filters}
+                setFilters={setFilters}
+                headerOffset={headerOffset}
+            />
 
-            {activeFilter === "Poules" && (
-                <FollowedPoolsList
-                    poolIds={poolIds}
-                    headerOffset={headerOffset}
-                    filters={filters}
-                    setFilters={setFilters}
-                />
+            {/* Liste selon le filtre actif (sans header interne) */}
+            {activeFilter === "Équipes" ? (
+                <FollowedTeamsList teamIds={teamIds} headerOffset={headerOffset} />
+            ) : (
+                <FollowedPoolsList poolIds={poolIds} headerOffset={headerOffset} />
             )}
         </View>
     );

@@ -7,34 +7,20 @@ import { useAppTheme } from "@/src/context/ThemeProvider";
 import { useFollowedPoolList } from "@/src/hooks/pool/useFollowedPoolList";
 import FollowedPoolCard from "./FollowedPoolCard";
 import { BOTTOM_TABBAR_HEIGHT } from "@/src/theme/globals";
-import FollowedListHeader from "./FollowedListHeader";
-import { Filter } from "@/src/types/Filter";
 import EmptyState from "@/src/components/common/feedback/EmptyState";
 import ErrorState from "@/src/components/common/feedback/ErrorState";
 
 type Props = {
     poolIds?: number[];
     headerOffset: number;
-    filters: Filter[];
-    setFilters: (next: Filter[] | ((prev: Filter[]) => Filter[])) => void;
 };
 
-const FollowedPoolsList: React.FC<Props> = ({
-    poolIds,
-    headerOffset,
-    filters,
-    setFilters,
-}) => {
+const FollowedPoolsList: React.FC<Props> = ({ poolIds, headerOffset }) => {
     const theme = useAppTheme();
     const insets = useSafeAreaInsets();
     const router = useRouter();
 
-    const {
-        pools,
-        isLoading,
-        isError,
-        refetch
-    } = useFollowedPoolList(poolIds);
+    const { pools, isLoading, isError, refetch } = useFollowedPoolList(poolIds);
 
     const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -54,17 +40,6 @@ const FollowedPoolsList: React.FC<Props> = ({
             router.push(`/pool/${id}`);
         },
         [router]
-    );
-
-    const ListHeaderComponent = useMemo(
-        () => (
-            <FollowedListHeader
-                filters={filters}
-                setFilters={setFilters}
-                headerOffset={headerOffset}
-            />
-        ),
-        [filters, setFilters, headerOffset]
     );
 
     const ListFooterComponent = useMemo(() => {
@@ -99,14 +74,13 @@ const FollowedPoolsList: React.FC<Props> = ({
             renderItem={({ item }) => (
                 <FollowedPoolCard pool={item} onPress={() => handlePressPool(item.id)} />
             )}
-            ListHeaderComponent={ListHeaderComponent}
+            // Header retiré : il est rendu dans FollowedScreen
             ListFooterComponent={ListFooterComponent}
             ListEmptyComponent={() => (
                 <EmptyState
                     title="C'est calme par ici ..."
                     subtitle="Commence par suivre une poule pour la retrouver ici !"
                     onRetry={refetch}
-                    
                     retryLabel="Réessayer"
                     paddingTop="10%"
                 />
@@ -128,6 +102,4 @@ export default FollowedPoolsList;
 
 const styles = StyleSheet.create({
     center: { flex: 1, justifyContent: "center", alignItems: "center" },
-    emptyContainer: { alignItems: "center", marginTop: 40 },
-    emptyText: { fontSize: 14, textAlign: "center" },
 });

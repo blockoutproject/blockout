@@ -6,7 +6,8 @@ import GradientBorderView from "@/src/components/common/GradientBorderView";
 import type { EnrichedMatchDTO } from "@/src/types/Match";
 import InfoPillGradient from "@/src/components/common/chips/InfoPillGradient";
 import { useRouter } from "expo-router";
-import { useHttpActionExecutor } from "@/src/hooks/utils/useHttpActionExecutor";
+import * as WebBrowser from "expo-web-browser";
+import { openPdf } from "@/src/utils/openPdf";
 
 /** Info card with league/pool/date/venue/referees. */
 export type MatchInfoCardProps = {
@@ -19,7 +20,6 @@ const RADIUS = 18;
 const MatchInfoCard: React.FC<MatchInfoCardProps> = ({ enrichedMatch }) => {
     const theme = useAppTheme();
     const router = useRouter();
-    const { execute } = useHttpActionExecutor();
 
     const division = enrichedMatch.pool.division;
     const gradient = [
@@ -39,10 +39,12 @@ const MatchInfoCard: React.FC<MatchInfoCardProps> = ({ enrichedMatch }) => {
 
     const dateLabel = rawDateLabel.charAt(0).toUpperCase() + rawDateLabel.slice(1);
 
-    const leagueLabel = enrichedMatch.pool.leagueName === "PRO" ? "Professionnel" : division.name;
+    const leagueLabel = enrichedMatch.pool.leagueCode === "AALNV" ? "Pro" : division.name;
     const venue = enrichedMatch.venue || "Lieu à confirmer";
     const ref1 = enrichedMatch.firstReferee;
     const ref2 = enrichedMatch.secondReferee;
+    const matchAddressPdfUrl = enrichedMatch.matchAddressPdfUrl;
+    const matchSheetPdfUrl = enrichedMatch.matchSheetPdfUrl;
 
     const handlePoolPress = (poolId: number) => {
         Haptics.selectionAsync();
@@ -75,6 +77,7 @@ const MatchInfoCard: React.FC<MatchInfoCardProps> = ({ enrichedMatch }) => {
             <View
                 style={styles.pillsWrap}
             >
+
                 <InfoPillGradient
                     leftIcon="trophy-variant"
                     label={leagueLabel}
@@ -82,24 +85,19 @@ const MatchInfoCard: React.FC<MatchInfoCardProps> = ({ enrichedMatch }) => {
                     borderWidth={1}
                 />
                 <InfoPillGradient
-                    label={enrichedMatch.pool.name}
-                    gradient={gradient}
-                    variant="filled"
-                    onPress={() => handlePoolPress(enrichedMatch.pool.id)}
-                    rightIcon="chevron-forward-outline"
-                />
-                <InfoPillGradient
                     leftIcon="calendar"
                     label={dateLabel}
                     gradient={gradient}
                     borderWidth={1}
                 />
-                <InfoPillGradient
-                    leftIcon="map-marker"
-                    label={venue}
-                    gradient={gradient}
-                    borderWidth={1}
-                />
+                {!matchAddressPdfUrl && (
+                    <InfoPillGradient
+                        leftIcon="map-marker"
+                        label={venue}
+                        gradient={gradient}
+                        borderWidth={1}
+                    />
+                )}
                 {ref1 && (
                     <InfoPillGradient
                         leftIcon="whistle"
@@ -116,17 +114,35 @@ const MatchInfoCard: React.FC<MatchInfoCardProps> = ({ enrichedMatch }) => {
                         borderWidth={1}
                     />
                 )}
-
-                {enrichedMatch.documents?.map((doc) => (
+                <InfoPillGradient
+                    label={enrichedMatch.pool.name}
+                    gradient={gradient}
+                    variant="filled"
+                    onPress={() => handlePoolPress(enrichedMatch.pool.id)}
+                    rightIcon="chevron-forward-outline"
+                />
+                {matchAddressPdfUrl && (
                     <InfoPillGradient
-                        key={doc.id}
-                        label={doc.title}
+                        leftIcon="map-marker"
+                        rightIcon="chevron-forward-outline"
+                        label={venue}
+                        variant="filled"
+                        gradient={gradient}
+                        onPress={async () => openPdf(matchAddressPdfUrl, "Informations")}
+                        borderWidth={1}
+                    />
+                )}
+                {matchSheetPdfUrl && (
+                    <InfoPillGradient
+                        label={"Feuille de match"}
                         gradient={gradient}
                         variant="filled"
-                        onPress={() => execute(doc.action)}
-                        rightIcon="document-text-outline"
+                        onPress={async () => openPdf(matchSheetPdfUrl, "Feuille de match")}
+                        leftIcon="file-document-outline"
+                        rightIcon="chevron-forward-outline"
                     />
-                ))}
+
+                )}
             </View>
         </GradientBorderView>
     );

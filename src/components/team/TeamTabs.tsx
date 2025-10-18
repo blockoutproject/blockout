@@ -8,7 +8,7 @@ import RankingTab from "@/src/components/ranking/RankingTab";
 
 import { MatchStatus } from "@/src/types/Match";
 import { EnrichedTeamDTO } from "@/src/types/Team";
-import { BOTTOM_TABBAR_HEIGHT, SECTION_SEPARATOR_HEIGHT, TABBAR_HEIGHT } from "@/src/theme/globals";
+import { TABBAR_HEIGHT } from "@/src/theme/globals";
 
 /** Tabs for team: Upcoming / Finished / Pools-as-ranking. */
 export type TeamTabsProps = {
@@ -23,7 +23,7 @@ const TeamTabs: React.FC<TeamTabsProps> = ({ enrichedTeam }) => {
         () => [
             { key: "upcoming", title: "À Venir" },
             { key: "finished", title: "Terminés" },
-            ...enrichedTeam.pools.map((p) => ({ key: `pool-${p.id}`, title: p.name })),
+            ...enrichedTeam.pools.map((p) => ({ key: `pool-${p.id}`, title: p.shortName })),
         ],
         [enrichedTeam.pools]
     );

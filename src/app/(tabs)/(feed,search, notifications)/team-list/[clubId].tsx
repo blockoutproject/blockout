@@ -20,9 +20,8 @@ const TeamListScreen: React.FC = () => {
     const router = useRouter();
     const insets = useSafeAreaInsets();
     const { clubId } = useLocalSearchParams();
-
     const { data, isLoading, isError, refetch } = useTeamListByCLubId(String(clubId));
-
+    
     const reportSheetRef = useRef<BottomSheetModal>(null);
     const handleOpenReport = useCallback(() => {
         reportSheetRef.current?.present();
@@ -85,6 +84,7 @@ const TeamListScreen: React.FC = () => {
                 keyboardShouldPersistTaps="handled"
                 onScrollBeginDrag={Keyboard.dismiss}
                 contentContainerStyle={{
+                    paddingHorizontal: 8,
                     paddingBottom: insets.bottom + BOTTOM_TABBAR_HEIGHT,
                 }}
                 scrollEnabled={data.length > 0}

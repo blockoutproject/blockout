@@ -14,7 +14,7 @@ type Props = {
 
 const FollowedListHeader: React.FC<Props> = ({ filters, setFilters, headerOffset }) => {
     const theme = useAppTheme();
-    const Spacer = useMemo(() => <View style={{ height: headerOffset + 4, backgroundColor: theme.background }} />, [headerOffset]);
+    const Spacer = useMemo(() => <View style={{ height: headerOffset, backgroundColor: theme.background }} />, [headerOffset]);
 
     return (
         <View>
@@ -26,7 +26,7 @@ const FollowedListHeader: React.FC<Props> = ({ filters, setFilters, headerOffset
                 requireSelection
                 scrollable={false}
                 style={{ marginLeft: 4, backgroundColor: 'transparent' }}
-                containerStyle={{ paddingVertical: 8, marginVertical: 4, borderRadius: CORNERS, backgroundColor: theme.background}}
+                containerStyle={{ paddingVertical: 8, marginBottom: 2, borderRadius: CORNERS, backgroundColor: theme.background}}
             />
         </View>
     );

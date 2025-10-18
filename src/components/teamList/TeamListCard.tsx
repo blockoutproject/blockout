@@ -9,6 +9,8 @@ import { TeamSummaryDTO } from "@/src/types/Team";
 import InfoPillGradient from "../common/chips/InfoPillGradient";
 import GradientBorderView from "../common/GradientBorderView";
 import MaskedImage from "../common/images/MaskedImage";
+import { GenderLabels } from "@/src/types/enums/Gender";
+import { FormatLabels } from "@/src/types/enums/Format";
 
 export type TeamListCardProps = {
     team: TeamSummaryDTO;
@@ -35,7 +37,7 @@ const TeamListCard: React.FC<TeamListCardProps> = ({
 }) => {
     const theme = useAppTheme();
 
-    const title = team.shortName?.trim() || team.name;
+    const title = team.shortName || team.name;
     const division = team.division;
     const gradient = [
         division.firstGradientColor,
@@ -45,8 +47,8 @@ const TeamListCard: React.FC<TeamListCardProps> = ({
     const chips = [
         team.division?.name ? { label: team.division.name, icon: "trophy-variant" as const } : null,
         team.season ? { label: team.season, icon: "calendar-outline" as const } : null,
-        team.gender ? { label: team.gender } : null,
-        team.format ? { label: team.format } : null,
+        team.gender ? { label: GenderLabels[team.gender] } : null,
+        team.format ? { label: FormatLabels[team.format] } : null,
     ].filter(Boolean) as { label: string; icon?: React.ComponentProps<typeof MaterialCommunityIcons>["name"] }[];
 
     return (
@@ -90,10 +92,9 @@ const TeamListCard: React.FC<TeamListCardProps> = ({
                         {chips.length > 0 && (
                             <View style={[styles.chipsRow, { minWidth: 0 }]}>
                                 {chips.map((chip, idx) => (
-                                    <InfoPillGradient
+                                    <InfoPill
                                         key={`${chip.label}-${idx}`}
                                         label={chip.label}
-                                        gradient={gradient}
                                     />
                                 ))}
                             </View>

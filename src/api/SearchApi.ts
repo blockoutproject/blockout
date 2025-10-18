@@ -40,13 +40,11 @@ class SearchApi extends AbstractApi {
      */
     public async searchTeams(query: string): Promise<TeamSearchDoc[]> {
         try {
-            const resp = await this.request<TeamSearchDoc[]>({
+            return await this.request<TeamSearchDoc[]>({
                 method: 'get',
                 url: 'teams',
                 params: { query },
             });
-            console.log(resp);
-            return resp;
         } catch (error) {
             if (error instanceof ApiError && error.status === 404) {
                 return [];

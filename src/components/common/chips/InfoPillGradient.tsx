@@ -129,6 +129,7 @@ const styles = StyleSheet.create({
         gap: GAP,
     },
     text: {
+        flexShrink: 1,
         fontSize: 12,
         fontWeight: "700",
     },

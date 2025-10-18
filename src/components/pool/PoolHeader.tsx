@@ -70,22 +70,23 @@ const PoolHeader: React.FC<PoolHeaderProps> = ({ title, onOpenReport, onEdit }) 
                 </View>
 
                 <View style={styles.rightGroup}>
-                    <TouchableOpacity
-                        onPress={onEdit}
-                        hitSlop={{
-                            top: 8,
-                            bottom: 8,
-                            left: 8,
-                            right: 8,
-                        }}
-                    >
-                        <MaterialCommunityIcons
-                            name="pencil-outline"
-                            size={28}
-                            color={theme.text}
-                        />
-                    </TouchableOpacity>
-
+                    {onEdit && (
+                        <TouchableOpacity
+                            onPress={onEdit}
+                            hitSlop={{
+                                top: 8,
+                                bottom: 8,
+                                left: 8,
+                                right: 8,
+                            }}
+                        >
+                            <MaterialCommunityIcons
+                                name="pencil-outline"
+                                size={28}
+                                color={theme.text}
+                            />
+                        </TouchableOpacity>
+                    )}
                     <TouchableOpacity
                         onPress={onOpenReport}
                         hitSlop={{

@@ -57,7 +57,8 @@ export interface EnrichedMatchDTO {
     teamA: Team & { logoUrl: string | null };
     teamB: Team & { logoUrl: string | null };
     pool: EnrichedPoolDTO;
-    documents: MatchDocumentLink[];
+    matchAddressPdfUrl: string | null;
+    matchSheetPdfUrl: string | null;
 }
 
 export interface EnrichedPoolMatchesDTO {
@@ -75,16 +76,3 @@ export interface EnrichedDayPageDTO {
     hasNext: boolean;
     nextPage: number | null;
 }
-
-export type HttpAction = {
-    method: "GET" | "POST";
-    encoding: "URLENCODED" | "MULTIPART";
-    url: string;
-    params?: { name: string; value: string }[];
-};
-
-export type MatchDocumentLink = {
-    id: string;
-    title: string;
-    action: HttpAction;
-};

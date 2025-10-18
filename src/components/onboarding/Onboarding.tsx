@@ -20,13 +20,13 @@ import Animated, {
     withSpring,
     Extrapolation,
     SharedValue,
-    runOnJS,
 } from "react-native-reanimated";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import * as Haptics from "expo-haptics";
 import { OnboardingStep } from "@/src/onboarding/steps";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import GradientButton from "../common/GradientButton";
+import { runOnJS, scheduleOnRN } from "react-native-worklets";
 
 const { width: SCREEN_W } = Dimensions.get("window");
 
@@ -71,16 +71,19 @@ export function FancyOnboarding({
     const jsGoTo = (i: number) => goTo(i);
 
     const pan = Gesture.Pan().onEnd((e) => {
+        "worklet";
+
         const should =
-            Math.abs(e.translationX) > SCREEN_W * 0.25 ||
-            Math.abs(e.velocityX) > 600;
+            Math.abs(e.translationX) > SCREEN_W * 0.25 || Math.abs(e.velocityX) > 600;
+
         if (should) {
             if (e.translationX < 0 && !isLast) {
-                runOnJS(jsGoTo)(index + 1);
+                scheduleOnRN(() => jsGoTo(index + 1));
             } else if (e.translationX > 0 && !isFirst) {
-                runOnJS(jsGoTo)(index - 1);
+                scheduleOnRN(() => jsGoTo(index - 1));
             }
         }
+
         dragX.value = withSpring(0);
     });
 
@@ -96,7 +99,6 @@ export function FancyOnboarding({
         };
     });
 
-    // ✅ Une seule source de vérité: le scroll
     useDerivedValue(() => {
         const next = Math.round(svX.value / SCREEN_W);
         // évite les appels redondants
@@ -107,10 +109,7 @@ export function FancyOnboarding({
 
     const goTo = (i: number) => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => { });
-        // @ts-ignore
         scrollRef.current?.scrollTo({ x: i * SCREEN_W, animated: true });
-        // ❌ NE PLUS toucher à setIndex ici
-        // setIndex(i); // 👈 CHANGED (supprimé)
     };
 
     const onNext = async () => {
@@ -254,8 +253,6 @@ const Slide = ({
             <Animated.Text style={[styles.desc, descStyle]}>
                 {step.description}
             </Animated.Text>
-
-            {step.id === "push" && <FakePermissionCard />}
         </View>
     );
 };
@@ -310,29 +307,6 @@ const GhostButton = ({
     );
 };
 
-// ────────────────────────────────────────────────────────────────────────────────
-// Carte “permission notifications” (visuelle, sans logique système)
-// ────────────────────────────────────────────────────────────────────────────────
-const FakePermissionCard = () => {
-    return (
-        <View style={styles.card}>
-            <Text style={styles.cardTitle}>Notifications</Text>
-            <Text style={styles.cardDesc}>
-                Active-les pour recevoir des alertes quand tes équipes suivies ont de nouveaux matchs.
-            </Text>
-            <View style={styles.pill}>
-                <View style={styles.bullet} />
-                <Text style={styles.pillTxt}>Prévenir avant le match</Text>
-            </View>
-            <View style={styles.pill}>
-                <View style={styles.bullet} />
-                <Text style={styles.pillTxt}>Récap hebdo des résultats</Text>
-            </View>
-        </View>
-    );
-};
-
-// ────────────────────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
     root: { flex: 1 },
     flex: { flex: 1 },

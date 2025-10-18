@@ -18,15 +18,14 @@ export type OnboardingStep = {
     bg: string;
 };
 
-// Exemple de steps
 export const ONBOARDING_STEPS: OnboardingStep[] = [
     {
         id: "intro",
         title: "👋 Bienvenue sur Blockout",
         description:
-            "Consulte les scores et les classements, suis tes équipes, pools et clubs.",
+            "Consulte les scores et les classements, suis tes équipes, poules et clubs.",
         visual: {
-            image: require("@/assets/images/hello.gif"), // ← ton logo
+            image: require("@/assets/images/hello.gif"),
         },
         bg: "#0e0f13",
     },
@@ -49,6 +48,16 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
             image: require("@/assets/images/flag.png"),
         },
         bg: "#0e0f13",
+    },
+    {
+        id: "disclaimer",
+        title: "🏐 À propos des données",
+        description:
+            "Blockout n’est pas une application officielle de la Fédération Française de Volley.\n\nNotre objectif est d'offrir une meilleure expérience aux volleyeurs et passionnés des championnats français.\n\nPar ailleurs, les compétitions départementales ne sont pas encore disponibles pour des raisons techniques.",
+        visual: {
+            image: require("@/assets/images/disclaimer.png"),
+        },
+        bg: "#020716ff",
     },
     {
         id: "start",

@@ -7,7 +7,7 @@ export interface Pool {
     id: number;
     poolCode: string;
     leagueCode: string;
-    season: number;
+    season: string;
     divisionId: number;
     gender: EnumGender;
     format: EnumFormat;
@@ -23,9 +23,10 @@ export interface Pool {
 
 export interface EnrichedPoolDTO {
     id: number;
-    season: number;
+    season: string;
     leagueCode: string;
     leagueName: string;
+    poolCode: string;
     name: string;
     shortName: string;
     format: EnumFormat;

@@ -100,12 +100,11 @@ export const SessionProvider: React.FC<React.PropsWithChildren> = ({ children })
         }
     };
 
-    useEffect(() => {
-        console.log({ isReady, isError, error });
+    // useEffect(() => {
         // if (isReady && isError && !(error?.name === "USER_CANCELLED")) {
         //     softResetAuth();
         // }
-    }, [isReady, isError]);
+    // }, [isReady, isError]);
 
     const value = useMemo<SessionContextValue>(() => {
         return {

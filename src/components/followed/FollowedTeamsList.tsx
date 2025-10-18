@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState } from "react";
-import { ActivityIndicator, FlatList, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, FlatList, StyleSheet, View } from "react-native";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -7,35 +7,20 @@ import { useAppTheme } from "@/src/context/ThemeProvider";
 import { useFollowedTeamList } from "@/src/hooks/team/useFollowedTeamList";
 import FollowedTeamCard from "./FollowedTeamCard";
 import { BOTTOM_TABBAR_HEIGHT } from "@/src/theme/globals";
-import FollowedListHeader from "./FollowedListHeader";
-import { Filter } from "@/src/types/Filter";
 import EmptyState from "@/src/components/common/feedback/EmptyState";
 import ErrorState from "@/src/components/common/feedback/ErrorState";
 
 type Props = {
     teamIds?: number[];
     headerOffset: number;
-    filters: Filter[];
-    setFilters: (next: Filter[] | ((prev: Filter[]) => Filter[])) => void;
 };
 
-const FollowedTeamsList: React.FC<Props> = ({
-    teamIds,
-    headerOffset,
-    filters,
-    setFilters,
-}) => {
+const FollowedTeamsList: React.FC<Props> = ({ teamIds, headerOffset }) => {
     const theme = useAppTheme();
     const insets = useSafeAreaInsets();
     const router = useRouter();
 
-    // ⚠️ On suppose que le hook expose ces flags comme dans useMatchList
-    const {
-        teams,
-        isLoading,
-        isError,
-        refetch
-    } = useFollowedTeamList(teamIds);
+    const { teams, isLoading, isError, refetch } = useFollowedTeamList(teamIds);
 
     const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -55,17 +40,6 @@ const FollowedTeamsList: React.FC<Props> = ({
             router.push(`/team/${id}`);
         },
         [router]
-    );
-
-    const ListHeaderComponent = useMemo(
-        () => (
-            <FollowedListHeader
-                filters={filters}
-                setFilters={setFilters}
-                headerOffset={headerOffset}
-            />
-        ),
-        [filters, setFilters, headerOffset]
     );
 
     const ListFooterComponent = useMemo(() => {
@@ -100,9 +74,8 @@ const FollowedTeamsList: React.FC<Props> = ({
             renderItem={({ item }) => (
                 <FollowedTeamCard team={item} onPress={() => handlePressTeam(item.id)} />
             )}
-            ListHeaderComponent={ListHeaderComponent}
+            // Header retiré : il est rendu dans FollowedScreen
             ListFooterComponent={ListFooterComponent}
-            stickyHeaderIndices={[0]}
             ListEmptyComponent={() => (
                 <EmptyState
                     title="Aucune équipe suivie"
@@ -129,6 +102,4 @@ export default FollowedTeamsList;
 
 const styles = StyleSheet.create({
     center: { flex: 1, justifyContent: "center", alignItems: "center" },
-    emptyContainer: { alignItems: "center", marginTop: 40 },
-    emptyText: { fontSize: 14, textAlign: "center" },
 });
