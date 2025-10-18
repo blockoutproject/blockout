@@ -74,7 +74,8 @@ public class UserService {
      *
      * @param auth0Id Identifiant unique Auth0 (claim "sub")
      * @return L'utilisateur existant ou nouvellement créé
-     * @throws Auth0Exception En cas d'échec de récupération ou d'assignation de rôle depuis Auth0
+     * @throws Auth0Exception En cas d'échec de récupération ou d'assignation de
+     *                        rôle depuis Auth0
      */
     @Transactional
     public CustomUser ensureCurrentUser(String auth0Id) throws Auth0Exception {
@@ -181,8 +182,10 @@ public class UserService {
      * Supprime un utilisateur de la base de données et de Auth0.
      *
      * @param auth0Id L'identifiant Auth0 de l'utilisateur à supprimer.
-     * @throws CustomUserNotFoundException si l'utilisateur n'existe pas dans la base de données.
-     * @throws Auth0Exception si la suppression de l'utilisateur dans Auth0 échoue.
+     * @throws CustomUserNotFoundException si l'utilisateur n'existe pas dans la
+     *                                     base de données.
+     * @throws Auth0Exception              si la suppression de l'utilisateur dans
+     *                                     Auth0 échoue.
      */
     @Transactional
     public void deleteUser(String auth0Id) throws Auth0Exception {
@@ -261,12 +264,15 @@ public class UserService {
      * Vérifie l'unicité du pseudo avant sauvegarde.
      *
      * @param auth0Id L'identifiant Auth0 de l'utilisateur à mettre à jour
-     * @param dto Les nouvelles données de l'utilisateur (pseudo, prénom, nom)
-     * @param image La nouvelle photo de profil (optionnelle)
+     * @param dto     Les nouvelles données de l'utilisateur (pseudo, prénom, nom)
+     * @param image   La nouvelle photo de profil (optionnelle)
      * @return L'utilisateur mis à jour
-     * @throws CustomUserNotFoundException si aucun utilisateur n'est trouvé avec cet identifiant
-     * @throws ConflictException si le pseudo demandé est déjà utilisé par un autre utilisateur
-     * @throws RuntimeException en cas d'échec lors de l'upload de l'image
+     * @throws CustomUserNotFoundException si aucun utilisateur n'est trouvé avec
+     *                                     cet identifiant
+     * @throws ConflictException           si le pseudo demandé est déjà utilisé par
+     *                                     un autre utilisateur
+     * @throws RuntimeException            en cas d'échec lors de l'upload de
+     *                                     l'image
      */
     @Transactional
     public CustomUser updateUser(String auth0Id, CustomUserUpdateDTO dto, MultipartFile image) {
@@ -341,7 +347,8 @@ public class UserService {
                 DiffUtils.logChanges(before, updated, logger, "update_user", updated.getId());
                 return updated;
             } catch (DataIntegrityViolationException dive) {
-                logger.error("Violation d'intégrité lors de la mise à jour de l'utilisateur (pseudo probablement en double)",
+                logger.error(
+                        "Violation d'intégrité lors de la mise à jour de l'utilisateur (pseudo probablement en double)",
                         keyValue("action", "update_user"),
                         keyValue("auth0Id", auth0Id),
                         keyValue("requestedPseudo", dto.getPseudo()), dive);
