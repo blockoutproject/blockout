@@ -62,7 +62,7 @@ public class FfvbPdfProxyController {
                 logger.info("Calling FFVB (sheet)",
                         keyValue("url", url));
 
-                upstream = restTemplate.exchange(url, HttpMethod.POST, new HttpEntity<>(headers), byte[].class);
+                upstream = restTemplate.exchange(url, HttpMethod.GET, new HttpEntity<>(headers), byte[].class);
 
             } else if ("address".equals(kind)) {
                 url = "https://www.ffvbbeach.org/ffvbapp/adressier/fiche_match_ffvb.php";
