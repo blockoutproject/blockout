@@ -11,6 +11,6 @@ import org.springframework.validation.annotation.Validated;
 @ConfigurationProperties(prefix = "pdf-link-token")
 public class PdfLinkTokenProperties {
     private String secret;
-    private long ttlSeconds = 180;
+    private long ttlSeconds = 600;
     private String kid = "primary";
 }

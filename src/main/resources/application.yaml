@@ -52,5 +52,5 @@ ffvb:
 
 pdf-link-token:
   secret: "${PDF_LINK_TOKEN_SECRET}"
-  ttl-seconds: 180
+  ttl-seconds: 600
   kid: primary
