@@ -109,6 +109,7 @@ public class EnrichedPoolService {
                 .season(rawPool.getSeason())
                 .leagueCode(rawPool.getLeagueCode())
                 .leagueName(rawPool.getLeagueName())
+                .poolCode(rawPool.getPoolCode())
                 .name(rawPool.getName())
                 .shortName(rawPool.getShortName())
                 .division(division)
