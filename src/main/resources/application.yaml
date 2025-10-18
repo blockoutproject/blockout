@@ -49,3 +49,8 @@ ffvb:
   proxy:
     host: ${FFVB_PROXY_HOST}
     port: ${FFVB_PROXY_PORT}
+
+pdf-link-token:
+  secret: "${PDF_LINK_TOKEN_SECRET}"
+  ttl-seconds: 180
+  kid: primary

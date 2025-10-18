@@ -37,6 +37,7 @@ public class EnrichedMatchService {
     private final CompetitionClientService competitionClientService;
     private final ClubClientService clubClientService;
     private final ApiClientProperties apiClientProperties;
+    private final PdfLinkTokenService pdfLinkTokenService;
 
     public EnrichedMatchDTO getEnrichedMatchById(Long matchId) {
         MatchDTO match = matchClientService.getMatchById(matchId);
@@ -150,25 +151,17 @@ public class EnrichedMatchService {
         teamB.setLogoUrl(teamsMap.get(teamB.getId()).getLogoUrl());
 
         String base = apiClientProperties.getMobilegateway().getUrl();
-        String addressUrl = UriComponentsBuilder
-                .fromUriString(base)
-                .path("/public/ffvb/pdf")
-                .queryParam("kind", "address")
-                .queryParam("saison", match.getSeason())
-                .queryParam("codent", match.getLeagueCode())
-                .queryParam("codmatch", match.getMatchCode())
-                .build(true)
-                .toUriString();
 
-        String sheetUrl = UriComponentsBuilder
-                .fromUriString(base)
-                .path("/public/ffvb/pdf")
-                .queryParam("kind", "sheet")
-                .queryParam("saison", match.getSeason())
-                .queryParam("codent", match.getLeagueCode())
-                .queryParam("codmatch", match.getMatchCode())
-                .build(true)
-                .toUriString();
+        String addressToken = pdfLinkTokenService.generate(
+                "address", match.getSeason(), match.getLeagueCode(), match.getMatchCode());
+        String sheetToken = pdfLinkTokenService.generate(
+                "sheet", match.getSeason(), match.getLeagueCode(), match.getMatchCode());
+
+        String addressUrl = UriComponentsBuilder.fromUriString(base)
+                .path("/public/ffvb/pdf/").path(addressToken).toUriString();
+
+        String sheetUrl = UriComponentsBuilder.fromUriString(base)
+                .path("/public/ffvb/pdf/").path(sheetToken).toUriString();
 
         return EnrichedMatchDTO.builder()
                 .id(match.getId())
