@@ -23,7 +23,7 @@ public class SecurityConfig {
          */
         return http
                 .authorizeHttpRequests((authorize) -> authorize
-                        .requestMatchers("/api/v1/mobile/ffvb/pdf").permitAll()
+                        .requestMatchers("/api/v1/mobile/public/**").permitAll()
                         .anyRequest().authenticated())
                 .cors(withDefaults())
                 .oauth2ResourceServer(oauth2 -> oauth2

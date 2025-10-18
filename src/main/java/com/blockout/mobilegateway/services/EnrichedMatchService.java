@@ -151,7 +151,7 @@ public class EnrichedMatchService {
         String base = apiClientProperties.getMobilegateway().getUrl();
         String addressUrl = UriComponentsBuilder
                 .fromUriString(base)
-                .path("/ffvb/pdf")
+                .path("/public/ffvb/pdf")
                 .queryParam("kind", "address")
                 .queryParam("id", match.getId())
                 .build(true)
@@ -159,7 +159,7 @@ public class EnrichedMatchService {
 
         String sheetUrl = UriComponentsBuilder
                 .fromUriString(base)
-                .path("/ffvb/pdf")
+                .path("/public/ffvb/pdf")
                 .queryParam("kind", "sheet")
                 .queryParam("id", match.getId())
                 .build(true)
