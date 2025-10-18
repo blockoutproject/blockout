@@ -13,7 +13,6 @@ import com.blockout.mobilegateway.models.dto.team.TeamWithStatsDTO;
 import com.blockout.mobilegateway.services.clients.MatchClientService;
 import com.blockout.mobilegateway.services.clients.PoolClientService;
 import com.blockout.mobilegateway.services.clients.TeamClientService;
-import com.blockout.mobilegateway.services.pdf.PdfLinkService;
 import com.blockout.mobilegateway.services.clients.ConfigClientService;
 import com.blockout.mobilegateway.services.clients.ClubClientService;
 import com.blockout.mobilegateway.services.clients.CompetitionClientService;
@@ -35,7 +34,6 @@ public class EnrichedMatchService {
     private final ConfigClientService configClientService;
     private final CompetitionClientService competitionClientService;
     private final ClubClientService clubClientService;
-    private final PdfLinkService pdfLinkService;
 
     public EnrichedMatchDTO getEnrichedMatchById(Long matchId) {
         MatchDTO match = matchClientService.getMatchById(matchId);
@@ -147,13 +145,6 @@ public class EnrichedMatchService {
         teamA.setLogoUrl(teamsMap.get(teamA.getId()).getLogoUrl());
         teamB.setLogoUrl(teamsMap.get(teamB.getId()).getLogoUrl());
 
-        String saison = match.getSeason();
-        String codent = match.getLeagueCode();
-        String codmatch = match.getMatchCode();
-
-        String matchSheetPdfUrl = pdfLinkService.sheetUrl(saison, codent, codmatch);
-        String matchAddressPdfUrl = pdfLinkService.addressUrl(saison, codent, codmatch);
-
         return EnrichedMatchDTO.builder()
                 .id(match.getId())
                 .matchDate(match.getMatchDate())
@@ -167,8 +158,6 @@ public class EnrichedMatchService {
                 .teamA(teamA)
                 .teamB(teamB)
                 .pool(enrichedPool)
-                .matchSheetPdfUrl(matchSheetPdfUrl)
-                .matchAddressPdfUrl(matchAddressPdfUrl)
                 .build();
     }
 }

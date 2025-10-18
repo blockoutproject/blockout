@@ -43,9 +43,7 @@ api:
   notification:
     url: ${NOTIFICATION_API_URL}
     
-
-pdf:
-  jwt:
-    secret: ${PDF_JWT_SECRET}
-  link:
-    ttl-seconds: 120
+ffvb:
+  proxy:
+    host: ${FFVB_PROXY_HOST}
+    port: ${FFVB_PROXY_PORT}
