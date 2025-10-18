@@ -38,12 +38,12 @@ public class FfvbPdfProxyController {
     @GetMapping("/pdf")
     public void proxy(
             @RequestParam String kind,
-            @RequestParam Long matchId,
+            @RequestParam Long id,
             HttpServletResponse resp) throws Exception {
 
         Instant start = Instant.now();
 
-        MatchDTO match = matchClientService.getMatchById(matchId);
+        MatchDTO match = matchClientService.getMatchById(id);
 
         String saison = match.getSeason();
         String codent = match.getLeagueCode();
