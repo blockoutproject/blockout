@@ -10,10 +10,13 @@ import org.springframework.web.client.RestTemplate;
 import jakarta.servlet.http.HttpServletResponse;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.util.logging.Logger;
 
 @RestController
 @RequestMapping("/api/v1/mobile/ffvb")
 public class FfvbPdfProxyController {
+
+    Logger logger = Logger.getLogger(FfvbPdfProxyController.class.getName());
 
     private final RestTemplate restTemplate;
 
@@ -29,6 +32,12 @@ public class FfvbPdfProxyController {
             HttpServletResponse resp) throws Exception {
 
         ResponseEntity<byte[]> upstream;
+
+        logger.info("Proxying FFVB PDF request"
+                + " kind=" + kind
+                + " saison=" + saison
+                + " codent=" + codent
+                + " codmatch=" + codmatch);
 
         if ("sheet".equals(kind)) {
             String url = URI.create("http://www.ffvbbeach.org/ffvbapp/resu/ffvolley_fdme.php" +
