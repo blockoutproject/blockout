@@ -148,7 +148,7 @@ public class EnrichedMatchService {
         teamA.setLogoUrl(teamsMap.get(teamA.getId()).getLogoUrl());
         teamB.setLogoUrl(teamsMap.get(teamB.getId()).getLogoUrl());
 
-        String base = apiClientProperties.getGateway().getUrl();
+        String base = apiClientProperties.getMobilegateway().getUrl();
         String addressUrl = UriComponentsBuilder
                 .fromUriString(base)
                 .path("/api/v1/mobile/ffvb/pdf")

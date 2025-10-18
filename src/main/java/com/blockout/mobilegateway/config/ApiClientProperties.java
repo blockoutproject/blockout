@@ -20,7 +20,7 @@ public class ApiClientProperties {
     private final Endpoint competition = new Endpoint();
     private final Endpoint club = new Endpoint();
     private final Endpoint notification = new Endpoint();
-    private final Endpoint gateway = new Endpoint();
+    private final Endpoint mobilegateway = new Endpoint();
 
     @Data
     public static class Endpoint {
