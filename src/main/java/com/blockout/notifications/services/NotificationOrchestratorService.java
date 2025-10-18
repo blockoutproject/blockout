@@ -78,7 +78,7 @@ public class NotificationOrchestratorService {
                     .type(NotificationType.MATCH_FINISHED)
                     .title(content.title)
                     .body(content.body)
-                    .deepLink("/matches/" + matchId)
+                    .deepLink("/match/" + matchId)
                     .targetType(NotificationTargetType.MATCH)
                     .targetId(matchId)
                     .metadata(meta)
