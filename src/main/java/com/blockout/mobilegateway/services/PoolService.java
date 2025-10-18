@@ -50,6 +50,8 @@ public class PoolService {
                 .map(p -> PoolSummaryDTO.builder()
                         .id(p.getId())
                         .leagueName(p.getLeagueName())
+                        .name(p.getName())
+                        .shortName(p.getShortName())
                         .season(p.getSeason())
                         .gender(p.getGender())
                         .division(divisionById.get(p.getDivisionId()))
