@@ -140,7 +140,7 @@ public class UserNotificationService {
     @Transactional
     public boolean markOpened(Long notificationId) {
         Long userId = resolveUserIdOrThrow();
-        int n = repository.markOpened(userId, notificationId, Instant.now());
+        int n = repository.markOpened(userId, notificationId, Instant.now()); 
         if (n > 0) {
             logger.info("Notification marked opened",
                     keyValue("action", "notification_mark_opened"),
