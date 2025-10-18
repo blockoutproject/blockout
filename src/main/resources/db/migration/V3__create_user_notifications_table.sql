@@ -10,9 +10,9 @@ CREATE TABLE user_notifications (
     metadata JSONB,
     is_read BOOLEAN NOT NULL DEFAULT FALSE,
     is_opened BOOLEAN NOT NULL DEFAULT FALSE,
-    created_at TIMESTAMP(6) NOT NULL DEFAULT NOW(),
-    read_at TIMESTAMP(6),
-    opened_at TIMESTAMP(6)
+    created_at TIMESTAMPTZ(6) NOT NULL DEFAULT NOW(),
+    read_at TIMESTAMPTZ(6),
+    opened_at TIMESTAMPTZ(6),
     CONSTRAINT chk_user_notifications_type CHECK (type IN ('MATCH_FINISHED', 'GENERIC'))
 );
 

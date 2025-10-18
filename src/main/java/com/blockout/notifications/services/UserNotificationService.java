@@ -17,7 +17,7 @@ import com.blockout.notifications.services.clients.UsersClientService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
@@ -83,7 +83,7 @@ public class UserNotificationService {
                 .metadata(meta)
                 .isRead(false)
                 .isOpened(false)
-                .createdAt(LocalDateTime.now())
+                .createdAt(Instant.now()) // UTC
                 .build();
 
         UserNotification saved = repository.save(entity);
@@ -97,9 +97,6 @@ public class UserNotificationService {
         return saved;
     }
 
-    /**
-     * Pagination simple calquée sur ton pattern Matchs (DTO { items, hasNext, nextPage }).
-     */
     public UserNotificationPageDTO getNotificationsByAuth0Id(int page, int size) {
         Long userId = resolveUserIdOrThrow();
 
@@ -129,7 +126,7 @@ public class UserNotificationService {
     @Transactional
     public boolean markRead(Long notificationId) {
         Long userId = resolveUserIdOrThrow();
-        int n = repository.markRead(userId, notificationId);
+        int n = repository.markRead(userId, notificationId, Instant.now());
         if (n > 0) {
             logger.info("Notification marked read",
                     keyValue("action", "notification_mark_read"),
@@ -143,7 +140,7 @@ public class UserNotificationService {
     @Transactional
     public boolean markOpened(Long notificationId) {
         Long userId = resolveUserIdOrThrow();
-        int n = repository.markOpened(userId, notificationId);
+        int n = repository.markOpened(userId, notificationId, Instant.now());
         if (n > 0) {
             logger.info("Notification marked opened",
                     keyValue("action", "notification_mark_opened"),

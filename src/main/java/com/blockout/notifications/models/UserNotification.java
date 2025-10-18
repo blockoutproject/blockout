@@ -3,7 +3,7 @@ package com.blockout.notifications.models;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
@@ -63,17 +63,20 @@ public class UserNotification {
     @Column(name = "is_opened", nullable = false)
     private Boolean isOpened = false;
 
-    @Column(name = "created_at", nullable = false)
-    private LocalDateTime createdAt;
+    // IMPORTANT: Instant <-> timestamptz (UTC)
+    @Column(name = "created_at", nullable = false/*, columnDefinition = "timestamptz"*/)
+    private Instant createdAt;
 
-    @Column(name = "read_at")
-    private LocalDateTime readAt;
+    @Column(name = "read_at"/*, columnDefinition = "timestamptz"*/)
+    private Instant readAt;
 
-    @Column(name = "opened_at")
-    private LocalDateTime openedAt;
+    @Column(name = "opened_at"/*, columnDefinition = "timestamptz"*/)
+    private Instant openedAt;
 
     @PrePersist
     public void prePersist() {
-        createdAt = LocalDateTime.now();
+        if (createdAt == null) {
+            createdAt = Instant.now(); // UTC
+        }
     }
 }

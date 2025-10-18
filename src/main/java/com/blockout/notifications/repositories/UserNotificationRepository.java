@@ -8,6 +8,8 @@ import org.springframework.stereotype.Repository;
 
 import com.blockout.notifications.models.UserNotification;
 
+import java.time.Instant;
+
 @Repository
 public interface UserNotificationRepository extends JpaRepository<UserNotification, Long> {
 
@@ -18,18 +20,18 @@ public interface UserNotificationRepository extends JpaRepository<UserNotificati
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("""
             UPDATE UserNotification n
-            SET n.isRead = TRUE, n.readAt = CURRENT_TIMESTAMP
+            SET n.isRead = TRUE, n.readAt = :now
             WHERE n.id = :id AND n.userId = :userId AND n.isRead = FALSE
             """)
-    int markRead(@Param("userId") Long userId, @Param("id") Long id);
+    int markRead(@Param("userId") Long userId, @Param("id") Long id, @Param("now") Instant now);
 
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("""
             UPDATE UserNotification n
-            SET n.isOpened = TRUE, n.openedAt = CURRENT_TIMESTAMP
+            SET n.isOpened = TRUE, n.openedAt = :now
             WHERE n.id = :id AND n.userId = :userId AND n.isOpened = FALSE
             """)
-    int markOpened(@Param("userId") Long userId, @Param("id") Long id);
+    int markOpened(@Param("userId") Long userId, @Param("id") Long id, @Param("now") Instant now);
 
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("""

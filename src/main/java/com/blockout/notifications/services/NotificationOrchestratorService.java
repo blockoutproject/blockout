@@ -19,7 +19,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -69,10 +69,9 @@ public class NotificationOrchestratorService {
                 keyValue("title", content.title),
                 keyValue("body", content.body));
 
-        // ⬇️ Crée les notifications DB, en posant metadata
         List<UserNotification> bulk = new ArrayList<>(reservedUserIds.size());
         for (Long userId : reservedUserIds) {
-            JsonNode meta = baseMetadata.deepCopy(); // évite de réutiliser la même instance mutable
+            JsonNode meta = baseMetadata.deepCopy();
             bulk.add(UserNotification.builder()
                     .userId(userId)
                     .type(NotificationType.MATCH_FINISHED)
@@ -84,7 +83,7 @@ public class NotificationOrchestratorService {
                     .metadata(meta)
                     .isRead(false)
                     .isOpened(false)
-                    .createdAt(LocalDateTime.now())
+                    .createdAt(Instant.now())
                     .build());
         }
         userNotificationService.createNotificationsBatch(bulk);
@@ -199,7 +198,7 @@ public class NotificationOrchestratorService {
         logger.info("Push pipeline completed",
                 keyValue("action", "notification_push_done"),
                 keyValue("matchId", matchId),
-                keyValue("time", LocalDateTime.now()));
+                keyValue("time", Instant.now()));
     }
 
     private ResolvedContent resolveContent(Long matchId, Long teamIdA, Long teamIdB, Long poolId, String setInfo) {
