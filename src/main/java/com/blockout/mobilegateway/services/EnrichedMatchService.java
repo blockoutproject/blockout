@@ -1,5 +1,6 @@
 package com.blockout.mobilegateway.services;
 
+import com.blockout.mobilegateway.config.ApiClientProperties;
 import com.blockout.mobilegateway.exceptions.InconsistentStateException;
 import com.blockout.mobilegateway.models.dto.club.ClubDTO;
 import com.blockout.mobilegateway.models.dto.competition.CompetitionAssociationDTO;
@@ -19,6 +20,7 @@ import com.blockout.mobilegateway.services.clients.CompetitionClientService;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.*;
 import java.util.function.Function;
@@ -34,6 +36,7 @@ public class EnrichedMatchService {
     private final ConfigClientService configClientService;
     private final CompetitionClientService competitionClientService;
     private final ClubClientService clubClientService;
+    private final ApiClientProperties apiClientProperties;
 
     public EnrichedMatchDTO getEnrichedMatchById(Long matchId) {
         MatchDTO match = matchClientService.getMatchById(matchId);
@@ -145,6 +148,23 @@ public class EnrichedMatchService {
         teamA.setLogoUrl(teamsMap.get(teamA.getId()).getLogoUrl());
         teamB.setLogoUrl(teamsMap.get(teamB.getId()).getLogoUrl());
 
+        String base = apiClientProperties.getGateway().getUrl();
+        String addressUrl = UriComponentsBuilder
+                .fromUriString(base)
+                .path("/api/v1/mobile/ffvb/pdf")
+                .queryParam("kind", "address")
+                .queryParam("matchId", match.getId())
+                .build(true)
+                .toUriString();
+
+        String sheetUrl = UriComponentsBuilder
+                .fromUriString(base)
+                .path("/api/v1/mobile/ffvb/pdf")
+                .queryParam("kind", "sheet")
+                .queryParam("matchId", match.getId())
+                .build(true)
+                .toUriString();
+
         return EnrichedMatchDTO.builder()
                 .id(match.getId())
                 .matchDate(match.getMatchDate())
@@ -158,6 +178,8 @@ public class EnrichedMatchService {
                 .teamA(teamA)
                 .teamB(teamB)
                 .pool(enrichedPool)
+                .matchAddressPdfUrl(addressUrl)
+                .matchSheetPdfUrl(sheetUrl)
                 .build();
     }
 }

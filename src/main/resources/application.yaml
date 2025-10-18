@@ -28,6 +28,8 @@ logging:
     root: ${LOGGING_LEVEL_ROOT:INFO}
 
 api:
+  gateway:
+    url: ${API_GATEWAY_URL}
   match:
     url: ${MATCH_API_URL}
   team:
