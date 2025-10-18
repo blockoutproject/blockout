@@ -18,7 +18,7 @@ import java.time.Instant;
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
 @RestController
-@RequestMapping("/api/v1/mobile/ffvb")
+@RequestMapping("/api/v1/mobile/public/ffvb")
 public class FfvbPdfProxyController {
 
     private static final Logger logger = LoggerFactory.getLogger(FfvbPdfProxyController.class);
