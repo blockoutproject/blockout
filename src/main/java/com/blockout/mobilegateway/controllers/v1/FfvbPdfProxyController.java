@@ -1,8 +1,5 @@
 package com.blockout.mobilegateway.controllers.v1;
 
-import com.blockout.mobilegateway.services.clients.ApiClientService;
-import lombok.RequiredArgsConstructor;
-import net.logstash.logback.argument.StructuredArguments;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -14,7 +11,6 @@ import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
 import jakarta.servlet.http.HttpServletResponse;
-import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
@@ -23,12 +19,15 @@ import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
 @RestController
 @RequestMapping("/api/v1/mobile/ffvb")
-@RequiredArgsConstructor
 public class FfvbPdfProxyController {
 
     private static final Logger logger = LoggerFactory.getLogger(FfvbPdfProxyController.class);
 
-    private final @Qualifier("externalRestTemplate") RestTemplate restTemplate;
+    private final RestTemplate restTemplate;
+
+    FfvbPdfProxyController(@Qualifier("externalRestTemplate") RestTemplate restTemplate) {
+        this.restTemplate = restTemplate;
+    }
 
     @GetMapping("/pdf")
     public void proxy(
@@ -115,16 +114,16 @@ public class FfvbPdfProxyController {
         }
 
         logger.info("FFVB responded",
-                keyValue("status", upstream.getStatusCodeValue()),
+                keyValue("status", upstream.getStatusCode().value()),
                 keyValue("durationMs", durationMs),
                 keyValue("contentLength", upstream.getBody() != null ? upstream.getBody().length : -1));
 
         if (!upstream.getStatusCode().is2xxSuccessful() || upstream.getBody() == null) {
-            resp.setStatus(upstream.getStatusCodeValue());
+            resp.setStatus(upstream.getStatusCode().value());
             resp.setContentType("text/plain; charset=utf-8");
-            String msg = "Upstream error: " + upstream.getStatusCodeValue();
+            String msg = "Upstream error: " + upstream.getStatusCode().value();
             logger.warn("Upstream returned error",
-                    keyValue("status", upstream.getStatusCodeValue()),
+                    keyValue("status", upstream.getStatusCode().value()),
                     keyValue("kind", kind),
                     keyValue("url", upstream));
             resp.getOutputStream().write(msg.getBytes(StandardCharsets.UTF_8));
