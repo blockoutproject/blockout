@@ -10,9 +10,6 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
-import com.blockout.mobilegateway.models.dto.match.MatchDTO;
-import com.blockout.mobilegateway.services.clients.MatchClientService;
-
 import jakarta.servlet.http.HttpServletResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
@@ -21,33 +18,26 @@ import java.time.Instant;
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
 @RestController
-@RequestMapping("/api/v1/mobile/public/ffvb")
+@RequestMapping("/api/v1/mobile/ffvb")
 public class FfvbPdfProxyController {
 
     private static final Logger logger = LoggerFactory.getLogger(FfvbPdfProxyController.class);
 
     private final RestTemplate restTemplate;
-    private final MatchClientService matchClientService;
 
-    FfvbPdfProxyController(@Qualifier("externalRestTemplate") RestTemplate restTemplate,
-            MatchClientService matchClientService) {
+    FfvbPdfProxyController(@Qualifier("externalRestTemplate") RestTemplate restTemplate) {
         this.restTemplate = restTemplate;
-        this.matchClientService = matchClientService;
     }
 
     @GetMapping("/pdf")
     public void proxy(
             @RequestParam String kind,
-            @RequestParam Long id,
+            @RequestParam String saison,
+            @RequestParam String codent,
+            @RequestParam String codmatch,
             HttpServletResponse resp) throws Exception {
 
         Instant start = Instant.now();
-
-        MatchDTO match = matchClientService.getMatchById(id);
-
-        String saison = match.getSeason();
-        String codent = match.getLeagueCode();
-        String codmatch = match.getMatchCode();
 
         logger.info("FFVB PDF proxy request received",
                 keyValue("kind", kind),

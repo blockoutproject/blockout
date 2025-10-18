@@ -153,7 +153,9 @@ public class EnrichedMatchService {
                 .fromUriString(base)
                 .path("/public/ffvb/pdf")
                 .queryParam("kind", "address")
-                .queryParam("id", match.getId())
+                .queryParam("saison", match.getSeason())
+                .queryParam("codent", match.getLeagueCode())
+                .queryParam("codmatch", match.getMatchCode())
                 .build(true)
                 .toUriString();
 
@@ -161,7 +163,9 @@ public class EnrichedMatchService {
                 .fromUriString(base)
                 .path("/public/ffvb/pdf")
                 .queryParam("kind", "sheet")
-                .queryParam("id", match.getId())
+                .queryParam("saison", match.getSeason())
+                .queryParam("codent", match.getLeagueCode())
+                .queryParam("codmatch", match.getMatchCode())
                 .build(true)
                 .toUriString();
 
