@@ -51,14 +51,6 @@ public class FfvbPdfProxyController {
 
         if ("sheet".equals(p.kind())) {
             if ("AALNV".equals(p.leagueCode())) {
-                url = UriComponentsBuilder
-                        .fromUriString("https://www.ffvbbeach.org/ffvbapp/resu/ffvolley_fdme_aalnv.php")
-                        .queryParam("saison", p.saison())
-                        .queryParam("codent", p.codent())
-                        .queryParam("codmatch", p.codmatch())
-                        .encode(StandardCharsets.UTF_8)
-                        .toUriString();
-            } else {
                 String genderFolder = p.leagueCode().startsWith("SPS") ? "Women" : "Men";
 
                 url = UriComponentsBuilder
@@ -66,6 +58,14 @@ public class FfvbPdfProxyController {
                                 "https://www.lnv.fr/pdf/2025/DataVolley/%s/%s-2026.php",
                                 genderFolder,
                                 p.codmatch()))
+                        .queryParam("saison", p.saison())
+                        .queryParam("codent", p.codent())
+                        .queryParam("codmatch", p.codmatch())
+                        .encode(StandardCharsets.UTF_8)
+                        .toUriString();
+            } else {
+                url = UriComponentsBuilder
+                        .fromUriString("https://www.ffvbbeach.org/ffvbapp/resu/ffvolley_fdme.php")
                         .queryParam("saison", p.saison())
                         .queryParam("codent", p.codent())
                         .queryParam("codmatch", p.codmatch())
