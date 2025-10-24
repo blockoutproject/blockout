@@ -55,7 +55,7 @@ public class FfvbPdfProxyController {
 
                 url = UriComponentsBuilder
                         .fromUriString(String.format(
-                                "https://www.lnv.fr/pdf/2025/DataVolley/%s/%s-2026.php",
+                                "https://www.lnv.fr/pdf/2025/DataVolley/%s/%s-2026.pdf",
                                 genderFolder,
                                 p.codmatch()))
                         .encode(StandardCharsets.UTF_8)
