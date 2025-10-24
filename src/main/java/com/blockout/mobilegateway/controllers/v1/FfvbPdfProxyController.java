@@ -50,8 +50,8 @@ public class FfvbPdfProxyController {
         HttpEntity<?> entity;
 
         if ("sheet".equals(p.kind())) {
-            if ("AALNV".equals(p.leagueCode())) {
-                String genderFolder = p.leagueCode().startsWith("SPS") ? "Women" : "Men";
+            if ("AALNV".equals(p.codent())) {
+                String genderFolder = p.codmatch().startsWith("SPS") ? "Women" : "Men";
 
                 url = UriComponentsBuilder
                         .fromUriString(String.format(
