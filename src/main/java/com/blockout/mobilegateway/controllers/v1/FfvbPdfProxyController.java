@@ -58,9 +58,6 @@ public class FfvbPdfProxyController {
                                 "https://www.lnv.fr/pdf/2025/DataVolley/%s/%s-2026.php",
                                 genderFolder,
                                 p.codmatch()))
-                        .queryParam("saison", p.saison())
-                        .queryParam("codent", p.codent())
-                        .queryParam("codmatch", p.codmatch())
                         .encode(StandardCharsets.UTF_8)
                         .toUriString();
             } else {
