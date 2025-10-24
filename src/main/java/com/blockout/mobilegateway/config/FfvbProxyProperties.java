@@ -9,7 +9,7 @@ import org.springframework.validation.annotation.Validated;
 @Data
 @Validated
 @Component
-@ConfigurationProperties(prefix = "ffvb.proxy")
+@ConfigurationProperties(prefix = "proxy")
 public class FfvbProxyProperties {
 
     @NotBlank

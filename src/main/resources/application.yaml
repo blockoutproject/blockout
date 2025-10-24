@@ -45,10 +45,9 @@ api:
   notification:
     url: ${NOTIFICATION_API_URL}
     
-ffvb:
-  proxy:
-    host: ${FFVB_PROXY_HOST}
-    port: ${FFVB_PROXY_PORT}
+proxy:
+  host: ${FFVB_PROXY_HOST}
+  port: ${FFVB_PROXY_PORT}
 
 pdf-link-token:
   secret: "${PDF_LINK_TOKEN_SECRET}"

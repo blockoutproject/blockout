@@ -25,7 +25,7 @@ public class PdfLinkTokenService {
         return Keys.hmacShaKeyFor(k);
     }
 
-    public String generate(String kind, String saison, String codent, String codmatch) {
+    public String generate(String kind, String leagueCode, String saison, String codent, String codmatch) {
         Instant now = Instant.now();
         Instant exp = now.plusSeconds(props.getTtlSeconds());
         return Jwts.builder()
@@ -34,6 +34,7 @@ public class PdfLinkTokenService {
                 .issuedAt(Date.from(now))
                 .expiration(Date.from(exp))
                 .claims(Map.of(
+                        "league_code", leagueCode,
                         "kind", kind,
                         "saison", saison,
                         "codent", codent,
@@ -47,6 +48,7 @@ public class PdfLinkTokenService {
         Jws<Claims> jws = Jwts.parser().verifyWith(key()).build().parseSignedClaims(token);
         Claims c = jws.getPayload();
         return new Payload(
+                c.get("league_code", String.class),
                 c.get("kind", String.class),
                 c.get("saison", String.class),
                 c.get("codent", String.class),
@@ -54,5 +56,5 @@ public class PdfLinkTokenService {
         );
     }
 
-    public record Payload(String kind, String saison, String codent, String codmatch) {}
+    public record Payload(String leagueCode, String kind, String saison, String codent, String codmatch) {}
 }

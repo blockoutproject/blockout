@@ -153,9 +153,9 @@ public class EnrichedMatchService {
         String base = apiClientProperties.getMobilegateway().getUrl();
 
         String addressToken = pdfLinkTokenService.generate(
-                "address", match.getSeason(), match.getLeagueCode(), match.getMatchCode());
+                match.getLeagueCode(), "address", match.getSeason(), match.getLeagueCode(), match.getMatchCode());
         String sheetToken = pdfLinkTokenService.generate(
-                "sheet", match.getSeason(), match.getLeagueCode(), match.getMatchCode());
+                match.getLeagueCode(), "sheet", match.getSeason(), match.getLeagueCode(), match.getMatchCode());
 
         String addressUrl = UriComponentsBuilder.fromUriString(base)
                 .path("/public/ffvb/pdf/").path(addressToken).toUriString();
