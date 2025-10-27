@@ -39,7 +39,6 @@ public class NotificationOrchestratorService {
     private final PoolClientService poolClientService;
     private final TeamClientService teamClientService;
 
-    // ⬇️ Injecte Jackson pour construire les metadatas JSON
     private final ObjectMapper objectMapper;
 
     private static final int RESOLVE_PAGE_SIZE = 2_000;
@@ -118,6 +117,7 @@ public class NotificationOrchestratorService {
                                 .body(content.body)
                                 .userId(userId)
                                 .matchId(matchId)
+                                .data(Map.of("url", "blockout://match/" + matchId))
                                 .build());
                     }
                 }
@@ -250,5 +250,6 @@ public class NotificationOrchestratorService {
     }
 
     /** Petite record interne pour transporter titre+corps+logo */
-    private record ResolvedContent(String title, String body, Long divisionId) {}
+    private record ResolvedContent(String title, String body, Long divisionId) {
+    }
 }
