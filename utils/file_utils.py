@@ -96,9 +96,9 @@ async def download_and_parse_csv(
     pool: Pool,
     raw_season: str,
     retries: int = 3,
-    delay: int = 2,
+    delay: int = 0,
     sem: int = 5,
-    timeout: int = 20
+    timeout: int = 10
 ) -> Iterator[dict]:
     """
     Télécharge le CSV et le parse en mémoire sans le sauvegarder sur disque.
