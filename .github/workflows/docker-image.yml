@@ -28,19 +28,11 @@ jobs:
     needs: build_and_push
     runs-on: ubuntu-latest
     steps:
-      - name: Deploy to VPS via SSH
-        uses: appleboy/ssh-action@v0.1.6
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          port: ${{ secrets.VPS_PORT }}
-          script: |
-            cd /opt/blockout/app
-            docker compose pull blockout-api-search
-            doppler run -- docker compose up -d --no-deps blockout-api-search
+      - name: Trigger Dokploy redeploy
+        run: |
+          curl -fsS -X POST "${{ secrets.DOKPLOY_WEBHOOK_URL }}"
 
-      - name: Discord Notification
+      - name: Discord Notification (success)
         if: success()
         uses: Ilshidur/action-discord@master
         env:
@@ -48,9 +40,9 @@ jobs:
         with:
           args: |
             ✅ **Le déploiement de blockout-api-search a réussi !**
-            Le déploiement sur le VPS a été effectué avec succès.
+            Déclenché via le webhook Dokploy.
 
-      - name: Discord Notification on Failure
+      - name: Discord Notification (failure)
         if: failure()
         uses: Ilshidur/action-discord@master
         env:
@@ -58,4 +50,4 @@ jobs:
         with:
           args: |
             ❌ **Le déploiement de blockout-api-search a échoué !**
-            Le déploiement sur le VPS a rencontré une erreur.
+            Échec lors de l’appel du webhook Dokploy.
