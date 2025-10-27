@@ -165,7 +165,14 @@ public class MatchService {
                 keyValue("end", endDateTime));
 
         // Récupère les matchs dans cette plage
-        List<Match> allMatches = matchRepository.findAllInRange(
+        List<Match> allMatches = (status == MatchStatus.UPCOMING)
+            ? matchRepository.findAllInRangeAsc(
+                startOfMinDay,
+                endDateTime,
+                poolIds, poolIds.size(),
+                status,
+                teamIds, teamIds.size())
+            : matchRepository.findAllInRangeDesc(
                 startOfMinDay,
                 endDateTime,
                 poolIds, poolIds.size(),

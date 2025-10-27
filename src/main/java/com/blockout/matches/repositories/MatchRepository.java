@@ -131,7 +131,28 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
                     AND (:status IS NULL OR m.status = :status)
                 ORDER BY m.poolId ASC, m.matchDate ASC
             """)
-    List<Match> findAllInRange(
+    List<Match> findAllInRangeAsc(
+            @Param("startOfDay") LocalDateTime startOfDay,
+            @Param("endOfDay") LocalDateTime endOfDay,
+            @Param("poolIds") List<Long> poolIds,
+            @Param("poolIdsSize") int poolIdsSize,
+            @Param("status") MatchStatus status,
+            @Param("teamIds") List<Long> teamIds,
+            @Param("teamIdsSize") int teamIdsSize);
+
+    @Query("""
+                SELECT m
+                FROM Match m
+                WHERE m.matchDate >= :startOfDay
+                    AND m.matchDate < :endOfDay
+                    AND (
+                        (:poolIdsSize > 0 AND m.poolId IN :poolIds)
+                        OR (:teamIdsSize > 0 AND (m.teamIdA IN :teamIds OR m.teamIdB IN :teamIds))
+                    )
+                    AND (:status IS NULL OR m.status = :status)
+                ORDER BY m.poolId ASC, m.matchDate DESC
+            """)
+    List<Match> findAllInRangeDesc(
             @Param("startOfDay") LocalDateTime startOfDay,
             @Param("endOfDay") LocalDateTime endOfDay,
             @Param("poolIds") List<Long> poolIds,
