@@ -73,7 +73,7 @@ class Scraper(ABC):
             duration = (end_time - start_time).total_seconds()
             self.scraping_duration_gauge.set(duration)
             
-    async def fetch(self, url: str, retries: int = 3, delay: int = 2, sem: int = 5, timeout: int = 20) -> str:
+    async def fetch(self, url: str, retries: int = 2, delay: int = 5, timeout: int = 30) -> str:
         """
         Récupère le contenu d'une URL avec gestion des retries, timeout global et semaphore.
         """

@@ -96,8 +96,8 @@ async def download_and_parse_csv(
     pool: Pool,
     raw_season: str,
     retries: int = 2,
-    delay: int = 0,
-    sem: int = 10,
+    delay: int = 5,
+    sem: int = 5,
     timeout: int = 30
 ) -> Iterator[dict]:
     """
