@@ -14,7 +14,6 @@ import ClubsApi from "@/src/api/ClubsApi";
 import ReportsApi from "@/src/api/ReportsApi";
 import NotificationsApi from "@/src/api/NotificationsApi";
 
-/** Props: { children } Arbre rendu après initialisation des clients API */
 export const ApiProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const { softResetAuth, auth0User } = useSession();
     const { getCredentials } = useAuth0();
