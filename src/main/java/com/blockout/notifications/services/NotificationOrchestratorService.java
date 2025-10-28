@@ -226,13 +226,13 @@ public class NotificationOrchestratorService {
 
         try {
             TeamDTO ta = teamClientService.getTeamById(teamIdA);
-            if (ta != null && ta.getName() != null && !ta.getName().isBlank()) {
-                teamAName = ta.getName();
+            if (ta != null && ta.getShortName() != null && !ta.getShortName().isBlank()) {
+                teamAName = ta.getShortName();
             }
 
             TeamDTO tb = teamClientService.getTeamById(teamIdB);
-            if (tb != null && tb.getName() != null && !tb.getName().isBlank()) {
-                teamBName = tb.getName();
+            if (tb != null && tb.getShortName() != null && !tb.getShortName().isBlank()) {
+                teamBName = tb.getShortName();
             }
 
         } catch (Exception ex) {
