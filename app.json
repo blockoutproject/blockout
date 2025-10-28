@@ -2,7 +2,7 @@
   "expo": {
     "name": "Blockout",
     "slug": "blockoutproject",
-    "scheme": "com.blockoutproject.blockout.auth0",
+    "scheme": ["com.blockoutproject.blockout.auth0", "blockout"],
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -20,6 +20,7 @@
       }
     },
     "android": {
+      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/blockout-logo-light.png",
         "backgroundColor": "#ffffff"

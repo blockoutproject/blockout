@@ -40,9 +40,9 @@ const FollowedScreen: React.FC<FollowedScreenListProps> = ({
 
             {/* Liste selon le filtre actif (sans header interne) */}
             {activeFilter === "Équipes" ? (
-                <FollowedTeamsList teamIds={teamIds} headerOffset={headerOffset} />
+                <FollowedTeamsList teamIds={teamIds} />
             ) : (
-                <FollowedPoolsList poolIds={poolIds} headerOffset={headerOffset} />
+                <FollowedPoolsList poolIds={poolIds} />
             )}
         </View>
     );

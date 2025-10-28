@@ -9,13 +9,13 @@ import FollowedTeamCard from "./FollowedTeamCard";
 import { BOTTOM_TABBAR_HEIGHT } from "@/src/theme/globals";
 import EmptyState from "@/src/components/common/feedback/EmptyState";
 import ErrorState from "@/src/components/common/feedback/ErrorState";
+import FollowedListSkeleton from "./FollowedListSkeleton";
 
 type Props = {
     teamIds?: number[];
-    headerOffset: number;
 };
 
-const FollowedTeamsList: React.FC<Props> = ({ teamIds, headerOffset }) => {
+const FollowedTeamsList: React.FC<Props> = ({ teamIds }) => {
     const theme = useAppTheme();
     const insets = useSafeAreaInsets();
     const router = useRouter();
@@ -48,9 +48,7 @@ const FollowedTeamsList: React.FC<Props> = ({ teamIds, headerOffset }) => {
 
     if (isLoading) {
         return (
-            <View style={[styles.center, { backgroundColor: theme.background }]}>
-                <ActivityIndicator size="large" color={theme.text} />
-            </View>
+            <FollowedListSkeleton />
         );
     }
 
@@ -74,7 +72,6 @@ const FollowedTeamsList: React.FC<Props> = ({ teamIds, headerOffset }) => {
             renderItem={({ item }) => (
                 <FollowedTeamCard team={item} onPress={() => handlePressTeam(item.id)} />
             )}
-            // Header retiré : il est rendu dans FollowedScreen
             ListFooterComponent={ListFooterComponent}
             ListEmptyComponent={() => (
                 <EmptyState
@@ -92,7 +89,6 @@ const FollowedTeamsList: React.FC<Props> = ({ teamIds, headerOffset }) => {
             scrollEnabled={hasData}
             refreshing={isRefreshing}
             onRefresh={handleRefresh}
-            progressViewOffset={headerOffset}
             testID="followed-teams-flatlist"
         />
     );

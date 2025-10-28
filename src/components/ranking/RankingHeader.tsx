@@ -58,7 +58,7 @@ const RankingHeader: React.FC<Props> = ({ pool, onPress }) => {
                             textBreakStrategy="highQuality"
                             numberOfLines={2}
                         >
-                            {pool.name}
+                            {pool.shortName}
                         </Text>
                         <Text
                             style={[

@@ -1,5 +1,12 @@
-import React, { useCallback, useMemo, useRef } from "react";
-import { ActivityIndicator, FlatList, Keyboard, StyleSheet, View } from "react-native";
+import React, { useCallback, useMemo, useRef, useState } from "react";
+import {
+    ActivityIndicator,
+    FlatList,
+    Keyboard,
+    StyleSheet,
+    View,
+    RefreshControl,
+} from "react-native";
 import * as Haptics from "expo-haptics";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -14,6 +21,7 @@ import ReportFormSheet from "@/src/components/report/ReportFormSheet";
 import { ReportType } from "@/src/types/Report";
 import { TeamSummaryDTO } from "@/src/types/Team";
 import { useTeamListByCLubId } from "@/src/hooks/team/useTeamListByClubId";
+import FollowedListSkeleton from "@/src/components/followed/FollowedListSkeleton";
 
 const TeamListScreen: React.FC = () => {
     const theme = useAppTheme();
@@ -21,7 +29,9 @@ const TeamListScreen: React.FC = () => {
     const insets = useSafeAreaInsets();
     const { clubId } = useLocalSearchParams();
     const { data, isLoading, isError, refetch } = useTeamListByCLubId(String(clubId));
-    
+
+    const [refreshing, setRefreshing] = useState(false);
+
     const reportSheetRef = useRef<BottomSheetModal>(null);
     const handleOpenReport = useCallback(() => {
         reportSheetRef.current?.present();
@@ -31,6 +41,17 @@ const TeamListScreen: React.FC = () => {
         Haptics.selectionAsync();
         router.push(`/team/${id}`);
     }, [router]);
+
+    const onRefresh = useCallback(async () => {
+        setRefreshing(true);
+        try {
+            await refetch();  // appelle ta requête de refetch
+        } catch (error) {
+            console.error("Error on refresh:", error);
+        } finally {
+            setRefreshing(false);
+        }
+    }, [refetch]);
 
     const renderItem = useCallback(
         ({ item }: { item: TeamSummaryDTO }) => (
@@ -44,14 +65,9 @@ const TeamListScreen: React.FC = () => {
     );
 
     const body = useMemo(() => {
-        if (isLoading) {
+        if (isLoading && !refreshing) {
             return (
-                <ActivityIndicator
-                    size="small"
-                    color={theme.text}
-                    style={styles.loader}
-                    testID="team-list-loader"
-                />
+                <FollowedListSkeleton />
             );
         }
 
@@ -89,19 +105,18 @@ const TeamListScreen: React.FC = () => {
                 }}
                 scrollEnabled={data.length > 0}
                 testID="team-list"
+                refreshing={refreshing}
+                onRefresh={onRefresh}
             />
         );
-    }, [isLoading, isError, data, refetch, renderItem, insets.bottom, theme.text]);
+    }, [isLoading, isError, data, refetch, renderItem, insets.bottom, theme.text, refreshing, onRefresh]);
 
     return (
         <View
             style={[styles.container, { backgroundColor: theme.background }]}
             testID="team-list-screen"
         >
-            <TeamListHeader
-                title="Équipes"
-                onOpenReport={handleOpenReport}
-            />
+            <TeamListHeader title="Équipes" onOpenReport={handleOpenReport} />
 
             {body}
 

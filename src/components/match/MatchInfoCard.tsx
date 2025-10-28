@@ -3,10 +3,9 @@ import { Text, View, StyleSheet } from "react-native";
 import * as Haptics from "expo-haptics";
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import GradientBorderView from "@/src/components/common/GradientBorderView";
-import type { EnrichedMatchDTO } from "@/src/types/Match";
+import { MatchStatus, type EnrichedMatchDTO } from "@/src/types/Match";
 import InfoPillGradient from "@/src/components/common/chips/InfoPillGradient";
 import { useRouter } from "expo-router";
-import * as WebBrowser from "expo-web-browser";
 import { openPdf } from "@/src/utils/openPdf";
 
 /** Info card with league/pool/date/venue/referees. */
@@ -132,7 +131,7 @@ const MatchInfoCard: React.FC<MatchInfoCardProps> = ({ enrichedMatch }) => {
                         borderWidth={1}
                     />
                 )}
-                {matchSheetPdfUrl && (
+                {matchSheetPdfUrl && enrichedMatch.status === MatchStatus.FINISHED && (
                     <InfoPillGradient
                         label={"Feuille de match"}
                         gradient={gradient}

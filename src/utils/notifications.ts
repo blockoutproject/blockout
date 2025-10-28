@@ -4,6 +4,7 @@ import * as Notifications from "expo-notifications";
 import Constants from "expo-constants";
 import NotificationsApi from "@/src/api/NotificationsApi";
 import { DevicePlatform, RegisterPushTokenRequest } from "../types/Notification";
+import * as Linking from "expo-linking";
 
 Notifications.setNotificationHandler({
     handleNotification: async () => ({
@@ -14,11 +15,21 @@ Notifications.setNotificationHandler({
     }),
 });
 
+export function openNotificationUrlIfAny(data?: Record<string, unknown>) {
+    const url = (data?.url as string) || null;
+    if (!url) return;
+    try {
+        Linking.openURL(url);
+    } catch (e) {
+        console.warn("[notifications] openURL failed", e);
+    }
+}
+
 export function platformToEnum(): DevicePlatform {
-    if (Platform.OS === "ios") return DevicePlatform.IOS;
-    if (Platform.OS === "android") return DevicePlatform.ANDROID;
-    if (Platform.OS === "web") return DevicePlatform.WEB;
-    return DevicePlatform.UNKNOWN;
+    if (Platform.OS === "ios") return "IOS";
+    if (Platform.OS === "android") return "ANDROID";
+    if (Platform.OS === "web") return "WEB";
+    return "UNKNOWN";
 }
 
 export async function registerForPushNotificationsAsync(): Promise<string | null> {
@@ -79,7 +90,6 @@ export async function registerPushTokenOnBackend(
     };
 
     await NotificationsApi.getInstance().registerPushToken(userId, payload);
-    console.log("Push token registered on backend");
 }
 
 /**

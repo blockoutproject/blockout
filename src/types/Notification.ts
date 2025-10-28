@@ -1,9 +1,4 @@
-export enum DevicePlatform {
-    IOS = "IOS",
-    ANDROID = "ANDROID",
-    WEB = "WEB",
-    UNKNOWN = "UNKNOWN",
-}
+export type DevicePlatform = "IOS" | "ANDROID" | "WEB" | "UNKNOWN";
 
 export enum NotificationTargetType {
     MATCH = "MATCH",

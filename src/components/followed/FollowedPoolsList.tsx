@@ -12,10 +12,9 @@ import ErrorState from "@/src/components/common/feedback/ErrorState";
 
 type Props = {
     poolIds?: number[];
-    headerOffset: number;
 };
 
-const FollowedPoolsList: React.FC<Props> = ({ poolIds, headerOffset }) => {
+const FollowedPoolsList: React.FC<Props> = ({ poolIds }) => {
     const theme = useAppTheme();
     const insets = useSafeAreaInsets();
     const router = useRouter();
@@ -92,7 +91,6 @@ const FollowedPoolsList: React.FC<Props> = ({ poolIds, headerOffset }) => {
             scrollEnabled={hasData}
             refreshing={isRefreshing}
             onRefresh={handleRefresh}
-            progressViewOffset={headerOffset}
             testID="followed-pools-flatlist"
         />
     );

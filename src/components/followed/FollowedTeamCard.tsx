@@ -48,7 +48,6 @@ const FollowedTeamCard: React.FC<FollowedTeamCardProps> = ({
         team.division?.name ? { label: team.division.name, icon: "trophy-variant" as const } : null,
         team.season ? { label: team.season, icon: "calendar-outline" as const } : null,
         team.gender ? { label: GenderLabels[team.gender] } : null,
-        team.format ? { label: FormatLabels[team.format] } : null,
     ].filter(Boolean) as { label: string; icon?: React.ComponentProps<typeof MaterialCommunityIcons>["name"] }[];
 
     return (

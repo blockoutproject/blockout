@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { StatusBar } from "react-native";
 import { Stack } from "expo-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -13,10 +13,23 @@ import { ApiProvider } from "@/src/context/ApiProvider";
 import { SessionProvider, useSession } from "@/src/context/SessionProvider";
 import { SplashScreenController } from "@/src/session/splash";
 import { useOnboardingStore } from "../utils/onboardingStore";
+import { addNotificationListeners, openNotificationUrlIfAny } from "../utils/notifications";
 
 const queryClient = new QueryClient();
 
 export default function Root() {
+
+    useEffect(() => {
+        const removeListeners = addNotificationListeners({
+            onRespond: (response) => {
+                const data = response.notification.request.content.data;
+                openNotificationUrlIfAny(data);
+            },
+        });
+
+        return removeListeners;
+    }, []);
+    
     return (
         <GestureHandlerRootView style={{ flex: 1 }}>
             <QueryClientProvider client={queryClient}>
