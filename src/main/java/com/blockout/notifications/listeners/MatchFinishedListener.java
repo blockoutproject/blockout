@@ -26,14 +26,16 @@ public class MatchFinishedListener {
         Long teamIdA = event.getTeamIdA();
         Long teamIdB = event.getTeamIdB();
         Long poolId = event.getPoolId();
+        String set = event.getSet();
 
         logger.info("Received match.finished",
                 keyValue("action", "match_finished_received"),
                 keyValue("matchId", matchId),
+                keyValue("set", set),
                 keyValue("teamIdA", event.getTeamIdA()),
                 keyValue("teamIdB", event.getTeamIdB()),
                 keyValue("poolId", event.getPoolId()));
 
-        orchestrator.handleMatchFinished(matchId, teamIdA, teamIdB, poolId, event.getSet());
+        orchestrator.handleMatchFinished(matchId, teamIdA, teamIdB, poolId, set);
     }
 }

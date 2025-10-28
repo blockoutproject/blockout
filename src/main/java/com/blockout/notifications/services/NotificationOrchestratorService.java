@@ -44,9 +44,9 @@ public class NotificationOrchestratorService {
     private static final int RESOLVE_PAGE_SIZE = 2_000;
     private static final int EXPO_BATCH_SIZE = 100;
 
-    public void handleMatchFinished(Long matchId, Long teamIdA, Long teamIdB, Long poolId, String setInfo) {
+    public void handleMatchFinished(Long matchId, Long teamIdA, Long teamIdB, Long poolId, String set) {
 
-        final ResolvedContent content = resolveContent(matchId, teamIdA, teamIdB, poolId, setInfo);
+        final ResolvedContent content = resolveContent(matchId, teamIdA, teamIdB, poolId, set);
 
         final ObjectNode baseMetadata = objectMapper.createObjectNode()
                 .put("divisionId", content.divisionId());
@@ -201,7 +201,7 @@ public class NotificationOrchestratorService {
                 keyValue("time", Instant.now()));
     }
 
-    private ResolvedContent resolveContent(Long matchId, Long teamIdA, Long teamIdB, Long poolId, String setInfo) {
+    private ResolvedContent resolveContent(Long matchId, Long teamIdA, Long teamIdB, Long poolId, String set) {
         String poolName = "Match terminé";
         Long divisionId = null;
         String teamAName = "Équipe A";
@@ -245,7 +245,7 @@ public class NotificationOrchestratorService {
         }
 
         StringBuilder body = new StringBuilder();
-        body.append("Match terminé : ").append(teamAName).append(" vs ").append(teamBName).append(".");
+        body.append(teamAName).append(" l'emporte ").append(set).append(" contre ").append(teamBName).append(".");
         return new ResolvedContent(poolName, body.toString(), divisionId);
     }
 
