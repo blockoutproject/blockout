@@ -56,6 +56,7 @@ public class TeamClientService {
         String url = UriComponentsBuilder
                 .fromUriString(apiClientProperties.getTeam().getUrl())
                 .queryParam("club_id", clubId)
+                .queryParam("active", true)
                 .build()
                 .toUriString();
 
