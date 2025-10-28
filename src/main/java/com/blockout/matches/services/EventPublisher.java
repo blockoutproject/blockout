@@ -41,7 +41,8 @@ public class EventPublisher {
                     keyValue("matchId", match.getId()),
                     keyValue("homeTeamId", match.getTeamIdA()),
                     keyValue("awayTeamId", match.getTeamIdB()),
-                    keyValue("poolId", match.getPoolId()));
+                    keyValue("poolId", match.getPoolId()),
+                    keyValue("set", match.getSet()));
 
         } catch (AmqpException ex) {
             logger.error("Failed to publish match.finished",
