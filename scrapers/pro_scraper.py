@@ -145,14 +145,23 @@ class ProScraper(Scraper):
             )
 
     async def execute_task_chain(self, pool: Pool, existing_pool: Pool, raw_season: str, lnv_url, lnv_xml_matches_url, lnv_xml_rank_url):
-        # 1) Télécharge et parse un éventuel CSV (FFVB)
-        await handle_csv_download_and_parse(self, pool, raw_season, existing_pool=existing_pool)
+        try:
+            # 1) Télécharge et parse un éventuel CSV (FFVB)
+            await handle_csv_download_and_parse(self, pool, raw_season, existing_pool=existing_pool)
 
-        # 2) Parsing du XML LNV
-        await self.parse_and_update_matches(lnv_xml_matches_url, lnv_xml_rank_url, pool)
+            # 2) Parsing du XML LNV
+            await self.parse_and_update_matches(lnv_xml_matches_url, lnv_xml_rank_url, pool)
 
-        # 3) Compléter avec le live_code (HTML LNV)
-        await self.add_match_live_code(lnv_url, pool)
+            # 3) Compléter avec le live_code (HTML LNV)
+            await self.add_match_live_code(lnv_url, pool)
+        except Exception as e:
+            log_event(
+                action="task_chain_error",
+                level="error",
+                pool_code=pool.pool_code,
+                error=str(e),
+                message="Erreur lors de l'exécution de la chaîne de tâches pour une poule."
+            )
 
     # --------------------------------------------------------------------------
     #  Parsing XML (LNV)
@@ -161,6 +170,15 @@ class ProScraper(Scraper):
         try:
             xml_matches_content = await self.fetch(lnv_xml_matches_url)
             xml_rank_content = await self.fetch(lnv_xml_rank_url)
+            
+            if not pool.id:
+                log_event(
+                    action="missing_pool_id",
+                    level="error",
+                    pool=pool,
+                    message="Impossible de parser les XML sans l'ID de la poule."
+                )
+                return
 
             if not xml_matches_content:
                 log_event(
