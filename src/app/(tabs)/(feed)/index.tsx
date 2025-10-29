@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState, useCallback } from 'react';
+import React, { useMemo, useRef, useState, useCallback, useEffect } from 'react';
 import { StyleSheet, Animated } from 'react-native';
 import { NavigationState, Route, SceneRendererProps, TabView } from 'react-native-tab-view';
 import MatchList from '@/src/components/matchList/MatchListContainer';
@@ -12,6 +12,8 @@ import ReportFormSheet from '@/src/components/report/ReportFormSheet';
 import { BottomSheetModal } from '@gorhom/bottom-sheet';
 import { ReportType } from '@/src/types/Report';
 import FollowedScreen from '@/src/components/followed/FollowedScreen';
+import { openNotificationUrlIfAny } from '@/src/utils/notifications';
+import * as Notifications from 'expo-notifications';
 
 const FeedScreen: React.FC = () => {
     const insets = useSafeAreaInsets();
@@ -130,6 +132,18 @@ const FeedScreen: React.FC = () => {
         ),
         [scrollYs]
     );
+
+    const lastNotificationResponse = Notifications.useLastNotificationResponse();
+    useEffect(() => {
+        console.log("Last notification response changed:", JSON.stringify(lastNotificationResponse));
+        if (
+            lastNotificationResponse &&
+            lastNotificationResponse.actionIdentifier === Notifications.DEFAULT_ACTION_IDENTIFIER
+        ) {
+            const data = lastNotificationResponse.notification.request.content.data;
+            openNotificationUrlIfAny(data as Record<string, unknown>);
+        }
+    }, [lastNotificationResponse]);
 
     return (
         <>

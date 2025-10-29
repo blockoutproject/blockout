@@ -2,7 +2,7 @@
   "expo": {
     "name": "Blockout",
     "slug": "blockoutproject",
-    "scheme": ["com.blockoutproject.blockout.auth0", "blockout"],
+    "scheme": ["blockout"],
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -69,7 +69,8 @@
       [
         "react-native-auth0",
         {
-          "domain": "login.blockoutproject.com"
+          "domain": "login.blockoutproject.com",
+          "customScheme": "com.blockoutproject.blockout.auth0"
         }
       ],
       "expo-secure-store",

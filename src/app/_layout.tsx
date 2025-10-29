@@ -18,7 +18,6 @@ import { addNotificationListeners, openNotificationUrlIfAny } from "../utils/not
 const queryClient = new QueryClient();
 
 export default function Root() {
-
     useEffect(() => {
         const removeListeners = addNotificationListeners({
             onRespond: (response) => {
@@ -29,7 +28,7 @@ export default function Root() {
 
         return removeListeners;
     }, []);
-    
+
     return (
         <GestureHandlerRootView style={{ flex: 1 }}>
             <QueryClientProvider client={queryClient}>
