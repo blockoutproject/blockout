@@ -170,15 +170,6 @@ class ProScraper(Scraper):
         try:
             xml_matches_content = await self.fetch(lnv_xml_matches_url)
             xml_rank_content = await self.fetch(lnv_xml_rank_url)
-            
-            if not pool.id:
-                log_event(
-                    action="missing_pool_id",
-                    level="error",
-                    pool=pool,
-                    message="Impossible de parser les XML sans l'ID de la poule."
-                )
-                return
 
             if not xml_matches_content:
                 log_event(
