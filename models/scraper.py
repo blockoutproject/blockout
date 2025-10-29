@@ -220,6 +220,7 @@ class Scraper(ABC):
             active_assocs = await get_active_team_associations_by_pool(self.session, pool_id) or []
             for assoc in active_assocs:
                 key = (assoc.pool_id, assoc.team_id)
+                
                 # On stocke l'association originale et une copie mutable
                 assocDto = AssociationStats(
                     played=assoc.played,
@@ -240,6 +241,14 @@ class Scraper(ABC):
                     coef_sets=assoc.coef_sets,
                     coef_points=assoc.coef_points
                 )
+                if not assoc.pool_id:
+                    log_event(
+                        action="DEBUG_init_associations_cache",
+                        level="warning",
+                        key=key,
+                        assoc=assocDto,
+                        message="debug init_associations_cache"
+                    )    
                 self._associations_cache[key] = (assocDto, AssociationStats())
 
         except Exception as e:
@@ -344,6 +353,14 @@ class Scraper(ABC):
         Les valeurs sont cumulées sur tout le CSV.
         """
         key = (pool_id, team_id)
+        if not pool_id:
+            log_event(
+                action="DEBUG_init_schedule_association_update",
+                level="warning",
+                key=key,
+                team_stats=team_stats,
+                message="debug DEBUG_init_schedule_association_update"
+            )  
         if key not in self._associations_cache:
             self._associations_cache[key] = (None, AssociationStats())
                 

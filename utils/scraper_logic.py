@@ -170,6 +170,14 @@ async def handle_csv_download_and_parse(
                 try:
                     set_a, set_b = updated_match.set.split('-')
                     team_a_stats, team_b_stats = compute_volleyball_match_stats(set_a, set_b, updated_match.score)
+                    if not new_pool.id:
+                        log_event(
+                            "DEBUG_no_pool_id_before_scheduling_stats", 
+                            "warning", 
+                            pool=new_pool,
+                            match_code=match_code,
+                            message="debug no pool id before scheduling stats"
+                        )
                     scraper.schedule_association_update(new_pool.id, new_team_a.id, team_a_stats)
                     scraper.schedule_association_update(new_pool.id, new_team_b.id, team_b_stats)
                 except Exception as e:
@@ -202,6 +210,15 @@ async def handle_csv_download_and_parse(
                         message="Aucune équipe existante ne correspond à ce nom"
                     )
                     continue
+                
+                if not new_pool.id:
+                    log_event(
+                        "DEBUG_no_pool_id_before_scheduling_stats_fallback", 
+                        "warning", 
+                        pool=new_pool,
+                        team_id=matched_team.id,
+                        message="debug no pool id before scheduling stats fallback"
+                    )
 
                 scraper.schedule_association_update(new_pool.id, matched_team.id, stats)
 
