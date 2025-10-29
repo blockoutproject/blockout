@@ -11,7 +11,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
@@ -40,7 +39,8 @@ public class PoolClientService {
 
         String url = UriComponentsBuilder
                 .fromUriString(apiClientProperties.getPool().getUrl())
-                .queryParam("ids", ids.stream().map(String::valueOf).collect(Collectors.joining(",")))
+                .queryParam("ids", ids)
+                .queryParam("active", true)
                 .build()
                 .toUriString();
 

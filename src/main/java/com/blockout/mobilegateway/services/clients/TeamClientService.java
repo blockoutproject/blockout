@@ -33,6 +33,7 @@ public class TeamClientService {
         String url = UriComponentsBuilder
                 .fromUriString(apiClientProperties.getTeam().getUrl())
                 .queryParam("ids", ids)
+                .queryParam("active", true)
                 .build()
                 .toUriString();
 
