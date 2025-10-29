@@ -117,7 +117,7 @@ public class NotificationOrchestratorService {
                                 .body(content.body)
                                 .userId(userId)
                                 .matchId(matchId)
-                                .data(Map.of("url", "blockoutapp://match/" + matchId))
+                                .data(Map.of("url", "blockout://match/" + matchId))
                                 .build());
                     }
                 }
