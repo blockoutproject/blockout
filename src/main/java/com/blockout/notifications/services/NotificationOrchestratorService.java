@@ -244,9 +244,10 @@ public class NotificationOrchestratorService {
                     ex);
         }
 
-        StringBuilder body = new StringBuilder();
-        body.append(teamAName).append(" l'emporte ").append(set).append(" contre ").append(teamBName).append(".");
-        return new ResolvedContent(poolName, body.toString(), divisionId);
+        String scoreText = (set != null && !set.isBlank()) ? set.trim() : "N/A";
+        String body = String.format("%s vs %s — Score final : %s", teamAName, teamBName, scoreText);
+
+        return new ResolvedContent(poolName, body, divisionId);
     }
 
     /** Petite record interne pour transporter titre+corps+logo */
