@@ -248,6 +248,17 @@ class ProScraper(Scraper):
                     # Nouveau match "incomplet"
                     # Remplir le strict nécessaire
                     continue
+                
+                log_event(
+                    action="process_xml_match",
+                    level="info",
+                    pool_id=pool_id,
+                    match_code=match_code,
+                    match_date=match_datetime.isoformat(),
+                    set_value=set_value,
+                    score_str=score_str,
+                    updated_match=updated_match
+                )
 
                 # 3) Mettre à jour les champs
                 updated_match.match_date = match_datetime
