@@ -16,6 +16,7 @@ from models.raw_division_mapping import RawDivisionMapping
 from models.scraper import Scraper
 from services.matchs_service import find_match_in_cache
 from services.teams_service import find_team_by_name_in_division_format_gender_season
+from utils.logging_utils import to_loggable
 from utils.match_utils import validate_set_format, validate_set_score_format
 from utils.scraper_logic import handle_csv_download_and_parse
 from utils.team_utils import get_full_name
@@ -248,7 +249,7 @@ class ProScraper(Scraper):
                     # Nouveau match "incomplet"
                     # Remplir le strict nécessaire
                     continue
-                print(updated_match)
+
                 log_event(
                     action="process_xml_match",
                     level="info",
@@ -257,7 +258,7 @@ class ProScraper(Scraper):
                     match_date=match_datetime.isoformat(),
                     set_value=set_value,
                     score_str=score_str,
-                    updated_match=updated_match
+                    updated_match=to_loggable(updated_match)
                 )
 
                 # 3) Mettre à jour les champs
