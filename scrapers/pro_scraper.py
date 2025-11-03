@@ -248,7 +248,7 @@ class ProScraper(Scraper):
                     # Nouveau match "incomplet"
                     # Remplir le strict nécessaire
                     continue
-                
+                print(updated_match)
                 log_event(
                     action="process_xml_match",
                     level="info",
