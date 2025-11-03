@@ -148,11 +148,6 @@ class ProScraper(Scraper):
         try:
             # 1) Télécharge et parse un éventuel CSV (FFVB)
             await handle_csv_download_and_parse(self, pool, raw_season, existing_pool=existing_pool)
-            if not pool or not pool.id:
-                log_event(
-                    action="test debug",
-                    pool=pool
-                )
 
             # 2) Parsing du XML LNV
             await self.parse_and_update_matches(lnv_xml_matches_url, lnv_xml_rank_url, pool)
