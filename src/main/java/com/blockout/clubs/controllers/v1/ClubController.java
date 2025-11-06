@@ -34,6 +34,7 @@ public class ClubController {
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Liste des clubs"),
     })
+    @PreAuthorize("hasAuthority('SCOPE_read:clubs')")
     @GetMapping
     public ResponseEntity<List<Club>> listClubs(
             @RequestParam(required = false) List<String> ids,
@@ -47,6 +48,7 @@ public class ClubController {
             @ApiResponse(responseCode = "200", description = "Club trouvé"),
             @ApiResponse(responseCode = "404", description = "Club introuvable")
     })
+    @PreAuthorize("hasAuthority('SCOPE_read:clubs')")
     @GetMapping("/{id}")
     public ResponseEntity<Club> getClubById(@PathVariable String id) {
         Club club = clubService.getClubById(id);
@@ -81,14 +83,13 @@ public class ClubController {
             @ApiResponse(responseCode = "404", description = "Club introuvable")
     })
     @PreAuthorize("hasAuthority('SCOPE_update:clubs')")
-    @PutMapping(path = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PutMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Club> updateClub(
-            @PathVariable String id,
             @RequestPart("data") String json,
             @RequestPart(value = "image", required = false) MultipartFile image) throws JsonProcessingException {
 
         ClubUpdateDTO dto = objectMapper.readValue(json, ClubUpdateDTO.class);
-        Club updated = clubService.updateClub(id, dto, image);
+        Club updated = clubService.updateClub(dto, image);
         return ResponseEntity.ok(updated);
     }
 

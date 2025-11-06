@@ -120,7 +120,8 @@ public class ClubService {
      * @throws ClubNotFoundException si le club est introuvable
      */
     @Transactional
-    public Club updateClub(String id, ClubUpdateDTO dto, MultipartFile image) {
+    public Club updateClub(ClubUpdateDTO dto, MultipartFile image) {
+        String id = dto.getId();
         return clubRepository.findById(id).map(existing -> {
             Club before = existing.toBuilder().build();
 
