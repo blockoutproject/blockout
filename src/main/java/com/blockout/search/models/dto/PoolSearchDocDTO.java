@@ -1,6 +1,4 @@
-package com.blockout.search.models.docs;
-
-import org.springframework.data.annotation.Id;
+package com.blockout.search.models.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
@@ -14,8 +12,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class PoolSearchDoc {
-    @Id
+public class PoolSearchDocDTO {
     private Long id;
     private String name;
     private String shortName;

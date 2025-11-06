@@ -5,12 +5,11 @@ import co.elastic.clients.elasticsearch._types.query_dsl.Operator;
 import co.elastic.clients.elasticsearch._types.query_dsl.Query;
 import co.elastic.clients.elasticsearch._types.query_dsl.TextQueryType;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
-
-import com.blockout.search.models.docs.ClubSearchDoc;
-
 import lombok.RequiredArgsConstructor;
 import org.slf4j.*;
 import org.springframework.stereotype.Service;
+
+import com.blockout.search.models.dto.ClubSearchDocDTO;
 
 import java.util.Collections;
 import java.util.List;
@@ -29,10 +28,10 @@ public class ClubSearchService {
     private static final long TERMINATE_AFTER_QUERY = 5_000L;
     private static final String TIMEOUT = "150ms";
 
-    public List<ClubSearchDoc> autocomplete(String input) {
+    public List<ClubSearchDocDTO> autocomplete(String input) {
         try {
             if (input == null || input.isBlank()) {
-                SearchResponse<ClubSearchDoc> response = elasticsearchClient.search(
+                SearchResponse<ClubSearchDocDTO> response = elasticsearchClient.search(
                         s -> s.index("clubs")
                                 .trackTotalHits(t -> t.enabled(false))
                                 .size(SIZE_EMPTY)
@@ -47,7 +46,7 @@ public class ClubSearchService {
                                                 "name",
                                                 "city",
                                                 "logoUrl"))),
-                        ClubSearchDoc.class);
+                        ClubSearchDocDTO.class);
                 return response.hits().hits().stream().map(h -> h.source()).toList();
             }
 
@@ -60,7 +59,7 @@ public class ClubSearchService {
                             "all")
                     .operator(Operator.And)));
 
-            SearchResponse<ClubSearchDoc> response = elasticsearchClient.search(
+            SearchResponse<ClubSearchDocDTO> response = elasticsearchClient.search(
                     s -> s.index("clubs")
                             .trackTotalHits(t -> t.enabled(false))
                             .size(SIZE_QUERY)
@@ -73,7 +72,7 @@ public class ClubSearchService {
                                             "name",
                                             "city",
                                             "logoUrl"))),
-                    ClubSearchDoc.class);
+                    ClubSearchDocDTO.class);
 
             return response.hits().hits().stream().map(h -> h.source()).toList();
         } catch (Exception e) {

@@ -1,6 +1,6 @@
 package com.blockout.search.controllers.v1;
 
-import com.blockout.search.models.docs.TeamSearchDoc;
+import com.blockout.search.models.dto.TeamSearchDocDTO;
 import com.blockout.search.services.TeamSearchService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -24,8 +24,8 @@ public class TeamSearchController {
             @ApiResponse(responseCode = "204", description = "Aucun résultat trouvé")
     })
     @GetMapping
-    public ResponseEntity<List<TeamSearchDoc>> search(@RequestParam String query) {
-        List<TeamSearchDoc> results = teamSearchService.autocomplete(query);
+    public ResponseEntity<List<TeamSearchDocDTO>> search(@RequestParam String query) {
+        List<TeamSearchDocDTO> results = teamSearchService.autocomplete(query);
         return ResponseEntity.ok(results);
     }
 }

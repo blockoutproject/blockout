@@ -1,4 +1,4 @@
-package com.blockout.search.models.docs;
+package com.blockout.search.models.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.*;
@@ -8,7 +8,7 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class ClubSearchDoc {
+public class ClubSearchDocDTO {
     private String id;
     private String name;
     private String logoUrl;

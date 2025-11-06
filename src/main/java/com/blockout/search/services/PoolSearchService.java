@@ -11,7 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-import com.blockout.search.models.docs.PoolSearchDoc;
+import com.blockout.search.models.dto.PoolSearchDocDTO;
 
 import java.util.Collections;
 import java.util.List;
@@ -32,10 +32,10 @@ public class PoolSearchService {
     private static final String TIMEOUT = "150ms";
 
     /** Autocomplete H24 */
-    public List<PoolSearchDoc> autocomplete(String input) {
+    public List<PoolSearchDocDTO> autocomplete(String input) {
         try {
             if (input == null || input.isBlank()) {
-                SearchResponse<PoolSearchDoc> response = elasticsearchClient.search(
+                SearchResponse<PoolSearchDocDTO> response = elasticsearchClient.search(
                         s -> s.index("pools")
                                 .trackTotalHits(t -> t.enabled(false))
                                 .size(SIZE_EMPTY)
@@ -55,7 +55,7 @@ public class PoolSearchService {
                                             "season",
                                             "gender",
                                                 "logoUrl"))),
-                        PoolSearchDoc.class);
+                        PoolSearchDocDTO.class);
                 return response.hits().hits().stream().map(h -> h.source()).toList();
             }
 
@@ -72,7 +72,7 @@ public class PoolSearchService {
                             "all")
                     .operator(Operator.And)));
 
-            SearchResponse<PoolSearchDoc> response = elasticsearchClient.search(
+            SearchResponse<PoolSearchDocDTO> response = elasticsearchClient.search(
                     s -> s.index("pools")
                             .trackTotalHits(t -> t.enabled(false))
                             .size(SIZE_QUERY)
@@ -90,7 +90,7 @@ public class PoolSearchService {
                                             "season",
                                             "gender",
                                             "logoUrl"))),
-                    PoolSearchDoc.class);
+                    PoolSearchDocDTO.class);
 
             return response.hits().hits().stream().map(h -> h.source()).toList();
 

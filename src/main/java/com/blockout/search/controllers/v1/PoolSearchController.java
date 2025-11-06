@@ -1,6 +1,6 @@
 package com.blockout.search.controllers.v1;
 
-import com.blockout.search.models.docs.PoolSearchDoc;
+import com.blockout.search.models.dto.PoolSearchDocDTO;
 import com.blockout.search.services.PoolSearchService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -24,8 +24,8 @@ public class PoolSearchController {
             @ApiResponse(responseCode = "204", description = "Aucun résultat trouvé")
     })
     @GetMapping
-    public ResponseEntity<List<PoolSearchDoc>> search(@RequestParam String query) {
-        List<PoolSearchDoc> results = poolSearchService.autocomplete(query);
+    public ResponseEntity<List<PoolSearchDocDTO>> search(@RequestParam String query) {
+        List<PoolSearchDocDTO> results = poolSearchService.autocomplete(query);
         return ResponseEntity.ok(results);
     }
 }

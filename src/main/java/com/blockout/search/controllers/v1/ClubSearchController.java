@@ -1,6 +1,6 @@
 package com.blockout.search.controllers.v1;
 
-import com.blockout.search.models.docs.ClubSearchDoc;
+import com.blockout.search.models.dto.ClubSearchDocDTO;
 import com.blockout.search.services.ClubSearchService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -24,8 +24,8 @@ public class ClubSearchController {
             @ApiResponse(responseCode = "204", description = "Aucun résultat trouvé")
     })
     @GetMapping
-    public ResponseEntity<List<ClubSearchDoc>> search(@RequestParam String query) {
-        List<ClubSearchDoc> results = clubSearchService.autocomplete(query);
+    public ResponseEntity<List<ClubSearchDocDTO>> search(@RequestParam String query) {
+        List<ClubSearchDocDTO> results = clubSearchService.autocomplete(query);
         return ResponseEntity.ok(results);
     }
 }

@@ -5,12 +5,11 @@ import co.elastic.clients.elasticsearch._types.query_dsl.Operator;
 import co.elastic.clients.elasticsearch._types.query_dsl.Query;
 import co.elastic.clients.elasticsearch._types.query_dsl.TextQueryType;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
-
-import com.blockout.search.models.docs.TeamSearchDoc;
-
 import lombok.RequiredArgsConstructor;
 import org.slf4j.*;
 import org.springframework.stereotype.Service;
+
+import com.blockout.search.models.dto.TeamSearchDocDTO;
 
 import java.util.Collections;
 import java.util.List;
@@ -29,10 +28,11 @@ public class TeamSearchService {
     private static final long TERMINATE_AFTER_QUERY = 5_000L;
     private static final String TIMEOUT = "150ms";
 
-    public List<TeamSearchDoc> autocomplete(String input) {
+    public List<TeamSearchDocDTO> autocomplete(String input) {
         try {
+            System.out.println(input);
             if (input == null || input.isBlank()) {
-                SearchResponse<TeamSearchDoc> response = elasticsearchClient.search(
+                SearchResponse<TeamSearchDocDTO> response = elasticsearchClient.search(
                         s -> s.index("teams")
                                 .trackTotalHits(t -> t.enabled(false))
                                 .size(SIZE_EMPTY)
@@ -54,7 +54,8 @@ public class TeamSearchService {
                                                 "format",
                                                 "gender",
                                                 "season"))),
-                        TeamSearchDoc.class);
+                        TeamSearchDocDTO.class);
+                System.out.println(response.hits().hits().stream().map(h -> h.source()).toList().size());
                 return response.hits().hits().stream().map(h -> h.source()).toList();
             }
 
@@ -71,7 +72,7 @@ public class TeamSearchService {
                             "all")
                     .operator(Operator.And)));
 
-            SearchResponse<TeamSearchDoc> response = elasticsearchClient.search(
+            SearchResponse<TeamSearchDocDTO> response = elasticsearchClient.search(
                     s -> s.index("teams")
                             .trackTotalHits(t -> t.enabled(false))
                             .size(SIZE_QUERY)
@@ -91,7 +92,7 @@ public class TeamSearchService {
                                             "format",
                                             "gender",
                                             "season"))),
-                    TeamSearchDoc.class);
+                    TeamSearchDocDTO.class);
 
             return response.hits().hits().stream().map(h -> h.source()).toList();
 
