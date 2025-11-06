@@ -2,6 +2,7 @@ package com.blockout.mobilegateway.services.clients;
 
 import com.blockout.mobilegateway.config.ApiClientProperties;
 import com.blockout.mobilegateway.models.dto.pool.PoolDTO;
+import com.blockout.mobilegateway.models.dto.pool.PoolUpdateDTO;
 
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -23,31 +24,47 @@ public class PoolClientService {
     private final ApiClientProperties apiClientProperties;
     private final ApiClientService apiClientService;
 
-    public PoolDTO getPoolById(Long id) {
-        String url = apiClientProperties.getPool().getUrl() + "/" + id;
+    private String baseUrl() {
+        return apiClientProperties.getPool().getUrl();
+    }
 
-        logger.info("Calling getPoolById", keyValue("id", id), keyValue("url", url));
+    public PoolDTO getPoolById(Long id) {
+        String url = UriComponentsBuilder.fromUriString(baseUrl())
+                .pathSegment(id.toString())
+                .build()
+                .toUriString();
+
+        logger.info("Calling pools#getById", keyValue("id", id), keyValue("url", url));
 
         ResponseEntity<PoolDTO> response = apiClientService.get(url, PoolDTO.class);
         return response.getBody();
     }
 
     public List<PoolDTO> getPoolsByIds(Set<Long> ids) {
-        if (ids == null || ids.isEmpty()) {
-            return Collections.emptyList();
-        }
+        if (ids == null || ids.isEmpty()) return Collections.emptyList();
 
-        String url = UriComponentsBuilder
-                .fromUriString(apiClientProperties.getPool().getUrl())
+        String url = UriComponentsBuilder.fromUriString(baseUrl())
                 .queryParam("ids", ids)
                 .queryParam("active", true)
                 .build()
                 .toUriString();
 
-        logger.info("Calling getPoolsByIds", keyValue("ids", ids), keyValue("url", url));
+        logger.info("Calling pools#getByIds", keyValue("ids", ids), keyValue("url", url));
 
         ResponseEntity<PoolDTO[]> response = apiClientService.get(url, PoolDTO[].class);
         PoolDTO[] body = response.getBody();
         return body != null ? Arrays.asList(body) : Collections.emptyList();
+    }
+
+    public PoolDTO updatePool(Long id, PoolUpdateDTO dto) {
+        String url = UriComponentsBuilder.fromUriString(baseUrl())
+                .pathSegment(id.toString())
+                .build()
+                .toUriString();
+
+        logger.info("Calling pools#update", keyValue("id", id), keyValue("url", url));
+
+        ResponseEntity<PoolDTO> response = apiClientService.put(url, dto, PoolDTO.class);
+        return response.getBody();
     }
 }

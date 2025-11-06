@@ -2,21 +2,20 @@ package com.blockout.mobilegateway.services.clients;
 
 import com.blockout.mobilegateway.config.ApiClientProperties;
 import com.blockout.mobilegateway.models.dto.club.ClubDTO;
-
+import com.blockout.mobilegateway.models.dto.club.ClubUpdateDTO;
+import com.blockout.mobilegateway.services.utils.MultipartBodyBuilder;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.stereotype.Service;
+import org.springframework.util.MultiValueMap;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import java.util.*;
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
-
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -26,53 +25,59 @@ public class ClubClientService {
 
     private final ApiClientProperties apiClientProperties;
     private final ApiClientService apiClientService;
+    private final ObjectMapper objectMapper;
 
-    /**
-     * Récupère un club entier via son ID.
-     */
+    private String baseUrl() {
+        return apiClientProperties.getClub().getUrl();
+    }
+
     public ClubDTO getClubById(String id) {
-        String url = apiClientProperties.getClub().getUrl() + "/" + id;
+        String url = UriComponentsBuilder.fromUriString(baseUrl())
+                .pathSegment(id)
+                .build().toUriString();
 
-        logger.info("Calling getClubById",
-                keyValue("action", "call_club_get_by_id"),
-                keyValue("id", id),
-                keyValue("url", url));
+        logger.info("Calling clubs#getById", keyValue("id", id), keyValue("url", url));
 
         ResponseEntity<ClubDTO> response = apiClientService.get(url, ClubDTO.class);
         return response.getBody();
     }
 
-    /**
-     * Récupère (si présent) l'URL du logo d'un club.
-     */
     public String getClubLogoUrl(String id) {
-        String url = apiClientProperties.getClub().getUrl() + "/" + id + "/logo";
+        String url = UriComponentsBuilder.fromUriString(baseUrl())
+                .pathSegment(id, "logo")
+                .build().toUriString();
+
+        logger.info("Calling clubs#getLogo", keyValue("id", id), keyValue("url", url));
 
         ResponseEntity<String> response = apiClientService.get(url, String.class);
+        String body = response.getBody();
 
-        if (response.getStatusCode() == HttpStatus.NO_CONTENT ||
-                response.getBody() == null ||
-                response.getBody().isBlank()) {
-            return null;
-        }
-
-        return response.getBody();
+        return (response.getStatusCode() == HttpStatus.NO_CONTENT || body == null || body.isBlank()) ? null : body;
     }
 
     public List<ClubDTO> getClubsByIds(Set<String> ids) {
         if (ids == null || ids.isEmpty())
             return Collections.emptyList();
 
-        String url = UriComponentsBuilder
-                .fromUriString(apiClientProperties.getClub().getUrl())
+        String url = UriComponentsBuilder.fromUriString(baseUrl())
                 .queryParam("ids", ids)
-                .build()
-                .toUriString();
+                .build().toUriString();
 
-        logger.info("Calling getClubsByIds", keyValue("ids", ids), keyValue("url", url));
+        logger.info("Calling clubs#getByIds", keyValue("ids", ids), keyValue("url", url));
 
         ResponseEntity<ClubDTO[]> response = apiClientService.get(url, ClubDTO[].class);
-        ClubDTO[] body = response.getBody();
-        return body != null ? Arrays.asList(body) : Collections.emptyList();
+        return Optional.ofNullable(response.getBody()).map(Arrays::asList).orElse(Collections.emptyList());
+    }
+
+    public ClubDTO updateClub(ClubUpdateDTO dto, MultipartFile image) {
+        String url = UriComponentsBuilder.fromUriString(baseUrl())
+                .build().toUriString();
+
+        logger.info("Calling clubs#update", keyValue("id", dto.getId()), keyValue("url", url));
+
+        MultiValueMap<String, Object> body = MultipartBodyBuilder.buildMultipart(objectMapper, dto, image);
+
+        ResponseEntity<ClubDTO> response = apiClientService.putMultipart(url, body, ClubDTO.class);
+        return response.getBody();
     }
 }

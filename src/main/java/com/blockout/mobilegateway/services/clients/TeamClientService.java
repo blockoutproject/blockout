@@ -2,6 +2,7 @@ package com.blockout.mobilegateway.services.clients;
 
 import com.blockout.mobilegateway.config.ApiClientProperties;
 import com.blockout.mobilegateway.models.dto.team.TeamDTO;
+import com.blockout.mobilegateway.models.dto.team.TeamUpdateDTO;
 
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -10,11 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
-
+import java.util.*;
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
 @Service
@@ -26,45 +23,74 @@ public class TeamClientService {
     private final ApiClientProperties apiClientProperties;
     private final ApiClientService apiClientService;
 
+    private String baseUrl() {
+        return apiClientProperties.getTeam().getUrl();
+    }
+
+    public TeamDTO getTeamById(Long id) {
+        String url = UriComponentsBuilder.fromUriString(baseUrl())
+                .pathSegment(id.toString())
+                .build()
+                .toUriString();
+
+        logger.info("Calling team#getById",
+                keyValue("action", "call_team_get_by_id"),
+                keyValue("id", id),
+                keyValue("url", url));
+
+        ResponseEntity<TeamDTO> response = apiClientService.get(url, TeamDTO.class);
+        return response.getBody();
+    }
+
     public List<TeamDTO> getTeamsByIds(Set<Long> ids) {
         if (ids == null || ids.isEmpty())
             return Collections.emptyList();
 
-        String url = UriComponentsBuilder
-                .fromUriString(apiClientProperties.getTeam().getUrl())
+        String url = UriComponentsBuilder.fromUriString(baseUrl())
                 .queryParam("ids", ids)
                 .queryParam("active", true)
                 .build()
                 .toUriString();
 
-        logger.info("Calling getTeamsByIds", keyValue("ids", ids), keyValue("url", url));
+        logger.info("Calling team#getByIds",
+                keyValue("action", "call_team_get_by_ids"),
+                keyValue("ids", ids),
+                keyValue("url", url));
 
         ResponseEntity<TeamDTO[]> response = apiClientService.get(url, TeamDTO[].class);
         TeamDTO[] body = response.getBody();
         return body != null ? Arrays.asList(body) : Collections.emptyList();
     }
 
-    public TeamDTO getTeamById(Long id) {
-        String url = apiClientProperties.getTeam().getUrl() + "/" + id;
-
-        logger.info("Calling getTeamById", keyValue("id", id), keyValue("url", url));
-
-        ResponseEntity<TeamDTO> response = apiClientService.get(url, TeamDTO.class);
-        return response.getBody();
-    }   
-
     public List<TeamDTO> getTeamsByClubId(String clubId) {
-        String url = UriComponentsBuilder
-                .fromUriString(apiClientProperties.getTeam().getUrl())
+        String url = UriComponentsBuilder.fromUriString(baseUrl())
                 .queryParam("club_id", clubId)
                 .queryParam("active", true)
                 .build()
                 .toUriString();
 
-        logger.info("Calling getTeamsByClubId", keyValue("clubId", clubId), keyValue("url", url));
+        logger.info("Calling team#getByClubId",
+                keyValue("action", "call_team_get_by_club_id"),
+                keyValue("clubId", clubId),
+                keyValue("url", url));
 
         ResponseEntity<TeamDTO[]> response = apiClientService.get(url, TeamDTO[].class);
         TeamDTO[] body = response.getBody();
         return body != null ? Arrays.asList(body) : Collections.emptyList();
+    }
+
+    public TeamDTO updateTeam(Long id, TeamUpdateDTO dto) {
+        String url = UriComponentsBuilder.fromUriString(baseUrl())
+                .pathSegment(id.toString())
+                .build()
+                .toUriString();
+
+        logger.info("Calling team#update",
+                keyValue("action", "call_team_update"),
+                keyValue("id", id),
+                keyValue("url", url));
+
+        ResponseEntity<TeamDTO> response = apiClientService.put(url, dto, TeamDTO.class);
+        return response.getBody();
     }
 }

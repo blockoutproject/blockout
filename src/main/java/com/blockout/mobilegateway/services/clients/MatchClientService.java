@@ -3,7 +3,6 @@ package com.blockout.mobilegateway.services.clients;
 import com.blockout.mobilegateway.config.ApiClientProperties;
 import com.blockout.mobilegateway.models.dto.match.DayPageDTO;
 import com.blockout.mobilegateway.models.dto.match.MatchDTO;
-
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,10 +24,13 @@ public class MatchClientService {
     private final ApiClientProperties apiClientProperties;
     private final ApiClientService apiClientService;
 
+    private String baseUrl() {
+        return apiClientProperties.getMatch().getUrl();
+    }
+
     public DayPageDTO getMatchesByDay(int page, int size, List<Long> poolIds, List<Long> teamIds, String status) {
-        String matchApiUrl = apiClientProperties.getMatch().getUrl();
-        String url = UriComponentsBuilder
-                .fromUriString(matchApiUrl + "/day-groups")
+        String url = UriComponentsBuilder.fromUriString(baseUrl())
+                .pathSegment("day-groups")
                 .queryParam("page", page)
                 .queryParam("size", size)
                 .queryParamIfPresent("status", Optional.ofNullable(status))
@@ -37,22 +39,25 @@ public class MatchClientService {
                 .build()
                 .toUriString();
 
-        logger.info("Calling getMatchesByDay",
+        logger.info("Calling matches#getByDay",
                 keyValue("url", url),
                 keyValue("page", page),
-                keyValue("status", status));
+                keyValue("size", size),
+                keyValue("status", status),
+                keyValue("poolIds", poolIds),
+                keyValue("teamIds", teamIds));
 
         ResponseEntity<DayPageDTO> response = apiClientService.get(url, DayPageDTO.class);
         return response.getBody();
     }
 
     public MatchDTO getMatchById(Long matchId) {
-        String matchApiUrl = apiClientProperties.getMatch().getUrl();
-        String url = matchApiUrl + "/" + matchId;
+        String url = UriComponentsBuilder.fromUriString(baseUrl())
+                .pathSegment(matchId.toString())
+                .build()
+                .toUriString();
 
-        logger.info("Calling getMatchById",
-                keyValue("url", url),
-                keyValue("matchId", matchId));
+        logger.info("Calling matches#getById", keyValue("matchId", matchId), keyValue("url", url));
 
         ResponseEntity<MatchDTO> response = apiClientService.get(url, MatchDTO.class);
         return response.getBody();
