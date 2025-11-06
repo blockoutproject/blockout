@@ -81,6 +81,7 @@ public class UserService {
     public CustomUser ensureCurrentUser(String auth0Id) throws Auth0Exception {
         ManagementAPI managementAPI;
         User auth0User;
+        logger.info("Ensuring current user exists/updated", keyValue("auth0Id", auth0Id));
         try {
             managementAPI = tokenManager.getManagementAPI();
             auth0User = managementAPI.users().get(auth0Id, null).execute().getBody();
