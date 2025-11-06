@@ -2,6 +2,8 @@ package com.blockout.mobilegateway.controllers.v1.secureapi;
 
 import com.blockout.mobilegateway.models.dto.config.DivisionDTO;
 import com.blockout.mobilegateway.models.dto.config.DivisionUpdateDTO;
+import com.blockout.mobilegateway.models.dto.config.LegalDocumentDTO;
+import com.blockout.mobilegateway.models.dto.config.LegalDocumentUpdateDTO;
 import com.blockout.mobilegateway.models.dto.config.RawDivisionMappingDTO;
 import com.blockout.mobilegateway.models.dto.config.RawDivisionMappingUpdateDTO;
 import com.blockout.mobilegateway.models.dto.config.ScraperStatusDTO;
@@ -70,6 +72,15 @@ public class ConfigSecureController {
                 .toUri();
 
         return ResponseEntity.created(location).body(created);
+    }
+
+    @PutMapping("/legal/{type}")
+    public ResponseEntity<LegalDocumentDTO> updateLegal(
+            @PathVariable String type,
+            @RequestBody LegalDocumentUpdateDTO dto) {
+
+        LegalDocumentDTO updated = configService.updateLegalDocument(type, dto);
+        return ResponseEntity.ok(updated);
     }
 
     @GetMapping("/raw-divisions")
