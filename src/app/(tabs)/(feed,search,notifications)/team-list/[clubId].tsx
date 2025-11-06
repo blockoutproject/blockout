@@ -20,7 +20,7 @@ import TeamListHeader from "@/src/components/teamList/TeamListHeader";
 import ReportFormSheet from "@/src/components/report/ReportFormSheet";
 import { ReportType } from "@/src/types/Report";
 import { TeamSummaryDTO } from "@/src/types/Team";
-import { useTeamListByCLubId } from "@/src/hooks/team/useTeamListByClubId";
+import { useTeamListByClubId } from "@/src/hooks/team/useTeamListByClubId";
 import FollowedListSkeleton from "@/src/components/followed/FollowedListSkeleton";
 
 const TeamListScreen: React.FC = () => {
@@ -28,7 +28,7 @@ const TeamListScreen: React.FC = () => {
     const router = useRouter();
     const insets = useSafeAreaInsets();
     const { clubId } = useLocalSearchParams();
-    const { data, isLoading, isError, refetch } = useTeamListByCLubId(String(clubId));
+    const { data, isLoading, isError, refetch } = useTeamListByClubId(String(clubId));
 
     const [refreshing, setRefreshing] = useState(false);
 

@@ -1,12 +1,14 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import MobileGatewayApi from "@/src/api/MobileGatewayApi";
 import { PoolSummaryDTO } from "@/src/types/Pool";
+import { useApis } from "@/src/context/ApiProvider";
 
 /**
  * Hook pour récupérer les équipes suivies par l'utilisateur.
  */
 export const useFollowedPoolList = (followedPoolIds?: number[]) => {
+    const { mobile } = useApis()
+    
     const idsKey = useMemo(
         () =>
             followedPoolIds?.length
@@ -26,8 +28,7 @@ export const useFollowedPoolList = (followedPoolIds?: number[]) => {
         queryFn: async () => {
             if (!followedPoolIds?.length) return [];
 
-            const api = MobileGatewayApi.getInstance();
-            const pools = await api.getPoolListByIds(followedPoolIds);
+            const pools = await mobile.getPoolListByIds(followedPoolIds);
             return pools ?? [];
         },
         staleTime: 5 * 60 * 1000,

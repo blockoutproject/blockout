@@ -4,22 +4,21 @@ import {
     Text,
     StyleSheet,
     ActivityIndicator,
-    TouchableOpacity,
 } from 'react-native';
-import { FlatList } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { useAppTheme } from '@/src/context/ThemeProvider';
 
 import { useScraperStatuses } from '@/src/hooks/config/scraper/useScraperStatus';
-import ConfigApi from '@/src/api/ConfigApi';
 import { ScraperStatus } from '@/src/types/ScraperStatus';
 import ScraperStatusItem from './ScraperStatusItem';
 import { BottomSheetFlatList } from '@gorhom/bottom-sheet';
+import { useApis } from '@/src/context/ApiProvider';
 
 const ScraperStatusScreen = () => {
     const theme = useAppTheme();
     const insets = useSafeAreaInsets();
+    const { mobile } = useApis();
 
     const { data, isLoading, refetch } = useScraperStatuses();
 
@@ -32,7 +31,7 @@ const ScraperStatusScreen = () => {
         async (scraper: ScraperStatus) => {
             try {
                 Haptics.selectionAsync();
-                await ConfigApi.getInstance().updateScraperStatus(scraper.name, !scraper.enabled);
+                await mobile.updateScraperStatus(scraper.name, !scraper.enabled);
                 await refetch();
             } catch (error) {
                 console.error('Erreur lors du toggle scraper :', error);

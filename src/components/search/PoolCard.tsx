@@ -1,10 +1,10 @@
 import React from "react";
 import { useAppTheme } from "@/src/context/ThemeProvider";
-import { PoolSearchDoc } from "@/src/types/docs/PoolSearchDoc";
+import { PoolSearchDocDTO } from "@/src/types/Pool";
 import SearchCard from "./SearchCard";
 
 export type PoolCardProps = {
-    pool: PoolSearchDoc;
+    pool: PoolSearchDocDTO;
     onPress: () => void;
 };
 

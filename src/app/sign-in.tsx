@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from "react-native";
 import * as Haptics from "expo-haptics";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -12,17 +12,17 @@ import InfoPill from "@/src/components/common/chips/InfoPill";
 import ApiErrorToast from "@/src/components/common/feedback/ApiErrorToast";
 import { GradientButton } from "@/src/components/common/GradientButton";
 import { useOnboardingStore } from "../utils/onboardingStore";
-import { useAuth0 } from "react-native-auth0";
 
 const APP_TITLE = "Blockout";
 
 const LoginScreen: React.FC = () => {
     const theme = useAppTheme();
     const insets = useSafeAreaInsets();
-    const { signIn, isLoading, error } = useSession();
+    const { signIn, continueAsGuest, isLoading, error } = useSession();
     const { resetOnboarding } = useOnboardingStore();
 
     const [isSigningIn, setIsSigningIn] = useState(false);
+    const [isGuesting, setIsGuesting] = useState(false);
     const [apiError, setApiError] = useState<string | null>(null);
 
     useEffect(() => {
@@ -36,7 +36,6 @@ const LoginScreen: React.FC = () => {
             resetOnboarding();
             setIsSigningIn(true);
             setApiError(null);
-            console.log("Revoking refresh token...");
             await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
             await signIn();
         } catch (err) {
@@ -48,65 +47,48 @@ const LoginScreen: React.FC = () => {
         }
     };
 
+    const onPressGuest = async () => {
+        try {
+            setIsGuesting(true);
+            setApiError(null);
+            await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            continueAsGuest();
+        } catch (err) {
+            console.error(err);
+            await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+            setApiError("Impossible de continuer en invité.");
+        } finally {
+            setIsGuesting(false);
+        }
+    };
+
     const disabled = isSigningIn || isLoading;
 
     return (
-        <View
-            style={styles.content}
-        >
-            <View
-                style={styles.brandRow}
-            >
+        <View style={styles.content}>
+            <View style={styles.brandRow}>
                 <MaskedImage
                     fallback={require("@/assets/images/blockout-logo-dark.png")}
                     size={36}
                     radius={10}
                     shadow
                 />
-                <Text
-                    style={[
-                        styles.title,
-                        {
-                            color: theme.text,
-                        },
-                    ]}
-                    numberOfLines={1}
-                >
+                <Text style={[styles.title, { color: theme.text }]} numberOfLines={1}>
                     {APP_TITLE}
                 </Text>
             </View>
 
-            <Text
-                style={[
-                    styles.tagline,
-                    {
-                        color: withAlpha(theme.text, 0.8),
-                    },
-                ]}
-            >
+            <Text style={[styles.tagline, { color: withAlpha(theme.text, 0.8) }]}>
                 Ton appli pour suivre le volley : scores en direct, classements et équipes.
             </Text>
 
-            <View
-                style={styles.pillsRow}
-            >
-                <InfoPill
-                    leftIconName="flash"
-                    label="Scores"
-                />
-                <InfoPill
-                    leftIconName="trophy"
-                    label="Classements"
-                />
-                <InfoPill
-                    leftIconName="bell-outline"
-                    label="Suivi équipes"
-                />
+            <View style={styles.pillsRow}>
+                <InfoPill leftIconName="flash" label="Scores" />
+                <InfoPill leftIconName="trophy" label="Classements" />
+                <InfoPill leftIconName="bell-outline" label="Suivi équipes" />
             </View>
 
-            <View
-                style={styles.ctaRow}
-            >
+            <View style={styles.ctaRow}>
                 <GradientButton
                     onPress={onPressLogin}
                     loading={isSigningIn || isLoading}
@@ -117,16 +99,25 @@ const LoginScreen: React.FC = () => {
                     style={styles.ctaButton}
                     textColor="#000"
                 />
+
+                {/* Bouton invité */}
+                <TouchableOpacity
+                    onPress={onPressGuest}
+                    style={styles.guestButton}
+                    disabled={isGuesting || disabled}
+                    activeOpacity={0.8}
+                >
+                    {isGuesting ? (
+                        <ActivityIndicator />
+                    ) : (
+                        <Text style={[styles.guestText, { color: withAlpha(theme.text, 0.8) }]}>
+                            Continuer en tant qu’invité
+                        </Text>
+                    )}
+                </TouchableOpacity>
             </View>
 
-            <Text
-                style={[
-                    styles.legal,
-                    {
-                        color: withAlpha(theme.text, 0.6),
-                    },
-                ]}
-            >
+            <Text style={[styles.legal, { color: withAlpha(theme.text, 0.6) }]}>
                 En continuant, tu acceptes nos CGU et notre politique de confidentialité.
             </Text>
 
@@ -176,9 +167,19 @@ const styles = StyleSheet.create({
     },
     ctaRow: {
         alignItems: "center",
+        gap: 12,
     },
     ctaButton: {
         width: "80%",
+    },
+    guestButton: {
+        paddingVertical: 10,
+        paddingHorizontal: 16,
+    },
+    guestText: {
+        fontSize: 14,
+        fontWeight: "700",
+        textDecorationLine: "underline",
     },
     legal: {
         textAlign: "center",

@@ -1,10 +1,10 @@
 import React from "react";
 import { useAppTheme } from "@/src/context/ThemeProvider";
-import { TeamSearchDoc } from "@/src/types/docs/TeamSearchDoc";
 import SearchCard from "./SearchCard";
+import { TeamSearchDocDTO } from "@/src/types/Team";
 
 export interface TeamCardProps {
-    team: TeamSearchDoc;
+    team: TeamSearchDocDTO;
     onPress: () => void;
 }
 

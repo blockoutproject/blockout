@@ -7,13 +7,13 @@ import * as Haptics from "expo-haptics";
 
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import type { EnrichedTeamDTO, Team } from "@/src/types/Team";
-import TeamsApi from "@/src/api/TeamsApi";
 import { CORNERS } from "@/src/theme/globals";
 import ApiErrorToast from "@/src/components/common/feedback/ApiErrorToast";
 
 import FormCard from "@/src/components/common/form/FormCard";
 import Field from "@/src/components/common/form/Field";
 import SheetTextInput from "@/src/components/common/form/SheetTextInput";
+import { useApis } from "@/src/context/ApiProvider";
 
 export type TeamFormExternalState = {
     loading: boolean;
@@ -29,7 +29,7 @@ export type TeamFormProps = {
 
 const TeamForm: React.FC<TeamFormProps> = ({ team, onSuccess, onRegisterSubmit, onStateChange }) => {
     const theme = useAppTheme();
-    const api = TeamsApi.getInstance();
+    const { mobile } = useApis();
 
     const [loading, setLoading] = useState(false);
     const [apiError, setApiError] = useState<string | null>(null);
@@ -52,7 +52,7 @@ const TeamForm: React.FC<TeamFormProps> = ({ team, onSuccess, onRegisterSubmit, 
                     name: values.name.trim(),
                     shortName: values.shortName.trim()
                 };
-                const updated = await api.updateTeam(team.id, dto);
+                const updated = await mobile.updateTeam(team.id, dto);
                 await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
                 onSuccess(updated);
             } catch {

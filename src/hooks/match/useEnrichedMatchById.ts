@@ -1,6 +1,13 @@
+import { useApis } from "@/src/context/ApiProvider";
 import { useEntityById } from "../utils/useEntityById";
 import { EnrichedMatchDTO } from "@/src/types/Match";
-import MobileGatewayApi from "@/src/api/MobileGatewayApi";
 
-export const useEnrichedMatchById = (id?: number) =>
-    useEntityById<EnrichedMatchDTO>("enrichedMatches", (matchId) => MobileGatewayApi.getInstance().getEnrichedMatchById(matchId), id);
+export const useEnrichedMatchById = (id?: number) => {
+    const { mobile } = useApis();
+
+    return useEntityById<EnrichedMatchDTO>(
+        "enrichedMatches",
+        (matchId: number) => mobile.getEnrichedMatchById(matchId),
+        id
+    );
+};

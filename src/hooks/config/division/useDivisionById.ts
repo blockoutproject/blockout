@@ -1,6 +1,13 @@
+import { useApis } from "@/src/context/ApiProvider";
 import { useEntityById } from "../../utils/useEntityById";
 import { Division } from "@/src/types/Division";
-import ConfigApi from "@/src/api/ConfigApi";
 
-export const useDivisionById = (id?: number) =>
-    useEntityById<Division>("divisions", (divisionId) => ConfigApi.getInstance().getDivisionById(divisionId), id);
+export const useDivisionById = (id?: number) => {
+    const { config } = useApis();
+
+    return useEntityById<Division>(
+        "divisions",
+        (divisionId: number) => config.getDivisionById(divisionId),
+        id
+    );
+};

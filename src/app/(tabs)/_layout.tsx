@@ -1,28 +1,37 @@
 import React from "react";
-import { StyleSheet } from "react-native";
 import { Tabs } from "expo-router";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import TabBar from "@/src/components/navigation/TabBar";
-import { useAppTheme } from "@/src/context/ThemeProvider";
 import { Image } from "expo-image";
+import { StyleSheet } from "react-native";
+import { useAppTheme } from "@/src/context/ThemeProvider";
 import { useSession } from "@/src/context/SessionProvider";
+import { TABBAR_ICON_SIZE } from "@/src/theme/globals";
+import TabBar from "@/src/components/navigation/TabBar";
 import { withAlpha } from "@/src/utils/utils";
 
 export default function TabLayout() {
-    const theme = useAppTheme()
-    const { customUser } = useSession();
+    const theme = useAppTheme();
+    const { customUser, isGuest } = useSession();
+
+    const avatarSource =
+        customUser?.pictureUrl
+            ? { uri: customUser.pictureUrl }
+            : require("@/assets/users/default_user_avatar.png");
 
     return (
         <Tabs
             screenOptions={{
                 headerShown: false,
+                tabBarShowLabel: false,
+                tabBarActiveTintColor: theme.text,
+                tabBarInactiveTintColor: theme.textInactive,
             }}
             tabBar={(props) => (
                 <TabBar
                     {...props}
                     activeColor={theme.text}
                     inactiveColor={theme.textInactive}
-                    backgroundColorAndroid={ withAlpha(theme.background, 0.92) }
+                    backgroundColorAndroid={withAlpha(theme.background, 0.92)}
                     blurTintIOS="dark"
                 />
             )}
@@ -30,45 +39,56 @@ export default function TabLayout() {
             <Tabs.Screen
                 name="(feed)"
                 options={{
-                    headerShown: false,
-                    tabBarIcon: ({ color, size }) => (
+                    href: isGuest ? null : undefined,
+                    tabBarIcon: ({ color, focused }) => (
                         <MaterialCommunityIcons
-                            name="home"
+                            name={focused ? "home" : "home-outline"}
                             color={color}
-                            size={size}
+                            size={TABBAR_ICON_SIZE}
                         />
                     ),
                 }}
             />
+
             <Tabs.Screen
                 name="(search)"
                 options={{
-                    tabBarIcon: ({ color, size }) => (
-                        <MaterialCommunityIcons
-                            name="magnify"
-                            color={color}
-                            size={size}
-                        />
+                    tabBarIcon: ({ color }) => (
+                        <MaterialCommunityIcons name="magnify" color={color} size={TABBAR_ICON_SIZE} />
                     ),
                 }}
             />
+
             <Tabs.Screen
                 name="(notifications)"
                 options={{
-                    tabBarIcon: ({ color, size }) => (
+                    href: isGuest ? null : undefined,
+                    tabBarIcon: ({ color, focused }) => (
                         <MaterialCommunityIcons
-                            name="whistle"
+                            name={focused ? "whistle" : "whistle-outline"}
                             color={color}
-                            size={size}
+                            size={TABBAR_ICON_SIZE}
                         />
                     ),
                 }}
             />
+
             <Tabs.Screen
                 name="profile"
                 options={{
-                    tabBarIcon: ({ color, size }) => (
-                        <Image style={[styles.avatar, { height: size, width: size }]} source={{ uri: customUser?.pictureUrl }} />
+                    tabBarIcon: ({ focused }) => (
+                        <Image
+                            style={[
+                                styles.avatar,
+                                {
+                                    height: TABBAR_ICON_SIZE,
+                                    width: TABBAR_ICON_SIZE,
+                                    opacity: focused ? 1 : 0.66,
+                                    transform: [{ scale: focused ? 1 : 0.96 }],
+                                },
+                            ]}
+                            source={avatarSource}
+                        />
                     ),
                 }}
             />

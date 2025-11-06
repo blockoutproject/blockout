@@ -106,7 +106,7 @@ export const GenericSearchScreen = <T,>({
             )}
 
             {isError && (
-                <ErrorState subtitle="Impossible de charger les résultats." onRetry={refetch} />
+                <ErrorState subtitle="Impossible de charger les résultats." paddingTop={"30%"} onRetry={refetch} />
             )}
 
             <FlatList

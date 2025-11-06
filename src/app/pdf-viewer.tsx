@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useRef, useState } from "react";
-import { View, ActivityIndicator, StyleSheet, Animated, Platform } from "react-native";
+import { View, ActivityIndicator, StyleSheet, Animated } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { WebView } from "react-native-webview";
 import PdfViewerHeader from "../components/pdfViewer/PdfViewerHeader";

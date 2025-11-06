@@ -2,9 +2,9 @@ import { Platform } from "react-native";
 import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
 import Constants from "expo-constants";
-import NotificationsApi from "@/src/api/NotificationsApi";
 import { DevicePlatform, RegisterPushTokenRequest } from "../types/Notification";
 import * as Linking from "expo-linking";
+import { useApis } from "../context/ApiProvider";
 
 Notifications.setNotificationHandler({
     handleNotification: async () => ({
@@ -71,12 +71,14 @@ export async function registerForPushNotificationsAsync(): Promise<string | null
 }
 
 /**
- * Enregistre le token côté backend via ton NotificationsApi
+ * Enregistre le token côté backend
  */
 export async function registerPushTokenOnBackend(
     userId: number,
     expoPushToken: string | null
 ) {
+    const { mobile } = useApis();
+
     if (!expoPushToken) return;
 
     const deviceId = Device.isDevice
@@ -89,7 +91,7 @@ export async function registerPushTokenOnBackend(
         deviceId,
     };
 
-    await NotificationsApi.getInstance().registerPushToken(userId, payload);
+    await mobile.registerPushToken(userId, payload);
 }
 
 /**

@@ -9,10 +9,10 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import Animated, {
+    SharedValue,
     useAnimatedStyle,
     useSharedValue,
     withSpring,
-    Easing,
 } from "react-native-reanimated";
 import { BlurView } from "expo-blur";
 import * as Haptics from "expo-haptics";
@@ -20,23 +20,13 @@ import { useAppTheme } from "@/src/context/ThemeProvider";
 import { BOTTOM_TABBAR_HEIGHT } from "@/src/theme/globals";
 import { withAlpha } from "@/src/utils/utils";
 
-
 type Props = BottomTabBarProps & {
     activeColor: string;
     inactiveColor: string;
     backgroundColorAndroid?: string;
-    blurTintIOS?:
-    | "light"
-    | "default"
-    | "dark"
-    | "extraLight"
-    | "regular"
-    | "prominent";
-    /** marge supplémentaire au-dessus du bas de la safe area */
+    blurTintIOS?: "light" | "default" | "dark" | "extraLight" | "regular" | "prominent";
     extraBottomInset?: number;
-
-    /** Options de la pill active */
-    pillWidth?: number; 
+    pillWidth?: number;
     pillHeight?: number;
     pillOpacity?: number;
     pillBorder?: boolean;
@@ -44,6 +34,58 @@ type Props = BottomTabBarProps & {
 
 const SPRING = { damping: 25, stiffness: 340, mass: 0.8 };
 
+/** ------- CHILD ITEM (isole les hooks) ------- */
+function TabBarItem({
+    options,
+    isFocused,
+    color,
+    size,
+    onPress,
+    onLongPress,
+    onLayout,
+    vIndex,
+    activeIndex,
+}: {
+    options: any;
+    isFocused: boolean;
+    color: string;
+    size: number;
+    onPress: () => void;
+    onLongPress: () => void;
+    onLayout: (e: LayoutChangeEvent) => void;
+    vIndex: number;
+    activeIndex: SharedValue<number>;
+}) {
+    const iconAnimatedStyle = useAnimatedStyle(() => {
+        const selected = activeIndex.value === vIndex;
+        return {
+            transform: [
+                { translateY: withSpring(0, SPRING) },
+                { scale: withSpring(selected ? 1.06 : 1, { ...SPRING, damping: 14 }) },
+            ],
+            opacity: withSpring(selected ? 1 : 0.9),
+        };
+    });
+
+    return (
+        <Pressable
+            onPress={onPress}
+            onLongPress={onLongPress}
+            onLayout={onLayout}
+            style={styles.item}
+            android_ripple={{ color: "rgba(255,255,255,0.05)", borderless: true }}
+            hitSlop={12}
+            accessibilityRole="button"
+            accessibilityState={isFocused ? { selected: true } : {}}
+        >
+            <Animated.View style={[styles.iconWrap, iconAnimatedStyle]}>
+                {options.tabBarIcon ? options.tabBarIcon({ focused: isFocused, color, size }) : null}
+            </Animated.View>
+        </Pressable>
+    );
+}
+
+/** --------------- PARENT BAR --------------- */
 export default function TabBar({
     state,
     descriptors,
@@ -61,12 +103,49 @@ export default function TabBar({
     const insets = useSafeAreaInsets();
     const theme = useAppTheme();
 
-    // Mesures des items pour positionner la pill
+    /** 1) Filtrer les routes invisibles
+     * - expo-router : options.href === null
+     * - fallback : options.tabBarButton() === null
+     * - fallback : options.tabBarStyle.display === "none"
+     */
+    const visibleRoutes = useMemo(() => {
+        return state.routes.filter((r) => {
+            const opts: any = descriptors[r.key]?.options ?? {};
+            const hrefHidden = Object.prototype.hasOwnProperty.call(opts, "href") && opts.href === null;
+
+            let buttonHidden = false;
+            if (typeof opts.tabBarButton === "function") {
+                try {
+                    // certains devs retournent explicitement `null` pour masquer un tab
+                    const maybeNode = opts.tabBarButton({ children: null, onPress: () => { } } as any);
+                    buttonHidden = maybeNode === null;
+                } catch {
+                    // on ignore toute erreur (des impléms custom peuvent exiger d'autres props)
+                    buttonHidden = false;
+                }
+            }
+
+            const styleHidden =
+                opts?.tabBarStyle && typeof opts.tabBarStyle === "object"
+                    ? (opts.tabBarStyle as any).display === "none"
+                    : false;
+
+            return !(hrefHidden || buttonHidden || styleHidden);
+        });
+    }, [state.routes, descriptors]);
+
+    /** 2) Index actif parmi les visibles */
+    const currentKey = state.routes[state.index]?.key;
+    let activeVisibleIndex = visibleRoutes.findIndex((r) => r.key === currentKey);
+    const currentIsHidden = activeVisibleIndex === -1;
+    if (currentIsHidden) activeVisibleIndex = 0;
+
+    /** 3) Mesures (par index visible) */
     const layoutsRef = useRef<Record<number, { x: number; width: number }>>({});
     const pillX = useSharedValue(0);
-    const activeIndex = useSharedValue(state.index);
+    const activeIndex = useSharedValue(activeVisibleIndex);
 
-    const animateToIndex = (idx: number) => {
+    const animateToVisibleIndex = (idx: number) => {
         const layout = layoutsRef.current[idx];
         if (!layout) return;
         const left = layout.x + (layout.width - pillWidth) / 2;
@@ -74,15 +153,15 @@ export default function TabBar({
         activeIndex.value = idx;
     };
 
+    /** 4) Sync animation quand nav/visibilité change */
     useEffect(() => {
-        const id = setTimeout(() => animateToIndex(state.index), 0);
+        const target = currentIsHidden ? 0 : activeVisibleIndex;
+        const id = setTimeout(() => animateToVisibleIndex(target), 0);
         return () => clearTimeout(id);
-    }, [state.index, descriptors]);
+    }, [state.index, visibleRoutes.length, currentIsHidden, activeVisibleIndex]);
 
-    const offsetFromBottom = useMemo(
-        () => Math.max(insets.bottom, 0) + extraBottomInset,
-        [insets.bottom, extraBottomInset]
-    );
+    /** Offsets & styles */
+    const offsetFromBottom = Math.max(insets.bottom, 0) + extraBottomInset;
 
     const pillStyle = useAnimatedStyle(() => ({
         transform: [
@@ -110,8 +189,9 @@ export default function TabBar({
 
                 <View
                     style={styles.row}
-                    onLayout={() => requestAnimationFrame(() => animateToIndex(state.index))}
+                    onLayout={() => requestAnimationFrame(() => animateToVisibleIndex(activeVisibleIndex))}
                 >
+                    {/* PILL */}
                     <Animated.View
                         pointerEvents="none"
                         style={[
@@ -128,9 +208,10 @@ export default function TabBar({
                         ]}
                     />
 
-                    {state.routes.map((route, index) => {
+                    {/* ITEMS visibles */}
+                    {visibleRoutes.map((route, vIndex) => {
                         const { options } = descriptors[route.key];
-                        const isFocused = state.index === index;
+                        const isFocusedVisible = vIndex === activeVisibleIndex;
 
                         const onPress = () => {
                             const event = navigation.emit({
@@ -138,11 +219,11 @@ export default function TabBar({
                                 target: route.key,
                                 canPreventDefault: true,
                             });
-                            if (!isFocused && !event.defaultPrevented) {
+                            if (!isFocusedVisible && !event.defaultPrevented) {
                                 navigation.navigate(route.name);
                             }
                             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                            animateToIndex(index);
+                            animateToVisibleIndex(vIndex);
                         };
 
                         const onLongPress = () => {
@@ -151,46 +232,28 @@ export default function TabBar({
 
                         const onLayout = (e: LayoutChangeEvent) => {
                             const { x, width } = e.nativeEvent.layout;
-                            layoutsRef.current[index] = { x, width };
-                            if (index === state.index)
-                                requestAnimationFrame(() => animateToIndex(index));
+                            layoutsRef.current[vIndex] = { x, width };
+                            if (vIndex === activeVisibleIndex) {
+                                requestAnimationFrame(() => animateToVisibleIndex(vIndex));
+                            }
                         };
 
-                        const iconAnimatedStyle = useAnimatedStyle(() => {
-                            const scale = activeIndex.value === index ? 1.06 : 1;
-                            return {
-                                transform: [
-                                    { translateY: withSpring(0, SPRING) },
-                                    { scale: withSpring(scale, { ...SPRING, damping: 14 }) },
-                                ],
-                                opacity: withSpring(activeIndex.value === index ? 1 : 0.9, {
-                                    duration: 150,
-                                    dampingRatio: 0.8
-                                }),
-                            };
-                        });
-
-                        const color = isFocused ? activeColor : inactiveColor;
+                        const color = isFocusedVisible ? activeColor : inactiveColor;
                         const size = 26;
 
                         return (
-                            <Pressable
+                            <TabBarItem
                                 key={route.key}
+                                options={options}
+                                isFocused={isFocusedVisible}
+                                color={color}
+                                size={size}
                                 onPress={onPress}
                                 onLongPress={onLongPress}
                                 onLayout={onLayout}
-                                style={styles.item}
-                                android_ripple={{ color: "rgba(255,255,255,0.05)", borderless: true }}
-                                hitSlop={12}
-                                accessibilityRole="button"
-                                accessibilityState={isFocused ? { selected: true } : {}}
-                            >
-                                <Animated.View style={[styles.iconWrap, iconAnimatedStyle]}>
-                                    {options.tabBarIcon
-                                        ? options.tabBarIcon({ focused: isFocused, color, size })
-                                        : null}
-                                </Animated.View>
-                            </Pressable>
+                                vIndex={vIndex}
+                                activeIndex={activeIndex}
+                            />
                         );
                     })}
                 </View>

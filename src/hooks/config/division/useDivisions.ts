@@ -1,12 +1,14 @@
 import { useQuery } from '@tanstack/react-query';
 import { Division } from '@/src/types/Division';
-import ConfigApi from '@/src/api/ConfigApi';
+import { useApis } from '@/src/context/ApiProvider';
 
 export const useDivisions = () => {
+    const { mobile } = useApis();
+    
     return useQuery<Division[]>({
         queryKey: ['divisions'],
         queryFn: async () => {
-            return await ConfigApi.getInstance().listDivisions();
+            return await mobile.getDivisions();
         },
         staleTime: 1000 * 60,
     });

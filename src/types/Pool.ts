@@ -46,3 +46,14 @@ export interface PoolSummaryDTO {
     division: Division;
     leagueName: string;
 }
+
+export type PoolSearchDocDTO = {
+    id: number;
+    name: string;
+    divisionName: string;
+    leagueCode: string;
+    leagueName: string;
+    season: string;
+    logoUrl?: string;
+    gender: string;
+};

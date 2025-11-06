@@ -10,8 +10,6 @@ import { Image } from "expo-image";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 import { useAppTheme } from "@/src/context/ThemeProvider";
-import UsersApi from "@/src/api/UsersApi";
-import { ApiError } from "@/src/api/AbstractApi";
 import { CORNERS } from "@/src/theme/globals";
 import { CustomUser } from "@/src/types/User";
 import ApiErrorToast from "@/src/components/common/feedback/ApiErrorToast";
@@ -19,6 +17,8 @@ import ApiErrorToast from "@/src/components/common/feedback/ApiErrorToast";
 import FormCard from "@/src/components/common/form/FormCard";
 import Field from "@/src/components/common/form/Field";
 import SheetTextInput from "@/src/components/common/form/SheetTextInput";
+import { useApis } from "@/src/context/ApiProvider";
+import { ApiError } from "@/src/api/core/ApiError";
 
 export type ProfileFormExternalState = {
     loading: boolean;
@@ -34,7 +34,7 @@ export type UserFormProps = {
 
 const ProfileForm: React.FC<UserFormProps> = ({ user, onSuccess, onRegisterSubmit, onStateChange }) => {
     const theme = useAppTheme();
-    const api = UsersApi.getInstance();
+    const { mobile } = useApis();
 
     const [imageFile, setImageFile] = useState<{ uri: string; name: string; type: string } | null>(null);
     const [previewUri, setPreviewUri] = useState<string | null>(null);
@@ -81,7 +81,7 @@ const ProfileForm: React.FC<UserFormProps> = ({ user, onSuccess, onRegisterSubmi
                 const dto: Record<string, unknown> = {};
                 const trimmed = values.pseudo.trim();
                 if (trimmed && trimmed !== user.pseudo) dto.pseudo = trimmed;
-                const updated = await api.updateUser(user.auth0Id, dto, imageFile ?? undefined);
+                const updated = await mobile.updateUser(user.auth0Id, dto, imageFile ?? undefined);
                 await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
                 onSuccess(updated);
             } catch (err) {

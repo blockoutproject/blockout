@@ -1,22 +1,17 @@
 import { useQuery } from "@tanstack/react-query";
-import UsersApi from "@/src/api/UsersApi";
 import type { CustomUser } from "@/src/types/User";
 import { useAuth0 } from "react-native-auth0";
+import { useApis } from "@/src/context/ApiProvider";
 
 export const useEnsureUser = () => {
-    const { user, getCredentials } = useAuth0();
+    const { user } = useAuth0();
+    const { mobile } = useApis();
 
     return useQuery<CustomUser>({
-        queryKey: ["current-user", user?.sub ?? "anon"],
+        queryKey: ["current-user"],
         enabled: !!user,
         staleTime: 5 * 60 * 1000,
         retry: false,
-        queryFn: async () => {
-            const tokenSupplier = async () => {
-                const creds = await getCredentials(undefined, 60);
-                return creds?.accessToken ?? null;
-            };
-            return await UsersApi.ensureCurrentUserWithTokenSupplier(tokenSupplier);
-        },
+        queryFn: async () => mobile.ensureCurrentUser(),
     });
 };

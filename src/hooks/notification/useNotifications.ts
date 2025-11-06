@@ -1,14 +1,14 @@
 import { useMemo } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
-import MobileGatewayApi from "@/src/api/MobileGatewayApi";
 import { EnrichedUserNotification, EnrichedUserNotificationPage } from "@/src/types/Notification";
+import { useApis } from "@/src/context/ApiProvider";
 
 /**
  * Liste infinie des notifications utilisateur (enrichies via Mobile Gateway).
- * - Contrat aligné sur { notifications, hasNext, nextPage }
- * - getNextPageParam via nextPage (comme useMatchList)
  */
 export const useNotifications = (pageSize = 3) => {
+    const { mobile } = useApis();
+
     const queryKey = useMemo(
         () => ["notifications", "enriched", `size:${pageSize}`],
         [pageSize]
@@ -17,7 +17,7 @@ export const useNotifications = (pageSize = 3) => {
     const query = useInfiniteQuery<EnrichedUserNotificationPage>({
         queryKey,
         queryFn: ({ pageParam = 0 }) =>
-            MobileGatewayApi.getInstance().getEnrichedNotifications({
+            mobile.getNotifications({
                 page: pageParam as number,
                 size: pageSize,
             }),

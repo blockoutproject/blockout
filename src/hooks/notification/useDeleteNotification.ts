@@ -1,15 +1,16 @@
 import { useMutation, useQueryClient, InfiniteData } from "@tanstack/react-query";
-import NotificationsApi from "@/src/api/NotificationsApi";
 import { EnrichedUserNotificationPage } from "@/src/types/Notification";
+import { useApis } from "@/src/context/ApiProvider";
 
 const NOTIFS_QK = (pageSize: number) => ["notifications", "enriched", `size:${pageSize}`] as const;
 
 export function useDeleteNotification(pageSize = 20) {
     const qc = useQueryClient();
+    const { mobile } = useApis();
 
     return useMutation({
         mutationFn: async (id: number) => {
-            await NotificationsApi.getInstance().delete(id);
+            await mobile.deleteNotification(id);
         },
         onMutate: async (id: number) => {
             const key = NOTIFS_QK(pageSize);

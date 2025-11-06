@@ -1,14 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
 import { EnrichedPoolDTO } from "@/src/types/Pool";
-import UsersApi from "@/src/api/UsersApi";
 import { EntityType } from "@/src/types/User";
 import { useSession } from "@/src/context/SessionProvider";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEnrichedPoolById } from "./useEnrichedPoolById";
+import { useApis } from "@/src/context/ApiProvider";
 
 export function usePoolFollowState(enrichedPool: EnrichedPoolDTO) {
     const { customUser, refetch } = useSession();
     const qc = useQueryClient();
+    const { mobile } = useApis();
 
     const [isFollowing, setIsFollowing] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
@@ -48,11 +49,10 @@ export function usePoolFollowState(enrichedPool: EnrichedPoolDTO) {
             setIsFollowing(next);
 
             try {
-                const api = UsersApi.getInstance();
                 if (next) {
-                    await api.follow(EntityType.POOL, enrichedPool.id);
+                    await mobile.follow(EntityType.POOL, enrichedPool.id);
                 } else {
-                    await api.unfollow(EntityType.POOL, enrichedPool.id);
+                    await mobile.unfollow(EntityType.POOL, enrichedPool.id);
                 }
                 refetch();
             } catch {

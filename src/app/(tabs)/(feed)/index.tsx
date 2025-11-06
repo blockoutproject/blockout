@@ -14,15 +14,15 @@ import { ReportType } from '@/src/types/Report';
 import FollowedScreen from '@/src/components/followed/FollowedScreen';
 import { openNotificationUrlIfAny } from '@/src/utils/notifications';
 import * as Notifications from 'expo-notifications';
+import { Redirect } from 'expo-router';
 
 const FeedScreen: React.FC = () => {
     const insets = useSafeAreaInsets();
-    const { customUser } = useSession();
+    const { customUser, isGuest } = useSession();
     const [index, setIndex] = useState(0);
     const reportSheetRef = useRef<BottomSheetModal>(null);
 
     const headerOffset = insets.top + TABBAR_HEIGHT + LOGO_HEIGHT;
-
     const favorites = customUser?.favorites ?? [];
     const userFavoritePools = useMemo(
         () => favorites.filter(f => f.entityType === EntityType.POOL).map(f => f.entityId),
@@ -134,8 +134,8 @@ const FeedScreen: React.FC = () => {
     );
 
     const lastNotificationResponse = Notifications.useLastNotificationResponse();
+
     useEffect(() => {
-        console.log("Last notification response changed:", JSON.stringify(lastNotificationResponse));
         if (
             lastNotificationResponse &&
             lastNotificationResponse.actionIdentifier === Notifications.DEFAULT_ACTION_IDENTIFIER
@@ -144,6 +144,8 @@ const FeedScreen: React.FC = () => {
             openNotificationUrlIfAny(data as Record<string, unknown>);
         }
     }, [lastNotificationResponse]);
+
+    if (isGuest) return <Redirect href={"/(tabs)/(search)/search"} />
 
     return (
         <>

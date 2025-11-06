@@ -7,12 +7,12 @@ import * as Haptics from "expo-haptics";
 
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import type { LegalDocument } from "@/src/types/LegalDocument";
-import ConfigApi from "@/src/api/ConfigApi";
 import ApiErrorToast from "@/src/components/common/feedback/ApiErrorToast";
 
 import FormCard from "@/src/components/common/form/FormCard";
 import Field from "@/src/components/common/form/Field";
 import SheetTextInput from "@/src/components/common/form/SheetTextInput";
+import { useApis } from "@/src/context/ApiProvider";
 
 export type LegalDocumentFormExternalState = {
     loading: boolean;
@@ -33,7 +33,7 @@ const LegalDocumentForm: React.FC<LegalDocumentFormProps> = ({
     onStateChange,
 }) => {
     const theme = useAppTheme();
-    const api = ConfigApi.getInstance();
+    const { mobile } = useApis();
 
     const [loading, setLoading] = useState(false);
     const [apiError, setApiError] = useState<string | null>(null);
@@ -54,7 +54,7 @@ const LegalDocumentForm: React.FC<LegalDocumentFormProps> = ({
                 await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
                 setLoading(true);
                 setApiError(null);
-                await api.updateLegalDocument(document.type, values);
+                await mobile.updateLegalDocument(document.type, values);
                 await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
                 onSuccess();
             } catch {

@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
-import UsersApi from '@/src/api/UsersApi';
 import { EntityType } from '@/src/types/User';
 import { EnrichedTeamDTO } from '@/src/types/Team';
 import { useSession } from '@/src/context/SessionProvider';
 import { useQueryClient } from '@tanstack/react-query';
 import { useEnrichedTeamById } from '@/src/hooks/team/useEnrichedTeamById';
+import { useApis } from '@/src/context/ApiProvider';
 
 export function useTeamFollowState(enrichedTeam: EnrichedTeamDTO) {
     const { customUser, refetch } = useSession();
+    const { mobile } = useApis();
     const qc = useQueryClient();
 
     const [isFollowing, setIsFollowing] = useState(false);
@@ -44,11 +45,10 @@ export function useTeamFollowState(enrichedTeam: EnrichedTeamDTO) {
             setIsFollowing(next);
 
             try {
-                const api = UsersApi.getInstance();
                 if (next) {
-                    await api.follow(EntityType.TEAM, enrichedTeam.id);
+                    await mobile.follow(EntityType.TEAM, enrichedTeam.id);
                 } else {
-                    await api.unfollow(EntityType.TEAM, enrichedTeam.id);
+                    await mobile.unfollow(EntityType.TEAM, enrichedTeam.id);
                 }
 
                 refetch();

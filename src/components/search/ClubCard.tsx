@@ -1,10 +1,10 @@
 import React from "react";
 import { useAppTheme } from "@/src/context/ThemeProvider";
-import { ClubSearchDoc } from "@/src/types/docs/ClubSearchDoc";
 import SearchCard from "./SearchCard";
+import { ClubSearchDocDTO } from "@/src/types/Club";
 
 export interface ClubCardProps {
-    club: ClubSearchDoc;
+    club: ClubSearchDocDTO;
     onPress: () => void;
 }
 

@@ -1,6 +1,14 @@
+import { useApis } from "@/src/context/ApiProvider";
 import { useEntityById } from "../utils/useEntityById";
-import MobileGatewayApi from "@/src/api/MobileGatewayApi";
 import { TeamSummaryDTO } from "@/src/types/Team";
 
-export const useTeamListByCLubId = (id?: string, enabled?: boolean) =>
-    useEntityById<TeamSummaryDTO[]>("teamList", (clubId) => MobileGatewayApi.getInstance().getTeamListByClubId(clubId), id, enabled);
+export const useTeamListByClubId = (id?: string, enabled?: boolean) => {
+    const { mobile } = useApis();
+
+    return useEntityById<TeamSummaryDTO[]>(
+        "teamList",
+        (clubId: string) => mobile.getTeamListByClubId(clubId),
+        id,
+        enabled
+    );
+};

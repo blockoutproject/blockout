@@ -12,3 +12,10 @@ export interface Club {
     createdAt: string;
     lastUpdate: string;
 }
+
+export interface ClubSearchDocDTO {
+    id: string;
+    name: string;
+    logoUrl: string | null;
+    city: string;
+}   

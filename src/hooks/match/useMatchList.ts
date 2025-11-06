@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
-import MobileGatewayApi from "@/src/api/MobileGatewayApi";
 import { EnrichedDayMatchesDTO, MatchStatus } from "@/src/types/Match";
+import { useApis } from "@/src/context/ApiProvider";
 
 export const useMatchList = (
     status: MatchStatus,
@@ -9,6 +9,8 @@ export const useMatchList = (
     teamIds?: number[],
     pageSize?: number
 ) => {
+    const { mobile } = useApis();
+    
     const poolsKey = useMemo(
         () => (poolIds?.length ? [...poolIds].sort((a, b) => a - b).join(",") : "none"),
         [poolIds]
@@ -26,7 +28,7 @@ export const useMatchList = (
     const query = useInfiniteQuery({
         queryKey,
         queryFn: ({ pageParam = 0 }) =>
-            MobileGatewayApi.getInstance().getEnrichedMatches({
+            mobile.getEnrichedMatches({
                 page: pageParam,
                 size: pageSize,
                 poolIds,

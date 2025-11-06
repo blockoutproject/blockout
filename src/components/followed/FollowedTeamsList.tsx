@@ -57,7 +57,7 @@ const FollowedTeamsList: React.FC<Props> = ({ teamIds }) => {
             <ErrorState
                 subtitle="Impossible de charger vos équipes suivies."
                 onRetry={refetch}
-                paddingTop="30%"
+                paddingTop="15%"
             />
         );
     }

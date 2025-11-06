@@ -58,7 +58,7 @@ const FollowedPoolsList: React.FC<Props> = ({ poolIds }) => {
             <ErrorState
                 subtitle="Impossible de charger vos poules suivies."
                 onRetry={refetch}
-                paddingTop="30%"
+                paddingTop="15%"
             />
         );
     }

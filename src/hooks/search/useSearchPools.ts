@@ -1,11 +1,13 @@
 import { useQuery } from '@tanstack/react-query';
-import SearchApi from '@/src/api/SearchApi';
-import { PoolSearchDoc } from '@/src/types/docs/PoolSearchDoc';
+import { useApis } from '@/src/context/ApiProvider';
+import { PoolSearchDocDTO } from '@/src/types/Pool';
 
 export const useSearchPools = (query: string, triggerOnEmpty = false) => {
-    return useQuery<PoolSearchDoc[]>({
+    const { mobile } = useApis();
+    
+    return useQuery<PoolSearchDocDTO[]>({
         queryKey: ['pools', 'search', query],
-        queryFn: async () => SearchApi.getInstance().searchPools(query),
+        queryFn: async () => mobile.searchPools(query),
         enabled: triggerOnEmpty || query.length > 0,
         staleTime: 1000 * 60 * 5,
         retry: false,

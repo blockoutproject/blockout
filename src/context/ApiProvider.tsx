@@ -1,63 +1,16 @@
-import React, { useEffect } from "react";
-import { useAuth0 } from "react-native-auth0";
-import { useSession } from "@/src/context/SessionProvider";
+import React, { createContext, useContext, useMemo, useState } from "react";
+import { createApis, ApiClients } from "@/src/api";
 
-import MatchesApi from "@/src/api/MatchesApi";
-import TeamsApi from "@/src/api/TeamsApi";
-import PoolsApi from "@/src/api/PoolsApi";
-import CompetitionsApi from "@/src/api/CompetitionsApi";
-import UsersApi from "@/src/api/UsersApi";
-import SearchApi from "@/src/api/SearchApi";
-import MobileGatewayApi from "@/src/api/MobileGatewayApi";
-import ConfigApi from "@/src/api/ConfigApi";
-import ClubsApi from "@/src/api/ClubsApi";
-import ReportsApi from "@/src/api/ReportsApi";
-import NotificationsApi from "@/src/api/NotificationsApi";
+const ApiContext = createContext<ApiClients | null>(null);
+
+export const useApis = () => {
+    const ctx = useContext(ApiContext);
+    if (!ctx) throw new Error("useApis must be used within ApiProvider");
+    return ctx;
+};
 
 export const ApiProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const { softResetAuth, auth0User } = useSession();
-    const { getCredentials } = useAuth0();
-
-    useEffect(() => {
-        (async () => {
-            try {
-                if (!auth0User) {
-                    return;
-                }
-
-                const creds = await getCredentials(undefined, 60);
-                const token = creds?.accessToken;
-                if (!token) {
-                    return;
-                }
-
-                //console.log(token);
-
-                const tokenSupplier = async () => {
-                    const c = await getCredentials(undefined, 60);
-                    return c?.accessToken ?? null;
-                };
-
-                const onUnauthorized = async () => {
-                    await softResetAuth();
-                };
-
-                MatchesApi.initInstance(token, { tokenSupplier, onUnauthorized });
-                TeamsApi.initInstance(token, { tokenSupplier, onUnauthorized });
-                PoolsApi.initInstance(token, { tokenSupplier, onUnauthorized });
-                CompetitionsApi.initInstance(token, { tokenSupplier, onUnauthorized });
-                UsersApi.initInstance(token, { tokenSupplier, onUnauthorized });
-                SearchApi.initInstance(token, { tokenSupplier, onUnauthorized });
-                MobileGatewayApi.initInstance(token, { tokenSupplier, onUnauthorized });
-                ConfigApi.initInstance(token, { tokenSupplier, onUnauthorized });
-                ClubsApi.initInstance(token, { tokenSupplier, onUnauthorized });
-                ReportsApi.initInstance(token, { tokenSupplier, onUnauthorized });
-                NotificationsApi.initInstance(token, { tokenSupplier, onUnauthorized });
-            } catch {
-                return;
-            }
-        })();
-    }, [auth0User, getCredentials, softResetAuth]);
-
-    return <>{children}</>;
+    const [apis] = useState<ApiClients>(() => createApis());
+    const value = useMemo(() => apis, [apis]);
+    return <ApiContext.Provider value={value}>{children}</ApiContext.Provider>;
 };

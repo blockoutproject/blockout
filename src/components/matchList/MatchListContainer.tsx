@@ -186,7 +186,7 @@ const MatchList: React.FC<MatchListProps> = ({
             <ErrorState
                 subtitle="Impossible de charger les matchs."
                 onRetry={onRetry}
-                paddingTop={home ? "50%" : "30%"}
+                paddingTop={home ? "60%" : "30%"}
             />
         );
     } else {

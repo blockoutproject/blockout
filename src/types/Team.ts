@@ -63,3 +63,16 @@ export interface TeamSummaryDTO {
     club: Club;
     shortName: string;
 }
+
+export interface TeamSearchDocDTO {
+    id: number;
+    name: string;
+    clubId: string;
+    clubName: string;
+    clubCity: string;
+    logoUrl: string | null;
+    divisionName: string;
+    format: string;
+    gender: string;
+    season: string;
+}

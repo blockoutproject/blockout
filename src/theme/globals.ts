@@ -10,3 +10,4 @@ export const TABBAR_INDICATOR_HEIGHT = 3;
 export const SEARCHBAR_HEIGHT = 40;
 export const SECTION_SEPARATOR_HEIGHT = 12;
 export const FOLLOWED_HEADER = 54;
+export const TABBAR_ICON_SIZE = 28;

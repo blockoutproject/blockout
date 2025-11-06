@@ -19,14 +19,13 @@ const queryClient = new QueryClient();
 
 export default function Root() {
     useEffect(() => {
-        const removeListeners = addNotificationListeners({
+        const remove = addNotificationListeners({
             onRespond: (response) => {
                 const data = response.notification.request.content.data;
                 openNotificationUrlIfAny(data);
             },
         });
-
-        return removeListeners;
+        return remove;
     }, []);
 
     return (
@@ -35,52 +34,46 @@ export default function Root() {
                 <ThemeProvider>
                     <StatusBar barStyle={"light-content"} />
                     <Auth0Provider domain={AUTH0_CONFIG.domain} clientId={AUTH0_CONFIG.clientId}>
-                        <SessionProvider>
-                            <ApiProvider>
+                        <ApiProvider>
+                            <SessionProvider>
                                 <SplashScreenController />
                                 <RootNavigator />
-                            </ApiProvider>
-                        </SessionProvider>
+                            </SessionProvider>
+                        </ApiProvider>
                     </Auth0Provider>
                 </ThemeProvider>
             </QueryClientProvider>
-        </GestureHandlerRootView >
+        </GestureHandlerRootView>
     );
 }
 
 function RootNavigator() {
-    const { isReady } = useSession();
+    const { isAuthenticated, isGuest } = useSession();
     const { hasCompletedOnboarding } = useOnboardingStore();
 
     return (
         <BottomSheetModalProvider>
             <Stack screenOptions={{ headerShown: false, animation: "none" }}>
-                <Stack.Protected guard={!isReady}>
+                <Stack.Protected guard={!(isGuest || isAuthenticated)}>
                     <Stack.Screen
                         name="sign-in"
-                        options={{
-                            animation: "fade_from_bottom",
-                            animationDuration: 300,
-                        }}
+                        options={{ animation: "fade_from_bottom", animationDuration: 300 }}
                     />
                 </Stack.Protected>
 
-                <Stack.Protected guard={isReady}>
+                <Stack.Protected guard={isGuest || isAuthenticated}>
                     <Stack.Protected guard={!hasCompletedOnboarding}>
                         <Stack.Screen
                             name="onboarding"
-                            options={{
-                                animation: "fade_from_bottom",
-                                animationDuration: 300,
-                            }}
+                            options={{ animation: "fade_from_bottom", animationDuration: 300 }}
                         />
                     </Stack.Protected>
+                </Stack.Protected>
+
+                <Stack.Protected guard={isGuest || isAuthenticated}>
                     <Stack.Screen
                         name="(tabs)"
-                        options={{
-                            animation: "fade_from_bottom",
-                            animationDuration: 300,
-                        }}
+                        options={{ animation: "fade_from_bottom", animationDuration: 300 }}
                     />
                     <Stack.Screen
                         name="pdf-viewer"

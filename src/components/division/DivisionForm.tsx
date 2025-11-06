@@ -19,6 +19,7 @@ import ApiErrorToast from "@/src/components/common/feedback/ApiErrorToast";
 import FormCard from "@/src/components/common/form/FormCard";
 import Field from "@/src/components/common/form/Field";
 import SheetTextInput from "@/src/components/common/form/SheetTextInput";
+import { useApis } from "@/src/context/ApiProvider";
 
 export type DivisionFormExternalState = {
     loading: boolean;
@@ -35,7 +36,7 @@ export type DivisionFormProps = {
 
 const DivisionForm: React.FC<DivisionFormProps> = ({ division, onSuccess, onRegisterSubmit, onStateChange }) => {
     const theme = useAppTheme();
-    const api = ConfigApi.getInstance();
+    const { config } = useApis();
     const isEditMode = !!division;
 
     const [imageFile, setImageFile] = useState<{ uri: string; name: string; type: string } | null>(null);
@@ -88,9 +89,9 @@ const DivisionForm: React.FC<DivisionFormProps> = ({ division, onSuccess, onRegi
                 setLoading(true);
                 setApiError(null);
                 if (isEditMode) {
-                    await api.updateDivision(division!.id, values, imageFile ?? undefined);
+                    await config.updateDivision(division!.id, values, imageFile ?? undefined);
                 } else {
-                    await api.createOrUpdateDivision(values, imageFile ?? undefined);
+                    await config.createOrUpdateDivision(values, imageFile ?? undefined);
                 }
                 await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
                 onSuccess();

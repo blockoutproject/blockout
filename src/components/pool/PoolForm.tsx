@@ -7,13 +7,13 @@ import * as Haptics from "expo-haptics";
 
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import type { EnrichedPoolDTO, Pool } from "@/src/types/Pool";
-import PoolsApi from "@/src/api/PoolsApi";
 import { CORNERS } from "@/src/theme/globals";
 import ApiErrorToast from "@/src/components/common/feedback/ApiErrorToast";
 
 import FormCard from "@/src/components/common/form/FormCard";
 import Field from "@/src/components/common/form/Field";
 import SheetTextInput from "@/src/components/common/form/SheetTextInput";
+import { useApis } from "@/src/context/ApiProvider";
 
 export type PoolFormExternalState = {
     loading: boolean;
@@ -29,7 +29,7 @@ export type PoolFormProps = {
 
 const PoolForm: React.FC<PoolFormProps> = ({ pool, onSuccess, onRegisterSubmit, onStateChange }) => {
     const theme = useAppTheme();
-    const api = PoolsApi.getInstance();
+    const { mobile } = useApis();
 
     const [loading, setLoading] = useState(false);
     const [apiError, setApiError] = useState<string | null>(null);
@@ -52,7 +52,7 @@ const PoolForm: React.FC<PoolFormProps> = ({ pool, onSuccess, onRegisterSubmit, 
                     name: values.name.trim(),
                     shortName: values.shortName.trim()
                 };
-                const updated = await api.updatePool(pool.id, dto);
+                const updated = await mobile.updatePool(pool.id, dto);
                 await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
                 onSuccess(updated);
             } catch {
