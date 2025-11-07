@@ -6,7 +6,7 @@ import org.springframework.data.jpa.repository.*;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import com.blockout.notifications.models.UserNotification;
+import com.blockout.notifications.models.entity.UserNotification;
 
 import java.time.Instant;
 

@@ -6,7 +6,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import com.blockout.notifications.models.NotificationSend;
+import com.blockout.notifications.models.entity.NotificationSend;
 import com.blockout.notifications.models.enums.NotificationStatus;
 
 import java.time.LocalDateTime;

@@ -8,7 +8,7 @@ import java.util.List;
 
 @Data
 @Builder
-public class CustomUserDto {
+public class CustomUserDTO {
     private Long id;
     private String auth0Id;
     private String email;
@@ -20,5 +20,5 @@ public class CustomUserDto {
     private Boolean active;
     private LocalDateTime createdAt;
     private LocalDateTime lastUpdate;
-    private List<UserFavoriteDto> favorites;
+    private List<UserFavoriteDTO> favorites;
 }

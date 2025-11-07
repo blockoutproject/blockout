@@ -7,9 +7,9 @@ import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.blockout.notifications.models.UserNotification;
 import com.blockout.notifications.models.dto.notifications.UserNotificationPageDTO;
-import com.blockout.notifications.models.dto.users.CustomUserDto;
+import com.blockout.notifications.models.dto.users.CustomUserDTO;
+import com.blockout.notifications.models.entity.UserNotification;
 import com.blockout.notifications.models.enums.NotificationTargetType;
 import com.blockout.notifications.models.enums.NotificationType;
 import com.blockout.notifications.repositories.UserNotificationRepository;
@@ -33,7 +33,7 @@ public class UserNotificationService {
     private final ObjectMapper objectMapper;
 
     private Long resolveUserIdOrThrow() {
-        CustomUserDto user = usersClientService.getCurrentUser();
+        CustomUserDTO user = usersClientService.getCurrentUser();
         if (user == null || user.getId() == null) {
             logger.warn("User not found for auth0Id",
                     keyValue("action", "resolve_user_id_failed"));

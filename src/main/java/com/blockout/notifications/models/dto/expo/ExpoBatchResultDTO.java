@@ -10,7 +10,7 @@ import java.util.Set;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class ExpoBatchResult {
+public class ExpoBatchResultDTO {
     private Set<Long> userIdsOk;
     private Set<Long> userIdsFailed;
     private List<String> invalidTokens;

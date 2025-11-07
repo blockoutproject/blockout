@@ -1,4 +1,4 @@
-package com.blockout.notifications.models;
+package com.blockout.notifications.models.entity;
 
 import jakarta.persistence.*;
 import lombok.*;

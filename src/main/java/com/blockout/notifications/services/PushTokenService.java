@@ -7,9 +7,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.blockout.notifications.models.PushToken;
-import com.blockout.notifications.models.dto.ResolvePage;
-import com.blockout.notifications.models.dto.pushTokens.RegisterPushTokenRequest;
+import com.blockout.notifications.models.dto.ResolvePageDTO;
+import com.blockout.notifications.models.dto.pushTokens.RegisterPushTokenRequestDTO;
+import com.blockout.notifications.models.entity.PushToken;
 import com.blockout.notifications.repositories.PushTokenRepository;
 
 import java.util.*;
@@ -35,7 +35,7 @@ public class PushTokenService {
      * - Sinon: création d'une nouvelle ligne.
      */
     @Transactional
-    public void register(Long userId, RegisterPushTokenRequest req) {
+    public void register(Long userId, RegisterPushTokenRequestDTO req) {
         String newToken = req.getExpoPushToken();
         String deviceId = req.getDeviceId();
 
@@ -112,9 +112,9 @@ public class PushTokenService {
      * + la liste des users sans token actif.
      */
     @Transactional(readOnly = true)
-    public ResolvePage resolveTokensPage(List<Long> userIds) {
+    public ResolvePageDTO resolveTokensPage(List<Long> userIds) {
         if (userIds == null || userIds.isEmpty()) {
-            return new ResolvePage(Map.of(), Set.of());
+            return new ResolvePageDTO(Map.of(), Set.of());
         }
 
         var rows = tokenRepository.findAllByUserIdInAndActiveTrue(userIds);
@@ -137,7 +137,7 @@ public class PushTokenService {
                 keyValue("resolvedUserCount", tokensByUser.size()),
                 keyValue("noTokenUsers", noTokenUserIds.size()));
 
-        return new ResolvePage(tokensByUser, noTokenUserIds);
+        return new ResolvePageDTO(tokensByUser, noTokenUserIds);
     }
 
     /**

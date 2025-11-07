@@ -12,7 +12,7 @@ import java.util.Set;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class ResolvePage {
+public class ResolvePageDTO {
     private Map<Long, List<String>> tokensByUser;
     private Set<Long> noTokenUserIds;
 }

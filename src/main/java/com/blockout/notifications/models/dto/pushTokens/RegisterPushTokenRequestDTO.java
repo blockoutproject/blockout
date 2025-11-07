@@ -7,7 +7,7 @@ import lombok.Data;
 
 @Data
 @Builder
-public class RegisterPushTokenRequest {
+public class RegisterPushTokenRequestDTO {
     private String expoPushToken;
     private DevicePlatform platform;
     private String deviceId;

@@ -1,4 +1,4 @@
-package com.blockout.notifications.models;
+package com.blockout.notifications.models.entity;
 
 import lombok.Data;
 import lombok.NoArgsConstructor;

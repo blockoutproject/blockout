@@ -12,7 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import com.blockout.notifications.models.dto.pushTokens.RegisterPushTokenRequest;
+import com.blockout.notifications.models.dto.pushTokens.RegisterPushTokenRequestDTO;
 import com.blockout.notifications.services.PushTokenService;
 
 @RestController
@@ -31,7 +31,7 @@ public class PushTokenController {
     @PostMapping("/users/{userId}/push-tokens")
     public ResponseEntity<Void> register(
             @PathVariable Long userId,
-            @Valid @RequestBody RegisterPushTokenRequest req) {
+            @Valid @RequestBody RegisterPushTokenRequestDTO req) {
         pushTokenService.register(userId, req);
         return ResponseEntity.accepted().build();
     }

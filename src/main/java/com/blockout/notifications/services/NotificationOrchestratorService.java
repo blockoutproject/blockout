@@ -5,12 +5,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-import com.blockout.notifications.models.UserNotification;
-import com.blockout.notifications.models.dto.ResolvePage;
-import com.blockout.notifications.models.dto.expo.ExpoBatchResult;
-import com.blockout.notifications.models.dto.expo.ExpoMessage;
+import com.blockout.notifications.models.dto.ResolvePageDTO;
+import com.blockout.notifications.models.dto.expo.ExpoBatchResultDTO;
+import com.blockout.notifications.models.dto.expo.ExpoMessageDTO;
 import com.blockout.notifications.models.dto.pool.PoolDTO;
 import com.blockout.notifications.models.dto.team.TeamDTO;
+import com.blockout.notifications.models.entity.UserNotification;
 import com.blockout.notifications.models.enums.NotificationTargetType;
 import com.blockout.notifications.models.enums.NotificationType;
 import com.blockout.notifications.services.clients.PoolClientService;
@@ -97,13 +97,13 @@ public class NotificationOrchestratorService {
             int to = Math.min(from + RESOLVE_PAGE_SIZE, reservedUserIds.size());
             List<Long> pageUserIds = reservedUserIds.subList(from, to);
 
-            ResolvePage page = pushTokenService.resolveTokensPage(pageUserIds);
+            ResolvePageDTO page = pushTokenService.resolveTokensPage(pageUserIds);
 
             if (!page.getNoTokenUserIds().isEmpty()) {
                 notificationSendService.markSent(matchId, page.getNoTokenUserIds(), true);
             }
 
-            List<ExpoMessage> messages = new ArrayList<>();
+            List<ExpoMessageDTO> messages = new ArrayList<>();
             if (page.getTokensByUser() != null && !page.getTokensByUser().isEmpty()) {
                 for (Map.Entry<Long, List<String>> e : page.getTokensByUser().entrySet()) {
                     Long userId = e.getKey();
@@ -111,7 +111,7 @@ public class NotificationOrchestratorService {
                             : e.getValue().stream().distinct().toList();
 
                     for (String token : tokens) {
-                        messages.add(ExpoMessage.builder()
+                        messages.add(ExpoMessageDTO.builder()
                                 .to(token)
                                 .title(content.title)
                                 .body(content.body)
@@ -137,10 +137,10 @@ public class NotificationOrchestratorService {
             int batchIndex = 0;
             for (int i = 0; i < messages.size(); i += EXPO_BATCH_SIZE, batchIndex++) {
                 int end = Math.min(i + EXPO_BATCH_SIZE, messages.size());
-                List<ExpoMessage> batch = messages.subList(i, end);
+                List<ExpoMessageDTO> batch = messages.subList(i, end);
 
                 try {
-                    ExpoBatchResult result = expoPushService.sendBatch(batch);
+                    ExpoBatchResultDTO result = expoPushService.sendBatch(batch);
 
                     if (result.getUserIdsOk() != null)
                         usersSent.addAll(result.getUserIdsOk());
@@ -162,7 +162,7 @@ public class NotificationOrchestratorService {
                                     result.getInvalidTokens() != null ? result.getInvalidTokens().size() : 0));
 
                 } catch (Exception ex) {
-                    Set<Long> batchUsers = batch.stream().map(ExpoMessage::getUserId)
+                    Set<Long> batchUsers = batch.stream().map(ExpoMessageDTO::getUserId)
                             .collect(Collectors.toCollection(LinkedHashSet::new));
                     usersFailed.addAll(batchUsers);
 

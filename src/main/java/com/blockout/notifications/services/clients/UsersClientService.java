@@ -7,7 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import com.blockout.notifications.config.ApiClientProperties;
-import com.blockout.notifications.models.dto.users.CustomUserDto;
+import com.blockout.notifications.models.dto.users.CustomUserDTO;
 
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
@@ -20,12 +20,12 @@ public class UsersClientService {
     private final ApiClientProperties apiClientProperties;
     private final ApiClientService apiClientService;
 
-    public CustomUserDto getCurrentUser() {
+    public CustomUserDTO getCurrentUser() {
         String url = apiClientProperties.getUser().getUrl() + "/me";
 
         logger.info("Calling getCurrentUser", keyValue("url", url));
 
-        ResponseEntity<CustomUserDto> response = apiClientService.getForward(url, CustomUserDto.class);
+        ResponseEntity<CustomUserDTO> response = apiClientService.getForward(url, CustomUserDTO.class);
         return response.getBody();
     }
 }

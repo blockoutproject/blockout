@@ -11,7 +11,7 @@ import java.util.Map;
  */
 @Data
 @Builder
-public class ExpoMessage {
+public class ExpoMessageDTO {
     private String to;
     private String title;
     private String body;

@@ -2,7 +2,7 @@ package com.blockout.notifications.models.dto.notifications;
 
 import java.util.List;
 
-import com.blockout.notifications.models.UserNotification;
+import com.blockout.notifications.models.entity.UserNotification;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

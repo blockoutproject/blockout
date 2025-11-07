@@ -8,7 +8,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.blockout.notifications.models.FollowersProjection;
+import com.blockout.notifications.models.entity.FollowersProjection;
 import com.blockout.notifications.models.enums.EntityType;
 import com.blockout.notifications.repositories.FollowersProjectionRepository;
 

@@ -13,8 +13,8 @@ import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.client5.http.impl.classic.HttpClients;
 
 import com.blockout.notifications.config.ExpoClientProperties;
-import com.blockout.notifications.models.dto.expo.ExpoBatchResult;
-import com.blockout.notifications.models.dto.expo.ExpoMessage;
+import com.blockout.notifications.models.dto.expo.ExpoBatchResultDTO;
+import com.blockout.notifications.models.dto.expo.ExpoMessageDTO;
 import com.niamedtech.expo.exposerversdk.ExpoPushNotificationClient;
 import com.niamedtech.expo.exposerversdk.request.PushNotification;
 import com.niamedtech.expo.exposerversdk.response.TicketResponse;
@@ -54,14 +54,14 @@ public class ExpoPushService {
      * @param messages Liste de messages internes (un entry par token)
      * @return agrégat {userIdsOk, userIdsFailed, invalidTokens}
      */
-    public ExpoBatchResult sendBatch(List<ExpoMessage> messages) {
+    public ExpoBatchResultDTO sendBatch(List<ExpoMessageDTO> messages) {
         if (messages == null || messages.isEmpty()) {
             logger.info("Empty batch, nothing to send",
                     keyValue("action", "expo_sdk_batch_skip"));
-            return new ExpoBatchResult(Set.of(), Set.of(), List.of());
+            return new ExpoBatchResultDTO(Set.of(), Set.of(), List.of());
         }
 
-        List<ExpoMessage> batch = messages.size() > MAX_BATCH ? messages.subList(0, MAX_BATCH) : messages;
+        List<ExpoMessageDTO> batch = messages.size() > MAX_BATCH ? messages.subList(0, MAX_BATCH) : messages;
 
         // Mapping index -> userId/token pour corrélation
         Map<Integer, Long> indexToUser = new HashMap<>(batch.size());
@@ -69,7 +69,7 @@ public class ExpoPushService {
 
         List<PushNotification> notifications = new ArrayList<>(batch.size());
         for (int i = 0; i < batch.size(); i++) {
-            ExpoMessage m = batch.get(i);
+            ExpoMessageDTO m = batch.get(i);
             indexToUser.put(i, m.getUserId());
             indexToToken.put(i, m.getTo());
 
@@ -99,13 +99,13 @@ public class ExpoPushService {
                     keyValue("count", notifications.size()), e);
 
             // Échec global → tous les users de ce lot = failed
-            Set<Long> failedUsers = batch.stream().map(ExpoMessage::getUserId).collect(Collectors.toSet());
-            return new ExpoBatchResult(Set.of(), failedUsers, List.of());
+            Set<Long> failedUsers = batch.stream().map(ExpoMessageDTO::getUserId).collect(Collectors.toSet());
+            return new ExpoBatchResultDTO(Set.of(), failedUsers, List.of());
         }
     }
 
-    private ExpoBatchResult aggregateTickets(
-            List<ExpoMessage> batch,
+    private ExpoBatchResultDTO aggregateTickets(
+            List<ExpoMessageDTO> batch,
             List<TicketResponse.Ticket> tickets,
             Map<Integer, Long> indexToUser,
             Map<Integer, String> indexToToken) {
@@ -167,7 +167,7 @@ public class ExpoPushService {
         Set<Long> okUsers = perUserOk.keySet();
 
         // Users KO = présents dans le lot ET aucun OK (mais au moins une erreur)
-        Set<Long> usersInBatch = batch.stream().map(ExpoMessage::getUserId).collect(Collectors.toSet());
+        Set<Long> usersInBatch = batch.stream().map(ExpoMessageDTO::getUserId).collect(Collectors.toSet());
         Set<Long> failedUsers = usersInBatch.stream()
                 .filter(u -> !okUsers.contains(u) && perUserErr.getOrDefault(u, 0) > 0)
                 .collect(Collectors.toCollection(LinkedHashSet::new));
@@ -178,7 +178,7 @@ public class ExpoPushService {
                 keyValue("failedUsers", failedUsers.size()),
                 keyValue("invalidTokens", invalidTokens.size()));
 
-        return new ExpoBatchResult(okUsers, failedUsers, invalidTokens);
+        return new ExpoBatchResultDTO(okUsers, failedUsers, invalidTokens);
     }
 
     private boolean isDeviceNotRegistered(String message) {
