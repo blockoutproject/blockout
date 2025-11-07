@@ -3,7 +3,7 @@ package com.blockout.users.models.mappers;
 import org.springframework.stereotype.Component;
 
 import com.blockout.users.models.CustomUser;
-import com.blockout.users.models.dto.CustomUserDto;
+import com.blockout.users.models.dto.CustomUserDTO;
 
 import lombok.RequiredArgsConstructor;
 
@@ -13,10 +13,10 @@ public class CustomUserMapper {
 
     private final UserFavoriteMapper userFavoriteMapper;
 
-    public CustomUserDto toDto(CustomUser user) {
+    public CustomUserDTO toDto(CustomUser user) {
         if (user == null) return null;
 
-        return CustomUserDto.builder()
+        return CustomUserDTO.builder()
                 .id(user.getId())
                 .auth0Id(user.getAuth0Id())
                 .email(user.getEmail())

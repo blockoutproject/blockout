@@ -2,7 +2,7 @@ package com.blockout.users.controllers.v1;
 
 import com.auth0.exception.Auth0Exception;
 import com.blockout.users.models.CustomUser;
-import com.blockout.users.models.dto.CustomUserDto;
+import com.blockout.users.models.dto.CustomUserDTO;
 import com.blockout.users.models.dto.CustomUserUpdateDTO;
 import com.blockout.users.services.UserService;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -36,8 +36,8 @@ public class UserController {
     })
     @PreAuthorize("hasAuthority('SCOPE_read:users')")
     @GetMapping("/{auth0Id}")
-    public ResponseEntity<CustomUserDto> getUserByAuth0Id(@PathVariable String auth0Id) {
-        CustomUserDto user = userService.getUserByAuth0Id(auth0Id);
+    public ResponseEntity<CustomUserDTO> getUserByAuth0Id(@PathVariable String auth0Id) {
+        CustomUserDTO user = userService.getUserByAuth0Id(auth0Id);
         return ResponseEntity.ok(user);
     }
 
@@ -48,9 +48,9 @@ public class UserController {
     })
     @PreAuthorize("hasAuthority('SCOPE_read:current_user')")
     @GetMapping("/me")
-    public ResponseEntity<CustomUserDto> getCurrentUser(@AuthenticationPrincipal Jwt jwt) {
+    public ResponseEntity<CustomUserDTO> getCurrentUser(@AuthenticationPrincipal Jwt jwt) {
         String auth0Id = jwt.getSubject();
-        CustomUserDto user = userService.getUserByAuth0Id(auth0Id);
+        CustomUserDTO user = userService.getUserByAuth0Id(auth0Id);
         return ResponseEntity.ok(user);
     }
 

@@ -7,7 +7,7 @@ import lombok.Data;
 
 @Data
 @Builder
-public class UserFavoriteDto {
+public class UserFavoriteDTO {
     private EntityType entityType;
     private Long entityId;
 }

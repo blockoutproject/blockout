@@ -1,7 +1,7 @@
 package com.blockout.users.models.mappers;
 
 import com.blockout.users.models.UserFavorite;
-import com.blockout.users.models.dto.UserFavoriteDto;
+import com.blockout.users.models.dto.UserFavoriteDTO;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -11,16 +11,16 @@ import org.springframework.stereotype.Component;
 @Component
 public class UserFavoriteMapper {
 
-    public UserFavoriteDto toDto(UserFavorite favorite) {
+    public UserFavoriteDTO toDto(UserFavorite favorite) {
         if (favorite == null) return null;
 
-        return UserFavoriteDto.builder()
+        return UserFavoriteDTO.builder()
                 .entityType(favorite.getEntityType())
                 .entityId(favorite.getEntityId())
                 .build();
     }
 
-    public List<UserFavoriteDto> toDtoList(List<UserFavorite> favorites) {
+    public List<UserFavoriteDTO> toDtoList(List<UserFavorite> favorites) {
         if (favorites == null) return null;
 
         return favorites.stream()

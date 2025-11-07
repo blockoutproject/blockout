@@ -8,7 +8,7 @@ import com.blockout.users.config.Auth0TokenManager;
 import com.blockout.users.exceptions.ConflictException;
 import com.blockout.users.exceptions.CustomUserNotFoundException;
 import com.blockout.users.models.CustomUser;
-import com.blockout.users.models.dto.CustomUserDto;
+import com.blockout.users.models.dto.CustomUserDTO;
 import com.blockout.users.models.dto.CustomUserUpdateDTO;
 import com.blockout.users.models.enums.EventType;
 import com.blockout.users.models.mappers.CustomUserMapper;
@@ -56,7 +56,7 @@ public class UserService {
      * @return L'utilisateur mappé en DTO
      * @throws CustomUserNotFoundException si aucun utilisateur n'est trouvé
      */
-    public CustomUserDto getUserByAuth0Id(String auth0Id) {
+    public CustomUserDTO getUserByAuth0Id(String auth0Id) {
         return userRepository.findByAuth0IdWithFavorites(auth0Id)
                 .map(customUserMapper::toDto)
                 .orElseThrow(() -> {
