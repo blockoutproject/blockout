@@ -5,8 +5,6 @@ import { useApis } from "@/src/context/ApiProvider";
 export const useLegalDocument = (type: LegalDocumentType) => {
     const { mobile } = useApis();
 
-    console.log(type)
-
     return useQuery<LegalDocument, Error>({
         queryKey: ["legal-doc", type],
         queryFn: () => mobile.getLegalDocument(type),

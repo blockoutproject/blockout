@@ -2,6 +2,8 @@ import React, { useEffect, useMemo, useRef } from "react";
 import { Animated, StyleSheet, Text, ViewStyle } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useAppTheme } from "@/src/context/ThemeProvider";
+import { BOTTOM_TABBAR_HEIGHT } from "@/src/theme/globals";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 type ApiErrorToastProps = {
     /** Le message d'erreur à afficher. Null/undefined => caché */
@@ -24,13 +26,14 @@ type ApiErrorToastProps = {
  */
 const ApiErrorToast: React.FC<ApiErrorToastProps> = ({
     message,
-    bottomOffset = 0,
+    bottomOffset,
     autoHideMs = 5000,
     onHidden,
     containerStyle,
 }) => {
     const theme = useAppTheme();
     const opacity = useRef(new Animated.Value(0)).current;
+    const insets = useSafeAreaInsets();
 
     // Construit les couleurs une fois (évite de recréer des strings)
     const colors = useMemo(
@@ -91,7 +94,7 @@ const ApiErrorToast: React.FC<ApiErrorToastProps> = ({
                 {
                     backgroundColor: colors.bg,
                     borderColor: colors.border,
-                    bottom: bottomOffset,
+                    bottom: bottomOffset || insets.bottom + BOTTOM_TABBAR_HEIGHT + 8,
                     opacity,
                     transform: [
                         {

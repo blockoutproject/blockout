@@ -19,6 +19,7 @@ import Field from "@/src/components/common/form/Field";
 import SheetTextInput from "@/src/components/common/form/SheetTextInput";
 import { useApis } from "@/src/context/ApiProvider";
 import { ApiError } from "@/src/api/core/ApiError";
+import { CustomImage } from "@/src/types/Common";
 
 export type ProfileFormExternalState = {
     loading: boolean;
@@ -36,7 +37,7 @@ const ProfileForm: React.FC<UserFormProps> = ({ user, onSuccess, onRegisterSubmi
     const theme = useAppTheme();
     const { mobile } = useApis();
 
-    const [imageFile, setImageFile] = useState<{ uri: string; name: string; type: string } | null>(null);
+    const [imageFile, setImageFile] = useState<CustomImage | null>(null);
     const [previewUri, setPreviewUri] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
     const [apiError, setApiError] = useState<string | null>(null);

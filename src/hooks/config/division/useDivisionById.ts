@@ -3,11 +3,11 @@ import { useEntityById } from "../../utils/useEntityById";
 import { Division } from "@/src/types/Division";
 
 export const useDivisionById = (id?: number) => {
-    const { config } = useApis();
+    const { mobile } = useApis();
 
     return useEntityById<Division>(
         "divisions",
-        (divisionId: number) => config.getDivisionById(divisionId),
+        (divisionId: number) => mobile.getDivisionById(divisionId),
         id
     );
 };

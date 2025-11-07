@@ -3,11 +3,11 @@ import { useEntityById } from "../utils/useEntityById";
 import { Club } from "@/src/types/Club";
 
 export const useClubById = (id?: string) => {
-    const { clubs } = useApis();
+    const { mobile } = useApis();
 
     return useEntityById<Club>(
         "clubs",
-        (clubId: string) => clubs.getClubById(clubId),
+        (clubId: string) => mobile.getClubById(clubId),
         id
     );
 };

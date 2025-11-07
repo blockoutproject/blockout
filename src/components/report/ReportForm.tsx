@@ -18,6 +18,7 @@ import Field from "@/src/components/common/form/Field";
 import { useSession } from "@/src/context/SessionProvider";
 import ApiErrorToast from "../common/feedback/ApiErrorToast";
 import { useApis } from "@/src/context/ApiProvider";
+import { CustomImage } from "@/src/types/Common";
 
 export type ReportFormExternalState = {
     loading: boolean;
@@ -52,7 +53,7 @@ const ReportForm: React.FC<ReportFormProps> = ({ context, onSuccess, onRegisterS
     const { mobile } = useApis();
     const { customUser } = useSession();
 
-    const [images, setImages] = useState<{ uri: string; name: string; type: string }[]>([]);
+    const [images, setImages] = useState<CustomImage[]>([]);
     const [loading, setLoading] = useState(false);
     const [apiError, setApiError] = useState<string | null>(null);
 
@@ -129,10 +130,13 @@ const ReportForm: React.FC<ReportFormProps> = ({ context, onSuccess, onRegisterS
                     deviceModel: Device.modelName ?? undefined,
                     os: `${Device.osName ?? "OS"} ${Device.osVersion ?? ""}`.trim(),
                 };
+                console.log("zrvzrvzrvzrv", payload)
                 const created = await mobile.createReport(payload, images);
+                console.log("dddddd")
                 await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
                 onSuccess(created);
-            } catch {
+            } catch (err) {
+                console.log(err)
                 setApiError("Création impossible, réessaie.");
                 await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
             } finally {

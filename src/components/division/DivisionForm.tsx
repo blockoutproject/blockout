@@ -11,7 +11,6 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import { Division } from "@/src/types/Division";
-import ConfigApi from "@/src/api/ConfigApi";
 import CircleColorPicker from "@/src/components/common/form/CircleColorPicker";
 import { CORNERS } from "@/src/theme/globals";
 import ApiErrorToast from "@/src/components/common/feedback/ApiErrorToast";
@@ -20,6 +19,7 @@ import FormCard from "@/src/components/common/form/FormCard";
 import Field from "@/src/components/common/form/Field";
 import SheetTextInput from "@/src/components/common/form/SheetTextInput";
 import { useApis } from "@/src/context/ApiProvider";
+import { CustomImage } from "@/src/types/Common";
 
 export type DivisionFormExternalState = {
     loading: boolean;
@@ -36,10 +36,10 @@ export type DivisionFormProps = {
 
 const DivisionForm: React.FC<DivisionFormProps> = ({ division, onSuccess, onRegisterSubmit, onStateChange }) => {
     const theme = useAppTheme();
-    const { config } = useApis();
+    const { mobile } = useApis();
     const isEditMode = !!division;
 
-    const [imageFile, setImageFile] = useState<{ uri: string; name: string; type: string } | null>(null);
+    const [imageFile, setImageFile] = useState<CustomImage | null>(null);
     const [previewUri, setPreviewUri] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
     const [apiError, setApiError] = useState<string | null>(null);
@@ -89,9 +89,9 @@ const DivisionForm: React.FC<DivisionFormProps> = ({ division, onSuccess, onRegi
                 setLoading(true);
                 setApiError(null);
                 if (isEditMode) {
-                    await config.updateDivision(division!.id, values, imageFile ?? undefined);
+                    await mobile.updateDivision(division!.id, values, imageFile ?? undefined);
                 } else {
-                    await config.createOrUpdateDivision(values, imageFile ?? undefined);
+                    await mobile.createDivision(values, imageFile ?? undefined);
                 }
                 await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
                 onSuccess();

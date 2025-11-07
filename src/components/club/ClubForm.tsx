@@ -11,7 +11,6 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import type { Club } from "@/src/types/Club";
-import ClubsApi from "@/src/api/ClubsApi";
 import { CORNERS } from "@/src/theme/globals";
 import ApiErrorToast from "@/src/components/common/feedback/ApiErrorToast";
 
@@ -19,6 +18,7 @@ import FormCard from "@/src/components/common/form/FormCard";
 import Field from "@/src/components/common/form/Field";
 import SheetTextInput from "@/src/components/common/form/SheetTextInput";
 import { useApis } from "@/src/context/ApiProvider";
+import { CustomImage } from "@/src/types/Common";
 
 export type ClubFormExternalState = {
     loading: boolean;
@@ -34,9 +34,9 @@ export type ClubFormProps = {
 
 const ClubForm: React.FC<ClubFormProps> = ({ club, onSuccess, onRegisterSubmit, onStateChange }) => {
     const theme = useAppTheme();
-    const { clubs } = useApis();
+    const { mobile } = useApis();
 
-    const [imageFile, setImageFile] = useState<{ uri: string; name: string; type: string } | null>(null);
+    const [imageFile, setImageFile] = useState<CustomImage | null>(null);
     const [previewUri, setPreviewUri] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
     const [apiError, setApiError] = useState<string | null>(null);
@@ -73,10 +73,11 @@ const ClubForm: React.FC<ClubFormProps> = ({ club, onSuccess, onRegisterSubmit, 
                 setLoading(true);
                 setApiError(null);
                 const dto = { name: values.name.trim() };
-                const updated = await clubs.updateClub(club.id, dto, imageFile ?? undefined);
+                const updated = await mobile.updateClub(club.id, dto, imageFile ?? undefined);
                 await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
                 onSuccess(updated);
-            } catch {
+            } catch (err) {
+                console.log(err)
                 setApiError("Sauvegarde impossible, réessaie.");
                 await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
             } finally {

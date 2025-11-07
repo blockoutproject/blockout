@@ -11,6 +11,7 @@ import { RawDivisionMapping } from "../types/RawDivisionMapping";
 import { ScraperStatus } from "../types/ScraperStatus";
 import { GitHubIssueResponse } from "../types/Report";
 import { LegalDocument } from "../types/LegalDocument";
+import { CustomImage } from "../types/Common";
 
 export class MobileGatewayApi extends BaseApi {
     constructor() {
@@ -31,8 +32,9 @@ export class MobileGatewayApi extends BaseApi {
      * @param image Image optionnelle du club
      */
     public updateClub(
+        id: string,
         data: Partial<Club>,
-        image?: { uri: string; type: string; name: string },
+        image?: CustomImage,
     ) {
         const formData = new FormData();
         formData.append("data", JSON.stringify(data));
@@ -44,7 +46,7 @@ export class MobileGatewayApi extends BaseApi {
             } as any);
         }
 
-        return this.httpAuth.put<Club>("/clubs", formData, {
+        return this.httpAuth.put<Club>(`/clubs/${id}`, formData, {
             headers: { "Content-Type": "multipart/form-data" },
         });
     }
@@ -131,7 +133,7 @@ export class MobileGatewayApi extends BaseApi {
     public updateUser(
         auth0Id: string,
         data: Partial<CustomUser>,
-        image?: { uri: string; type: string; name: string },
+        image?: CustomImage,
     ): Promise<CustomUser> {
         const formData = new FormData();
         formData.append("data", JSON.stringify(data));
@@ -278,21 +280,6 @@ export class MobileGatewayApi extends BaseApi {
     }
 
     /**
- * Récupère toutes les divisions (public)
- */
-    public getDivisions() {
-        return this.httpPublic.get<Division[]>("/config/divisions");
-    }
-
-    /**
-     * Récupère une division par son identifiant (public)
-     * @param id Identifiant de la division
-     */
-    public getDivisionById(id: number) {
-        return this.httpPublic.get<Division>(`/config/divisions/${id}`);
-    }
-
-    /**
      * Récupère un document légal (public)
      * @param type Type du document (terms | privacy | imprint)
      */
@@ -312,13 +299,28 @@ export class MobileGatewayApi extends BaseApi {
     }
 
     /**
+     * Récupère toutes les divisions (public)
+     */
+    public getDivisions() {
+        return this.httpPublic.get<Division[]>("/config/divisions");
+    }
+
+    /**
+     * Récupère une division par son identifiant (public)
+     * @param id Identifiant de la division
+     */
+    public getDivisionById(id: number) {
+        return this.httpPublic.get<Division>(`/config/divisions/${id}`);
+    }
+
+    /**
      * Crée une division (authentifié)
      * @param data Données de la division
      * @param image Image optionnelle
      */
     public createDivision(
         data: Partial<Division>,
-        image?: { uri: string; type: string; name: string },
+        image?: CustomImage,
     ) {
         const formData = new FormData();
         formData.append("data", JSON.stringify(data));
@@ -330,6 +332,32 @@ export class MobileGatewayApi extends BaseApi {
             } as any);
         }
         return this.httpAuth.post<Division>("/config/divisions", formData, {
+            headers: { "Content-Type": "multipart/form-data" },
+        });
+    }
+
+
+    /**
+     * Met à jour une division (authentifié)
+     * @param id Identifiant de la division
+     * @param data Données de mise à jour
+     * @param image Image optionnelle
+     */
+    public updateDivision(
+        id: number,
+        data: Partial<Division>,
+        image?: CustomImage,
+    ) {
+        const formData = new FormData();
+        formData.append("data", JSON.stringify(data));
+        if (image) {
+            formData.append("image", {
+                uri: image.uri,
+                type: image.type,
+                name: image.name,
+            } as any);
+        }
+        return this.httpAuth.put<Division>(`/config/divisions/${id}`, formData, {
             headers: { "Content-Type": "multipart/form-data" },
         });
     }
@@ -405,8 +433,9 @@ export class MobileGatewayApi extends BaseApi {
      */
     public createReport(
         data: Record<string, any>,
-        images?: { uri: string; type: string; name: string }[],
+        images?: CustomImage[],
     ) {
+        console.log("))))))))))))))s")
         const formData = new FormData();
         formData.append("data", JSON.stringify(data));
         if (images && images.length > 0) {
@@ -419,7 +448,7 @@ export class MobileGatewayApi extends BaseApi {
             });
         }
 
-        return this.httpAuth.post<GitHubIssueResponse>("/reports", formData, {
+        return this.httpPublic.post<GitHubIssueResponse>("/reports", formData, {
             headers: { "Content-Type": "multipart/form-data" },
         });
     }

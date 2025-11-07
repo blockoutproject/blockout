@@ -131,7 +131,7 @@ const MatchScoreCard: React.FC<MatchScoreCardProps> = ({ enrichedMatch, gradient
                                 </Text>
                             </GradientBorderView>
                             {time ? (
-                                <InfoPill label={time} />
+                                <InfoPill label={time}/>
                             ) : null}
                         </>
                     ) : (

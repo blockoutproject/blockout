@@ -72,7 +72,7 @@ export const SessionProvider: React.FC<React.PropsWithChildren> = ({ children })
     const error = customUserError || auth0UserError;
 
     useEffect(() => {
-        if (!hasCompletedOnboarding || !isAuthenticated || !customUser) return;
+        if (!hasCompletedOnboarding || !isAuthenticated) return;
         (async () => {
             try {
                 const token = await registerForPushNotificationsAsync().catch(() => null);
@@ -83,9 +83,8 @@ export const SessionProvider: React.FC<React.PropsWithChildren> = ({ children })
                 console.warn("Erreur lors de l’enregistrement du push token :", err);
             }
         })();
-    }, [isAuthenticated, customUser, hasCompletedOnboarding]);
+    }, [isAuthenticated, hasCompletedOnboarding]);
 
-    // Dans SessionProvider
     useEffect(() => {
         let cancelled = false;
 
