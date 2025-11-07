@@ -1,6 +1,6 @@
 package com.blockout.mobilegateway.services;
 
-import com.blockout.mobilegateway.models.dto.user.CustomUserDto;
+import com.blockout.mobilegateway.models.dto.user.CustomUserDTO;
 import com.blockout.mobilegateway.models.dto.user.CustomUserUpdateDTO;
 import com.blockout.mobilegateway.services.clients.UserClientService;
 import lombok.RequiredArgsConstructor;
@@ -20,7 +20,7 @@ public class UserService {
     /**
      * PUT /users/{auth0Id} (multipart mixte JSON + fichier)
      */
-    public CustomUserDto updateUser(String auth0Id, CustomUserUpdateDTO dto, MultipartFile image) {
+    public CustomUserDTO updateUser(String auth0Id, CustomUserUpdateDTO dto, MultipartFile image) {
         logger.info("Updating user with auth0Id: " + auth0Id);
         return userClientService.updateUser(auth0Id, dto, image);
     }
@@ -28,7 +28,7 @@ public class UserService {
     /**
      * PUT /users/me (sans body)
      */
-    public CustomUserDto ensureCurrentUser() {
+    public CustomUserDTO ensureCurrentUser() {
         logger.info("Ensuring current user exists/updated");
         return userClientService.ensureCurrentUser();
     }

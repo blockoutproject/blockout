@@ -3,7 +3,7 @@ package com.blockout.mobilegateway.services;
 import com.blockout.mobilegateway.models.dto.config.DivisionDTO;
 import com.blockout.mobilegateway.models.dto.notification.EnrichedUserNotificationDTO;
 import com.blockout.mobilegateway.models.dto.notification.EnrichedUserNotificationPageDTO;
-import com.blockout.mobilegateway.models.dto.notification.RegisterPushTokenRequest;
+import com.blockout.mobilegateway.models.dto.notification.RegisterPushTokenRequestDTO;
 import com.blockout.mobilegateway.models.dto.notification.UnreadCountDTO;
 import com.blockout.mobilegateway.models.dto.notification.UserNotificationDTO;
 import com.blockout.mobilegateway.models.dto.notification.UserNotificationPageDTO;
@@ -159,7 +159,7 @@ public class NotificationService {
         notificationClientService.deleteNotification(id);
     }
 
-    public void registerPushToken(Long userId, RegisterPushTokenRequest req) {
+    public void registerPushToken(Long userId, RegisterPushTokenRequestDTO req) {
         notificationClientService.registerPushToken(userId, req);
     }
 

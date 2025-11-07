@@ -1,7 +1,7 @@
 package com.blockout.mobilegateway.services.clients;
 
 import com.blockout.mobilegateway.config.ApiClientProperties;
-import com.blockout.mobilegateway.models.dto.report.GitHubIssueResponse;
+import com.blockout.mobilegateway.models.dto.report.GitHubIssueResponseDTO;
 import com.blockout.mobilegateway.models.dto.report.ReportCreateDTO;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -32,7 +32,7 @@ public class ReportClientService {
         return apiClientProperties.getReport().getUrl();
     }
 
-    public GitHubIssueResponse createReport(ReportCreateDTO dto, List<MultipartFile> images) {
+    public GitHubIssueResponseDTO createReport(ReportCreateDTO dto, List<MultipartFile> images) {
         String url = baseUrl();
         logger.info("Calling reports#create", keyValue("url", url));
 
@@ -70,8 +70,8 @@ public class ReportClientService {
             }
         }
 
-        ResponseEntity<GitHubIssueResponse> response =
-                apiClientService.postMultipart(url, body, GitHubIssueResponse.class);
+        ResponseEntity<GitHubIssueResponseDTO> response =
+                apiClientService.postMultipart(url, body, GitHubIssueResponseDTO.class);
         return response.getBody();
     }
 }

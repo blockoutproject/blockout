@@ -1,6 +1,6 @@
 package com.blockout.mobilegateway.controllers.v1.secureapi;
 
-import com.blockout.mobilegateway.models.dto.user.CustomUserDto;
+import com.blockout.mobilegateway.models.dto.user.CustomUserDTO;
 import com.blockout.mobilegateway.models.dto.user.CustomUserUpdateDTO;
 import com.blockout.mobilegateway.services.UserService;
 import lombok.RequiredArgsConstructor;
@@ -19,18 +19,18 @@ public class UserSecureController {
     private final UserService userService;
 
     @PutMapping(path = "/users/{auth0Id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<CustomUserDto> updateUser(
+    public ResponseEntity<CustomUserDTO> updateUser(
             @PathVariable String auth0Id,
             @RequestPart("data") CustomUserUpdateDTO data,
             @RequestPart(value = "image", required = false) MultipartFile image) {
 
-        CustomUserDto updated = userService.updateUser(auth0Id, data, image);
+        CustomUserDTO updated = userService.updateUser(auth0Id, data, image);
         return ResponseEntity.ok(updated);
     }
 
     @PutMapping("/users/me")
-    public ResponseEntity<CustomUserDto> ensureCurrentUser() {
-        CustomUserDto user = userService.ensureCurrentUser();
+    public ResponseEntity<CustomUserDTO> ensureCurrentUser() {
+        CustomUserDTO user = userService.ensureCurrentUser();
         return ResponseEntity.ok(user);
     }
 

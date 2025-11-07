@@ -1,7 +1,7 @@
 package com.blockout.mobilegateway.services.clients;
 
 import com.blockout.mobilegateway.config.ApiClientProperties;
-import com.blockout.mobilegateway.models.dto.notification.RegisterPushTokenRequest;
+import com.blockout.mobilegateway.models.dto.notification.RegisterPushTokenRequestDTO;
 import com.blockout.mobilegateway.models.dto.notification.UnreadCountDTO;
 import com.blockout.mobilegateway.models.dto.notification.UserNotificationPageDTO;
 
@@ -88,7 +88,7 @@ public class NotificationClientService {
         apiClientService.delete(url, Void.class);
     }
 
-    public void registerPushToken(Long userId, RegisterPushTokenRequest req) {
+    public void registerPushToken(Long userId, RegisterPushTokenRequestDTO req) {
         String url = UriComponentsBuilder.fromUriString(baseUrl())
                 .pathSegment("users", userId.toString(), "push-tokens")
                 .build()

@@ -1,7 +1,7 @@
 package com.blockout.mobilegateway.services.clients;
 
 import com.blockout.mobilegateway.config.ApiClientProperties;
-import com.blockout.mobilegateway.models.dto.user.CustomUserDto;
+import com.blockout.mobilegateway.models.dto.user.CustomUserDTO;
 import com.blockout.mobilegateway.models.dto.user.CustomUserUpdateDTO;
 import com.blockout.mobilegateway.services.utils.MultipartBodyBuilder;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -30,7 +30,7 @@ public class UserClientService {
         return apiClientProperties.getUser().getUrl();
     }
 
-    public CustomUserDto updateUser(String auth0Id, CustomUserUpdateDTO dto, MultipartFile image) {
+    public CustomUserDTO updateUser(String auth0Id, CustomUserUpdateDTO dto, MultipartFile image) {
         String url = UriComponentsBuilder.fromUriString(baseUrl())
                 .pathSegment(auth0Id)
                 .build()
@@ -43,11 +43,11 @@ public class UserClientService {
 
         MultiValueMap<String, Object> body = MultipartBodyBuilder.buildMultipart(objectMapper, dto, image);
 
-        ResponseEntity<CustomUserDto> response = apiClientService.putMultipart(url, body, CustomUserDto.class);
+        ResponseEntity<CustomUserDTO> response = apiClientService.putMultipart(url, body, CustomUserDTO.class);
         return response.getBody();
     }
 
-    public CustomUserDto ensureCurrentUser() {
+    public CustomUserDTO ensureCurrentUser() {
         String url = UriComponentsBuilder.fromUriString(baseUrl())
                 .pathSegment("me")
                 .build()
@@ -57,7 +57,7 @@ public class UserClientService {
                 keyValue("action", "call_user_ensure_current"),
                 keyValue("url", url));
 
-        ResponseEntity<CustomUserDto> response = apiClientService.put(url, null, CustomUserDto.class);
+        ResponseEntity<CustomUserDTO> response = apiClientService.put(url, null, CustomUserDTO.class);
         return response.getBody();
     }
 

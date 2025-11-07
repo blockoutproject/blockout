@@ -1,7 +1,7 @@
 package com.blockout.mobilegateway.controllers.v1.secureapi;
 
 import com.blockout.mobilegateway.models.dto.notification.EnrichedUserNotificationPageDTO;
-import com.blockout.mobilegateway.models.dto.notification.RegisterPushTokenRequest;
+import com.blockout.mobilegateway.models.dto.notification.RegisterPushTokenRequestDTO;
 import com.blockout.mobilegateway.models.dto.notification.UnreadCountDTO;
 import com.blockout.mobilegateway.services.NotificationService;
 
@@ -52,7 +52,7 @@ public class NotificationSecureController {
     @PostMapping("/users/{userId}/push-tokens")
     public ResponseEntity<Void> registerPushToken(
             @PathVariable Long userId,
-            @Valid @RequestBody RegisterPushTokenRequest req) {
+            @Valid @RequestBody RegisterPushTokenRequestDTO req) {
         notificationService.registerPushToken(userId, req);
         return ResponseEntity.accepted().build();
     }

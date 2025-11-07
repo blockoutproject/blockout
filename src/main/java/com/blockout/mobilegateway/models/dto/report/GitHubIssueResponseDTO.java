@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
 @Data
-public class GitHubIssueResponse {
+public class GitHubIssueResponseDTO {
     private Long id;
     private Integer number;
     @JsonProperty("html_url")

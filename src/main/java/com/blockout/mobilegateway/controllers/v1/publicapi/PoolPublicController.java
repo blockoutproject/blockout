@@ -16,7 +16,7 @@ public class PoolPublicController {
 
     private final PoolService poolService;
 
-    @GetMapping("/enriched-pool/{id}")
+    @GetMapping("/pools/{id}")
     public ResponseEntity<EnrichedPoolDTO> getPoolById(@PathVariable("id") Long poolId) {
         var pool = poolService.getPoolById(poolId);
         return ResponseEntity.ok(pool);
