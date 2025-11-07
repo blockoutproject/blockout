@@ -83,13 +83,14 @@ public class ClubController {
             @ApiResponse(responseCode = "404", description = "Club introuvable")
     })
     @PreAuthorize("hasAuthority('SCOPE_update:clubs')")
-    @PutMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PutMapping(path = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Club> updateClub(
+            @PathVariable String id,
             @RequestPart("data") String json,
             @RequestPart(value = "image", required = false) MultipartFile image) throws JsonProcessingException {
 
         ClubUpdateDTO dto = objectMapper.readValue(json, ClubUpdateDTO.class);
-        Club updated = clubService.updateClub(dto, image);
+        Club updated = clubService.updateClub(id, dto, image);
         return ResponseEntity.ok(updated);
     }
 
