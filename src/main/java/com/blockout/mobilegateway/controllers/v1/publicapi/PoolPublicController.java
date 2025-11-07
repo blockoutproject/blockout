@@ -11,18 +11,18 @@ import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/v1/mobile/public")
+@RequestMapping("/api/v1/mobile/public/pools")
 public class PoolPublicController {
 
     private final PoolService poolService;
 
-    @GetMapping("/pools/{id}")
+    @GetMapping("/{id}")
     public ResponseEntity<EnrichedPoolDTO> getPoolById(@PathVariable("id") Long poolId) {
         var pool = poolService.getPoolById(poolId);
         return ResponseEntity.ok(pool);
     }
 
-    @GetMapping("/pools/by-ids")
+    @GetMapping("/by-ids")
     public ResponseEntity<List<PoolSummaryDTO>> getPoolsByIds(@RequestParam("ids") List<Long> ids) {
         var pools = poolService.getPoolsByIds(ids);
         return ResponseEntity.ok(pools);

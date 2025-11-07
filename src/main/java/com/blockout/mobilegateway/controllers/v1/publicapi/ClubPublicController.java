@@ -8,12 +8,12 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/v1/mobile/public")
+@RequestMapping("/api/v1/mobile/public/clubs")
 public class ClubPublicController {
 
     private final ClubService clubService;
 
-    @GetMapping("/clubs/{id}")
+    @GetMapping("/{id}")
     public ResponseEntity<ClubDTO> getClubById(@PathVariable("id") String id) {
         var club = clubService.getClubById(id);
         return ResponseEntity.ok(club);

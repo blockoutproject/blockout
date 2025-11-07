@@ -25,7 +25,8 @@ public class ReportPublicController {
     public ResponseEntity<GitHubIssueResponseDTO> createReport(
             @RequestPart("data") String json,
             @RequestPart(value = "images", required = false) List<MultipartFile> images) throws JsonProcessingException {
-
+        
+        System.out.println("----------------------");
         ReportCreateDTO dto = objectMapper.readValue(json, ReportCreateDTO.class);
         GitHubIssueResponseDTO created = reportService.createReport(dto, images);
         return ResponseEntity.status(201).body(created);

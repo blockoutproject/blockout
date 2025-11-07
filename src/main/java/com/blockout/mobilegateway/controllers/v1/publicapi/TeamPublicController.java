@@ -11,24 +11,24 @@ import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/v1/mobile/public")
+@RequestMapping("/api/v1/mobile/public/teams")
 public class TeamPublicController {
 
     private final TeamService teamService;
 
-    @GetMapping("/teams/{id}")
+    @GetMapping("/{id}")
     public ResponseEntity<EnrichedTeamDTO> getEnrichedTeam(@PathVariable("id") Long id) {
         var team = teamService.getTeamById(id);
         return ResponseEntity.ok(team);
     }
 
-    @GetMapping("/teams/by-club/{clubId}")
+    @GetMapping("/by-club/{clubId}")
     public ResponseEntity<List<TeamSummaryDTO>> getTeamsByClubId(@PathVariable("clubId") String clubId) {
         var teams = teamService.getTeamsByClubId(clubId);
         return ResponseEntity.ok(teams);
     }
 
-    @GetMapping("/teams/by-ids")
+    @GetMapping("/by-ids")
     public ResponseEntity<List<TeamSummaryDTO>> getTeamsByIds(@RequestParam("ids") List<Long> ids) {
         var teams = teamService.getTeamsByIds(ids);
         return ResponseEntity.ok(teams);

@@ -11,18 +11,18 @@ import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/v1/mobile/public")
+@RequestMapping("/api/v1/mobile/public/matches")
 public class MatchPublicController {
 
     private final MatchService matchService;
 
-    @GetMapping("/matches/{id}")
+    @GetMapping("/{id}")
     public ResponseEntity<EnrichedMatchDTO> getMatchById(@PathVariable("id") Long id) {
         var match = matchService.getMatchById(id);
         return ResponseEntity.ok(match);
     }
 
-    @GetMapping("/matches")
+    @GetMapping
     public ResponseEntity<EnrichedDayPageDTO> getMatchList(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "4") int size,
