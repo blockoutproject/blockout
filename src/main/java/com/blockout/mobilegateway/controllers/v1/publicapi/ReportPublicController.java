@@ -24,8 +24,7 @@ public class ReportPublicController {
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<GitHubIssueResponseDTO> createReport(
             @RequestPart("data") String json,
-            @RequestPart(value = "images", required = false) List<MultipartFile> images)
-            throws JsonProcessingException {
+            @RequestPart(value = "images", required = false) List<MultipartFile> images) throws JsonProcessingException {
 
         ReportCreateDTO dto = objectMapper.readValue(json, ReportCreateDTO.class);
         GitHubIssueResponseDTO created = reportService.createReport(dto, images);
