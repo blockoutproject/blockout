@@ -1,23 +1,34 @@
-import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
-import MobileGatewayApi from "@/src/api/MobileGatewayApi";
-import { EnrichedDayMatchesDTO, MatchStatus } from "@/src/types/Match";
 import { useMemo } from "react";
+import { useInfiniteQuery } from "@tanstack/react-query";
+import { EnrichedDayMatchesDTO, MatchStatus } from "@/src/types/Match";
+import { useApis } from "@/src/context/ApiProvider";
 
 export const useMatchList = (
     status: MatchStatus,
     poolIds?: number[],
     teamIds?: number[],
-    pageSize = 10
+    pageSize?: number
 ) => {
-    const queryKey = useMemo(
-        () => ['match-list', { poolIds, teamIds, status }],
-        [poolIds, teamIds, status]
+    const { mobile } = useApis();
+    
+    const poolsKey = useMemo(
+        () => (poolIds?.length ? [...poolIds].sort((a, b) => a - b).join(",") : "none"),
+        [poolIds]
+    );
+    const teamsKey = useMemo(
+        () => (teamIds?.length ? [...teamIds].sort((a, b) => a - b).join(",") : "none"),
+        [teamIds]
     );
 
-    const queryResult = useInfiniteQuery({
+    const queryKey = useMemo(
+        () => ["match-list", status, `p:${poolsKey}`, `t:${teamsKey}`, `size:${pageSize}`],
+        [status, poolsKey, teamsKey, pageSize]
+    );
+
+    const query = useInfiniteQuery({
         queryKey,
         queryFn: ({ pageParam = 0 }) =>
-            MobileGatewayApi.getInstance().getEnrichedMatches({
+            mobile.getEnrichedMatches({
                 page: pageParam,
                 size: pageSize,
                 poolIds,
@@ -25,13 +36,23 @@ export const useMatchList = (
                 status,
             }),
         initialPageParam: 0,
-        getNextPageParam: (_last, _pages, current) => current + 1,
-        staleTime: 1000 * 60 * 5,
+        getNextPageParam: (lastPage) => lastPage?.nextPage ?? undefined,
+        staleTime: 5 * 60 * 1000,
+        retry: false
     });
 
-    const dayMatches: EnrichedDayMatchesDTO[] = queryResult.data?.pages.flat() ?? [];
+    const pages = query.data?.pages ?? [];
+    const dayMatches: EnrichedDayMatchesDTO[] =
+        pages.map((p) => p.dayMatches).flat() ?? [];
+
+    const hasLoadedOnce = pages.length > 0;
+    const isBackgroundRefetching =
+        query.isFetching && !query.isLoading && !query.isFetchingNextPage;
+
     return {
-        ...queryResult,
+        ...query,
         dayMatches,
+        hasLoadedOnce,
+        isBackgroundRefetching,
     };
 };

@@ -1,34 +1,45 @@
-import React, { useState } from "react";
-import { StyleSheet } from "react-native";
+// src/components/common/GenericTabView.tsx
+import React, { JSX, useMemo, useState } from "react";
+import { Animated, Platform, StyleSheet, View } from "react-native";
 import {
-    TabView,
-    SceneRendererProps,
     NavigationState,
     Route,
+    SceneRendererProps,
     TabBar,
+    TabView,
 } from "react-native-tab-view";
-import { useAppTheme } from "@/src/context/ThemeProvider";
+import { BlurView } from "expo-blur";
 import * as Haptics from "expo-haptics";
+import { LinearGradient } from "expo-linear-gradient";
+import { useAppTheme } from "@/src/context/ThemeProvider";
+import { TABBAR_HEIGHT, TABBAR_INDICATOR_HEIGHT } from "@/src/theme/globals";
 
-type TabDefinition = {
+/** Définition d’un onglet. */
+export type TabDefinition = {
+    /** Clé unique. */
     key: string;
+    /** Titre d’onglet. */
     title: string;
-    render: () => JSX.Element;
+    /** Rendu de scène. */
+    render: () => JSX.Element | null;
 };
 
-type GenericTabViewProps = {
+/** TabView générique avec barre sticky et blur iOS. */
+export type GenericTabViewProps = {
+    /** Liste des onglets. */
     tabs: TabDefinition[];
-    indicatorColor?: string;
+    /** Map des scrollY par clé d’onglet. */
+    scrollYs: Record<string, Animated.Value>;
 };
 
-const GenericTabView: React.FC<GenericTabViewProps> = ({
-    tabs,
-    indicatorColor,
-}) => {
-    const [index, setIndex] = useState(0);
+const GenericTabView: React.FC<GenericTabViewProps> = ({ tabs, scrollYs }) => {
     const theme = useAppTheme();
+    const [index, setIndex] = useState(0);
 
-    const routes = tabs.map(({ key, title }) => ({ key, title }));
+    const routes = useMemo(
+        () => tabs.map(({ key, title }) => ({ key, title })),
+        [tabs]
+    );
 
     const renderScene = ({
         route,
@@ -37,53 +48,126 @@ const GenericTabView: React.FC<GenericTabViewProps> = ({
         return tabDef ? tabDef.render() : null;
     };
 
-    const renderTabBar = (props: SceneRendererProps & {
-        navigationState: NavigationState<Route>;
-    }) => (
-        <TabBar
-            {...props}
-            onTabPress={Haptics.selectionAsync}
-            scrollEnabled
-            style={styles.tabBar}
-            tabStyle={styles.tabStyle}
-            activeColor={theme.text}
-            inactiveColor={theme.textInactive}
-            indicatorStyle={[
-                styles.indicator,
-                { backgroundColor: theme.text },
-            ]}
-        />
-    );
+    const renderTabBar = (
+        props: SceneRendererProps & { navigationState: NavigationState<Route> }
+    ) => {
+        const { position } = props;
+
+        const interpolatedOpacity = routes.reduce<Animated.AnimatedAddition<number>>(
+            (acc, route, i) => {
+                const pageWeight = position.interpolate({
+                    inputRange: routes.map((_, idx) => idx),
+                    outputRange: routes.map((_, idx) => (idx === i ? 1 : 0)),
+                    extrapolate: "clamp",
+                });
+
+                const vertical = scrollYs[route.key].interpolate({
+                    inputRange: [0, 40],
+                    outputRange: [0, 1],
+                    extrapolate: "clamp",
+                });
+
+                const contribution = Animated.multiply(pageWeight, vertical);
+                return acc ? Animated.add(acc, contribution) : contribution;
+            },
+            new Animated.Value(0)
+        );
+
+        return (
+            <View style={styles.container}>
+                {Platform.OS === "ios" ? (
+                    <View style={StyleSheet.absoluteFill}>
+                        <Animated.View
+                            style={[
+                                StyleSheet.absoluteFill,
+                                { opacity: interpolatedOpacity },
+                            ]}
+                        >
+                            <BlurView
+                                intensity={60}
+                                tint="dark"
+                                style={StyleSheet.absoluteFill}
+                            />
+                        </Animated.View>
+
+                        <LinearGradient
+                            colors={[theme.background, "transparent"]}
+                            start={{ x: 0, y: 0.35 }}
+                            end={{ x: 0, y: 1 }}
+                            style={StyleSheet.absoluteFill}
+                        />
+                    </View>
+                ) : null}
+
+                <View
+                    style={[
+                        styles.tabBarContainer,
+                        {
+                            backgroundColor:
+                                Platform.OS === "android" ? theme.background : "transparent",
+                        },
+                    ]}
+                >
+                    <TabBar
+                        {...props}
+                        onTabPress={Haptics.selectionAsync}
+                        scrollEnabled
+                        indicatorStyle={[
+                            styles.indicator,
+                            { backgroundColor: theme.text },
+                        ]}
+                        tabStyle={styles.tabStyle}
+                        style={styles.tabBar}
+                        activeColor={theme.text}
+                        inactiveColor={theme.textInactive}
+                    />
+                </View>
+            </View>
+        );
+    };
 
     return (
         <TabView
             lazy={false}
             navigationState={{ index, routes }}
-            onIndexChange={setIndex}
             renderScene={renderScene}
             renderTabBar={renderTabBar}
+            onIndexChange={setIndex}
             commonOptions={{ labelStyle: styles.tabItem }}
         />
     );
 };
 
+export default GenericTabView;
+
 const styles = StyleSheet.create({
+    container: {
+        position: "absolute",
+        top: 0,
+        left: 0,
+        right: 0,
+        zIndex: 10,
+    },
+    tabBarContainer: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+    },
     tabBar: {
+        flex: 1,
+        height: TABBAR_HEIGHT,
         backgroundColor: "transparent",
-        paddingVertical: 4,
     },
     tabStyle: {
         width: "auto",
-        paddingHorizontal: 20,
+        paddingHorizontal: 16,
     },
     indicator: {
-        height: 3,
-        width: 0.5,
+        height: TABBAR_INDICATOR_HEIGHT,
+        width: 0.4,
     },
     tabItem: {
         fontSize: 14,
         fontWeight: "700",
     },
 });
-
-export default GenericTabView;

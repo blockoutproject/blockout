@@ -1,60 +1,91 @@
-import { ThemeProvider, useAppTheme } from "@/src/context/ThemeProvider";
 import React, { useEffect } from "react";
-import { StatusBar, useColorScheme } from "react-native";
-import { ApiProvider } from "@/src/context/ApiProvider";
+import { StatusBar } from "react-native";
+import { Stack } from "expo-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ErrorBoundaryProps, Stack } from "expo-router";
 import { Auth0Provider } from "react-native-auth0";
-import { AUTH0_CONFIG } from "../config/config";
-import { DevToolsBubble } from "react-native-react-query-devtools";
-import * as Clipboard from "expo-clipboard";
-import { UserProvider } from "@/src/context/UserProvider";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
-import ErrorFallback from "../components/common/ErrorFallback";
 
-export function ErrorBoundary(props: ErrorBoundaryProps) {
-    return <ErrorFallback {...props} />;
-}
+import { AUTH0_CONFIG } from "@/src/config/config";
+import { ThemeProvider } from "@/src/theme/theme-provider";
 
-const RootLayout: React.FC = () => {
-    const queryClient = new QueryClient();
-    const theme = useAppTheme();
+import { ApiProvider } from "@/src/context/ApiProvider";
+import { SessionProvider, useSession } from "@/src/context/SessionProvider";
+import { SplashScreenController } from "@/src/session/splash";
+import { useOnboardingStore } from "../utils/onboardingStore";
+import { addNotificationListeners, openNotificationUrlIfAny } from "../utils/notifications";
 
-    const onCopy = async (text: string) => {
-        try {
-            await Clipboard.setStringAsync(text);
-            return true;
-        } catch {
-            return false;
-        }
-    };
+const queryClient = new QueryClient();
+
+export default function Root() {
+    useEffect(() => {
+        const remove = addNotificationListeners({
+            onRespond: (response) => {
+                const data = response.notification.request.content.data;
+                openNotificationUrlIfAny(data);
+            },
+        });
+        return remove;
+    }, []);
 
     return (
         <GestureHandlerRootView style={{ flex: 1 }}>
             <QueryClientProvider client={queryClient}>
                 <ThemeProvider>
-                    <StatusBar
-                        barStyle={"light-content"}
-                        backgroundColor={theme.background}
-                    />
+                    <StatusBar barStyle={"light-content"} />
                     <Auth0Provider domain={AUTH0_CONFIG.domain} clientId={AUTH0_CONFIG.clientId}>
                         <ApiProvider>
-                            <UserProvider>
-                                <BottomSheetModalProvider>
-                                    <Stack screenOptions={{ headerShown: false }}>
-                                        <Stack.Screen name="(auth)" />
-                                        <Stack.Screen name="(protected)" />
-                                    </Stack>
-                                </BottomSheetModalProvider>
-                            </UserProvider>
+                            <SessionProvider>
+                                <SplashScreenController />
+                                <RootNavigator />
+                            </SessionProvider>
                         </ApiProvider>
                     </Auth0Provider>
                 </ThemeProvider>
-                <DevToolsBubble onCopy={onCopy} />
             </QueryClientProvider>
         </GestureHandlerRootView>
     );
-};
+}
 
-export default RootLayout;
+function RootNavigator() {
+    const { isAuthenticated, isGuest } = useSession();
+    const { hasCompletedOnboarding } = useOnboardingStore();
+
+    return (
+        <BottomSheetModalProvider>
+            <Stack screenOptions={{ headerShown: false, animation: "none" }}>
+                <Stack.Protected guard={!(isGuest || isAuthenticated)}>
+                    <Stack.Screen
+                        name="sign-in"
+                        options={{ animation: "fade_from_bottom", animationDuration: 300 }}
+                    />
+                </Stack.Protected>
+
+                <Stack.Protected guard={isGuest || isAuthenticated}>
+                    <Stack.Protected guard={!hasCompletedOnboarding}>
+                        <Stack.Screen
+                            name="onboarding"
+                            options={{ animation: "fade_from_bottom", animationDuration: 300 }}
+                        />
+                    </Stack.Protected>
+                </Stack.Protected>
+
+                <Stack.Protected guard={isGuest || isAuthenticated}>
+                    <Stack.Screen
+                        name="(tabs)"
+                        options={{ animation: "fade_from_bottom", animationDuration: 300 }}
+                    />
+                    <Stack.Screen
+                        name="pdf-viewer"
+                        options={{
+                            title: "Document",
+                            presentation: "modal",
+                            animation: "fade_from_bottom",
+                            animationDuration: 300,
+                        }}
+                    />
+                </Stack.Protected>
+            </Stack>
+        </BottomSheetModalProvider>
+    );
+}

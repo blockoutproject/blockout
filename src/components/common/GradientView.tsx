@@ -1,11 +1,17 @@
-import { ViewStyle } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import React from "react";
+import { StyleProp, ViewStyle } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 
-type GradientViewProps = {
+export type GradientViewProps = {
+    /** Contenu enfant */
     children: React.ReactNode;
-    style?: ViewStyle | ViewStyle[];
+    /** Style du conteneur */
+    style?: StyleProp<ViewStyle>;
+    /** Couleurs du dégradé */
     gradient: readonly [string, string, ...string[]];
+    /** Point de départ du dégradé */
     start?: { x: number; y: number };
+    /** Point d’arrivée du dégradé */
     end?: { x: number; y: number };
 };
 

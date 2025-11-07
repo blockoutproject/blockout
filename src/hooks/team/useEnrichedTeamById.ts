@@ -1,7 +1,14 @@
-import { EnrichedPoolDTO } from "@/src/types/Pool";
+import { useApis } from "@/src/context/ApiProvider";
 import { useEntityById } from "../utils/useEntityById";
-import MobileGatewayApi from "@/src/api/MobileGatewayApi";
 import { EnrichedTeamDTO } from "@/src/types/Team";
 
-export const useEnrichedTeamById = (id?: number) =>
-    useEntityById<EnrichedTeamDTO>("enrichedTeams", (teamId) => MobileGatewayApi.getInstance().getEnrichedTeamById(teamId), id);
+export const useEnrichedTeamById = (id?: number, enabled?: boolean) => {
+    const { mobile } = useApis();
+
+    return useEntityById<EnrichedTeamDTO>(
+        "enrichedTeams",
+        (teamId: number) => mobile.getEnrichedTeamById(teamId),
+        id,
+        enabled
+    );
+};

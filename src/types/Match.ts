@@ -14,6 +14,7 @@ export interface Match {
     teamIdA: number;
     teamIdB: number;
     matchDate: string;
+    season: string;
     status: MatchStatus;
     set: string | null;
     score: string | null;
@@ -45,6 +46,7 @@ export interface DayPageDTO {
 export interface EnrichedMatchDTO {
     id: number;
     matchDate: string;
+    season: string;
     status: MatchStatus;
     set: string | null;
     score: string | null;
@@ -52,9 +54,11 @@ export interface EnrichedMatchDTO {
     firstReferee: string | null;
     secondReferee: string | null;
     liveCode: number | null;
-    teamA: Team;
-    teamB: Team;
+    teamA: Team & { logoUrl: string | null };
+    teamB: Team & { logoUrl: string | null };
     pool: EnrichedPoolDTO;
+    matchAddressPdfUrl: string | null;
+    matchSheetPdfUrl: string | null;
 }
 
 export interface EnrichedPoolMatchesDTO {
@@ -65,4 +69,10 @@ export interface EnrichedPoolMatchesDTO {
 export interface EnrichedDayMatchesDTO {
     date: string;
     pools: EnrichedPoolMatchesDTO[];
+}
+
+export interface EnrichedDayPageDTO {
+    dayMatches: EnrichedDayMatchesDTO[];
+    hasNext: boolean;
+    nextPage: number | null;
 }

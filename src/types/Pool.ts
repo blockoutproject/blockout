@@ -7,12 +7,14 @@ export interface Pool {
     id: number;
     poolCode: string;
     leagueCode: string;
-    season: number;
+    season: string;
     divisionId: number;
     gender: EnumGender;
     format: EnumFormat;
     leagueName: string;
+    rawName: string;
     name: string;
+    shortName: string;
     followersCount: number;
     active: boolean;
     createdAt: string;
@@ -21,12 +23,37 @@ export interface Pool {
 
 export interface EnrichedPoolDTO {
     id: number;
-    season: number;
+    season: string;
+    leagueCode: string;
     leagueName: string;
+    poolCode: string;
     name: string;
+    shortName: string;
     format: EnumFormat;
     gender: EnumGender;
     followersCount: number;
     ranking: TeamWithStats[];
     division: Division;
 }
+
+export interface PoolSummaryDTO {
+    id: number;
+    name: string;
+    shortName: string;
+    season: string;
+    gender: EnumGender;
+    format: EnumFormat;
+    division: Division;
+    leagueName: string;
+}
+
+export type PoolSearchDocDTO = {
+    id: number;
+    name: string;
+    divisionName: string;
+    leagueCode: string;
+    leagueName: string;
+    season: string;
+    logoUrl?: string;
+    gender: string;
+};

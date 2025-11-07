@@ -1,18 +1,18 @@
-import { useEffect, useState } from 'react';
-import { useUserContext } from '@/src/context/UserProvider';
-import UsersApi from '@/src/api/UsersApi';
+import { useEffect, useMemo, useState } from 'react';
 import { EntityType } from '@/src/types/User';
-import { EnrichedTeamDTO, Team } from '@/src/types/Team';
+import { EnrichedTeamDTO } from '@/src/types/Team';
+import { useSession } from '@/src/context/SessionProvider';
+import { useQueryClient } from '@tanstack/react-query';
+import { useEnrichedTeamById } from '@/src/hooks/team/useEnrichedTeamById';
+import { useApis } from '@/src/context/ApiProvider';
 
 export function useTeamFollowState(enrichedTeam: EnrichedTeamDTO) {
-    const { customUser, refetch } = useUserContext();
-    const [isProcessing, setIsProcessing] = useState(false);
-    const [followersCount, setFollowersCount] = useState(enrichedTeam.followersCount);
-    const [isFollowing, setIsFollowing] = useState(false);
+    const { customUser, refetch } = useSession();
+    const { mobile } = useApis();
+    const qc = useQueryClient();
 
-    useEffect(() => {
-        setFollowersCount(enrichedTeam.followersCount);
-    }, [enrichedTeam.followersCount]);
+    const [isFollowing, setIsFollowing] = useState(false);
+    const [isProcessing, setIsProcessing] = useState(false);
 
     useEffect(() => {
         if (customUser?.favorites) {
@@ -24,29 +24,44 @@ export function useTeamFollowState(enrichedTeam: EnrichedTeamDTO) {
         }
     }, [customUser, enrichedTeam.id]);
 
-    const onToggleFollow = async () => {
-        if (!customUser || isProcessing) return;
+    const { data: teamFromCache } = useEnrichedTeamById(enrichedTeam.id, false);
+    const followersCount = teamFromCache?.followersCount ?? enrichedTeam.followersCount;
 
-        const next = !isFollowing;
-        setFollowersCount((prev) => prev + (next ? 1 : -1));
-        setIsFollowing(next);
-        setIsProcessing(true);
+    const onToggleFollow = useMemo(
+        () => async () => {
+            if (!customUser || isProcessing) return;
 
-        try {
-            const api = UsersApi.getInstance();
-            if (next) {
-                await api.follow(EntityType.TEAM, enrichedTeam.id);
-            } else {
-                await api.unfollow(EntityType.TEAM, enrichedTeam.id);
+            const next = !isFollowing;
+            setIsProcessing(true);
+
+            const teamKey = ['enrichedTeams', enrichedTeam.id] as const;
+
+            const prevTeam = qc.getQueryData<EnrichedTeamDTO | null>(teamKey) ?? enrichedTeam;
+
+            const nextCount =
+                Math.max(0, (prevTeam.followersCount ?? 0) + (next ? 1 : -1));
+            qc.setQueryData<EnrichedTeamDTO>(teamKey, { ...prevTeam, followersCount: nextCount });
+
+            setIsFollowing(next);
+
+            try {
+                if (next) {
+                    await mobile.follow(EntityType.TEAM, enrichedTeam.id);
+                } else {
+                    await mobile.unfollow(EntityType.TEAM, enrichedTeam.id);
+                }
+
+                refetch();
+            } catch (error) {
+                qc.setQueryData<EnrichedTeamDTO>(teamKey, prevTeam);
+                setIsFollowing(!next);
+            } finally {
+                setIsProcessing(false);
+                qc.invalidateQueries({ queryKey: teamKey });
             }
-            refetch();
-        } catch (error) {
-            setFollowersCount((prev) => prev + (isFollowing ? 1 : -1));
-            setIsFollowing(!next);
-        } finally {
-            setIsProcessing(false);
-        }
-    };
+        },
+        [customUser, isProcessing, isFollowing, qc, enrichedTeam.id, enrichedTeam, refetch]
+    );
 
     return { isFollowing, isProcessing, followersCount, onToggleFollow };
 }

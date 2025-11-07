@@ -1,287 +1,186 @@
-import React from 'react';
-import {
-    View,
-    Text,
-    StyleSheet,
-    Alert,
-    TouchableOpacity,
-    ActivityIndicator,
-} from 'react-native';
-import { useFormik } from 'formik';
-import * as Yup from 'yup';
-import { useAppTheme } from '@/src/context/ThemeProvider';
-import { Division } from '@/src/types/Division';
-import ConfigApi from '@/src/api/ConfigApi';
-import CircleColorPicker from '../common/CircleColorPicker';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { BottomSheetTextInput, BottomSheetView } from '@gorhom/bottom-sheet';
-import * as ImagePicker from 'expo-image-picker';
-import * as ImageManipulator from 'expo-image-manipulator';
-import FastImage from 'react-native-fast-image';
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import * as Haptics from 'expo-haptics';
+import React, { useEffect, useMemo, useState } from "react";
+import { View, StyleSheet, Text, TouchableOpacity, Alert } from "react-native";
+import { BottomSheetScrollView } from "@gorhom/bottom-sheet";
+import { useFormik } from "formik";
+import * as Yup from "yup";
+import * as Haptics from "expo-haptics";
+import * as ImagePicker from "expo-image-picker";
+import * as ImageManipulator from "expo-image-manipulator";
+import { Image } from "expo-image";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
-interface DivisionFormProps {
+import { useAppTheme } from "@/src/context/ThemeProvider";
+import { Division } from "@/src/types/Division";
+import ConfigApi from "@/src/api/ConfigApi";
+import CircleColorPicker from "@/src/components/common/form/CircleColorPicker";
+import { CORNERS } from "@/src/theme/globals";
+import ApiErrorToast from "@/src/components/common/feedback/ApiErrorToast";
+
+import FormCard from "@/src/components/common/form/FormCard";
+import Field from "@/src/components/common/form/Field";
+import SheetTextInput from "@/src/components/common/form/SheetTextInput";
+import { useApis } from "@/src/context/ApiProvider";
+
+export type DivisionFormExternalState = {
+    loading: boolean;
+    canSubmit: boolean;
+    accentColor?: string;
+};
+
+export type DivisionFormProps = {
     division: Division | null;
     onSuccess: () => void;
-}
+    onRegisterSubmit: (submit: () => void) => void;
+    onStateChange?: (state: DivisionFormExternalState) => void;
+};
 
-const DivisionForm: React.FC<DivisionFormProps> = ({ division, onSuccess }) => {
+const DivisionForm: React.FC<DivisionFormProps> = ({ division, onSuccess, onRegisterSubmit, onStateChange }) => {
     const theme = useAppTheme();
-    const insets = useSafeAreaInsets();
+    const { config } = useApis();
     const isEditMode = !!division;
 
-    const [imageFile, setImageFile] = React.useState<any | null>(null);
-    const [previewUri, setPreviewUri] = React.useState<string | null>(null);
-    const [loading, setLoading] = React.useState(false);
-    const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
+    const [imageFile, setImageFile] = useState<{ uri: string; name: string; type: string } | null>(null);
+    const [previewUri, setPreviewUri] = useState<string | null>(null);
+    const [loading, setLoading] = useState(false);
+    const [apiError, setApiError] = useState<string | null>(null);
 
     const handlePickImage = async () => {
         try {
             await Haptics.selectionAsync();
-
-            const { granted } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-            if (!granted) {
-                Alert.alert("Permission refusée", "Accès à la bibliothèque requis.");
-                return;
-            }
-
             const pickerResult = await ImagePicker.launchImageLibraryAsync({
-                mediaTypes: ['images'],
+                mediaTypes: ["images"] as unknown as ImagePicker.MediaTypeOptions,
                 allowsEditing: true,
                 aspect: [1, 1],
                 quality: 1,
             });
-
             if (pickerResult.canceled) return;
-
             const selected = pickerResult.assets[0];
-            if (!selected.uri) return;
-
+            if (!selected?.uri) return;
             const manipContext = ImageManipulator.ImageManipulator.manipulate(selected.uri);
             manipContext.resize({ width: 512 });
-
             const rendered = await manipContext.renderAsync();
-            const saved = await rendered.saveAsync({
-                format: ImageManipulator.SaveFormat.JPEG,
-                compress: 1,
-            });
-
-            const fileObj = {
-                uri: saved.uri,
-                name: `division.jpg`,
-                type: 'image/jpeg',
-            };
-
+            const saved = await rendered.saveAsync({ format: ImageManipulator.SaveFormat.JPEG, compress: 1 });
             setPreviewUri(saved.uri);
-            setImageFile(fileObj);
-        } catch (e) {
-            console.error("Erreur image:", e);
+            setImageFile({ uri: saved.uri, name: "division.jpg", type: "image/jpeg" });
+        } catch {
             Alert.alert("Erreur", "Impossible de traiter l'image.");
         }
     };
 
     const formik = useFormik({
         initialValues: {
-            name: division?.name || '',
-            mainColor: division?.mainColor || '',
-            firstGradientColor: division?.firstGradientColor || '',
-            secondGradientColor: division?.secondGradientColor || '',
-            thirdGradientColor: division?.thirdGradientColor || '',
-            logoUrl: division?.logoUrl || '',
+            name: division?.name ?? "",
+            mainColor: division?.mainColor ?? "",
+            firstGradientColor: division?.firstGradientColor ?? "",
+            secondGradientColor: division?.secondGradientColor ?? "",
+            thirdGradientColor: division?.thirdGradientColor ?? "",
+            logoUrl: division?.logoUrl ?? "",
         },
         validationSchema: Yup.object({
-            name: Yup.string().required('Le nom est requis'),
-            mainColor: Yup.string().required('Couleur principale requise'),
-            firstGradientColor: Yup.string().required('Première couleur de dégradé requise'),
-            secondGradientColor: Yup.string().required('Deuxième couleur de dégradé requise'),
-            thirdGradientColor: Yup.string().required('Troisième couleur de dégradé requise'),
+            name: Yup.string().trim().required("Le nom est requis"),
+            mainColor: Yup.string().trim().required("Couleur principale requise"),
+            firstGradientColor: Yup.string().trim().required("Première couleur de dégradé requise"),
+            secondGradientColor: Yup.string().trim().required("Deuxième couleur de dégradé requise"),
+            thirdGradientColor: Yup.string().trim().required("Troisième couleur de dégradé requise"),
         }),
-
         onSubmit: async (values) => {
             try {
                 await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-
                 setLoading(true);
-                setErrorMessage(null);
-
-                const api = ConfigApi.getInstance();
+                setApiError(null);
                 if (isEditMode) {
-                    await api.updateDivision(division!.id, values, imageFile ?? undefined);
+                    await config.updateDivision(division!.id, values, imageFile ?? undefined);
                 } else {
-                    await api.createOrUpdateDivision(values, imageFile ?? undefined);
+                    await config.createOrUpdateDivision(values, imageFile ?? undefined);
                 }
-
+                await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
                 onSuccess();
-            } catch (error: any) {
-                console.error('Erreur API:', error);
-                setErrorMessage('La sauvegarde a échoué. Veuillez réessayer.');
+            } catch {
+                setApiError("La sauvegarde a échoué. Veuillez réessayer.");
+                await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
             } finally {
                 setLoading(false);
             }
         },
     });
 
-    const imageUri = previewUri ?? formik.values.logoUrl;
+    useEffect(() => {
+        onRegisterSubmit(formik.submitForm);
+    }, [formik.submitForm, onRegisterSubmit]);
+
+    const canSubmit = useMemo(() => formik.isValid && !loading, [formik.isValid, loading]);
+
+    useEffect(() => {
+        onStateChange?.({ loading, canSubmit, accentColor: formik.values.mainColor || undefined });
+    }, [loading, canSubmit, formik.values.mainColor, onStateChange]);
+
+    const logoUri = previewUri ?? formik.values.logoUrl ?? null;
 
     return (
-        <BottomSheetView style={[styles.container, { backgroundColor: theme.backgroundSecondary, paddingBottom: insets.bottom }]}>
-            <View style={styles.fieldBlock}>
-                <Text style={[styles.label, { color: theme.text }]}>Nom</Text>
-                <BottomSheetTextInput
-                    style={[styles.input, { color: theme.text, borderColor: theme.border }]}
-                    value={formik.values.name}
-                    onChangeText={formik.handleChange('name')}
-                    placeholder="Nom de la division"
-                    placeholderTextColor={theme.textInactive}
-                />
-                {formik.touched.name && formik.errors.name && (
-                    <Text style={styles.error}>{formik.errors.name}</Text>
-                )}
-            </View>
-
-            <View style={styles.fieldBlock}>
-                <Text style={[styles.label, { color: theme.text }]}>Couleur principale</Text>
-                <View style={styles.colorRow}>
-                    <CircleColorPicker
-                        value={formik.values.mainColor}
-                        onChange={(color) => formik.setFieldValue('mainColor', color)}
-                    />
-                </View>
-                {formik.touched.mainColor && formik.errors.mainColor && (
-                    <Text style={styles.error}>{formik.errors.mainColor}</Text>
-                )}
-            </View>
-
-            <View style={styles.fieldBlock}>
-                <Text style={[styles.label, { color: theme.text }]}>Dégradé</Text>
-                <View style={styles.colorRow}>
-                    <CircleColorPicker
-                        value={formik.values.firstGradientColor}
-                        onChange={(color) => formik.setFieldValue('firstGradientColor', color)}
-                    />
-                    <CircleColorPicker
-                        value={formik.values.secondGradientColor}
-                        onChange={(color) => formik.setFieldValue('secondGradientColor', color)}
-                    />
-                    <CircleColorPicker
-                        value={formik.values.thirdGradientColor}
-                        onChange={(color) => formik.setFieldValue('thirdGradientColor', color)}
-                    />
-                </View>
-                {formik.touched.firstGradientColor && formik.errors.firstGradientColor && (
-                    <Text style={styles.error}>{formik.errors.firstGradientColor}</Text>
-                )}
-                {formik.touched.secondGradientColor && formik.errors.secondGradientColor && (
-                    <Text style={styles.error}>{formik.errors.secondGradientColor}</Text>
-                )}
-                {formik.touched.thirdGradientColor && formik.errors.thirdGradientColor && (
-                    <Text style={styles.error}>{formik.errors.thirdGradientColor}</Text>
-                )}
-            </View>
-
-            <View style={styles.fieldBlock}>
-                <Text style={[styles.label, { color: theme.text }]}>Image de profil</Text>
-                <TouchableOpacity onPress={handlePickImage} activeOpacity={0.8} style={styles.imageTouch}>
-                    {imageUri ? (
-                        <FastImage source={{ uri: imageUri }} style={[styles.imagePreview, { borderColor: theme.border }]} />
-                    ) : (
-                        <View style={[styles.imagePreview, styles.imagePlaceholder, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-                            <MaterialIcons name="photo-camera" size={28} color={theme.textInactive} />
+        <>
+            <BottomSheetScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+                <FormCard title="Logo">
+                    <TouchableOpacity onPress={handlePickImage} activeOpacity={0.85} style={[styles.logoWrap, { borderColor: theme.border }]}>
+                        <View style={styles.logoMask}>
+                            {logoUri ? (
+                                <Image source={{ uri: logoUri }} style={styles.logo} contentFit="contain" />
+                            ) : (
+                                <View style={styles.logoPlaceholder}>
+                                    <MaterialCommunityIcons name="camera-plus-outline" size={28} color={theme.textInactive} />
+                                    <Text style={[styles.logoHint, { color: theme.textInactive }]}>Ajouter un logo</Text>
+                                </View>
+                            )}
                         </View>
-                    )}
-                </TouchableOpacity>
-            </View>
+                    </TouchableOpacity>
 
-            {errorMessage && (
-                <Text style={styles.apiError}>{errorMessage}</Text>
-            )}
+                    <TouchableOpacity onPress={handlePickImage} style={[styles.logoBtn, { backgroundColor: theme.backgroundSecondary }]}>
+                        <MaterialCommunityIcons name="pencil-outline" size={16} color={theme.text} />
+                        <Text style={[styles.logoBtnText, { color: theme.text }]}>Changer le logo</Text>
+                    </TouchableOpacity>
+                </FormCard>
 
-            <TouchableOpacity
-                style={[styles.submitButton, { backgroundColor: formik.values.mainColor || theme.primary, opacity: loading ? 0.7 : 1 }]}
-                onPress={() => formik.handleSubmit()}
-                disabled={loading}
-                activeOpacity={0.8}
-            >
-                {loading ? (
-                    <ActivityIndicator color={theme.text} />
-                ) : (
-                    <Text style={[styles.submitText, { color: theme.text }]}>
-                        {isEditMode
-                            ? !division?.active
-                                ? 'Réactiver'
-                                : 'Modifier'
-                            : 'Créer'}
-                    </Text>
-                )}
-            </TouchableOpacity>
-        </BottomSheetView>
+                <FormCard>
+                    <Field label="Nom" error={formik.errors.name} touched={formik.touched.name}>
+                        <SheetTextInput
+                            value={formik.values.name}
+                            onChangeText={formik.handleChange("name")}
+                            onBlur={formik.handleBlur("name")}
+                            placeholder="Nom de la division"
+                            style={formik.touched.name && formik.errors.name ? { borderColor: theme.error } : undefined}
+                        />
+                    </Field>
+                </FormCard>
+
+                <FormCard title="Couleur principale">
+                    <View style={styles.colorRow}>
+                        <CircleColorPicker value={formik.values.mainColor} onChange={(c) => formik.setFieldValue("mainColor", c)} />
+                    </View>
+                </FormCard>
+
+                <FormCard title="Dégradé">
+                    <View style={styles.colorRow}>
+                        <CircleColorPicker value={formik.values.firstGradientColor} onChange={(c) => formik.setFieldValue("firstGradientColor", c)} />
+                        <CircleColorPicker value={formik.values.secondGradientColor} onChange={(c) => formik.setFieldValue("secondGradientColor", c)} />
+                        <CircleColorPicker value={formik.values.thirdGradientColor} onChange={(c) => formik.setFieldValue("thirdGradientColor", c)} />
+                    </View>
+                </FormCard>
+            </BottomSheetScrollView>
+
+            <ApiErrorToast message={apiError} onHidden={() => setApiError(null)} />
+        </>
     );
 };
 
-const styles = StyleSheet.create({
-    container: { 
-        padding: 12 
-    },
-    fieldBlock: { 
-        marginBottom: 20 
-    },
-    label: {
-        fontSize: 14,
-        fontWeight: '600',
-        marginBottom: 6,
-        marginLeft: 4,
-    },
-    input: {
-        borderWidth: 1,
-        borderRadius: 16,
-        paddingVertical: 10,
-        paddingHorizontal: 14,
-        fontSize: 14,
-    },
-    error: {
-        color: 'red',
-        fontSize: 12,
-        marginTop: 6,
-        marginLeft: 8,
-    },
-    colorRow: {
-        flexDirection: 'row',
-        gap: 16,
-        marginTop: 8,
-        marginLeft: 8,
-    },
-    imageTouch: {
-        alignSelf: 'flex-start',
-        marginTop: 8,
-        marginLeft: 8,
-    },
-    imagePreview: {
-        width: 80,
-        aspectRatio: 1,
-        borderRadius: 18,
-        borderWidth: 2,
-    },
-    imagePlaceholder: {
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    submitButton: {
-        borderRadius: 12,
-        paddingVertical: 14,
-        marginHorizontal: 12,
-        alignItems: 'center',
-    },
-    submitText: {
-        fontWeight: '600',
-        fontSize: 16,
-    },
-    apiError: {
-        color: 'red',
-        fontSize: 13,
-        textAlign: 'center',
-        marginBottom: 12,
-    },
-});
-
 export default DivisionForm;
+
+const styles = StyleSheet.create({
+    scroll: { gap: 12, padding: 8 },
+    logoWrap: { borderWidth: 1.5, borderRadius: 22, alignItems: "center", justifyContent: "center", overflow: "hidden" },
+    logoMask: { width: 100, aspectRatio: 1, borderRadius: 18, overflow: "hidden", alignItems: "center", justifyContent: "center", marginVertical: 16 },
+    logo: { width: "100%", height: "100%" },
+    logoPlaceholder: { alignItems: "center", gap: 6 },
+    logoHint: { fontSize: 12, fontWeight: "600" },
+    logoBtn: { alignSelf: "flex-start", flexDirection: "row", gap: 6, paddingHorizontal: 12, paddingVertical: 8, borderRadius: CORNERS },
+    logoBtnText: { fontSize: 12, fontWeight: "700" },
+    colorRow: { flexDirection: "row", gap: 16, marginTop: 8, marginLeft: 8 },
+});

@@ -1,200 +1,159 @@
-import React, { useState } from 'react';
-import {
-    View,
-    StyleSheet,
-    ActivityIndicator,
-    Text,
-    TouchableOpacity,
-    Alert,
-} from 'react-native';
-import { Picker } from '@react-native-picker/picker';
-import { RawDivisionMapping } from '@/src/types/RawDivisionMapping';
-import ConfigApi from '@/src/api/ConfigApi';
-import { useDivisions } from '@/src/hooks/config/division/useDivisions';
-import { useAppTheme } from '@/src/context/ThemeProvider';
-import { EnumFormat, FormatLabels } from '@/src/types/enums/Format';
-import { EnumGender, GenderLabels } from '@/src/types/enums/Gender';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { BottomSheetView } from '@gorhom/bottom-sheet';
-import * as Haptics from 'expo-haptics';
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { View, StyleSheet, Text } from "react-native";
+import * as Haptics from "expo-haptics";
+import { BottomSheetScrollView } from "@gorhom/bottom-sheet";
 
-type Props = {
-    mapping: RawDivisionMapping;
-    onSuccess: () => void;
+import { useAppTheme } from "@/src/context/ThemeProvider";
+import { useDivisions } from "@/src/hooks/config/division/useDivisions";
+import { RawDivisionMapping } from "@/src/types/RawDivisionMapping";
+import { EnumFormat, FormatLabels } from "@/src/types/enums/Format";
+import { EnumGender, GenderLabels } from "@/src/types/enums/Gender";
+import FormSelect from "@/src/components/common/form/FormSelect";
+import SelectSheet, { SelectOption, SelectSheetRef } from "@/src/components/common/form/SelectSheet";
+import ApiErrorToast from "@/src/components/common/feedback/ApiErrorToast";
+import FormCard from "@/src/components/common/form/FormCard";
+import { useApis } from "@/src/context/ApiProvider";
+
+export type RawDivisionMappingFormExternalState = {
+    loading: boolean;
+    canSubmit: boolean;
 };
 
-const RawDivisionMappingForm: React.FC<Props> = ({ mapping, onSuccess }) => {
-    const theme = useAppTheme();
-    const inset = useSafeAreaInsets();
-    const { data: divisions = [], isLoading: loadingDivisions } = useDivisions();
+export type RawDivisionMappingFormProps = {
+    mapping: RawDivisionMapping;
+    onSuccess: () => void;
+    onRegisterSubmit: (submit: () => void) => void;
+    onStateChange?: (state: RawDivisionMappingFormExternalState) => void;
+};
 
-    const [divisionId, setDivisionId] = useState<number | ''>(mapping.divisionId || '');
-    const [format, setFormat] = useState<EnumFormat | ''>(mapping.format || '');
-    const [gender, setGender] = useState<EnumGender | ''>(mapping.gender || '');
+const RawDivisionMappingForm: React.FC<RawDivisionMappingFormProps> = ({
+    mapping,
+    onSuccess,
+    onRegisterSubmit,
+    onStateChange,
+}) => {
+    const theme = useAppTheme();
+    const { data: divisions = [], isLoading: loadingDivisions } = useDivisions();
+    const { mobile } = useApis();
+    const [divisionId, setDivisionId] = useState<number | "">(mapping.divisionId ?? "");
+    const [format, setFormat] = useState<EnumFormat | "">(mapping.format ?? "");
+    const [gender, setGender] = useState<EnumGender | "">(mapping.gender ?? "");
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [errorMessage, setErrorMessage] = useState<string | null>(null);
+    const [apiError, setApiError] = useState<string | null>(null);
+
+    const formatOptions: SelectOption[] = useMemo(
+        () => Object.values(EnumFormat).map((val) => ({ value: val, label: FormatLabels[val] })),
+        []
+    );
+    const genderOptions: SelectOption[] = useMemo(
+        () => Object.values(EnumGender).map((val) => ({ value: val, label: GenderLabels[val] })),
+        []
+    );
+    const divisionOptions: SelectOption[] = useMemo(
+        () => divisions.filter((d) => d.active).map((d) => ({ value: d.id, label: d.name })),
+        [divisions]
+    );
+
+    const formatLabel = format ? FormatLabels[format] : null;
+    const genderLabel = gender ? GenderLabels[gender] : null;
+    const divisionLabel = divisionId ? divisionOptions.find((o) => o.value === divisionId)?.label ?? null : null;
+
+    const formatRef = useRef<SelectSheetRef>(null);
+    const genderRef = useRef<SelectSheetRef>(null);
+    const divisionRef = useRef<SelectSheetRef>(null);
 
     const handleSubmit = async () => {
         await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
         setIsSubmitting(true);
-        setErrorMessage(null);
-
+        setApiError(null);
         try {
-            await ConfigApi.getInstance().updateRawDivisionMapping(mapping.id, {
-                divisionId: divisionId === '' ? null : divisionId,
-                format: format === '' ? null : format,
-                gender: gender === '' ? null : gender,
+            await mobile.updateRawDivisionMapping(mapping.id, {
+                divisionId: divisionId === "" ? null : divisionId,
+                format: format === "" ? null : format,
+                gender: gender === "" ? null : gender,
             });
             await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
             onSuccess();
-        } catch (error) {
+        } catch {
             await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-            Alert.alert("Erreur", "Impossible d'enregistrer les données.");
-            setErrorMessage("Une erreur est survenue lors de la sauvegarde.");
+            setApiError("Une erreur est survenue lors de la sauvegarde.");
         } finally {
             setIsSubmitting(false);
         }
     };
 
+    useEffect(() => {
+        onRegisterSubmit(handleSubmit);
+    }, [divisionId, format, gender, onRegisterSubmit]);
+
+    useEffect(() => {
+        onStateChange?.({ loading: isSubmitting, canSubmit: !isSubmitting });
+    }, [isSubmitting, onStateChange]);
+
     return (
-        <BottomSheetView
-            style={[
-                styles.container,
-                {
-                    paddingBottom: inset.bottom,
-                    backgroundColor: theme.backgroundSecondary,
-                },
-            ]}
-        >
-            <Text style={[styles.label, { color: theme.text }]}>
-                {mapping.rawDivisionName}
-            </Text>
+        <>
+            <BottomSheetScrollView contentContainerStyle={styles.fieldContainer} showsVerticalScrollIndicator={false}>
+                <FormCard title="Source">
+                    <View style={styles.sourceBlock}>
+                        <Text style={[styles.sourceName, { color: theme.text }]} numberOfLines={2}>
+                            {mapping.rawDivisionName}
+                        </Text>
+                        <Text style={{ color: theme.textInactive, fontSize: 12, fontWeight: "600" }}>
+                            {mapping.leagueCode} • {mapping.season}
+                        </Text>
+                    </View>
+                </FormCard>
 
-            {/* Format + Genre */}
-            <View style={styles.row}>
-                <View style={styles.pickerWrapper}>
-                    <Picker
-                        selectedValue={format}
-                        onValueChange={(value) => {
-                            setFormat(value);
-                        }}
-                        itemStyle={{
-                            color: theme.text,
-                            fontSize: 18,
-                        }}
-                    >
-                        <Picker.Item label="Format" value="" color={theme.textInactive} />
-                        {Object.values(EnumFormat).map((val) => (
-                            <Picker.Item key={val} label={FormatLabels[val]} value={val} />
-                        ))}
-                    </Picker>
-                </View>
+                <FormCard title="Format">
+                    <FormSelect label="Format" valueLabel={formatLabel} onPress={() => formatRef.current?.present()} />
+                </FormCard>
 
-                <View style={styles.pickerWrapper}>
-                    <Picker
-                        selectedValue={gender}
-                        onValueChange={(value) => {
-                            setGender(value);
-                        }}
-                        itemStyle={{
-                            color: theme.text,
-                            fontSize: 18,
-                        }}
-                    >
-                        <Picker.Item label="Genre" value="" color={theme.textInactive} />
-                        {Object.values(EnumGender).map((val) => (
-                            <Picker.Item key={val} label={GenderLabels[val]} value={val} />
-                        ))}
-                    </Picker>
-                </View>
-            </View>
+                <FormCard title="Genre">
+                    <FormSelect label="Genre" valueLabel={genderLabel} onPress={() => genderRef.current?.present()} />
+                </FormCard>
 
-            {/* Division */}
-            <View style={styles.row}>
-                <View style={styles.pickerWrapper}>
-                    <Picker
-                        selectedValue={divisionId}
-                        onValueChange={(value) => {
-                            setDivisionId(value);
-                        }}
-                        enabled={!loadingDivisions}
-                        itemStyle={{
-                            color: theme.text,
-                            fontSize: 18,
-                        }}
-                    >
-                        <Picker.Item label="Division" value="" color={theme.textInactive} />
-                        {divisions.map((d) => (
-                            <Picker.Item key={d.id} label={d.name} value={d.id} />
-                        ))}
-                    </Picker>
-                    {loadingDivisions && <ActivityIndicator size="small" />}
-                </View>
-            </View>
+                <FormCard title="Division">
+                    <FormSelect
+                        label="Division"
+                        valueLabel={divisionLabel}
+                        onPress={() => divisionRef.current?.present()}
+                        loading={loadingDivisions}
+                        disabled={loadingDivisions}
+                    />
+                </FormCard>
+            </BottomSheetScrollView>
 
-            {errorMessage && (
-                <Text style={styles.apiError}>{errorMessage}</Text>
-            )}
+            <ApiErrorToast message={apiError} onHidden={() => setApiError(null)} />
 
-            {/* Submit Button */}
-            <TouchableOpacity
-                onPress={handleSubmit}
-                disabled={isSubmitting}
-                activeOpacity={0.8}
-                style={[
-                    styles.submitButton,
-                    {
-                        backgroundColor: theme.success,
-                        opacity: isSubmitting ? 0.7 : 1,
-                    },
-                ]}
-            >
-                {isSubmitting ? (
-                    <ActivityIndicator color={theme.text} />
-                ) : (
-                    <Text style={[styles.submitText, { color: theme.text }]}>Enregistrer</Text>
-                )}
-            </TouchableOpacity>
-        </BottomSheetView>
+            <SelectSheet
+                ref={formatRef}
+                title="Choisir un format"
+                options={formatOptions}
+                selectedValue={format || ""}
+                onSelect={(opt) => setFormat((opt.value as EnumFormat) || "")}
+            />
+            <SelectSheet
+                ref={genderRef}
+                title="Choisir un genre"
+                options={genderOptions}
+                selectedValue={gender || ""}
+                onSelect={(opt) => setGender((opt.value as EnumGender) || "")}
+            />
+            <SelectSheet
+                ref={divisionRef}
+                title="Choisir une division"
+                options={divisionOptions}
+                selectedValue={divisionId || ""}
+                onSelect={(opt) => setDivisionId((opt.value as number) || "")}
+            />
+        </>
     );
 };
 
-const styles = StyleSheet.create({
-    container: {
-        padding: 8,
-    },
-    label: {
-        fontSize: 16,
-        fontWeight: 'bold',
-        marginLeft: 8,
-        marginBottom: 16,
-    },
-    row: {
-        flexDirection: 'row',
-        marginBottom: 12,
-    },
-    pickerWrapper: {
-        flex: 1,
-        overflow: 'hidden',
-        height: 50,
-        justifyContent: 'center',
-    },
-    submitButton: {
-        borderRadius: 10,
-        paddingVertical: 14,
-        marginHorizontal: 12,
-        alignItems: 'center',
-    },
-    submitText: {
-        fontWeight: '600',
-        fontSize: 16,
-    },
-    apiError: {
-        color: 'red',
-        fontSize: 13,
-        textAlign: 'center',
-        marginBottom: 12,
-    },
-});
-
 export default RawDivisionMappingForm;
+
+const styles = StyleSheet.create({
+    fieldContainer: { padding: 8, gap: 12 },
+    sourceBlock: { gap: 4 },
+    sourceName: { fontSize: 16, fontWeight: "700" },
+});

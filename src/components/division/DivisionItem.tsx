@@ -1,33 +1,36 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { useAppTheme } from '@/src/context/ThemeProvider';
-import { Division } from '@/src/types/Division';
-import ConfigApi from '@/src/api/ConfigApi';
-import { LinearGradient } from 'expo-linear-gradient';
-import * as Haptics from 'expo-haptics';
+import React from "react";
+import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import * as Haptics from "expo-haptics";
+import { Image } from "expo-image";
 
-interface DivisionItemProps {
+import { useAppTheme } from "@/src/context/ThemeProvider";
+import { Division } from "@/src/types/Division";
+import ConfigApi from "@/src/api/ConfigApi";
+import { useApis } from "@/src/context/ApiProvider";
+
+type DivisionItemProps = {
     division: Division;
     onPress: () => void;
     onDeactivated: () => void;
-}
+};
 
 const DivisionItem: React.FC<DivisionItemProps> = ({ division, onPress, onDeactivated }) => {
     const theme = useAppTheme();
-
-    const handlePress = async () => {
-        await Haptics.selectionAsync();
+    const { config } = useApis();
+    const handlePress = () => {
+        Haptics.selectionAsync();
         onPress();
     };
 
     const handleDeactivate = async () => {
         await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
         try {
-            await ConfigApi.getInstance().deactivateDivision(division.id);
+            await config.deactivateDivision(division.id);
             onDeactivated();
         } catch (error) {
-            console.error('Erreur lors de la désactivation :', error);
+            console.error("Erreur lors de la désactivation :", error);
         }
     };
 
@@ -40,11 +43,7 @@ const DivisionItem: React.FC<DivisionItemProps> = ({ division, onPress, onDeacti
             <Text style={[styles.id, { color: theme.textInactive }]}>#{division.id}</Text>
 
             {division.logoUrl ? (
-                <Image
-                    source={{ uri: division.logoUrl }}
-                    style={styles.avatar}
-                    resizeMode="cover"
-                />
+                <Image source={{ uri: division.logoUrl }} style={styles.avatar} contentFit="contain" />
             ) : (
                 <View style={[styles.avatar, { backgroundColor: theme.border }]} />
             )}
@@ -59,7 +58,7 @@ const DivisionItem: React.FC<DivisionItemProps> = ({ division, onPress, onDeacti
                         { color: division.active ? theme.success : theme.error },
                     ]}
                 >
-                    {division.active ? 'Active' : 'Inactive'}
+                    {division.active ? "Active" : "Inactive"}
                 </Text>
             </View>
 
@@ -92,10 +91,12 @@ const DivisionItem: React.FC<DivisionItemProps> = ({ division, onPress, onDeacti
     );
 };
 
+export default DivisionItem;
+
 const styles = StyleSheet.create({
     container: {
-        flexDirection: 'row',
-        alignItems: 'center',
+        flexDirection: "row",
+        alignItems: "center",
         borderRadius: 18,
         paddingHorizontal: 12,
         paddingVertical: 16,
@@ -103,28 +104,19 @@ const styles = StyleSheet.create({
     },
     id: {
         fontSize: 12,
-        width: 20,
-        textAlign: 'left',
+        width: 24,
+        textAlign: "left",
     },
     avatar: {
         width: 40,
         aspectRatio: 1,
         borderRadius: 12,
         marginHorizontal: 8,
-        backgroundColor: '#ccc',
+        backgroundColor: "#ccc",
     },
-    textContainer: {
-        flex: 1,
-        paddingHorizontal: 8,
-    },
-    name: {
-        fontSize: 14,
-        fontWeight: '600',
-    },
-    status: {
-        fontSize: 12,
-        marginTop: 4,
-    },
+    textContainer: { flex: 1, paddingHorizontal: 8 },
+    name: { fontSize: 14, fontWeight: "600" },
+    status: { fontSize: 12, marginTop: 4 },
     colorCircle: {
         width: 30,
         height: 30,
@@ -133,5 +125,3 @@ const styles = StyleSheet.create({
         borderWidth: 1,
     },
 });
-
-export default DivisionItem;

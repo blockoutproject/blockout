@@ -1,15 +1,23 @@
 import React from "react";
-import { View, StyleSheet } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import { useAppTheme } from "@/src/context/ThemeProvider";
+import { View, StyleSheet, TextInput, TouchableOpacity } from "react-native";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { BottomSheetTextInput } from "@gorhom/bottom-sheet";
+import { useAppTheme } from "@/src/context/ThemeProvider";
+import { SEARCHBAR_HEIGHT } from "@/src/theme/globals";
 
-type SearchBarProps = {
+export type SearchBarProps = {
+    /** Valeur contrôlée. */
     value: string;
+    /** Mise à jour du texte. */
     onChangeText: (text: string) => void;
+    /** Placeholder. */
     placeholder?: string;
+    /** Focus callback. */
     onFocus?: () => void;
+    /** Blur callback. */
     onBlur?: () => void;
+    /** Utilisation dans un BottomSheet. */
+    inSheet?: boolean;
 };
 
 const SearchBar: React.FC<SearchBarProps> = ({
@@ -18,19 +26,28 @@ const SearchBar: React.FC<SearchBarProps> = ({
     placeholder = "Rechercher...",
     onFocus,
     onBlur,
+    inSheet = true,
 }) => {
     const theme = useAppTheme();
+    const Input = inSheet ? BottomSheetTextInput : TextInput;
 
     return (
-        <View style={[styles.container, { backgroundColor: theme.surface }]}>
-            <Ionicons
-                name="search"
+        <View
+            style={[
+                styles.container,
+                { backgroundColor: theme.surface },
+            ]}
+        >
+            <MaterialCommunityIcons
+                name="magnify"
                 size={18}
                 color={theme.textInactive}
                 style={styles.icon}
             />
-            <BottomSheetTextInput
+
+            <Input
                 value={value}
+                autoCorrect={false}
                 onChangeText={onChangeText}
                 placeholder={placeholder}
                 placeholderTextColor={theme.textInactive}
@@ -38,31 +55,44 @@ const SearchBar: React.FC<SearchBarProps> = ({
                 onBlur={onBlur}
                 style={[
                     styles.input,
-                    {
-                        color: theme.text,
-                    },
+                    { color: theme.text },
                 ]}
             />
+
+            {value.length > 0 ? (
+                <TouchableOpacity onPress={() => onChangeText("")}>
+                    <MaterialCommunityIcons
+                        name="close-circle"
+                        size={18}
+                        color={theme.textInactive}
+                        style={styles.clearIcon}
+                    />
+                </TouchableOpacity>
+            ) : null}
         </View>
     );
 };
+
+export default SearchBar;
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
         flexDirection: "row",
         alignItems: "center",
+        gap: 6,
         borderRadius: 20,
-        paddingHorizontal: 12,
-        paddingVertical: 10,
+        height: SEARCHBAR_HEIGHT,
+        paddingRight: 6,
     },
     icon: {
-        marginRight: 8,
+        marginLeft: 12,
     },
     input: {
         flex: 1,
         fontSize: 14,
     },
+    clearIcon: {
+        marginRight: 8,
+    },
 });
-
-export default SearchBar;
