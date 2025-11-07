@@ -15,7 +15,7 @@ import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/v1/mobile/secure/reports")
+@RequestMapping("/api/v1/mobile/public/reports")
 public class ReportPublicController {
 
     private final ReportService reportService;
