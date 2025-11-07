@@ -17,7 +17,7 @@ import Animated, {
 import { BlurView } from "expo-blur";
 import * as Haptics from "expo-haptics";
 import { useAppTheme } from "@/src/context/ThemeProvider";
-import { BOTTOM_TABBAR_HEIGHT } from "@/src/theme/globals";
+import { BOTTOM_TABBAR_HEIGHT, CORNERS } from "@/src/theme/globals";
 import { withAlpha } from "@/src/utils/utils";
 
 type Props = BottomTabBarProps & {
@@ -34,7 +34,6 @@ type Props = BottomTabBarProps & {
 
 const SPRING = { damping: 25, stiffness: 340, mass: 0.8 };
 
-/** ------- CHILD ITEM (isole les hooks) ------- */
 function TabBarItem({
     options,
     isFocused,
@@ -85,7 +84,6 @@ function TabBarItem({
     );
 }
 
-/** --------------- PARENT BAR --------------- */
 export default function TabBar({
     state,
     descriptors,
@@ -172,7 +170,7 @@ export default function TabBar({
 
     const Background =
         Platform.OS === "ios" ? (
-            <BlurView intensity={70} tint={blurTintIOS} style={StyleSheet.absoluteFill} />
+            <BlurView intensity={90} tint={blurTintIOS} style={StyleSheet.absoluteFill} />
         ) : (
             <View
                 pointerEvents="none"
@@ -271,7 +269,7 @@ const styles = StyleSheet.create({
     box: {
         borderWidth: StyleSheet.hairlineWidth,
         marginHorizontal: 16,
-        borderRadius: 22,
+        borderRadius: CORNERS,
         overflow: "hidden",
         shadowColor: "#000",
         shadowOpacity: 0.2,

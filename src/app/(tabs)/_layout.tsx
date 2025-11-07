@@ -13,6 +13,8 @@ export default function TabLayout() {
     const theme = useAppTheme();
     const { customUser, isGuest } = useSession();
 
+    console.log("Custom User:", customUser?.pictureUrl);
+
     const avatarSource =
         customUser?.pictureUrl
             ? { uri: customUser.pictureUrl }

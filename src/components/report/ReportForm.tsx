@@ -11,13 +11,13 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import * as Device from "expo-device";
 import * as Application from "expo-application";
 import { useAppTheme } from "@/src/context/ThemeProvider";
-import ReportsApi from "@/src/api/ReportsApi";
 import { ReportType, type Report, type GitHubIssueResponse } from "@/src/types/Report";
 import Filters from "@/src/components/common/Filters";
 import type { Filter } from "@/src/types/Filter";
 import Field from "@/src/components/common/form/Field";
 import { useSession } from "@/src/context/SessionProvider";
 import ApiErrorToast from "../common/feedback/ApiErrorToast";
+import { useApis } from "@/src/context/ApiProvider";
 
 export type ReportFormExternalState = {
     loading: boolean;
@@ -49,7 +49,7 @@ const CATEGORY_OPTIONS = [
 
 const ReportForm: React.FC<ReportFormProps> = ({ context, onSuccess, onRegisterSubmit, onStateChange }) => {
     const theme = useAppTheme();
-    const api = ReportsApi.getInstance();
+    const { mobile } = useApis();
     const { customUser } = useSession();
 
     const [images, setImages] = useState<{ uri: string; name: string; type: string }[]>([]);
@@ -129,7 +129,7 @@ const ReportForm: React.FC<ReportFormProps> = ({ context, onSuccess, onRegisterS
                     deviceModel: Device.modelName ?? undefined,
                     os: `${Device.osName ?? "OS"} ${Device.osVersion ?? ""}`.trim(),
                 };
-                const created = await api.createReport(payload, images);
+                const created = await mobile.createReport(payload, images);
                 await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
                 onSuccess(created);
             } catch {

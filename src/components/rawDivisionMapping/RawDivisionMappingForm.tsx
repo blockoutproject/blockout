@@ -4,7 +4,6 @@ import * as Haptics from "expo-haptics";
 import { BottomSheetScrollView } from "@gorhom/bottom-sheet";
 
 import { useAppTheme } from "@/src/context/ThemeProvider";
-import ConfigApi from "@/src/api/ConfigApi";
 import { useDivisions } from "@/src/hooks/config/division/useDivisions";
 import { RawDivisionMapping } from "@/src/types/RawDivisionMapping";
 import { EnumFormat, FormatLabels } from "@/src/types/enums/Format";
@@ -13,6 +12,7 @@ import FormSelect from "@/src/components/common/form/FormSelect";
 import SelectSheet, { SelectOption, SelectSheetRef } from "@/src/components/common/form/SelectSheet";
 import ApiErrorToast from "@/src/components/common/feedback/ApiErrorToast";
 import FormCard from "@/src/components/common/form/FormCard";
+import { useApis } from "@/src/context/ApiProvider";
 
 export type RawDivisionMappingFormExternalState = {
     loading: boolean;
@@ -34,7 +34,7 @@ const RawDivisionMappingForm: React.FC<RawDivisionMappingFormProps> = ({
 }) => {
     const theme = useAppTheme();
     const { data: divisions = [], isLoading: loadingDivisions } = useDivisions();
-
+    const { mobile } = useApis();
     const [divisionId, setDivisionId] = useState<number | "">(mapping.divisionId ?? "");
     const [format, setFormat] = useState<EnumFormat | "">(mapping.format ?? "");
     const [gender, setGender] = useState<EnumGender | "">(mapping.gender ?? "");
@@ -67,7 +67,7 @@ const RawDivisionMappingForm: React.FC<RawDivisionMappingFormProps> = ({
         setIsSubmitting(true);
         setApiError(null);
         try {
-            await ConfigApi.getInstance().updateRawDivisionMapping(mapping.id, {
+            await mobile.updateRawDivisionMapping(mapping.id, {
                 divisionId: divisionId === "" ? null : divisionId,
                 format: format === "" ? null : format,
                 gender: gender === "" ? null : gender,
