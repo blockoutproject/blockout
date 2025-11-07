@@ -1,4 +1,4 @@
-package com.blockout.reports.models.integration.github;
+package com.blockout.reports.models.dto.github;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.*;
@@ -10,7 +10,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class GitHubIssueRequest {
+public class GitHubIssueRequestDTO {
     private String title;
     private String body;
     private List<String> labels;

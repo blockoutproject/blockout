@@ -1,4 +1,4 @@
-package com.blockout.reports.models.dto;
+package com.blockout.reports.models.dto.report;
 
 import com.blockout.reports.models.enums.ReportType;
 import com.fasterxml.jackson.annotation.JsonInclude;

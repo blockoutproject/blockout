@@ -1,7 +1,8 @@
 package com.blockout.reports.services.clients;
 
 import com.blockout.reports.config.DiscordProperties;
-import com.blockout.reports.models.integration.discord.DiscordWebhookMessage;
+import com.blockout.reports.models.dto.discord.DiscordWebhookMessageDTO;
+
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,7 +22,7 @@ public class DiscordClientService {
     private final RestTemplate restTemplate;
     private final DiscordProperties props;
 
-    public void send(DiscordWebhookMessage message) {
+    public void send(DiscordWebhookMessageDTO message) {
         String webhook = props.getWebhookUrl();
 
         if (webhook == null || webhook.isBlank()) {
@@ -38,7 +39,7 @@ public class DiscordClientService {
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
 
-            HttpEntity<DiscordWebhookMessage> request = new HttpEntity<>(message, headers);
+            HttpEntity<DiscordWebhookMessageDTO> request = new HttpEntity<>(message, headers);
 
             ResponseEntity<Void> response =
                     restTemplate.exchange(webhook, HttpMethod.POST, request, Void.class);

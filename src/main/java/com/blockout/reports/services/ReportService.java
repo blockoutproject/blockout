@@ -1,9 +1,9 @@
 package com.blockout.reports.services;
 
-import com.blockout.reports.models.dto.ReportCreateDTO;
-import com.blockout.reports.models.integration.discord.DiscordWebhookMessage;
-import com.blockout.reports.models.integration.github.GitHubIssueRequest;
-import com.blockout.reports.models.integration.github.GitHubIssueResponse;
+import com.blockout.reports.models.dto.discord.DiscordWebhookMessageDTO;
+import com.blockout.reports.models.dto.github.GitHubIssueRequestDTO;
+import com.blockout.reports.models.dto.github.GitHubIssueResponseDTO;
+import com.blockout.reports.models.dto.report.ReportCreateDTO;
 import com.blockout.reports.services.builder.GitHubIssuePayloadBuilder;
 import com.blockout.reports.services.clients.DiscordClientService;
 import com.blockout.reports.services.clients.GitHubClientService;
@@ -41,7 +41,7 @@ public class ReportService {
      * 4) Ajouter les URLs au body de l’issue
      * 5) Notifier Discord (non bloquant)
      */
-    public GitHubIssueResponse createReport(ReportCreateDTO dto, List<MultipartFile> images) {
+    public GitHubIssueResponseDTO createReport(ReportCreateDTO dto, List<MultipartFile> images) {
         // 1) Clé indépendante (évite d'attendre le numéro d'issue)
         String reportKey = UUID.randomUUID().toString().replace("-", "");
         logger.info("Start report flow", keyValue("reportKey", reportKey));
@@ -69,8 +69,8 @@ public class ReportService {
         }
 
         // 3) Créer l’issue
-        GitHubIssueRequest request = payloadBuilder.toIssue(dto);
-        GitHubIssueResponse response = githubClient.createIssue(request);
+        GitHubIssueRequestDTO request = payloadBuilder.toIssue(dto);
+        GitHubIssueResponseDTO response = githubClient.createIssue(request);
         int issueNumber = response.getNumber();
 
         // 4) Ajouter les URLs au body de l’issue + garder une trace dans le DTO
@@ -93,7 +93,7 @@ public class ReportService {
         String msg = "🧾 Nouveau report #" + response.getNumber() + " — " + response.getTitle()
                 + " → " + response.getHtmlUrl();
         try {
-            discordClient.send(DiscordWebhookMessage.builder().content(msg).build());
+            discordClient.send(DiscordWebhookMessageDTO.builder().content(msg).build());
         } catch (Exception e) {
             logger.warn("Discord notification failed",
                     keyValue("action", "discord_notify"),

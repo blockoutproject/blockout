@@ -1,7 +1,7 @@
 package com.blockout.reports.controllers.v1;
 
-import com.blockout.reports.models.dto.ReportCreateDTO;
-import com.blockout.reports.models.integration.github.GitHubIssueResponse;
+import com.blockout.reports.models.dto.github.GitHubIssueResponseDTO;
+import com.blockout.reports.models.dto.report.ReportCreateDTO;
 import com.blockout.reports.services.ReportService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -31,13 +31,13 @@ public class ReportController {
     })
     @PreAuthorize("hasAuthority('SCOPE_create:reports')")
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<GitHubIssueResponse> createReport(
+    public ResponseEntity<GitHubIssueResponseDTO> createReport(
             @RequestPart("data") String json,
             @RequestPart(value = "images", required = false) List<MultipartFile> images)
             throws JsonProcessingException {
 
         ReportCreateDTO dto = objectMapper.readValue(json, ReportCreateDTO.class);
-        GitHubIssueResponse created = reportService.createReport(dto, images);
+        GitHubIssueResponseDTO created = reportService.createReport(dto, images);
         return ResponseEntity.status(201).body(created);
     }
 }

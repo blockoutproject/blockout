@@ -1,15 +1,15 @@
 package com.blockout.reports.services.builder;
 
 import com.blockout.reports.models.enums.ReportType;
-import com.blockout.reports.models.dto.ReportCreateDTO;
-import com.blockout.reports.models.integration.github.GitHubIssueRequest;
+import com.blockout.reports.models.dto.github.GitHubIssueRequestDTO;
+import com.blockout.reports.models.dto.report.ReportCreateDTO;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class GitHubIssuePayloadBuilder {
 
-    public GitHubIssueRequest toIssue(ReportCreateDTO dto) {
+    public GitHubIssueRequestDTO toIssue(ReportCreateDTO dto) {
         List<String> labels = new ArrayList<>();
         if (dto.getType() == ReportType.DISPLAY_BUG)
             labels.add("display bug");
@@ -40,7 +40,7 @@ public class GitHubIssuePayloadBuilder {
                     .forEach(url -> body.append("![screenshot](").append(url).append(")\n"));
         }
 
-        return GitHubIssueRequest.builder()
+        return GitHubIssueRequestDTO.builder()
                 .title(dto.getTitle())
                 .body(body.toString())
                 .labels(labels)

@@ -1,8 +1,9 @@
 package com.blockout.reports.services.clients;
 
 import com.blockout.reports.config.GitHubProperties;
-import com.blockout.reports.models.integration.github.GitHubIssueRequest;
-import com.blockout.reports.models.integration.github.GitHubIssueResponse;
+import com.blockout.reports.models.dto.github.GitHubIssueRequestDTO;
+import com.blockout.reports.models.dto.github.GitHubIssueResponseDTO;
+
 import lombok.RequiredArgsConstructor;
 import org.kohsuke.github.GHIssue;
 import org.kohsuke.github.GHIssueBuilder;
@@ -27,7 +28,7 @@ public class GitHubClientService {
     private final GitHubProperties props;
 
     /** Crée une issue GitHub (sans modifier le titre). */
-    public GitHubIssueResponse createIssue(GitHubIssueRequest req) {
+    public GitHubIssueResponseDTO createIssue(GitHubIssueRequestDTO req) {
         String fullRepo = props.getOwner() + "/" + props.getRepo();
         logger.info("Creating GitHub issue", keyValue("repo", fullRepo), keyValue("title", req.getTitle()));
 
@@ -58,7 +59,7 @@ public class GitHubClientService {
 
             GHIssue issue = builder.create();
 
-            GitHubIssueResponse res = new GitHubIssueResponse();
+            GitHubIssueResponseDTO res = new GitHubIssueResponseDTO();
             res.setId(issue.getId());
             res.setNumber(issue.getNumber());
             res.setHtmlUrl(issue.getHtmlUrl().toString());
