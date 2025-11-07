@@ -1,6 +1,6 @@
 package com.blockout.config.controllers.v1;
 
-import com.blockout.config.models.ScraperStatus;
+import com.blockout.config.models.entity.ScraperStatus;
 import com.blockout.config.models.enums.ScraperName;
 import com.blockout.config.services.ScraperStatusService;
 

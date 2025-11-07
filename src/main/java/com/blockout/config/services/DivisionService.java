@@ -1,8 +1,8 @@
 package com.blockout.config.services;
 
 import com.blockout.config.exceptions.DivisionNotFoundException;
-import com.blockout.config.models.Division;
 import com.blockout.config.models.dto.DivisionUpdateDTO;
+import com.blockout.config.models.entity.Division;
 import com.blockout.config.repositories.DivisionRepository;
 import com.blockout.config.services.clients.S3StorageClientService;
 import com.blockout.config.utils.DiffUtils;

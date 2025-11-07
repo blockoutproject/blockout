@@ -1,8 +1,8 @@
 package com.blockout.config.services;
 
 import com.blockout.config.exceptions.RawDivisionMappingNotFoundException;
-import com.blockout.config.models.RawDivisionMapping;
 import com.blockout.config.models.dto.RawDivisionMappingUpdateDTO;
+import com.blockout.config.models.entity.RawDivisionMapping;
 import com.blockout.config.repositories.RawDivisionMappingRepository;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;

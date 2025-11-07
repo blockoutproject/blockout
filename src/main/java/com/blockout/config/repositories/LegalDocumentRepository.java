@@ -1,7 +1,8 @@
 package com.blockout.config.repositories;
 
-import com.blockout.config.models.LegalDocument;
 import org.springframework.data.jpa.repository.JpaRepository;
+
+import com.blockout.config.models.entity.LegalDocument;
 
 import java.util.Optional;
 

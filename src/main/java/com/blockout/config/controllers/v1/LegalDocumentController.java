@@ -1,7 +1,7 @@
 package com.blockout.config.controllers.v1;
 
-import com.blockout.config.models.LegalDocument;
 import com.blockout.config.models.dto.LegalDocumentUpdateDTO;
+import com.blockout.config.models.entity.LegalDocument;
 import com.blockout.config.services.LegalDocumentService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;

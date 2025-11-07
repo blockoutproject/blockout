@@ -1,7 +1,7 @@
 package com.blockout.config.controllers.v1;
 
-import com.blockout.config.models.Division;
 import com.blockout.config.models.dto.DivisionUpdateDTO;
+import com.blockout.config.models.entity.Division;
 import com.blockout.config.services.DivisionService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
