@@ -2,32 +2,32 @@ package com.blockout.mobilegateway.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+
+import lombok.RequiredArgsConstructor;
 
 import static org.springframework.security.config.Customizer.withDefaults;
 
-/**
- * Configures our application with Spring Security to restrict access to our API
- * endpoints.
- */
 @Configuration
+@EnableMethodSecurity
+@RequiredArgsConstructor
 public class SecurityConfig {
+
+    private final JwtDebugFilter jwtDebugFilter;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        /*
-         * This is where we configure the security required for our endpoints and setup
-         * our app to serve as
-         * an OAuth2 Resource Server, using JWT validation.
-         */
         return http
-                .authorizeHttpRequests((authorize) -> authorize
+                .addFilterBefore(jwtDebugFilter, UsernamePasswordAuthenticationFilter.class)
+                .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/v1/mobile/public/**").permitAll()
-                        .anyRequest().authenticated())
+                        .requestMatchers("/api/v1/mobile/secure/**").authenticated()
+                        .anyRequest().denyAll())
                 .cors(withDefaults())
-                .oauth2ResourceServer(oauth2 -> oauth2
-                        .jwt(withDefaults()))
+                .oauth2ResourceServer(oauth -> oauth.jwt(withDefaults()))
                 .build();
     }
 }

@@ -1,5 +1,6 @@
 package com.blockout.mobilegateway.config;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.context.annotation.Bean;
@@ -11,7 +12,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.web.client.RestTemplate;
 
-import lombok.RequiredArgsConstructor;
+import com.blockout.mobilegateway.security.Auth0TokenManager;
 
 import java.net.InetSocketAddress;
 import java.net.Proxy;
@@ -22,44 +23,51 @@ import java.time.Duration;
 public class RestTemplateConfig {
 
     private final FfvbProxyProperties proxyProperties;
+    private final Auth0TokenManager tokenManager;
 
-    /**
-     * RestTemplate INTERNE (APIs Blockout, etc.) → ajoute automatiquement le
-     * Bearer.
-     */
     @Bean
-    @Qualifier("internalRestTemplate")
-    public RestTemplate internalRestTemplate(RestTemplateBuilder builder) {
-        return builder
-                .additionalInterceptors(bearerTokenInterceptor())
-                .connectTimeout(Duration.ofSeconds(5))
-                .readTimeout(Duration.ofSeconds(15))
-                .build();
+    @Qualifier("internalAuthRestTemplate")
+    public RestTemplate internalAuthRestTemplate(RestTemplateBuilder b) {
+        return b
+            .additionalInterceptors(bearerTokenFromSecurityContext())
+            .connectTimeout(Duration.ofSeconds(5))
+            .readTimeout(Duration.ofSeconds(15))
+            .build();
     }
 
-    /**
-     * RestTemplate EXTERNE (FFVB) → aucun Bearer, juste un User-Agent + timeouts.
-     */
+    @Bean
+    @Qualifier("internalM2MRestTemplate")
+    public RestTemplate internalM2MRestTemplate(RestTemplateBuilder b) {
+        ClientHttpRequestInterceptor m2m = (req, body, ex) -> {
+            String token = tokenManager.getAccessToken();
+            if (token != null && !token.isBlank()) {
+                req.getHeaders().setBearerAuth(token);
+            }
+            return ex.execute(req, body);
+        };
+        return b
+            .additionalInterceptors(m2m)
+            .connectTimeout(Duration.ofSeconds(5))
+            .readTimeout(Duration.ofSeconds(15))
+            .build();
+    }
+    
     @Bean
     @Qualifier("externalRestTemplate")
     public RestTemplate externalRestTemplate(RestTemplateBuilder builder) {
-        Proxy proxy = new Proxy(
-                Proxy.Type.HTTP,
-                new InetSocketAddress(proxyProperties.getHost(), proxyProperties.getPort()));
-
+        Proxy proxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress(proxyProperties.getHost(), proxyProperties.getPort()));
         SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
         requestFactory.setProxy(proxy);
 
         return builder
-                .requestFactory(() -> requestFactory)
-                .additionalInterceptors(userAgentInterceptor("Blockout-MobileGateway/1.0"))
-                .connectTimeout(Duration.ofSeconds(5))
-                .readTimeout(Duration.ofSeconds(15))
-                .build();
+            .requestFactory(() -> requestFactory)
+            .additionalInterceptors(userAgentInterceptor("Blockout-MobileGateway/1.0"))
+            .connectTimeout(Duration.ofSeconds(5))
+            .readTimeout(Duration.ofSeconds(15))
+            .build();
     }
 
-    @Bean
-    public ClientHttpRequestInterceptor bearerTokenInterceptor() {
+    private ClientHttpRequestInterceptor bearerTokenFromSecurityContext() {
         return (request, body, execution) -> {
             Authentication auth = SecurityContextHolder.getContext().getAuthentication();
             if (auth instanceof JwtAuthenticationToken jwtAuth) {
