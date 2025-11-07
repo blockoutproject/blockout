@@ -1,7 +1,7 @@
 package com.blockout.matches.controllers.v1;
 
 import com.blockout.matches.models.Match;
-import com.blockout.matches.models.dto.BulkMatchesDeactivateRequest;
+import com.blockout.matches.models.dto.BulkMatchesDeactivateRequestDTO;
 import com.blockout.matches.models.dto.DayPageDTO;
 import com.blockout.matches.models.enums.MatchStatus;
 import com.blockout.matches.services.MatchService;
@@ -108,7 +108,7 @@ public class MatchController {
     @PutMapping("/pools/{poolId}/bulk-deactivate")
     public ResponseEntity<Void> bulkDeactivateMatches(
             @PathVariable Long poolId,
-            @RequestBody BulkMatchesDeactivateRequest request) {
+            @RequestBody BulkMatchesDeactivateRequestDTO request) {
         matchService.bulkDeactivateMatches(poolId, request.getMissingMatchCodes());
         return ResponseEntity.ok().build();
     }

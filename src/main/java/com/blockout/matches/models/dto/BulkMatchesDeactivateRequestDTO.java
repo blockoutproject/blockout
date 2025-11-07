@@ -4,7 +4,7 @@ import lombok.Data;
 import java.util.List;
 
 @Data
-public class BulkMatchesDeactivateRequest {
+public class BulkMatchesDeactivateRequestDTO {
     /**
      * Liste des matchCodes qui sont encore présents dans la poule 
      * selon le scraping.
