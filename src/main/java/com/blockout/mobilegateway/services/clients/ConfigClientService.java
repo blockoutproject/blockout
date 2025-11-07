@@ -36,11 +36,15 @@ public class ConfigClientService {
     private final ObjectMapper objectMapper;
 
     private String baseUrl() {
-        return apiClientProperties.getConfig().getUrl() + "/divisions";
+        return apiClientProperties.getConfig().getUrl();
     }
 
     public List<DivisionDTO> listDivisions() {
-        String url = baseUrl();
+        String url = UriComponentsBuilder.fromUriString(baseUrl())
+                .pathSegment("divisions")
+                .build()
+                .toUriString();
+
         logger.info("Calling config#listDivisions", keyValue("url", url));
 
         ResponseEntity<DivisionDTO[]> response = apiClientService.get(url, DivisionDTO[].class);
@@ -50,7 +54,7 @@ public class ConfigClientService {
 
     public DivisionDTO getDivisionById(Long id) {
         String url = UriComponentsBuilder.fromUriString(baseUrl())
-                .pathSegment(id.toString())
+                .pathSegment("divisions", id.toString())
                 .build()
                 .toUriString();
 
@@ -61,7 +65,11 @@ public class ConfigClientService {
     }
 
     public DivisionDTO createDivision(DivisionUpdateDTO dto, MultipartFile image) {
-        String url = baseUrl();
+        String url = UriComponentsBuilder.fromUriString(baseUrl())
+                .pathSegment("divisions")
+                .build()
+                .toUriString();
+
         MultiValueMap<String, Object> body = MultipartBodyBuilder.buildMultipart(objectMapper, dto, image);
 
         logger.info("Calling config#createDivision", keyValue("url", url));
@@ -72,7 +80,7 @@ public class ConfigClientService {
 
     public DivisionDTO updateDivision(Long id, DivisionUpdateDTO dto, MultipartFile image) {
         String url = UriComponentsBuilder.fromUriString(baseUrl())
-                .pathSegment(id.toString())
+                .pathSegment("divisions", id.toString())
                 .build()
                 .toUriString();
 
@@ -85,7 +93,7 @@ public class ConfigClientService {
 
     public void deactivateDivision(Long id) {
         String url = UriComponentsBuilder.fromUriString(baseUrl())
-                .pathSegment(id.toString())
+                .pathSegment("divisions", id.toString())
                 .build()
                 .toUriString();
 
@@ -169,7 +177,7 @@ public class ConfigClientService {
     }
 
     public ScraperStatusDTO updateScraperStatus(String name, boolean enabled) {
-        String url = UriComponentsBuilder.fromUriString(apiClientProperties.getConfig().getUrl())
+        String url = UriComponentsBuilder.fromUriString(baseUrl())
                 .pathSegment("scrapers", name, "enabled")
                 .queryParam("enabled", enabled)
                 .build()
@@ -186,7 +194,7 @@ public class ConfigClientService {
     }
 
     public List<ScraperStatusDTO> listScraperStatuses() {
-        String url = UriComponentsBuilder.fromUriString(apiClientProperties.getConfig().getUrl())
+        String url = UriComponentsBuilder.fromUriString(baseUrl())
                 .pathSegment("scrapers", "status")
                 .build()
                 .toUriString();
