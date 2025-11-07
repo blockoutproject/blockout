@@ -69,11 +69,12 @@ public class ClubClientService {
         return Optional.ofNullable(response.getBody()).map(Arrays::asList).orElse(Collections.emptyList());
     }
 
-    public ClubDTO updateClub(ClubUpdateDTO dto, MultipartFile image) {
+    public ClubDTO updateClub(String id, ClubUpdateDTO dto, MultipartFile image) {
         String url = UriComponentsBuilder.fromUriString(baseUrl())
+                .pathSegment(id)
                 .build().toUriString();
 
-        logger.info("Calling clubs#update", keyValue("id", dto.getId()), keyValue("url", url));
+        logger.info("Calling clubs#update", keyValue("id", id), keyValue("url", url));
 
         MultiValueMap<String, Object> body = MultipartBodyBuilder.buildMultipart(objectMapper, dto, image);
 

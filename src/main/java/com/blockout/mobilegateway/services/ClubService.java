@@ -19,11 +19,12 @@ public class ClubService {
     private final ClubClientService clubClientService;
 
     public ClubDTO getClubById(String id) {
+        logger.info("Fetching club id=" + id);
         return clubClientService.getClubById(id);
     }
 
-    public ClubDTO updateClub(ClubUpdateDTO dto, MultipartFile image) {
-        logger.info("Updating club with id: " + dto.getId());
-        return clubClientService.updateClub(dto, image);
+    public ClubDTO updateClub(String id, ClubUpdateDTO dto, MultipartFile image) {
+        logger.info("Updating club with id: " + id);
+        return clubClientService.updateClub(id, dto, image);
     }
 }

@@ -3,6 +3,9 @@ package com.blockout.mobilegateway.controllers.v1.secureapi;
 import com.blockout.mobilegateway.models.dto.club.ClubDTO;
 import com.blockout.mobilegateway.models.dto.club.ClubUpdateDTO;
 import com.blockout.mobilegateway.services.ClubService;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -15,13 +18,16 @@ import org.springframework.web.multipart.MultipartFile;
 public class ClubSecureController {
 
     private final ClubService clubService;
+    private final ObjectMapper objectMapper;
 
-    @PutMapping(path = "/clubs", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PutMapping(path = "/clubs/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ClubDTO> updateClub(
-            @RequestPart("data") ClubUpdateDTO data,
-            @RequestPart(value = "image", required = false) MultipartFile image) {
+            @PathVariable String id,
+            @RequestPart("data") String json,
+            @RequestPart(value = "image", required = false) MultipartFile image) throws JsonProcessingException {
 
-        var updated = clubService.updateClub(data, image);
+        ClubUpdateDTO dto = objectMapper.readValue(json, ClubUpdateDTO.class);
+        ClubDTO updated = clubService.updateClub(id, dto, image);
         return ResponseEntity.ok(updated);
     }
 }
