@@ -3,7 +3,7 @@ package com.blockout.competitions.services;
 import com.blockout.competitions.exceptions.CompetitionAssociationNotFoundException;
 import com.blockout.competitions.models.CompetitionAssociation;
 import com.blockout.competitions.models.dto.PoolWithRankingDTO;
-import com.blockout.competitions.models.dto.TeamAssociationStatsRequest;
+import com.blockout.competitions.models.dto.TeamAssociationStatsRequestDTO;
 import com.blockout.competitions.models.dto.TeamRankingDTO;
 import com.blockout.competitions.repositories.CompetitionAssociationRepository;
 import com.blockout.competitions.utils.DiffUtils;
@@ -224,7 +224,7 @@ public class CompetitionAssociationService {
     @Transactional
     public CompetitionAssociation updateTeamAssociationStats(Long poolId,
             Long teamId,
-            TeamAssociationStatsRequest request) {
+            TeamAssociationStatsRequestDTO request) {
         return associationRepository.findByPoolIdAndTeamId(poolId, teamId)
                 .map(assoc -> {
                     CompetitionAssociation before = assoc.toBuilder().build();

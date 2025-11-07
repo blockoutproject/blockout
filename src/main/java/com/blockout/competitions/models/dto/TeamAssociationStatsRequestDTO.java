@@ -2,7 +2,7 @@ package com.blockout.competitions.models.dto;
 import lombok.Data;
 
 @Data
-public class TeamAssociationStatsRequest {
+public class TeamAssociationStatsRequestDTO {
     private Integer played;
     private Integer wins;
     private Integer losses;

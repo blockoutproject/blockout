@@ -1,11 +1,11 @@
 package com.blockout.competitions.controllers.v1;
 
 import com.blockout.competitions.models.CompetitionAssociation;
-import com.blockout.competitions.models.dto.BulkClubsDeactivateRequest;
-import com.blockout.competitions.models.dto.BulkPoolsDeactivateRequest;
-import com.blockout.competitions.models.dto.BulkTeamsDeactivateRequest;
+import com.blockout.competitions.models.dto.BulkClubsDeactivateRequestDTO;
+import com.blockout.competitions.models.dto.BulkPoolsDeactivateRequestDTO;
+import com.blockout.competitions.models.dto.BulkTeamsDeactivateRequestDTO;
 import com.blockout.competitions.models.dto.PoolWithRankingDTO;
-import com.blockout.competitions.models.dto.TeamAssociationStatsRequest;
+import com.blockout.competitions.models.dto.TeamAssociationStatsRequestDTO;
 import com.blockout.competitions.services.CompetitionAssociationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -72,7 +72,7 @@ public class CompetitionAssociationController {
     @PutMapping("/pools/{poolId}/teams/bulk-deactivate")
     public ResponseEntity<Void> bulkDeactivateTeams(
             @PathVariable Long poolId,
-            @RequestBody BulkTeamsDeactivateRequest request) {
+            @RequestBody BulkTeamsDeactivateRequestDTO request) {
 
         associationService.bulkDeactivateTeamsByPool(poolId, request.getMissingTeamIds());
         return ResponseEntity.ok().build();
@@ -84,7 +84,7 @@ public class CompetitionAssociationController {
     })
     @PreAuthorize("hasAuthority('SCOPE_delete:competitions')")
     @PutMapping("/pools/bulk-deactivate")
-    public ResponseEntity<Void> bulkDeactivatePools(@RequestBody BulkPoolsDeactivateRequest request) {
+    public ResponseEntity<Void> bulkDeactivatePools(@RequestBody BulkPoolsDeactivateRequestDTO request) {
         associationService.bulkDeactivatePools(request.getMissingPoolIds());
         return ResponseEntity.ok().build();
     }
@@ -95,7 +95,7 @@ public class CompetitionAssociationController {
     })
     @PreAuthorize("hasAuthority('SCOPE_delete:competitions')")
     @PutMapping("/clubs/bulk-deactivate")
-    public ResponseEntity<Void> bulkDeactivateClubs(@RequestBody BulkClubsDeactivateRequest request) {
+    public ResponseEntity<Void> bulkDeactivateClubs(@RequestBody BulkClubsDeactivateRequestDTO request) {
         associationService.bulkDeactivateClubs(request.getMissingClubIds());
         return ResponseEntity.ok().build();
     }
@@ -110,7 +110,7 @@ public class CompetitionAssociationController {
     public ResponseEntity<CompetitionAssociation> updateStats(
             @PathVariable Long poolId,
             @PathVariable Long teamId,
-            @RequestBody TeamAssociationStatsRequest body) {
+            @RequestBody TeamAssociationStatsRequestDTO body) {
 
         CompetitionAssociation updated = associationService.updateTeamAssociationStats(poolId, teamId, body);
         return ResponseEntity.ok(updated);
