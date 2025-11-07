@@ -39,9 +39,9 @@ const LegalDocumentScreen: React.FC<LegalDocumentScreenProps> = ({ type, title, 
             </View>
         );
     } else if (error) {
-        body = <ErrorState subtitle="Impossible de charger le document." onRetry={refetch} />;
+        body = <ErrorState subtitle="Impossible de charger le document." paddingTop="30%" onRetry={refetch} />;
     } else if (!data) {
-        body = <ErrorState subtitle="Ce document est introuvable." onRetry={refetch} />;
+        body = <ErrorState subtitle="Ce document est introuvable." paddingTop="30%" onRetry={refetch} />;
     } else {
         body = (
             <>

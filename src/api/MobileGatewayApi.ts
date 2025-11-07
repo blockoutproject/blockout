@@ -297,7 +297,7 @@ export class MobileGatewayApi extends BaseApi {
      * @param type Type du document (terms | privacy | imprint)
      */
     public getLegalDocument(type: string) {
-        return this.httpPublic.get<{ title: string; version: string; content: string }>(
+        return this.httpPublic.get<LegalDocument>(
             `/config/legal/${type}`,
         );
     }
@@ -308,7 +308,7 @@ export class MobileGatewayApi extends BaseApi {
      * @param data Données du document
      */
     public updateLegalDocument(type: string, data: Partial<LegalDocument>) {
-        return this.httpAuth.put(`/config/legal/${type}`, data);
+        return this.httpAuth.put<Partial<LegalDocument>>(`/config/legal/${type}`, data);
     }
 
     /**
