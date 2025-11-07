@@ -1,13 +1,13 @@
 package com.blockout.mobilegateway.config;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-
-import lombok.RequiredArgsConstructor;
 
 import static org.springframework.security.config.Customizer.withDefaults;
 
@@ -19,15 +19,27 @@ public class SecurityConfig {
     private final JwtDebugFilter jwtDebugFilter;
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    @Order(1)
+    public SecurityFilterChain publicChain(HttpSecurity http) throws Exception {
         return http
+                .securityMatcher("/api/v1/mobile/public/**")
+                .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
                 .addFilterBefore(jwtDebugFilter, UsernamePasswordAuthenticationFilter.class)
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/v1/mobile/public/**").permitAll()
-                        .requestMatchers("/api/v1/mobile/secure/**").authenticated()
-                        .anyRequest().denyAll())
+                .csrf(csrf -> csrf.disable())
                 .cors(withDefaults())
+                .build();
+    }
+
+    @Bean
+    @Order(2)
+    public SecurityFilterChain secureChain(HttpSecurity http) throws Exception {
+        return http
+                .securityMatcher("/api/v1/mobile/secure/**")
+                .authorizeHttpRequests(auth -> auth.anyRequest().authenticated())
+                .addFilterBefore(jwtDebugFilter, UsernamePasswordAuthenticationFilter.class)
                 .oauth2ResourceServer(oauth -> oauth.jwt(withDefaults()))
+                .csrf(csrf -> csrf.disable())
+                .cors(withDefaults())
                 .build();
     }
 }
