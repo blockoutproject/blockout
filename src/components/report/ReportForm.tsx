@@ -125,7 +125,7 @@ const ReportForm: React.FC<ReportFormProps> = ({ context, onSuccess, onRegisterS
                     description: values.description?.trim() || undefined,
                     appVersion: Application.nativeApplicationVersion ?? undefined,
                     userId: context?.userId ?? customUser?.id?.toString() ?? undefined,
-                    userName: customUser?.pseudo ?? undefined,
+                    userName: customUser?.pseudo ?? "Guest",
                     screen: context?.screen ?? "Unknown",
                     deviceModel: Device.modelName ?? undefined,
                     os: `${Device.osName ?? "OS"} ${Device.osVersion ?? ""}`.trim(),
