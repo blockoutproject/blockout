@@ -251,7 +251,7 @@ class ProScraper(Scraper):
                     continue
 
                 log_event(
-                    action="process_xml_match",
+                    action="process_xml_match_before_update",
                     level="info",
                     pool_id=pool_id,
                     match_code=match_code,
@@ -270,6 +270,17 @@ class ProScraper(Scraper):
                         
                 if score_str:
                     updated_match.score = score_str
+                    
+                log_event(
+                    action="process_xml_match_after_update",
+                    level="info",
+                    pool_id=pool_id,
+                    match_code=match_code,
+                    match_date=match_datetime.isoformat(),
+                    set_value=set_value,
+                    score_str=score_str,
+                    updated_match=to_loggable(updated_match)
+                )
 
                 # 4) Fusion dans le cache
                 self.schedule_match_changes(

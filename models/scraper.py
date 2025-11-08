@@ -289,6 +289,20 @@ class Scraper(ABC):
                 "pool_id", "team_id_a", "team_id_b",
                 "venue", "first_referee", "second_referee", "status"
             ]
+            
+            if updated_match.league_code == "AALNV":
+                log_event(
+                    action="DEBUG_schedule_match_changes",
+                    level="info",
+                    match_key=match_key,
+                    priority_validation_enabled=self.priority_validation_enabled,
+                    priority=priority,
+                    current_priority=current_priority,
+                    updated_obj=updated_obj,
+                    existing_obj=existing_obj,
+                    updated_match=updated_match,
+                    message="debug schedule_match_changes"
+                )
 
             if self.priority_validation_enabled:
                 # LNV-XML
