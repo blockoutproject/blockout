@@ -5,9 +5,9 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
@@ -28,50 +28,60 @@ public class SecurityConfig {
     private final AuthProperties authProperties;
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http
-                .authorizeHttpRequests(authz -> authz
-                        .requestMatchers("/api/v1/users/internal/**").permitAll()
-                        .anyRequest().authenticated())
-                .addFilterBefore(new ApiKeyFilter(), UsernamePasswordAuthenticationFilter.class)
-                .oauth2ResourceServer(oauth2 -> oauth2
-                        .jwt(jwt -> jwt
-                                .jwtAuthenticationConverter(jwtAuthenticationConverter())))
-                .cors(withDefaults());
+    @Order(1)
+    public SecurityFilterChain internalChain(HttpSecurity http) throws Exception {
+        return http
+                .securityMatcher("/api/v1/users/internal/**")
+                .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
+                .addFilterBefore(new ApiKeyFilter(authProperties), UsernamePasswordAuthenticationFilter.class)
+                .csrf(csrf -> csrf.disable())
+                .cors(withDefaults())
+                .build();
+    }
 
-        return http.build();
+    @Bean
+    @Order(2)
+    public SecurityFilterChain apiChain(HttpSecurity http) throws Exception {
+        return http
+                .authorizeHttpRequests(auth -> auth.anyRequest().authenticated())
+                .oauth2ResourceServer(oauth2 -> oauth2
+                        .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())))
+                .csrf(csrf -> csrf.disable())
+                .cors(withDefaults())
+                .build();
     }
 
     private JwtAuthenticationConverter jwtAuthenticationConverter() {
-        var grantedAuthoritiesConverter = new JwtGrantedAuthoritiesConverter();
-        grantedAuthoritiesConverter.setAuthorityPrefix("SCOPE_");
-        grantedAuthoritiesConverter.setAuthoritiesClaimName("permissions");
+        var granted = new JwtGrantedAuthoritiesConverter();
+        granted.setAuthorityPrefix("SCOPE_");
+        granted.setAuthoritiesClaimName("permissions");
 
-        var jwtConverter = new JwtAuthenticationConverter();
-        jwtConverter.setJwtGrantedAuthoritiesConverter(grantedAuthoritiesConverter);
-        return jwtConverter;
+        var conv = new JwtAuthenticationConverter();
+        conv.setJwtGrantedAuthoritiesConverter(granted);
+        return conv;
     }
 
-    private class ApiKeyFilter extends OncePerRequestFilter {
-        @Override
-        protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
-                FilterChain filterChain)
-                throws ServletException, IOException {
+    static class ApiKeyFilter extends OncePerRequestFilter {
+        private final AuthProperties props;
 
-            String path = request.getRequestURI();
-            if (!path.startsWith("/api/v1/users/internal/")) {
-                filterChain.doFilter(request, response);
-                return;
-            }
+        ApiKeyFilter(AuthProperties props) {
+            this.props = props;
+        }
+
+        @Override
+        protected void doFilterInternal(HttpServletRequest request,
+                HttpServletResponse response,
+                FilterChain chain) throws ServletException, IOException {
 
             String apiKey = request.getHeader("X-API-KEY");
-            if (apiKey == null || !apiKey.equals(authProperties.getApiKey())) {
+            if (apiKey == null || !apiKey.equals(props.getApiKey())) {
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                response.getWriter().write("Invalid API Key");
+                // Optionnel : un corps pour debug
+                // response.setContentType("text/plain");
+                // response.getWriter().write("Invalid API Key");
                 return;
             }
-
-            filterChain.doFilter(request, response);
+            chain.doFilter(request, response);
         }
     }
 }
