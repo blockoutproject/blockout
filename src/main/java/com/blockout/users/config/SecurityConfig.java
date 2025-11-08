@@ -15,7 +15,8 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtGra
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.filter.OncePerRequestFilter;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.io.IOException;
 
 import static org.springframework.security.config.Customizer.withDefaults;
@@ -62,6 +63,8 @@ public class SecurityConfig {
     }
 
     static class ApiKeyFilter extends OncePerRequestFilter {
+
+        private static final Logger logger = LoggerFactory.getLogger(ApiKeyFilter.class);
         private final AuthProperties props;
 
         ApiKeyFilter(AuthProperties props) {
@@ -73,15 +76,37 @@ public class SecurityConfig {
                 HttpServletResponse response,
                 FilterChain chain) throws ServletException, IOException {
 
+            String path = request.getRequestURI();
             String apiKey = request.getHeader("X-API-KEY");
-            if (apiKey == null || !apiKey.equals(props.getApiKey())) {
+
+            // Logs pour debug
+            logger.info("🔑 Incoming request to [{}] with X-API-KEY: {}",
+                    path,
+                    apiKey != null ? mask(apiKey) : "<none>");
+
+            if (apiKey == null) {
+                logger.warn("❌ Missing X-API-KEY header for path {}", path);
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                // Optionnel : un corps pour debug
-                // response.setContentType("text/plain");
-                // response.getWriter().write("Invalid API Key");
+                response.getWriter().write("Missing API Key");
                 return;
             }
+
+            if (!apiKey.equals(props.getApiKey())) {
+                logger.warn("🚫 Invalid API Key for path {} — received: {} expected: {}",
+                        path, mask(apiKey), mask(props.getApiKey()));
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                response.getWriter().write("Invalid API Key");
+                return;
+            }
+
+            logger.info("✅ API key validated successfully for {}", path);
             chain.doFilter(request, response);
+        }
+
+        private String mask(String key) {
+            if (key == null || key.length() < 6)
+                return "<invalid>";
+            return key.substring(0, 4) + "..." + key.substring(key.length() - 4);
         }
     }
 }
