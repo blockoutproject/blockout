@@ -45,6 +45,7 @@ public class MatchService {
      */
     @Transactional
     public Match createMatch(Match match) {
+        match.setStatus(MatchStatus.UPCOMING);
         Match createdMatch = matchRepository.save(match);
         logger.info("Match created successfully",
                 keyValue("action", "create_match"),
@@ -91,10 +92,11 @@ public class MatchService {
      *
      * @param poolIds listes des pools à inclure
      * @param teamIds listes des équipes à inclure
-     * @param status statut des matchs (UPCOMING pour futurs, autre pour passés)
-     * @param page indice de la page (0-based)
-     * @param size nombre de jours par page
-     * @return un DayPageDTO contenant les groupes de matchs par jour, un indicateur hasNext et le numéro de nextPage
+     * @param status  statut des matchs (UPCOMING pour futurs, autre pour passés)
+     * @param page    indice de la page (0-based)
+     * @param size    nombre de jours par page
+     * @return un DayPageDTO contenant les groupes de matchs par jour, un indicateur
+     *         hasNext et le numéro de nextPage
      */
     public DayPageDTO getMatchesByDay(
             List<Long> poolIds,
@@ -166,18 +168,18 @@ public class MatchService {
 
         // Récupère les matchs dans cette plage
         List<Match> allMatches = (status == MatchStatus.UPCOMING)
-            ? matchRepository.findAllInRangeAsc(
-                startOfMinDay,
-                endDateTime,
-                poolIds, poolIds.size(),
-                status,
-                teamIds, teamIds.size())
-            : matchRepository.findAllInRangeDesc(
-                startOfMinDay,
-                endDateTime,
-                poolIds, poolIds.size(),
-                status,
-                teamIds, teamIds.size());
+                ? matchRepository.findAllInRangeAsc(
+                        startOfMinDay,
+                        endDateTime,
+                        poolIds, poolIds.size(),
+                        status,
+                        teamIds, teamIds.size())
+                : matchRepository.findAllInRangeDesc(
+                        startOfMinDay,
+                        endDateTime,
+                        poolIds, poolIds.size(),
+                        status,
+                        teamIds, teamIds.size());
 
         logger.debug("Fetched matches in date range",
                 keyValue("matchesCount", allMatches.size()));
@@ -248,7 +250,6 @@ public class MatchService {
             match.setPoolId(updatedMatch.getPoolId());
             match.setScore(updatedMatch.getScore());
             match.setSet(updatedMatch.getSet());
-            match.setStatus(updatedMatch.getStatus());
             match.setLiveCode(updatedMatch.getLiveCode());
             match.setVenue(updatedMatch.getVenue());
             match.setFirstReferee(updatedMatch.getFirstReferee());
@@ -259,7 +260,8 @@ public class MatchService {
                 logger.info("Match réactivé", keyValue("matchId", id));
             }
 
-            if (before.getStatus() != MatchStatus.FINISHED && match.getStatus() == MatchStatus.FINISHED) {
+            if (before.getStatus() == MatchStatus.UPCOMING && match.getSet() != null) {
+                match.setStatus(MatchStatus.FINISHED);
                 eventPublisher.publishMatchFinished(match);
             }
 
@@ -275,7 +277,7 @@ public class MatchService {
     /**
      * Désactive en masse les matches actifs d'une pool pour les codes spécifiés.
      *
-     * @param poolId L'identifiant de la pool
+     * @param poolId                 L'identifiant de la pool
      * @param matchCodesToDeactivate Liste des codes de match à désactiver
      */
     @Transactional
