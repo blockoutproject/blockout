@@ -10,8 +10,8 @@ class Match:
     team_id_a: int
     team_id_b: int
     match_date: datetime
-    status: str
     season: str
+    status: Optional[str] = None
     id: Optional[int] = None
     set: Optional[str] = None
     score: Optional[str] = None
