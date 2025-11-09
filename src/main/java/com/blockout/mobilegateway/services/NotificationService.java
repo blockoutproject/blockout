@@ -160,6 +160,9 @@ public class NotificationService {
     }
 
     public void registerPushToken(Long userId, RegisterPushTokenRequestDTO req) {
+        logger.info("Registering push token",
+                keyValue("userId", userId),
+                keyValue("platform", req.getPlatform()));
         notificationClientService.registerPushToken(userId, req);
     }
 
