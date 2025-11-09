@@ -106,15 +106,16 @@ public class MatchService {
             int size) {
 
         LocalDateTime now = LocalDateTime.now();
+        LocalDate today = now.toLocalDate();
 
-        // Récupère la liste de jours distincts
+        // 1) Récupère la liste de jours distincts selon le statut
         List<LocalDate> allDays;
         if (status == MatchStatus.UPCOMING) {
-            allDays = matchRepository.findDistinctUpcomingDates(
-                    now,
+            allDays = matchRepository.findDistinctUpcomingDatesIncludingToday(
+                    today,
                     poolIds, poolIds.size(),
                     teamIds, teamIds.size());
-            logger.debug("Found distinct upcoming match days",
+            logger.debug("Found distinct upcoming match days (>= today)",
                     keyValue("count", allDays.size()));
         } else {
             allDays = matchRepository.findDistinctDatesUntil(
