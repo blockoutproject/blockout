@@ -97,7 +97,7 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
             @Param("teamIdsSize") int teamIdsSize);
 
     @Query("""
-                SELECT DISTINCT DATE(m.matchDate)
+                SELECT DISTINCT CAST(m.matchDate AS LocalDate)
                 FROM Match m
                 WHERE m.status = 'UPCOMING'
                     AND CAST(m.matchDate AS LocalDate) >= :today
