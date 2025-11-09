@@ -289,7 +289,7 @@ class Scraper(ABC):
             live_code_field = "live_code"
             general_fields = [
                 "pool_id", "team_id_a", "team_id_b",
-                "venue", "first_referee", "second_referee", "status"
+                "venue", "first_referee", "second_referee"
             ]
             
             if updated_match.league_code == "AALNV":

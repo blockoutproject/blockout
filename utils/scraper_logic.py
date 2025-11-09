@@ -146,7 +146,6 @@ async def handle_csv_download_and_parse(
                 season=new_pool.season,
                 set=row.get('set').replace('/', '-') if row.get('set') else None,
                 score=row.get('score') or None,
-                status=MatchStatus.FINISHED.value if row.get('set') else MatchStatus.UPCOMING.value,
                 venue=capitalize_words(row.get('venue')),
                 first_referee=capitalize_words(row.get('first_referee')),
                 second_referee=capitalize_words(row.get('second_referee'))
@@ -166,7 +165,7 @@ async def handle_csv_download_and_parse(
                     active_team_ids.add(team_obj.id)
 
             # Association stats
-            if not has_anomalous_match and updated_match.status == MatchStatus.FINISHED.value and updated_match.set:
+            if not has_anomalous_match and updated_match.set:
                 try:
                     set_a, set_b = updated_match.set.split('-')
                     team_a_stats, team_b_stats = compute_volleyball_match_stats(set_a, set_b, updated_match.score)

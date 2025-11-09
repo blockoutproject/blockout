@@ -265,9 +265,7 @@ class ProScraper(Scraper):
                 updated_match.match_date = match_datetime
                 if set_value and set_value != "0-0":
                     updated_match.set = set_value
-                    if "3" in set_value:
-                        updated_match.status = MatchStatus.FINISHED.value
-                        
+
                 if score_str:
                     updated_match.score = score_str
                     
