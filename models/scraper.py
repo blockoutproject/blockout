@@ -12,6 +12,8 @@ from models.enums.datasource_priority import DataSourcePriority
 from models.match import Match
 from dataclasses import replace
 
+from utils.logging_utils import to_loggable
+
 class Scraper(ABC):
     _gauges = {}
 
@@ -298,9 +300,9 @@ class Scraper(ABC):
                     priority_validation_enabled=self.priority_validation_enabled,
                     priority=priority,
                     current_priority=current_priority,
-                    updated_obj=updated_obj,
-                    existing_obj=existing_obj,
-                    updated_match=updated_match,
+                    updated_obj=to_loggable(updated_obj),
+                    existing_obj=to_loggable(existing_obj),
+                    updated_match=to_loggable(updated_match),
                     message="debug schedule_match_changes"
                 )
 
