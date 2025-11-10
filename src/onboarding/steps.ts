@@ -53,7 +53,7 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
         id: "disclaimer",
         title: "🏐 À propos des données",
         description:
-            "Blockout n’est pas une application officielle de la Fédération Française de Volley.\n\nNotre objectif est d'offrir une meilleure expérience aux volleyeurs et passionnés des championnats français.\n\nPar ailleurs, les compétitions départementales ne sont pas encore disponibles pour des raisons techniques.",
+            "Blockout n’est pas une application officielle de la Fédération Française de Volley.\n\nNotre objectif est d'offrir une meilleure expérience aux volleyeuses, volleyeurs et passionné(e)s des championnats français.\n\nPar ailleurs, les compétitions départementales ne sont pas encore disponibles pour des raisons techniques.",
         visual: {
             image: require("@/assets/images/disclaimer.png"),
         },

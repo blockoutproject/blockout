@@ -11,7 +11,6 @@ import MaskedImage from "@/src/components/common/images/MaskedImage";
 import InfoPill from "@/src/components/common/chips/InfoPill";
 import ApiErrorToast from "@/src/components/common/feedback/ApiErrorToast";
 import { GradientButton } from "@/src/components/common/GradientButton";
-import { useOnboardingStore } from "../utils/onboardingStore";
 
 const APP_TITLE = "Blockout";
 
@@ -19,21 +18,19 @@ const LoginScreen: React.FC = () => {
     const theme = useAppTheme();
     const insets = useSafeAreaInsets();
     const { signIn, continueAsGuest, isLoading, error } = useSession();
-    const { resetOnboarding } = useOnboardingStore();
 
     const [isSigningIn, setIsSigningIn] = useState(false);
     const [isGuesting, setIsGuesting] = useState(false);
     const [apiError, setApiError] = useState<string | null>(null);
 
     useEffect(() => {
-        if (!isSigningIn && error) {
+        if (!isSigningIn && error && !(error?.name === "NO_CREDENTIALS")) {
             setApiError("Erreur lors de la connexion.");
         }
     }, [error, isSigningIn]);
 
     const onPressLogin = async () => {
         try {
-            resetOnboarding();
             setIsSigningIn(true);
             setApiError(null);
             await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);

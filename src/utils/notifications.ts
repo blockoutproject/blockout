@@ -77,6 +77,7 @@ export async function registerPushTokenOnBackend(
     userId: number,
     expoPushToken: string | null
 ) {
+
     const { mobile } = useApis();
 
     if (!expoPushToken) return;

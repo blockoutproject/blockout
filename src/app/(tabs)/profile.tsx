@@ -20,6 +20,7 @@ import ReportFormSheet from "@/src/components/report/ReportFormSheet";
 import { BOTTOM_TABBAR_HEIGHT, SECTION_SEPARATOR_HEIGHT } from "@/src/theme/globals";
 import { useApis } from "@/src/context/ApiProvider";
 import GuestUpsellCard from "@/src/components/user/GuestUpsellCard";
+import { useOnboardingStore } from "@/src/utils/onboardingStore";
 
 const SPINNER_BOX = 18;
 
@@ -30,6 +31,7 @@ const ProfileScreen: React.FC = () => {
     const { refetch, customUser, isGuest, signOutSSO } = useSession();
     const { allowed: canEdit } = useHasScopes(["update:current_user"]);
     const version = Application.nativeApplicationVersion ?? "1.0.0";
+    const { resetOnboarding } = useOnboardingStore();
 
     const [isLoggingOut, setIsLoggingOut] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
@@ -57,6 +59,7 @@ const ProfileScreen: React.FC = () => {
         setIsLoggingOut(true);
         Haptics.selectionAsync();
         await signOutSSO();
+        resetOnboarding();
         setIsLoggingOut(false);
     };
 
@@ -74,8 +77,9 @@ const ProfileScreen: React.FC = () => {
                         setIsDeleting(true);
                         try {
                             await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-                            await mobile.deleteCurrentUser();
                             await signOutSSO();
+                            await mobile.deleteCurrentUser();
+                            resetOnboarding();
                             await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
                         } catch {
                             await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);

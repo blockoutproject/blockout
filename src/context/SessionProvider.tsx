@@ -8,8 +8,9 @@ import { useOnboardingStore } from "../utils/onboardingStore";
 import { useGuestSessionStore } from "../utils/guestSessionStore";
 import { useApis } from "@/src/context/ApiProvider";
 import { setAuthOnApis } from "@/src/api";
-import { router, useNavigation } from "expo-router";
+import { router, usePathname } from "expo-router";
 import { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
+import { useRegisterPushToken } from "../hooks/notification/useRegisterPushToken";
 
 export type SessionActions = {
     signIn: () => Promise<void>;
@@ -59,8 +60,9 @@ export const SessionProvider: React.FC<React.PropsWithChildren> = ({ children })
     const { data: customUser, isLoading: isCustomUserLoading, error: customUserError, refetch } = useEnsureUser();
     const queryClient = useQueryClient();
     const { hasCompletedOnboarding } = useOnboardingStore();
-    const navigation = useNavigation<TabsNav>();
+    const pathname = usePathname();
     const apis = useApis();
+    const registerPushToken = useRegisterPushToken();
 
     const isGuest = useGuestSessionStore((s) => s.isGuest);
     const setGuest = useGuestSessionStore((s) => s.continueAsGuest);
@@ -76,14 +78,14 @@ export const SessionProvider: React.FC<React.PropsWithChildren> = ({ children })
         (async () => {
             try {
                 const token = await registerForPushNotificationsAsync().catch(() => null);
-                if (customUser.id && token) {
-                    await registerPushTokenOnBackend(customUser.id, token).catch(() => { });
+                if (customUser?.id && token) {
+                    await registerPushToken(customUser.id, token).catch(() => { });
                 }
             } catch (err) {
                 console.warn("Erreur lors de l’enregistrement du push token :", err);
             }
         })();
-    }, [isAuthenticated, hasCompletedOnboarding]);
+    }, [isAuthenticated, hasCompletedOnboarding, customUser?.id, registerPushToken]);
 
     useEffect(() => {
         let cancelled = false;
@@ -145,8 +147,8 @@ export const SessionProvider: React.FC<React.PropsWithChildren> = ({ children })
         await refetch();
 
         if (isGuest) leaveGuestFlag();
-
-        router.push("/(tabs)/(feed)");
+        
+        if (pathname === "/profile") router.push("/(tabs)/(feed)");
         console.log("[Session] Sign-in successful");
     };
 

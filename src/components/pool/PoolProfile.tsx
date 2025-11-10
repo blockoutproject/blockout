@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { View, StyleSheet, LayoutChangeEvent } from "react-native";
 import * as Haptics from "expo-haptics";
 
@@ -11,6 +11,8 @@ import InfoPill from "@/src/components/common/chips/InfoPill";
 import { LOGO_SIZE } from "@/src/theme/globals";
 import MaskedImage from "@/src/components/common/images/MaskedImage";
 import { computeBalancedRowsByCount } from "@/src/utils/utils";
+import { useSession } from "@/src/context/SessionProvider";
+import GuestPromptSheet, { GuestPromptSheetRef } from "../user/GuestPromptSheet.tsx";
 
 export type PoolProfileProps = {
     enrichedPool: EnrichedPoolDTO;
@@ -20,6 +22,8 @@ const GAP = 6;
 
 const PoolProfile: React.FC<PoolProfileProps> = ({ enrichedPool }) => {
     const { isFollowing, isProcessing, followersCount, onToggleFollow } = usePoolFollowState(enrichedPool);
+    const { isGuest } = useSession();
+    const guestSheetRef = useRef<GuestPromptSheetRef>(null);
 
     const division = enrichedPool.division;
     const gradient = [
@@ -81,9 +85,20 @@ const PoolProfile: React.FC<PoolProfileProps> = ({ enrichedPool }) => {
     }, [measured, pillsData, containerWidth, pillWidths]);
 
     const handleFollow = () => {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-        onToggleFollow();
+        if (isGuest) {
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+            guestSheetRef.current?.present();
+        } else {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            onToggleFollow();
+        }
     };
+
+    useEffect(() => {
+        if (!isGuest) {
+            guestSheetRef.current?.dismiss();
+        }
+    }, [isGuest]);
 
     return (
         <View style={styles.container} testID="pool-profile">
@@ -125,6 +140,8 @@ const PoolProfile: React.FC<PoolProfileProps> = ({ enrichedPool }) => {
                     <FollowersCounter count={followersCount} />
                 </View>
             </View>
+
+            <GuestPromptSheet ref={guestSheetRef} />
         </View>
     );
 };

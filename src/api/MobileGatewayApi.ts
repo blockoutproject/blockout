@@ -12,6 +12,7 @@ import { ScraperStatus } from "../types/ScraperStatus";
 import { GitHubIssueResponse } from "../types/Report";
 import { LegalDocument } from "../types/LegalDocument";
 import { CustomImage } from "../types/Common";
+import { appendJsonSnake } from "../utils/utils";
 
 export class MobileGatewayApi extends BaseApi {
     constructor() {
@@ -37,7 +38,7 @@ export class MobileGatewayApi extends BaseApi {
         image?: CustomImage,
     ) {
         const formData = new FormData();
-        formData.append("data", JSON.stringify(data));
+        appendJsonSnake(formData, "data", data);
         if (image) {
             formData.append("image", {
                 uri: image.uri,
@@ -136,7 +137,7 @@ export class MobileGatewayApi extends BaseApi {
         image?: CustomImage,
     ): Promise<CustomUser> {
         const formData = new FormData();
-        formData.append("data", JSON.stringify(data));
+        appendJsonSnake(formData, "data", data);
         if (image) {
             formData.append("image", {
                 uri: image.uri,
@@ -323,7 +324,7 @@ export class MobileGatewayApi extends BaseApi {
         image?: CustomImage,
     ) {
         const formData = new FormData();
-        formData.append("data", JSON.stringify(data));
+        appendJsonSnake(formData, "data", data);
         if (image) {
             formData.append("image", {
                 uri: image.uri,
@@ -349,7 +350,7 @@ export class MobileGatewayApi extends BaseApi {
         image?: CustomImage,
     ) {
         const formData = new FormData();
-        formData.append("data", JSON.stringify(data));
+        appendJsonSnake(formData, "data", data);
         if (image) {
             formData.append("image", {
                 uri: image.uri,
@@ -435,9 +436,8 @@ export class MobileGatewayApi extends BaseApi {
         data: Record<string, any>,
         images?: CustomImage[],
     ) {
-        console.log("))))))))))))))s")
         const formData = new FormData();
-        formData.append("data", JSON.stringify(data));
+        appendJsonSnake(formData, "data", data);
         if (images && images.length > 0) {
             images.forEach((img) => {
                 formData.append("images", {

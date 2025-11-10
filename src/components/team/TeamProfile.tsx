@@ -1,8 +1,7 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { View, StyleSheet, LayoutChangeEvent } from "react-native";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
-
 import { EnrichedTeamDTO } from "@/src/types/Team";
 import { useTeamFollowState } from "@/src/hooks/team/useTeamFollowState";
 import FollowButton from "@/src/components/common/follow/FollowButton";
@@ -13,6 +12,8 @@ import { LOGO_SIZE } from "@/src/theme/globals";
 import InfoPill from "@/src/components/common/chips/InfoPill";
 import MaskedImage from "@/src/components/common/images/MaskedImage";
 import InfoPillGradient from "../common/chips/InfoPillGradient";
+import { useSession } from "@/src/context/SessionProvider";
+import GuestPromptSheet, { GuestPromptSheetRef } from "../user/GuestPromptSheet.tsx";
 
 export type TeamProfileProps = {
     enrichedTeam: EnrichedTeamDTO;
@@ -47,6 +48,8 @@ function splitBalanced(containerWidth: number, widths: number[], gap: number) {
 const TeamProfile: React.FC<TeamProfileProps> = ({ enrichedTeam }) => {
     const router = useRouter();
     const { isFollowing, isProcessing, followersCount, onToggleFollow } = useTeamFollowState(enrichedTeam);
+    const { isGuest } = useSession();
+    const guestSheetRef = useRef<GuestPromptSheetRef>(null);
 
     const gradient = [
         enrichedTeam.division.firstGradientColor,
@@ -67,7 +70,6 @@ const TeamProfile: React.FC<TeamProfileProps> = ({ enrichedTeam }) => {
     const [containerWidth, setContainerWidth] = useState(0);
     const [widths, setWidths] = useState<number[]>(Array(pills.length).fill(0));
 
-    // Reset si le nombre/texte des pills change
     useEffect(() => {
         setWidths(Array(pills.length).fill(0));
     }, [pills.length, pills.join("|")]);
@@ -79,7 +81,6 @@ const TeamProfile: React.FC<TeamProfileProps> = ({ enrichedTeam }) => {
 
     const { top, bottom } = useMemo(() => {
         if (!ready) {
-            // Fallback visuel tant que non mesuré : moitié / moitié
             const mid = Math.ceil(pills.length / 2);
             const idx = pills.map((_, i) => i);
             return { top: idx.slice(0, mid), bottom: idx.slice(mid) };
@@ -107,16 +108,26 @@ const TeamProfile: React.FC<TeamProfileProps> = ({ enrichedTeam }) => {
     };
 
     const handleFollow = () => {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-        onToggleFollow();
+        if (isGuest) {
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+            guestSheetRef.current?.present();
+        } else {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            onToggleFollow();
+        }
     };
+
+    useEffect(() => {
+        if (!isGuest) {
+            guestSheetRef.current?.dismiss();
+        }
+    }, [isGuest]);
 
     return (
         <View style={styles.container} testID="team-profile">
             <MaskedImage uri={enrichedTeam.club.logoUrl} size={LOGO_SIZE} radius={20} />
 
             <View style={{ flex: 1 }}>
-                {/* Zone visible */}
                 <View onLayout={onContainer} style={styles.twoRows}>
                     <View style={styles.pillsRow}>
                         {top.map((i) => (
@@ -138,7 +149,6 @@ const TeamProfile: React.FC<TeamProfileProps> = ({ enrichedTeam }) => {
                     </View>
                 </View>
 
-                {/* Mesure cachée (1 passe, 0 flicker) */}
                 {!ready && (
                     <View pointerEvents="none" style={styles.measureRow}>
                         {pills.map((label, i) => (
@@ -159,6 +169,8 @@ const TeamProfile: React.FC<TeamProfileProps> = ({ enrichedTeam }) => {
                     <FollowersCounter count={followersCount} />
                 </View>
             </View>
+
+            <GuestPromptSheet ref={guestSheetRef} />
         </View>
     );
 };
