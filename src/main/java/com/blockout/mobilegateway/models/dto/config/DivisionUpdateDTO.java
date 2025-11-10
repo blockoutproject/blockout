@@ -12,10 +12,18 @@ import lombok.ToString;
 @NoArgsConstructor
 @AllArgsConstructor
 public class DivisionUpdateDTO {
-    //Specialement pour formdata, pas de snakecase ...
+    
     private String name;
+
+    @JsonProperty("main_color")
     private String mainColor;
+
+    @JsonProperty("first_gradient_color")
     private String firstGradientColor;
+
+    @JsonProperty("second_gradient_color")
     private String secondGradientColor;
+
+    @JsonProperty("third_gradient_color")
     private String thirdGradientColor;
 }
