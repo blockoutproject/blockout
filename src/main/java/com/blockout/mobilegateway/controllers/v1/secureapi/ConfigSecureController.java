@@ -48,10 +48,10 @@ public class ConfigSecureController {
     @PutMapping(path = "/divisions/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<DivisionDTO> updateDivision(
             @PathVariable Long id,
-            @RequestPart("data") String json,
+            @RequestPart("data") DivisionUpdateDTO dto,
             @RequestPart(value = "image", required = false) MultipartFile image) throws JsonProcessingException {
 
-        DivisionUpdateDTO dto = objectMapper.readValue(json, DivisionUpdateDTO.class);
+        //DivisionUpdateDTO dto = objectMapper.readValue(json, DivisionUpdateDTO.class);
         DivisionDTO updated = configService.updateDivision(id, dto, image);
         return ResponseEntity.ok(updated);
     }
