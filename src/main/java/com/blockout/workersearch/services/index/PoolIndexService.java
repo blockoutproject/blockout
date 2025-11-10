@@ -46,6 +46,11 @@ public class PoolIndexService {
         poolRepository.deleteById(id);
     }
 
+    public void deleteAll() {
+        logger.info("Deleting all pools", keyValue("action", "delete_all_pools"));
+        poolRepository.deleteAll();
+    }
+
     private PoolDoc map(PoolUpsertEvent e) {
         DivisionUpsertEvent division = configCacheService.getDivisionById(e.getDivisionId());
         String divisionName = division != null ? division.getName() : "Division inconnue";

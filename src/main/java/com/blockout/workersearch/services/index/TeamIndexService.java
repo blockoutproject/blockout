@@ -33,7 +33,7 @@ public class TeamIndexService {
     public void upsert(TeamUpsertEvent e) {
         TeamDoc doc = map(e);
         logger.info("Upserting single team",
-                keyValue("action","upsert_team"),
+                keyValue("action", "upsert_team"),
                 keyValue("id", doc.getId()),
                 keyValue("name", doc.getName()));
         teamRepository.save(doc);
@@ -43,15 +43,20 @@ public class TeamIndexService {
     public void upsertBatch(List<TeamUpsertEvent> events) {
         List<TeamDoc> docs = events.stream().map(this::map).toList();
         logger.info("Upserting batch of teams",
-                keyValue("action","upsert_team_batch"),
+                keyValue("action", "upsert_team_batch"),
                 keyValue("count", docs.size()));
         teamRepository.saveAll(docs);
         events.forEach(teamCacheService::put);
     }
 
     public void delete(Long id) {
-        logger.info("Deleting team", keyValue("action","delete_team"), keyValue("id", id));
+        logger.info("Deleting team", keyValue("action", "delete_team"), keyValue("id", id));
         teamRepository.deleteById(id);
+    }
+
+    public void deleteAll() {
+        logger.info("Deleting all teams", keyValue("action", "delete_all_teams"));
+        teamRepository.deleteAll();
     }
 
     private TeamDoc map(TeamUpsertEvent e) {
@@ -60,7 +65,7 @@ public class TeamIndexService {
 
         String clubName = club != null ? club.getName() : null;
         String clubCity = club != null ? club.getCity() : null;
-        String logoUrl  = club != null ? club.getLogoUrl() : null;
+        String logoUrl = club != null ? club.getLogoUrl() : null;
         String divisionName = division != null ? division.getName() : "Division inconnue";
         Format format = e.getFormat();
         Gender gender = e.getGender();

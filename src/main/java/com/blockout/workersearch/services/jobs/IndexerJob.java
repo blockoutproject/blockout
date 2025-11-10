@@ -49,6 +49,7 @@ public class IndexerJob {
     }
 
     private void reindexClubs() {
+        clubIndexService.deleteAll();
         List<ClubDTO> clubs = clubClientService.listActiveClubs();
         List<ClubUpsertEvent> events = clubs.stream()
                 .map(club -> ClubUpsertEvent.builder()
@@ -64,6 +65,7 @@ public class IndexerJob {
     }
 
     private void reindexTeams() {
+        teamIndexService.deleteAll();
         List<TeamDTO> teams = teamClientService.listActiveTeams();
         List<TeamUpsertEvent> events = teams.stream()
                 .map(team -> TeamUpsertEvent.builder()
@@ -83,6 +85,7 @@ public class IndexerJob {
     }
 
     private void reindexPools() {
+        poolIndexService.deleteAll();
         List<PoolDTO> pools = poolClientService.listActivePools();
         List<PoolUpsertEvent> events = pools.stream()
                 .map(pool -> PoolUpsertEvent.builder()

@@ -55,6 +55,11 @@ public class ClubIndexService {
         teamCacheService.remove(id);
     }
 
+    public void deleteAll() {
+        logger.info("Deleting all clubs", keyValue("action", "delete_all_clubs"));
+        clubRepository.deleteAll();
+    }
+
     private ClubDoc map(ClubUpsertEvent e) {
         return ClubDoc.builder()
                 .id(e.getId())
