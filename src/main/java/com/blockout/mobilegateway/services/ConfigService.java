@@ -33,6 +33,7 @@ public class ConfigService {
 
     public DivisionDTO updateDivision(Long id, DivisionUpdateDTO dto, MultipartFile image) {
         logger.info("Updating division id=" + id);
+        System.out.println("Updating division with data: " + dto.toString());
         return configClientService.updateDivision(id, dto, image);
     }
 
