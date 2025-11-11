@@ -28,7 +28,7 @@ replay_pid*
 target/
 
 # postgres
-local/postgres-data
+local
 
 # environment variables
 .env.dev
