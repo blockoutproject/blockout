@@ -17,15 +17,13 @@ import com.blockout.mobilegateway.models.dto.pool.EnrichedPoolDTO;
 import com.blockout.mobilegateway.models.dto.pool.PoolDTO;
 import com.blockout.mobilegateway.models.dto.team.TeamDTO;
 import com.blockout.mobilegateway.models.dto.team.TeamWithStatsDTO;
+import com.blockout.mobilegateway.services.clients.ClubClientService;
+import com.blockout.mobilegateway.services.clients.CompetitionClientService;
+import com.blockout.mobilegateway.services.clients.ConfigClientService;
 import com.blockout.mobilegateway.services.clients.MatchClientService;
 import com.blockout.mobilegateway.services.clients.PoolClientService;
 import com.blockout.mobilegateway.services.clients.TeamClientService;
-import com.blockout.mobilegateway.services.clients.ConfigClientService;
-import com.blockout.mobilegateway.services.clients.ClubClientService;
-import com.blockout.mobilegateway.services.clients.CompetitionClientService;
-
 import lombok.RequiredArgsConstructor;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -52,24 +50,21 @@ public class MatchService {
     private final ApiClientProperties apiClientProperties;
     private final PdfLinkTokenService pdfLinkTokenService;
 
-    public EnrichedDayPageDTO getMatchList(
-            String status,
-            int page,
-            int size,
-            List<Long> poolFilterIds,
-            List<Long> teamFilterIds) {
-
+    public EnrichedDayPageDTO getMatchList(String status, int page, int size, List<Long> poolFilterIds, List<Long> teamFilterIds) {
         logger.info("Fetching match list",
                 keyValue("action", "fetch_match_list"),
                 keyValue("status", status),
                 keyValue("page", page),
                 keyValue("size", size),
-                keyValue("poolFilterIds", poolFilterIds),
-                keyValue("teamFilterIds", teamFilterIds));
+                keyValue("pool_filter_ids_count", poolFilterIds != null ? poolFilterIds.size() : 0),
+                keyValue("team_filter_ids_count", teamFilterIds != null ? teamFilterIds.size() : 0));
 
         DayPageDTO dayPage = matchClientService.getMatchesByDay(page, size, poolFilterIds, teamFilterIds, status);
-        if (dayPage == null || dayPage.getDayMatches() == null) {
-            logger.warn("No match data returned", keyValue("page", page));
+        if (dayPage == null || dayPage.getDayMatches() == null || dayPage.getDayMatches().isEmpty()) {
+            logger.warn("No match data returned",
+                    keyValue("action", "fetch_match_list"),
+                    keyValue("page", page),
+                    keyValue("size", size));
             return EnrichedDayPageDTO.builder()
                     .dayMatches(Collections.emptyList())
                     .hasNext(false)
@@ -79,125 +74,118 @@ public class MatchService {
 
         List<DayMatchesDTO> dayGroups = dayPage.getDayMatches();
 
-        Set<Long> poolIds = new HashSet<>();
-        Set<Long> teamIds = new HashSet<>();
-        Set<Long> divisionIds = new HashSet<>();
-
+        Set<Long> poolIds = new HashSet<>(64);
+        Set<Long> teamIds = new HashSet<>(128);
         for (DayMatchesDTO day : dayGroups) {
-            if (day.getPools() == null)
-                continue;
-            for (PoolMatchesDTO pool : day.getPools()) {
+            List<PoolMatchesDTO> pools = day.getPools();
+            if (pools == null) continue;
+            for (PoolMatchesDTO pool : pools) {
                 poolIds.add(pool.getPoolId());
-                if (pool.getMatches() != null) {
-                    for (MatchDTO match : pool.getMatches()) {
-                        teamIds.add(match.getTeamIdA());
-                        teamIds.add(match.getTeamIdB());
-                    }
+                List<MatchDTO> matches = pool.getMatches();
+                if (matches == null) continue;
+                for (MatchDTO m : matches) {
+                    teamIds.add(m.getTeamIdA());
+                    teamIds.add(m.getTeamIdB());
                 }
             }
         }
 
-        logger.info("Aggregated IDs from matches",
-                keyValue("poolCount", poolIds.size()),
-                keyValue("teamCount", teamIds.size()));
+        logger.info("Aggregated ids",
+                keyValue("action", "aggregate_ids_from_matches"),
+                keyValue("unique_pool_ids", poolIds.size()),
+                keyValue("unique_team_ids", teamIds.size()));
 
         List<PoolDTO> rawPools = poolClientService.getPoolsByIds(poolIds);
-        rawPools.forEach(pool -> divisionIds.add(pool.getDivisionId()));
+        Set<Long> divisionIds = rawPools.stream().map(PoolDTO::getDivisionId).collect(Collectors.toSet());
 
         List<TeamDTO> teams = teamClientService.getTeamsByIds(teamIds);
+        Map<Long, TeamDTO> teamMap = teams.stream().collect(Collectors.toMap(TeamDTO::getId, Function.identity()));
 
-        Set<String> clubIds = teams.stream()
-                .map(TeamDTO::getClubId)
-                .filter(Objects::nonNull)
-                .collect(Collectors.toSet());
-
-        logger.info("Fetching logos for clubs", keyValue("clubIds", clubIds));
-
+        Set<String> clubIds = teams.stream().map(TeamDTO::getClubId).filter(Objects::nonNull).collect(Collectors.toSet());
         List<ClubDTO> clubs = clubClientService.getClubsByIds(clubIds);
+        Map<String, String> clubLogoById = clubs.stream().collect(Collectors.toMap(ClubDTO::getId, ClubDTO::getLogoUrl));
+        for (TeamDTO t : teams) t.setLogoUrl(clubLogoById.get(t.getClubId()));
 
-        Map<String, String> clubLogoMap = new HashMap<>();
-        for (ClubDTO club : clubs) {
-            clubLogoMap.put(club.getId(), club.getLogoUrl());
+        List<DivisionDTO> allDivisions = configClientService.listDivisions();
+        Map<Long, DivisionDTO> divisionById = allDivisions.stream()
+                .filter(d -> divisionIds.contains(d.getId()) && Boolean.TRUE.equals(d.getActive()))
+                .collect(Collectors.toMap(DivisionDTO::getId, Function.identity()));
+
+        Map<Long, EnrichedPoolDTO> enrichedPoolById = new HashMap<>(rawPools.size() * 2);
+        for (PoolDTO p : rawPools) {
+            DivisionDTO division = divisionById.get(p.getDivisionId());
+            if (division == null) continue;
+            enrichedPoolById.put(p.getId(), EnrichedPoolDTO.builder()
+                    .id(p.getId())
+                    .season(p.getSeason())
+                    .leagueCode(p.getLeagueCode())
+                    .leagueName(p.getLeagueName())
+                    .name(p.getName())
+                    .shortName(p.getShortName())
+                    .format(p.getFormat())
+                    .gender(p.getGender())
+                    .followersCount(p.getFollowersCount())
+                    .division(division)
+                    .build());
         }
 
-        teams.forEach(team -> {
-            String logoUrl = clubLogoMap.get(team.getClubId());
-            team.setLogoUrl(logoUrl);
-        });
-
-        List<DivisionDTO> divisions = configClientService.listDivisions().stream()
-                .filter(d -> divisionIds.contains(d.getId()) && Boolean.TRUE.equals(d.getActive()))
-                .toList();
-
-        Set<Long> activeDivisionIds = divisions.stream()
-                .map(DivisionDTO::getId)
-                .collect(Collectors.toSet());
-
-        Map<Long, EnrichedPoolDTO> enrichedPoolMap = rawPools.stream()
-                .filter(pool -> activeDivisionIds.contains(pool.getDivisionId()))
-                .map(pool -> {
-                    DivisionDTO division = divisions.stream()
-                            .filter(d -> Objects.equals(d.getId(), pool.getDivisionId()))
-                            .findFirst()
-                            .orElse(null);
-                    return EnrichedPoolDTO.builder()
-                            .id(pool.getId())
-                            .season(pool.getSeason())
-                            .leagueCode(pool.getLeagueCode())
-                            .leagueName(pool.getLeagueName())
-                            .name(pool.getName())
-                            .shortName(pool.getShortName())
-                            .format(pool.getFormat())
-                            .gender(pool.getGender())
-                            .followersCount(pool.getFollowersCount())
-                            .division(division)
-                            .build();
-                })
-                .collect(Collectors.toMap(EnrichedPoolDTO::getId, Function.identity()));
-
-        Map<Long, TeamDTO> teamMap = teams.stream()
-                .collect(Collectors.toMap(TeamDTO::getId, Function.identity()));
-
-        logger.info("Fetched and enriched pools, teams, and divisions",
-                keyValue("enrichedPools", enrichedPoolMap.size()),
+        logger.info("Fetched and enriched catalogs",
+                keyValue("action", "enrich_catalogs"),
+                keyValue("enriched_pools", enrichedPoolById.size()),
                 keyValue("teams", teamMap.size()),
-                keyValue("divisions", divisions.size()));
+                keyValue("active_divisions", divisionById.size()));
 
-        List<EnrichedDayMatchesDTO> enrichedDayMatches = new ArrayList<>();
-
+        List<EnrichedDayMatchesDTO> enrichedDayMatches = new ArrayList<>(dayGroups.size());
         for (DayMatchesDTO day : dayGroups) {
-            List<EnrichedPoolMatchesDTO> enrichedPoolMatches = new ArrayList<>();
+            List<PoolMatchesDTO> pools = day.getPools();
+            if (pools == null || pools.isEmpty()) continue;
 
-            for (PoolMatchesDTO pool : day.getPools()) {
-                if (!enrichedPoolMap.containsKey(pool.getPoolId())) {
-                    continue;
-                }
+            List<EnrichedPoolMatchesDTO> enrichedPoolMatches = new ArrayList<>(pools.size());
+            for (PoolMatchesDTO pool : pools) {
+                EnrichedPoolDTO enrichedPool = enrichedPoolById.get(pool.getPoolId());
+                if (enrichedPool == null) continue;
 
-                List<EnrichedMatchDTO> enrichedMatches = new ArrayList<>();
-                for (MatchDTO match : pool.getMatches()) {
-                    enrichedMatches.add(enrichMatch(match, teamMap));
+                List<MatchDTO> matches = pool.getMatches();
+                if (matches == null || matches.isEmpty()) continue;
+
+                List<EnrichedMatchDTO> enrichedMatches = new ArrayList<>(matches.size());
+                for (MatchDTO m : matches) {
+                    enrichedMatches.add(EnrichedMatchDTO.builder()
+                            .id(m.getId())
+                            .matchDate(m.getMatchDate())
+                            .status(m.getStatus())
+                            .set(m.getSet())
+                            .score(m.getScore())
+                            .venue(m.getVenue())
+                            .firstReferee(m.getFirstReferee())
+                            .secondReferee(m.getSecondReferee())
+                            .liveCode(m.getLiveCode())
+                            .teamA(teamMap.get(m.getTeamIdA()))
+                            .teamB(teamMap.get(m.getTeamIdB()))
+                            .build());
                 }
 
                 if (!enrichedMatches.isEmpty()) {
-                    enrichedPoolMatches.add(
-                            EnrichedPoolMatchesDTO.builder()
-                                    .pool(enrichedPoolMap.get(pool.getPoolId()))
-                                    .matches(enrichedMatches)
-                                    .build());
+                    enrichedPoolMatches.add(EnrichedPoolMatchesDTO.builder()
+                            .pool(enrichedPool)
+                            .matches(enrichedMatches)
+                            .build());
                 }
             }
 
             if (!enrichedPoolMatches.isEmpty()) {
-                enrichedDayMatches.add(
-                        EnrichedDayMatchesDTO.builder()
-                                .date(day.getDate())
-                                .pools(enrichedPoolMatches)
-                                .build());
+                enrichedDayMatches.add(EnrichedDayMatchesDTO.builder()
+                        .date(day.getDate())
+                        .pools(enrichedPoolMatches)
+                        .build());
             }
         }
 
-        logger.info("Built enriched day matches list",
-                keyValue("enrichedDayMatchesCount", enrichedDayMatches.size()));
+        logger.info("Built enriched day matches",
+                keyValue("action", "build_enriched_day_matches"),
+                keyValue("day_groups", enrichedDayMatches.size()),
+                keyValue("has_next", dayPage.isHasNext()),
+                keyValue("next_page", dayPage.getNextPage()));
 
         return EnrichedDayPageDTO.builder()
                 .dayMatches(enrichedDayMatches)
@@ -206,96 +194,50 @@ public class MatchService {
                 .build();
     }
 
-    private EnrichedMatchDTO enrichMatch(MatchDTO match, Map<Long, TeamDTO> teamMap) {
-        return EnrichedMatchDTO.builder()
-                .id(match.getId())
-                .matchDate(match.getMatchDate())
-                .status(match.getStatus())
-                .set(match.getSet())
-                .score(match.getScore())
-                .venue(match.getVenue())
-                .firstReferee(match.getFirstReferee())
-                .secondReferee(match.getSecondReferee())
-                .liveCode(match.getLiveCode())
-                .teamA(teamMap.get(match.getTeamIdA()))
-                .teamB(teamMap.get(match.getTeamIdB()))
-                .build();
-    }
-
     public EnrichedMatchDTO getMatchById(Long id) {
-        MatchDTO match = matchClientService.getMatchById(id);
+        logger.info("Fetching match by id",
+                keyValue("action", "get_match_by_id"),
+                keyValue("match_id", id));
 
-        if (match == null) {
-            throw new InconsistentStateException("Match not found with ID " + id);
-        }
+        MatchDTO match = matchClientService.getMatchById(id);
+        if (match == null) throw new InconsistentStateException("Match not found with ID " + id);
 
         TeamDTO teamA = teamClientService.getTeamById(match.getTeamIdA());
-
-        if (teamA == null) {
-            throw new InconsistentStateException("Team A not found with ID " + match.getTeamIdA());
-        }
+        if (teamA == null) throw new InconsistentStateException("Team A not found with ID " + match.getTeamIdA());
 
         TeamDTO teamB = teamClientService.getTeamById(match.getTeamIdB());
-
-        if (teamB == null) {
-            throw new InconsistentStateException("Team B not found with ID " + match.getTeamIdB());
-        }
+        if (teamB == null) throw new InconsistentStateException("Team B not found with ID " + match.getTeamIdB());
 
         PoolDTO rawPool = poolClientService.getPoolById(match.getPoolId());
-
-        if (rawPool == null) {
-            throw new InconsistentStateException("Pool not found with ID " + match.getPoolId());
-        }
+        if (rawPool == null) throw new InconsistentStateException("Pool not found with ID " + match.getPoolId());
 
         DivisionDTO division = configClientService.getDivisionById(rawPool.getDivisionId());
+        if (division == null) throw new InconsistentStateException("Division not found for pool with ID " + match.getPoolId());
 
-        if (division == null) {
-            throw new InconsistentStateException("Division not found for pool with ID " + match.getPoolId());
-        }
+        List<CompetitionAssociationDTO> associations = competitionClientService.getAssociationsByPool(rawPool.getId());
 
-        // Associations & équipes concernées
-        List<CompetitionAssociationDTO> associations = competitionClientService
-                .getAssociationsByPool(rawPool.getId());
-        Set<Long> teamIds = associations.stream().map(CompetitionAssociationDTO::getTeamId).collect(Collectors.toSet());
+        Set<Long> teamIds = new HashSet<>(associations.size() + 2);
+        for (CompetitionAssociationDTO a : associations) teamIds.add(a.getTeamId());
         teamIds.add(teamA.getId());
         teamIds.add(teamB.getId());
 
-        // Fetch de toutes les équipes concernées
         Map<Long, TeamDTO> teamsMap = teamClientService.getTeamsByIds(teamIds).stream()
                 .collect(Collectors.toMap(TeamDTO::getId, Function.identity()));
 
-        // Collecte de tous les clubIds nécessaires
-        Set<String> clubIds = teamsMap.values().stream()
-                .map(TeamDTO::getClubId)
-                .collect(Collectors.toSet());
-
-        // Fetch des clubs en une seule requête
+        Set<String> clubIds = teamsMap.values().stream().map(TeamDTO::getClubId).collect(Collectors.toSet());
         List<ClubDTO> clubs = clubClientService.getClubsByIds(clubIds);
+        Map<String, String> clubLogoById = clubs.stream().collect(Collectors.toMap(ClubDTO::getId, ClubDTO::getLogoUrl));
+        for (TeamDTO t : teamsMap.values()) t.setLogoUrl(clubLogoById.get(t.getClubId()));
 
-        Map<String, String> clubLogoMap = new HashMap<>();
-        for (ClubDTO club : clubs) {
-            clubLogoMap.put(club.getId(), club.getLogoUrl());
-        }
-
-        // Injection des logos dans les TeamDTO
-        teamsMap.values().forEach(team -> {
-            String logo = clubLogoMap.get(team.getClubId());
-            team.setLogoUrl(logo);
-        });
-
-        // Enrichissement du ranking
         List<TeamWithStatsDTO> ranking = associations.stream()
                 .map(assoc -> {
-                    TeamDTO team = teamsMap.get(assoc.getTeamId());
-                    if (team == null) {
-                        throw new InconsistentStateException(
-                                "Missing team with ID " + assoc.getTeamId() + " for pool " + rawPool.getId());
-                    }
+                    TeamDTO t = teamsMap.get(assoc.getTeamId());
+                    if (t == null) throw new InconsistentStateException("Missing team with ID " + assoc.getTeamId() + " for pool " + rawPool.getId());
                     return TeamWithStatsDTO.builder()
-                            .id(team.getId())
-                            .name(team.getName())
-                            .shortName(team.getShortName())
-                            .logoUrl(team.getLogoUrl())
+                            .id(t.getId())
+                            .name(t.getName())
+                            .shortName(t.getShortName())
+                            .logoUrl(t.getLogoUrl())
                             .points(assoc.getPoints())
                             .played(assoc.getPlayed())
                             .wins(assoc.getWins())
@@ -313,7 +255,6 @@ public class MatchService {
                                 .thenComparing(Comparator.comparingDouble(TeamWithStatsDTO::getCoefPoints).reversed()))
                 .toList();
 
-        // Construction de l’objet pool enrichi
         EnrichedPoolDTO enrichedPool = EnrichedPoolDTO.builder()
                 .id(rawPool.getId())
                 .season(rawPool.getSeason())
@@ -329,22 +270,22 @@ public class MatchService {
                 .ranking(ranking)
                 .build();
 
-        // Enrichissement final : teamA et teamB (logo déjà injecté dans teamsMap)
         teamA.setLogoUrl(teamsMap.get(teamA.getId()).getLogoUrl());
         teamB.setLogoUrl(teamsMap.get(teamB.getId()).getLogoUrl());
 
         String base = apiClientProperties.getMobilegateway().getUrl();
+        String addressToken = pdfLinkTokenService.generate("address", match.getSeason(), match.getLeagueCode(), match.getMatchCode());
+        String sheetToken = pdfLinkTokenService.generate("sheet", match.getSeason(), match.getLeagueCode(), match.getMatchCode());
 
-        String addressToken = pdfLinkTokenService.generate(
-                "address", match.getSeason(), match.getLeagueCode(), match.getMatchCode());
-        String sheetToken = pdfLinkTokenService.generate(
-                "sheet", match.getSeason(), match.getLeagueCode(), match.getMatchCode());
+        String addressUrl = UriComponentsBuilder.fromUriString(base).path("/public/ffvb/pdf/").path(addressToken).toUriString();
+        String sheetUrl = UriComponentsBuilder.fromUriString(base).path("/public/ffvb/pdf/").path(sheetToken).toUriString();
 
-        String addressUrl = UriComponentsBuilder.fromUriString(base)
-                .path("/public/ffvb/pdf/").path(addressToken).toUriString();
-
-        String sheetUrl = UriComponentsBuilder.fromUriString(base)
-                .path("/public/ffvb/pdf/").path(sheetToken).toUriString();
+        logger.info("Built enriched match",
+                keyValue("action", "build_enriched_match"),
+                keyValue("match_id", id),
+                keyValue("pool_id", rawPool.getId()),
+                keyValue("division_id", division.getId()),
+                keyValue("ranking_count", ranking.size()));
 
         return EnrichedMatchDTO.builder()
                 .id(match.getId())
