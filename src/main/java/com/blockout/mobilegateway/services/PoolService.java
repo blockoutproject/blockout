@@ -45,19 +45,18 @@ public class PoolService {
                 keyValue("pool_id", poolId));
 
         PoolDTO rawPool = poolClientService.getPoolById(poolId);
-        if (rawPool == null) {
+        if (rawPool == null)
             throw new InconsistentStateException("Pool not found with ID " + poolId);
-        }
 
-        DivisionDTO division = configClientService.getDivisionById(rawPool.getDivisionId());
-        if (division == null) {
+        List<DivisionDTO> allDivisions = configClientService.listDivisions();
+        Map<Long, DivisionDTO> divisionsById = allDivisions.stream()
+                .collect(Collectors.toMap(DivisionDTO::getId, Function.identity()));
+        DivisionDTO division = divisionsById.get(rawPool.getDivisionId());
+        if (division == null)
             throw new InconsistentStateException("Division not found for pool with ID " + poolId);
-        }
 
         List<CompetitionAssociationDTO> associations = competitionClientService.getAssociationsByPool(poolId);
-        Set<Long> teamIds = associations.stream()
-                .map(CompetitionAssociationDTO::getTeamId)
-                .collect(Collectors.toSet());
+        Set<Long> teamIds = associations.stream().map(CompetitionAssociationDTO::getTeamId).collect(Collectors.toSet());
 
         Map<Long, TeamDTO> teamsMap = teamClientService.getTeamsByIds(teamIds).stream()
                 .collect(Collectors.toMap(TeamDTO::getId, Function.identity()));
@@ -66,13 +65,11 @@ public class PoolService {
                 .map(TeamDTO::getClubId)
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
-
         List<ClubDTO> clubs = clubClientService.getClubsByIds(clubIds);
-        Map<String, String> clubLogoMap = new HashMap<>();
+        Map<String, String> clubLogoMap = new HashMap<>(clubs.size() * 2);
         for (ClubDTO c : clubs) {
             clubLogoMap.put(c.getId(), c.getLogoUrl());
         }
-
         teamsMap.values().forEach(team -> team.setLogoUrl(clubLogoMap.get(team.getClubId())));
 
         Comparator<TeamWithStatsDTO> rankingComparator = Comparator.comparingInt(TeamWithStatsDTO::getPoints).reversed()
@@ -148,18 +145,9 @@ public class PoolService {
             return Collections.emptyList();
         }
 
-        Set<Long> divisionIds = pools.stream()
-                .map(PoolDTO::getDivisionId)
-                .filter(Objects::nonNull)
-                .collect(Collectors.toSet());
-
-        Map<Long, DivisionDTO> divisionsById = new HashMap<>();
-        for (Long divId : divisionIds) {
-            DivisionDTO div = configClientService.getDivisionById(divId);
-            if (div != null) {
-                divisionsById.put(divId, div);
-            }
-        }
+        List<DivisionDTO> allDivisions = configClientService.listDivisions();
+        Map<Long, DivisionDTO> divisionsById = allDivisions.stream()
+                .collect(Collectors.toMap(DivisionDTO::getId, Function.identity()));
 
         List<PoolSummaryDTO> result = pools.stream()
                 .map(p -> PoolSummaryDTO.builder()

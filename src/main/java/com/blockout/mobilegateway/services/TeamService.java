@@ -47,7 +47,10 @@ public class TeamService {
         if (team == null)
             throw new InconsistentStateException("Team not found with ID " + id);
 
-        DivisionDTO division = configClientService.getDivisionById(team.getDivisionId());
+        List<DivisionDTO> allDivisions = configClientService.listDivisions();
+        Map<Long, DivisionDTO> divisionsById = allDivisions.stream()
+                .collect(Collectors.toMap(DivisionDTO::getId, Function.identity()));
+        DivisionDTO division = divisionsById.get(team.getDivisionId());
         if (division == null)
             throw new InconsistentStateException("Division not found for team with ID " + id);
 
@@ -57,7 +60,6 @@ public class TeamService {
                 keyValue("team_id", id),
                 keyValue("pools_count", poolsWithRankings != null ? poolsWithRankings.size() : 0));
 
-        // Teams involved (including the team itself)
         Set<Long> allTeamIds = poolsWithRankings.stream()
                 .flatMap(p -> p.getRanking().stream())
                 .map(TeamRankingDTO::getTeamId)
@@ -67,32 +69,29 @@ public class TeamService {
         Map<Long, TeamDTO> teamsMap = teamClientService.getTeamsByIds(allTeamIds).stream()
                 .collect(Collectors.toMap(TeamDTO::getId, Function.identity()));
 
-        // Collect all clubIds once
         Set<String> clubIds = teamsMap.values().stream()
                 .map(TeamDTO::getClubId)
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
 
-        Map<String, ClubDTO> clubMap = clubClientService.getClubsByIds(clubIds).stream()
-                .collect(Collectors.toMap(ClubDTO::getId, Function.identity()));
+        List<ClubDTO> clubs = clubClientService.getClubsByIds(clubIds);
+        Map<String, String> clubLogoById = new HashMap<>(clubs.size() * 2);
+        for (ClubDTO c : clubs) {
+            clubLogoById.put(c.getId(), c.getLogoUrl());
+        }
+        teamsMap.values().forEach(t -> t.setLogoUrl(clubLogoById.get(t.getClubId())));
 
-        // Inject logo into TeamDTOs
-        teamsMap.values().forEach(t -> {
-            ClubDTO club = clubMap.get(t.getClubId());
-            t.setLogoUrl(club != null ? club.getLogoUrl() : null);
-        });
-
-        // Fetch all pools once
-        Set<Long> poolIds = poolsWithRankings.stream().map(PoolWithRankingDTO::getPoolId).collect(Collectors.toSet());
+        Set<Long> poolIds = poolsWithRankings.stream()
+                .map(PoolWithRankingDTO::getPoolId)
+                .collect(Collectors.toSet());
         Map<Long, PoolDTO> poolMap = poolClientService.getPoolsByIds(poolIds).stream()
                 .collect(Collectors.toMap(PoolDTO::getId, Function.identity()));
 
         List<EnrichedPoolDTO> enrichedPools = poolsWithRankings.stream()
                 .map(p -> {
                     PoolDTO basePool = poolMap.get(p.getPoolId());
-                    if (basePool == null) {
+                    if (basePool == null)
                         throw new InconsistentStateException("Missing pool with ID " + p.getPoolId());
-                    }
                     List<TeamWithStatsDTO> ranking = buildRanking(p.getRanking(), teamsMap);
                     return EnrichedPoolDTO.builder()
                             .id(basePool.getId())
@@ -110,7 +109,11 @@ public class TeamService {
                 })
                 .toList();
 
-        ClubDTO enrichedClub = clubMap.get(team.getClubId());
+        ClubDTO enrichedClub = clubIds.isEmpty() ? null
+                : clubs.stream()
+                        .filter(c -> Objects.equals(c.getId(), team.getClubId()))
+                        .findFirst()
+                        .orElse(null);
 
         EnrichedTeamDTO result = EnrichedTeamDTO.builder()
                 .id(team.getId())
@@ -146,20 +149,10 @@ public class TeamService {
         if (teams == null || teams.isEmpty())
             return Collections.emptyList();
 
-        // Divisions (dedup)
-        Set<Long> divisionIds = teams.stream()
-                .map(TeamDTO::getDivisionId)
-                .filter(Objects::nonNull)
-                .collect(Collectors.toSet());
+        List<DivisionDTO> allDivisions = configClientService.listDivisions();
+        Map<Long, DivisionDTO> divisionsById = allDivisions.stream()
+                .collect(Collectors.toMap(DivisionDTO::getId, Function.identity()));
 
-        Map<Long, DivisionDTO> divisionById = new HashMap<>(divisionIds.size());
-        for (Long divId : divisionIds) {
-            DivisionDTO div = configClientService.getDivisionById(divId);
-            if (div != null)
-                divisionById.put(divId, div);
-        }
-
-        // Club (logo)
         Map<String, ClubDTO> clubById = clubClientService.getClubsByIds(Set.of(clubId)).stream()
                 .collect(Collectors.toMap(ClubDTO::getId, c -> c));
         ClubDTO club = clubById.get(clubId);
@@ -172,7 +165,7 @@ public class TeamService {
                         .format(t.getFormat())
                         .gender(t.getGender())
                         .season(t.getSeason())
-                        .division(divisionById.get(t.getDivisionId()))
+                        .division(divisionsById.get(t.getDivisionId()))
                         .club(club)
                         .build())
                 .toList();
@@ -197,20 +190,10 @@ public class TeamService {
         if (teams == null || teams.isEmpty())
             return Collections.emptyList();
 
-        // Divisions
-        Set<Long> divisionIds = teams.stream()
-                .map(TeamDTO::getDivisionId)
-                .filter(Objects::nonNull)
-                .collect(Collectors.toSet());
+        List<DivisionDTO> allDivisions = configClientService.listDivisions();
+        Map<Long, DivisionDTO> divisionsById = allDivisions.stream()
+                .collect(Collectors.toMap(DivisionDTO::getId, Function.identity()));
 
-        Map<Long, DivisionDTO> divisionById = new HashMap<>(divisionIds.size());
-        for (Long divId : divisionIds) {
-            DivisionDTO div = configClientService.getDivisionById(divId);
-            if (div != null)
-                divisionById.put(divId, div);
-        }
-
-        // Clubs
         Set<String> clubIds = teams.stream()
                 .map(TeamDTO::getClubId)
                 .filter(Objects::nonNull)
@@ -226,7 +209,7 @@ public class TeamService {
                         .format(t.getFormat())
                         .gender(t.getGender())
                         .season(t.getSeason())
-                        .division(divisionById.get(t.getDivisionId()))
+                        .division(divisionsById.get(t.getDivisionId()))
                         .club(clubById.get(t.getClubId()))
                         .build())
                 .toList();

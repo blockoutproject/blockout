@@ -107,20 +107,22 @@ public class MatchService {
         Set<String> clubIds = teams.stream().map(TeamDTO::getClubId).filter(Objects::nonNull)
                 .collect(Collectors.toSet());
         List<ClubDTO> clubs = clubClientService.getClubsByIds(clubIds);
-        Map<String, String> clubLogoById = clubs.stream()
-                .collect(Collectors.toMap(ClubDTO::getId, ClubDTO::getLogoUrl));
+        Map<String, String> clubLogoById = new HashMap<>(clubs.size() * 2);
+        for (ClubDTO c : clubs) {
+            clubLogoById.put(c.getId(), c.getLogoUrl());
+        }
         for (TeamDTO t : teams)
             t.setLogoUrl(clubLogoById.get(t.getClubId()));
 
         List<DivisionDTO> allDivisions = configClientService.listDivisions();
         Map<Long, DivisionDTO> divisionById = allDivisions.stream()
-                .filter(d -> divisionIds.contains(d.getId()) && Boolean.TRUE.equals(d.getActive()))
                 .collect(Collectors.toMap(DivisionDTO::getId, Function.identity()));
-
         Map<Long, EnrichedPoolDTO> enrichedPoolById = new HashMap<>(rawPools.size() * 2);
         for (PoolDTO p : rawPools) {
+            if (!divisionIds.contains(p.getDivisionId()))
+                continue;
             DivisionDTO division = divisionById.get(p.getDivisionId());
-            if (division == null)
+            if (division == null || !Boolean.TRUE.equals(division.getActive()))
                 continue;
             enrichedPoolById.put(p.getId(), EnrichedPoolDTO.builder()
                     .id(p.getId())
@@ -225,7 +227,10 @@ public class MatchService {
         if (rawPool == null)
             throw new InconsistentStateException("Pool not found with ID " + match.getPoolId());
 
-        DivisionDTO division = configClientService.getDivisionById(rawPool.getDivisionId());
+        List<DivisionDTO> allDivisions = configClientService.listDivisions();
+        Map<Long, DivisionDTO> divisionsById = allDivisions.stream()
+                .collect(Collectors.toMap(DivisionDTO::getId, Function.identity()));
+        DivisionDTO division = divisionsById.get(rawPool.getDivisionId());
         if (division == null)
             throw new InconsistentStateException("Division not found for pool with ID " + match.getPoolId());
 
@@ -242,8 +247,10 @@ public class MatchService {
 
         Set<String> clubIds = teamsMap.values().stream().map(TeamDTO::getClubId).collect(Collectors.toSet());
         List<ClubDTO> clubs = clubClientService.getClubsByIds(clubIds);
-        Map<String, String> clubLogoById = clubs.stream()
-                .collect(Collectors.toMap(ClubDTO::getId, ClubDTO::getLogoUrl));
+        Map<String, String> clubLogoById = new HashMap<>(clubs.size() * 2);
+        for (ClubDTO c : clubs) {
+            clubLogoById.put(c.getId(), c.getLogoUrl());
+        }
         for (TeamDTO t : teamsMap.values())
             t.setLogoUrl(clubLogoById.get(t.getClubId()));
 
