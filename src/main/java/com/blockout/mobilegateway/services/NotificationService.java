@@ -10,9 +10,7 @@ import com.blockout.mobilegateway.models.dto.notification.UserNotificationPageDT
 import com.blockout.mobilegateway.services.clients.ConfigClientService;
 import com.blockout.mobilegateway.services.clients.NotificationClientService;
 import com.fasterxml.jackson.databind.JsonNode;
-
 import lombok.RequiredArgsConstructor;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashSet;
@@ -22,11 +20,9 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
 @Service
@@ -38,44 +34,26 @@ public class NotificationService {
     private final NotificationClientService notificationClientService;
     private final ConfigClientService configClientService;
 
-    /**
-     * Cache simple en mémoire pour éviter des fetchs répétés :
-     * divisionId -> divisionLogoUrl (peut être null si inconnu/absent).
-     */
     private final ConcurrentMap<Long, String> divisionLogoCache = new ConcurrentHashMap<>();
 
-    /**
-     * Récupère une page de notifications et renvoie la version enrichie avec logo
-     * de division.
-     */
     public EnrichedUserNotificationPageDTO getNotifications(int page, int size) {
         logger.info("Fetching notifications",
-                keyValue("action", "fetch_unreached_notifications"),
+                keyValue("action", "fetch_notifications"),
                 keyValue("page", page),
                 keyValue("size", size));
 
         UserNotificationPageDTO base = notificationClientService.getNotifications(page, size);
-
-        for (UserNotificationDTO n : base.getNotifications()) {
-            logger.warn("Notification fetched",
-                    keyValue("id", n.getId()),
-                    keyValue("userId", n.getUserId()),
-                    keyValue("type", n.getType()),
-                    keyValue("title", n.getTitle()),
-                    keyValue("isRead", n.getIsRead()),
-                    keyValue("createdAt", n.getCreatedAt()));
-        }
 
         List<UserNotificationDTO> rawItems = (base == null || base.getNotifications() == null)
                 ? Collections.emptyList()
                 : base.getNotifications();
 
         logger.info("Base notifications received",
+                keyValue("action", "base_notifications_received"),
                 keyValue("count", rawItems.size()),
-                keyValue("hasNext", base != null && base.isHasNext()),
-                keyValue("nextPage", base != null ? base.getNextPage() : null));
+                keyValue("has_next", base != null && base.isHasNext()),
+                keyValue("next_page", base != null ? base.getNextPage() : null));
 
-        // 1) Extraire & dé-dupliquer les divisionIds des metadata
         Set<Long> divisionIds = rawItems.stream()
                 .map(UserNotificationDTO::getMetadata)
                 .map(this::extractDivisionIdSafely)
@@ -83,9 +61,9 @@ public class NotificationService {
                 .collect(Collectors.toCollection(LinkedHashSet::new));
 
         logger.info("Extracted divisionIds from metadata",
-                keyValue("divisionIdsCount", divisionIds.size()));
+                keyValue("action", "extract_division_ids"),
+                keyValue("division_ids_count", divisionIds.size()));
 
-        // 2) Résoudre les logos manquants (non présents en cache)
         List<Long> toResolve = divisionIds.stream()
                 .filter(id -> !divisionLogoCache.containsKey(id))
                 .toList();
@@ -95,16 +73,19 @@ public class NotificationService {
                 DivisionDTO division = configClientService.getDivisionById(divisionId);
                 String logoUrl = (division != null) ? division.getLogoUrl() : null;
                 divisionLogoCache.put(divisionId, (logoUrl != null && !logoUrl.isBlank()) ? logoUrl : null);
+                logger.debug("Division logo resolved",
+                        keyValue("action", "division_logo_resolved"),
+                        keyValue("division_id", divisionId),
+                        keyValue("has_logo", logoUrl != null));
             } catch (Exception ex) {
                 logger.warn("Failed to resolve division logo",
                         keyValue("action", "division_logo_resolve_failed"),
-                        keyValue("divisionId", divisionId),
+                        keyValue("division_id", divisionId),
                         ex);
-                divisionLogoCache.putIfAbsent(divisionId, null); // negative caching
+                divisionLogoCache.putIfAbsent(divisionId, null);
             }
         }
 
-        // 3) Construire la liste enrichie
         List<EnrichedUserNotificationDTO> enriched = new ArrayList<>(rawItems.size());
         for (UserNotificationDTO n : rawItems) {
             String divisionLogoUrl = extractDivisionIdSafely(n.getMetadata())
@@ -131,7 +112,8 @@ public class NotificationService {
         }
 
         logger.info("Built enriched notifications page",
-                keyValue("enrichedCount", enriched.size()));
+                keyValue("action", "build_enriched_notifications_page"),
+                keyValue("enriched_count", enriched.size()));
 
         boolean hasNext = base != null && base.isHasNext();
         Integer nextPage = base != null ? base.getNextPage() : null;
@@ -144,42 +126,48 @@ public class NotificationService {
     }
 
     public UnreadCountDTO getUnreadNotificationsCount() {
+        logger.info("Fetching unread notifications count",
+                keyValue("action", "fetch_unread_count"));
         return notificationClientService.getUnreadNotificationsCount();
     }
 
     public void markNotificationRead(Long id) {
+        logger.info("Mark notification as read",
+                keyValue("action", "mark_read"),
+                keyValue("notification_id", id));
         notificationClientService.markNotificationRead(id);
     }
 
     public void markNotificationOpened(Long id) {
+        logger.info("Mark notification as opened",
+                keyValue("action", "mark_opened"),
+                keyValue("notification_id", id));
         notificationClientService.markNotificationOpened(id);
     }
 
     public void deleteNotification(Long id) {
+        logger.info("Delete notification",
+                keyValue("action", "delete_notification"),
+                keyValue("notification_id", id));
         notificationClientService.deleteNotification(id);
     }
 
     public void registerPushToken(Long userId, RegisterPushTokenRequestDTO req) {
-        logger.info("Registering push token",
-                keyValue("userId", userId),
+        logger.info("Register push token",
+                keyValue("action", "register_push_token"),
+                keyValue("user_id", userId),
                 keyValue("platform", req.getPlatform()));
         notificationClientService.registerPushToken(userId, req);
     }
 
-    /**
-     * Parse un JsonNode metadata et récupère un divisionId s'il est présent (number
-     * ou string).
-     */
     private Optional<Long> extractDivisionIdSafely(JsonNode metadata) {
         if (metadata == null || metadata.isMissingNode() || metadata.isNull()) {
             return Optional.empty();
         }
-
         JsonNode div = metadata.get("divisionId");
         if (div == null || div.isNull()) {
             return Optional.empty();
         }
-
         if (div.isNumber()) {
             return Optional.of(div.asLong());
         } else if (div.isTextual()) {
@@ -189,11 +177,11 @@ public class NotificationService {
             try {
                 return Optional.of(Long.parseLong(txt));
             } catch (NumberFormatException nfe) {
-                logger.debug("divisionId textual but non-parsable",
+                logger.debug("Non parsable divisionId",
+                        keyValue("action", "division_id_parse_failed"),
                         keyValue("value", txt));
             }
         }
-
         return Optional.empty();
     }
 }

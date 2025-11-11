@@ -15,20 +15,22 @@ import com.blockout.mobilegateway.services.clients.CompetitionClientService;
 import com.blockout.mobilegateway.services.clients.ConfigClientService;
 import com.blockout.mobilegateway.services.clients.PoolClientService;
 import com.blockout.mobilegateway.services.clients.TeamClientService;
-
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
 import java.util.function.Function;
-import java.util.logging.Logger;
 import java.util.stream.Collectors;
+
+import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
 @Service
 @RequiredArgsConstructor
 public class PoolService {
 
-    private static final Logger logger = Logger.getLogger(PoolService.class.getName());
+    private static final Logger logger = LoggerFactory.getLogger(PoolService.class);
 
     private final PoolClientService poolClientService;
     private final ConfigClientService configClientService;
@@ -37,47 +39,46 @@ public class PoolService {
     private final ClubClientService clubClientService;
 
     public EnrichedPoolDTO getPoolById(Long poolId) {
-        PoolDTO rawPool = poolClientService.getPoolById(poolId);
+        long t0 = System.nanoTime();
+        logger.info("Fetch enriched pool",
+                keyValue("action", "get_pool_by_id"),
+                keyValue("pool_id", poolId));
 
+        PoolDTO rawPool = poolClientService.getPoolById(poolId);
         if (rawPool == null) {
             throw new InconsistentStateException("Pool not found with ID " + poolId);
         }
 
         DivisionDTO division = configClientService.getDivisionById(rawPool.getDivisionId());
-
         if (division == null) {
             throw new InconsistentStateException("Division not found for pool with ID " + poolId);
         }
 
-        // Récupération des associations actives pour cette pool
         List<CompetitionAssociationDTO> associations = competitionClientService.getAssociationsByPool(poolId);
-
-        // Récupération des teams nécessaires
-        Set<Long> teamIds = associations.stream().map(CompetitionAssociationDTO::getTeamId).collect(Collectors.toSet());
+        Set<Long> teamIds = associations.stream()
+                .map(CompetitionAssociationDTO::getTeamId)
+                .collect(Collectors.toSet());
 
         Map<Long, TeamDTO> teamsMap = teamClientService.getTeamsByIds(teamIds).stream()
                 .collect(Collectors.toMap(TeamDTO::getId, Function.identity()));
 
-        // Collecte de tous les clubIds nécessaires
         Set<String> clubIds = teamsMap.values().stream()
                 .map(TeamDTO::getClubId)
+                .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
 
-        // Fetch des clubs en une seule requête
         List<ClubDTO> clubs = clubClientService.getClubsByIds(clubIds);
+        Map<String, String> clubLogoMap = clubs.stream()
+                .collect(Collectors.toMap(ClubDTO::getId, ClubDTO::getLogoUrl, (a, b) -> a));
 
-        Map<String, String> clubLogoMap = new HashMap<>();
-        for (ClubDTO club : clubs) {
-            clubLogoMap.put(club.getId(), club.getLogoUrl());
-        }
+        teamsMap.values().forEach(team -> team.setLogoUrl(clubLogoMap.get(team.getClubId())));
 
-        // Injection des logos dans les TeamDTO
-        teamsMap.values().forEach(team -> {
-            String logo = clubLogoMap.get(team.getClubId());
-            team.setLogoUrl(logo);
-        });
+        Comparator<TeamWithStatsDTO> rankingComparator = Comparator.comparingInt(TeamWithStatsDTO::getPoints).reversed()
+                .thenComparingInt(TeamWithStatsDTO::getPointsPenalty)
+                .thenComparing(Comparator.comparingInt(TeamWithStatsDTO::getWins).reversed())
+                .thenComparing(Comparator.comparingDouble(TeamWithStatsDTO::getCoefSets).reversed())
+                .thenComparing(Comparator.comparingDouble(TeamWithStatsDTO::getCoefPoints).reversed());
 
-        // Construction du classement des équipes
         List<TeamWithStatsDTO> ranking = associations.stream()
                 .map(assoc -> {
                     TeamDTO team = teamsMap.get(assoc.getTeamId());
@@ -85,7 +86,6 @@ public class PoolService {
                         throw new InconsistentStateException(
                                 "Missing team with ID " + assoc.getTeamId() + " for pool " + poolId);
                     }
-
                     return TeamWithStatsDTO.builder()
                             .id(team.getId())
                             .name(team.getName())
@@ -100,16 +100,10 @@ public class PoolService {
                             .coefPoints(assoc.getCoefPoints())
                             .build();
                 })
-                .sorted(
-                        Comparator.comparingInt(TeamWithStatsDTO::getPoints).reversed()
-                                .thenComparingInt(TeamWithStatsDTO::getPointsPenalty)
-                                .thenComparing(Comparator.comparingInt(TeamWithStatsDTO::getWins).reversed())
-                                .thenComparing(Comparator.comparingDouble(TeamWithStatsDTO::getCoefSets).reversed())
-                                .thenComparing(Comparator.comparingDouble(TeamWithStatsDTO::getCoefPoints).reversed()))
+                .sorted(rankingComparator)
                 .toList();
 
-        // Construction de l'objet enrichi
-        return EnrichedPoolDTO.builder()
+        EnrichedPoolDTO enriched = EnrichedPoolDTO.builder()
                 .id(rawPool.getId())
                 .season(rawPool.getSeason())
                 .leagueCode(rawPool.getLeagueCode())
@@ -123,19 +117,32 @@ public class PoolService {
                 .followersCount(rawPool.getFollowersCount())
                 .ranking(ranking)
                 .build();
+
+        long t1 = System.nanoTime();
+        logger.info("Enriched pool built",
+                keyValue("action", "get_pool_by_id_done"),
+                keyValue("pool_id", poolId),
+                keyValue("teams_count", teamsMap.size()),
+                keyValue("clubs_count", clubIds.size()),
+                keyValue("ranking_count", ranking.size()),
+                keyValue("duration_ms", (t1 - t0) / 1_000_000));
+        return enriched;
     }
 
-    /**
-     * Retourne une liste de poules “enrichies” par leurs IDs.
-     * Champs renvoyés : id, leagueName, gender, season, division.
-     */
     public List<PoolSummaryDTO> getPoolsByIds(List<Long> ids) {
         if (ids == null || ids.isEmpty()) {
             throw new InconsistentStateException("ids must be a non-empty list");
         }
+        long t0 = System.nanoTime();
+        logger.info("Fetch pool summaries",
+                keyValue("action", "get_pools_by_ids"),
+                keyValue("ids_count", ids.size()));
 
         List<PoolDTO> pools = poolClientService.getPoolsByIds(Set.copyOf(ids));
         if (pools == null || pools.isEmpty()) {
+            logger.info("No pools found",
+                    keyValue("action", "get_pools_by_ids"),
+                    keyValue("ids_count", ids.size()));
             return Collections.emptyList();
         }
 
@@ -144,15 +151,15 @@ public class PoolService {
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
 
-        Map<Long, DivisionDTO> divisionById = new HashMap<>();
+        Map<Long, DivisionDTO> divisionsById = new HashMap<>();
         for (Long divId : divisionIds) {
             DivisionDTO div = configClientService.getDivisionById(divId);
             if (div != null) {
-                divisionById.put(divId, div);
+                divisionsById.put(divId, div);
             }
         }
 
-        return pools.stream()
+        List<PoolSummaryDTO> result = pools.stream()
                 .map(p -> PoolSummaryDTO.builder()
                         .id(p.getId())
                         .leagueName(p.getLeagueName())
@@ -160,13 +167,23 @@ public class PoolService {
                         .shortName(p.getShortName())
                         .season(p.getSeason())
                         .gender(p.getGender())
-                        .division(divisionById.get(p.getDivisionId()))
+                        .division(divisionsById.get(p.getDivisionId()))
                         .build())
                 .toList();
+
+        long t1 = System.nanoTime();
+        logger.info("Pool summaries built",
+                keyValue("action", "get_pools_by_ids_done"),
+                keyValue("result_count", result.size()),
+                keyValue("unique_divisions", divisionsById.size()),
+                keyValue("duration_ms", (t1 - t0) / 1_000_000));
+        return result;
     }
 
     public PoolDTO updatePool(Long id, PoolUpdateDTO dto) {
-        logger.info("Updating pool with id: " + id);
+        logger.info("Update pool",
+                keyValue("action", "update_pool"),
+                keyValue("pool_id", id));
         return poolClientService.updatePool(id, dto);
     }
 }

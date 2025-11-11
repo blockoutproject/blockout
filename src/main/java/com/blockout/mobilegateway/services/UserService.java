@@ -4,56 +4,57 @@ import com.blockout.mobilegateway.models.dto.user.CustomUserDTO;
 import com.blockout.mobilegateway.models.dto.user.CustomUserUpdateDTO;
 import com.blockout.mobilegateway.services.clients.UserClientService;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.logging.Logger;
+import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
 @Service
 @RequiredArgsConstructor
 public class UserService {
 
-    private static final Logger logger = Logger.getLogger(UserService.class.getName());
+    private static final Logger logger = LoggerFactory.getLogger(UserService.class);
 
     private final UserClientService userClientService;
 
-    /**
-     * PUT /users/{auth0Id} (multipart mixte JSON + fichier)
-     */
     public CustomUserDTO updateUser(String auth0Id, CustomUserUpdateDTO dto, MultipartFile image) {
-        logger.info("Updating user with auth0Id: " + auth0Id);
+        logger.info("Update user",
+                keyValue("action", "update_user"),
+                keyValue("auth0_id", auth0Id),
+                keyValue("has_image", image != null),
+                keyValue("has_payload", dto != null));
         return userClientService.updateUser(auth0Id, dto, image);
     }
 
-    /**
-     * PUT /users/me (sans body)
-     */
     public CustomUserDTO ensureCurrentUser() {
-        logger.info("Ensuring current user exists/updated");
+        logger.info("Ensure current user",
+                keyValue("action", "ensure_current_user"));
         return userClientService.ensureCurrentUser();
     }
 
-    /**
-     * DELETE /users/me
-     */
     public void deleteCurrentUser() {
-        logger.info("Deleting current user");
+        logger.info("Delete current user",
+                keyValue("action", "delete_current_user"));
         userClientService.deleteCurrentUser();
     }
 
-    /**
-     * POST /favorites/follow — Suivre une entité
-     */
     public void follow(String auth0Id, String entityType, Long entityId) {
-        logger.info(String.format("Following entity: type=%s id=%d for user=%s", entityType, entityId, auth0Id));
+        logger.info("Follow entity",
+                keyValue("action", "follow_entity"),
+                keyValue("auth0_id", auth0Id),
+                keyValue("entity_type", entityType),
+                keyValue("entity_id", entityId));
         userClientService.follow(auth0Id, entityType, entityId);
     }
 
-    /**
-     * DELETE /favorites/follow — Ne plus suivre une entité
-     */
     public void unfollow(String auth0Id, String entityType, Long entityId) {
-        logger.info(String.format("Unfollowing entity: type=%s id=%d for user=%s", entityType, entityId, auth0Id));
+        logger.info("Unfollow entity",
+                keyValue("action", "unfollow_entity"),
+                keyValue("auth0_id", auth0Id),
+                keyValue("entity_type", entityType),
+                keyValue("entity_id", entityId));
         userClientService.unfollow(auth0Id, entityType, entityId);
     }
 }

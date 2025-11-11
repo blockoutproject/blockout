@@ -50,7 +50,8 @@ public class MatchService {
     private final ApiClientProperties apiClientProperties;
     private final PdfLinkTokenService pdfLinkTokenService;
 
-    public EnrichedDayPageDTO getMatchList(String status, int page, int size, List<Long> poolFilterIds, List<Long> teamFilterIds) {
+    public EnrichedDayPageDTO getMatchList(String status, int page, int size, List<Long> poolFilterIds,
+            List<Long> teamFilterIds) {
         logger.info("Fetching match list",
                 keyValue("action", "fetch_match_list"),
                 keyValue("status", status),
@@ -78,11 +79,13 @@ public class MatchService {
         Set<Long> teamIds = new HashSet<>(128);
         for (DayMatchesDTO day : dayGroups) {
             List<PoolMatchesDTO> pools = day.getPools();
-            if (pools == null) continue;
+            if (pools == null)
+                continue;
             for (PoolMatchesDTO pool : pools) {
                 poolIds.add(pool.getPoolId());
                 List<MatchDTO> matches = pool.getMatches();
-                if (matches == null) continue;
+                if (matches == null)
+                    continue;
                 for (MatchDTO m : matches) {
                     teamIds.add(m.getTeamIdA());
                     teamIds.add(m.getTeamIdB());
@@ -101,10 +104,13 @@ public class MatchService {
         List<TeamDTO> teams = teamClientService.getTeamsByIds(teamIds);
         Map<Long, TeamDTO> teamMap = teams.stream().collect(Collectors.toMap(TeamDTO::getId, Function.identity()));
 
-        Set<String> clubIds = teams.stream().map(TeamDTO::getClubId).filter(Objects::nonNull).collect(Collectors.toSet());
+        Set<String> clubIds = teams.stream().map(TeamDTO::getClubId).filter(Objects::nonNull)
+                .collect(Collectors.toSet());
         List<ClubDTO> clubs = clubClientService.getClubsByIds(clubIds);
-        Map<String, String> clubLogoById = clubs.stream().collect(Collectors.toMap(ClubDTO::getId, ClubDTO::getLogoUrl));
-        for (TeamDTO t : teams) t.setLogoUrl(clubLogoById.get(t.getClubId()));
+        Map<String, String> clubLogoById = clubs.stream()
+                .collect(Collectors.toMap(ClubDTO::getId, ClubDTO::getLogoUrl));
+        for (TeamDTO t : teams)
+            t.setLogoUrl(clubLogoById.get(t.getClubId()));
 
         List<DivisionDTO> allDivisions = configClientService.listDivisions();
         Map<Long, DivisionDTO> divisionById = allDivisions.stream()
@@ -114,7 +120,8 @@ public class MatchService {
         Map<Long, EnrichedPoolDTO> enrichedPoolById = new HashMap<>(rawPools.size() * 2);
         for (PoolDTO p : rawPools) {
             DivisionDTO division = divisionById.get(p.getDivisionId());
-            if (division == null) continue;
+            if (division == null)
+                continue;
             enrichedPoolById.put(p.getId(), EnrichedPoolDTO.builder()
                     .id(p.getId())
                     .season(p.getSeason())
@@ -138,15 +145,18 @@ public class MatchService {
         List<EnrichedDayMatchesDTO> enrichedDayMatches = new ArrayList<>(dayGroups.size());
         for (DayMatchesDTO day : dayGroups) {
             List<PoolMatchesDTO> pools = day.getPools();
-            if (pools == null || pools.isEmpty()) continue;
+            if (pools == null || pools.isEmpty())
+                continue;
 
             List<EnrichedPoolMatchesDTO> enrichedPoolMatches = new ArrayList<>(pools.size());
             for (PoolMatchesDTO pool : pools) {
                 EnrichedPoolDTO enrichedPool = enrichedPoolById.get(pool.getPoolId());
-                if (enrichedPool == null) continue;
+                if (enrichedPool == null)
+                    continue;
 
                 List<MatchDTO> matches = pool.getMatches();
-                if (matches == null || matches.isEmpty()) continue;
+                if (matches == null || matches.isEmpty())
+                    continue;
 
                 List<EnrichedMatchDTO> enrichedMatches = new ArrayList<>(matches.size());
                 for (MatchDTO m : matches) {
@@ -200,24 +210,30 @@ public class MatchService {
                 keyValue("match_id", id));
 
         MatchDTO match = matchClientService.getMatchById(id);
-        if (match == null) throw new InconsistentStateException("Match not found with ID " + id);
+        if (match == null)
+            throw new InconsistentStateException("Match not found with ID " + id);
 
         TeamDTO teamA = teamClientService.getTeamById(match.getTeamIdA());
-        if (teamA == null) throw new InconsistentStateException("Team A not found with ID " + match.getTeamIdA());
+        if (teamA == null)
+            throw new InconsistentStateException("Team A not found with ID " + match.getTeamIdA());
 
         TeamDTO teamB = teamClientService.getTeamById(match.getTeamIdB());
-        if (teamB == null) throw new InconsistentStateException("Team B not found with ID " + match.getTeamIdB());
+        if (teamB == null)
+            throw new InconsistentStateException("Team B not found with ID " + match.getTeamIdB());
 
         PoolDTO rawPool = poolClientService.getPoolById(match.getPoolId());
-        if (rawPool == null) throw new InconsistentStateException("Pool not found with ID " + match.getPoolId());
+        if (rawPool == null)
+            throw new InconsistentStateException("Pool not found with ID " + match.getPoolId());
 
         DivisionDTO division = configClientService.getDivisionById(rawPool.getDivisionId());
-        if (division == null) throw new InconsistentStateException("Division not found for pool with ID " + match.getPoolId());
+        if (division == null)
+            throw new InconsistentStateException("Division not found for pool with ID " + match.getPoolId());
 
         List<CompetitionAssociationDTO> associations = competitionClientService.getAssociationsByPool(rawPool.getId());
 
         Set<Long> teamIds = new HashSet<>(associations.size() + 2);
-        for (CompetitionAssociationDTO a : associations) teamIds.add(a.getTeamId());
+        for (CompetitionAssociationDTO a : associations)
+            teamIds.add(a.getTeamId());
         teamIds.add(teamA.getId());
         teamIds.add(teamB.getId());
 
@@ -226,13 +242,17 @@ public class MatchService {
 
         Set<String> clubIds = teamsMap.values().stream().map(TeamDTO::getClubId).collect(Collectors.toSet());
         List<ClubDTO> clubs = clubClientService.getClubsByIds(clubIds);
-        Map<String, String> clubLogoById = clubs.stream().collect(Collectors.toMap(ClubDTO::getId, ClubDTO::getLogoUrl));
-        for (TeamDTO t : teamsMap.values()) t.setLogoUrl(clubLogoById.get(t.getClubId()));
+        Map<String, String> clubLogoById = clubs.stream()
+                .collect(Collectors.toMap(ClubDTO::getId, ClubDTO::getLogoUrl));
+        for (TeamDTO t : teamsMap.values())
+            t.setLogoUrl(clubLogoById.get(t.getClubId()));
 
         List<TeamWithStatsDTO> ranking = associations.stream()
                 .map(assoc -> {
                     TeamDTO t = teamsMap.get(assoc.getTeamId());
-                    if (t == null) throw new InconsistentStateException("Missing team with ID " + assoc.getTeamId() + " for pool " + rawPool.getId());
+                    if (t == null)
+                        throw new InconsistentStateException(
+                                "Missing team with ID " + assoc.getTeamId() + " for pool " + rawPool.getId());
                     return TeamWithStatsDTO.builder()
                             .id(t.getId())
                             .name(t.getName())
@@ -274,11 +294,15 @@ public class MatchService {
         teamB.setLogoUrl(teamsMap.get(teamB.getId()).getLogoUrl());
 
         String base = apiClientProperties.getMobilegateway().getUrl();
-        String addressToken = pdfLinkTokenService.generate("address", match.getSeason(), match.getLeagueCode(), match.getMatchCode());
-        String sheetToken = pdfLinkTokenService.generate("sheet", match.getSeason(), match.getLeagueCode(), match.getMatchCode());
+        String addressToken = pdfLinkTokenService.generate("address", match.getSeason(), match.getLeagueCode(),
+                match.getMatchCode());
+        String sheetToken = pdfLinkTokenService.generate("sheet", match.getSeason(), match.getLeagueCode(),
+                match.getMatchCode());
 
-        String addressUrl = UriComponentsBuilder.fromUriString(base).path("/public/ffvb/pdf/").path(addressToken).toUriString();
-        String sheetUrl = UriComponentsBuilder.fromUriString(base).path("/public/ffvb/pdf/").path(sheetToken).toUriString();
+        String addressUrl = UriComponentsBuilder.fromUriString(base).path("/public/ffvb/pdf/").path(addressToken)
+                .toUriString();
+        String sheetUrl = UriComponentsBuilder.fromUriString(base).path("/public/ffvb/pdf/").path(sheetToken)
+                .toUriString();
 
         logger.info("Built enriched match",
                 keyValue("action", "build_enriched_match"),
