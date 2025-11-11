@@ -68,8 +68,10 @@ public class PoolService {
                 .collect(Collectors.toSet());
 
         List<ClubDTO> clubs = clubClientService.getClubsByIds(clubIds);
-        Map<String, String> clubLogoMap = clubs.stream()
-                .collect(Collectors.toMap(ClubDTO::getId, ClubDTO::getLogoUrl, (a, b) -> a));
+        Map<String, String> clubLogoMap = new HashMap<>();
+        for (ClubDTO c : clubs) {
+            clubLogoMap.put(c.getId(), c.getLogoUrl());
+        }
 
         teamsMap.values().forEach(team -> team.setLogoUrl(clubLogoMap.get(team.getClubId())));
 
