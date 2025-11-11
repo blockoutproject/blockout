@@ -165,7 +165,7 @@ CSV/
 .DS_Store
 
 # postgres
-local/postgres-data
+local
 
 # environment variables
 .env
