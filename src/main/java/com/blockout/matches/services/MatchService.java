@@ -62,7 +62,8 @@ public class MatchService {
      * @param active  flag d'activation (null pour ignorer le filtre)
      * @return liste de matchs correspondant aux critères
      */
-    public List<Match> findMatches(Long poolId,
+    public List<Match> findMatches(
+            Long poolId,
             List<Long> teamIds,
             MatchStatus status,
             Boolean active) {
