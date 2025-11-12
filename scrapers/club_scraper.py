@@ -124,13 +124,13 @@ class ClubScraper(Scraper):
 
             # 2) Téléphone portable
             phone_number = None
-            # portable_label = soup.find(text=re.compile(r"(Portable|T[ée]l\.?)", re.IGNORECASE))
-            # if portable_label:
-            #     parent_td = portable_label.find_parent("td")
-            #     if parent_td:
-            #         next_td = parent_td.find_next("td")
-            #         if next_td:
-            #             phone_number = next_td.get_text(strip=True)
+            portable_label = soup.find(text=re.compile(r"(Portable|T[ée]l\.?)", re.IGNORECASE))
+            if portable_label:
+                parent_td = portable_label.find_parent("td")
+                if parent_td:
+                    next_td = parent_td.find_next("td")
+                    if next_td:
+                        phone_number = next_td.get_text(strip=True)
 
             # 3) Email
             email = None
