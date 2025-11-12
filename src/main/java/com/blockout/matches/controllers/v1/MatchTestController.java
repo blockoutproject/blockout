@@ -23,7 +23,7 @@ import org.slf4j.LoggerFactory;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/v1/matches/test")
+@RequestMapping("/api/v1/matches/internal/test")
 @Tag(name = "Matches Test", description = "Endpoints de test pour émettre des événements RabbitMQ")
 public class MatchTestController {
 
