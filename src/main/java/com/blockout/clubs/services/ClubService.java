@@ -53,20 +53,16 @@ public class ClubService {
      * Récupère un club par son ID
      *
      * @param id L'identifiant du club
-     * @return Le club correspondant (avec le champ phoneNumber forcé à null)
+     * @return Le club correspondant
      * @throws ClubNotFoundException si le club est introuvable
      */
     public Club getClubById(String id) {
-        Club club = clubRepository.findById(id).orElseThrow(() -> {
+        return clubRepository.findById(id).orElseThrow(() -> {
             logger.warn("Club not found",
                     keyValue("action", "get_club_by_id"),
                     keyValue("clubId", id));
             return new ClubNotFoundException(id);
         });
-
-        // Force le champ phoneNumber à null avant de renvoyer l'objet
-        club.setPhoneNumber(null);
-        return club;
     }
 
     /**
@@ -74,8 +70,7 @@ public class ClubService {
      *
      * @param club  Entité Club à persister (nom, ville, etc.)
      * @param image Fichier image optionnel pour le logo
-     * @return Le club créé avec son ID généré et, le cas échéant, son logoUrl
-     *         rempli
+     * @return Le club créé avec son ID généré et, le cas échéant, son logoUrl rempli
      */
     @Transactional
     public Club createClub(ClubUpdateDTO dto, MultipartFile image) {
