@@ -39,6 +39,28 @@ public class MatchController {
         return ResponseEntity.ok(matches);
     }
 
+    @Operation(summary = "Groupes de matchs par jour", description = "Retourne les groupes de matchs par jour avec pagination.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Groupes de jours retournés")
+    })
+    @GetMapping("/day-groups")
+    public ResponseEntity<DayPageDTO> dayGroups(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "4") int size,
+            @RequestParam(required = false, name = "pool_ids") List<Long> poolIds,
+            @RequestParam(required = false, name = "team_ids") List<Long> teamIds,
+            @RequestParam(required = false) MatchStatus status,
+            @RequestParam(required = false) Boolean active) {
+        DayPageDTO dto = matchService.getMatchesByDay(
+                poolIds == null ? Collections.emptyList() : poolIds,
+                teamIds == null ? Collections.emptyList() : teamIds,
+                status,
+                page,
+                size,
+                active);
+        return ResponseEntity.ok(dto);
+    }
+
     @Operation(summary = "Récupérer un match par ID", description = "Renvoie un match par son identifiant.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Match trouvé"),
@@ -78,26 +100,6 @@ public class MatchController {
             @RequestBody Match updated) {
         Match result = matchService.updateMatch(id, updated);
         return ResponseEntity.ok(result);
-    }
-
-    @Operation(summary = "Groupes de matchs par jour", description = "Retourne les groupes de matchs par jour avec pagination.")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Groupes de jours retournés")
-    })
-    @GetMapping("/day-groups")
-    public ResponseEntity<DayPageDTO> dayGroups(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "4") int size,
-            @RequestParam(required = false, name = "pool_ids") List<Long> poolIds,
-            @RequestParam(required = false, name = "team_ids") List<Long> teamIds,
-            @RequestParam(required = false) MatchStatus status) {
-        DayPageDTO dto = matchService.getMatchesByDay(
-                poolIds == null ? Collections.emptyList() : poolIds,
-                teamIds == null ? Collections.emptyList() : teamIds,
-                status,
-                page,
-                size);
-        return ResponseEntity.ok(dto);
     }
 
     @Operation(summary = "Désactiver des matchs par pool", description = "Désactive les matchs d'une pool via leurs matchCodes.")

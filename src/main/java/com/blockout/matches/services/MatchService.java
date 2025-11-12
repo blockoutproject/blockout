@@ -104,7 +104,8 @@ public class MatchService {
             List<Long> teamIds,
             MatchStatus status,
             int page,
-            int size) {
+            int size,
+            Boolean active) {
 
         LocalDateTime now = LocalDateTime.now();
         LocalDate today = now.toLocalDate();
@@ -175,13 +176,15 @@ public class MatchService {
                         endDateTime,
                         poolIds, poolIds.size(),
                         status,
-                        teamIds, teamIds.size())
+                        teamIds, teamIds.size(),
+                        active)
                 : matchRepository.findAllInRangeDesc(
                         startOfMinDay,
                         endDateTime,
                         poolIds, poolIds.size(),
                         status,
-                        teamIds, teamIds.size());
+                        teamIds, teamIds.size(),
+                        active);
 
         logger.debug("Fetched matches in date range",
                 keyValue("matchesCount", allMatches.size()));
