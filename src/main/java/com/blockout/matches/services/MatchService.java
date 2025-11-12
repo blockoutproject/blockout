@@ -76,7 +76,7 @@ public class MatchService {
                 safeTeamIds,
                 safeTeamIds.size());
 
-        logger.debug("findMatches executed",
+        logger.info("findMatches executed",
                 keyValue("action", "find_matches"),
                 keyValue("poolId", poolId),
                 keyValue("teamIds", safeTeamIds),
