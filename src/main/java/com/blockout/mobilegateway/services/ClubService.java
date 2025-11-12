@@ -23,7 +23,12 @@ public class ClubService {
         logger.info("Fetching club",
                 keyValue("action", "get_club_by_id"),
                 keyValue("club_id", id));
-        return clubClientService.getClubById(id);
+        
+        ClubDTO club = clubClientService.getClubById(id);
+        
+        // Force le champ phoneNumber à null avant de renvoyer l'objet
+        club.setPhoneNumber(null);
+        return club;
     }
 
     public ClubDTO updateClub(String id, ClubUpdateDTO dto, MultipartFile image) {
