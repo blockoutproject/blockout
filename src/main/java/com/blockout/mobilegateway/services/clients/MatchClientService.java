@@ -36,6 +36,7 @@ public class MatchClientService {
                 .queryParamIfPresent("status", Optional.ofNullable(status))
                 .queryParamIfPresent("pool_ids", Optional.ofNullable(poolIds))
                 .queryParamIfPresent("team_ids", Optional.ofNullable(teamIds))
+                .queryParam("active", true)
                 .build()
                 .toUriString();
 
