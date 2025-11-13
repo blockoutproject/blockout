@@ -242,15 +242,7 @@ class Scraper(ABC):
                     points_penalty=assoc.points_penalty,
                     coef_sets=assoc.coef_sets,
                     coef_points=assoc.coef_points
-                )
-                if not assoc.pool_id:
-                    log_event(
-                        action="DEBUG_init_associations_cache",
-                        level="warning",
-                        key=key,
-                        assoc=assocDto,
-                        message="debug init_associations_cache"
-                    )    
+                )   
                 self._associations_cache[key] = (assocDto, AssociationStats())
 
         except Exception as e:
@@ -291,20 +283,6 @@ class Scraper(ABC):
                 "pool_id", "team_id_a", "team_id_b",
                 "venue", "first_referee", "second_referee"
             ]
-            
-            if updated_match.league_code == "AALNV":
-                log_event(
-                    action="DEBUG_schedule_match_changes",
-                    level="info",
-                    match_key=match_key,
-                    priority_validation_enabled=self.priority_validation_enabled,
-                    priority=priority,
-                    current_priority=current_priority,
-                    updated_obj=to_loggable(updated_obj),
-                    existing_obj=to_loggable(existing_obj),
-                    updated_match=to_loggable(updated_match),
-                    message="debug schedule_match_changes"
-                )
 
             if self.priority_validation_enabled:
                 # LNV-XML
@@ -369,14 +347,7 @@ class Scraper(ABC):
         Les valeurs sont cumulées sur tout le CSV.
         """
         key = (pool_id, team_id)
-        if not pool_id:
-            log_event(
-                action="DEBUG_init_schedule_association_update",
-                level="warning",
-                key=key,
-                team_stats=team_stats,
-                message="debug DEBUG_init_schedule_association_update"
-            )  
+ 
         if key not in self._associations_cache:
             self._associations_cache[key] = (None, AssociationStats())
                 

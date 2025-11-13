@@ -250,17 +250,6 @@ class ProScraper(Scraper):
                     # Remplir le strict nécessaire
                     continue
 
-                log_event(
-                    action="process_xml_match_before_update",
-                    level="info",
-                    pool_id=pool_id,
-                    match_code=match_code,
-                    match_date=match_datetime.isoformat(),
-                    set_value=set_value,
-                    score_str=score_str,
-                    updated_match=to_loggable(updated_match)
-                )
-
                 # 3) Mettre à jour les champs
                 updated_match.match_date = match_datetime
                 if set_value and set_value != "0-0":
@@ -268,17 +257,6 @@ class ProScraper(Scraper):
 
                 if score_str:
                     updated_match.score = score_str
-                    
-                log_event(
-                    action="process_xml_match_after_update",
-                    level="info",
-                    pool_id=pool_id,
-                    match_code=match_code,
-                    match_date=match_datetime.isoformat(),
-                    set_value=set_value,
-                    score_str=score_str,
-                    updated_match=to_loggable(updated_match)
-                )
 
                 # 4) Fusion dans le cache
                 self.schedule_match_changes(
@@ -501,7 +479,6 @@ class ProScraper(Scraper):
                         )
 
     def extract_match_id(self, match_block) -> Optional[str]:
-        print("matchblock", match_block)
         onclick_attr = match_block.find("div", onclick=True)
         if onclick_attr:
             mID_match = re.search(r"mID=(\d+)", onclick_attr["onclick"])
