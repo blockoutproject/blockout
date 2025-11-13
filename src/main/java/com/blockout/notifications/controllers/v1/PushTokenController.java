@@ -4,8 +4,6 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 
-import jakarta.validation.Valid;
-
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.http.ResponseEntity;
@@ -31,7 +29,7 @@ public class PushTokenController {
     @PostMapping("/users/{userId}/push-tokens")
     public ResponseEntity<Void> register(
             @PathVariable Long userId,
-            @Valid @RequestBody RegisterPushTokenRequestDTO req) {
+            @RequestBody RegisterPushTokenRequestDTO req) {
         pushTokenService.register(userId, req);
         return ResponseEntity.accepted().build();
     }
