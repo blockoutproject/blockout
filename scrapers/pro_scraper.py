@@ -501,11 +501,7 @@ class ProScraper(Scraper):
                         )
 
     def extract_match_id(self, match_block) -> Optional[str]:
-        log_event(
-                action="match_block",
-                level="info",
-                match_block=match_block,
-            )
+        print("matchblock", match_block)
         onclick_attr = match_block.find("div", onclick=True)
         if onclick_attr:
             mID_match = re.search(r"mID=(\d+)", onclick_attr["onclick"])
