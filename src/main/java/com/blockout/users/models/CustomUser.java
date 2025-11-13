@@ -2,6 +2,7 @@ package com.blockout.users.models;
 
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import jakarta.persistence.*;
@@ -13,6 +14,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
+@ToString
 @Table(name = "users", uniqueConstraints = {
         @UniqueConstraint(columnNames = {"auth0_id"}, name = "uix_user_auth0_id"),
         @UniqueConstraint(columnNames = {"email"}, name = "uix_user_email")

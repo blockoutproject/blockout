@@ -156,6 +156,10 @@ public class UserService {
                     .build();
 
             try {
+                logger.info("DEBUG",
+                        keyValue("action", "create_user"),
+                        keyValue("auth0Id", newUser.toString()));
+                
                 CustomUser created = userRepository.save(newUser);
 
                 logger.info("User created successfully",
