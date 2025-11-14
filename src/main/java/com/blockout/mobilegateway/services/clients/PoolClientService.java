@@ -7,6 +7,7 @@ import com.blockout.mobilegateway.models.dto.pool.PoolUpdateDTO;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -28,6 +29,7 @@ public class PoolClientService {
         return apiClientProperties.getPool().getUrl();
     }
 
+    @Cacheable(value = "poolById", key = "#id")
     public PoolDTO getPoolById(Long id) {
         String url = UriComponentsBuilder.fromUriString(baseUrl())
                 .pathSegment(id.toString())

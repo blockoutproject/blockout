@@ -13,6 +13,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.util.MultiValueMap;
@@ -39,6 +40,7 @@ public class ConfigClientService {
         return apiClientProperties.getConfig().getUrl();
     }
 
+    @Cacheable(value = "divisions")
     public List<DivisionDTO> listDivisions() {
         String url = UriComponentsBuilder.fromUriString(baseUrl())
                 .pathSegment("divisions")
@@ -52,6 +54,7 @@ public class ConfigClientService {
         return body != null ? Arrays.asList(body) : Collections.emptyList();
     }
 
+    @Cacheable(value = "divisionById", key = "#id")
     public DivisionDTO getDivisionById(Long id) {
         String url = UriComponentsBuilder.fromUriString(baseUrl())
                 .pathSegment("divisions", id.toString())
@@ -64,6 +67,7 @@ public class ConfigClientService {
         return response.getBody();
     }
 
+    
     public DivisionDTO createDivision(DivisionUpdateDTO dto, MultipartFile image) {
         String url = UriComponentsBuilder.fromUriString(baseUrl())
                 .pathSegment("divisions")

@@ -7,6 +7,7 @@ import com.blockout.mobilegateway.models.dto.team.TeamUpdateDTO;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -27,6 +28,7 @@ public class TeamClientService {
         return apiClientProperties.getTeam().getUrl();
     }
 
+    @Cacheable(value = "teamById", key = "#id")
     public TeamDTO getTeamById(Long id) {
         String url = UriComponentsBuilder.fromUriString(baseUrl())
                 .pathSegment(id.toString())
@@ -62,6 +64,7 @@ public class TeamClientService {
         return body != null ? Arrays.asList(body) : Collections.emptyList();
     }
 
+    @Cacheable(value = "teamsByClubId", key = "#clubId")
     public List<TeamDTO> getTeamsByClubId(String clubId) {
         String url = UriComponentsBuilder.fromUriString(baseUrl())
                 .queryParam("club_id", clubId)

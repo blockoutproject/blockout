@@ -8,13 +8,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import java.util.*;
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
 @Service
@@ -31,6 +31,7 @@ public class ClubClientService {
         return apiClientProperties.getClub().getUrl();
     }
 
+    @Cacheable(value = "clubById", key = "#id")
     public ClubDTO getClubById(String id) {
         String url = UriComponentsBuilder.fromUriString(baseUrl())
                 .pathSegment(id)
@@ -42,6 +43,7 @@ public class ClubClientService {
         return response.getBody();
     }
 
+    @Cacheable(value = "clubLogoById", key = "#id")
     public String getClubLogoUrl(String id) {
         String url = UriComponentsBuilder.fromUriString(baseUrl())
                 .pathSegment(id, "logo")
@@ -53,20 +55,6 @@ public class ClubClientService {
         String body = response.getBody();
 
         return (response.getStatusCode() == HttpStatus.NO_CONTENT || body == null || body.isBlank()) ? null : body;
-    }
-
-    public List<ClubDTO> getClubsByIds(Set<String> ids) {
-        if (ids == null || ids.isEmpty())
-            return Collections.emptyList();
-
-        String url = UriComponentsBuilder.fromUriString(baseUrl())
-                .queryParam("ids", ids)
-                .build().toUriString();
-
-        logger.info("Calling clubs#getByIds", keyValue("ids", ids), keyValue("url", url));
-
-        ResponseEntity<ClubDTO[]> response = apiClientService.get(url, ClubDTO[].class);
-        return Optional.ofNullable(response.getBody()).map(Arrays::asList).orElse(Collections.emptyList());
     }
 
     public ClubDTO updateClub(String id, ClubUpdateDTO dto, MultipartFile image) {

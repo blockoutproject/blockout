@@ -23,10 +23,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
+import static com.blockout.mobilegateway.utils.TeamLogoEnricher.enrichTeamsWithClubLogo;
 
 @Service
 @RequiredArgsConstructor
@@ -41,18 +41,19 @@ public class TeamService {
     private final PoolClientService poolClientService;
 
     public EnrichedTeamDTO getTeamById(Long id) {
-        logger.info("Fetch team by id", keyValue("action", "get_team_by_id"), keyValue("team_id", id));
+        logger.info("Fetch team by id",
+                keyValue("action", "get_team_by_id"),
+                keyValue("team_id", id));
 
         TeamDTO team = teamClientService.getTeamById(id);
-        if (team == null)
+        if (team == null) {
             throw new InconsistentStateException("Team not found with ID " + id);
+        }
 
-        List<DivisionDTO> allDivisions = configClientService.listDivisions();
-        Map<Long, DivisionDTO> divisionsById = allDivisions.stream()
-                .collect(Collectors.toMap(DivisionDTO::getId, Function.identity()));
-        DivisionDTO division = divisionsById.get(team.getDivisionId());
-        if (division == null)
+        DivisionDTO division = configClientService.getDivisionById(team.getDivisionId());
+        if (division == null) {
             throw new InconsistentStateException("Division not found for team with ID " + id);
+        }
 
         List<PoolWithRankingDTO> poolsWithRankings = competitionClientService.getPoolsWithRankingByTeam(id);
         logger.info("Pools with ranking fetched",
@@ -66,32 +67,43 @@ public class TeamService {
                 .collect(Collectors.toCollection(() -> new HashSet<>(64)));
         allTeamIds.add(id);
 
-        Map<Long, TeamDTO> teamsMap = teamClientService.getTeamsByIds(allTeamIds).stream()
-                .collect(Collectors.toMap(TeamDTO::getId, Function.identity()));
-
-        Set<String> clubIds = teamsMap.values().stream()
-                .map(TeamDTO::getClubId)
-                .filter(Objects::nonNull)
-                .collect(Collectors.toSet());
-
-        List<ClubDTO> clubs = clubClientService.getClubsByIds(clubIds);
-        Map<String, String> clubLogoById = new HashMap<>(clubs.size() * 2);
-        for (ClubDTO c : clubs) {
-            clubLogoById.put(c.getId(), c.getLogoUrl());
+        Map<Long, TeamDTO> teamsMap = new HashMap<>(allTeamIds.size() * 2);
+        for (Long teamId : allTeamIds) {
+            TeamDTO t = teamClientService.getTeamById(teamId);
+            if (t != null) {
+                teamsMap.put(teamId, t);
+            } else {
+                logger.warn("Missing team while building enriched team",
+                        keyValue("team_id", teamId),
+                        keyValue("main_team_id", id));
+            }
         }
-        teamsMap.values().forEach(t -> t.setLogoUrl(clubLogoById.get(t.getClubId())));
+
+        // Enrich logos pour toutes les équipes impliquées dans les rankings
+        enrichTeamsWithClubLogo(teamsMap.values(), clubClientService);
 
         Set<Long> poolIds = poolsWithRankings.stream()
                 .map(PoolWithRankingDTO::getPoolId)
                 .collect(Collectors.toSet());
-        Map<Long, PoolDTO> poolMap = poolClientService.getPoolsByIds(poolIds).stream()
-                .collect(Collectors.toMap(PoolDTO::getId, Function.identity()));
+
+        Map<Long, PoolDTO> poolMap = new HashMap<>(poolIds.size() * 2);
+        for (Long poolId : poolIds) {
+            PoolDTO pool = poolClientService.getPoolById(poolId);
+            if (pool != null) {
+                poolMap.put(poolId, pool);
+            } else {
+                logger.warn("Missing pool while building enriched team",
+                        keyValue("pool_id", poolId),
+                        keyValue("team_id", id));
+            }
+        }
 
         List<EnrichedPoolDTO> enrichedPools = poolsWithRankings.stream()
                 .map(p -> {
                     PoolDTO basePool = poolMap.get(p.getPoolId());
-                    if (basePool == null)
+                    if (basePool == null) {
                         throw new InconsistentStateException("Missing pool with ID " + p.getPoolId());
+                    }
                     List<TeamWithStatsDTO> ranking = buildRanking(p.getRanking(), teamsMap);
                     return EnrichedPoolDTO.builder()
                             .id(basePool.getId())
@@ -109,11 +121,10 @@ public class TeamService {
                 })
                 .toList();
 
-        ClubDTO enrichedClub = clubIds.isEmpty() ? null
-                : clubs.stream()
-                        .filter(c -> Objects.equals(c.getId(), team.getClubId()))
-                        .findFirst()
-                        .orElse(null);
+        ClubDTO enrichedClub = null;
+        if (team.getClubId() != null && !team.getClubId().isBlank()) {
+            enrichedClub = clubClientService.getClubById(team.getClubId());
+        }
 
         EnrichedTeamDTO result = EnrichedTeamDTO.builder()
                 .id(team.getId())
@@ -146,16 +157,28 @@ public class TeamService {
                 keyValue("club_id", clubId));
 
         List<TeamDTO> teams = teamClientService.getTeamsByClubId(clubId);
-        if (teams == null || teams.isEmpty())
+        if (teams == null || teams.isEmpty()) {
             return Collections.emptyList();
+        }
 
-        List<DivisionDTO> allDivisions = configClientService.listDivisions();
-        Map<Long, DivisionDTO> divisionsById = allDivisions.stream()
-                .collect(Collectors.toMap(DivisionDTO::getId, Function.identity()));
+        Set<Long> divisionIds = teams.stream()
+                .map(TeamDTO::getDivisionId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
 
-        Map<String, ClubDTO> clubById = clubClientService.getClubsByIds(Set.of(clubId)).stream()
-                .collect(Collectors.toMap(ClubDTO::getId, c -> c));
-        ClubDTO club = clubById.get(clubId);
+        Map<Long, DivisionDTO> divisionsById = new HashMap<>(divisionIds.size() * 2);
+        for (Long divisionId : divisionIds) {
+            DivisionDTO division = configClientService.getDivisionById(divisionId);
+            if (division != null) {
+                divisionsById.put(divisionId, division);
+            } else {
+                logger.warn("Division not found while building team summaries for club",
+                        keyValue("division_id", divisionId),
+                        keyValue("club_id", clubId));
+            }
+        }
+
+        ClubDTO club = clubClientService.getClubById(clubId);
 
         List<TeamSummaryDTO> result = teams.stream()
                 .map(t -> TeamSummaryDTO.builder()
@@ -186,20 +209,53 @@ public class TeamService {
                 keyValue("action", "get_teams_by_ids"),
                 keyValue("ids_count", ids.size()));
 
-        List<TeamDTO> teams = teamClientService.getTeamsByIds(Set.copyOf(ids));
-        if (teams == null || teams.isEmpty())
-            return Collections.emptyList();
+        Set<Long> uniqueIds = new HashSet<>(ids);
+        List<TeamDTO> teams = new ArrayList<>(uniqueIds.size());
+        for (Long teamId : uniqueIds) {
+            TeamDTO team = teamClientService.getTeamById(teamId);
+            if (team != null) {
+                teams.add(team);
+            } else {
+                logger.warn("Team not found while building team summaries by ids",
+                        keyValue("team_id", teamId));
+            }
+        }
 
-        List<DivisionDTO> allDivisions = configClientService.listDivisions();
-        Map<Long, DivisionDTO> divisionsById = allDivisions.stream()
-                .collect(Collectors.toMap(DivisionDTO::getId, Function.identity()));
+        if (teams.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        Set<Long> divisionIds = teams.stream()
+                .map(TeamDTO::getDivisionId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        Map<Long, DivisionDTO> divisionsById = new HashMap<>(divisionIds.size() * 2);
+        for (Long divisionId : divisionIds) {
+            DivisionDTO division = configClientService.getDivisionById(divisionId);
+            if (division != null) {
+                divisionsById.put(divisionId, division);
+            } else {
+                logger.warn("Division not found while building team summaries by ids",
+                        keyValue("division_id", divisionId));
+            }
+        }
 
         Set<String> clubIds = teams.stream()
                 .map(TeamDTO::getClubId)
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
-        Map<String, ClubDTO> clubById = clubClientService.getClubsByIds(clubIds).stream()
-                .collect(Collectors.toMap(ClubDTO::getId, c -> c));
+
+        Map<String, ClubDTO> clubById = new HashMap<>(clubIds.size() * 2);
+        for (String clubId : clubIds) {
+            ClubDTO club = clubClientService.getClubById(clubId);
+            if (club != null) {
+                clubById.put(clubId, club);
+            } else {
+                logger.warn("Club not found while building team summaries by ids",
+                        keyValue("club_id", clubId));
+            }
+        }
 
         List<TeamSummaryDTO> result = teams.stream()
                 .map(t -> TeamSummaryDTO.builder()
@@ -231,8 +287,9 @@ public class TeamService {
     }
 
     private static List<TeamWithStatsDTO> buildRanking(List<TeamRankingDTO> rawRanking, Map<Long, TeamDTO> teamsMap) {
-        if (rawRanking == null || rawRanking.isEmpty())
+        if (rawRanking == null || rawRanking.isEmpty()) {
             return Collections.emptyList();
+        }
 
         return rawRanking.stream()
                 .map(r -> {
