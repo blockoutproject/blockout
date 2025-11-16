@@ -397,20 +397,20 @@ class Scraper(ABC):
         
         original, updated = self._associations_cache[key]
 
-        updated.played=team_stats.played,
-        updated.wins=team_stats.wins, 
-        updated.losses=team_stats.losses, 
-        updated.points=team_stats.points,
-        updated.wins_three_to_zero=team_stats.wins_three_to_zero,
-        updated.wins_three_to_one=team_stats.wins_three_to_one,
-        updated.wins_three_to_two=team_stats.wins_three_to_two,
-        updated.losses_zero_to_three=team_stats.losses_zero_to_three,
-        updated.losses_one_to_three=team_stats.losses_one_to_three,
-        updated.losses_two_to_three=team_stats.losses_two_to_three,
-        updated.won_points=team_stats.won_points,
-        updated.lost_points=team_stats.lost_points,
-        updated.won_sets=team_stats.won_sets,
-        updated.lost_sets=team_stats.lost_sets,
+        updated.played=team_stats.played
+        updated.wins=team_stats.wins
+        updated.losses=team_stats.losses 
+        updated.points=team_stats.points
+        updated.wins_three_to_zero=team_stats.wins_three_to_zero
+        updated.wins_three_to_one=team_stats.wins_three_to_one
+        updated.wins_three_to_two=team_stats.wins_three_to_two
+        updated.losses_zero_to_three=team_stats.losses_zero_to_three
+        updated.losses_one_to_three=team_stats.losses_one_to_three
+        updated.losses_two_to_three=team_stats.losses_two_to_three
+        updated.won_points=team_stats.won_points
+        updated.lost_points=team_stats.lost_points
+        updated.won_sets=team_stats.won_sets
+        updated.lost_sets=team_stats.lost_sets
         updated.points_penalty=team_stats.points_penalty
         updated.points_penalty = abs(team_stats.points - updated.points)
     
