@@ -26,6 +26,7 @@ public class ClubSecureController {
             @RequestPart("data") String json,
             @RequestPart(value = "image", required = false) MultipartFile image) throws JsonProcessingException {
 
+        System.out.println(json);
         ClubUpdateDTO dto = objectMapper.readValue(json, ClubUpdateDTO.class);
         ClubDTO updated = clubService.updateClub(id, dto, image);
         return ResponseEntity.ok(updated);
