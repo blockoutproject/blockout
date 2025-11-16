@@ -13,7 +13,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.util.MultiValueMap;
@@ -67,7 +70,6 @@ public class ConfigClientService {
         return response.getBody();
     }
 
-    
     public DivisionDTO createDivision(DivisionUpdateDTO dto, MultipartFile image) {
         String url = UriComponentsBuilder.fromUriString(baseUrl())
                 .pathSegment("divisions")
@@ -82,6 +84,11 @@ public class ConfigClientService {
         return response.getBody();
     }
 
+    @Caching(put = {
+            @CachePut(value = "divisionById", key = "#id")
+    }, evict = {
+            @CacheEvict(value = "divisions")
+    })
     public DivisionDTO updateDivision(Long id, DivisionUpdateDTO dto, MultipartFile image) {
         String url = UriComponentsBuilder.fromUriString(baseUrl())
                 .pathSegment("divisions", id.toString())
@@ -95,6 +102,10 @@ public class ConfigClientService {
         return response.getBody();
     }
 
+    @Caching(evict = {
+            @CacheEvict(value = "divisionById", key = "#id"),
+            @CacheEvict(value = "divisions")
+    })
     public void deactivateDivision(Long id) {
         String url = UriComponentsBuilder.fromUriString(baseUrl())
                 .pathSegment("divisions", id.toString())

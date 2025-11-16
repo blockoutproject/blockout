@@ -8,7 +8,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.util.MultiValueMap;
@@ -57,6 +60,11 @@ public class ClubClientService {
         return (response.getStatusCode() == HttpStatus.NO_CONTENT || body == null || body.isBlank()) ? null : body;
     }
 
+    @Caching(put = {
+            @CachePut(value = "clubById", key = "#id")
+    }, evict = {
+            @CacheEvict(value = "clubLogoById", key = "#id")
+    })
     public ClubDTO updateClub(String id, ClubUpdateDTO dto, MultipartFile image) {
         String url = UriComponentsBuilder.fromUriString(baseUrl())
                 .pathSegment(id)

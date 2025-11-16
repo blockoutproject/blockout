@@ -7,7 +7,9 @@ import com.blockout.mobilegateway.models.dto.pool.PoolUpdateDTO;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -43,7 +45,8 @@ public class PoolClientService {
     }
 
     public List<PoolDTO> getPoolsByIds(Set<Long> ids) {
-        if (ids == null || ids.isEmpty()) return Collections.emptyList();
+        if (ids == null || ids.isEmpty())
+            return Collections.emptyList();
 
         String url = UriComponentsBuilder.fromUriString(baseUrl())
                 .queryParam("ids", ids)
@@ -58,6 +61,9 @@ public class PoolClientService {
         return body != null ? Arrays.asList(body) : Collections.emptyList();
     }
 
+    @Caching(put = {
+            @CachePut(value = "poolById", key = "#id")
+    })
     public PoolDTO updatePool(Long id, PoolUpdateDTO dto) {
         String url = UriComponentsBuilder.fromUriString(baseUrl())
                 .pathSegment(id.toString())
