@@ -373,6 +373,7 @@ class ProScraper(Scraper):
                         lost_sets=set_contre,
                         won_points=pts_pour,
                         lost_points=pts_contre,
+                        points_penalty=0,
                     )
 
                     # On applique les coefficients (issus directement du XML)
