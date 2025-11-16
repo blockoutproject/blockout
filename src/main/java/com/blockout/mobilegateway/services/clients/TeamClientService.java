@@ -85,14 +85,11 @@ public class TeamClientService {
         return body != null ? Arrays.asList(body) : Collections.emptyList();
     }
 
-    @Caching(
-        put = {
+    @Caching(put = {
             @CachePut(value = "teamById", key = "#id")
-        },
-        evict = {
-            @CacheEvict(value = "teamsByClubId", key = "#dto.clubId")
-        }
-    )
+    }, evict = {
+            @CacheEvict(value = "teamsByClubId", key = "#result.clubId", condition = "#result != null")
+    })
     public TeamDTO updateTeam(Long id, TeamUpdateDTO dto) {
         String url = UriComponentsBuilder.fromUriString(baseUrl())
                 .pathSegment(id.toString())
