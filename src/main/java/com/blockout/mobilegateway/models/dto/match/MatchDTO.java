@@ -1,13 +1,16 @@
 package com.blockout.mobilegateway.models.dto.match;
 
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 
+import com.blockout.mobilegateway.models.enums.LiveProvider;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-@Data
+@Getter
+@Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
@@ -51,12 +54,9 @@ public class MatchDTO {
     @JsonProperty("second_referee")
     private String secondReferee;
 
-    private Boolean active;
+    @JsonProperty("live_url")
+    private String liveUrl;
 
-    @JsonProperty("created_at")
-    private String createdAt;
-
-    @JsonProperty("last_update")
-    private String lastUpdate;
-
+    @JsonProperty("live_provider")
+    private LiveProvider liveProvider;
 }

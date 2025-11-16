@@ -3,6 +3,10 @@ package com.blockout.mobilegateway.services.clients;
 import com.blockout.mobilegateway.config.ApiClientProperties;
 import com.blockout.mobilegateway.models.dto.match.DayPageDTO;
 import com.blockout.mobilegateway.models.dto.match.MatchDTO;
+import com.blockout.mobilegateway.models.dto.match.MatchLiveLinkReportRequestDTO;
+import com.blockout.mobilegateway.models.dto.match.MatchLiveLinkRequestDTO;
+import com.blockout.mobilegateway.models.dto.match.MatchLiveLinkResponseDTO;
+
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -62,5 +66,47 @@ public class MatchClientService {
 
         ResponseEntity<MatchDTO> response = apiClientService.get(url, MatchDTO.class);
         return response.getBody();
+    }
+
+    public MatchLiveLinkResponseDTO upsertLiveLink(Long matchId, MatchLiveLinkRequestDTO request) {
+        String url = UriComponentsBuilder.fromUriString(baseUrl())
+                .pathSegment(matchId.toString(), "live-link")
+                .build()
+                .toUriString();
+
+        logger.info("Calling matches#upsertLiveLink",
+                keyValue("match_id", matchId),
+                keyValue("url", url));
+
+        ResponseEntity<MatchLiveLinkResponseDTO> response =
+                apiClientService.post(url, request, MatchLiveLinkResponseDTO.class);
+
+        return response.getBody();
+    }
+
+    public void deleteLiveLink(Long matchId) {
+        String url = UriComponentsBuilder.fromUriString(baseUrl())
+                .pathSegment(matchId.toString(), "live-link")
+                .build()
+                .toUriString();
+
+        logger.info("Calling matches#deleteLiveLink",
+                keyValue("match_id", matchId),
+                keyValue("url", url));
+
+        apiClientService.delete(url, Void.class);
+    }
+
+    public void reportLiveLink(Long matchId, MatchLiveLinkReportRequestDTO request) {
+        String url = UriComponentsBuilder.fromUriString(baseUrl())
+                .pathSegment(matchId.toString(), "live-link", "report")
+                .build()
+                .toUriString();
+
+        logger.info("Calling matches#reportLiveLink",
+                keyValue("match_id", matchId),
+                keyValue("url", url));
+
+        apiClientService.post(url, request, Void.class);
     }
 }

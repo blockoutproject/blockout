@@ -11,6 +11,9 @@ import com.blockout.mobilegateway.models.dto.match.EnrichedDayPageDTO;
 import com.blockout.mobilegateway.models.dto.match.EnrichedMatchDTO;
 import com.blockout.mobilegateway.models.dto.match.EnrichedPoolMatchesDTO;
 import com.blockout.mobilegateway.models.dto.match.MatchDTO;
+import com.blockout.mobilegateway.models.dto.match.MatchLiveLinkReportRequestDTO;
+import com.blockout.mobilegateway.models.dto.match.MatchLiveLinkRequestDTO;
+import com.blockout.mobilegateway.models.dto.match.MatchLiveLinkResponseDTO;
 import com.blockout.mobilegateway.models.dto.match.PoolMatchesDTO;
 import com.blockout.mobilegateway.models.dto.pool.EnrichedPoolDTO;
 import com.blockout.mobilegateway.models.dto.pool.PoolDTO;
@@ -49,7 +52,8 @@ public class MatchService {
     private final ApiClientProperties apiClientProperties;
     private final PdfLinkTokenService pdfLinkTokenService;
 
-    public EnrichedDayPageDTO getMatchList(String status, int page, int size, List<Long> poolFilterIds, List<Long> teamFilterIds) {
+    public EnrichedDayPageDTO getMatchList(String status, int page, int size, List<Long> poolFilterIds,
+            List<Long> teamFilterIds) {
         logger.info("Fetching match list",
                 keyValue("action", "fetch_match_list"),
                 keyValue("status", status),
@@ -273,7 +277,8 @@ public class MatchService {
             }
         }
 
-        // Enrich logos pour toutes les équipes concernées (classement + équipes du match)
+        // Enrich logos pour toutes les équipes concernées (classement + équipes du
+        // match)
         enrichTeamsWithClubLogo(teamsMap.values(), clubClientService);
 
         TeamDTO teamA = teamsMap.get(match.getTeamIdA());
@@ -362,11 +367,40 @@ public class MatchService {
                 .firstReferee(match.getFirstReferee())
                 .secondReferee(match.getSecondReferee())
                 .liveCode(match.getLiveCode())
+                .liveUrl(match.getLiveUrl())
+                .liveProvider(match.getLiveProvider())
                 .teamA(teamA)
                 .teamB(teamB)
                 .pool(enrichedPool)
                 .matchAddressPdfUrl(addressUrl)
                 .matchSheetPdfUrl(sheetUrl)
                 .build();
+    }
+
+    public MatchLiveLinkResponseDTO upsertLiveLink(Long matchId, MatchLiveLinkRequestDTO request, String auth0Id) {
+        logger.info("Upsert live link",
+                keyValue("action", "upsert_match_live_link"),
+                keyValue("match_id", matchId),
+                keyValue("auth0_id", auth0Id));
+
+        return matchClientService.upsertLiveLink(matchId, request);
+    }
+
+    public void deleteLiveLink(Long matchId, String auth0Id) {
+        logger.info("Delete live link",
+                keyValue("action", "delete_match_live_link"),
+                keyValue("match_id", matchId),
+                keyValue("auth0_id", auth0Id));
+
+        matchClientService.deleteLiveLink(matchId);
+    }
+
+    public void reportLiveLink(Long matchId, MatchLiveLinkReportRequestDTO request, String auth0Id) {
+        logger.info("Report live link",
+                keyValue("action", "report_match_live_link"),
+                keyValue("match_id", matchId),
+                keyValue("auth0_id", auth0Id));
+
+        matchClientService.reportLiveLink(matchId, request);
     }
 }

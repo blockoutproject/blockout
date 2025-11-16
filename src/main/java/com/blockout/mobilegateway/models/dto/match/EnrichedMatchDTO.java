@@ -2,6 +2,7 @@ package com.blockout.mobilegateway.models.dto.match;
 
 import com.blockout.mobilegateway.models.dto.pool.EnrichedPoolDTO;
 import com.blockout.mobilegateway.models.dto.team.TeamDTO;
+import com.blockout.mobilegateway.models.enums.LiveProvider;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -39,6 +40,12 @@ public class EnrichedMatchDTO {
 
     @JsonProperty("second_referee")
     private String secondReferee;
+    
+    @JsonProperty("live_url")
+    private String liveUrl;
+
+    @JsonProperty("live_provider")
+    private LiveProvider liveProvider;
     
     @JsonProperty("team_a")
     private TeamDTO teamA;
