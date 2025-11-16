@@ -7,6 +7,7 @@ import xml.etree.ElementTree as ET
 from bs4 import BeautifulSoup
 from api.config_api import create_raw_division_mapping, get_raw_division_mappings_by_league_and_season
 from api.pools_api import get_pools_by_league_and_season
+from models.association_stats import AssociationStats
 from models.enums.datasource_priority import DataSourcePriority
 from models.enums.format import Format
 from models.enums.gender import Gender
@@ -287,19 +288,48 @@ class ProScraper(Scraper):
                     nom_club = equipe_el.get("NomClub", "")  # <Equipe NomClub="Tours">
                     num_club = equipe_el.get("NumClub", "")  # <Equipe NumClub="572"> peut êtere utile pour identifier l'équipe plus tard
 
-                    # Récupération des stats
+                    # Récupération des stats de base
                     rang_str = equipe_el.findtext("Rang", default="0")
                     points_str = equipe_el.findtext("Points", default="0")
                     mj_str = equipe_el.findtext("MatchsJoues", default="0")
                     mg_str = equipe_el.findtext("MatchsGagnes", default="0")
                     mp_str = equipe_el.findtext("MatchsPerdus", default="0")
 
-                    # Convertir en int
+                    # Résultats détaillés
+                    r_3_0_str = equipe_el.findtext("Resultat_3_0", default="0")
+                    r_3_1_str = equipe_el.findtext("Resultat_3_1", default="0")
+                    r_3_2_str = equipe_el.findtext("Resultat_3_2", default="0")
+                    r_2_3_str = equipe_el.findtext("Resultat_2_3", default="0")
+                    r_1_3_str = equipe_el.findtext("Resultat_1_3", default="0")
+                    r_0_3_str = equipe_el.findtext("Resultat_0_3", default="0")
+
+                    # Sets
+                    set_pour_str = equipe_el.findtext("SetPour", default="0")
+                    set_contre_str = equipe_el.findtext("SetContre", default="0")
+                    ratio_set_str = equipe_el.findtext("RatioSet", default="0")
+
+                    # Points
+                    pts_pour_str = equipe_el.findtext("PointsPour", default="0")
+                    pts_contre_str = equipe_el.findtext("PointsContre", default="0")
+                    ratio_pts_str = equipe_el.findtext("RatioPoints", default="0")
+
                     rang = int(rang_str)
                     points = int(points_str)
                     mj = int(mj_str)
                     mg = int(mg_str)
                     mp = int(mp_str)
+                    r_3_0 = int(r_3_0_str)
+                    r_3_1 = int(r_3_1_str)
+                    r_3_2 = int(r_3_2_str)
+                    r_2_3 = int(r_2_3_str)
+                    r_1_3 = int(r_1_3_str)
+                    r_0_3 = int(r_0_3_str)
+                    set_pour = int(set_pour_str)
+                    set_contre = int(set_contre_str)
+                    ratio_set = float(ratio_set_str)
+                    pts_pour = int(pts_pour_str)
+                    pts_contre = int(pts_contre_str)
+                    ratio_pts = float(ratio_pts_str)
 
                     # Récupère le nom complet de l'équipe (via ton mapping JSON)
                     full_name = get_full_name(nom_club, pool.gender)
@@ -326,12 +356,34 @@ class ProScraper(Scraper):
                             message="Aucune équipe trouvée pour ce nom."
                         )
                         continue
+                    
+                    team_stats = AssociationStats()
+                    team_stats.add(
+                        played=mj,
+                        wins=mg,
+                        losses=mp,
+                        points=points,
+                        wins_three_to_zero=r_3_0,
+                        wins_three_to_one=r_3_1,
+                        wins_three_to_two=r_3_2,
+                        losses_zero_to_three=r_0_3,
+                        losses_one_to_three=r_1_3,
+                        losses_two_to_three=r_2_3,
+                        won_sets=set_pour,
+                        lost_sets=set_contre,
+                        won_points=pts_pour,
+                        lost_points=pts_contre,
+                    )
+
+                    # On applique les coefficients (issus directement du XML)
+                    team_stats.coef_sets = ratio_set
+                    team_stats.coef_points = ratio_pts
 
                     # On met à jour l'association (pool_id, team_id).
                     self.schedule_association_replace(
                         pool_id=pool.id,
                         team_id=team.id,
-                        points=points,
+                        team_stats=team_stats,
                     )
         except Exception as e:
             log_event(

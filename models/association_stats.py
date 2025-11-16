@@ -16,7 +16,6 @@ class AssociationStats:
     lost_sets: int = 0
     won_points: int = 0
     lost_points: int = 0
-    points_penalty: int = 0
     coef_sets: float = 0.0
     coef_points: float = 0.0
     points_penalty: int = 0

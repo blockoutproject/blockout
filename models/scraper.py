@@ -385,7 +385,7 @@ class Scraper(ABC):
         self, 
         pool_id: int, 
         team_id: int, 
-        points: int
+        team_stats: AssociationStats
     ):
         """
         Remplace directement les champs 'played', 'wins', 'losses', 'points'
@@ -396,8 +396,23 @@ class Scraper(ABC):
             self._associations_cache[key] = (None, AssociationStats())
         
         original, updated = self._associations_cache[key]
-        updated.points_penalty = abs(points - updated.points)
-        updated.points = points
+
+        updated.played=team_stats.played,
+        updated.wins=team_stats.wins, 
+        updated.losses=team_stats.losses, 
+        updated.points=team_stats.points,
+        updated.wins_three_to_zero=team_stats.wins_three_to_zero,
+        updated.wins_three_to_one=team_stats.wins_three_to_one,
+        updated.wins_three_to_two=team_stats.wins_three_to_two,
+        updated.losses_zero_to_three=team_stats.losses_zero_to_three,
+        updated.losses_one_to_three=team_stats.losses_one_to_three,
+        updated.losses_two_to_three=team_stats.losses_two_to_three,
+        updated.won_points=team_stats.won_points,
+        updated.lost_points=team_stats.lost_points,
+        updated.won_sets=team_stats.won_sets,
+        updated.lost_sets=team_stats.lost_sets,
+        updated.points_penalty=team_stats.points_penalty
+        updated.points_penalty = abs(team_stats.points - updated.points)
     
     async def finalize_associations_updates(self):
         """
