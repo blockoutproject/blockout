@@ -90,7 +90,7 @@ public class TeamClientService {
             @CachePut(value = "teamById", key = "#id")
         },
         evict = {
-            @CacheEvict(value = "teamsByClubId", key = "#clubId")
+            @CacheEvict(value = "teamsByClubId", key = "#dto.clubId")
         }
     )
     public TeamDTO updateTeam(Long id, TeamUpdateDTO dto) {
