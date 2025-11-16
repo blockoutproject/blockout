@@ -70,7 +70,8 @@ public class ClubService {
      *
      * @param club  Entité Club à persister (nom, ville, etc.)
      * @param image Fichier image optionnel pour le logo
-     * @return Le club créé avec son ID généré et, le cas échéant, son logoUrl rempli
+     * @return Le club créé avec son ID généré et, le cas échéant, son logoUrl
+     *         rempli
      */
     @Transactional
     public Club createClub(ClubUpdateDTO dto, MultipartFile image) {
@@ -121,6 +122,12 @@ public class ClubService {
      */
     @Transactional
     public Club updateClub(String id, ClubUpdateDTO dto, MultipartFile image) {
+
+        logger.info("Début de la mise à jour du club",
+                keyValue("action", "update_club_start"),
+                keyValue("clubId", id),
+                keyValue("rawName", dto.getRawName()),
+                keyValue("name", dto.getName()));
         return clubRepository.findById(id).map(existing -> {
             Club before = existing.toBuilder().build();
 
