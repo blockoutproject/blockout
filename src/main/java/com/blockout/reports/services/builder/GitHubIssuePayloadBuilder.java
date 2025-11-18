@@ -15,6 +15,8 @@ public class GitHubIssuePayloadBuilder {
             labels.add("display bug");
         else if (dto.getType() == ReportType.DATA_ERROR)
             labels.add("data error");
+        else if (dto.getType() == ReportType.LIVE)
+            labels.add("live");
         else
             labels.add("other");
 
