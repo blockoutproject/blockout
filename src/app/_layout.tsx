@@ -14,6 +14,8 @@ import { SessionProvider, useSession } from "@/src/context/SessionProvider";
 import { SplashScreenController } from "@/src/session/splash";
 import { useOnboardingStore } from "../utils/onboardingStore";
 import { addNotificationListeners, openNotificationUrlIfAny } from "../utils/notifications";
+import MaintenanceScreen from "./maintenance";
+import useHasScopes from "../hooks/user/useHasScopes";
 
 const queryClient = new QueryClient();
 
@@ -50,6 +52,30 @@ export default function Root() {
 function RootNavigator() {
     const { isAuthenticated, isGuest } = useSession();
     const { hasCompletedOnboarding } = useOnboardingStore();
+
+        const { allowed: canBypassMaintenance } = useHasScopes(["admin:maintenance_bypass"]);
+
+    // const {
+    //     data: appStatus,
+    //     isLoading: statusLoading,
+    //     isError: statusError,
+    //     refetch: refetchStatus,
+    // } = useAppStatus();
+
+    //const maintenanceEnabled = appStatus?.maintenance === true;
+
+    // Stratégie :
+    // - si maintenance activée et pas de bypass -> écran maintenance
+    // - si erreur réseau sur la route de status -> on laisse passer (fail open)
+    if (true) {
+        return (
+            <MaintenanceScreen
+                loading={false}
+                message={"appStatus?.message"}
+                onRetry={() => null}
+            />
+        );
+    }
 
     return (
         <BottomSheetModalProvider>

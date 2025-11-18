@@ -1,5 +1,6 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
-import { View, StyleSheet, Text, TouchableOpacity, Alert, ScrollView, Animated } from "react-native";
+// ReportForm.tsx
+import React, { useEffect, useMemo, useState } from "react";
+import { View, StyleSheet, Text, TouchableOpacity, Alert, ScrollView } from "react-native";
 import { BottomSheetScrollView, BottomSheetTextInput } from "@gorhom/bottom-sheet";
 import { useFormik } from "formik";
 import * as Yup from "yup";
@@ -45,6 +46,7 @@ type FormValues = {
 const CATEGORY_OPTIONS = [
     { name: "Bug d'affichage", value: ReportType.DISPLAY_BUG },
     { name: "Données", value: ReportType.DATA_ERROR },
+    { name: "Live", value: ReportType.LIVE },
     { name: "Autre", value: ReportType.OTHER },
 ] as const;
 
@@ -56,31 +58,6 @@ const ReportForm: React.FC<ReportFormProps> = ({ context, onSuccess, onRegisterS
     const [images, setImages] = useState<CustomImage[]>([]);
     const [loading, setLoading] = useState(false);
     const [apiError, setApiError] = useState<string | null>(null);
-
-    const errorOpacity = useRef(new Animated.Value(0)).current;
-    const errorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-    useEffect(() => {
-        if (apiError) {
-            if (errorTimerRef.current) {
-                clearTimeout(errorTimerRef.current);
-                errorTimerRef.current = null;
-            }
-            errorOpacity.setValue(0);
-            Animated.timing(errorOpacity, { toValue: 1, duration: 180, useNativeDriver: true }).start();
-            errorTimerRef.current = setTimeout(() => {
-                Animated.timing(errorOpacity, { toValue: 0, duration: 220, useNativeDriver: true }).start(({ finished }) => {
-                    if (finished) setApiError(null);
-                });
-            }, 5000);
-        }
-        return () => {
-            if (errorTimerRef.current) {
-                clearTimeout(errorTimerRef.current);
-                errorTimerRef.current = null;
-            }
-        };
-    }, [apiError, errorOpacity]);
 
     const handlePickImage = async () => {
         try {
@@ -99,7 +76,10 @@ const ReportForm: React.FC<ReportFormProps> = ({ context, onSuccess, onRegisterS
                 format: ImageManipulator.SaveFormat.JPEG,
                 compress: 0.9,
             });
-            setImages((prev) => [...prev, { uri: saved.uri, name: `report-${prev.length + 1}.jpg`, type: "image/jpeg" }]);
+            setImages((prev) => [
+                ...prev,
+                { uri: saved.uri, name: `report-${prev.length + 1}.jpg`, type: "image/jpeg" },
+            ]);
         } catch {
             Alert.alert("Erreur", "Impossible de traiter l’image.");
         }
@@ -112,13 +92,17 @@ const ReportForm: React.FC<ReportFormProps> = ({ context, onSuccess, onRegisterS
         validationSchema: Yup.object({
             type: Yup.mixed<ReportType>().oneOf(Object.values(ReportType)).required(),
             title: Yup.string().trim().required("Titre requis 🚨"),
-            description: Yup.string().trim().required("Il va nous falloir un peu plus de détails ... 🧐"),
+            description: Yup.string()
+                .trim()
+                .required("Il va nous falloir un peu plus de détails ... 🧐"),
         }),
+        validateOnMount: true, // ✅ clé pour avoir isValid = false tant que les champs vides
         onSubmit: async (values) => {
             try {
                 await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
                 setLoading(true);
                 setApiError(null);
+
                 const payload: Partial<Report> = {
                     type: values.type,
                     title: values.title.trim(),
@@ -130,11 +114,12 @@ const ReportForm: React.FC<ReportFormProps> = ({ context, onSuccess, onRegisterS
                     deviceModel: Device.modelName ?? undefined,
                     os: `${Device.osName ?? "OS"} ${Device.osVersion ?? ""}`.trim(),
                 };
+
                 const created = await mobile.createReport(payload, images);
                 await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
                 onSuccess(created);
             } catch (err) {
-                console.log(err)
+                console.log(err);
                 setApiError("Création impossible, réessaie.");
                 await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
             } finally {
@@ -144,7 +129,7 @@ const ReportForm: React.FC<ReportFormProps> = ({ context, onSuccess, onRegisterS
     });
 
     const [filters, setFilters] = useState<Filter[]>(
-        CATEGORY_OPTIONS.map((opt) => ({ name: opt.name, isActive: opt.value === initialType }))
+        CATEGORY_OPTIONS.map((opt) => ({ name: opt.name, isActive: opt.value === initialType })),
     );
 
     useEffect(() => {
@@ -160,7 +145,14 @@ const ReportForm: React.FC<ReportFormProps> = ({ context, onSuccess, onRegisterS
         onRegisterSubmit(formik.submitForm);
     }, [formik.submitForm, onRegisterSubmit]);
 
-    const canSubmit = useMemo(() => formik.isValid && !loading, [formik.isValid, loading]);
+    const canSubmit = useMemo(
+        () =>
+            formik.isValid &&
+            !!formik.values.title.trim() &&
+            !!formik.values.description?.trim() &&
+            !loading,
+        [formik.isValid, formik.values.title, formik.values.description, loading],
+    );
 
     useEffect(() => {
         onStateChange?.({ loading, canSubmit });
@@ -186,12 +178,18 @@ const ReportForm: React.FC<ReportFormProps> = ({ context, onSuccess, onRegisterS
                 <View style={[styles.card, { backgroundColor: theme.surface }]}>
                     <Text style={[styles.sectionTitle, { color: theme.text }]}>Détails</Text>
 
-                    <Field label="Titre" error={formik.errors.title as string} touched={formik.touched.title}>
+                    <Field
+                        label="Titre"
+                        error={formik.errors.title as string}
+                        touched={formik.touched.title}
+                    >
                         <BottomSheetTextInput
                             style={[
                                 styles.input,
                                 { borderColor: theme.border, color: theme.text },
-                                formik.touched.title && formik.errors.title ? { borderColor: theme.error } : null,
+                                formik.touched.title && formik.errors.title
+                                    ? { borderColor: theme.error }
+                                    : null,
                             ]}
                             value={formik.values.title}
                             onChangeText={formik.handleChange("title")}
@@ -202,7 +200,11 @@ const ReportForm: React.FC<ReportFormProps> = ({ context, onSuccess, onRegisterS
                         />
                     </Field>
 
-                    <Field label="Description" error={formik.errors.description as string} touched={formik.touched.description}>
+                    <Field
+                        label="Description"
+                        error={formik.errors.description as string}
+                        touched={formik.touched.description}
+                    >
                         <BottomSheetTextInput
                             multiline
                             scrollEnabled
@@ -210,7 +212,9 @@ const ReportForm: React.FC<ReportFormProps> = ({ context, onSuccess, onRegisterS
                                 styles.input,
                                 styles.textarea,
                                 { borderColor: theme.border, color: theme.text },
-                                formik.touched.description && formik.errors.description ? { borderColor: theme.error } : null,
+                                formik.touched.description && formik.errors.description
+                                    ? { borderColor: theme.error }
+                                    : null,
                             ]}
                             value={formik.values.description}
                             onChangeText={formik.handleChange("description")}
@@ -225,21 +229,49 @@ const ReportForm: React.FC<ReportFormProps> = ({ context, onSuccess, onRegisterS
                 <View style={[styles.card, { backgroundColor: theme.surface }]}>
                     <Text style={[styles.sectionTitle, { color: theme.text }]}>Captures</Text>
 
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>
+                    <ScrollView
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        contentContainerStyle={{ gap: 10 }}
+                    >
                         {images.map((img, i) => (
-                            <View key={i} style={[styles.thumbWrap, { borderColor: theme.border }]}>
-                                <Image source={{ uri: img.uri }} style={styles.thumb} contentFit="cover" />
+                            <View
+                                key={i}
+                                style={[styles.thumbWrap, { borderColor: theme.border }]}
+                            >
+                                <Image
+                                    source={{ uri: img.uri }}
+                                    style={styles.thumb}
+                                    contentFit="cover"
+                                />
                             </View>
                         ))}
 
                         <TouchableOpacity
                             onPress={handlePickImage}
                             activeOpacity={0.85}
-                            style={[styles.addBtn, { borderColor: theme.border, backgroundColor: theme.backgroundSecondary }]}
+                            style={[
+                                styles.addBtn,
+                                {
+                                    borderColor: theme.border,
+                                    backgroundColor: theme.backgroundSecondary,
+                                },
+                            ]}
                             testID="add-image-btn"
                         >
-                            <MaterialCommunityIcons name="image-plus" size={20} color={theme.textInactive} />
-                            <Text style={[styles.addBtnText, { color: theme.textInactive }]}>Ajouter</Text>
+                            <MaterialCommunityIcons
+                                name="image-plus"
+                                size={20}
+                                color={theme.textInactive}
+                            />
+                            <Text
+                                style={[
+                                    styles.addBtnText,
+                                    { color: theme.textInactive },
+                                ]}
+                            >
+                                Ajouter
+                            </Text>
                         </TouchableOpacity>
                     </ScrollView>
                 </View>
@@ -267,26 +299,37 @@ const styles = StyleSheet.create({
         shadowRadius: 10,
         shadowOffset: { width: 0, height: 6 },
     },
-    sectionTitle: { fontSize: 13, fontWeight: "800", textTransform: "uppercase", opacity: 0.85 },
-    input: { borderWidth: 1.5, borderRadius: 16, paddingVertical: 12, paddingHorizontal: 14, fontSize: 14 },
-    textarea: { maxHeight: 200, textAlignVertical: "top", minHeight: 180 },
-    thumbWrap: { width: 84, height: 84, borderRadius: 14, overflow: "hidden", borderWidth: 1.5 },
-    thumb: { width: "100%", height: "100%" },
-    addBtn: { height: 84, paddingHorizontal: 14, borderWidth: 1.5, borderRadius: 14, alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 6 },
-    addBtnText: { fontSize: 12, fontWeight: "700" },
-    apiErrorContainer: {
-        position: "absolute",
-        left: 12,
-        right: 12,
-        borderRadius: 12,
-        borderWidth: 1,
-        flexDirection: "row",
-        alignItems: "center",
-        paddingVertical: 8,
-        paddingHorizontal: 12,
-        marginBottom: 8,
-        gap: 8,
-        zIndex: 20,
+    sectionTitle: {
+        fontSize: 13,
+        fontWeight: "800",
+        textTransform: "uppercase",
+        opacity: 0.85,
     },
-    apiErrorText: { flex: 1, fontSize: 14, fontWeight: "600" },
+    input: {
+        borderWidth: 1.5,
+        borderRadius: 16,
+        paddingVertical: 12,
+        paddingHorizontal: 14,
+        fontSize: 14,
+    },
+    textarea: { maxHeight: 200, textAlignVertical: "top", minHeight: 180 },
+    thumbWrap: {
+        width: 84,
+        height: 84,
+        borderRadius: 14,
+        overflow: "hidden",
+        borderWidth: 1.5,
+    },
+    thumb: { width: "100%", height: "100%" },
+    addBtn: {
+        height: 84,
+        paddingHorizontal: 14,
+        borderWidth: 1.5,
+        borderRadius: 14,
+        alignItems: "center",
+        justifyContent: "center",
+        flexDirection: "row",
+        gap: 6,
+    },
+    addBtnText: { fontSize: 12, fontWeight: "700" },
 });

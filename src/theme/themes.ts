@@ -16,7 +16,7 @@ export const darkTheme: AppTheme = {
     pressed: "#242528",
     primary: "#2d9cdb",
     success: "#61b543",
-    error: "#c23846",
+    error: "#d32738ff",
     warning: "#e6c84c",
     gold: "#FFD700",
     silver: "#C0C0C0",

@@ -12,6 +12,7 @@ export type BottomSheetFormFooterProps = Omit<BottomSheetFooterProps, "children"
     disabled?: boolean;
     onPress: () => void;
     backgroundColor?: string;
+    icon?: React.ComponentProps<typeof MaterialCommunityIcons>["name"];
 };
 
 const BottomSheetFormFooter: React.FC<BottomSheetFormFooterProps> = ({
@@ -20,6 +21,7 @@ const BottomSheetFormFooter: React.FC<BottomSheetFormFooterProps> = ({
     disabled,
     onPress,
     backgroundColor,
+    icon = "content-save-outline",
     ...footerProps
 }) => {
     const theme = useAppTheme();
@@ -51,12 +53,16 @@ const BottomSheetFormFooter: React.FC<BottomSheetFormFooterProps> = ({
                         <ActivityIndicator color={theme.text} />
                     ) : (
                         <>
-                            <MaterialCommunityIcons
-                                name="content-save-outline"
-                                size={18}
-                                color={theme.text}
-                            />
-                            <Text style={[styles.submitText, { color: theme.text }]}>{label}</Text>
+                            {icon && (
+                                <MaterialCommunityIcons
+                                    name={icon as any}
+                                    size={18}
+                                    color={theme.text}
+                                />
+                            )}
+                            <Text style={[styles.submitText, { color: theme.text }]}>
+                                {label}
+                            </Text>
                         </>
                     )}
                 </TouchableOpacity>

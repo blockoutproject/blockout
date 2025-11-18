@@ -1,8 +1,19 @@
-import React, { useCallback, useMemo, useState } from "react";
-import { ActivityIndicator, FlatList, StyleSheet, View } from "react-native";
+import React, {
+    useCallback,
+    useEffect,
+    useMemo,
+    useState,
+} from "react";
+import {
+    ActivityIndicator,
+    FlatList,
+    StyleSheet,
+    View,
+} from "react-native";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import { useFollowedTeamList } from "@/src/hooks/team/useFollowedTeamList";
 import FollowedTeamCard from "./FollowedTeamCard";
@@ -13,14 +24,20 @@ import FollowedListSkeleton from "./FollowedListSkeleton";
 
 type Props = {
     teamIds?: number[];
+    selectedSeason?: string;
+    onSeasonsChange?: (seasons: string[]) => void;
 };
 
-const FollowedTeamsList: React.FC<Props> = ({ teamIds }) => {
-    const theme = useAppTheme();
+const FollowedTeamsList: React.FC<Props> = ({
+    teamIds,
+    selectedSeason,
+    onSeasonsChange,
+}) => {
     const insets = useSafeAreaInsets();
     const router = useRouter();
 
-    const { teams, isLoading, isError, refetch } = useFollowedTeamList(teamIds);
+    const { teams, isLoading, isError, refetch } =
+        useFollowedTeamList(teamIds);
 
     const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -39,17 +56,44 @@ const FollowedTeamsList: React.FC<Props> = ({ teamIds }) => {
             await Haptics.selectionAsync();
             router.push(`/team/${id}`);
         },
-        [router]
+        [router],
     );
 
-    const ListFooterComponent = useMemo(() => {
-        return <View style={{ height: insets.bottom + BOTTOM_TABBAR_HEIGHT + 4 }} />;
-    }, [insets.bottom]);
+    const ListFooterComponent = useMemo(
+        () => (
+            <View
+                style={{
+                    height: insets.bottom + BOTTOM_TABBAR_HEIGHT + 4,
+                }}
+            />
+        ),
+        [insets.bottom],
+    );
+
+    // 🔁 Extraction des saisons disponibles à partir des équipes suivies
+    useEffect(() => {
+        const all = teams ?? [];
+        const seasons = Array.from(
+            new Set(
+                all
+                    .map((t: any) => t.season)
+                    .filter((s: unknown): s is string => !!s),
+            ),
+        ).sort((a, b) => b.localeCompare(a));
+
+        onSeasonsChange?.(seasons);
+    }, [teams, onSeasonsChange]);
+
+    const allData = teams ?? [];
+    const data = useMemo(() => {
+        if (!selectedSeason) return allData;
+        return allData.filter((t: any) => t.season === selectedSeason);
+    }, [allData, selectedSeason]);
+
+    const hasData = data.length > 0;
 
     if (isLoading) {
-        return (
-            <FollowedListSkeleton />
-        );
+        return <FollowedListSkeleton />;
     }
 
     if (isError) {
@@ -62,15 +106,15 @@ const FollowedTeamsList: React.FC<Props> = ({ teamIds }) => {
         );
     }
 
-    const data = teams ?? [];
-    const hasData = data.length > 0;
-
     return (
         <FlatList
             data={data}
             keyExtractor={(item) => item.id.toString()}
             renderItem={({ item }) => (
-                <FollowedTeamCard team={item} onPress={() => handlePressTeam(item.id)} />
+                <FollowedTeamCard
+                    team={item}
+                    onPress={() => handlePressTeam(item.id)}
+                />
             )}
             ListFooterComponent={ListFooterComponent}
             ListEmptyComponent={() => (
@@ -95,7 +139,3 @@ const FollowedTeamsList: React.FC<Props> = ({ teamIds }) => {
 };
 
 export default FollowedTeamsList;
-
-const styles = StyleSheet.create({
-    center: { flex: 1, justifyContent: "center", alignItems: "center" },
-});

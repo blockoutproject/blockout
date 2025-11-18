@@ -1,25 +1,44 @@
-import React, { useCallback, useMemo, useState } from "react";
-import { ActivityIndicator, FlatList, StyleSheet, View } from "react-native";
+import React, {
+    useCallback,
+    useEffect,
+    useMemo,
+    useState,
+} from "react";
+import {
+    ActivityIndicator,
+    FlatList,
+    StyleSheet,
+    View,
+} from "react-native";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import { useFollowedPoolList } from "@/src/hooks/pool/useFollowedPoolList";
 import FollowedPoolCard from "./FollowedPoolCard";
 import { BOTTOM_TABBAR_HEIGHT } from "@/src/theme/globals";
 import EmptyState from "@/src/components/common/feedback/EmptyState";
 import ErrorState from "@/src/components/common/feedback/ErrorState";
+import FollowedListSkeleton from "./FollowedListSkeleton";
 
 type Props = {
     poolIds?: number[];
+    selectedSeason?: string;
+    onSeasonsChange?: (seasons: string[]) => void;
 };
 
-const FollowedPoolsList: React.FC<Props> = ({ poolIds }) => {
+const FollowedPoolsList: React.FC<Props> = ({
+    poolIds,
+    selectedSeason,
+    onSeasonsChange,
+}) => {
     const theme = useAppTheme();
     const insets = useSafeAreaInsets();
     const router = useRouter();
 
-    const { pools, isLoading, isError, refetch } = useFollowedPoolList(poolIds);
+    const { pools, isLoading, isError, refetch } =
+        useFollowedPoolList(poolIds);
 
     const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -38,19 +57,44 @@ const FollowedPoolsList: React.FC<Props> = ({ poolIds }) => {
             await Haptics.selectionAsync();
             router.push(`/pool/${id}`);
         },
-        [router]
+        [router],
     );
 
-    const ListFooterComponent = useMemo(() => {
-        return <View style={{ height: insets.bottom + BOTTOM_TABBAR_HEIGHT + 4 }} />;
-    }, [insets.bottom]);
+    const ListFooterComponent = useMemo(
+        () => (
+            <View
+                style={{
+                    height: insets.bottom + BOTTOM_TABBAR_HEIGHT + 4,
+                }}
+            />
+        ),
+        [insets.bottom],
+    );
+
+    // 🔁 Extraction des saisons disponibles à partir des poules suivies
+    useEffect(() => {
+        const all = pools ?? [];
+        const seasons = Array.from(
+            new Set(
+                all
+                    .map((p: any) => p.season)
+                    .filter((s: unknown): s is string => !!s),
+            ),
+        ).sort((a, b) => b.localeCompare(a));
+
+        onSeasonsChange?.(seasons);
+    }, [pools, onSeasonsChange]);
+
+    const allData = pools ?? [];
+    const data = useMemo(() => {
+        if (!selectedSeason) return allData;
+        return allData.filter((p: any) => p.season === selectedSeason);
+    }, [allData, selectedSeason]);
+
+    const hasData = data.length > 0;
 
     if (isLoading) {
-        return (
-            <View style={[styles.center, { backgroundColor: theme.background }]}>
-                <ActivityIndicator size="large" color={theme.text} />
-            </View>
-        );
+        return <FollowedListSkeleton />;
     }
 
     if (isError) {
@@ -63,17 +107,16 @@ const FollowedPoolsList: React.FC<Props> = ({ poolIds }) => {
         );
     }
 
-    const data = pools ?? [];
-    const hasData = data.length > 0;
-
     return (
         <FlatList
             data={data}
             keyExtractor={(item) => item.id.toString()}
             renderItem={({ item }) => (
-                <FollowedPoolCard pool={item} onPress={() => handlePressPool(item.id)} />
+                <FollowedPoolCard
+                    pool={item}
+                    onPress={() => handlePressPool(item.id)}
+                />
             )}
-            // Header retiré : il est rendu dans FollowedScreen
             ListFooterComponent={ListFooterComponent}
             ListEmptyComponent={() => (
                 <EmptyState
@@ -97,7 +140,3 @@ const FollowedPoolsList: React.FC<Props> = ({ poolIds }) => {
 };
 
 export default FollowedPoolsList;
-
-const styles = StyleSheet.create({
-    center: { flex: 1, justifyContent: "center", alignItems: "center" },
-});

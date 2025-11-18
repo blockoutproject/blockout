@@ -74,6 +74,7 @@ export const SessionProvider: React.FC<React.PropsWithChildren> = ({ children })
     const error = customUserError || auth0UserError;
 
     useEffect(() => {
+        console.log(isAuthenticated, hasCompletedOnboarding, customUser?.id, registerPushToken)
         if (!hasCompletedOnboarding || !isAuthenticated) return;
         (async () => {
             try {
@@ -85,7 +86,7 @@ export const SessionProvider: React.FC<React.PropsWithChildren> = ({ children })
                 console.warn("Erreur lors de l’enregistrement du push token :", err);
             }
         })();
-    }, [isAuthenticated, hasCompletedOnboarding, customUser?.id, registerPushToken]);
+    }, [isAuthenticated, hasCompletedOnboarding, customUser?.id]);
 
     useEffect(() => {
         let cancelled = false;

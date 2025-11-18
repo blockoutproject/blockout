@@ -1,5 +1,5 @@
 import { CONFIG } from "@/src/config/config";
-import { EnrichedDayPageDTO, EnrichedMatchDTO, MatchStatus } from "@/src/types/Match";
+import { EnrichedDayPageDTO, EnrichedMatchDTO, MatchLiveLinkReportRequestDTO, MatchLiveLinkRequestDTO, MatchLiveLinkResponseDTO, MatchStatus } from "@/src/types/Match";
 import { EnrichedPoolDTO, Pool, PoolSearchDocDTO, PoolSummaryDTO } from "@/src/types/Pool";
 import { EnrichedTeamDTO, Team, TeamSearchDocDTO, TeamSummaryDTO } from "@/src/types/Team";
 import { EnrichedUserNotificationPage, RegisterPushTokenRequest } from "@/src/types/Notification";
@@ -76,6 +76,32 @@ export class MobileGatewayApi extends BaseApi {
      */
     public getEnrichedMatchById(id: number) {
         return this.httpPublic.get<EnrichedMatchDTO>(`/matches/${id}`);
+    }
+
+    /**
+     * Crée ou met à jour le lien live d’un match (authentifié)
+     * @param matchId Identifiant du match
+     * @param data Données du lien live (url, provider, etc.)
+     */
+    public upsertMatchLiveLink(matchId: number, data: MatchLiveLinkRequestDTO) {
+        return this.httpAuth.post<MatchLiveLinkResponseDTO>(`/matches/${matchId}/live-link`, data);
+    }
+
+    /**
+     * Supprime le lien live d’un match (authentifié)
+     * @param matchId Identifiant du match
+     */
+    public deleteMatchLiveLink(matchId: number) {
+        return this.httpAuth.delete<void>(`/matches/${matchId}/live-link`);
+    }
+
+    /**
+     * Signale un lien live comme incorrect ou inapproprié (authentifié)
+     * @param matchId Identifiant du match
+     * @param data Données du signalement (raison, commentaire, etc.)
+     */
+    public reportMatchLiveLink(matchId: number, data: MatchLiveLinkReportRequestDTO) {
+        return this.httpAuth.post<void>(`/matches/${matchId}/live-link/report`, data);
     }
 
     /**
@@ -304,14 +330,6 @@ export class MobileGatewayApi extends BaseApi {
      */
     public getDivisions() {
         return this.httpPublic.get<Division[]>("/config/divisions");
-    }
-
-    /**
-     * Récupère une division par son identifiant (public)
-     * @param id Identifiant de la division
-     */
-    public getDivisionById(id: number) {
-        return this.httpPublic.get<Division>(`/config/divisions/${id}`);
     }
 
     /**

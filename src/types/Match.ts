@@ -6,6 +6,16 @@ export enum MatchStatus {
     FINISHED = "FINISHED",
 }
 
+export const PROVIDER_LABELS: Record<LiveProvider, string> = {
+    YOUTUBE: "YouTube",
+    TWITCH: "Twitch",
+    FACEBOOK: "Facebook",
+};
+
+export type LiveProvider = "YOUTUBE" | "TWITCH" | "FACEBOOK";
+
+export type LiveLinkStatus = "ACTIVE" | "HIDDEN" | "EXPIRED";
+
 export interface Match {
     id: number;
     matchCode: string;
@@ -22,9 +32,8 @@ export interface Match {
     firstReferee: string | null;
     secondReferee: string | null;
     liveCode: number | null;
-    active: boolean;
-    createdAt: string;
-    lastUpdate: string;
+    liveUrl: string | null;
+    liveProvider: string | null;
 }
 
 export interface PoolMatchesDTO {
@@ -57,8 +66,13 @@ export interface EnrichedMatchDTO {
     teamA: Team & { logoUrl: string | null };
     teamB: Team & { logoUrl: string | null };
     pool: EnrichedPoolDTO;
+    liveUrl: string | null;
+    liveProvider: string | null;
     matchAddressPdfUrl: string | null;
     matchSheetPdfUrl: string | null;
+    liveOwnerAuth0Id: string | null;
+    liveOwnerUsername: string | null;
+    liveEditLocked: boolean | null;
 }
 
 export interface EnrichedPoolMatchesDTO {
@@ -75,4 +89,19 @@ export interface EnrichedDayPageDTO {
     dayMatches: EnrichedDayMatchesDTO[];
     hasNext: boolean;
     nextPage: number | null;
+}
+
+export interface MatchLiveLinkRequestDTO {
+    url: string;
+}
+
+export interface MatchLiveLinkResponseDTO {
+    match_id: number;
+    provider: LiveProvider;
+    url: string;
+    status: LiveLinkStatus;
+}
+
+export interface MatchLiveLinkReportRequestDTO {
+    reason: string;
 }

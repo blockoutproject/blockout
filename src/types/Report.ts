@@ -1,6 +1,7 @@
 export enum ReportType {
     DISPLAY_BUG = 'DISPLAY_BUG',
     DATA_ERROR = 'DATA_ERROR',
+    LIVE = 'LIVE',
     OTHER = 'OTHER',
 }
 
