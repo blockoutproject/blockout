@@ -369,6 +369,8 @@ public class MatchService {
                 .liveCode(match.getLiveCode())
                 .liveUrl(match.getLiveUrl())
                 .liveProvider(match.getLiveProvider())
+                .liveOwnerAuth0Id(match.getLiveOwnerAuth0Id())
+                .liveEditLocked(match.getLiveEditLocked())
                 .teamA(teamA)
                 .teamB(teamB)
                 .pool(enrichedPool)

@@ -1,6 +1,8 @@
 package com.blockout.mobilegateway.services.clients;
 
 import com.blockout.mobilegateway.config.ApiClientProperties;
+import com.blockout.mobilegateway.models.dto.config.AppStatusDTO;
+import com.blockout.mobilegateway.models.dto.config.AppStatusUpdateDTO;
 import com.blockout.mobilegateway.models.dto.config.DivisionDTO;
 import com.blockout.mobilegateway.models.dto.config.DivisionUpdateDTO;
 import com.blockout.mobilegateway.models.dto.config.LegalDocumentDTO;
@@ -41,6 +43,34 @@ public class ConfigClientService {
 
     private String baseUrl() {
         return apiClientProperties.getConfig().getUrl();
+    }
+
+    public AppStatusDTO getAppStatus() {
+        String url = UriComponentsBuilder.fromUriString(baseUrl())
+                .pathSegment("app-status")
+                .build()
+                .toUriString();
+
+        logger.info("Calling config#getAppStatus",
+                keyValue("action", "call_config_get_app_status"),
+                keyValue("url", url));
+
+        ResponseEntity<AppStatusDTO> res = apiClientService.get(url, AppStatusDTO.class);
+        return res.getBody();
+    }
+
+    public AppStatusDTO updateAppStatus(AppStatusUpdateDTO dto) {
+        String url = UriComponentsBuilder.fromUriString(baseUrl())
+                .pathSegment("app-status")
+                .build()
+                .toUriString();
+
+        logger.info("Calling config#updateAppStatus",
+                keyValue("action", "call_config_update_app_status"),
+                keyValue("url", url));
+
+        ResponseEntity<AppStatusDTO> res = apiClientService.put(url, dto, AppStatusDTO.class);
+        return res.getBody();
     }
 
     @Cacheable(value = "divisions")

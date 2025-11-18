@@ -1,5 +1,6 @@
 package com.blockout.mobilegateway.controllers.v1.publicapi;
 
+import com.blockout.mobilegateway.models.dto.config.AppStatusDTO;
 import com.blockout.mobilegateway.models.dto.config.DivisionDTO;
 import com.blockout.mobilegateway.models.dto.config.LegalDocumentDTO;
 import com.blockout.mobilegateway.services.ConfigService;
@@ -16,6 +17,12 @@ import java.util.List;
 public class ConfigPublicController {
 
     private final ConfigService configService;
+
+    @GetMapping("/app-status")
+    public ResponseEntity<AppStatusDTO> getAppStatus() {
+        AppStatusDTO status = configService.getAppStatus();
+        return ResponseEntity.ok(status);
+    }
 
     @GetMapping("/divisions")
     public ResponseEntity<List<DivisionDTO>> listAll() {

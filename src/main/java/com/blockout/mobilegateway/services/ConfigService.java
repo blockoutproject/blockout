@@ -19,6 +19,26 @@ public class ConfigService {
     private static final Logger logger = LoggerFactory.getLogger(ConfigService.class);
     private final ConfigClientService configClientService;
 
+    public AppStatusDTO getAppStatus() {
+        logger.info("Fetching app status", keyValue("action", "get_app_status"));
+        AppStatusDTO dto = configClientService.getAppStatus();
+        logger.info("App status fetched",
+                keyValue("action", "get_app_status"),
+                keyValue("maintenance", dto != null && dto.isMaintenance()));
+        return dto;
+    }
+
+    public AppStatusDTO updateAppStatus(AppStatusUpdateDTO dto) {
+        logger.info("Updating app status",
+                keyValue("action", "update_app_status"),
+                keyValue("maintenance", dto.getMaintenance()));
+        AppStatusDTO updated = configClientService.updateAppStatus(dto);
+        logger.info("App status updated",
+                keyValue("action", "update_app_status"),
+                keyValue("maintenance_after", updated != null && updated.isMaintenance()));
+        return updated;
+    }
+
     public List<DivisionDTO> listDivisions() {
         logger.info("Listing all divisions", keyValue("action", "list_all_divisions"));
         List<DivisionDTO> list = configClientService.listDivisions();
