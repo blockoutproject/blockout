@@ -1,7 +1,8 @@
-package com.blockout.matches.models;
+package com.blockout.matches.models.entities;
 
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 
@@ -10,13 +11,14 @@ import java.time.LocalDateTime;
 
 import com.blockout.matches.models.enums.MatchStatus;
 
-@Data
+@Getter
+@Setter
 @Builder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
 @Table(name = "matches", uniqueConstraints = {
-        @UniqueConstraint(columnNames = {"match_code", "league_code", "season"}, name = "uix_match")
+        @UniqueConstraint(columnNames = { "match_code", "league_code", "season" }, name = "uix_match")
 })
 public class Match {
 
@@ -35,6 +37,9 @@ public class Match {
 
     @Column(name = "live_code", nullable = true)
     private Long liveCode;
+
+    @Column(name = "live_edit_locked", nullable = false)
+    private boolean liveEditLocked;
 
     @Column(name = "team_id_a", nullable = false)
     private Long teamIdA;

@@ -1,4 +1,4 @@
-package com.blockout.matches.models.dto;
+package com.blockout.matches.models.dto.match;
 
 import java.time.LocalDate;
 import java.util.List;

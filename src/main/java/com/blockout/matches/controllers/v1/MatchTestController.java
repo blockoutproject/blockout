@@ -1,6 +1,6 @@
 package com.blockout.matches.controllers.v1;
 
-import com.blockout.matches.models.Match;
+import com.blockout.matches.models.entities.Match;
 import com.blockout.matches.models.events.MatchFinishedEvent;
 import com.blockout.matches.services.EventPublisher;
 import com.blockout.matches.services.MatchService;
@@ -40,7 +40,7 @@ public class MatchTestController {
     @PreAuthorize("hasAuthority('SCOPE_publish:events')")
     @PostMapping("/{id}/emit-finished")
     public ResponseEntity<Void> emitFinishedById(@PathVariable Long id) {
-        Match match = matchService.getMatchById(id);
+        Match match = matchService.getMatchByIdInternal(id);
 
         eventPublisher.publishMatchFinished(match);
 

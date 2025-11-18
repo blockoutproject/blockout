@@ -1,11 +1,15 @@
 package com.blockout.matches.services;
 
 import com.blockout.matches.exceptions.MatchNotFoundException;
-import com.blockout.matches.models.Match;
-import com.blockout.matches.models.dto.DayMatchesDTO;
-import com.blockout.matches.models.dto.DayPageDTO;
-import com.blockout.matches.models.dto.PoolMatchesDTO;
+import com.blockout.matches.models.dto.match.DayMatchesDTO;
+import com.blockout.matches.models.dto.match.DayPageDTO;
+import com.blockout.matches.models.dto.match.MatchDTO;
+import com.blockout.matches.models.dto.match.PoolMatchesDTO;
+import com.blockout.matches.models.entities.Match;
+import com.blockout.matches.models.entities.MatchLiveLink;
+import com.blockout.matches.models.enums.LiveLinkStatus;
 import com.blockout.matches.models.enums.MatchStatus;
+import com.blockout.matches.repositories.MatchLiveLinkRepository;
 import com.blockout.matches.repositories.MatchRepository;
 import com.blockout.matches.utils.DiffUtils;
 
@@ -35,6 +39,7 @@ public class MatchService {
     private static final Logger logger = LoggerFactory.getLogger(MatchService.class);
 
     private final MatchRepository matchRepository;
+    private final MatchLiveLinkRepository matchLiveLinkRepository;
     private final EventPublisher eventPublisher;
 
     /**
@@ -226,7 +231,48 @@ public class MatchService {
      * @return Le match correspondant
      * @throws MatchNotFoundException Si aucun match n'est trouvé avec cet ID
      */
-    public Match getMatchById(Long id) {
+    public MatchDTO getMatchById(Long id) {
+
+        Match match = matchRepository.findById(id).orElseThrow(() -> {
+            logger.warn("Match non trouvé", keyValue("matchId", id));
+            return new MatchNotFoundException(id);
+        });
+
+        MatchLiveLink live = matchLiveLinkRepository
+                .findFirstByMatchIdAndStatusOrderByCreatedAtDesc(id, LiveLinkStatus.ACTIVE)
+                .orElse(null);
+
+        return MatchDTO.builder()
+                .id(match.getId())
+                .matchCode(match.getMatchCode())
+                .leagueCode(match.getLeagueCode())
+                .poolId(match.getPoolId())
+                .liveCode(match.getLiveCode())
+                .liveEditLocked(match.isLiveEditLocked())
+                .teamIdA(match.getTeamIdA())
+                .teamIdB(match.getTeamIdB())
+                .matchDate(match.getMatchDate())
+                .season(match.getSeason())
+                .set(match.getSet())
+                .score(match.getScore())
+                .status(match.getStatus())
+                .venue(match.getVenue())
+                .firstReferee(match.getFirstReferee())
+                .secondReferee(match.getSecondReferee())
+                .liveUrl(live != null ? live.getUrl() : null)
+                .liveProvider(live != null ? live.getProvider() : null)
+                .liveOwnerAuth0Id(live != null ? live.getOwnerAuth0Id() : null)
+                .build();
+    }
+
+    /**
+     * Récupère un match par son identifiant pour les test interne.
+     *
+     * @param id L'identifiant du match à récupérer
+     * @return Le match correspondant
+     * @throws MatchNotFoundException Si aucun match n'est trouvé avec cet ID
+     */
+    public Match getMatchByIdInternal(Long id) {
         return matchRepository.findById(id).orElseThrow(() -> {
             logger.warn("Match non trouvé", keyValue("matchId", id));
             return new MatchNotFoundException(id);

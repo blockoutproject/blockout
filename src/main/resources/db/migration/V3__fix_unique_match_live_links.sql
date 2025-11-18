@@ -1,0 +1,2 @@
+ALTER TABLE match_live_links
+DROP CONSTRAINT IF EXISTS uix_match_live_links_match;

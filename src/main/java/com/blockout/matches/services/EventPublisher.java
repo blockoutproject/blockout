@@ -1,7 +1,7 @@
 package com.blockout.matches.services;
 
 import com.blockout.matches.config.RabbitMQConfig;
-import com.blockout.matches.models.Match;
+import com.blockout.matches.models.entities.Match;
 import com.blockout.matches.models.events.MatchFinishedEvent;
 
 import lombok.RequiredArgsConstructor;
