@@ -1,6 +1,6 @@
 package com.blockout.config.repositories;
 
-import com.blockout.config.models.entity.ScraperStatus;
+import com.blockout.config.models.entities.ScraperStatus;
 import com.blockout.config.models.enums.ScraperName;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;

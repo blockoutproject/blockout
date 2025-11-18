@@ -1,4 +1,4 @@
-package com.blockout.config.models.entity;
+package com.blockout.config.models.entities;
 
 import jakarta.persistence.*;
 import lombok.*;

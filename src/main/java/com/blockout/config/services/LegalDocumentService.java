@@ -2,7 +2,7 @@ package com.blockout.config.services;
 
 import com.blockout.config.exceptions.LegalDocumentNotFoundException;
 import com.blockout.config.models.dto.LegalDocumentUpdateDTO;
-import com.blockout.config.models.entity.LegalDocument;
+import com.blockout.config.models.entities.LegalDocument;
 import com.blockout.config.repositories.LegalDocumentRepository;
 import com.blockout.config.utils.DiffUtils;
 
