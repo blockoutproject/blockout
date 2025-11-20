@@ -43,7 +43,7 @@ public class TeamDTO {
     private Long followersCount;
 
     @JsonProperty("logo_url")
-    private String logoUrl; // URL du logo de l'équipe spécialement intégré
+    private String logoUrl;
 
     private Boolean active;
 

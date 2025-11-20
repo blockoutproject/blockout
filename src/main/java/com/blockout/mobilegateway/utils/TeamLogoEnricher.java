@@ -2,6 +2,7 @@ package com.blockout.mobilegateway.utils;
 
 import com.blockout.mobilegateway.models.dto.team.TeamDTO;
 import com.blockout.mobilegateway.services.clients.ClubClientService;
+import org.apache.commons.lang3.StringUtils;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -12,7 +13,7 @@ public final class TeamLogoEnricher {
     }
 
     /**
-     * Enrichit les équipes avec leur logo de club via ClubClientService.getClubLogoUrl().
+     * Enrichit les équipes avec leur logo de club si elles n'en ont pas déjà un.
      */
     public static void enrichTeamsWithClubLogo(Collection<TeamDTO> teams, ClubClientService clubClientService) {
         if (teams == null || teams.isEmpty()) {
@@ -20,9 +21,13 @@ public final class TeamLogoEnricher {
         }
 
         Set<String> clubIds = teams.stream()
+                .filter(team -> StringUtils.isBlank(team.getLogoUrl()))
                 .map(TeamDTO::getClubId)
-                .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
+
+        if (clubIds.isEmpty()) {
+            return;
+        }
 
         Map<String, String> clubLogoById = new HashMap<>(clubIds.size() * 2);
         for (String clubId : clubIds) {
@@ -31,8 +36,8 @@ public final class TeamLogoEnricher {
         }
 
         for (TeamDTO team : teams) {
-            String clubId = team.getClubId();
-            if (clubId != null) {
+            if (StringUtils.isBlank(team.getLogoUrl())) {
+                String clubId = team.getClubId();
                 team.setLogoUrl(clubLogoById.get(clubId));
             }
         }

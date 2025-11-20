@@ -21,6 +21,8 @@ import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+import org.apache.commons.lang3.StringUtils;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -121,10 +123,14 @@ public class TeamService {
                 })
                 .toList();
 
-        ClubDTO enrichedClub = null;
-        if (team.getClubId() != null && !team.getClubId().isBlank()) {
-            enrichedClub = clubClientService.getClubById(team.getClubId());
+        ClubDTO club = null;
+        if (StringUtils.isNotBlank(team.getClubId())) {
+            club = clubClientService.getClubById(team.getClubId());
         }
+
+        String finalLogoUrl = StringUtils.isNotBlank(team.getLogoUrl())
+                ? team.getLogoUrl()
+                : (club != null ? club.getLogoUrl() : null);
 
         EnrichedTeamDTO result = EnrichedTeamDTO.builder()
                 .id(team.getId())
@@ -134,8 +140,8 @@ public class TeamService {
                 .gender(team.getGender())
                 .season(team.getSeason())
                 .followersCount(team.getFollowersCount())
+                .logoUrl(finalLogoUrl)
                 .division(division)
-                .club(enrichedClub)
                 .pools(enrichedPools)
                 .build();
 
@@ -143,7 +149,7 @@ public class TeamService {
                 keyValue("action", "build_enriched_team"),
                 keyValue("team_id", id),
                 keyValue("pools_count", enrichedPools.size()),
-                keyValue("club_set", enrichedClub != null));
+                keyValue("club_set", club != null));
 
         return result;
     }
@@ -181,16 +187,22 @@ public class TeamService {
         ClubDTO club = clubClientService.getClubById(clubId);
 
         List<TeamSummaryDTO> result = teams.stream()
-                .map(t -> TeamSummaryDTO.builder()
-                        .id(t.getId())
-                        .name(t.getName())
-                        .shortName(t.getShortName())
-                        .format(t.getFormat())
-                        .gender(t.getGender())
-                        .season(t.getSeason())
-                        .division(divisionsById.get(t.getDivisionId()))
-                        .club(club)
-                        .build())
+                .map(t -> {
+                    String finalLogoUrl = StringUtils.isNotBlank(t.getLogoUrl())
+                            ? t.getLogoUrl()
+                            : club.getLogoUrl();
+
+                    return TeamSummaryDTO.builder()
+                            .id(t.getId())
+                            .name(t.getName())
+                            .shortName(t.getShortName())
+                            .format(t.getFormat())
+                            .gender(t.getGender())
+                            .season(t.getSeason())
+                            .division(divisionsById.get(t.getDivisionId()))
+                            .logoUrl(finalLogoUrl)
+                            .build();
+                })
                 .toList();
 
         logger.info("Built team summaries for club",
@@ -258,16 +270,24 @@ public class TeamService {
         }
 
         List<TeamSummaryDTO> result = teams.stream()
-                .map(t -> TeamSummaryDTO.builder()
-                        .id(t.getId())
-                        .name(t.getName())
-                        .shortName(t.getShortName())
-                        .format(t.getFormat())
-                        .gender(t.getGender())
-                        .season(t.getSeason())
-                        .division(divisionsById.get(t.getDivisionId()))
-                        .club(clubById.get(t.getClubId()))
-                        .build())
+                .map(t -> {
+                    ClubDTO club = clubById.get(t.getClubId());
+
+                    String finalLogoUrl = StringUtils.isNotBlank(t.getLogoUrl())
+                            ? t.getLogoUrl()
+                            : (club != null ? club.getLogoUrl() : null);
+
+                    return TeamSummaryDTO.builder()
+                            .id(t.getId())
+                            .name(t.getName())
+                            .shortName(t.getShortName())
+                            .format(t.getFormat())
+                            .gender(t.getGender())
+                            .season(t.getSeason())
+                            .logoUrl(finalLogoUrl)
+                            .division(divisionsById.get(t.getDivisionId()))
+                            .build();
+                })
                 .toList();
 
         logger.info("Built team summaries by ids",
@@ -278,12 +298,13 @@ public class TeamService {
         return result;
     }
 
-    public TeamDTO updateTeam(Long id, TeamUpdateDTO dto) {
+    public TeamDTO updateTeam(Long id, TeamUpdateDTO dto, MultipartFile image) {
         logger.info("Update team",
                 keyValue("action", "update_team"),
                 keyValue("team_id", id),
-                keyValue("has_payload", dto != null));
-        return teamClientService.updateTeam(id, dto);
+                keyValue("has_payload", dto != null),
+                keyValue("has_image", image != null));
+        return teamClientService.updateTeam(id, dto, image);
     }
 
     private static List<TeamWithStatsDTO> buildRanking(List<TeamRankingDTO> rawRanking, Map<Long, TeamDTO> teamsMap) {

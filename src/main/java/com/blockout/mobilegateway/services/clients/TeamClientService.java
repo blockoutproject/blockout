@@ -3,6 +3,8 @@ package com.blockout.mobilegateway.services.clients;
 import com.blockout.mobilegateway.config.ApiClientProperties;
 import com.blockout.mobilegateway.models.dto.team.TeamDTO;
 import com.blockout.mobilegateway.models.dto.team.TeamUpdateDTO;
+import com.blockout.mobilegateway.services.utils.MultipartBodyBuilder;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -13,6 +15,8 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.util.MultiValueMap;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.*;
@@ -26,6 +30,7 @@ public class TeamClientService {
 
     private final ApiClientProperties apiClientProperties;
     private final ApiClientService apiClientService;
+    private final ObjectMapper objectMapper;
 
     private String baseUrl() {
         return apiClientProperties.getTeam().getUrl();
@@ -90,7 +95,7 @@ public class TeamClientService {
     }, evict = {
             @CacheEvict(value = "teamsByClubId", key = "#result.clubId", condition = "#result != null")
     })
-    public TeamDTO updateTeam(Long id, TeamUpdateDTO dto) {
+    public TeamDTO updateTeam(Long id, TeamUpdateDTO dto, MultipartFile image) {
         String url = UriComponentsBuilder.fromUriString(baseUrl())
                 .pathSegment(id.toString())
                 .build()
@@ -99,9 +104,12 @@ public class TeamClientService {
         logger.info("Calling team#update",
                 keyValue("action", "call_team_update"),
                 keyValue("id", id),
-                keyValue("url", url));
+                keyValue("url", url),
+                keyValue("has_image", image != null));
 
-        ResponseEntity<TeamDTO> response = apiClientService.put(url, dto, TeamDTO.class);
+        MultiValueMap<String, Object> body = MultipartBodyBuilder.buildMultipart(objectMapper, dto, image);
+
+        ResponseEntity<TeamDTO> response = apiClientService.putMultipart(url, body, TeamDTO.class);
         return response.getBody();
     }
 }
