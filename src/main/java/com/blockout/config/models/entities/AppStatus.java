@@ -28,9 +28,6 @@ public class AppStatus {
     @Column(name = "image_url", length = 2048)
     private String imageUrl;
 
-    @Column(name = "updated_by", length = 255)
-    private String updatedBy;
-
     @Column(name = "last_update")
     private LocalDateTime lastUpdate;
 

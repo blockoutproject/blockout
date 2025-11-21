@@ -41,7 +41,6 @@ public class AppStatusService {
                 keyValue("maintenance", dto.isMaintenance()),
                 keyValue("message", dto.getMessage()),
                 keyValue("image_url", dto.getImageUrl()),
-                keyValue("updated_by", dto.getUpdatedBy()),
                 keyValue("last_update", dto.getLastUpdate()),
                 keyValue("config_id", status.getId()));
 
@@ -90,7 +89,6 @@ public class AppStatusService {
                 .maintenance(entity.isMaintenance())
                 .message(entity.getMessage())
                 .imageUrl(entity.getImageUrl())
-                .updatedBy(entity.getUpdatedBy())
                 .lastUpdate(entity.getLastUpdate())
                 .build();
     }

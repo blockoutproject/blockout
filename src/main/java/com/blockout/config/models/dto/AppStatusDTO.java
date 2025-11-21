@@ -14,6 +14,5 @@ public class AppStatusDTO {
     private boolean maintenance;
     private String message;
     private String imageUrl;
-    private String updatedBy;
     private LocalDateTime lastUpdate;
 }
