@@ -21,4 +21,5 @@ public class TeamUpsertEvent {
     private Format format;
     private Gender gender;
     private String season;
+    private String logoUrl;
 }

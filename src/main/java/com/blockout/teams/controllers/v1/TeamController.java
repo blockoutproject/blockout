@@ -1,19 +1,24 @@
 package com.blockout.teams.controllers.v1;
 
-import com.blockout.teams.models.Team;
 import com.blockout.teams.models.dto.TeamUpdateDTO;
+import com.blockout.teams.models.entities.Team;
 import com.blockout.teams.models.enums.Format;
 import com.blockout.teams.models.enums.Gender;
 import com.blockout.teams.services.TeamService;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.net.URI;
@@ -25,6 +30,7 @@ import java.util.List;
 public class TeamController {
 
     private final TeamService teamService;
+    private final ObjectMapper objectMapper;
 
     @Operation(summary = "Lister les équipes", description = "Renvoie toutes les équipes avec filtres facultatifs.")
     @ApiResponses({
@@ -76,12 +82,15 @@ public class TeamController {
             @ApiResponse(responseCode = "404", description = "Équipe introuvable")
     })
     @PreAuthorize("hasAuthority('SCOPE_update:teams')")
-    @PutMapping(path = "/{id}")
+    @PutMapping(path = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Team> updateTeam(
             @PathVariable Long id,
-            @RequestBody TeamUpdateDTO dto) {
+            @RequestPart("data") String json,
+            @RequestPart(value = "image", required = false) MultipartFile image
+    ) throws JsonProcessingException {
 
-        Team result = teamService.updateTeam(id, dto);
+        TeamUpdateDTO dto = objectMapper.readValue(json, TeamUpdateDTO.class);
+        Team result = teamService.updateTeam(id, dto, image);
         return ResponseEntity.ok(result);
     }
 

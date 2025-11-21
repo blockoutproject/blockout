@@ -1,7 +1,7 @@
 package com.blockout.teams.services;
 
 import com.blockout.teams.config.RabbitMQConfig;
-import com.blockout.teams.models.Team;
+import com.blockout.teams.models.entities.Team;
 import com.blockout.teams.models.events.TeamUpsertEvent;
 
 import lombok.RequiredArgsConstructor;
@@ -32,6 +32,7 @@ public class EventPublisher {
                 .format(team.getFormat())
                 .gender(team.getGender())
                 .season(team.getSeason())
+                .logoUrl(team.getLogoUrl())
                 .build();
 
         try {

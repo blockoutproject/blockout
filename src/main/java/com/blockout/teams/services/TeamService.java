@@ -1,12 +1,14 @@
 package com.blockout.teams.services;
 
 import com.blockout.teams.exceptions.TeamNotFoundException;
-import com.blockout.teams.models.Team;
 import com.blockout.teams.models.dto.TeamUpdateDTO;
+import com.blockout.teams.models.entities.Team;
 import com.blockout.teams.models.enums.Format;
 import com.blockout.teams.models.enums.Gender;
 import com.blockout.teams.repositories.TeamRepository;
+import com.blockout.teams.services.clients.S3StorageClientService;
 import com.blockout.teams.utils.DiffUtils;
+import com.blockout.teams.utils.ImageUtils;
 
 import lombok.RequiredArgsConstructor;
 
@@ -14,7 +16,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 
@@ -28,6 +32,7 @@ public class TeamService {
 
     private final TeamRepository teamRepository;
     private final EventPublisher eventPublisher;
+    private final S3StorageClientService s3StorageClient;
 
     /**
      * Crée une nouvelle équipe
@@ -97,13 +102,14 @@ public class TeamService {
     /**
      * Met à jour une équipe existante
      *
-     * @param id  L'identifiant de l'équipe
-     * @param dto Les nouvelles données (tous les champs optionnels)
+     * @param id    L'identifiant de l'équipe
+     * @param dto   Les nouvelles données (tous les champs optionnels)
+     * @param image Le logo à uploader (facultatif)
      * @return L'équipe mise à jour
      * @throws TeamNotFoundException si l'équipe est introuvable
      */
     @Transactional
-    public Team updateTeam(Long id, TeamUpdateDTO dto) {
+    public Team updateTeam(Long id, TeamUpdateDTO dto, MultipartFile image) {
         return teamRepository.findById(id).map(team -> {
             Team before = team.toBuilder().build();
 
@@ -127,6 +133,27 @@ public class TeamService {
                 team.setGender(dto.getGender());
             if (dto.getActive() != null)
                 team.setActive(dto.getActive());
+
+            if (image != null && !image.isEmpty()) {
+                ImageUtils.validateImage(image);
+                try {
+                    if (team.getLogoUrl() != null) {
+                        s3StorageClient.deleteObjectByUrl(team.getLogoUrl());
+                    }
+
+                    String logoUrl = s3StorageClient.uploadProfileImage(image, "teams");
+                    team.setLogoUrl(logoUrl);
+                } catch (IOException e) {
+                    logger.error("Erreur lors de l'upload de l'image",
+                            keyValue("fileName", image.getOriginalFilename()), e);
+                    throw new RuntimeException("Échec de l’upload de l’image");
+                }
+            } else {
+                if (team.getLogoUrl() != null) {
+                    s3StorageClient.deleteObjectByUrl(team.getLogoUrl());
+                }
+                team.setLogoUrl(null);
+            }
 
             if (!before.getActive() && Boolean.TRUE.equals(team.getActive())) {
                 logger.info("Team réactivée",
