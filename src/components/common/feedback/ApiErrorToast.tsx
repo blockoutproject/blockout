@@ -4,6 +4,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import { BOTTOM_TABBAR_HEIGHT } from "@/src/theme/globals";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { withAlpha } from "@/src/utils/utils";
 
 type ApiErrorToastProps = {
     /** Le message d'erreur à afficher. Null/undefined => caché */
@@ -38,7 +39,7 @@ const ApiErrorToast: React.FC<ApiErrorToastProps> = ({
     // Construit les couleurs une fois (évite de recréer des strings)
     const colors = useMemo(
         () => ({
-            bg: `${theme.error}22`,
+            bg: withAlpha(theme.error, 0.22),
             border: theme.error,
             icon: theme.error,
             text: theme.error,

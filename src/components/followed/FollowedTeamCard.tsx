@@ -70,7 +70,7 @@ const FollowedTeamCard: React.FC<FollowedTeamCardProps> = ({
                     ]}
                 >
                     <MaskedImage
-                        uri={team.club.logoUrl}
+                        uri={team.logoUrl}
                         size={logoSize}
                         radius={12}
                         style={styles.logo}

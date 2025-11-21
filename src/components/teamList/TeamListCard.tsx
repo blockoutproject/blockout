@@ -71,7 +71,7 @@ const TeamListCard: React.FC<TeamListCardProps> = ({
                     ]}
                 >
                     <MaskedImage
-                        uri={team.club.logoUrl}
+                        uri={team.logoUrl}
                         size={logoSize}
                         radius={12}
                         style={styles.logo}

@@ -1,4 +1,3 @@
-// ReportForm.tsx
 import React, { useEffect, useMemo, useState } from "react";
 import { View, StyleSheet, Text, TouchableOpacity, Alert, ScrollView } from "react-native";
 import { BottomSheetScrollView, BottomSheetTextInput } from "@gorhom/bottom-sheet";

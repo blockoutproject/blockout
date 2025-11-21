@@ -42,6 +42,8 @@ import {
 import ReportFormSheet from "@/src/components/report/ReportFormSheet";
 import MatchLiveLinkCard from "@/src/components/match/MatchLiveLinkCard";
 import useHasScopes from "@/src/hooks/user/useHasScopes";
+import GuestPromptSheet, { GuestPromptSheetRef } from "@/src/components/user/GuestPromptSheet.tsx";
+import { useSession } from "@/src/context/SessionProvider";
 
 const AnimatedScrollView = Animated.createAnimatedComponent(ScrollView);
 
@@ -49,13 +51,12 @@ const MatchScreen: React.FC = () => {
     const { id } = useLocalSearchParams();
     const theme = useAppTheme();
     const insets = useSafeAreaInsets();
+    const { isGuest } = useSession()
 
     const { data: enrichedMatch, isLoading, error, refetch } =
         useEnrichedMatchById(Number(id));
 
     const { allowed: canCreateLiveLinkScope } = useHasScopes(["create:match_live_link"]);
-    const { allowed: canDeleteLiveLinkScope } = useHasScopes(["delete:match_live_link"]);
-    const { allowed: canReportLiveLinkScope } = useHasScopes(["report:match_live_link"]);
 
     const reportSheetRef = useRef<BottomSheetModal>(null);
     const [isRefreshing, setIsRefreshing] = useState(false);
@@ -63,6 +64,8 @@ const MatchScreen: React.FC = () => {
 
     const isFocused = useIsFocused();
     const appState = useRef<AppStateStatus>(AppState.currentState);
+
+    const guestSheetRef = useRef<GuestPromptSheetRef>(null);
 
     const handleRefresh = useCallback(async () => {
         setIsRefreshing(true);
@@ -74,6 +77,17 @@ const MatchScreen: React.FC = () => {
     const handleOpenReport = useCallback(() => {
         reportSheetRef.current?.present();
     }, []);
+
+    const handleRequireAuthForLiveLink = useCallback(async () => {
+        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => { });
+        guestSheetRef.current?.present();
+    }, []);
+
+    useEffect(() => {
+        if (!isGuest) {
+            guestSheetRef.current?.dismiss();
+        }
+    }, [isGuest]);
 
     useFocusEffect(
         useCallback(() => {
@@ -160,17 +174,14 @@ const MatchScreen: React.FC = () => {
         const isFinished = enrichedMatch.status === "FINISHED";
         const isFinalLocked = !!enrichedMatch.liveEditLocked;
 
-        const canCreateLiveLink =
-            !hasLiveLink &&
-            canCreateLiveLinkScope &&
-            (!isFinished || !isFinalLocked);
-
-        // Cas "rediff retirée" : match terminé, verrouillé, plus de lien
         const showRemovedWarning =
             !hasLiveLink && isFinished && isFinalLocked;
 
+        const canShowEmptyStateForAnyone =
+            !hasLiveLink && (!isFinished || !isFinalLocked);
+
         const shouldShowCard =
-            hasLiveLink || canCreateLiveLink || showRemovedWarning;
+            hasLiveLink || canShowEmptyStateForAnyone || showRemovedWarning;
 
         if (!shouldShowCard) {
             return null;
@@ -182,18 +193,17 @@ const MatchScreen: React.FC = () => {
                 gradient={gradient}
                 refetch={refetch}
                 canCreateLiveLinkScope={canCreateLiveLinkScope}
-                canDeleteLiveLinkScope={canDeleteLiveLinkScope}
-                canReportLiveLinkScope={canReportLiveLinkScope}
                 onOpenSupport={handleOpenReport}
+                onRequireAuth={handleRequireAuthForLiveLink}
             />
         );
     }, [
         enrichedMatch,
         gradient,
         canCreateLiveLinkScope,
-        canDeleteLiveLinkScope,
-        canReportLiveLinkScope,
         refetch,
+        handleOpenReport,
+        handleRequireAuthForLiveLink,
     ]);
 
     const infoCard = useMemo(() => {
@@ -327,6 +337,8 @@ const MatchScreen: React.FC = () => {
                     snapPoint="90%"
                     footerLabel="Envoyer"
                 />
+
+                <GuestPromptSheet ref={guestSheetRef} />
             </View>
         );
     }

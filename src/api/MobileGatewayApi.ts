@@ -13,6 +13,7 @@ import { GitHubIssueResponse } from "../types/Report";
 import { LegalDocument } from "../types/LegalDocument";
 import { CustomImage } from "../types/Common";
 import { appendJsonSnake } from "../utils/utils";
+import { AppStatusDTO, AppStatusUpdateDTO } from "../types/AppStatus";
 
 export class MobileGatewayApi extends BaseApi {
     constructor() {
@@ -39,13 +40,8 @@ export class MobileGatewayApi extends BaseApi {
     ) {
         const formData = new FormData();
         appendJsonSnake(formData, "data", data);
-        if (image) {
-            formData.append("image", {
-                uri: image.uri,
-                type: image.type,
-                name: image.name,
-            } as any);
-        }
+
+        formData.append("image", image as any);
 
         return this.httpAuth.put<Club>(`/clubs/${id}`, formData, {
             headers: { "Content-Type": "multipart/form-data" },
@@ -164,13 +160,8 @@ export class MobileGatewayApi extends BaseApi {
     ): Promise<CustomUser> {
         const formData = new FormData();
         appendJsonSnake(formData, "data", data);
-        if (image) {
-            formData.append("image", {
-                uri: image.uri,
-                type: image.type,
-                name: image.name,
-            } as any);
-        }
+
+        formData.append("image", image as any);
 
         return this.httpAuth.put<CustomUser>(`/users/${auth0Id}`, formData, {
             headers: { "Content-Type": "multipart/form-data" },
@@ -276,12 +267,24 @@ export class MobileGatewayApi extends BaseApi {
     }
 
     /**
-     * Met à jour une équipe existante
+     * Met à jour une équipe (authentifié)
      * @param id Identifiant de l’équipe
      * @param data Données de mise à jour
+     * @param image Image optionnelle de l’équipe
      */
-    public updateTeam(id: number, data: Partial<Team>) {
-        return this.httpAuth.put<Team>(`/teams/${id}`, data);
+    public updateTeam(
+        id: number,
+        data: Partial<Team>,
+        image?: CustomImage,
+    ) {
+        const formData = new FormData();
+        appendJsonSnake(formData, "data", data);
+
+        formData.append("image", image as any);
+
+        return this.httpAuth.put<Team>(`/teams/${id}`, formData, {
+            headers: { "Content-Type": "multipart/form-data" },
+        });
     }
 
     /**
@@ -443,6 +446,20 @@ export class MobileGatewayApi extends BaseApi {
      */
     public getScraperStatuses() {
         return this.httpAuth.get<ScraperStatus[]>("/config/scrapers/status");
+    }
+
+    /**
+     * Récupère le statut global de l'application (public)
+     */
+    public getAppStatus() {
+        return this.httpPublic.get<AppStatusDTO>("/config/app-status");
+    }
+
+    /**
+     * Met à jour le statut global de l'application (authentifié)
+     */
+    public updateAppStatus(data: AppStatusUpdateDTO) {
+        return this.httpAuth.put<AppStatusDTO>("/config/app-status", data);
     }
 
     /**

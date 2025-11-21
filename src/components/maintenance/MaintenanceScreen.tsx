@@ -1,5 +1,12 @@
+// app/maintenance.tsx
 import React from "react";
-import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity } from "react-native";
+import {
+    View,
+    Text,
+    StyleSheet,
+    ActivityIndicator,
+    TouchableOpacity,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
@@ -13,8 +20,9 @@ type Props = {
     message?: string | null;
     loading?: boolean;
     onRetry?: () => void;
-    /** URL d'une image ou d'un GIF de maintenance, optionnelle */
     imageUrl?: string | null;
+    canBypass?: boolean;
+    onBypass?: () => void;
 };
 
 const MaintenanceScreen: React.FC<Props> = ({
@@ -22,6 +30,8 @@ const MaintenanceScreen: React.FC<Props> = ({
     loading = false,
     onRetry,
     imageUrl,
+    canBypass = false,
+    onBypass,
 }) => {
     const theme = useAppTheme();
     const insets = useSafeAreaInsets();
@@ -30,6 +40,12 @@ const MaintenanceScreen: React.FC<Props> = ({
         if (!onRetry) return;
         await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
         onRetry();
+    };
+
+    const handleBypass = async () => {
+        if (!onBypass) return;
+        await Haptics.selectionAsync().catch(() => {});
+        onBypass();
     };
 
     const hasImage = !!imageUrl;
@@ -79,7 +95,7 @@ const MaintenanceScreen: React.FC<Props> = ({
                 )}
 
                 <Text style={[styles.mainText, { color: theme.text }]}>
-                    Maintenance en cours
+                    Maintenance en cours ⏳
                 </Text>
 
                 <Text
@@ -97,33 +113,60 @@ const MaintenanceScreen: React.FC<Props> = ({
                         style={{ marginTop: 18 }}
                         color={theme.text}
                     />
-                ) : onRetry ? (
-                    <TouchableOpacity
-                        onPress={handleRetry}
-                        style={[
-                            styles.retryBtn,
-                            {
-                                borderColor: theme.border,
-                                backgroundColor: theme.surface,
-                            },
-                        ]}
-                        activeOpacity={0.85}
-                    >
-                        <MaterialCommunityIcons
-                            name="reload"
-                            size={18}
-                            color={theme.text}
-                        />
-                        <Text
-                            style={[
-                                styles.retryText,
-                                { color: theme.text },
-                            ]}
-                        >
-                            Réessayer
-                        </Text>
-                    </TouchableOpacity>
-                ) : null}
+                ) : (
+                    <>
+                        {onRetry && (
+                            <TouchableOpacity
+                                onPress={handleRetry}
+                                style={[
+                                    styles.retryBtn,
+                                    {
+                                        borderColor: theme.border,
+                                        backgroundColor: theme.surface,
+                                    },
+                                ]}
+                                activeOpacity={0.85}
+                            >
+                                <MaterialCommunityIcons
+                                    name="reload"
+                                    size={18}
+                                    color={theme.text}
+                                />
+                                <Text
+                                    style={[
+                                        styles.retryText,
+                                        { color: theme.text },
+                                    ]}
+                                >
+                                    Réessayer
+                                </Text>
+                            </TouchableOpacity>
+                        )}
+
+                        {canBypass && (
+                            <TouchableOpacity
+                                onPress={handleBypass}
+                                style={[
+                                    styles.bypassBtn,
+                                    {
+                                        borderColor: withAlpha(theme.text, 0.18),
+                                        backgroundColor: "transparent",
+                                    },
+                                ]}
+                                activeOpacity={0.8}
+                            >
+                                <Text
+                                    style={[
+                                        styles.bypassText,
+                                        { color: withAlpha(theme.text, 0.75) },
+                                    ]}
+                                >
+                                    Accéder à l’application
+                                </Text>
+                            </TouchableOpacity>
+                        )}
+                    </>
+                )}
             </View>
 
             <Text
@@ -206,6 +249,19 @@ const styles = StyleSheet.create({
     retryText: {
         fontSize: 14,
         fontWeight: "700",
+    },
+    bypassBtn: {
+        marginTop: 10,
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        borderRadius: 999,
+        borderWidth: 1,
+    },
+    bypassText: {
+        fontSize: 12,
+        fontWeight: "700",
+        letterSpacing: 0.2,
+        textTransform: "uppercase",
     },
     footer: {
         fontSize: 12,

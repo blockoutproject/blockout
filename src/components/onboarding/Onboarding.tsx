@@ -23,7 +23,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import * as Haptics from "expo-haptics";
-import { OnboardingStep } from "@/src/onboarding/steps";
+import { OnboardingStep } from "@/src/components/onboarding/steps";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import GradientButton from "../common/GradientButton";
 import { runOnJS, scheduleOnRN } from "react-native-worklets";

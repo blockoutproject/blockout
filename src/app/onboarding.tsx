@@ -1,7 +1,7 @@
 import React from "react";
 import { useOnboardingStore } from "@/src/utils/onboardingStore";
 import { FancyOnboarding } from "@/src/components/onboarding/Onboarding";
-import { ONBOARDING_STEPS } from "@/src/onboarding/steps";
+import { ONBOARDING_STEPS } from "@/src/components/onboarding/steps";
 import {
     registerForPushNotificationsAsync,
     registerPushTokenOnBackend,

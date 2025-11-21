@@ -13,15 +13,15 @@ import MatchLiveLinkFormSheet from "./form/MatchLiveLinkFormSheet";
 import MatchLiveLinkDeleteFormSheet from "./form/MatchLiveLinkDeleteFormSheet";
 import { useSession } from "@/src/context/SessionProvider";
 import { withAlpha } from "@/src/utils/utils";
+import useHasScopes from "@/src/hooks/user/useHasScopes";
 
 type Props = {
     enrichedMatch: EnrichedMatchDTO;
     gradient: readonly [string, string, ...string[]];
     refetch: () => void;
     canCreateLiveLinkScope: boolean;
-    canDeleteLiveLinkScope: boolean;
-    canReportLiveLinkScope: boolean;
     onOpenSupport: () => void;
+    onRequireAuth: () => void;
 };
 
 const RADIUS = 18;
@@ -31,9 +31,8 @@ const MatchLiveLinkCard: React.FC<Props> = ({
     gradient,
     refetch,
     canCreateLiveLinkScope,
-    canDeleteLiveLinkScope,
-    canReportLiveLinkScope,
     onOpenSupport,
+    onRequireAuth,
 }) => {
     const theme = useAppTheme();
 
@@ -41,7 +40,10 @@ const MatchLiveLinkCard: React.FC<Props> = ({
     const editSheetRef = useRef<BottomSheetModal>(null);
     const deleteSheetRef = useRef<BottomSheetModal>(null);
 
-    const { customUser } = useSession();
+    const { allowed: canDeleteLiveLinkScope } = useHasScopes(["delete:match_live_link"]);
+    const { allowed: canReportLiveLinkScope } = useHasScopes(["report:match_live_link"]);
+
+    const { customUser, isGuest } = useSession();
 
     const hasLiveLink = !!enrichedMatch.liveUrl;
     const isFinished = enrichedMatch.status === "FINISHED";
@@ -67,7 +69,12 @@ const MatchLiveLinkCard: React.FC<Props> = ({
         (!isFinished || !isFinalLocked);
 
     const canDeleteLiveLink = hasLiveLink && isOwner && canDeleteLiveLinkScope;
-    const canReportLiveLink = hasLiveLink && !isOwner && canReportLiveLinkScope;
+
+    const canReportLiveLink =
+        hasLiveLink && !isOwner && canReportLiveLinkScope;
+
+    const canShowReportButton =
+        hasLiveLink && !isOwner;
 
     const isFinalPostMatchEdit =
         hasLiveLink && isFinished && isOwner && !isFinalLocked;
@@ -103,10 +110,24 @@ const MatchLiveLinkCard: React.FC<Props> = ({
         deleteSheetRef.current?.present();
     };
 
-    const handleOpenReport = async () => {
+    const handleOpenReportSheet = async () => {
         if (!canReportLiveLink) return;
         await Haptics.selectionAsync();
         reportSheetRef.current?.present();
+    };
+
+    const handlePressReportButton = async () => {
+        if (!canShowReportButton) return;
+
+        if (canReportLiveLink) {
+            // Utilisateur avec scope : on ouvre la sheet de report
+            await handleOpenReportSheet();
+        } else if (isGuest) {
+            // Invité : on lui propose de créer un compte
+            await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
+            onRequireAuth();
+        }
+        // Cas "connecté sans scope" : pour l'instant, on ne fait rien
     };
 
     const handleOpenLive = async () => {
@@ -118,6 +139,7 @@ const MatchLiveLinkCard: React.FC<Props> = ({
                 await Linking.openURL(enrichedMatch.liveUrl);
             }
         } catch {
+            // ignore
         }
     };
 
@@ -143,8 +165,11 @@ const MatchLiveLinkCard: React.FC<Props> = ({
     const showRemovedWarning =
         !hasLiveLink && isFinished && isFinalLocked;
 
+    const canShowEmptyStateCta =
+        !hasLiveLink && (!isFinished || !isFinalLocked);
+
     const shouldShowCard =
-        hasLiveLink || canCreateLiveLink || showRemovedWarning;
+        hasLiveLink || canShowEmptyStateCta || showRemovedWarning;
 
     if (!shouldShowCard) {
         return null;
@@ -185,9 +210,9 @@ const MatchLiveLinkCard: React.FC<Props> = ({
                         )}
                     </View>
 
-                    {canReportLiveLink && (
+                    {canShowReportButton && (
                         <TouchableOpacity
-                            onPress={handleOpenReport}
+                            onPress={handlePressReportButton}
                             style={styles.reportBtn}
                         >
                             <MaterialCommunityIcons
@@ -341,7 +366,7 @@ const MatchLiveLinkCard: React.FC<Props> = ({
                         </View>
                     )}
 
-                    {!hasLiveLink && !showRemovedWarning && canCreateLiveLink && (
+                    {!hasLiveLink && !showRemovedWarning && canShowEmptyStateCta && (
                         <View style={styles.addPillWrap}>
                             <InfoPillGradient
                                 leftIcon="plus-circle-outline"
@@ -349,7 +374,7 @@ const MatchLiveLinkCard: React.FC<Props> = ({
                                 label={emptyStateLabel}
                                 gradient={[theme.borderSecondary, theme.border]}
                                 variant="border"
-                                onPress={handleOpenEdit}
+                                onPress={canCreateLiveLink ? handleOpenEdit : onRequireAuth}
                             />
                         </View>
                     )}

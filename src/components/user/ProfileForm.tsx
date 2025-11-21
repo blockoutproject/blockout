@@ -39,6 +39,7 @@ const ProfileForm: React.FC<UserFormProps> = ({ user, onSuccess, onRegisterSubmi
 
     const [imageFile, setImageFile] = useState<CustomImage | null>(null);
     const [previewUri, setPreviewUri] = useState<string | null>(null);
+    const [removedAvatar, setRemovedAvatar] = useState(false);
     const [loading, setLoading] = useState(false);
     const [apiError, setApiError] = useState<string | null>(null);
 
@@ -52,17 +53,28 @@ const ProfileForm: React.FC<UserFormProps> = ({ user, onSuccess, onRegisterSubmi
                 quality: 1,
             });
             if (pickerResult.canceled) return;
+
             const asset = pickerResult.assets[0];
             if (!asset?.uri) return;
+
             const manipContext = ImageManipulator.ImageManipulator.manipulate(asset.uri);
             manipContext.resize({ width: 512 });
             const rendered = await manipContext.renderAsync();
             const saved = await rendered.saveAsync({ format: ImageManipulator.SaveFormat.PNG, compress: 1 });
+
             setPreviewUri(saved.uri);
             setImageFile({ uri: saved.uri, name: "avatar.png", type: "image/png" });
+            setRemovedAvatar(false);
         } catch {
             Alert.alert("Erreur", "Impossible de traiter l’image.");
         }
+    };
+
+    const handleRemoveImage = async () => {
+        await Haptics.selectionAsync();
+        setPreviewUri(null);
+        setImageFile(null);
+        setRemovedAvatar(true);
     };
 
     const formik = useFormik({
@@ -79,15 +91,19 @@ const ProfileForm: React.FC<UserFormProps> = ({ user, onSuccess, onRegisterSubmi
                 await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
                 setLoading(true);
                 setApiError(null);
+
                 const dto: Record<string, unknown> = {};
                 const trimmed = values.pseudo.trim();
                 if (trimmed && trimmed !== user.pseudo) dto.pseudo = trimmed;
+
                 const updated = await mobile.updateUser(user.auth0Id, dto, imageFile ?? undefined);
                 await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
                 onSuccess(updated);
             } catch (err) {
                 if (err instanceof ApiError && err.status === 409) {
-                    const serverMsg = (err.data && ((err.data as any).message || (err.data as any).error)) || "Ce pseudo est déjà utilisé.";
+                    const serverMsg =
+                        (err.data && ((err.data as any).message || (err.data as any).error)) ||
+                        "Ce pseudo est déjà utilisé.";
                     await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
                     formik.setFieldError("pseudo", serverMsg);
                     setApiError(null);
@@ -111,7 +127,7 @@ const ProfileForm: React.FC<UserFormProps> = ({ user, onSuccess, onRegisterSubmi
         onStateChange?.({ loading, canSubmit });
     }, [loading, canSubmit, onStateChange]);
 
-    const avatarUri = previewUri ?? user.pictureUrl ?? null;
+    const avatarUri = removedAvatar ? null : (previewUri ?? user.pictureUrl ?? null);
 
     return (
         <>
@@ -122,22 +138,48 @@ const ProfileForm: React.FC<UserFormProps> = ({ user, onSuccess, onRegisterSubmi
                 keyboardShouldPersistTaps="always"
             >
                 <FormCard title="Photo de profil">
-                    <TouchableOpacity onPress={handlePickImage} activeOpacity={0.85} style={[styles.logoWrap, { borderColor: theme.border }]}>
+                    <TouchableOpacity
+                        onPress={handlePickImage}
+                        activeOpacity={0.85}
+                        style={[styles.logoWrap, { borderColor: theme.border }]}
+                    >
                         <View style={styles.logoMask}>
                             {avatarUri ? (
                                 <Image source={{ uri: avatarUri }} style={styles.logo} contentFit="cover" />
                             ) : (
                                 <View style={styles.logoPlaceholder}>
-                                    <MaterialCommunityIcons name="camera-plus-outline" size={28} color={theme.textInactive} />
-                                    <Text style={[styles.logoHint, { color: theme.textInactive }]}>Ajouter une photo</Text>
+                                    <MaterialCommunityIcons
+                                        name="camera-plus-outline"
+                                        size={28}
+                                        color={theme.textInactive}
+                                    />
+                                    <Text style={[styles.logoHint, { color: theme.textInactive }]}>
+                                        Ajouter une photo
+                                    </Text>
                                 </View>
                             )}
                         </View>
                     </TouchableOpacity>
-                    <TouchableOpacity onPress={handlePickImage} style={[styles.logoBtn, { backgroundColor: theme.backgroundSecondary }]}>
-                        <MaterialCommunityIcons name="pencil-outline" size={16} color={theme.text} />
-                        <Text style={[styles.logoBtnText, { color: theme.text }]}>Changer la photo</Text>
-                    </TouchableOpacity>
+
+                    <View style={styles.buttonsRow}>
+                        <TouchableOpacity
+                            onPress={handlePickImage}
+                            style={[styles.logoBtn, { backgroundColor: theme.backgroundSecondary }]}
+                        >
+                            <MaterialCommunityIcons name="pencil-outline" size={16} color={theme.text} />
+                            <Text style={[styles.logoBtnText, { color: theme.text }]}>Changer la photo</Text>
+                        </TouchableOpacity>
+
+                        {avatarUri && (
+                            <TouchableOpacity
+                                onPress={handleRemoveImage}
+                                style={[styles.removeBtn, { backgroundColor: theme.backgroundSecondary }]}
+                            >
+                                <MaterialCommunityIcons name="trash-can-outline" size={16} color={theme.error} />
+                                <Text style={[styles.removeBtnText, { color: theme.error }]}>Supprimer</Text>
+                            </TouchableOpacity>
+                        )}
+                    </View>
                 </FormCard>
 
                 <FormCard>
@@ -149,7 +191,11 @@ const ProfileForm: React.FC<UserFormProps> = ({ user, onSuccess, onRegisterSubmi
                             placeholder="Ton pseudo"
                             autoCapitalize="none"
                             returnKeyType="done"
-                            style={formik.touched.pseudo && formik.errors.pseudo ? { borderColor: theme.error } : undefined}
+                            style={
+                                formik.touched.pseudo && formik.errors.pseudo
+                                    ? { borderColor: theme.error }
+                                    : undefined
+                            }
                         />
                     </Field>
                 </FormCard>
@@ -164,11 +210,49 @@ export default ProfileForm;
 
 const styles = StyleSheet.create({
     fieldContainer: { padding: 8, gap: 12 },
-    logoWrap: { borderWidth: 1.5, borderRadius: 22, alignItems: "center", justifyContent: "center", overflow: "hidden" },
-    logoMask: { width: 100, aspectRatio: 1, borderRadius: 18, overflow: "hidden", alignItems: "center", justifyContent: "center", marginVertical: 16 },
+    logoWrap: {
+        borderWidth: 1.5,
+        borderRadius: 22,
+        alignItems: "center",
+        justifyContent: "center",
+        overflow: "hidden",
+    },
+    logoMask: {
+        width: 110,
+        aspectRatio: 1,
+        borderRadius: 18,
+        overflow: "hidden",
+        alignItems: "center",
+        justifyContent: "center",
+        marginVertical: 16,
+    },
     logo: { width: "100%", height: "100%" },
     logoPlaceholder: { alignItems: "center", gap: 6 },
     logoHint: { fontSize: 12, fontWeight: "600" },
-    logoBtn: { alignSelf: "flex-start", flexDirection: "row", gap: 6, paddingHorizontal: 12, paddingVertical: 8, borderRadius: CORNERS },
+    buttonsRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 10,
+    },
+    logoBtn: {
+        alignSelf: "flex-start",
+        flexDirection: "row",
+        gap: 6,
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderRadius: CORNERS,
+    },
     logoBtnText: { fontSize: 12, fontWeight: "700" },
+    removeBtn: {
+        alignSelf: "flex-start",
+        flexDirection: "row",
+        gap: 6,
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderRadius: CORNERS,
+    },
+    removeBtnText: {
+        fontSize: 12,
+        fontWeight: "700",
+    },
 });
