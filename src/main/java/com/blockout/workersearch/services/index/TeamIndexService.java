@@ -1,6 +1,8 @@
 package com.blockout.workersearch.services.index;
 
 import lombok.RequiredArgsConstructor;
+
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.*;
 import org.springframework.stereotype.Service;
 
@@ -65,7 +67,12 @@ public class TeamIndexService {
 
         String clubName = club != null ? club.getName() : null;
         String clubCity = club != null ? club.getCity() : null;
-        String logoUrl = club != null ? club.getLogoUrl() : null;
+        String clubLogoUrl = club != null ? club.getLogoUrl() : null;
+
+        String logoUrl = StringUtils.isNotBlank(e.getLogoUrl())
+                ? e.getLogoUrl()
+                : clubLogoUrl;
+
         String divisionName = division != null ? division.getName() : "Division inconnue";
         Format format = e.getFormat();
         Gender gender = e.getGender();

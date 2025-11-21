@@ -45,5 +45,8 @@ public class TeamDTO {
     @JsonProperty("followers_count")
     private Long followersCount;
 
+    @JsonProperty("logo_url")
+    private String logoUrl;
+
     private Boolean active;
 }

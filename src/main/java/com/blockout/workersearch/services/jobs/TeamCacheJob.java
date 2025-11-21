@@ -34,6 +34,7 @@ public class TeamCacheJob {
                             .format(team.getFormat())
                             .gender(team.getGender())
                             .season(team.getSeason())
+                            .logoUrl(team.getLogoUrl())
                             .build())
                     .toList();
 
