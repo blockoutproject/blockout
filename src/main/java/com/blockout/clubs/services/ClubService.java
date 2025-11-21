@@ -1,8 +1,8 @@
 package com.blockout.clubs.services;
 
 import com.blockout.clubs.exceptions.ClubNotFoundException;
-import com.blockout.clubs.models.Club;
 import com.blockout.clubs.models.dto.ClubUpdateDTO;
+import com.blockout.clubs.models.entities.Club;
 import com.blockout.clubs.repositories.ClubRepository;
 import com.blockout.clubs.services.clients.S3StorageClientService;
 import com.blockout.clubs.utils.DiffUtils;
@@ -70,7 +70,8 @@ public class ClubService {
      *
      * @param club  Entité Club à persister (nom, ville, etc.)
      * @param image Fichier image optionnel pour le logo
-     * @return Le club créé avec son ID généré et, le cas échéant, son logoUrl rempli
+     * @return Le club créé avec son ID généré et, le cas échéant, son logoUrl
+     *         rempli
      */
     @Transactional
     public Club createClub(ClubUpdateDTO dto, MultipartFile image) {
@@ -153,6 +154,11 @@ public class ClubService {
                             keyValue("fileName", image.getOriginalFilename()), e);
                     throw new RuntimeException("Échec de l’upload de l’image");
                 }
+            } else {
+                if (existing.getLogoUrl() != null) {
+                    s3StorageClient.deleteObjectByUrl(existing.getLogoUrl());
+                }
+                existing.setLogoUrl(null);
             }
 
             if (!existing.getActive()) {

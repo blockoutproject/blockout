@@ -1,7 +1,7 @@
 package com.blockout.clubs.controllers.v1;
 
-import com.blockout.clubs.models.Club;
 import com.blockout.clubs.models.dto.ClubUpdateDTO;
+import com.blockout.clubs.models.entities.Club;
 import com.blockout.clubs.services.ClubService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;

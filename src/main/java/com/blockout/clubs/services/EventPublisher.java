@@ -1,7 +1,7 @@
 package com.blockout.clubs.services;
 
 import com.blockout.clubs.config.RabbitMQConfig;
-import com.blockout.clubs.models.Club;
+import com.blockout.clubs.models.entities.Club;
 import com.blockout.clubs.models.events.ClubUpsertEvent;
 
 import lombok.RequiredArgsConstructor;

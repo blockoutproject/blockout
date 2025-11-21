@@ -1,13 +1,13 @@
 package com.blockout.clubs.repositories;
 
-import com.blockout.clubs.models.Club;
-
 import java.util.List;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+
+import com.blockout.clubs.models.entities.Club;
 
 @Repository
 public interface ClubRepository extends JpaRepository<Club, String> {
