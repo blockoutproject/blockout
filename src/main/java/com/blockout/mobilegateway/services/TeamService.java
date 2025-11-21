@@ -135,6 +135,7 @@ public class TeamService {
         EnrichedTeamDTO result = EnrichedTeamDTO.builder()
                 .id(team.getId())
                 .name(team.getName())
+                .clubId(team.getClubId())
                 .shortName(team.getShortName())
                 .format(team.getFormat())
                 .gender(team.getGender())
@@ -155,7 +156,7 @@ public class TeamService {
     }
 
     public List<TeamSummaryDTO> getTeamsByClubId(String clubId) {
-        if (clubId == null || clubId.isBlank()) {
+        if (StringUtils.isBlank(clubId)) {
             throw new InconsistentStateException("clubId must be a non-empty string");
         }
         logger.info("Fetch teams by club",

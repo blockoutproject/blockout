@@ -18,6 +18,9 @@ public class EnrichedTeamDTO {
 
     private String name;
 
+    @JsonProperty("club_id")
+    private String clubId;
+
     @JsonProperty("short_name")
     private String shortName;
 
