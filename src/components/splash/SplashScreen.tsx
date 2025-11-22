@@ -1,13 +1,13 @@
 import { useEffect } from "react";
-import { SplashScreen, Stack } from "expo-router";
+import { SplashScreen } from "expo-router";
 import { useSession } from "../../context/SessionProvider";
 
 export function SplashScreenController() {
-    const { appReady } = useSession();
+    const { isLoading } = useSession();
 
     useEffect(() => {
-        if (appReady) SplashScreen.hide();
-    }, [appReady]);
+        if (!isLoading) SplashScreen.hide();
+    }, [isLoading]);
 
     return null;
 }

@@ -1,4 +1,3 @@
-// app/maintenance.tsx
 import React from "react";
 import {
     View,
@@ -15,40 +14,31 @@ import { Image } from "expo-image";
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import MaskedImage from "@/src/components/common/images/MaskedImage";
 import { withAlpha } from "@/src/utils/utils";
+import { useSession } from "@/src/context/SessionProvider";
 
-type Props = {
-    message?: string | null;
-    loading?: boolean;
-    onRetry?: () => void;
-    imageUrl?: string | null;
-    canBypass?: boolean;
-    onBypass?: () => void;
-};
+export default function MaintenancePage() {
+    const {
+        appStatus,
+        appStatusLoading,
+        refetchAppStatus,
+        canBypassMaintenance,
+        bypassMaintenance,
+    } = useSession();
 
-const MaintenanceScreen: React.FC<Props> = ({
-    message,
-    loading = false,
-    onRetry,
-    imageUrl,
-    canBypass = false,
-    onBypass,
-}) => {
+    const { message, imageUrl } = appStatus ?? { message: null, imageUrl: null };
     const theme = useAppTheme();
     const insets = useSafeAreaInsets();
+    const hasImage = !!imageUrl;
 
     const handleRetry = async () => {
-        if (!onRetry) return;
-        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
-        onRetry();
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => { });
+        refetchAppStatus();
     };
 
     const handleBypass = async () => {
-        if (!onBypass) return;
-        await Haptics.selectionAsync().catch(() => {});
-        onBypass();
+        await Haptics.selectionAsync().catch(() => { });
+        bypassMaintenance();
     };
-
-    const hasImage = !!imageUrl;
 
     return (
         <View
@@ -69,9 +59,7 @@ const MaintenanceScreen: React.FC<Props> = ({
                         radius={10}
                         shadow
                     />
-                    <Text style={[styles.appTitle, { color: theme.text }]}>
-                        Blockout
-                    </Text>
+                    <Text style={[styles.appTitle, { color: theme.text }]}>Blockout</Text>
                 </View>
             </View>
 
@@ -108,42 +96,26 @@ const MaintenanceScreen: React.FC<Props> = ({
                         "On prépare une nouvelle version de l’application. Quelques minutes et tout sera de retour."}
                 </Text>
 
-                {loading ? (
-                    <ActivityIndicator
-                        style={{ marginTop: 18 }}
-                        color={theme.text}
-                    />
+                {appStatusLoading ? (
+                    <ActivityIndicator style={{ marginTop: 18 }} color={theme.text} />
                 ) : (
                     <>
-                        {onRetry && (
-                            <TouchableOpacity
-                                onPress={handleRetry}
-                                style={[
-                                    styles.retryBtn,
-                                    {
-                                        borderColor: theme.border,
-                                        backgroundColor: theme.surface,
-                                    },
-                                ]}
-                                activeOpacity={0.85}
-                            >
-                                <MaterialCommunityIcons
-                                    name="reload"
-                                    size={18}
-                                    color={theme.text}
-                                />
-                                <Text
-                                    style={[
-                                        styles.retryText,
-                                        { color: theme.text },
-                                    ]}
-                                >
-                                    Réessayer
-                                </Text>
-                            </TouchableOpacity>
-                        )}
+                        <TouchableOpacity
+                            onPress={handleRetry}
+                            style={[
+                                styles.retryBtn,
+                                {
+                                    borderColor: theme.border,
+                                    backgroundColor: theme.surface,
+                                },
+                            ]}
+                            activeOpacity={0.85}
+                        >
+                            <MaterialCommunityIcons name="reload" size={18} color={theme.text} />
+                            <Text style={[styles.retryText, { color: theme.text }]}>Réessayer</Text>
+                        </TouchableOpacity>
 
-                        {canBypass && (
+                        {canBypassMaintenance && (
                             <TouchableOpacity
                                 onPress={handleBypass}
                                 style={[
@@ -155,12 +127,7 @@ const MaintenanceScreen: React.FC<Props> = ({
                                 ]}
                                 activeOpacity={0.8}
                             >
-                                <Text
-                                    style={[
-                                        styles.bypassText,
-                                        { color: withAlpha(theme.text, 0.75) },
-                                    ]}
-                                >
+                                <Text style={[styles.bypassText, { color: withAlpha(theme.text, 0.75) }]}>
                                     Accéder à l’application
                                 </Text>
                             </TouchableOpacity>
@@ -169,19 +136,12 @@ const MaintenanceScreen: React.FC<Props> = ({
                 )}
             </View>
 
-            <Text
-                style={[
-                    styles.footer,
-                    { color: withAlpha(theme.text, 0.6) },
-                ]}
-            >
-                Merci pour ta patience 🏐
+            <Text style={[styles.footer, { color: withAlpha(theme.text, 0.6) }]}>
+                Merci pour ta patience !
             </Text>
         </View>
     );
-};
-
-export default MaintenanceScreen;
+}
 
 const styles = StyleSheet.create({
     container: {

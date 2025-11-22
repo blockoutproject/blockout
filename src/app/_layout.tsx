@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { StatusBar } from "react-native";
+import { StatusBar, View, Text } from "react-native";
 import { Stack } from "expo-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Auth0Provider } from "react-native-auth0";
@@ -48,56 +48,41 @@ export default function Root() {
 }
 
 function RootNavigator() {
-    const { isAuthenticated, isGuest } = useSession();
+    const { isAuthenticated, isGuest, isMaintenance, maintenanceBypass } = useSession();
     const { hasCompletedOnboarding } = useOnboardingStore();
 
-    const {
-        appReady,
-        appStatus,
-        appStatusLoading,
-        appStatusError,
-        maintenanceEnabled,
-        maintenanceBypass,
-        canBypassMaintenance,
-        bypassMaintenance,
-        refetchAppStatus,
-    } = useSession();
+    // console.log("-------------")
+    // console.log("1", (isMaintenance && !maintenanceBypass))
+    // console.log("2", !(isGuest || isAuthenticated) && !isMaintenance)
+    // console.log("3", (isGuest || isAuthenticated) && !isMaintenance)
 
-    if (!appReady) return null;
-
-    if (!appStatusError && maintenanceEnabled && !maintenanceBypass) {
-        return (
-            <MaintenanceScreen
-                loading={appStatusLoading}
-                message={appStatus?.message}
-                imageUrl={appStatus?.imageUrl}
-                onRetry={refetchAppStatus}
-                canBypass={canBypassMaintenance}
-                onBypass={bypassMaintenance}
-            />
-        );
-    }
+    //if (!appReady) return <View style={{flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: 'green'}}><Text style={{color: 'white'}}>çznbrvpnqzr^pknvjopzrç^vinozr</Text></View>;
 
     return (
         <BottomSheetModalProvider>
             <Stack screenOptions={{ headerShown: false, animation: "none" }}>
-                <Stack.Protected guard={!(isGuest || isAuthenticated)}>
+                <Stack.Protected guard={(isMaintenance && !maintenanceBypass)}>
+                    <Stack.Screen
+                        name="maintenance"
+                        options={{ animation: "fade_from_bottom", animationDuration: 300 }}
+                    />
+                </Stack.Protected>
+
+                <Stack.Protected guard={!(isGuest || isAuthenticated) && !isMaintenance}>
                     <Stack.Screen
                         name="sign-in"
                         options={{ animation: "fade_from_bottom", animationDuration: 300 }}
                     />
                 </Stack.Protected>
 
-                <Stack.Protected guard={isGuest || isAuthenticated}>
+                <Stack.Protected guard={(isGuest || isAuthenticated) && !isMaintenance}>
                     <Stack.Protected guard={!hasCompletedOnboarding}>
                         <Stack.Screen
                             name="onboarding"
                             options={{ animation: "fade_from_bottom", animationDuration: 300 }}
                         />
                     </Stack.Protected>
-                </Stack.Protected>
 
-                <Stack.Protected guard={isGuest || isAuthenticated}>
                     <Stack.Screen
                         name="(tabs)"
                         options={{ animation: "fade_from_bottom", animationDuration: 300 }}

@@ -145,7 +145,7 @@ const FeedScreen: React.FC = () => {
         }
     }, [lastNotificationResponse]);
 
-    if (isGuest) return <Redirect href={"/(tabs)/(search)/search"} />
+    //if (isGuest) return <Redirect href={"/(tabs)/(search)/search"} />
 
     return (
         <>

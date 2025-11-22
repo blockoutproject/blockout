@@ -24,7 +24,13 @@ type Props = BottomTabBarProps & {
     activeColor: string;
     inactiveColor: string;
     backgroundColorAndroid?: string;
-    blurTintIOS?: "light" | "default" | "dark" | "extraLight" | "regular" | "prominent";
+    blurTintIOS?:
+    | "light"
+    | "default"
+    | "dark"
+    | "extraLight"
+    | "regular"
+    | "prominent";
     extraBottomInset?: number;
     pillWidth?: number;
     pillHeight?: number;
@@ -42,7 +48,7 @@ function TabBarItem({
     onPress,
     onLongPress,
     onLayout,
-    vIndex,
+    index,
     activeIndex,
 }: {
     options: any;
@@ -52,15 +58,20 @@ function TabBarItem({
     onPress: () => void;
     onLongPress: () => void;
     onLayout: (e: LayoutChangeEvent) => void;
-    vIndex: number;
+    index: number;
     activeIndex: SharedValue<number>;
 }) {
     const iconAnimatedStyle = useAnimatedStyle(() => {
-        const selected = activeIndex.value === vIndex;
+        const selected = activeIndex.value === index;
         return {
             transform: [
                 { translateY: withSpring(0, SPRING) },
-                { scale: withSpring(selected ? 1.06 : 1, { ...SPRING, damping: 14 }) },
+                {
+                    scale: withSpring(selected ? 1.06 : 1, {
+                        ...SPRING,
+                        damping: 14,
+                    }),
+                },
             ],
             opacity: withSpring(selected ? 1 : 0.9),
         };
@@ -78,7 +89,9 @@ function TabBarItem({
             accessibilityState={isFocused ? { selected: true } : {}}
         >
             <Animated.View style={[styles.iconWrap, iconAnimatedStyle]}>
-                {options.tabBarIcon ? options.tabBarIcon({ focused: isFocused, color, size }) : null}
+                {options.tabBarIcon
+                    ? options.tabBarIcon({ focused: isFocused, color, size })
+                    : null}
             </Animated.View>
         </Pressable>
     );
@@ -101,49 +114,18 @@ export default function TabBar({
     const insets = useSafeAreaInsets();
     const theme = useAppTheme();
 
-    /** 1) Filtrer les routes invisibles
-     * - expo-router : options.href === null
-     * - fallback : options.tabBarButton() === null
-     * - fallback : options.tabBarStyle.display === "none"
-     */
-    const visibleRoutes = useMemo(() => {
-        return state.routes.filter((r) => {
-            const opts: any = descriptors[r.key]?.options ?? {};
-            const hrefHidden = Object.prototype.hasOwnProperty.call(opts, "href") && opts.href === null;
+    /** Routes visibles = routes normales (Tabs.Protected gère déjà le masquage) */
+    const routes = state.routes;
 
-            let buttonHidden = false;
-            if (typeof opts.tabBarButton === "function") {
-                try {
-                    // certains devs retournent explicitement `null` pour masquer un tab
-                    const maybeNode = opts.tabBarButton({ children: null, onPress: () => { } } as any);
-                    buttonHidden = maybeNode === null;
-                } catch {
-                    // on ignore toute erreur (des impléms custom peuvent exiger d'autres props)
-                    buttonHidden = false;
-                }
-            }
+    /** Index actif */
+    const activeRouteIndex = state.index;
 
-            const styleHidden =
-                opts?.tabBarStyle && typeof opts.tabBarStyle === "object"
-                    ? (opts.tabBarStyle as any).display === "none"
-                    : false;
-
-            return !(hrefHidden || buttonHidden || styleHidden);
-        });
-    }, [state.routes, descriptors]);
-
-    /** 2) Index actif parmi les visibles */
-    const currentKey = state.routes[state.index]?.key;
-    let activeVisibleIndex = visibleRoutes.findIndex((r) => r.key === currentKey);
-    const currentIsHidden = activeVisibleIndex === -1;
-    if (currentIsHidden) activeVisibleIndex = 0;
-
-    /** 3) Mesures (par index visible) */
+    /** Mesures par index */
     const layoutsRef = useRef<Record<number, { x: number; width: number }>>({});
     const pillX = useSharedValue(0);
-    const activeIndex = useSharedValue(activeVisibleIndex);
+    const activeIndex = useSharedValue(activeRouteIndex);
 
-    const animateToVisibleIndex = (idx: number) => {
+    const animateToIndex = (idx: number) => {
         const layout = layoutsRef.current[idx];
         if (!layout) return;
         const left = layout.x + (layout.width - pillWidth) / 2;
@@ -151,20 +133,24 @@ export default function TabBar({
         activeIndex.value = idx;
     };
 
-    /** 4) Sync animation quand nav/visibilité change */
+    /** Sync animation quand nav change */
     useEffect(() => {
-        const target = currentIsHidden ? 0 : activeVisibleIndex;
-        const id = setTimeout(() => animateToVisibleIndex(target), 0);
+        const id = setTimeout(() => animateToIndex(activeRouteIndex), 0);
         return () => clearTimeout(id);
-    }, [state.index, visibleRoutes.length, currentIsHidden, activeVisibleIndex]);
+    }, [activeRouteIndex, routes.length]);
 
-    /** Offsets & styles */
     const offsetFromBottom = Math.max(insets.bottom, 0) + extraBottomInset;
 
     const pillStyle = useAnimatedStyle(() => ({
         transform: [
             { translateX: pillX.value },
-            { scale: withSpring(1, { ...SPRING, damping: 15, stiffness: 320 }) },
+            {
+                scale: withSpring(1, {
+                    ...SPRING,
+                    damping: 15,
+                    stiffness: 320,
+                }),
+            },
         ],
     }));
 
@@ -187,7 +173,9 @@ export default function TabBar({
 
                 <View
                     style={styles.row}
-                    onLayout={() => requestAnimationFrame(() => animateToVisibleIndex(activeVisibleIndex))}
+                    onLayout={() =>
+                        requestAnimationFrame(() => animateToIndex(activeRouteIndex))
+                    }
                 >
                     {/* PILL */}
                     <Animated.View
@@ -206,10 +194,10 @@ export default function TabBar({
                         ]}
                     />
 
-                    {/* ITEMS visibles */}
-                    {visibleRoutes.map((route, vIndex) => {
+                    {/* ITEMS */}
+                    {routes.map((route, index) => {
                         const { options } = descriptors[route.key];
-                        const isFocusedVisible = vIndex === activeVisibleIndex;
+                        const isFocused = index === activeRouteIndex;
 
                         const onPress = () => {
                             const event = navigation.emit({
@@ -217,11 +205,13 @@ export default function TabBar({
                                 target: route.key,
                                 canPreventDefault: true,
                             });
-                            if (!isFocusedVisible && !event.defaultPrevented) {
+
+                            if (!isFocused && !event.defaultPrevented) {
                                 navigation.navigate(route.name);
                             }
+
                             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                            animateToVisibleIndex(vIndex);
+                            animateToIndex(index);
                         };
 
                         const onLongPress = () => {
@@ -230,26 +220,26 @@ export default function TabBar({
 
                         const onLayout = (e: LayoutChangeEvent) => {
                             const { x, width } = e.nativeEvent.layout;
-                            layoutsRef.current[vIndex] = { x, width };
-                            if (vIndex === activeVisibleIndex) {
-                                requestAnimationFrame(() => animateToVisibleIndex(vIndex));
+                            layoutsRef.current[index] = { x, width };
+                            if (index === activeRouteIndex) {
+                                requestAnimationFrame(() => animateToIndex(index));
                             }
                         };
 
-                        const color = isFocusedVisible ? activeColor : inactiveColor;
+                        const color = isFocused ? activeColor : inactiveColor;
                         const size = 26;
 
                         return (
                             <TabBarItem
                                 key={route.key}
                                 options={options}
-                                isFocused={isFocusedVisible}
+                                isFocused={isFocused}
                                 color={color}
                                 size={size}
                                 onPress={onPress}
                                 onLongPress={onLongPress}
                                 onLayout={onLayout}
-                                vIndex={vIndex}
+                                index={index}
                                 activeIndex={activeIndex}
                             />
                         );

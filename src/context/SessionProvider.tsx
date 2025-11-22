@@ -9,7 +9,6 @@ import { useGuestSessionStore } from "../utils/guestSessionStore";
 import { useApis } from "@/src/context/ApiProvider";
 import { setAuthOnApis } from "@/src/api";
 import { router, usePathname } from "expo-router";
-import { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import { useRegisterPushToken } from "../hooks/notification/useRegisterPushToken";
 import { useAppStatus } from "@/src/hooks/config/app/useAppStatus";
 import useHasScopes from "@/src/hooks/user/useHasScopes";
@@ -36,15 +35,12 @@ export type SessionUserState = {
     customUserError: Error | null;
     auth0UserError: Error | null;
     refetch: () => void;
-
     appStatus: AppStatusDTO | undefined;
-    appStatusLoading: boolean;
-    appStatusError: boolean;
-    appStatusLoaded: boolean;
-    maintenanceEnabled: boolean;
+    isAppStatusLoading: boolean;
+    isAppStatusError: boolean;
+    isMaintenance: boolean;
     maintenanceBypass: boolean;
     canBypassMaintenance: boolean;
-    appReady: boolean;
     refetchAppStatus: () => void;
 };
 
@@ -56,8 +52,6 @@ export const useSession = () => {
     if (!ctx) throw new Error("useSession must be used within <SessionProvider>");
     return ctx;
 };
-
-type TabsNav = BottomTabNavigationProp<any>;
 
 export const SessionProvider: React.FC<React.PropsWithChildren> = ({ children }) => {
     const {
@@ -89,32 +83,29 @@ export const SessionProvider: React.FC<React.PropsWithChildren> = ({ children })
 
     const {
         data: appStatus,
-        isLoading: appStatusLoading,
-        isError: appStatusError,
+        isLoading: isAppStatusLoading,
+        isError: isAppStatusError,
         refetch: refetchAppStatus,
     } = useAppStatus();
 
     const { allowed: canBypassMaintenance } = useHasScopes(["update:maintenance"]);
     const [maintenanceBypass, setMaintenanceBypass] = useState(false);
 
-    const maintenanceEnabled = appStatus?.maintenance === true;
+    const isMaintenance = appStatus?.maintenance === true;
 
     useEffect(() => {
-        if (!maintenanceEnabled && maintenanceBypass) {
+        if (!isMaintenance && maintenanceBypass) {
             setMaintenanceBypass(false);
         }
-    }, [maintenanceEnabled, maintenanceBypass]);
+    }, [isMaintenance, maintenanceBypass]);
 
     const bypassMaintenance = () => setMaintenanceBypass(true);
+    const resetBypassMaintenance = () => setMaintenanceBypass(false);
 
-    const appStatusLoaded = !!appStatus || appStatusError;
-
-    const isLoading = isAuth0UserLoading || isCustomUserLoading;
-    const isError = !!auth0UserError || !!customUserError;
+    const isLoading = isAuth0UserLoading || isCustomUserLoading || isAppStatusLoading;
+    const isError = !!auth0UserError || !!customUserError || isAppStatusError;
     const isAuthenticated = !!auth0User && !!customUser;
     const error = customUserError || auth0UserError;
-
-    const appReady = !isLoading && appStatusLoaded;
 
     useEffect(() => {
         if (!hasCompletedOnboarding || !isAuthenticated) return;
@@ -128,7 +119,7 @@ export const SessionProvider: React.FC<React.PropsWithChildren> = ({ children })
                 console.warn("Erreur lors de l’enregistrement du push token :", err);
             }
         })();
-    }, [isAuthenticated, hasCompletedOnboarding, customUser?.id, registerPushToken]);
+    }, [isAuthenticated, hasCompletedOnboarding, customUser?.id]);
 
     useEffect(() => {
         let cancelled = false;
@@ -155,6 +146,10 @@ export const SessionProvider: React.FC<React.PropsWithChildren> = ({ children })
             cancelled = true;
         };
     }, [getCredentials, apis, refetch]);
+
+    useEffect(() => {
+        refetchAppStatus()
+    }, [customUser])
 
     const clearRQCache = async () => {
         await queryClient.cancelQueries();
@@ -216,6 +211,7 @@ export const SessionProvider: React.FC<React.PropsWithChildren> = ({ children })
             return;
         }
         await softResetAuth();
+        resetBypassMaintenance();
     };
 
     const signOutSSO = async (opts?: { federated?: boolean }) => {
@@ -226,6 +222,7 @@ export const SessionProvider: React.FC<React.PropsWithChildren> = ({ children })
             }
             await clearSession(opts);
             await clearRQCache();
+            resetBypassMaintenance();
         } catch (err) {
             console.warn("Erreur inattendue lors du logout SSO :", err);
         }
@@ -240,7 +237,6 @@ export const SessionProvider: React.FC<React.PropsWithChildren> = ({ children })
             signOutSSO,
             softResetAuth,
             bypassMaintenance,
-
             auth0User,
             customUser,
             isAuthenticated,
@@ -251,15 +247,12 @@ export const SessionProvider: React.FC<React.PropsWithChildren> = ({ children })
             error,
             customUserError,
             auth0UserError,
-
             appStatus,
-            appStatusLoading,
-            appStatusError,
-            appStatusLoaded,
-            maintenanceEnabled,
+            isAppStatusLoading,
+            isAppStatusError,
+            isMaintenance,
             maintenanceBypass,
             canBypassMaintenance,
-            appReady,
             refetchAppStatus,
         }),
         [
@@ -281,13 +274,11 @@ export const SessionProvider: React.FC<React.PropsWithChildren> = ({ children })
             customUserError,
             auth0UserError,
             appStatus,
-            appStatusLoading,
-            appStatusError,
-            appStatusLoaded,
-            maintenanceEnabled,
+            isAppStatusLoading,
+            isAppStatusError,
+            isMaintenance,
             maintenanceBypass,
             canBypassMaintenance,
-            appReady,
             refetchAppStatus,
         ]
     );
