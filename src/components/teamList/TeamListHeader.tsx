@@ -4,36 +4,26 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 
 import { useAppTheme } from "@/src/context/ThemeProvider";
-import { HEADER_HEIGHT, CORNERS } from "@/src/theme/globals";
+import { HEADER_HEIGHT } from "@/src/theme/globals";
 import { useBackOrClose } from "@/src/hooks/utils/useBackOrClose";
 
 export type TeamListHeaderProps = {
     title: string;
     onOpenReport: () => void;
-    seasonLabel?: string;
-    onPressSeason?: () => void;
+    rightAddon?: React.ReactNode;
 };
 
 const TeamListHeader: React.FC<TeamListHeaderProps> = ({
     title,
     onOpenReport,
-    seasonLabel,
-    onPressSeason,
+    rightAddon,
 }) => {
     const theme = useAppTheme();
     const insets = useSafeAreaInsets();
     const { handleBack, canGoBack } = useBackOrClose();
 
-    const showSeasonSelector = !!seasonLabel && !!onPressSeason;
-
     return (
-        <View
-            style={[
-                {
-                    paddingTop: insets.top,
-                },
-            ]}
-        >
+        <View style={{ paddingTop: insets.top }}>
             <View style={styles.header}>
                 <View style={styles.leftGroup}>
                     <TouchableOpacity
@@ -48,12 +38,7 @@ const TeamListHeader: React.FC<TeamListHeaderProps> = ({
                     </TouchableOpacity>
 
                     <Text
-                        style={[
-                            styles.title,
-                            {
-                                color: theme.text,
-                            },
-                        ]}
+                        style={[styles.title, { color: theme.text }]}
                         adjustsFontSizeToFit
                         numberOfLines={2}
                         lineBreakStrategyIOS="push-out"
@@ -64,49 +49,11 @@ const TeamListHeader: React.FC<TeamListHeaderProps> = ({
                 </View>
 
                 <View style={styles.rightGroup}>
-                    {showSeasonSelector && (
-                        <TouchableOpacity
-                            onPress={onPressSeason}
-                            activeOpacity={0.7}
-                            style={[
-                                styles.seasonBtn,
-                                {
-                                    borderColor: theme.border,
-                                    backgroundColor: theme.surface,
-                                },
-                            ]}
-                            testID="team-list-season-button"
-                        >
-                            <MaterialCommunityIcons
-                                name="calendar-month-outline"
-                                size={16}
-                                color={theme.textInactive}
-                            />
-                            <Text
-                                style={[
-                                    styles.seasonText,
-                                    { color: theme.text },
-                                ]}
-                                numberOfLines={1}
-                            >
-                                {seasonLabel}
-                            </Text>
-                            <MaterialCommunityIcons
-                                name="chevron-down"
-                                size={16}
-                                color={theme.textInactive}
-                            />
-                        </TouchableOpacity>
-                    )}
+                    {rightAddon}
 
                     <TouchableOpacity
                         onPress={onOpenReport}
-                        hitSlop={{
-                            top: 10,
-                            bottom: 10,
-                            left: 10,
-                            right: 10,
-                        }}
+                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                         style={styles.iconBtn}
                         activeOpacity={0.7}
                     >
@@ -125,9 +72,6 @@ const TeamListHeader: React.FC<TeamListHeaderProps> = ({
 export default TeamListHeader;
 
 const styles = StyleSheet.create({
-    container: {
-        backgroundColor: "transparent",
-    },
     header: {
         height: HEADER_HEIGHT,
         flexDirection: "row",
@@ -155,19 +99,5 @@ const styles = StyleSheet.create({
     },
     iconBtn: {
         padding: 4,
-    },
-    seasonBtn: {
-        flexDirection: "row",
-        alignItems: "center",
-        paddingHorizontal: 10,
-        paddingVertical: 6,
-        borderRadius: CORNERS,
-        borderWidth: 1,
-        gap: 6,
-        maxWidth: 150,
-    },
-    seasonText: {
-        fontSize: 12,
-        fontWeight: "700",
     },
 });

@@ -1,9 +1,10 @@
-import React from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { useSearchTeams } from "@/src/hooks/search/useSearchTeams";
 import TeamCard from "@/src/components/search/TeamCard";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { GenericSearchScreen } from "./GenericSearchScreen";
+import { SelectOption } from "@/src/components/common/form/SelectSheet";
 
 export type SearchTeamScreenProps = {
     search: string;
@@ -11,13 +12,25 @@ export type SearchTeamScreenProps = {
     setSearch: (text: string) => void;
 };
 
+const SEASONS: string[] = ["2025/2026", "2024/2025"];
+
 const SearchTeamScreen: React.FC<SearchTeamScreenProps> = ({
     search,
     debouncedQuery,
     setSearch,
 }) => {
-    const { data, isLoading, isError, refetch, error } = useSearchTeams(
+    const [selectedSeason, setSelectedSeason] = useState<string | null>(
+        SEASONS[0],
+    );
+
+    const seasonOptions: SelectOption[] = useMemo(
+        () => SEASONS.map((s) => ({ value: s, label: s })),
+        [],
+    );
+
+    const { data, isLoading, isError, refetch } = useSearchTeams(
         debouncedQuery,
+        selectedSeason ?? undefined,
     );
 
     const router = useRouter();
@@ -26,6 +39,10 @@ const SearchTeamScreen: React.FC<SearchTeamScreenProps> = ({
         Haptics.selectionAsync();
         router.push(`/team/${id}`);
     };
+
+    const handleSelectSeason = useCallback((opt: SelectOption) => {
+        setSelectedSeason(String(opt.value));
+    }, []);
 
     return (
         <GenericSearchScreen
@@ -42,6 +59,11 @@ const SearchTeamScreen: React.FC<SearchTeamScreenProps> = ({
             renderItem={({ item }) => (
                 <TeamCard team={item} onPress={() => handlePress(item.id)} />
             )}
+            seasonOptions={seasonOptions}
+            selectedSeason={selectedSeason}
+            onSelectSeason={handleSelectSeason}
+            seasonPlaceholderLabel="Saison"
+            seasonTestIDButton="search-team-season-button"
         />
     );
 };

@@ -19,7 +19,7 @@ import { useSession } from "@/src/context/SessionProvider";
 export default function MaintenancePage() {
     const {
         appStatus,
-        appStatusLoading,
+        isAppStatusLoading,
         refetchAppStatus,
         canBypassMaintenance,
         bypassMaintenance,
@@ -96,7 +96,7 @@ export default function MaintenancePage() {
                         "On prépare une nouvelle version de l’application. Quelques minutes et tout sera de retour."}
                 </Text>
 
-                {appStatusLoading ? (
+                {isAppStatusLoading ? (
                     <ActivityIndicator style={{ marginTop: 18 }} color={theme.text} />
                 ) : (
                     <>

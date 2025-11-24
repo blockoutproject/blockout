@@ -50,14 +50,7 @@ export default function Root() {
 function RootNavigator() {
     const { isAuthenticated, isGuest, isMaintenance, maintenanceBypass } = useSession();
     const { hasCompletedOnboarding } = useOnboardingStore();
-
-    // console.log("-------------")
-    // console.log("1", (isMaintenance && !maintenanceBypass))
-    // console.log("2", !(isGuest || isAuthenticated) && !isMaintenance)
-    // console.log("3", (isGuest || isAuthenticated) && !isMaintenance)
-
-    //if (!appReady) return <View style={{flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: 'green'}}><Text style={{color: 'white'}}>çznbrvpnqzr^pknvjopzrç^vinozr</Text></View>;
-
+    
     return (
         <BottomSheetModalProvider>
             <Stack screenOptions={{ headerShown: false, animation: "none" }}>
@@ -68,14 +61,14 @@ function RootNavigator() {
                     />
                 </Stack.Protected>
 
-                <Stack.Protected guard={!(isGuest || isAuthenticated) && !isMaintenance}>
+                <Stack.Protected guard={!(isGuest || isAuthenticated) && !(isMaintenance && !maintenanceBypass)}>
                     <Stack.Screen
                         name="sign-in"
                         options={{ animation: "fade_from_bottom", animationDuration: 300 }}
                     />
                 </Stack.Protected>
 
-                <Stack.Protected guard={(isGuest || isAuthenticated) && !isMaintenance}>
+                <Stack.Protected guard={(isGuest || isAuthenticated) && !(isMaintenance && !maintenanceBypass)}>
                     <Stack.Protected guard={!hasCompletedOnboarding}>
                         <Stack.Screen
                             name="onboarding"

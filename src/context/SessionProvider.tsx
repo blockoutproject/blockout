@@ -22,6 +22,7 @@ export type SessionActions = {
     signOutSSO: (opts?: { federated?: boolean }) => Promise<void>;
     softResetAuth: () => Promise<void>;
     bypassMaintenance: () => void;
+    resetBypassMaintenance: () => void;
 };
 
 export type SessionUserState = {
@@ -113,7 +114,7 @@ export const SessionProvider: React.FC<React.PropsWithChildren> = ({ children })
             try {
                 const token = await registerForPushNotificationsAsync().catch(() => null);
                 if (customUser?.id && token) {
-                    await registerPushToken(customUser.id, token).catch(() => {});
+                    await registerPushToken(customUser.id, token).catch(() => { });
                 }
             } catch (err) {
                 console.warn("Erreur lors de l’enregistrement du push token :", err);
@@ -166,7 +167,7 @@ export const SessionProvider: React.FC<React.PropsWithChildren> = ({ children })
             try {
                 await clearCredentials();
                 await clearRQCache();
-            } catch {}
+            } catch { }
         };
 
         setAuthOnApis(apis, tokenSupplier, onUnauthorized);
@@ -237,6 +238,7 @@ export const SessionProvider: React.FC<React.PropsWithChildren> = ({ children })
             signOutSSO,
             softResetAuth,
             bypassMaintenance,
+            resetBypassMaintenance,
             auth0User,
             customUser,
             isAuthenticated,

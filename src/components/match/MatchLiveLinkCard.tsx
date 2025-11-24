@@ -85,6 +85,14 @@ const MatchLiveLinkCard: React.FC<Props> = ({
         return PROVIDER_LABELS[key] ?? "";
     }, [enrichedMatch.liveProvider]);
 
+    const isBeforeLiveWindow = useMemo(() => {
+        if (!enrichedMatch.matchDate) return false;
+        const matchDate = new Date(enrichedMatch.matchDate);
+        const now = new Date();
+        const oneHourBefore = new Date(matchDate.getTime() - 60 * 60 * 1000);
+        return now < oneHourBefore;
+    }, [enrichedMatch.matchDate]);
+
     const leftIcon = useMemo(() => {
         switch (enrichedMatch.liveProvider as LiveProvider | null) {
             case "YOUTUBE":
@@ -124,7 +132,7 @@ const MatchLiveLinkCard: React.FC<Props> = ({
             await handleOpenReportSheet();
         } else if (isGuest) {
             // Invité : on lui propose de créer un compte
-            await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
+            await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => { });
             onRequireAuth();
         }
         // Cas "connecté sans scope" : pour l'instant, on ne fait rien
@@ -386,6 +394,7 @@ const MatchLiveLinkCard: React.FC<Props> = ({
                     ref={editSheetRef}
                     matchId={enrichedMatch.id}
                     initialUrl={enrichedMatch.liveUrl}
+                    isBeforeLiveWindow={isBeforeLiveWindow}
                     isFinalPostMatchEdit={isFinalPostMatchEdit}
                     onSuccess={() => {
                         refetch();

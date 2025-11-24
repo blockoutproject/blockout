@@ -19,12 +19,13 @@ import { ScraperStatus } from "@/src/types/ScraperStatus";
 import ScraperStatusItem from "./ScraperStatusItem";
 import MaintenanceControlCard from "./MaintenanceControlCard";
 import ApiErrorToast from "@/src/components/common/feedback/ApiErrorToast";
+import { useSession } from "@/src/context/SessionProvider";
 
 const ScraperStatusScreen: React.FC = () => {
     const theme = useAppTheme();
     const insets = useSafeAreaInsets();
     const { mobile } = useApis();
-
+    const { bypassMaintenance } = useSession();
     const {
         data: scrapers,
         isLoading: scrapersLoading,
@@ -100,6 +101,7 @@ const ScraperStatusScreen: React.FC = () => {
             });
 
             await refetchStatus();
+            bypassMaintenance();
 
             await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         } catch (error) {

@@ -1,22 +1,17 @@
-// src/components/followed/FollowedScreen.tsx
 import React, {
     useCallback,
     useMemo,
-    useRef,
     useState,
 } from "react";
 import { StyleSheet, View } from "react-native";
-import * as Haptics from "expo-haptics";
 
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import { Filter } from "@/src/types/Filter";
 import FollowedTeamsList from "./FollowedTeamsList";
 import FollowedPoolsList from "./FollowedPoolsList";
 import FollowedListHeader from "./FollowedListHeader";
-import SelectSheet, {
-    SelectOption,
-    SelectSheetRef,
-} from "@/src/components/common/form/SelectSheet";
+import { SelectOption } from "@/src/components/common/form/SelectSheet";
+import SeasonSelect from "../common/form/SeasonSelect";
 
 export type FollowedScreenListProps = {
     poolIds?: number[];
@@ -51,16 +46,6 @@ const FollowedScreen: React.FC<FollowedScreenListProps> = ({
         string | undefined
     >(undefined);
 
-    const seasonSheetRef = useRef<SelectSheetRef>(null);
-
-    const seasonLabel = useMemo(() => {
-        const current =
-            activeFilter === "Équipes"
-                ? selectedTeamSeason
-                : selectedPoolSeason;
-        return current ?? "Saison";
-    }, [activeFilter, selectedTeamSeason, selectedPoolSeason]);
-
     const currentSeasonOptions: SelectOption[] = useMemo(() => {
         const seasons =
             activeFilter === "Équipes" ? teamSeasons : poolSeasons;
@@ -74,12 +59,6 @@ const FollowedScreen: React.FC<FollowedScreenListProps> = ({
                 : selectedPoolSeason ?? "",
         [activeFilter, selectedTeamSeason, selectedPoolSeason],
     );
-
-    const handlePressSeason = useCallback(async () => {
-        if (currentSeasonOptions.length === 0) return;
-        await Haptics.selectionAsync();
-        seasonSheetRef.current?.present();
-    }, [currentSeasonOptions.length]);
 
     const handleSelectSeason = useCallback(
         (opt: SelectOption) => {
@@ -118,12 +97,14 @@ const FollowedScreen: React.FC<FollowedScreenListProps> = ({
                 filters={filters}
                 setFilters={setFilters}
                 headerOffset={headerOffset}
-                seasonLabel={
-                    currentSeasonOptions.length > 0
-                        ? seasonLabel
-                        : "Saison"
+                seasonNode={
+                    <SeasonSelect
+                        options={currentSeasonOptions}
+                        selectedValue={currentSelectedSeason}
+                        onSelect={handleSelectSeason}
+                        testIDButton="followed-season-button"
+                    />
                 }
-                onPressSeason={handlePressSeason}
             />
 
             {activeFilter === "Équipes" ? (
@@ -139,15 +120,6 @@ const FollowedScreen: React.FC<FollowedScreenListProps> = ({
                     onSeasonsChange={handlePoolSeasonsChange}
                 />
             )}
-
-            <SelectSheet
-                ref={seasonSheetRef}
-                title="Choisir une saison"
-                options={currentSeasonOptions}
-                selectedValue={currentSelectedSeason}
-                onSelect={handleSelectSeason}
-                clearable={false}
-            />
         </View>
     );
 };

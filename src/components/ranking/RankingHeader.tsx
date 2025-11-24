@@ -5,7 +5,7 @@ import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 
 import MaskedImage from "../common/images/MaskedImage";
-import { withAlpha } from "@/src/utils/utils";
+import { isRegional, withAlpha } from "@/src/utils/utils";
 import { EnrichedPoolDTO } from "@/src/types/Pool";
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import { GenderLabels } from "@/src/types/enums/Gender";
@@ -21,7 +21,7 @@ const RankingHeader: React.FC<Props> = ({ pool, onPress }) => {
         ? { uri: pool.division.logoUrl }
         : require("@/assets/clubs/default_club_logo.png");
 
-    const isRegional = !["ABCCS", "AALNV"].includes(pool.leagueCode);
+    const isReg = isRegional(pool.leagueCode);
 
     return (
         <TouchableOpacity activeOpacity={0.85} onPress={onPress}>
@@ -70,7 +70,7 @@ const RankingHeader: React.FC<Props> = ({ pool, onPress }) => {
                             adjustsFontSizeToFit
                             numberOfLines={1}
                         >
-                            {`${isRegional ? `${pool.leagueName} • ` : ''}${pool.division.name} • ${GenderLabels[pool.gender]}`}
+                            {`${isReg ? `${pool.leagueName} • ` : ''}${pool.division.name} • ${GenderLabels[pool.gender]}`}
                         </Text>
                     </View>
                 </View>

@@ -33,7 +33,7 @@ import ErrorState from "@/src/components/common/feedback/ErrorState";
 import FadeIn from "@/src/components/common/animations/FadeIn";
 
 import { ReportType } from "@/src/types/Report";
-import { getTeamsRankingColor, splitIsoDateFormatted } from "@/src/utils/utils";
+import { getTeamsRankingColor, isLNV, splitIsoDateFormatted } from "@/src/utils/utils";
 import {
     BOTTOM_TABBAR_HEIGHT,
     HEADER_HEIGHT,
@@ -166,7 +166,7 @@ const MatchScreen: React.FC = () => {
     }, [enrichedMatch]);
 
     const liveLinkCard = useMemo(() => {
-        if (!enrichedMatch) {
+        if (!enrichedMatch || isLNV(enrichedMatch.pool.leagueCode)) {
             return null;
         }
 

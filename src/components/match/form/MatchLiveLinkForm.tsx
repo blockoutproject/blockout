@@ -33,14 +33,11 @@ export const getLiveLinkErrorMessage = (err: unknown): string => {
         if (err.status === 0 || err.status >= 500) {
             return "Le serveur rencontre un problème, réessaie dans quelques instants.";
         }
-
         if (err.message && err.message.trim().length > 0) {
             return err.message;
         }
-
         return "Lien invalide ou non accepté.";
     }
-
     return "Action impossible, réessaie.";
 };
 
@@ -74,18 +71,16 @@ const MatchLiveLinkForm: React.FC<MatchLiveLinkFormProps> = ({
         validationSchema,
         validateOnMount: true,
         onSubmit: async (values) => {
-            if (isBeforeLiveWindow) {
-                return;
-            }
-
-            if (!values.url.trim()) return;
+            if (isBeforeLiveWindow) return;
+            const trimmed = values.url.trim();
+            if (!trimmed) return;
 
             try {
                 setLoading(true);
                 setApiError(null);
                 await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
-                await mobile.upsertMatchLiveLink(matchId, { url: values.url.trim() });
+                await mobile.upsertMatchLiveLink(matchId, { url: trimmed });
                 await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
                 onSuccess();
             } catch (err) {
@@ -115,43 +110,24 @@ const MatchLiveLinkForm: React.FC<MatchLiveLinkFormProps> = ({
         onStateChange?.({ loading, canSubmit });
     }, [loading, canSubmit, onStateChange]);
 
-    const showFieldError = formik.touched.url && !!formik.errors.url;
-
     const title = useMemo(() => {
-        if (hasExisting && isFinalPostMatchEdit) {
-            return "Mettre à jour la rediffusion";
-        }
-        if (hasExisting) {
-            return "Modifier le lien du live";
-        }
+        if (hasExisting && isFinalPostMatchEdit) return "Mettre à jour la rediffusion";
+        if (hasExisting) return "Modifier le lien du live";
         return "Ajouter un lien de live";
     }, [hasExisting, isFinalPostMatchEdit]);
 
     const subtitle = useMemo(() => {
-        if (isBeforeLiveWindow) {
-            return "Tu pourras renseigner l’URL du live à partir d’une heure avant le début du match.";
-        }
         if (hasExisting && isFinalPostMatchEdit) {
             return "Tu es sur le point de mettre à jour la rediffusion. Après cette modification, le lien sera verrouillé et tu ne pourras plus le changer.";
         }
         return "Colle ici un lien YouTube, Twitch ou Facebook pour diffuser ce match.";
-    }, [isBeforeLiveWindow, hasExisting, isFinalPostMatchEdit]);
+    }, [hasExisting, isFinalPostMatchEdit]);
 
-    const placeholder = isBeforeLiveWindow
-        ? "Disponible une heure avant le début du match"
-        : "https://youtube.com/…";
+    const placeholder = "https://youtube.com/…";
 
-    const wrapperBorderColor = showFieldError
-        ? theme.error
-        : theme.border;
+    const showFieldError = formik.touched.url && !!formik.errors.url;
 
-    const wrapperBackgroundColor = isBeforeLiveWindow
-        ? theme.backgroundSecondary
-        : theme.surface;
-
-    const inputTextColor = isBeforeLiveWindow
-        ? theme.textInactive
-        : theme.text;
+    const wrapperBorderColor = showFieldError ? theme.error : theme.border;
 
     return (
         <>
@@ -160,54 +136,49 @@ const MatchLiveLinkForm: React.FC<MatchLiveLinkFormProps> = ({
                 showsVerticalScrollIndicator={false}
             >
                 <FormCard title={title}>
-                    <Text
-                        style={[
-                            styles.subtitle,
-                            { color: theme.textInactive },
-                        ]}
-                    >
+                    <Text style={[styles.subtitle, { color: theme.textInactive }]}>
                         {subtitle}
                     </Text>
 
-                    <View style={styles.platformRow}>
-                        <View
-                            style={[
-                                styles.platformIcon,
-                                { backgroundColor: theme.surface, borderColor: theme.border },
-                            ]}
-                        >
-                            <MaterialCommunityIcons
-                                name="youtube"
-                                size={18}
-                                color={theme.textInactive}
-                            />
-                        </View>
-                        <View
-                            style={[
-                                styles.platformIcon,
-                                { backgroundColor: theme.surface, borderColor: theme.border },
-                            ]}
-                        >
-                            <MaterialCommunityIcons
-                                name="twitch"
-                                size={18}
-                                color={theme.textInactive}
-                            />
-                        </View>
-                        <View
-                            style={[
-                                styles.platformIcon,
-                                { backgroundColor: theme.surface, borderColor: theme.border },
-                            ]}
-                        >
-                            <MaterialCommunityIcons
-                                name="facebook"
-                                size={18}
-                                color={theme.textInactive}
-                            />
-                        </View>
+                    {!isBeforeLiveWindow && (
+                        <View style={styles.platformRow}>
+                            <View
+                                style={[
+                                    styles.platformIcon,
+                                    { backgroundColor: theme.surface, borderColor: theme.border },
+                                ]}
+                            >
+                                <MaterialCommunityIcons
+                                    name="youtube"
+                                    size={18}
+                                    color={theme.textInactive}
+                                />
+                            </View>
+                            <View
+                                style={[
+                                    styles.platformIcon,
+                                    { backgroundColor: theme.surface, borderColor: theme.border },
+                                ]}
+                            >
+                                <MaterialCommunityIcons
+                                    name="twitch"
+                                    size={18}
+                                    color={theme.textInactive}
+                                />
+                            </View>
+                            <View
+                                style={[
+                                    styles.platformIcon,
+                                    { backgroundColor: theme.surface, borderColor: theme.border },
+                                ]}
+                            >
+                                <MaterialCommunityIcons
+                                    name="facebook"
+                                    size={18}
+                                    color={theme.textInactive}
+                                />
+                            </View>
 
-                        {!isBeforeLiveWindow && (
                             <Text
                                 style={[
                                     styles.platformHint,
@@ -216,8 +187,8 @@ const MatchLiveLinkForm: React.FC<MatchLiveLinkFormProps> = ({
                             >
                                 Plateformes supportées
                             </Text>
-                        )}
-                    </View>
+                        </View>
+                    )}
 
                     {hasExisting && isFinalPostMatchEdit && !isBeforeLiveWindow && (
                         <View style={styles.finalWarningBanner}>
@@ -239,59 +210,11 @@ const MatchLiveLinkForm: React.FC<MatchLiveLinkFormProps> = ({
                     )}
 
                     <View style={styles.fieldBlock}>
-                        <Text
-                            style={[
-                                styles.label,
-                                { color: theme.text },
-                            ]}
-                        >
+                        <Text style={[styles.label, { color: theme.text }]}>
                             Lien du live
                         </Text>
 
-                        <Field
-                            error={formik.errors.url as string}
-                            touched={formik.touched.url}
-                        >
-                            <View
-                                style={[
-                                    styles.inputWrapper,
-                                    {
-                                        borderColor: wrapperBorderColor,
-                                        backgroundColor: wrapperBackgroundColor,
-                                    },
-                                ]}
-                            >
-                                {isBeforeLiveWindow && (
-                                    <View style={styles.lockIconWrap}>
-                                        <MaterialCommunityIcons
-                                            name="lock-outline"
-                                            size={18}
-                                            color={theme.textInactive}
-                                        />
-                                    </View>
-                                )}
-
-                                <BottomSheetTextInput
-                                    value={formik.values.url}
-                                    onChangeText={formik.handleChange("url")}
-                                    onBlur={formik.handleBlur("url")}
-                                    placeholder={placeholder}
-                                    placeholderTextColor={theme.textInactive}
-                                    autoCapitalize="none"
-                                    autoCorrect={false}
-                                    keyboardType="url"
-                                    editable={!isBeforeLiveWindow}
-                                    style={[
-                                        styles.input,
-                                        {
-                                            color: inputTextColor,
-                                        },
-                                    ]}
-                                />
-                            </View>
-                        </Field>
-
-                        {isBeforeLiveWindow && (
+                        {isBeforeLiveWindow ? (
                             <View style={styles.lockBanner}>
                                 <MaterialCommunityIcons
                                     name="clock-outline"
@@ -308,6 +231,37 @@ const MatchLiveLinkForm: React.FC<MatchLiveLinkFormProps> = ({
                                     avant le début du match.
                                 </Text>
                             </View>
+                        ) : (
+                            <Field
+                                error={formik.errors.url as string}
+                                touched={formik.touched.url}
+                            >
+                                <View
+                                    style={[
+                                        styles.inputWrapper,
+                                        {
+                                            borderColor: wrapperBorderColor,
+                                            backgroundColor: theme.surface,
+                                        },
+                                    ]}
+                                >
+                                    <BottomSheetTextInput
+                                        value={formik.values.url}
+                                        onChangeText={formik.handleChange("url")}
+                                        onBlur={formik.handleBlur("url")}
+                                        placeholder={placeholder}
+                                        placeholderTextColor={theme.textInactive}
+                                        autoCapitalize="none"
+                                        autoCorrect={false}
+                                        keyboardType="url"
+                                        editable={!loading}
+                                        style={[
+                                            styles.input,
+                                            { color: theme.text },
+                                        ]}
+                                    />
+                                </View>
+                            </Field>
                         )}
                     </View>
                 </FormCard>
@@ -378,19 +332,16 @@ const styles = StyleSheet.create({
         paddingHorizontal: 10,
         paddingVertical: 8,
     },
-    lockIconWrap: {
-        marginRight: 8,
-    },
     input: {
         flex: 1,
         fontSize: 14,
         paddingVertical: 2,
     },
     lockBanner: {
-        marginTop: 8,
         flexDirection: "row",
         alignItems: "center",
         gap: 8,
+        marginTop: 2,
     },
     lockHint: {
         fontSize: 12,

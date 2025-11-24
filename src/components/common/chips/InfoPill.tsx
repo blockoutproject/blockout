@@ -7,32 +7,23 @@ import { CORNERS } from "@/src/theme/globals";
 import { withAlpha } from "@/src/utils/utils";
 
 type InfoPillProps = {
-    /** Libellé. */
     label: string;
-    /** Style du conteneur. */
     style?: StyleProp<ViewStyle>;
-    /** Icône gauche (MDI). */
     leftIconName?: React.ComponentProps<typeof MaterialCommunityIcons>["name"];
-    /** Taille de l’icône gauche. */
     leftIconSize?: number;
-    /** Opacité d’overlay (0..1). */
     overlayAlpha?: number;
-    /** Couleur d’overlay (défaut: theme.surface). */
     overlayColor?: string;
-    /** Active le blur si overlayAlpha < 1. */
     blurEnabled?: boolean;
-    /** Teinte du BlurView. */
     blurTint?: "light" | "dark" | "default";
-    /** Style du texte. */
     labelStyle?: StyleProp<TextStyle>;
-    /** Ombre activée. */
     shadowEnabled?: boolean;
-    /** Niveau d’ombre. */
     shadowLevel?: 0 | 1 | 2 | 3 | 4 | 5;
-    /** Couleur d’ombre. */
     shadowColor?: string;
-    /** Largeur max. */
     maxWidth?: DimensionValue;
+
+    showRedDot?: boolean;
+    redDotSize?: number;
+    redDotColor?: string;
 };
 
 const GAP = 6;
@@ -70,7 +61,10 @@ const InfoPill: React.FC<InfoPillProps> = ({
     shadowEnabled = false,
     shadowLevel = 2,
     shadowColor,
-    maxWidth
+    maxWidth,
+    showRedDot = false,
+    redDotSize = 7,
+    redDotColor,
 }) => {
     const theme = useAppTheme();
 
@@ -79,9 +73,11 @@ const InfoPill: React.FC<InfoPillProps> = ({
     const showBlur = blurEnabled && overlayAlpha < 1;
     const shColor = shadowColor ?? theme.text;
 
-    // Détermine la couleur du texte (et donc de l’icône)
     const flattened = StyleSheet.flatten(labelStyle);
     const textColor = flattened?.color ?? theme.text;
+
+    const dotColor = redDotColor ?? theme.error;
+    const dotSize = Math.max(4, redDotSize);
 
     return (
         <View
@@ -98,7 +94,7 @@ const InfoPill: React.FC<InfoPillProps> = ({
                         backgroundColor: showBlur ? "transparent" : overlayBg,
                         borderColor: withAlpha(theme.text, 0.12),
                         borderRadius: CORNERS,
-                        maxWidth
+                        maxWidth,
                     },
                     style,
                 ]}
@@ -120,16 +116,31 @@ const InfoPill: React.FC<InfoPillProps> = ({
                             color={textColor}
                         />
                     ) : null}
+
                     <Text style={[styles.text, { color: textColor }, labelStyle]} numberOfLines={1}>
                         {label}
                     </Text>
+
+                    {showRedDot ? (
+                        <View
+                            style={[
+                                styles.redDot,
+                                {
+                                    width: dotSize,
+                                    height: dotSize,
+                                    borderRadius: dotSize / 2,
+                                    backgroundColor: dotColor,
+                                },
+                            ]}
+                        />
+                    ) : null}
                 </View>
             </View>
         </View>
     );
 };
 
-export default InfoPill;
+export default memo(InfoPill);
 
 const styles = StyleSheet.create({
     wrapper: {
@@ -151,4 +162,5 @@ const styles = StyleSheet.create({
         fontSize: 12,
         fontWeight: "700",
     },
+    redDot: {},
 });

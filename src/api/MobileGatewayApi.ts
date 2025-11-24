@@ -188,20 +188,28 @@ export class MobileGatewayApi extends BaseApi {
     /**
      * Recherche des poules (public)
      * @param query Chaîne de recherche
+     * @param season Saison sélectionnée (ex: "2025/2026")
      */
-    public searchPools(query: string) {
+    public searchPools(query: string, season?: string) {
         return this.httpPublic.get<PoolSearchDocDTO[]>("/search/pools", {
-            params: { query },
+            params: {
+                query,
+                ...(season ? { season } : {}),
+            },
         });
     }
 
     /**
      * Recherche des équipes (public)
      * @param query Chaîne de recherche
+     * @param season Saison sélectionnée (ex: "2025/2026")
      */
-    public searchTeams(query: string) {
+    public searchTeams(query: string, season?: string) {
         return this.httpPublic.get<TeamSearchDocDTO[]>("/search/teams", {
-            params: { query },
+            params: {
+                query,
+                ...(season ? { season } : {}),
+            },
         });
     }
 
