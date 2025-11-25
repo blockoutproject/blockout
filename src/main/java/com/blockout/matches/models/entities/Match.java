@@ -1,22 +1,25 @@
-package com.blockout.matches.models;
+package com.blockout.matches.models.entities;
 
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 
 import jakarta.persistence.*;
-import java.time.LocalDateTime;
+
+import java.time.Instant;
 
 import com.blockout.matches.models.enums.MatchStatus;
 
-@Data
+@Getter
+@Setter
 @Builder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
 @Table(name = "matches", uniqueConstraints = {
-        @UniqueConstraint(columnNames = {"match_code", "league_code", "season"}, name = "uix_match")
+        @UniqueConstraint(columnNames = { "match_code", "league_code", "season" }, name = "uix_match")
 })
 public class Match {
 
@@ -36,6 +39,9 @@ public class Match {
     @Column(name = "live_code", nullable = true)
     private Long liveCode;
 
+    @Column(name = "live_edit_locked", nullable = false)
+    private boolean liveEditLocked;
+
     @Column(name = "team_id_a", nullable = false)
     private Long teamIdA;
 
@@ -43,7 +49,7 @@ public class Match {
     private Long teamIdB;
 
     @Column(name = "match_date", nullable = false)
-    private LocalDateTime matchDate;
+    private Instant matchDate;
 
     @Column(name = "season", nullable = false)
     private String season;
@@ -71,20 +77,20 @@ public class Match {
     @Column(name = "active", nullable = false)
     private Boolean active = true;
 
-    @Column(name = "created_at")
-    private LocalDateTime createdAt;
+    @Column(name = "created_at", nullable = false)
+    private Instant createdAt;
 
-    @Column(name = "last_update")
-    private LocalDateTime lastUpdate;
+    @Column(name = "last_update", nullable = false)
+    private Instant lastUpdate;
 
     @PrePersist
     public void prePersist() {
-        createdAt = LocalDateTime.now();
-        lastUpdate = LocalDateTime.now();
+        createdAt = Instant.now();
+        lastUpdate = Instant.now();
     }
 
     @PreUpdate
     public void preUpdate() {
-        lastUpdate = LocalDateTime.now();
+        lastUpdate = Instant.now();
     }
 }

@@ -1,8 +1,8 @@
-package com.blockout.matches.models.dto;
+package com.blockout.matches.models.dto.match;
 
 import java.util.List;
 
-import com.blockout.matches.models.Match;
+import com.blockout.matches.models.entities.Match;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

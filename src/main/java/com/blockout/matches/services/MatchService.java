@@ -1,11 +1,15 @@
 package com.blockout.matches.services;
 
 import com.blockout.matches.exceptions.MatchNotFoundException;
-import com.blockout.matches.models.Match;
-import com.blockout.matches.models.dto.DayMatchesDTO;
-import com.blockout.matches.models.dto.DayPageDTO;
-import com.blockout.matches.models.dto.PoolMatchesDTO;
+import com.blockout.matches.models.dto.match.DayMatchesDTO;
+import com.blockout.matches.models.dto.match.DayPageDTO;
+import com.blockout.matches.models.dto.match.MatchDTO;
+import com.blockout.matches.models.dto.match.PoolMatchesDTO;
+import com.blockout.matches.models.entities.Match;
+import com.blockout.matches.models.entities.MatchLiveLink;
+import com.blockout.matches.models.enums.LiveLinkStatus;
 import com.blockout.matches.models.enums.MatchStatus;
+import com.blockout.matches.repositories.MatchLiveLinkRepository;
 import com.blockout.matches.repositories.MatchRepository;
 import com.blockout.matches.utils.DiffUtils;
 
@@ -18,8 +22,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
+import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -35,6 +41,7 @@ public class MatchService {
     private static final Logger logger = LoggerFactory.getLogger(MatchService.class);
 
     private final MatchRepository matchRepository;
+    private final MatchLiveLinkRepository matchLiveLinkRepository;
     private final EventPublisher eventPublisher;
 
     /**
@@ -99,6 +106,7 @@ public class MatchService {
      * @return un DayPageDTO contenant les groupes de matchs par jour, un indicateur
      *         hasNext et le numéro de nextPage
      */
+
     public DayPageDTO getMatchesByDay(
             List<Long> poolIds,
             List<Long> teamIds,
@@ -107,45 +115,31 @@ public class MatchService {
             int size,
             Boolean active) {
 
-        LocalDateTime now = LocalDateTime.now();
-        LocalDate today = now.toLocalDate();
+        ZoneId PARIS = ZoneId.of("Europe/Paris");
+        Instant now = Instant.now();
+        LocalDate todayParis = LocalDate.now(PARIS);
 
-        // 1) Récupère la liste de jours distincts selon le statut
         List<LocalDate> allDays;
         if (status == MatchStatus.UPCOMING) {
             allDays = matchRepository.findDistinctUpcomingDatesIncludingToday(
-                    today,
+                    todayParis,
                     poolIds, poolIds.size(),
                     teamIds, teamIds.size());
-            logger.debug("Found distinct upcoming match days (>= today)",
-                    keyValue("count", allDays.size()));
         } else {
             allDays = matchRepository.findDistinctDatesUntil(
                     now,
                     poolIds, poolIds.size(),
                     teamIds, teamIds.size());
-            logger.debug("Found distinct past match days",
-                    keyValue("count", allDays.size()));
         }
 
-        // Pagination sur la liste de jours
         int fromIndex = page * size;
         if (fromIndex >= allDays.size()) {
-            logger.debug("Requested page exceeds total available days",
-                    keyValue("fromIndex", fromIndex),
-                    keyValue("totalDays", allDays.size()));
             return new DayPageDTO(Collections.emptyList(), false, null);
         }
 
         int toIndex = Math.min(fromIndex + size, allDays.size());
         List<LocalDate> subDays = allDays.subList(fromIndex, toIndex);
 
-        logger.debug("Paginated days selected",
-                keyValue("from", fromIndex),
-                keyValue("to", toIndex),
-                keyValue("selectedDaysCount", subDays.size()));
-
-        // minDay et maxDay
         LocalDate minDay, maxDay;
         if (status == MatchStatus.UPCOMING) {
             minDay = subDays.get(0);
@@ -155,43 +149,36 @@ public class MatchService {
             maxDay = subDays.get(0);
         }
 
-        LocalDateTime startOfMinDay = minDay.atStartOfDay();
-        LocalDateTime endDateTime;
+        Instant startOfMinDay = minDay.atStartOfDay(PARIS).toInstant();
+
+        Instant endInstant;
         if (status == MatchStatus.UPCOMING) {
-            endDateTime = maxDay.plusDays(1).atStartOfDay();
+            endInstant = maxDay.plusDays(1).atStartOfDay(PARIS).toInstant();
         } else {
-            endDateTime = maxDay.equals(LocalDate.now())
+            LocalDate today = LocalDate.now(PARIS);
+            endInstant = maxDay.equals(today)
                     ? now
-                    : maxDay.plusDays(1).atStartOfDay();
+                    : maxDay.plusDays(1).atStartOfDay(PARIS).toInstant();
         }
 
-        logger.debug("Computed date range for match fetching",
-                keyValue("start", startOfMinDay),
-                keyValue("end", endDateTime));
-
-        // Récupère les matchs dans cette plage
         List<Match> allMatches = (status == MatchStatus.UPCOMING)
                 ? matchRepository.findAllInRangeAsc(
                         startOfMinDay,
-                        endDateTime,
+                        endInstant,
                         poolIds, poolIds.size(),
                         status,
                         teamIds, teamIds.size(),
                         active)
                 : matchRepository.findAllInRangeDesc(
                         startOfMinDay,
-                        endDateTime,
+                        endInstant,
                         poolIds, poolIds.size(),
                         status,
                         teamIds, teamIds.size(),
                         active);
 
-        logger.debug("Fetched matches in date range",
-                keyValue("matchesCount", allMatches.size()));
-
-        // Groupement par date
         Map<LocalDate, List<Match>> matchesByDate = allMatches.stream()
-                .collect(Collectors.groupingBy(m -> m.getMatchDate().toLocalDate()));
+                .collect(Collectors.groupingBy(m -> ZonedDateTime.ofInstant(m.getMatchDate(), PARIS).toLocalDate()));
 
         // Construction de DayMatchesDTO
         List<DayMatchesDTO> dayMatchesList = subDays.stream()
@@ -226,7 +213,48 @@ public class MatchService {
      * @return Le match correspondant
      * @throws MatchNotFoundException Si aucun match n'est trouvé avec cet ID
      */
-    public Match getMatchById(Long id) {
+    public MatchDTO getMatchById(Long id) {
+
+        Match match = matchRepository.findById(id).orElseThrow(() -> {
+            logger.warn("Match non trouvé", keyValue("matchId", id));
+            return new MatchNotFoundException(id);
+        });
+
+        MatchLiveLink live = matchLiveLinkRepository
+                .findFirstByMatchIdAndStatusOrderByCreatedAtDesc(id, LiveLinkStatus.ACTIVE)
+                .orElse(null);
+
+        return MatchDTO.builder()
+                .id(match.getId())
+                .matchCode(match.getMatchCode())
+                .leagueCode(match.getLeagueCode())
+                .poolId(match.getPoolId())
+                .liveCode(match.getLiveCode())
+                .liveEditLocked(match.isLiveEditLocked())
+                .teamIdA(match.getTeamIdA())
+                .teamIdB(match.getTeamIdB())
+                .matchDate(match.getMatchDate())
+                .season(match.getSeason())
+                .set(match.getSet())
+                .score(match.getScore())
+                .status(match.getStatus())
+                .venue(match.getVenue())
+                .firstReferee(match.getFirstReferee())
+                .secondReferee(match.getSecondReferee())
+                .liveUrl(live != null ? live.getUrl() : null)
+                .liveProvider(live != null ? live.getProvider() : null)
+                .liveOwnerAuth0Id(live != null ? live.getOwnerAuth0Id() : null)
+                .build();
+    }
+
+    /**
+     * Récupère un match par son identifiant pour les test interne.
+     *
+     * @param id L'identifiant du match à récupérer
+     * @return Le match correspondant
+     * @throws MatchNotFoundException Si aucun match n'est trouvé avec cet ID
+     */
+    public Match getMatchByIdInternal(Long id) {
         return matchRepository.findById(id).orElseThrow(() -> {
             logger.warn("Match non trouvé", keyValue("matchId", id));
             return new MatchNotFoundException(id);

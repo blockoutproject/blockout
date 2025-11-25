@@ -1,8 +1,9 @@
 package com.blockout.matches.controllers.v1;
 
-import com.blockout.matches.models.Match;
-import com.blockout.matches.models.dto.BulkMatchesDeactivateRequestDTO;
-import com.blockout.matches.models.dto.DayPageDTO;
+import com.blockout.matches.models.dto.match.BulkMatchesDeactivateRequestDTO;
+import com.blockout.matches.models.dto.match.DayPageDTO;
+import com.blockout.matches.models.dto.match.MatchDTO;
+import com.blockout.matches.models.entities.Match;
 import com.blockout.matches.models.enums.MatchStatus;
 import com.blockout.matches.services.MatchService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -67,8 +68,8 @@ public class MatchController {
             @ApiResponse(responseCode = "404", description = "Match introuvable")
     })
     @GetMapping("/{id}")
-    public ResponseEntity<Match> getMatchById(@PathVariable Long id) {
-        Match match = matchService.getMatchById(id);
+    public ResponseEntity<MatchDTO> getMatchById(@PathVariable Long id) {
+        MatchDTO match = matchService.getMatchById(id);
         return ResponseEntity.ok(match);
     }
 
