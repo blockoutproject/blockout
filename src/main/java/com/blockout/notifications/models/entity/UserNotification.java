@@ -63,20 +63,17 @@ public class UserNotification {
     @Column(name = "is_opened", nullable = false)
     private Boolean isOpened = false;
 
-    // IMPORTANT: Instant <-> timestamptz (UTC)
-    @Column(name = "created_at", nullable = false/*, columnDefinition = "timestamptz"*/)
+    @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
-    @Column(name = "read_at"/*, columnDefinition = "timestamptz"*/)
+    @Column(name = "read_at")
     private Instant readAt;
 
-    @Column(name = "opened_at"/*, columnDefinition = "timestamptz"*/)
+    @Column(name = "opened_at")
     private Instant openedAt;
 
     @PrePersist
     public void prePersist() {
-        if (createdAt == null) {
-            createdAt = Instant.now(); // UTC
-        }
+        createdAt = Instant.now();
     }
 }
