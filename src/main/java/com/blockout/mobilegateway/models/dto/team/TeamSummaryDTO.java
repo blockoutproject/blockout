@@ -17,9 +17,14 @@ public class TeamSummaryDTO {
     private String season;
     private Gender gender;
     private Format format;
+
+    @JsonProperty("logo_url")
+    private String logoUrl;
+
     private DivisionDTO division;
-    private ClubDTO club;
-    
+
+    private ClubDTO club; //TODO: a enlever
+
     @JsonProperty("short_name")
     private String shortName;
 }

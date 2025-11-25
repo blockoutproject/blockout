@@ -8,6 +8,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.util.MultiValueMap;
@@ -74,6 +76,10 @@ public class UserClientService {
         apiClientService.delete(url, Void.class);
     }
 
+    @Caching(evict = {
+            @CacheEvict(value = "teamById", key = "#entityId", condition = "#entityType == 'TEAM'"),
+            @CacheEvict(value = "poolById", key = "#entityId", condition = "#entityType == 'POOL'")
+    })
     public void follow(String auth0Id, String entityType, Long entityId) {
         String url = UriComponentsBuilder.fromUriString(baseUrl())
                 .pathSegment("favorites", "follow")
@@ -91,6 +97,10 @@ public class UserClientService {
         apiClientService.post(url, null, Void.class);
     }
 
+    @Caching(evict = {
+            @CacheEvict(value = "teamById", key = "#entityId", condition = "#entityType == 'TEAM'"),
+            @CacheEvict(value = "poolById", key = "#entityId", condition = "#entityType == 'POOL'")
+    })
     public void unfollow(String auth0Id, String entityType, Long entityId) {
         String url = UriComponentsBuilder.fromUriString(baseUrl())
                 .pathSegment("favorites", "follow")

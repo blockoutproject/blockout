@@ -1,5 +1,7 @@
 package com.blockout.mobilegateway.controllers.v1.secureapi;
 
+import com.blockout.mobilegateway.models.dto.config.AppStatusDTO;
+import com.blockout.mobilegateway.models.dto.config.AppStatusUpdateDTO;
 import com.blockout.mobilegateway.models.dto.config.DivisionDTO;
 import com.blockout.mobilegateway.models.dto.config.DivisionUpdateDTO;
 import com.blockout.mobilegateway.models.dto.config.LegalDocumentDTO;
@@ -28,6 +30,12 @@ public class ConfigSecureController {
 
     private final ConfigService configService;
     private final ObjectMapper objectMapper;
+
+    @PutMapping("/app-status")
+    public ResponseEntity<AppStatusDTO> updateAppStatus(@RequestBody AppStatusUpdateDTO dto) {
+        AppStatusDTO updated = configService.updateAppStatus(dto);
+        return ResponseEntity.ok(updated);
+    }
 
     @PostMapping(path = "/divisions", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<DivisionDTO> createDivision(

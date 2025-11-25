@@ -59,7 +59,6 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(IllegalStateException.class)
     public ResponseEntity<Map<String, Object>> handleIllegalState(
             IllegalStateException ex, HttpServletRequest request) {
-        ex.printStackTrace();
         return buildErrorResponse(
                 ex.getMessage(),
                 HttpStatus.BAD_REQUEST,
@@ -69,7 +68,6 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ServletRequestBindingException.class)
     public ResponseEntity<Map<String, Object>> handleIllegalState(
             ServletRequestBindingException ex, HttpServletRequest request) {
-        ex.printStackTrace();
         return buildErrorResponse(
                 ex.getMessage(),
                 HttpStatus.BAD_REQUEST,
@@ -79,7 +77,6 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleGeneric(
             Exception ex, HttpServletRequest request) {
-        ex.printStackTrace();
         return buildErrorResponse(
                 "An internal server error occurred.",
                 HttpStatus.INTERNAL_SERVER_ERROR,

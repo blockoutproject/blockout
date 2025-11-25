@@ -19,6 +19,9 @@ public class EnrichedTeamDTO {
 
     private String name;
 
+    @JsonProperty("club_id")
+    private String clubId;
+
     @JsonProperty("short_name")
     private String shortName;
 
@@ -31,9 +34,12 @@ public class EnrichedTeamDTO {
     @JsonProperty("followers_count")
     private Long followersCount;
 
-    private DivisionDTO division;
+    @JsonProperty("logo_url")
+    private String logoUrl;
 
-    private ClubDTO club;
+    private ClubDTO club; //TODO: Virer apres passage à la 1.1.0
+
+    private DivisionDTO division;
 
     private List<EnrichedPoolDTO> pools;
 }
