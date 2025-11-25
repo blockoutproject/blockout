@@ -81,7 +81,6 @@ public class TeamService {
             }
         }
 
-        // Enrich logos pour toutes les équipes impliquées dans les rankings
         enrichTeamsWithClubLogo(teamsMap.values(), clubClientService);
 
         Set<Long> poolIds = poolsWithRankings.stream()
@@ -123,10 +122,7 @@ public class TeamService {
                 })
                 .toList();
 
-        ClubDTO club = null;
-        if (StringUtils.isNotBlank(team.getClubId())) {
-            club = clubClientService.getClubById(team.getClubId());
-        }
+        ClubDTO club = clubClientService.getClubById(team.getClubId());
 
         String finalLogoUrl = StringUtils.isNotBlank(team.getLogoUrl())
                 ? team.getLogoUrl()
@@ -142,6 +138,7 @@ public class TeamService {
                 .season(team.getSeason())
                 .followersCount(team.getFollowersCount())
                 .logoUrl(finalLogoUrl)
+                .club(club) //TODO: Virer apres passage à la 1.1.0
                 .division(division)
                 .pools(enrichedPools)
                 .build();
@@ -200,6 +197,7 @@ public class TeamService {
                             .format(t.getFormat())
                             .gender(t.getGender())
                             .season(t.getSeason())
+                            .club(club) //TODO: à enlever
                             .division(divisionsById.get(t.getDivisionId()))
                             .logoUrl(finalLogoUrl)
                             .build();
@@ -286,6 +284,7 @@ public class TeamService {
                             .gender(t.getGender())
                             .season(t.getSeason())
                             .logoUrl(finalLogoUrl)
+                            .club(club) //TODO: a enlever
                             .division(divisionsById.get(t.getDivisionId()))
                             .build();
                 })

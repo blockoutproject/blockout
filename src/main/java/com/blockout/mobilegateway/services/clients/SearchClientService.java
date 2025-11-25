@@ -39,35 +39,55 @@ public class SearchClientService {
 
         logger.info("Calling search#clubs", keyValue("query", query), keyValue("url", url));
 
-        ResponseEntity<ClubSearchDocDTO[]> response = apiClientService.get(url, ClubSearchDocDTO[].class);
+        ResponseEntity<ClubSearchDocDTO[]> response =
+                apiClientService.get(url, ClubSearchDocDTO[].class);
+
         ClubSearchDocDTO[] body = response.getBody();
         return body != null ? Arrays.asList(body) : Collections.emptyList();
     }
 
-    public List<PoolSearchDocDTO> searchPools(String query) {
-        String url = UriComponentsBuilder.fromUriString(baseUrl())
+    public List<PoolSearchDocDTO> searchPools(String query, String season) {
+        UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(baseUrl())
                 .pathSegment("pools")
-                .queryParam("query", query)
-                .build()
-                .toUriString();
+                .queryParam("query", query);
 
-        logger.info("Calling search#pools", keyValue("query", query), keyValue("url", url));
+        if (season != null && !season.isBlank()) {
+            builder.queryParam("season", season);
+        }
 
-        ResponseEntity<PoolSearchDocDTO[]> response = apiClientService.get(url, PoolSearchDocDTO[].class);
+        String url = builder.build().toUriString();
+
+        logger.info("Calling search#pools",
+                keyValue("query", query),
+                keyValue("season", season),
+                keyValue("url", url));
+
+        ResponseEntity<PoolSearchDocDTO[]> response =
+                apiClientService.get(url, PoolSearchDocDTO[].class);
+
         PoolSearchDocDTO[] body = response.getBody();
         return body != null ? Arrays.asList(body) : Collections.emptyList();
     }
 
-    public List<TeamSearchDocDTO> searchTeams(String query) {
-        String url = UriComponentsBuilder.fromUriString(baseUrl())
+    public List<TeamSearchDocDTO> searchTeams(String query, String season) {
+        UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(baseUrl())
                 .pathSegment("teams")
-                .queryParam("query", query)
-                .build()
-                .toUriString();
+                .queryParam("query", query);
 
-        logger.info("Calling search#teams", keyValue("query", query), keyValue("url", url));
+        if (season != null && !season.isBlank()) {
+            builder.queryParam("season", season);
+        }
 
-        ResponseEntity<TeamSearchDocDTO[]> response = apiClientService.get(url, TeamSearchDocDTO[].class);
+        String url = builder.build().toUriString();
+
+        logger.info("Calling search#teams",
+                keyValue("query", query),
+                keyValue("season", season),
+                keyValue("url", url));
+
+        ResponseEntity<TeamSearchDocDTO[]> response =
+                apiClientService.get(url, TeamSearchDocDTO[].class);
+
         TeamSearchDocDTO[] body = response.getBody();
         return body != null ? Arrays.asList(body) : Collections.emptyList();
     }
