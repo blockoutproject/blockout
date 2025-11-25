@@ -301,11 +301,6 @@ public class UserService {
                 }
             }
 
-            if (dto.getFirstName() != null && !Objects.equals(dto.getFirstName(), existing.getFirstName()))
-                existing.setFirstName(dto.getFirstName());
-            if (dto.getLastName() != null && !Objects.equals(dto.getLastName(), existing.getLastName()))
-                existing.setLastName(dto.getLastName());
-
             if (image != null && !image.isEmpty()) {
                 ImageUtils.validateImage(image);
                 try {
@@ -321,10 +316,12 @@ public class UserService {
                     throw new RuntimeException("Échec de l’upload de l’image");
                 }
             } else {
-                if (existing.getPictureUrl() != null) {
-                    s3StorageClient.deleteObjectByUrl(existing.getPictureUrl());
+                if (dto.getPictureUrl() == null) {
+                    if (existing.getPictureUrl() != null) {
+                        s3StorageClient.deleteObjectByUrl(existing.getPictureUrl());
+                    }
+                    existing.setPictureUrl(null);
                 }
-                existing.setPictureUrl(null);
             }
 
             if (!existing.getActive()) {
