@@ -76,7 +76,12 @@
                 "analyzer": "folded_autocomplete",
                 "copy_to": [
                     "all"
-                ]
+                ],
+                "fields": {
+                    "keyword": {
+                        "type": "keyword"
+                    }
+                }
             },
             "gender": {
                 "type": "search_as_you_type",

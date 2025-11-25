@@ -92,7 +92,12 @@
                 "analyzer": "folded_autocomplete",
                 "copy_to": [
                     "all"
-                ]
+                ],
+                "fields": {
+                    "keyword": {
+                        "type": "keyword"
+                    }
+                }
             },
             "all": {
                 "type": "text",
