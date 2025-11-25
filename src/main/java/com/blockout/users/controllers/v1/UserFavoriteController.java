@@ -11,6 +11,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
@@ -46,6 +47,10 @@ public class UserFavoriteController {
             @ApiResponse(responseCode = "204", description = "Suivi effectué"),
             @ApiResponse(responseCode = "404", description = "Utilisateur introuvable")
     })
+    @PreAuthorize("""
+                (#entityType.name() == 'TEAM' and hasAuthority('SCOPE_follow:teams')) or
+                (#entityType.name() == 'POOL' and hasAuthority('SCOPE_follow:pools'))
+            """)
     @PostMapping("/favorites/follow")
     public ResponseEntity<Void> follow(
             @AuthenticationPrincipal Jwt jwt,
@@ -61,6 +66,10 @@ public class UserFavoriteController {
             @ApiResponse(responseCode = "204", description = "Suivi supprimé"),
             @ApiResponse(responseCode = "404", description = "Utilisateur introuvable")
     })
+    @PreAuthorize("""
+                (#entityType.name() == 'TEAM' and hasAuthority('SCOPE_follow:teams')) or
+                (#entityType.name() == 'POOL' and hasAuthority('SCOPE_follow:pools'))
+            """)
     @DeleteMapping("/favorites/follow")
     public ResponseEntity<Void> unfollow(
             @AuthenticationPrincipal Jwt jwt,

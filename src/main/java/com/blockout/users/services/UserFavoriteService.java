@@ -7,6 +7,8 @@ import com.blockout.users.models.enums.EntityType;
 import com.blockout.users.models.enums.EventType;
 import com.blockout.users.repositories.UserFavoriteRepository;
 import com.blockout.users.repositories.UserRepository;
+import com.blockout.users.services.clients.PoolClientService;
+import com.blockout.users.services.clients.TeamClientService;
 
 import lombok.RequiredArgsConstructor;
 
@@ -28,6 +30,8 @@ public class UserFavoriteService {
     private final UserFavoriteRepository userFavoriteRepository;
     private final UserRepository userRepository;
     private final EventPublisher eventPublisher;
+    private final TeamClientService teamClientService;
+    private final PoolClientService poolClientService;
 
     /**
      * Permet à un utilisateur de suivre une entité.
@@ -73,6 +77,14 @@ public class UserFavoriteService {
                 keyValue("entityId", entityId),
                 keyValue("favoriteId", saved.getId()));
 
+        if (entityType == EntityType.TEAM) {
+            teamClientService.incrementFollowers(entityId, user.getId());
+        }
+
+        if (entityType == EntityType.POOL) {
+            poolClientService.incrementFollowers(entityId, user.getId());
+        }
+
         eventPublisher.publishFollowEvent(user.getId(), entityType, entityId, EventType.CREATED);
     }
 
@@ -103,6 +115,15 @@ public class UserFavoriteService {
                     keyValue("userId", user.getId()),
                     keyValue("entityType", entityType),
                     keyValue("entityId", entityId));
+
+            if (entityType == EntityType.TEAM) {
+                teamClientService.decrementFollowers(entityId, user.getId());
+            }
+
+            if (entityType == EntityType.POOL) {
+                poolClientService.decrementFollowers(entityId, user.getId());
+            }
+
             eventPublisher.publishFollowEvent(user.getId(), entityType, entityId, EventType.DELETED);
         }
     }

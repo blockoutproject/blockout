@@ -66,3 +66,9 @@ aws:
   region: ${AWS_REGION}
   s3:
     bucket: ${AWS_S3_BUCKET_NAME}
+
+api:
+  team:
+    url: ${TEAM_API_URL}
+  pool:
+    url: ${POOL_API_URL}

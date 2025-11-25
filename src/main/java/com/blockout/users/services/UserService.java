@@ -159,7 +159,7 @@ public class UserService {
                 logger.info("DEBUG",
                         keyValue("action", "create_user"),
                         keyValue("auth0Id", newUser.toString()));
-                
+
                 CustomUser created = userRepository.save(newUser);
 
                 logger.info("User created successfully",
@@ -307,38 +307,24 @@ public class UserService {
                 existing.setLastName(dto.getLastName());
 
             if (image != null && !image.isEmpty()) {
-                try {
-                    ImageUtils.validateImage(image);
-                } catch (RuntimeException e) {
-                    logger.error("Validation de l'image invalide",
-                            keyValue("action", "update_user_validate_image"),
-                            keyValue("fileName", image.getOriginalFilename()),
-                            keyValue("contentType", image.getContentType()), e);
-                    throw e;
-                }
+                ImageUtils.validateImage(image);
                 try {
                     if (existing.getPictureUrl() != null) {
-                        try {
-                            s3StorageClient.deleteObjectByUrl(existing.getPictureUrl());
-                        } catch (RuntimeException e) {
-                            logger.error("Erreur lors de la suppression de l'ancienne image",
-                                    keyValue("action", "update_user_delete_old_image"),
-                                    keyValue("oldUrl", existing.getPictureUrl()), e);
-                            throw e;
-                        }
+                        s3StorageClient.deleteObjectByUrl(existing.getPictureUrl());
                     }
-                    String url = s3StorageClient.uploadProfileImage(image, "users");
-                    existing.setPictureUrl(url);
+
+                    String logoUrl = s3StorageClient.uploadProfileImage(image, "users");
+                    existing.setPictureUrl(logoUrl);
                 } catch (IOException e) {
                     logger.error("Erreur lors de l'upload de l'image",
                             keyValue("fileName", image.getOriginalFilename()), e);
                     throw new RuntimeException("Échec de l’upload de l’image");
-                } catch (RuntimeException e) {
-                    logger.error("Erreur inattendue lors du traitement de l'image",
-                            keyValue("action", "update_user_upload_image"),
-                            keyValue("fileName", image.getOriginalFilename()), e);
-                    throw e;
                 }
+            } else {
+                if (existing.getPictureUrl() != null) {
+                    s3StorageClient.deleteObjectByUrl(existing.getPictureUrl());
+                }
+                existing.setPictureUrl(null);
             }
 
             if (!existing.getActive()) {
@@ -360,14 +346,7 @@ public class UserService {
                         keyValue("auth0Id", auth0Id),
                         keyValue("requestedPseudo", dto.getPseudo()), dive);
                 throw new ConflictException("Ce pseudo est déjà utilisé.");
-            } catch (RuntimeException e) {
-                logger.error("Erreur inattendue lors de la sauvegarde de l'utilisateur",
-                        keyValue("action", "update_user"),
-                        keyValue("auth0Id", auth0Id),
-                        keyValue("userId", existing.getId()), e);
-                throw e;
             }
-
         }).orElseThrow(() -> {
             logger.error("User not found. Cannot update.",
                     keyValue("action", "update_user"),
