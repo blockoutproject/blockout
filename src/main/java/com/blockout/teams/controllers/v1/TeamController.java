@@ -86,6 +86,7 @@ public class TeamController {
             @RequestPart("data") String json,
             @RequestPart(value = "image", required = false) MultipartFile image
     ) throws JsonProcessingException {
+        System.out.println(json);
         TeamUpdateDTO dto = objectMapper.readValue(json, TeamUpdateDTO.class);
         Team result = teamService.updateTeam(id, dto, image);
         return ResponseEntity.ok(result);
