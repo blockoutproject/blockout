@@ -1,19 +1,21 @@
 package com.blockout.teams.controllers.v1;
 
-import com.blockout.teams.models.Team;
 import com.blockout.teams.models.dto.TeamUpdateDTO;
+import com.blockout.teams.models.entities.Team;
 import com.blockout.teams.models.enums.Format;
 import com.blockout.teams.models.enums.Gender;
 import com.blockout.teams.services.TeamService;
-
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
-
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.net.URI;
@@ -25,6 +27,7 @@ import java.util.List;
 public class TeamController {
 
     private final TeamService teamService;
+    private final ObjectMapper objectMapper;
 
     @Operation(summary = "Lister les équipes", description = "Renvoie toutes les équipes avec filtres facultatifs.")
     @ApiResponses({
@@ -38,7 +41,8 @@ public class TeamController {
             @RequestParam(required = false) String season,
             @RequestParam(required = false, name = "club_id") String clubId,
             @RequestParam(required = false) List<Long> ids,
-            @RequestParam(required = false) Boolean active) {
+            @RequestParam(required = false) Boolean active
+    ) {
         List<Team> teams = teamService.findTeams(divisionId, format, gender, season, clubId, ids, active);
         return ResponseEntity.ok(teams);
     }
@@ -76,12 +80,14 @@ public class TeamController {
             @ApiResponse(responseCode = "404", description = "Équipe introuvable")
     })
     @PreAuthorize("hasAuthority('SCOPE_update:teams')")
-    @PutMapping(path = "/{id}")
+    @PutMapping(path = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Team> updateTeam(
             @PathVariable Long id,
-            @RequestBody TeamUpdateDTO dto) {
-
-        Team result = teamService.updateTeam(id, dto);
+            @RequestPart("data") String json,
+            @RequestPart(value = "image", required = false) MultipartFile image
+    ) throws JsonProcessingException {
+        TeamUpdateDTO dto = objectMapper.readValue(json, TeamUpdateDTO.class);
+        Team result = teamService.updateTeam(id, dto, image);
         return ResponseEntity.ok(result);
     }
 
@@ -106,5 +112,35 @@ public class TeamController {
     public ResponseEntity<List<String>> getUniqueClubIds() {
         List<String> clubs = teamService.getUniqueClubIds();
         return ResponseEntity.ok(clubs);
+    }
+
+    @Operation(summary = "Incrémenter les followers", description = "Incrémente le compteur de followers d'une équipe.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Compteur incrémenté"),
+            @ApiResponse(responseCode = "404", description = "Équipe introuvable")
+    })
+    @PreAuthorize("hasAuthority('SCOPE_follow:teams')")
+    @PostMapping("/{teamId}/followers/increment")
+    public ResponseEntity<Team> incrementFollowers(
+            @PathVariable Long teamId,
+            @RequestParam(name = "user_id") Long userId
+    ) {
+        Team updated = teamService.incrementFollowersCount(teamId, userId);
+        return ResponseEntity.ok(updated);
+    }
+
+    @Operation(summary = "Décrémenter les followers", description = "Décrémente le compteur de followers d'une équipe.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Compteur décrémenté"),
+            @ApiResponse(responseCode = "404", description = "Équipe introuvable")
+    })
+    @PreAuthorize("hasAuthority('SCOPE_follow:teams')")
+    @PostMapping("/{teamId}/followers/decrement")
+    public ResponseEntity<Team> decrementFollowers(
+            @PathVariable Long teamId,
+            @RequestParam(name = "user_id") Long userId
+    ) {
+        Team updated = teamService.decrementFollowersCount(teamId, userId);
+        return ResponseEntity.ok(updated);
     }
 }

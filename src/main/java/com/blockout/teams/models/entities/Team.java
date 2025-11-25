@@ -1,4 +1,4 @@
-package com.blockout.teams.models;
+package com.blockout.teams.models.entities;
 
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -16,7 +16,8 @@ import com.blockout.teams.models.enums.Gender;
 @AllArgsConstructor
 @Entity
 @Table(name = "teams", uniqueConstraints = {
-        @UniqueConstraint(columnNames = { "club_id", "division_id", "format", "gender", "raw_name", "season" }, name = "uix_team")
+        @UniqueConstraint(columnNames = { "club_id", "division_id", "format", "gender", "raw_name",
+                "season" }, name = "uix_team")
 })
 public class Team {
 
@@ -56,6 +57,9 @@ public class Team {
     @Builder.Default
     @Column(name = "followers_count", nullable = false)
     private Long followersCount = 0L;
+
+    @Column(name = "logo_url")
+    private String logoUrl;
 
     @Builder.Default
     @Column(name = "active", nullable = false)

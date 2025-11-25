@@ -1,6 +1,6 @@
 package com.blockout.teams.repositories;
 
-import com.blockout.teams.models.Team;
+import com.blockout.teams.models.entities.Team;
 import com.blockout.teams.models.enums.Format;
 import com.blockout.teams.models.enums.Gender;
 
