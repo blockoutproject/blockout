@@ -149,10 +149,12 @@ public class TeamService {
                     throw new RuntimeException("Échec de l’upload de l’image");
                 }
             } else {
-                if (team.getLogoUrl() != null) {
-                    s3StorageClient.deleteObjectByUrl(team.getLogoUrl());
+                if (dto.getLogoUrl() == null) {
+                    if (team.getLogoUrl() != null) {
+                        s3StorageClient.deleteObjectByUrl(team.getLogoUrl());
+                    }
+                    team.setLogoUrl(null);
                 }
-                team.setLogoUrl(null);
             }
 
             if (!before.getActive() && Boolean.TRUE.equals(team.getActive())) {

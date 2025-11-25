@@ -31,6 +31,9 @@ public class TeamUpdateDTO {
     @JsonProperty("division_id")
     private Long divisionId;
 
+    @JsonProperty("logo_url")
+    private String logoUrl;
+
     private String season;
 
     private Format format;
