@@ -9,5 +9,4 @@ class MatchesApplicationTests {
 	@Test
 	void contextLoads() {
 	}
-
 }
