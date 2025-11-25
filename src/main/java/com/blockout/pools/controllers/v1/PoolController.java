@@ -3,11 +3,9 @@ package com.blockout.pools.controllers.v1;
 import com.blockout.pools.models.Pool;
 import com.blockout.pools.models.dto.PoolUpdateDTO;
 import com.blockout.pools.services.PoolService;
-
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
-
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -33,7 +31,8 @@ public class PoolController {
             @RequestParam(required = false, name = "league_code") String leagueCode,
             @RequestParam(required = false) String season,
             @RequestParam(required = false) Boolean active,
-            @RequestParam(required = false) List<Long> ids) {
+            @RequestParam(required = false) List<Long> ids
+    ) {
         List<Pool> pools = poolService.findPools(leagueCode, season, active, ids);
         return ResponseEntity.ok(pools);
     }
@@ -74,8 +73,8 @@ public class PoolController {
     @PutMapping(path = "/{id}")
     public ResponseEntity<Pool> updatePool(
             @PathVariable Long id,
-            @RequestBody PoolUpdateDTO dto) {
-
+            @RequestBody PoolUpdateDTO dto
+    ) {
         Pool result = poolService.updatePool(id, dto);
         return ResponseEntity.ok(result);
     }
@@ -90,5 +89,35 @@ public class PoolController {
     public ResponseEntity<Void> deactivatePool(@PathVariable Long id) {
         poolService.deactivatePool(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @Operation(summary = "Incrémenter les followers", description = "Incrémente le compteur de followers d'une pool.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Compteur incrémenté"),
+            @ApiResponse(responseCode = "404", description = "Pool introuvable")
+    })
+    @PreAuthorize("hasAuthority('SCOPE_follow:pools')")
+    @PostMapping("/{poolId}/followers/increment")
+    public ResponseEntity<Pool> incrementFollowers(
+            @PathVariable Long poolId,
+            @RequestParam(name = "user_id") Long userId
+    ) {
+        Pool updated = poolService.incrementFollowersCount(poolId, userId);
+        return ResponseEntity.ok(updated);
+    }
+
+    @Operation(summary = "Décrémenter les followers", description = "Décrémente le compteur de followers d'une pool.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Compteur décrémenté"),
+            @ApiResponse(responseCode = "404", description = "Pool introuvable")
+    })
+    @PreAuthorize("hasAuthority('SCOPE_follow:pools')")
+    @PostMapping("/{poolId}/followers/decrement")
+    public ResponseEntity<Pool> decrementFollowers(
+            @PathVariable Long poolId,
+            @RequestParam(name = "user_id") Long userId
+    ) {
+        Pool updated = poolService.decrementFollowersCount(poolId, userId);
+        return ResponseEntity.ok(updated);
     }
 }
