@@ -1,3 +1,4 @@
+// MatchLiveLinkService.java
 package com.blockout.matches.services;
 
 import com.blockout.matches.exceptions.MatchNotFoundException;
@@ -21,7 +22,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.time.LocalDateTime;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.Locale;
 
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
@@ -33,26 +37,16 @@ public class MatchLiveLinkService {
     private static final Logger logger = LoggerFactory.getLogger(MatchLiveLinkService.class);
 
     private static final int MIN_ACCOUNT_AGE_DAYS = 7;
-
     private static final int MAX_LINKS_PER_MATCH_PER_OWNER = 3;
     private static final int MAX_MATCHES_PER_DAY_PER_OWNER = 3;
 
     private static final String PRO_LEAGUE_CODE = "AALNV";
 
-    private static final String[] YOUTUBE_HOSTS = {
-            "youtube.com",
-            "youtu.be"
-    };
+    private static final String[] YOUTUBE_HOSTS = { "youtube.com", "youtu.be" };
+    private static final String[] TWITCH_HOSTS = { "twitch.tv" };
+    private static final String[] FACEBOOK_HOSTS = { "facebook.com", "fb.com", "fb.watch" };
 
-    private static final String[] TWITCH_HOSTS = {
-            "twitch.tv"
-    };
-
-    private static final String[] FACEBOOK_HOSTS = {
-            "facebook.com",
-            "fb.com",
-            "fb.watch"
-    };
+    private static final ZoneId PARIS = ZoneId.of("Europe/Paris");
 
     private final MatchRepository matchRepository;
     private final MatchLiveLinkRepository liveLinkRepository;
@@ -66,69 +60,10 @@ public class MatchLiveLinkService {
                 .orElse(null);
     }
 
-    /**
-     * Crée ou met à jour un lien de live pour un match, en appliquant l’ensemble
-     * des règles métier : vérifications d’éligibilité, quotas, propriété, période
-     * de publication, versions successives et verrouillage post-match.
-     *
-     * <p>
-     * Comportement général :
-     * </p>
-     * <ul>
-     * <li>Seul un utilisateur dont le compte a au moins
-     * {@link #MIN_ACCOUNT_AGE_DAYS}
-     * jours peut publier un lien.</li>
-     *
-     * <li>Les matchs professionnels (code de ligue {@link #PRO_LEAGUE_CODE})
-     * ne peuvent jamais recevoir de lien (droits réservés à la LNV).</li>
-     *
-     * <li>Si le match est terminé, la logique est déléguée à
-     * {@link #handlePostMatchUpsert(Match, MatchLiveLink, LiveProvider, MatchLiveLinkRequestDTO, String, CustomUserDTO, LocalDateTime)}.
-     * Une seule dernière mise à jour est alors possible, et le match est verrouillé
-     * définitivement après cette opération.</li>
-     *
-     * <li>Avant le match, un lien ne peut être publié qu’à partir d’une heure
-     * avant son heure de début. Toute tentative plus tôt renvoie une erreur
-     * explicite.</li>
-     *
-     * <li>S’il existe déjà un lien actif, seul son propriétaire peut le modifier.
-     * Une mise à jour identique (même URL et même provider) est ignorée et
-     * renvoie simplement la version active actuelle.</li>
-     *
-     * <li>Chaque utilisateur peut créer au maximum
-     * {@link #MAX_LINKS_PER_MATCH_PER_OWNER}
-     * versions de lien pour un même match. Chaque nouvelle version expire
-     * automatiquement la précédente.</li>
-     *
-     * <li>Un utilisateur ne peut publier des liens (première version de chaque
-     * match)
-     * que pour au maximum {@link #MAX_MATCHES_PER_DAY_PER_OWNER} matchs par
-     * jour.</li>
-     *
-     * <li>Si toutes les validations passent, une nouvelle version du lien est
-     * créée,
-     * l’ancienne est marquée comme expirée, et la nouvelle devient la version
-     * active.</li>
-     * </ul>
-     *
-     * @param matchId identifiant du match concerné
-     * @param request URL du live fournie par l’utilisateur
-     * @param auth0Id identifiant Auth0 de l’utilisateur initiant la requête
-     * @return DTO représentant la version active du lien après upsert
-     *
-     * @throws IllegalStateException si l’utilisateur est trop jeune, s’il tente
-     *                               de publier trop tôt, si le match est
-     *                               professionnel, s’il dépasse des quotas,
-     *                               ou toute autre condition métier empêchant la
-     *                               publication.
-     * @throws AccessDeniedException si l’utilisateur tente de modifier un lien
-     *                               actif
-     *                               qui appartient à un autre utilisateur.
-     */
     @Transactional
     public MatchLiveLinkResponseDTO upsertLiveLink(Long matchId, MatchLiveLinkRequestDTO request, String auth0Id) {
         CustomUserDTO currentUser = usersClientService.getCurrentUser();
-        LocalDateTime now = LocalDateTime.now();
+        Instant now = Instant.now();
 
         if (currentUser == null || currentUser.getCreatedAt() == null) {
             logger.warn("Current user not found or has no createdAt while setting live link",
@@ -138,8 +73,12 @@ public class MatchLiveLinkService {
             throw new IllegalStateException("Impossible de vérifier l’ancienneté de ton compte.");
         }
 
-        LocalDateTime threshold = now.minusDays(MIN_ACCOUNT_AGE_DAYS);
-        if (currentUser.getCreatedAt().isAfter(threshold)) {
+        Instant threshold = now.minus(MIN_ACCOUNT_AGE_DAYS, ChronoUnit.DAYS);
+        Instant userCreatedAt = currentUser.getCreatedAt()
+                .atZone(PARIS)
+                .toInstant();
+
+        if (userCreatedAt.isAfter(threshold)) {
             logger.info("User too recent to set live link",
                     keyValue("action", "set_live_link_rejected_young_account"),
                     keyValue("match_id", matchId),
@@ -162,8 +101,6 @@ public class MatchLiveLinkService {
                     return new MatchNotFoundException(matchId);
                 });
 
-        boolean isFinished = match.getStatus() == MatchStatus.FINISHED;
-
         if (PRO_LEAGUE_CODE.equalsIgnoreCase(match.getLeagueCode())) {
             logger.info("Live link refused for professional match",
                     keyValue("action", "set_live_link_rejected_pro_match"),
@@ -174,6 +111,8 @@ public class MatchLiveLinkService {
                     "Les droits de diffusion des matchs professionnels sont réservés à la LNV.");
         }
 
+        boolean isFinished = match.getStatus() == MatchStatus.FINISHED;
+
         var activeOpt = liveLinkRepository
                 .findFirstByMatchIdAndStatusOrderByCreatedAtDesc(matchId, LiveLinkStatus.ACTIVE);
 
@@ -182,14 +121,17 @@ public class MatchLiveLinkService {
         }
 
         if (match.getMatchDate() != null) {
-            LocalDateTime startAllowed = match.getMatchDate().minusHours(1);
-            if (now.isBefore(startAllowed)) {
+            ZonedDateTime matchStartParis = ZonedDateTime.ofInstant(match.getMatchDate(), PARIS);
+            ZonedDateTime startAllowedParis = matchStartParis.minusHours(1);
+            ZonedDateTime nowParis = ZonedDateTime.ofInstant(now, PARIS);
+
+            if (nowParis.isBefore(startAllowedParis)) {
                 logger.info("Live link refused because too early before match",
                         keyValue("action", "set_live_link_rejected_too_early"),
                         keyValue("match_id", matchId),
                         keyValue("auth0_id", auth0Id),
                         keyValue("match_date", match.getMatchDate()),
-                        keyValue("now", now));
+                        keyValue("now", nowParis));
                 throw new IllegalStateException(
                         "Tu pourras publier le lien de live une heure avant le début du match.");
             }
@@ -197,6 +139,7 @@ public class MatchLiveLinkService {
 
         if (activeOpt.isPresent()) {
             MatchLiveLink active = activeOpt.get();
+
             if (!auth0Id.equals(active.getOwnerAuth0Id())) {
                 logger.warn("User tried to set live link for a match with an active link owned by someone else",
                         keyValue("action", "set_live_link_forbidden_other_owner_active"),
@@ -230,9 +173,14 @@ public class MatchLiveLinkService {
             throw new IllegalStateException("Tu as déjà publié trop de versions de live pour ce match.");
         }
 
-        LocalDateTime startOfDay = now.toLocalDate().atStartOfDay();
-        LocalDateTime endOfDay = startOfDay.plusDays(1).minusNanos(1);
-        long matchesToday = liveLinkRepository.countDistinctMatchesByOwnerAndDay(auth0Id, startOfDay, endOfDay);
+        ZonedDateTime nowParis = ZonedDateTime.ofInstant(now, PARIS);
+        Instant startOfDayParisUtc = nowParis.toLocalDate().atStartOfDay(PARIS).toInstant();
+        Instant endOfDayParisUtc = startOfDayParisUtc.plus(1, ChronoUnit.DAYS).minusNanos(1);
+
+        long matchesToday = liveLinkRepository.countDistinctMatchesByOwnerAndDay(
+                auth0Id,
+                startOfDayParisUtc,
+                endOfDayParisUtc);
 
         boolean alreadyHasLinkForThisMatch = linksForMatchAndOwner > 0;
         if (!alreadyHasLinkForThisMatch && matchesToday >= MAX_MATCHES_PER_DAY_PER_OWNER) {
@@ -292,7 +240,7 @@ public class MatchLiveLinkService {
                     }
 
                     link.setStatus(LiveLinkStatus.HIDDEN);
-                    link.setLastUpdate(LocalDateTime.now());
+                    link.setLastUpdate(Instant.now());
                     liveLinkRepository.save(link);
 
                     logger.info("Live link hidden (delete requested)",
@@ -310,7 +258,7 @@ public class MatchLiveLinkService {
             MatchLiveLinkRequestDTO request,
             String auth0Id,
             CustomUserDTO currentUser,
-            LocalDateTime now) {
+            Instant now) {
 
         Long matchId = match.getId();
 
@@ -393,15 +341,12 @@ public class MatchLiveLinkService {
                 throw new IllegalArgumentException("URL invalide.");
             }
 
-            if (matchesHost(host, YOUTUBE_HOSTS)) {
+            if (matchesHost(host, YOUTUBE_HOSTS))
                 return LiveProvider.YOUTUBE;
-            }
-            if (matchesHost(host, TWITCH_HOSTS)) {
+            if (matchesHost(host, TWITCH_HOSTS))
                 return LiveProvider.TWITCH;
-            }
-            if (matchesHost(host, FACEBOOK_HOSTS)) {
+            if (matchesHost(host, FACEBOOK_HOSTS))
                 return LiveProvider.FACEBOOK;
-            }
 
             throw new IllegalArgumentException("Seuls les liens YouTube, Twitch ou Facebook sont acceptés.");
         } catch (URISyntaxException e) {
@@ -411,9 +356,8 @@ public class MatchLiveLinkService {
 
     private boolean matchesHost(String host, String[] bases) {
         for (String base : bases) {
-            if (host.equals(base) || host.endsWith("." + base)) {
+            if (host.equals(base) || host.endsWith("." + base))
                 return true;
-            }
         }
         return false;
     }

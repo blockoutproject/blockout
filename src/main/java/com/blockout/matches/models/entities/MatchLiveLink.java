@@ -5,7 +5,7 @@ import com.blockout.matches.models.enums.LiveProvider;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Entity
 @Table(name = "match_live_links", uniqueConstraints = {
@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 })
 @Getter
 @Setter
-@Builder
+@Builder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
 public class MatchLiveLink {
@@ -39,12 +39,25 @@ public class MatchLiveLink {
     @Column(name = "status", nullable = false, length = 32)
     private LiveLinkStatus status;
 
+    @Builder.Default
     @Column(name = "report_count", nullable = false)
-    private int reportCount;
+    private int reportCount = 0;
 
     @Column(name = "created_at", nullable = false)
-    private LocalDateTime createdAt;
+    private Instant createdAt;
 
     @Column(name = "last_update")
-    private LocalDateTime lastUpdate;
+    private Instant lastUpdate;
+
+    @PrePersist
+    public void prePersist() {
+        Instant now = Instant.now();
+        createdAt = now;
+        lastUpdate = now;
+    }
+
+    @PreUpdate
+    public void preUpdate() {
+        lastUpdate = Instant.now();
+    }
 }

@@ -10,8 +10,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -60,9 +60,9 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
      * ----------------------------------------------------------------
      */
     List<Match> findByStatusAndActiveAndMatchDateLessThanEqual(
-            MatchStatus status, boolean active, LocalDateTime matchDate);
+            MatchStatus status, boolean active, Instant matchDate);
 
-    Page<Match> findAllByMatchDateLessThanEqual(LocalDateTime today, Pageable pageable);
+    Page<Match> findAllByMatchDateLessThanEqual(Instant today, Pageable pageable);
 
     @Query("SELECT m FROM Match m WHERE m.poolId = :poolId " +
             "AND m.teamIdA = :teamIdA AND m.teamIdB = :teamIdB " +
@@ -90,7 +90,7 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
                 ORDER BY CAST(m.matchDate AS LocalDate) DESC
             """)
     List<LocalDate> findDistinctDatesUntil(
-            @Param("today") LocalDateTime today,
+            @Param("today") Instant today,
             @Param("poolIds") List<Long> poolIds,
             @Param("poolIdsSize") int poolIdsSize,
             @Param("teamIds") List<Long> teamIds,
@@ -133,8 +133,8 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
             ORDER BY m.poolId ASC, m.matchDate ASC
             """)
     List<Match> findAllInRangeAsc(
-            @Param("startOfDay") LocalDateTime startOfDay,
-            @Param("endOfDay") LocalDateTime endOfDay,
+            @Param("startOfDay") Instant startOfDay,
+            @Param("endOfDay") Instant endOfDay,
             @Param("poolIds") List<Long> poolIds,
             @Param("poolIdsSize") int poolIdsSize,
             @Param("status") MatchStatus status,
@@ -156,8 +156,8 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
             ORDER BY m.poolId ASC, m.matchDate DESC
             """)
     List<Match> findAllInRangeDesc(
-            @Param("startOfDay") LocalDateTime startOfDay,
-            @Param("endOfDay") LocalDateTime endOfDay,
+            @Param("startOfDay") Instant startOfDay,
+            @Param("endOfDay") Instant endOfDay,
             @Param("poolIds") List<Long> poolIds,
             @Param("poolIdsSize") int poolIdsSize,
             @Param("status") MatchStatus status,

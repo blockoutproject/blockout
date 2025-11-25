@@ -16,7 +16,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
@@ -98,7 +98,7 @@ public class MatchLiveLinkReportService {
                 .liveLinkId(liveLink.getId())
                 .reporterAuth0Id(auth0Id)
                 .reason(request.getReason())
-                .createdAt(LocalDateTime.now())
+                .createdAt(Instant.now())
                 .build();
 
         liveLinkReportRepository.save(report);
@@ -122,7 +122,7 @@ public class MatchLiveLinkReportService {
                     keyValue("threshold", threshold));
         }
 
-        liveLink.setLastUpdate(LocalDateTime.now());
+        liveLink.setLastUpdate(Instant.now());
         liveLinkRepository.save(liveLink);
 
         logger.info("Live link reported",

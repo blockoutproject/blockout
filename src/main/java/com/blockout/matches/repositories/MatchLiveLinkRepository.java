@@ -6,7 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -28,6 +28,6 @@ public interface MatchLiveLinkRepository extends JpaRepository<MatchLiveLink, Lo
             """)
     long countDistinctMatchesByOwnerAndDay(
             @Param("ownerAuth0Id") String ownerAuth0Id,
-            @Param("start") LocalDateTime start,
-            @Param("end") LocalDateTime end);
+            @Param("start") Instant start,
+            @Param("end") Instant end);
 }

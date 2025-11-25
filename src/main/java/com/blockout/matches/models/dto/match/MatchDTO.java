@@ -1,6 +1,6 @@
 package com.blockout.matches.models.dto.match;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 import com.blockout.matches.models.enums.LiveProvider;
 import com.blockout.matches.models.enums.MatchStatus;
@@ -20,7 +20,7 @@ public class MatchDTO {
     private Long liveCode;
     private Long teamIdA;
     private Long teamIdB;
-    private LocalDateTime matchDate;
+    private Instant matchDate;
     private String season;
     private String set;
     private String score;

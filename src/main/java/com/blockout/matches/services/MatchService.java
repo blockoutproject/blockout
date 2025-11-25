@@ -22,8 +22,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
+import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -104,6 +106,7 @@ public class MatchService {
      * @return un DayPageDTO contenant les groupes de matchs par jour, un indicateur
      *         hasNext et le numéro de nextPage
      */
+
     public DayPageDTO getMatchesByDay(
             List<Long> poolIds,
             List<Long> teamIds,
@@ -112,45 +115,31 @@ public class MatchService {
             int size,
             Boolean active) {
 
-        LocalDateTime now = LocalDateTime.now();
-        LocalDate today = now.toLocalDate();
+        ZoneId PARIS = ZoneId.of("Europe/Paris");
+        Instant now = Instant.now();
+        LocalDate todayParis = LocalDate.now(PARIS);
 
-        // 1) Récupère la liste de jours distincts selon le statut
         List<LocalDate> allDays;
         if (status == MatchStatus.UPCOMING) {
             allDays = matchRepository.findDistinctUpcomingDatesIncludingToday(
-                    today,
+                    todayParis,
                     poolIds, poolIds.size(),
                     teamIds, teamIds.size());
-            logger.debug("Found distinct upcoming match days (>= today)",
-                    keyValue("count", allDays.size()));
         } else {
             allDays = matchRepository.findDistinctDatesUntil(
                     now,
                     poolIds, poolIds.size(),
                     teamIds, teamIds.size());
-            logger.debug("Found distinct past match days",
-                    keyValue("count", allDays.size()));
         }
 
-        // Pagination sur la liste de jours
         int fromIndex = page * size;
         if (fromIndex >= allDays.size()) {
-            logger.debug("Requested page exceeds total available days",
-                    keyValue("fromIndex", fromIndex),
-                    keyValue("totalDays", allDays.size()));
             return new DayPageDTO(Collections.emptyList(), false, null);
         }
 
         int toIndex = Math.min(fromIndex + size, allDays.size());
         List<LocalDate> subDays = allDays.subList(fromIndex, toIndex);
 
-        logger.debug("Paginated days selected",
-                keyValue("from", fromIndex),
-                keyValue("to", toIndex),
-                keyValue("selectedDaysCount", subDays.size()));
-
-        // minDay et maxDay
         LocalDate minDay, maxDay;
         if (status == MatchStatus.UPCOMING) {
             minDay = subDays.get(0);
@@ -160,43 +149,36 @@ public class MatchService {
             maxDay = subDays.get(0);
         }
 
-        LocalDateTime startOfMinDay = minDay.atStartOfDay();
-        LocalDateTime endDateTime;
+        Instant startOfMinDay = minDay.atStartOfDay(PARIS).toInstant();
+
+        Instant endInstant;
         if (status == MatchStatus.UPCOMING) {
-            endDateTime = maxDay.plusDays(1).atStartOfDay();
+            endInstant = maxDay.plusDays(1).atStartOfDay(PARIS).toInstant();
         } else {
-            endDateTime = maxDay.equals(LocalDate.now())
+            LocalDate today = LocalDate.now(PARIS);
+            endInstant = maxDay.equals(today)
                     ? now
-                    : maxDay.plusDays(1).atStartOfDay();
+                    : maxDay.plusDays(1).atStartOfDay(PARIS).toInstant();
         }
 
-        logger.debug("Computed date range for match fetching",
-                keyValue("start", startOfMinDay),
-                keyValue("end", endDateTime));
-
-        // Récupère les matchs dans cette plage
         List<Match> allMatches = (status == MatchStatus.UPCOMING)
                 ? matchRepository.findAllInRangeAsc(
                         startOfMinDay,
-                        endDateTime,
+                        endInstant,
                         poolIds, poolIds.size(),
                         status,
                         teamIds, teamIds.size(),
                         active)
                 : matchRepository.findAllInRangeDesc(
                         startOfMinDay,
-                        endDateTime,
+                        endInstant,
                         poolIds, poolIds.size(),
                         status,
                         teamIds, teamIds.size(),
                         active);
 
-        logger.debug("Fetched matches in date range",
-                keyValue("matchesCount", allMatches.size()));
-
-        // Groupement par date
         Map<LocalDate, List<Match>> matchesByDate = allMatches.stream()
-                .collect(Collectors.groupingBy(m -> m.getMatchDate().toLocalDate()));
+                .collect(Collectors.groupingBy(m -> ZonedDateTime.ofInstant(m.getMatchDate(), PARIS).toLocalDate()));
 
         // Construction de DayMatchesDTO
         List<DayMatchesDTO> dayMatchesList = subDays.stream()
