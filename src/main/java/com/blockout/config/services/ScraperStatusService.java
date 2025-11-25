@@ -1,7 +1,7 @@
 package com.blockout.config.services;
 
 import com.blockout.config.exceptions.ScraperNotFoundException;
-import com.blockout.config.models.entity.ScraperStatus;
+import com.blockout.config.models.entities.ScraperStatus;
 import com.blockout.config.models.enums.ScraperName;
 import com.blockout.config.repositories.ScraperStatusRepository;
 import lombok.RequiredArgsConstructor;

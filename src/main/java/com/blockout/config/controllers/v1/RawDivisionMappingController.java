@@ -1,7 +1,7 @@
 package com.blockout.config.controllers.v1;
 
 import com.blockout.config.models.dto.RawDivisionMappingUpdateDTO;
-import com.blockout.config.models.entity.RawDivisionMapping;
+import com.blockout.config.models.entities.RawDivisionMapping;
 import com.blockout.config.services.RawDivisionMappingService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
