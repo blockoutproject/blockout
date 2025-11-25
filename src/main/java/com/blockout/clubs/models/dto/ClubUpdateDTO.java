@@ -24,6 +24,9 @@ public class ClubUpdateDTO {
     @JsonProperty("postal_code")
     private String postalCode;
 
+    @JsonProperty("logo_url")
+    private String logoUrl;
+
     private String email;
 
     @JsonProperty("phone_number")

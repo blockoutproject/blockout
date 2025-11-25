@@ -155,10 +155,12 @@ public class ClubService {
                     throw new RuntimeException("Échec de l’upload de l’image");
                 }
             } else {
-                if (existing.getLogoUrl() != null) {
-                    s3StorageClient.deleteObjectByUrl(existing.getLogoUrl());
+                if (dto.getLogoUrl() == null) {
+                    if (existing.getLogoUrl() != null) {
+                        s3StorageClient.deleteObjectByUrl(existing.getLogoUrl());
+                    }
+                    existing.setLogoUrl(null);
                 }
-                existing.setLogoUrl(null);
             }
 
             if (!existing.getActive()) {
