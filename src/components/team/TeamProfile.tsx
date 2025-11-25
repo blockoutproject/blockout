@@ -125,7 +125,7 @@ const TeamProfile: React.FC<TeamProfileProps> = ({ enrichedTeam }) => {
 
     return (
         <View style={styles.container} testID="team-profile">
-            <MaskedImage uri={enrichedTeam.club.logoUrl} size={LOGO_SIZE} radius={20} />
+            <MaskedImage uri={enrichedTeam.logoUrl} size={LOGO_SIZE} radius={20} />
 
             <View style={{ flex: 1 }}>
                 <View onLayout={onContainer} style={styles.twoRows}>
@@ -144,7 +144,7 @@ const TeamProfile: React.FC<TeamProfileProps> = ({ enrichedTeam }) => {
                             rightIcon="chevron-forward-outline"
                             variant="filled"
                             gradient={gradient}
-                            onPress={() => handleClubPress(enrichedTeam.club.id)}
+                            onPress={() => handleClubPress(enrichedTeam.clubId)}
                         />
                     </View>
                 </View>

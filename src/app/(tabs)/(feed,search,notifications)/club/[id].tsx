@@ -37,8 +37,6 @@ const ClubScreen: React.FC = () => {
     const formSheetRef = useRef<BottomSheetModal>(null);
     const reportSheetRef = useRef<BottomSheetModal>(null);
 
-    console.log(error)
-
     const openForm = () => {
         if (!club) return;
         Haptics.selectionAsync();

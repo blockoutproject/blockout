@@ -15,6 +15,14 @@ export type GradientVariants = {
     darker: readonly [string, string, ...string[]];
 };
 
+export const isLNV = (code: string): boolean => {
+    return code.toLowerCase() === 'aalnv'
+}
+
+export const isRegional = (code: string): boolean => {
+    return !['aalnv', 'abccs'].includes(code.toLowerCase());
+}
+
 export const getGradientVariants = (
     colors: readonly [string, string, ...string[]]
 ): GradientVariants => {

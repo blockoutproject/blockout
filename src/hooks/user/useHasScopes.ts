@@ -11,7 +11,7 @@ export type UseAuthScopesResult = {
 };
 
 export default function useHasScopes(requiredScopes: string[]): UseAuthScopesResult {
-    const { getCredentials } = useAuth0();
+    const { getCredentials, user } = useAuth0();
     const [perms, setPerms] = useState<Set<string>>(new Set());
     const [loading, setLoading] = useState(true);
     const [err, setErr] = useState<unknown>(undefined);
@@ -40,7 +40,7 @@ export default function useHasScopes(requiredScopes: string[]): UseAuthScopesRes
         })();
 
         return () => { mounted = false; };
-    }, [getCredentials]);
+    }, [getCredentials, user]);
 
     const allowed = useMemo(() => {
         if (!requiredScopes?.length) return true;

@@ -2,7 +2,7 @@ import { useAppTheme } from "@/src/context/ThemeProvider";
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 
-const Field: React.FC<{ label: string; children: React.ReactNode; error?: string; touched?: boolean }> = ({
+const Field: React.FC<{ label?: string; children: React.ReactNode; error?: string; touched?: boolean }> = ({
     label,
     children,
     error,
@@ -11,7 +11,7 @@ const Field: React.FC<{ label: string; children: React.ReactNode; error?: string
     const theme = useAppTheme();
     return (
         <View style={styles.fieldBlock}>
-            <Text style={[styles.label, { color: theme.text }]}>{label}</Text>
+            {label && <Text style={[styles.label, { color: theme.text }]}>{label}</Text>}
             {children}
             {touched && error ? <Text style={[styles.error, { color: theme.error }]}>{error}</Text> : null}
         </View>

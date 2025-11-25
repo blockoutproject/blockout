@@ -1,5 +1,5 @@
 import { CONFIG } from "@/src/config/config";
-import { EnrichedDayPageDTO, EnrichedMatchDTO, MatchStatus } from "@/src/types/Match";
+import { EnrichedDayPageDTO, EnrichedMatchDTO, MatchLiveLinkReportRequestDTO, MatchLiveLinkRequestDTO, MatchLiveLinkResponseDTO, MatchStatus } from "@/src/types/Match";
 import { EnrichedPoolDTO, Pool, PoolSearchDocDTO, PoolSummaryDTO } from "@/src/types/Pool";
 import { EnrichedTeamDTO, Team, TeamSearchDocDTO, TeamSummaryDTO } from "@/src/types/Team";
 import { EnrichedUserNotificationPage, RegisterPushTokenRequest } from "@/src/types/Notification";
@@ -13,6 +13,7 @@ import { GitHubIssueResponse } from "../types/Report";
 import { LegalDocument } from "../types/LegalDocument";
 import { CustomImage } from "../types/Common";
 import { appendJsonSnake } from "../utils/utils";
+import { AppStatusDTO, AppStatusUpdateDTO } from "../types/AppStatus";
 
 export class MobileGatewayApi extends BaseApi {
     constructor() {
@@ -39,13 +40,8 @@ export class MobileGatewayApi extends BaseApi {
     ) {
         const formData = new FormData();
         appendJsonSnake(formData, "data", data);
-        if (image) {
-            formData.append("image", {
-                uri: image.uri,
-                type: image.type,
-                name: image.name,
-            } as any);
-        }
+
+        formData.append("image", image as any);
 
         return this.httpAuth.put<Club>(`/clubs/${id}`, formData, {
             headers: { "Content-Type": "multipart/form-data" },
@@ -76,6 +72,32 @@ export class MobileGatewayApi extends BaseApi {
      */
     public getEnrichedMatchById(id: number) {
         return this.httpPublic.get<EnrichedMatchDTO>(`/matches/${id}`);
+    }
+
+    /**
+     * Crée ou met à jour le lien live d’un match (authentifié)
+     * @param matchId Identifiant du match
+     * @param data Données du lien live (url, provider, etc.)
+     */
+    public upsertMatchLiveLink(matchId: number, data: MatchLiveLinkRequestDTO) {
+        return this.httpAuth.post<MatchLiveLinkResponseDTO>(`/matches/${matchId}/live-link`, data);
+    }
+
+    /**
+     * Supprime le lien live d’un match (authentifié)
+     * @param matchId Identifiant du match
+     */
+    public deleteMatchLiveLink(matchId: number) {
+        return this.httpAuth.delete<void>(`/matches/${matchId}/live-link`);
+    }
+
+    /**
+     * Signale un lien live comme incorrect ou inapproprié (authentifié)
+     * @param matchId Identifiant du match
+     * @param data Données du signalement (raison, commentaire, etc.)
+     */
+    public reportMatchLiveLink(matchId: number, data: MatchLiveLinkReportRequestDTO) {
+        return this.httpAuth.post<void>(`/matches/${matchId}/live-link/report`, data);
     }
 
     /**
@@ -138,13 +160,8 @@ export class MobileGatewayApi extends BaseApi {
     ): Promise<CustomUser> {
         const formData = new FormData();
         appendJsonSnake(formData, "data", data);
-        if (image) {
-            formData.append("image", {
-                uri: image.uri,
-                type: image.type,
-                name: image.name,
-            } as any);
-        }
+
+        formData.append("image", image as any);
 
         return this.httpAuth.put<CustomUser>(`/users/${auth0Id}`, formData, {
             headers: { "Content-Type": "multipart/form-data" },
@@ -171,20 +188,28 @@ export class MobileGatewayApi extends BaseApi {
     /**
      * Recherche des poules (public)
      * @param query Chaîne de recherche
+     * @param season Saison sélectionnée (ex: "2025/2026")
      */
-    public searchPools(query: string) {
+    public searchPools(query: string, season?: string) {
         return this.httpPublic.get<PoolSearchDocDTO[]>("/search/pools", {
-            params: { query },
+            params: {
+                query,
+                ...(season ? { season } : {}),
+            },
         });
     }
 
     /**
      * Recherche des équipes (public)
      * @param query Chaîne de recherche
+     * @param season Saison sélectionnée (ex: "2025/2026")
      */
-    public searchTeams(query: string) {
+    public searchTeams(query: string, season?: string) {
         return this.httpPublic.get<TeamSearchDocDTO[]>("/search/teams", {
-            params: { query },
+            params: {
+                query,
+                ...(season ? { season } : {}),
+            },
         });
     }
 
@@ -250,12 +275,24 @@ export class MobileGatewayApi extends BaseApi {
     }
 
     /**
-     * Met à jour une équipe existante
+     * Met à jour une équipe (authentifié)
      * @param id Identifiant de l’équipe
      * @param data Données de mise à jour
+     * @param image Image optionnelle de l’équipe
      */
-    public updateTeam(id: number, data: Partial<Team>) {
-        return this.httpAuth.put<Team>(`/teams/${id}`, data);
+    public updateTeam(
+        id: number,
+        data: Partial<Team>,
+        image?: CustomImage,
+    ) {
+        const formData = new FormData();
+        appendJsonSnake(formData, "data", data);
+
+        formData.append("image", image as any);
+
+        return this.httpAuth.put<Team>(`/teams/${id}`, formData, {
+            headers: { "Content-Type": "multipart/form-data" },
+        });
     }
 
     /**
@@ -304,14 +341,6 @@ export class MobileGatewayApi extends BaseApi {
      */
     public getDivisions() {
         return this.httpPublic.get<Division[]>("/config/divisions");
-    }
-
-    /**
-     * Récupère une division par son identifiant (public)
-     * @param id Identifiant de la division
-     */
-    public getDivisionById(id: number) {
-        return this.httpPublic.get<Division>(`/config/divisions/${id}`);
     }
 
     /**
@@ -425,6 +454,20 @@ export class MobileGatewayApi extends BaseApi {
      */
     public getScraperStatuses() {
         return this.httpAuth.get<ScraperStatus[]>("/config/scrapers/status");
+    }
+
+    /**
+     * Récupère le statut global de l'application (public)
+     */
+    public getAppStatus() {
+        return this.httpPublic.get<AppStatusDTO>("/config/app-status");
+    }
+
+    /**
+     * Met à jour le statut global de l'application (authentifié)
+     */
+    public updateAppStatus(data: AppStatusUpdateDTO) {
+        return this.httpAuth.put<AppStatusDTO>("/config/app-status", data);
     }
 
     /**

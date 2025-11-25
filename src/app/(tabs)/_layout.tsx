@@ -11,7 +11,7 @@ import { withAlpha } from "@/src/utils/utils";
 
 export default function TabLayout() {
     const theme = useAppTheme();
-    const { customUser, isGuest } = useSession();
+    const { customUser, isGuest, isAuthenticated } = useSession();
 
     const avatarSource =
         customUser?.pictureUrl
@@ -36,19 +36,21 @@ export default function TabLayout() {
                 />
             )}
         >
-            <Tabs.Screen
-                name="(feed)"
-                options={{
-                    href: isGuest ? null : undefined,
-                    tabBarIcon: ({ color, focused }) => (
-                        <MaterialCommunityIcons
-                            name={focused ? "home" : "home-outline"}
-                            color={color}
-                            size={TABBAR_ICON_SIZE}
-                        />
-                    ),
-                }}
-            />
+            <Tabs.Protected guard={isAuthenticated}>
+                <Tabs.Screen
+                    name="(feed)"
+                    options={{
+                        href: isGuest ? null : undefined,
+                        tabBarIcon: ({ color, focused }) => (
+                            <MaterialCommunityIcons
+                                name={focused ? "home" : "home-outline"}
+                                color={color}
+                                size={TABBAR_ICON_SIZE}
+                            />
+                        ),
+                    }}
+                />
+            </Tabs.Protected>
 
             <Tabs.Screen
                 name="(search)"
@@ -59,19 +61,21 @@ export default function TabLayout() {
                 }}
             />
 
-            <Tabs.Screen
-                name="(notifications)"
-                options={{
-                    href: isGuest ? null : undefined,
-                    tabBarIcon: ({ color, focused }) => (
-                        <MaterialCommunityIcons
-                            name={focused ? "whistle" : "whistle-outline"}
-                            color={color}
-                            size={TABBAR_ICON_SIZE}
-                        />
-                    ),
-                }}
-            />
+            <Tabs.Protected guard={isAuthenticated}>
+                <Tabs.Screen
+                    name="(notifications)"
+                    options={{
+                        href: isGuest ? null : undefined,
+                        tabBarIcon: ({ color, focused }) => (
+                            <MaterialCommunityIcons
+                                name={focused ? "whistle" : "whistle-outline"}
+                                color={color}
+                                size={TABBAR_ICON_SIZE}
+                            />
+                        ),
+                    }}
+                />
+            </Tabs.Protected>
 
             <Tabs.Screen
                 name="profile"

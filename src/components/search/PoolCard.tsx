@@ -2,6 +2,7 @@ import React from "react";
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import { PoolSearchDocDTO } from "@/src/types/Pool";
 import SearchCard from "./SearchCard";
+import { isRegional } from "@/src/utils/utils";
 
 export type PoolCardProps = {
     pool: PoolSearchDocDTO;
@@ -10,14 +11,14 @@ export type PoolCardProps = {
 
 const PoolCard: React.FC<PoolCardProps> = ({ pool, onPress }) => {
     const theme = useAppTheme();
-    const isRegional = !["ABCCS", "AALNV"].includes(pool.leagueCode);
+    const isReg = isRegional(pool.leagueCode);
 
     return (
         <SearchCard
             title={pool.name}
             imageUri={pool.logoUrl}
             chips={[
-                ...(isRegional
+                ...(isReg
                     ? [{ label: pool.leagueName, labelStyle: { fontSize: 12, color: theme.textSecondary } }]
                     : []),
                 { label: pool.season, labelStyle: { fontSize: 12, color: theme.textSecondary } },

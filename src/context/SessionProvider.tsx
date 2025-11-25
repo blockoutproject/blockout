@@ -1,16 +1,18 @@
-import React, { createContext, useContext, useEffect, useMemo } from "react";
+import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { useAuth0, User } from "react-native-auth0";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEnsureUser } from "@/src/hooks/user/useEnsureUser";
 import type { CustomUser } from "@/src/types/User";
-import { registerForPushNotificationsAsync, registerPushTokenOnBackend } from "../utils/notifications";
+import { registerForPushNotificationsAsync } from "../utils/notifications";
 import { useOnboardingStore } from "../utils/onboardingStore";
 import { useGuestSessionStore } from "../utils/guestSessionStore";
 import { useApis } from "@/src/context/ApiProvider";
 import { setAuthOnApis } from "@/src/api";
 import { router, usePathname } from "expo-router";
-import { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import { useRegisterPushToken } from "../hooks/notification/useRegisterPushToken";
+import { useAppStatus } from "@/src/hooks/config/app/useAppStatus";
+import useHasScopes from "@/src/hooks/user/useHasScopes";
+import type { AppStatusDTO } from "@/src/types/AppStatus";
 
 export type SessionActions = {
     signIn: () => Promise<void>;
@@ -19,6 +21,8 @@ export type SessionActions = {
     signOutLocal: () => Promise<void>;
     signOutSSO: (opts?: { federated?: boolean }) => Promise<void>;
     softResetAuth: () => Promise<void>;
+    bypassMaintenance: () => void;
+    resetBypassMaintenance: () => void;
 };
 
 export type SessionUserState = {
@@ -32,6 +36,13 @@ export type SessionUserState = {
     customUserError: Error | null;
     auth0UserError: Error | null;
     refetch: () => void;
+    appStatus: AppStatusDTO | undefined;
+    isAppStatusLoading: boolean;
+    isAppStatusError: boolean;
+    isMaintenance: boolean;
+    maintenanceBypass: boolean;
+    canBypassMaintenance: boolean;
+    refetchAppStatus: () => void;
 };
 
 export type SessionContextValue = SessionActions & SessionUserState;
@@ -42,9 +53,6 @@ export const useSession = () => {
     if (!ctx) throw new Error("useSession must be used within <SessionProvider>");
     return ctx;
 };
-
-type TabsNav = BottomTabNavigationProp<any>;
-
 
 export const SessionProvider: React.FC<React.PropsWithChildren> = ({ children }) => {
     const {
@@ -57,7 +65,13 @@ export const SessionProvider: React.FC<React.PropsWithChildren> = ({ children })
         isLoading: isAuth0UserLoading,
     } = useAuth0();
 
-    const { data: customUser, isLoading: isCustomUserLoading, error: customUserError, refetch } = useEnsureUser();
+    const {
+        data: customUser,
+        isLoading: isCustomUserLoading,
+        error: customUserError,
+        refetch,
+    } = useEnsureUser();
+
     const queryClient = useQueryClient();
     const { hasCompletedOnboarding } = useOnboardingStore();
     const pathname = usePathname();
@@ -68,8 +82,29 @@ export const SessionProvider: React.FC<React.PropsWithChildren> = ({ children })
     const setGuest = useGuestSessionStore((s) => s.continueAsGuest);
     const leaveGuestFlag = useGuestSessionStore((s) => s.leaveGuest);
 
-    const isLoading = isAuth0UserLoading || isCustomUserLoading;
-    const isError = !!auth0UserError || !!customUserError;
+    const {
+        data: appStatus,
+        isLoading: isAppStatusLoading,
+        isError: isAppStatusError,
+        refetch: refetchAppStatus,
+    } = useAppStatus();
+
+    const { allowed: canBypassMaintenance } = useHasScopes(["update:maintenance"]);
+    const [maintenanceBypass, setMaintenanceBypass] = useState(false);
+
+    const isMaintenance = appStatus?.maintenance === true;
+
+    useEffect(() => {
+        if (!isMaintenance && maintenanceBypass) {
+            setMaintenanceBypass(false);
+        }
+    }, [isMaintenance, maintenanceBypass]);
+
+    const bypassMaintenance = () => setMaintenanceBypass(true);
+    const resetBypassMaintenance = () => setMaintenanceBypass(false);
+
+    const isLoading = isAuth0UserLoading || isCustomUserLoading || isAppStatusLoading;
+    const isError = !!auth0UserError || !!customUserError || isAppStatusError;
     const isAuthenticated = !!auth0User && !!customUser;
     const error = customUserError || auth0UserError;
 
@@ -85,7 +120,7 @@ export const SessionProvider: React.FC<React.PropsWithChildren> = ({ children })
                 console.warn("Erreur lors de l’enregistrement du push token :", err);
             }
         })();
-    }, [isAuthenticated, hasCompletedOnboarding, customUser?.id, registerPushToken]);
+    }, [isAuthenticated, hasCompletedOnboarding, customUser?.id]);
 
     useEffect(() => {
         let cancelled = false;
@@ -111,7 +146,11 @@ export const SessionProvider: React.FC<React.PropsWithChildren> = ({ children })
         return () => {
             cancelled = true;
         };
-    }, []);
+    }, [getCredentials, apis, refetch]);
+
+    useEffect(() => {
+        refetchAppStatus()
+    }, [customUser])
 
     const clearRQCache = async () => {
         await queryClient.cancelQueries();
@@ -128,9 +167,7 @@ export const SessionProvider: React.FC<React.PropsWithChildren> = ({ children })
             try {
                 await clearCredentials();
                 await clearRQCache();
-            } catch {
-                /* ignore */
-            }
+            } catch { }
         };
 
         setAuthOnApis(apis, tokenSupplier, onUnauthorized);
@@ -143,19 +180,15 @@ export const SessionProvider: React.FC<React.PropsWithChildren> = ({ children })
         });
 
         await primeApisWithAuth();
-
         await refetch();
 
         if (isGuest) leaveGuestFlag();
-        
         if (pathname === "/profile") router.push("/(tabs)/(feed)");
-        console.log("[Session] Sign-in successful");
     };
 
     const continueAsGuest = () => {
         setAuthOnApis(apis, undefined, undefined);
         setGuest();
-        console.log("[Session] Continue as guest");
     };
 
     const leaveGuest = async () => {
@@ -179,26 +212,22 @@ export const SessionProvider: React.FC<React.PropsWithChildren> = ({ children })
             return;
         }
         await softResetAuth();
+        resetBypassMaintenance();
     };
 
-    const signOutSSO = async () => {
+    const signOutSSO = async (opts?: { federated?: boolean }) => {
         try {
             if (isGuest) {
                 await leaveGuest();
                 return;
             }
-            await clearSession();
+            await clearSession(opts);
             await clearRQCache();
+            resetBypassMaintenance();
         } catch (err) {
             console.warn("Erreur inattendue lors du logout SSO :", err);
         }
     };
-
-    useEffect(() => {
-        if (isError && error) {
-            console.log("[Session Error]", error);
-        }
-    }, [error, isError]);
 
     const value = useMemo<SessionContextValue>(
         () => ({
@@ -208,6 +237,8 @@ export const SessionProvider: React.FC<React.PropsWithChildren> = ({ children })
             signOutLocal,
             signOutSSO,
             softResetAuth,
+            bypassMaintenance,
+            resetBypassMaintenance,
             auth0User,
             customUser,
             isAuthenticated,
@@ -218,18 +249,39 @@ export const SessionProvider: React.FC<React.PropsWithChildren> = ({ children })
             error,
             customUserError,
             auth0UserError,
+            appStatus,
+            isAppStatusLoading,
+            isAppStatusError,
+            isMaintenance,
+            maintenanceBypass,
+            canBypassMaintenance,
+            refetchAppStatus,
         }),
         [
+            signIn,
+            continueAsGuest,
+            leaveGuest,
+            signOutLocal,
+            signOutSSO,
+            softResetAuth,
+            bypassMaintenance,
             auth0User,
             customUser,
-            isLoading,
-            isError,
             isAuthenticated,
             isGuest,
+            isLoading,
+            isError,
             refetch,
+            error,
             customUserError,
             auth0UserError,
-            error,
+            appStatus,
+            isAppStatusLoading,
+            isAppStatusError,
+            isMaintenance,
+            maintenanceBypass,
+            canBypassMaintenance,
+            refetchAppStatus,
         ]
     );
 

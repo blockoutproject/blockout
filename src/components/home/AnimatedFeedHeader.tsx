@@ -23,7 +23,7 @@ import RawDivisionMappingsScreen from "../rawDivisionMapping/RawDivisionMappingS
 import DivisionScreen from "../division/DivisionScreen";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import BottomSheetCustomPage from "../common/bottomSheet/BottomSheetCustomPage";
-import ScraperStatusScreen from "../scraper/ScraperStatusScreen";
+import ScraperStatusScreen from "../appStatus/ScraperStatusScreen";
 import BottomSheetCustomModal from "../common/bottomSheet/BottomSheetCustomModal";
 import { LOGO_HEIGHT, TABBAR_HEIGHT } from "@/src/theme/globals";
 import useHasScopes from "@/src/hooks/user/useHasScopes";
@@ -224,9 +224,9 @@ const AnimatedFeedHeader: React.FC<HeaderProps> = ({
                 <DivisionScreen />
             </BottomSheetCustomPage>
 
-            <BottomSheetCustomModal ref={scraperSheetRef}>
+            <BottomSheetCustomPage ref={scraperSheetRef}>
                 <ScraperStatusScreen />
-            </BottomSheetCustomModal>
+            </BottomSheetCustomPage>
         </>
     );
 };

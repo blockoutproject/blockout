@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { StatusBar } from "react-native";
+import { StatusBar, View, Text } from "react-native";
 import { Stack } from "expo-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Auth0Provider } from "react-native-auth0";
@@ -8,12 +8,12 @@ import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 
 import { AUTH0_CONFIG } from "@/src/config/config";
 import { ThemeProvider } from "@/src/theme/theme-provider";
-
 import { ApiProvider } from "@/src/context/ApiProvider";
 import { SessionProvider, useSession } from "@/src/context/SessionProvider";
-import { SplashScreenController } from "@/src/session/splash";
+import { SplashScreenController } from "@/src/components/splash/SplashScreen";
 import { useOnboardingStore } from "../utils/onboardingStore";
 import { addNotificationListeners, openNotificationUrlIfAny } from "../utils/notifications";
+import MaintenanceScreen from "../components/maintenance/MaintenanceScreen";
 
 const queryClient = new QueryClient();
 
@@ -48,29 +48,34 @@ export default function Root() {
 }
 
 function RootNavigator() {
-    const { isAuthenticated, isGuest } = useSession();
+    const { isAuthenticated, isGuest, isMaintenance, maintenanceBypass } = useSession();
     const { hasCompletedOnboarding } = useOnboardingStore();
-
+    
     return (
         <BottomSheetModalProvider>
             <Stack screenOptions={{ headerShown: false, animation: "none" }}>
-                <Stack.Protected guard={!(isGuest || isAuthenticated)}>
+                <Stack.Protected guard={(isMaintenance && !maintenanceBypass)}>
+                    <Stack.Screen
+                        name="maintenance"
+                        options={{ animation: "fade_from_bottom", animationDuration: 300 }}
+                    />
+                </Stack.Protected>
+
+                <Stack.Protected guard={!(isGuest || isAuthenticated) && !(isMaintenance && !maintenanceBypass)}>
                     <Stack.Screen
                         name="sign-in"
                         options={{ animation: "fade_from_bottom", animationDuration: 300 }}
                     />
                 </Stack.Protected>
 
-                <Stack.Protected guard={isGuest || isAuthenticated}>
+                <Stack.Protected guard={(isGuest || isAuthenticated) && !(isMaintenance && !maintenanceBypass)}>
                     <Stack.Protected guard={!hasCompletedOnboarding}>
                         <Stack.Screen
                             name="onboarding"
                             options={{ animation: "fade_from_bottom", animationDuration: 300 }}
                         />
                     </Stack.Protected>
-                </Stack.Protected>
 
-                <Stack.Protected guard={isGuest || isAuthenticated}>
                     <Stack.Screen
                         name="(tabs)"
                         options={{ animation: "fade_from_bottom", animationDuration: 300 }}

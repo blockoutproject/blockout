@@ -1,9 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { EnrichedPoolDTO } from "@/src/types/Pool";
 import { EntityType } from "@/src/types/User";
 import { useSession } from "@/src/context/SessionProvider";
 import { useQueryClient } from "@tanstack/react-query";
-import { useEnrichedPoolById } from "./useEnrichedPoolById";
 import { useApis } from "@/src/context/ApiProvider";
 
 export function usePoolFollowState(enrichedPool: EnrichedPoolDTO) {
@@ -14,56 +13,72 @@ export function usePoolFollowState(enrichedPool: EnrichedPoolDTO) {
     const [isFollowing, setIsFollowing] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
 
-    const { data: poolFromCache } = useEnrichedPoolById(enrichedPool.id, false);
-    const followersCount = poolFromCache?.followersCount ?? enrichedPool.followersCount;
-
     useEffect(() => {
+        if (!customUser?.favorites) return;
         setIsFollowing(
-            !!customUser?.favorites?.some(
-                (f) => f.entityId === enrichedPool.id && f.entityType === EntityType.POOL
-            )
+            customUser.favorites.some(
+                (f) =>
+                    f.entityId === enrichedPool.id &&
+                    f.entityType === EntityType.POOL,
+            ),
         );
-    }, [customUser, enrichedPool.id]);
+    }, [customUser?.favorites, enrichedPool.id]);
 
-    const onToggleFollow = useMemo(
-        () => async () => {
-            if (!customUser || isProcessing) return;
+    const poolKey = ["enrichedPools", enrichedPool.id] as const;
 
-            const next = !isFollowing;
-            setIsProcessing(true);
+    const cachedPool =
+        qc.getQueryData<EnrichedPoolDTO>(poolKey) ?? enrichedPool;
 
-            const poolKey = ["enrichedPools", enrichedPool.id] as const;
+    const followersCount =
+        cachedPool.followersCount ?? enrichedPool.followersCount ?? 0;
 
-            const prevPool =
-                qc.getQueryData<EnrichedPoolDTO | null>(poolKey) ?? enrichedPool;
+    const onToggleFollow = useCallback(async () => {
+        if (!customUser || isProcessing) return;
 
-            const nextCount = Math.max(
-                0,
-                (prevPool.followersCount ?? 0) + (next ? 1 : -1)
-            );
-            qc.setQueryData<EnrichedPoolDTO>(poolKey, {
-                ...prevPool,
-                followersCount: nextCount,
-            });
+        const next = !isFollowing;
+        setIsProcessing(true);
 
-            setIsFollowing(next);
+        const prevPool =
+            qc.getQueryData<EnrichedPoolDTO>(poolKey) ?? enrichedPool;
 
-            try {
-                if (next) {
-                    await mobile.follow(EntityType.POOL, enrichedPool.id);
-                } else {
-                    await mobile.unfollow(EntityType.POOL, enrichedPool.id);
-                }
-                refetch();
-            } catch {
-                qc.setQueryData<EnrichedPoolDTO>(poolKey, prevPool);
-                setIsFollowing(!next);
-            } finally {
-                setIsProcessing(false);
+        const optimisticCount = Math.max(
+            0,
+            (prevPool.followersCount ?? 0) + (next ? 1 : -1),
+        );
+
+        qc.setQueryData<EnrichedPoolDTO>(poolKey, {
+            ...prevPool,
+            followersCount: optimisticCount,
+        });
+
+        setIsFollowing(next);
+
+        try {
+            if (next) {
+                await mobile.follow(EntityType.POOL, enrichedPool.id);
+            } else {
+                await mobile.unfollow(EntityType.POOL, enrichedPool.id);
             }
-        },
-        [customUser, isProcessing, isFollowing, qc, enrichedPool, refetch]
-    );
+
+            await refetch();
+        } catch (e) {
+            qc.setQueryData<EnrichedPoolDTO>(poolKey, prevPool);
+            setIsFollowing(!next);
+        } finally {
+            setIsProcessing(false);
+            qc.invalidateQueries({ queryKey: poolKey });
+        }
+    }, [
+        customUser,
+        isProcessing,
+        isFollowing,
+        qc,
+        enrichedPool,
+        enrichedPool.id,
+        mobile,
+        refetch,
+        poolKey,
+    ]);
 
     return { isFollowing, isProcessing, followersCount, onToggleFollow };
 }

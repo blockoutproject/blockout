@@ -68,18 +68,18 @@ export class HttpClient {
                 }
             }
 
-            // console.log(
-            //     "%c[HTTP REQUEST]",
-            //     "color: #4CAF50; font-weight: bold;",
-            //     {
-            //         method: config.method?.toUpperCase(),
-            //         url: `${config.baseURL}${config.url}`,
-            //         headers: headers,
-            //         params: config.params,
-            //         data: config.data instanceof FormData ? "FormData(...)" : config.data,
-            //         hasToken: headers.has("Authorization"),
-            //     }
-            // );
+            console.log(
+                "%c[HTTP REQUEST]",
+                "color: #4CAF50; font-weight: bold;",
+                {
+                    method: config.method?.toUpperCase(),
+                    url: `${config.baseURL}${config.url}`,
+                    headers: headers,
+                    params: config.params,
+                    data: config.data instanceof FormData ? "FormData(...)" : config.data,
+                    hasToken: headers.has("Authorization"),
+                }
+            );
 
             return config;
         });

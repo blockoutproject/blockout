@@ -7,6 +7,7 @@ import { MatchStatus, type EnrichedMatchDTO } from "@/src/types/Match";
 import InfoPillGradient from "@/src/components/common/chips/InfoPillGradient";
 import { useRouter } from "expo-router";
 import { openPdf } from "@/src/utils/openPdf";
+import { isLNV } from "@/src/utils/utils";
 
 /** Info card with league/pool/date/venue/referees. */
 export type MatchInfoCardProps = {
@@ -38,7 +39,7 @@ const MatchInfoCard: React.FC<MatchInfoCardProps> = ({ enrichedMatch }) => {
 
     const dateLabel = rawDateLabel.charAt(0).toUpperCase() + rawDateLabel.slice(1);
 
-    const leagueLabel = enrichedMatch.pool.leagueCode === "AALNV" ? "Pro" : division.name;
+    const leagueLabel = isLNV(enrichedMatch.pool.leagueCode) ? "Pro" : division.name;
     const venue = enrichedMatch.venue || "Lieu à confirmer";
     const ref1 = enrichedMatch.firstReferee;
     const ref2 = enrichedMatch.secondReferee;

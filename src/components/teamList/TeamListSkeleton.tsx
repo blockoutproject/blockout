@@ -2,7 +2,7 @@ import React from "react";
 import { View, StyleSheet } from "react-native";
 import { Skeleton } from "@/src/components/common/Skeleton";
 
-const FollowedListSkeleton: React.FC = () => {
+const TeamListSkeleton: React.FC = () => {
     return (
         <View
             style={[
@@ -49,7 +49,7 @@ const FollowedListSkeleton: React.FC = () => {
     );
 };
 
-export default FollowedListSkeleton;
+export default TeamListSkeleton;
 
 const styles = StyleSheet.create({
     skeletonContainer: {

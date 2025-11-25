@@ -8,31 +8,24 @@ import { HEADER_HEIGHT } from "@/src/theme/globals";
 import { useBackOrClose } from "@/src/hooks/utils/useBackOrClose";
 
 export type TeamListHeaderProps = {
-    /** Screen title. */
     title: string;
-    /** Open report modal. */
     onOpenReport: () => void;
+    rightAddon?: React.ReactNode;
 };
 
-const TeamListHeader: React.FC<TeamListHeaderProps> = ({ title, onOpenReport }) => {
+const TeamListHeader: React.FC<TeamListHeaderProps> = ({
+    title,
+    onOpenReport,
+    rightAddon,
+}) => {
     const theme = useAppTheme();
     const insets = useSafeAreaInsets();
     const { handleBack, canGoBack } = useBackOrClose();
 
     return (
-        <View
-            style={[
-                {
-                    paddingTop: insets.top,
-                },
-            ]}
-        >
-            <View
-                style={styles.header}
-            >
-                <View
-                    style={styles.leftGroup}
-                >
+        <View style={{ paddingTop: insets.top }}>
+            <View style={styles.header}>
+                <View style={styles.leftGroup}>
                     <TouchableOpacity
                         onPress={handleBack}
                         style={styles.backButton}
@@ -45,12 +38,7 @@ const TeamListHeader: React.FC<TeamListHeaderProps> = ({ title, onOpenReport }) 
                     </TouchableOpacity>
 
                     <Text
-                        style={[
-                            styles.title,
-                            {
-                                color: theme.text,
-                            },
-                        ]}
+                        style={[styles.title, { color: theme.text }]}
                         adjustsFontSizeToFit
                         numberOfLines={2}
                         lineBreakStrategyIOS="push-out"
@@ -60,17 +48,12 @@ const TeamListHeader: React.FC<TeamListHeaderProps> = ({ title, onOpenReport }) 
                     </Text>
                 </View>
 
-                <View
-                    style={styles.rightGroup}
-                >
+                <View style={styles.rightGroup}>
+                    {rightAddon}
+
                     <TouchableOpacity
                         onPress={onOpenReport}
-                        hitSlop={{
-                            top: 10,
-                            bottom: 10,
-                            left: 10,
-                            right: 10,
-                        }}
+                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                         style={styles.iconBtn}
                         activeOpacity={0.7}
                     >
@@ -89,9 +72,6 @@ const TeamListHeader: React.FC<TeamListHeaderProps> = ({ title, onOpenReport }) 
 export default TeamListHeader;
 
 const styles = StyleSheet.create({
-    container: {
-        backgroundColor: "transparent",
-    },
     header: {
         height: HEADER_HEIGHT,
         flexDirection: "row",
@@ -115,7 +95,7 @@ const styles = StyleSheet.create({
     rightGroup: {
         flexDirection: "row",
         alignItems: "center",
-        gap: 12,
+        gap: 8,
     },
     iconBtn: {
         padding: 4,

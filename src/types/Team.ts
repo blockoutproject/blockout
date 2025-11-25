@@ -37,6 +37,7 @@ export interface TeamWithStats {
 
 export interface EnrichedTeamDTO {
     id: number;
+    clubId: string
     name: string;
     shortName: string;
     format: EnumFormat;
@@ -44,7 +45,7 @@ export interface EnrichedTeamDTO {
     season: string;
     followersCount: number;
     division: Division;
-    club: Club
+    logoUrl: string;
     pools: EnrichedPoolDTO[];
 }
 
@@ -60,7 +61,7 @@ export interface TeamSummaryDTO {
     gender: EnumGender;
     format: EnumFormat;
     division: Division;
-    club: Club;
+    logoUrl: string;
     shortName: string;
 }
 

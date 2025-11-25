@@ -15,10 +15,11 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import SearchBar from "@/src/components/common/SearchBar";
 import ErrorState from "@/src/components/common/feedback/ErrorState";
 import { BOTTOM_TABBAR_HEIGHT } from "@/src/theme/globals";
-import InfoPill from "../common/chips/InfoPill";
 import InfoPillGradient from "../common/chips/InfoPillGradient";
 import { CTA_GRADIENT } from "../common/GradientButton";
 import FadeIn from "../common/animations/FadeIn";
+import SeasonSelect from "@/src/components/common/form/SeasonSelect";
+import { SelectOption } from "@/src/components/common/form/SelectSheet";
 
 type GenericSearchScreenProps<T> = {
     search: string;
@@ -33,6 +34,11 @@ type GenericSearchScreenProps<T> = {
     emptyMessage: string;
     renderItem: ListRenderItem<T>;
     keyExtractor?: (item: T, index: number) => string;
+    seasonOptions?: SelectOption[];
+    selectedSeason?: string | null;
+    onSelectSeason?: (opt: SelectOption) => void;
+    seasonPlaceholderLabel?: string;
+    seasonTestIDButton?: string;
 };
 
 export const GenericSearchScreen = <T,>({
@@ -48,6 +54,12 @@ export const GenericSearchScreen = <T,>({
     renderItem,
     emptyMessage,
     keyExtractor,
+
+    seasonOptions,
+    selectedSeason,
+    onSelectSeason,
+    seasonPlaceholderLabel = "Saison",
+    seasonTestIDButton,
 }: GenericSearchScreenProps<T>) => {
     const theme = useAppTheme();
     const insets = useSafeAreaInsets();
@@ -56,7 +68,12 @@ export const GenericSearchScreen = <T,>({
         if (debouncedQuery.length > 1 && !isLoading && !isError) {
             return (
                 <View style={styles.emptyContainer}>
-                    <Text style={[styles.emptyText, { color: theme.textInactive }]}>
+                    <Text
+                        style={[
+                            styles.emptyText,
+                            { color: theme.textInactive },
+                        ]}
+                    >
                         {emptyMessage}
                     </Text>
                 </View>
@@ -65,8 +82,7 @@ export const GenericSearchScreen = <T,>({
         return null;
     };
 
-    const defaultKeyExtractor = (item: any) =>
-        item?.id?.toString();
+    const defaultKeyExtractor = (item: any) => item?.id?.toString();
 
     const showHeader = search.length === 0 && !!data && data.length > 0;
 
@@ -75,13 +91,21 @@ export const GenericSearchScreen = <T,>({
             <View
                 style={[
                     styles.examplePillContainer,
-                    { backgroundColor: 'transparent' },
+                    { backgroundColor: "transparent" },
                 ]}
             >
-                <InfoPillGradient label={exampleLabel} gradient={CTA_GRADIENT} />
+                <InfoPillGradient
+                    label={exampleLabel}
+                    gradient={CTA_GRADIENT}
+                />
             </View>
         </FadeIn>
     ) : null;
+
+    const showSeasonSelect =
+        !!seasonOptions &&
+        seasonOptions.length > 0 &&
+        !!onSelectSeason;
 
     return (
         <KeyboardAvoidingView
@@ -89,12 +113,24 @@ export const GenericSearchScreen = <T,>({
             behavior={Platform.OS === "ios" ? "padding" : undefined}
         >
             <View style={styles.searchRow}>
-                <SearchBar
-                    value={search}
-                    onChangeText={setSearch}
-                    placeholder={placeholder}
-                    inSheet={false}
-                />
+                    <SearchBar
+                        value={search}
+                        onChangeText={setSearch}
+                        placeholder={placeholder}
+                        inSheet={false}
+                    />
+
+                {showSeasonSelect && (
+                    <SeasonSelect
+                        options={seasonOptions}
+                        selectedValue={selectedSeason}
+                        onSelect={onSelectSeason}
+                        placeholderLabel={seasonPlaceholderLabel}
+                        testIDButton={seasonTestIDButton}
+                        maxWidth={140}
+                        style={styles.seasonBtn}
+                    />
+                )}
             </View>
 
             {isLoading && (
@@ -106,7 +142,11 @@ export const GenericSearchScreen = <T,>({
             )}
 
             {isError && (
-                <ErrorState subtitle="Impossible de charger les résultats." paddingTop={"30%"} onRetry={refetch} />
+                <ErrorState
+                    subtitle="Impossible de charger les résultats."
+                    paddingTop={"30%"}
+                    onRetry={refetch}
+                />
             )}
 
             <FlatList
@@ -134,6 +174,13 @@ const styles = StyleSheet.create({
         marginBottom: 8,
         flexDirection: "row",
         alignItems: "center",
+        gap: 8,
+    },
+    searchBarWrap: {
+        flex: 1,
+    },
+    seasonBtn: {
+        alignSelf: "stretch",
     },
     loader: { marginTop: 8 },
     emptyContainer: { alignItems: "center" },

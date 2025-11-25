@@ -1,11 +1,15 @@
-import React, { useCallback, useMemo, useRef, useState } from "react";
+import React, {
+    useCallback,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
+} from "react";
 import {
-    ActivityIndicator,
     FlatList,
     Keyboard,
     StyleSheet,
     View,
-    RefreshControl,
 } from "react-native";
 import * as Haptics from "expo-haptics";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
@@ -22,30 +26,42 @@ import { ReportType } from "@/src/types/Report";
 import { TeamSummaryDTO } from "@/src/types/Team";
 import { useTeamListByClubId } from "@/src/hooks/team/useTeamListByClubId";
 import FollowedListSkeleton from "@/src/components/followed/FollowedListSkeleton";
+import { SelectOption } from "@/src/components/common/form/SelectSheet";
+import SeasonSelect from "@/src/components/common/form/SeasonSelect";
 
 const TeamListScreen: React.FC = () => {
     const theme = useAppTheme();
     const router = useRouter();
     const insets = useSafeAreaInsets();
     const { clubId } = useLocalSearchParams();
-    const { data, isLoading, isError, refetch } = useTeamListByClubId(String(clubId));
+
+    const { data, isLoading, isError, refetch } = useTeamListByClubId(
+        String(clubId),
+    );
 
     const [refreshing, setRefreshing] = useState(false);
 
     const reportSheetRef = useRef<BottomSheetModal>(null);
+
+    const [availableSeasons, setAvailableSeasons] = useState<string[]>([]);
+    const [selectedSeason, setSelectedSeason] = useState<string | null>(null);
+
     const handleOpenReport = useCallback(() => {
         reportSheetRef.current?.present();
     }, []);
 
-    const handlePress = useCallback((id: number) => {
-        Haptics.selectionAsync();
-        router.push(`/team/${id}`);
-    }, [router]);
+    const handlePress = useCallback(
+        (id: number) => {
+            Haptics.selectionAsync();
+            router.push(`/team/${id}`);
+        },
+        [router],
+    );
 
     const onRefresh = useCallback(async () => {
         setRefreshing(true);
         try {
-            await refetch();  // appelle ta requête de refetch
+            await refetch();
         } catch (error) {
             console.error("Error on refresh:", error);
         } finally {
@@ -61,14 +77,44 @@ const TeamListScreen: React.FC = () => {
                 testID={`team-card-${item.id}`}
             />
         ),
-        [handlePress]
+        [handlePress],
     );
+
+    useEffect(() => {
+        const allTeams = data ?? [];
+        const seasons = Array.from(
+            new Set(
+                allTeams
+                    .map((t) => t.season)
+                    .filter((s): s is string => !!s),
+            ),
+        ).sort((a, b) => b.localeCompare(a));
+
+        setAvailableSeasons(seasons);
+
+        if (seasons.length === 0) {
+            setSelectedSeason(null);
+        } else if (!selectedSeason || !seasons.includes(selectedSeason)) {
+            setSelectedSeason(seasons[0]);
+        }
+    }, [data, selectedSeason]);
+
+    const seasonOptions: SelectOption[] = useMemo(
+        () => availableSeasons.map((s) => ({ value: s, label: s })),
+        [availableSeasons],
+    );
+
+    const filteredData: TeamSummaryDTO[] = useMemo(() => {
+        const all = data ?? [];
+        if (!selectedSeason) return all;
+        return all.filter((t) => t.season === selectedSeason);
+    }, [data, selectedSeason]);
+
+    const hasData = filteredData.length > 0;
 
     const body = useMemo(() => {
         if (isLoading && !refreshing) {
-            return (
-                <FollowedListSkeleton />
-            );
+            return <FollowedListSkeleton />;
         }
 
         if (isError) {
@@ -81,7 +127,7 @@ const TeamListScreen: React.FC = () => {
             );
         }
 
-        if (!data || data.length === 0) {
+        if (!filteredData || filteredData.length === 0) {
             return (
                 <ErrorState
                     subtitle="Aucune équipe trouvée pour ce club."
@@ -93,7 +139,7 @@ const TeamListScreen: React.FC = () => {
 
         return (
             <FlatList
-                data={data}
+                data={filteredData}
                 keyExtractor={(item) => String(item.id)}
                 renderItem={renderItem}
                 showsVerticalScrollIndicator={false}
@@ -103,26 +149,56 @@ const TeamListScreen: React.FC = () => {
                     paddingHorizontal: 8,
                     paddingBottom: insets.bottom + BOTTOM_TABBAR_HEIGHT,
                 }}
-                scrollEnabled={data.length > 0}
+                scrollEnabled={hasData}
                 testID="team-list"
                 refreshing={refreshing}
                 onRefresh={onRefresh}
             />
         );
-    }, [isLoading, isError, data, refetch, renderItem, insets.bottom, theme.text, refreshing, onRefresh]);
+    }, [
+        isLoading,
+        isError,
+        filteredData,
+        refetch,
+        renderItem,
+        insets.bottom,
+        refreshing,
+        onRefresh,
+        hasData,
+    ]);
+
+    const handleSelectSeason = useCallback((opt: SelectOption) => {
+        setSelectedSeason(String(opt.value));
+    }, []);
 
     return (
         <View
             style={[styles.container, { backgroundColor: theme.background }]}
             testID="team-list-screen"
         >
-            <TeamListHeader title="Équipes" onOpenReport={handleOpenReport} />
+            <TeamListHeader
+                title="Équipes"
+                onOpenReport={handleOpenReport}
+                rightAddon={
+                    availableSeasons.length > 0 ? (
+                        <SeasonSelect
+                            options={seasonOptions}
+                            selectedValue={selectedSeason}
+                            onSelect={handleSelectSeason}
+                            testIDButton="team-list-season-button"
+                        />
+                    ) : null
+                }
+            />
 
             {body}
 
             <ReportFormSheet
                 ref={reportSheetRef}
-                context={{ screen: "TeamList", defaultType: ReportType.DISPLAY_BUG }}
+                context={{
+                    screen: "TeamList",
+                    defaultType: ReportType.DISPLAY_BUG,
+                }}
                 onSuccess={() => {
                     reportSheetRef.current?.dismiss();
                 }}
@@ -137,5 +213,4 @@ export default TeamListScreen;
 
 const styles = StyleSheet.create({
     container: { flex: 1 },
-    loader: { marginTop: 8 },
 });

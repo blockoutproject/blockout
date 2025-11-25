@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { View, Text, Pressable, StyleSheet } from "react-native";
 import * as Haptics from "expo-haptics";
 import { useAppTheme } from "@/src/context/ThemeProvider";
@@ -11,11 +11,8 @@ import InfoPillGradient from "@/src/components/common/chips/InfoPillGradient";
 import MaskedImage from "@/src/components/common/images/MaskedImage";
 import { useRouter } from "expo-router";
 
-/** Main score card with teams and final/next info. */
 export interface MatchScoreCardProps {
-    /** Enriched match payload. */
     enrichedMatch: EnrichedMatchDTO;
-    /** Gradient colors for border widgets. */
     gradient: readonly [string, string, ...string[]];
 }
 
@@ -27,52 +24,29 @@ const MatchScoreCard: React.FC<MatchScoreCardProps> = ({ enrichedMatch, gradient
     const router = useRouter();
     const { date, time } = splitIsoDateFormatted(enrichedMatch.matchDate);
 
+    const hasLiveLink = !!enrichedMatch.liveUrl;
+
+    const isMatchStarted = useMemo(() => {
+        const matchMs = new Date(enrichedMatch.matchDate).getTime();
+        if (Number.isNaN(matchMs)) return false;
+        return Date.now() >= matchMs;
+    }, [enrichedMatch.matchDate]);
+
     const handleTeamPress = (teamId: number) => {
         Haptics.selectionAsync();
         router.push(`/team/${teamId}`);
     };
 
     const TeamBlock: React.FC<{
-        /** Team entity with logo. */
         team: Team & { logoUrl: string | null };
-        /** Home/Away role. */
         role: "Locaux" | "Visiteurs";
     }> = ({ team, role }) => (
-        <Pressable
-            onPress={() => handleTeamPress(team.id)}
-            style={styles.teamCard}
-            testID={`team-${role.toLowerCase()}`}
-        >
-            <MaskedImage
-                uri={team.logoUrl}
-                size={LOGO_SIZE}
-                radius={RADIUS}
-                shadow
-            />
-            <Text
-                style={[
-                    styles.teamLabel,
-                    {
-                        color: theme.text,
-                    },
-                ]}
-                numberOfLines={2}
-                ellipsizeMode="tail"
-                adjustsFontSizeToFit
-                minimumFontScale={0.85}
-            >
+        <Pressable onPress={() => handleTeamPress(team.id)} style={styles.teamCard}>
+            <MaskedImage uri={team.logoUrl} size={LOGO_SIZE} radius={RADIUS} shadow />
+            <Text style={[styles.teamLabel, { color: theme.text }]} numberOfLines={2}>
                 {team.shortName}
             </Text>
-            <Text
-                style={[
-                    styles.teamRoleLabel,
-                    {
-                        color: theme.textInactive,
-                    },
-                ]}
-            >
-                {role}
-            </Text>
+            <Text style={[styles.teamRoleLabel, { color: theme.textInactive }]}>{role}</Text>
         </Pressable>
     );
 
@@ -81,85 +55,54 @@ const MatchScoreCard: React.FC<MatchScoreCardProps> = ({ enrichedMatch, gradient
             gradient={gradient}
             borderRadius={RADIUS}
             borderWidth={1}
-            style={[
-                styles.card,
-                {
-                    backgroundColor: theme.background,
-                },
-            ]}
+            style={[styles.card, { backgroundColor: theme.background }]}
         >
-            <View
-                style={styles.headerRow}
-            >
-                <InfoPill label={enrichedMatch.pool.division.name} />
-                {date ? <InfoPill label={date} /> : null}
+            <View style={styles.headerRow}>
+                <View style={styles.headerSideLeft}>
+                    <InfoPill label={enrichedMatch.pool.division.name} />
+                </View>
+
+                <View style={styles.headerCenter}>
+                    {hasLiveLink ? <InfoPill label="Live" showRedDot /> : null}
+                </View>
+
+                <View style={styles.headerSideRight}>
+                    {date ? <InfoPill label={date} /> : null}
+                </View>
             </View>
 
-            <View
-                style={styles.teamsRow}
-            >
-                <TeamBlock
-                    team={enrichedMatch.teamA}
-                    role="Locaux"
-                />
+            <View style={styles.teamsRow}>
+                <TeamBlock team={enrichedMatch.teamA} role="Locaux" />
 
-                <View
-                    style={styles.centerBlock}
-                >
+                <View style={styles.centerBlock}>
                     {enrichedMatch.set ? (
                         <>
                             <GradientBorderView
                                 gradient={gradient}
                                 borderRadius={16}
                                 borderWidth={2}
-                                style={[
-                                    styles.finalScoreBox,
-                                    {
-                                        backgroundColor: theme.background,
-                                    },
-                                ]}
+                                style={[styles.finalScoreBox, { backgroundColor: theme.background }]}
                             >
-                                <Text
-                                    style={[
-                                        styles.finalScoreText,
-                                        {
-                                            color: theme.text,
-                                        },
-                                    ]}
-                                >
+                                <Text style={[styles.finalScoreText, { color: theme.text }]}>
                                     {enrichedMatch.set}
                                 </Text>
                             </GradientBorderView>
-                            {time ? (
-                                <InfoPill label={time}/>
-                            ) : null}
+                            {time ? <InfoPill label={time} /> : null}
                         </>
                     ) : (
                         <>
                             {time ? (
-                                <Text
-                                    style={[
-                                        styles.timeLarge,
-                                        {
-                                            color: theme.text,
-                                        },
-                                    ]}
-                                >
-                                    {time}
-                                </Text>
+                                <Text style={[styles.timeLarge, { color: theme.text }]}>{time}</Text>
                             ) : null}
                             <InfoPillGradient
-                                label="À venir"
+                                label={isMatchStarted ? "En cours" : "À venir"}
                                 gradient={gradient}
                             />
                         </>
                     )}
                 </View>
 
-                <TeamBlock
-                    team={enrichedMatch.teamB}
-                    role="Visiteurs"
-                />
+                <TeamBlock team={enrichedMatch.teamB} role="Visiteurs" />
             </View>
         </GradientBorderView>
     );
@@ -177,8 +120,11 @@ const styles = StyleSheet.create({
     headerRow: {
         flexDirection: "row",
         alignItems: "center",
-        justifyContent: "space-between",
     },
+    headerSideLeft: { flex: 1, alignItems: "flex-start" },
+    headerCenter: { alignItems: "center", justifyContent: "center", paddingHorizontal: 4 },
+    headerSideRight: { flex: 1, alignItems: "flex-end" },
+
     teamsRow: {
         flexDirection: "row",
         alignItems: "center",
@@ -211,7 +157,6 @@ const styles = StyleSheet.create({
     finalScoreText: {
         fontSize: 28,
         fontWeight: "800",
-        letterSpacing: 0.3,
     },
     timeLarge: {
         fontSize: 32,
