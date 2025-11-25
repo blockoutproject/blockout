@@ -1,8 +1,8 @@
 package com.blockout.clubs.services;
 
 import com.blockout.clubs.exceptions.ClubNotFoundException;
-import com.blockout.clubs.models.Club;
 import com.blockout.clubs.models.dto.ClubUpdateDTO;
+import com.blockout.clubs.models.entities.Club;
 import com.blockout.clubs.repositories.ClubRepository;
 import com.blockout.clubs.services.clients.S3StorageClientService;
 import com.blockout.clubs.utils.DiffUtils;
@@ -122,12 +122,6 @@ public class ClubService {
      */
     @Transactional
     public Club updateClub(String id, ClubUpdateDTO dto, MultipartFile image) {
-
-        logger.info("Début de la mise à jour du club",
-                keyValue("action", "update_club_start"),
-                keyValue("clubId", id),
-                keyValue("rawName", dto.getRawName()),
-                keyValue("name", dto.getName()));
         return clubRepository.findById(id).map(existing -> {
             Club before = existing.toBuilder().build();
 
@@ -160,6 +154,11 @@ public class ClubService {
                             keyValue("fileName", image.getOriginalFilename()), e);
                     throw new RuntimeException("Échec de l’upload de l’image");
                 }
+            } else {
+                if (existing.getLogoUrl() != null) {
+                    s3StorageClient.deleteObjectByUrl(existing.getLogoUrl());
+                }
+                existing.setLogoUrl(null);
             }
 
             if (!existing.getActive()) {

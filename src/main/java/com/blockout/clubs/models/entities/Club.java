@@ -1,4 +1,4 @@
-package com.blockout.clubs.models;
+package com.blockout.clubs.models.entities;
 
 import lombok.Data;
 import lombok.NoArgsConstructor;
