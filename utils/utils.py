@@ -5,6 +5,7 @@ import json
 import re
 from typing import Optional
 import uuid
+from zoneinfo import ZoneInfo
 from config.logger_config import log_event
 
 # Charger le fichier JSON avec gestion des erreurs
@@ -68,7 +69,14 @@ def parse_date(date_str: str, time_str: str) -> Optional[datetime]:
     Convertit des chaînes de date et d'heure en objet datetime.
     """
     try:
-        return datetime.strptime(f'{date_str} {time_str}', '%Y-%m-%d %H:%M')
+        # 1) datetime NAÏF
+        naive = datetime.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M")
+
+        # 2) On dit clairement : cette date est en Europe/Paris
+        paris_time = naive.replace(tzinfo=ZoneInfo("Europe/Paris"))
+
+        # 3) On convertit en UTC → universel
+        return paris_time.astimezone(ZoneInfo("UTC"))
     except ValueError as e:
         # log_event(
         #     action="parse_date",
