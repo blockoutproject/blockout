@@ -18,14 +18,17 @@ public class TeamSearchController {
 
     private final TeamSearchService teamSearchService;
 
-    @Operation(summary = "Search teams", description = "Recherche des équipes par mots-clés sur plusieurs champs.")
+    @Operation(summary = "Search teams", description = "Recherche des équipes par mots-clés sur plusieurs champs, avec filtre saison optionnel.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Résultats trouvés"),
             @ApiResponse(responseCode = "204", description = "Aucun résultat trouvé")
     })
     @GetMapping
-    public ResponseEntity<List<TeamSearchDocDTO>> search(@RequestParam String query) {
-        List<TeamSearchDocDTO> results = teamSearchService.autocomplete(query);
+    public ResponseEntity<List<TeamSearchDocDTO>> search(
+            @RequestParam String query,
+            @RequestParam(required = false) String season
+    ) {
+        List<TeamSearchDocDTO> results = teamSearchService.autocomplete(query, season);
         return ResponseEntity.ok(results);
     }
 }

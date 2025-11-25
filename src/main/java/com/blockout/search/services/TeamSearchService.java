@@ -1,9 +1,7 @@
 package com.blockout.search.services;
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
-import co.elastic.clients.elasticsearch._types.query_dsl.Operator;
-import co.elastic.clients.elasticsearch._types.query_dsl.Query;
-import co.elastic.clients.elasticsearch._types.query_dsl.TextQueryType;
+import co.elastic.clients.elasticsearch._types.query_dsl.*;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.*;
@@ -28,38 +26,36 @@ public class TeamSearchService {
     private static final long TERMINATE_AFTER_QUERY = 5_000L;
     private static final String TIMEOUT = "150ms";
 
-    public List<TeamSearchDocDTO> autocomplete(String input) {
+    public List<TeamSearchDocDTO> autocomplete(String input, String season) {
         try {
-            System.out.println(input);
+
             if (input == null || input.isBlank()) {
+                Query base = Query.of(q -> q.functionScore(fs -> fs
+                        .query(inner -> inner.matchAll(m -> m))
+                        .functions(f -> f.randomScore(rs -> rs))
+                ));
+
+                Query finalQuery = applySeasonFilter(base, season);
+
                 SearchResponse<TeamSearchDocDTO> response = elasticsearchClient.search(
                         s -> s.index("teams")
                                 .trackTotalHits(t -> t.enabled(false))
                                 .size(SIZE_EMPTY)
                                 .terminateAfter(TERMINATE_AFTER_EMPTY)
                                 .timeout(TIMEOUT)
-                                .query(q -> q.functionScore(fs -> fs
-                                        .query(inner -> inner.matchAll(m -> m))
-                                        .functions(f -> f.randomScore(rs -> rs))))
-                                .source(src -> src.filter(f -> f
-                                        .includes(
-                                                "id",
-                                                "name",
-                                                "shortName",
-                                                "clubId",
-                                                "clubName",
-                                                "clubCity",
-                                                "logoUrl",
-                                                "divisionName",
-                                                "format",
-                                                "gender",
-                                                "season"))),
+                                .query(finalQuery)
+                                .source(src -> src.filter(f -> f.includes(
+                                        "id", "name", "shortName",
+                                        "clubId", "clubName", "clubCity",
+                                        "logoUrl", "divisionName",
+                                        "format", "gender", "season"
+                                ))),
                         TeamSearchDocDTO.class);
-                System.out.println(response.hits().hits().stream().map(h -> h.source()).toList().size());
+
                 return response.hits().hits().stream().map(h -> h.source()).toList();
             }
 
-            Query q = Query.of(qq -> qq.multiMatch(mm -> mm
+            Query multiMatchQuery = Query.of(qq -> qq.multiMatch(mm -> mm
                     .query(input)
                     .type(TextQueryType.BoolPrefix)
                     .fields(
@@ -69,8 +65,11 @@ public class TeamSearchService {
                             "clubCity^2", "clubCity._2gram^2", "clubCity._3gram^2",
                             "divisionName^2", "divisionName._2gram^2", "divisionName._3gram^2",
                             "season", "season._2gram", "season._3gram",
-                            "all")
+                            "all"
+                    )
                     .operator(Operator.And)));
+
+            Query finalQuery = applySeasonFilter(multiMatchQuery, season);
 
             SearchResponse<TeamSearchDocDTO> response = elasticsearchClient.search(
                     s -> s.index("teams")
@@ -78,20 +77,13 @@ public class TeamSearchService {
                             .size(SIZE_QUERY)
                             .terminateAfter(TERMINATE_AFTER_QUERY)
                             .timeout(TIMEOUT)
-                            .query(q)
-                            .source(src -> src.filter(f -> f
-                                    .includes(
-                                            "id",
-                                            "name",
-                                            "shortName",
-                                            "clubId",
-                                            "clubName",
-                                            "clubCity",
-                                            "logoUrl",
-                                            "divisionName",
-                                            "format",
-                                            "gender",
-                                            "season"))),
+                            .query(finalQuery)
+                            .source(src -> src.filter(f -> f.includes(
+                                    "id", "name", "shortName",
+                                    "clubId", "clubName", "clubCity",
+                                    "logoUrl", "divisionName",
+                                    "format", "gender", "season"
+                            ))),
                     TeamSearchDocDTO.class);
 
             return response.hits().hits().stream().map(h -> h.source()).toList();
@@ -100,5 +92,16 @@ public class TeamSearchService {
             logger.error("Error autocompleting teams: {}", e.getMessage());
             return Collections.emptyList();
         }
+    }
+
+    private Query applySeasonFilter(Query baseQuery, String season) {
+        if (season == null || season.isBlank())
+            return baseQuery;
+
+        Query seasonFilter = Query.of(q -> q.term(t -> t.field("season.keyword").value(season)));
+
+        return Query.of(q -> q.bool(b -> b
+                .must(baseQuery)
+                .filter(seasonFilter)));
     }
 }

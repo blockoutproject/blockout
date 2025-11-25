@@ -1,9 +1,7 @@
 package com.blockout.search.services;
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
-import co.elastic.clients.elasticsearch._types.query_dsl.Operator;
-import co.elastic.clients.elasticsearch._types.query_dsl.Query;
-import co.elastic.clients.elasticsearch._types.query_dsl.TextQueryType;
+import co.elastic.clients.elasticsearch._types.query_dsl.*;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
 
 import lombok.RequiredArgsConstructor;
@@ -24,43 +22,40 @@ public class PoolSearchService {
 
     private final ElasticsearchClient elasticsearchClient;
 
-    // Petites constantes pour éviter la "magie" dans le code
     private static final int SIZE_EMPTY = 5;
     private static final int SIZE_QUERY = 20;
-    private static final long TERMINATE_AFTER_EMPTY = 1_000L; // <-- L suffix
-    private static final long TERMINATE_AFTER_QUERY = 5_000L; // <-- L suffix
+    private static final long TERMINATE_AFTER_EMPTY = 1_000L;
+    private static final long TERMINATE_AFTER_QUERY = 5_000L;
     private static final String TIMEOUT = "150ms";
 
-    /** Autocomplete H24 */
-    public List<PoolSearchDocDTO> autocomplete(String input) {
+    public List<PoolSearchDocDTO> autocomplete(String input, String season) {
         try {
             if (input == null || input.isBlank()) {
+                Query base = Query.of(q -> q.functionScore(fs -> fs
+                        .query(inner -> inner.matchAll(m -> m))
+                        .functions(f -> f.randomScore(rs -> rs))
+                ));
+
+                Query finalQuery = applySeasonFilter(base, season);
+
                 SearchResponse<PoolSearchDocDTO> response = elasticsearchClient.search(
                         s -> s.index("pools")
                                 .trackTotalHits(t -> t.enabled(false))
                                 .size(SIZE_EMPTY)
                                 .terminateAfter(TERMINATE_AFTER_EMPTY)
                                 .timeout(TIMEOUT)
-                                .query(q -> q.functionScore(fs -> fs
-                                        .query(inner -> inner.matchAll(m -> m))
-                                        .functions(f -> f.randomScore(rs -> rs))))
-                                .source(src -> src.filter(f -> f
-                                        .includes(
-                                            "id", 
-                                            "name", 
-                                            "shortName", 
-                                            "divisionName", 
-                                            "leagueCode",
-                                            "leagueName", 
-                                            "season",
-                                            "gender",
-                                                "logoUrl"))),
+                                .query(finalQuery)
+                                .source(src -> src.filter(f -> f.includes(
+                                        "id", "name", "shortName",
+                                        "divisionName", "leagueCode", "leagueName",
+                                        "season", "gender", "logoUrl"
+                                ))),
                         PoolSearchDocDTO.class);
+
                 return response.hits().hits().stream().map(h -> h.source()).toList();
             }
 
-            // Autocomplete: bool_prefix sur search_as_you_type
-            Query q = Query.of(qq -> qq.multiMatch(mm -> mm
+            Query multiMatchQuery = Query.of(qq -> qq.multiMatch(mm -> mm
                     .query(input)
                     .type(TextQueryType.BoolPrefix)
                     .fields(
@@ -69,8 +64,11 @@ public class PoolSearchService {
                             "divisionName^2", "divisionName._2gram^2", "divisionName._3gram^2",
                             "leagueName^2", "leagueName._2gram^2", "leagueName._3gram^2",
                             "season", "season._2gram", "season._3gram",
-                            "all")
+                            "all"
+                    )
                     .operator(Operator.And)));
+
+            Query finalQuery = applySeasonFilter(multiMatchQuery, season);
 
             SearchResponse<PoolSearchDocDTO> response = elasticsearchClient.search(
                     s -> s.index("pools")
@@ -78,18 +76,12 @@ public class PoolSearchService {
                             .size(SIZE_QUERY)
                             .terminateAfter(TERMINATE_AFTER_QUERY)
                             .timeout(TIMEOUT)
-                            .query(q)
-                            .source(src -> src.filter(f -> f
-                                    .includes(
-                                            "id",
-                                            "name",
-                                            "shortName",
-                                            "divisionName",
-                                            "leagueCode",
-                                            "leagueName",
-                                            "season",
-                                            "gender",
-                                            "logoUrl"))),
+                            .query(finalQuery)
+                            .source(src -> src.filter(f -> f.includes(
+                                    "id", "name", "shortName",
+                                    "divisionName", "leagueCode", "leagueName",
+                                    "season", "gender", "logoUrl"
+                            ))),
                     PoolSearchDocDTO.class);
 
             return response.hits().hits().stream().map(h -> h.source()).toList();
@@ -98,5 +90,16 @@ public class PoolSearchService {
             logger.error("Error autocompleting pools: {}", e.getMessage());
             return Collections.emptyList();
         }
+    }
+
+    private Query applySeasonFilter(Query baseQuery, String season) {
+        if (season == null || season.isBlank()) return baseQuery;
+
+        Query seasonFilter = Query.of(q -> q.term(t -> t.field("season.keyword").value(season)));
+
+        return Query.of(q -> q.bool(b -> b
+                .must(baseQuery)
+                .filter(seasonFilter)
+        ));
     }
 }
