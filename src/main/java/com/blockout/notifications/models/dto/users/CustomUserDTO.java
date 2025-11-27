@@ -3,7 +3,7 @@ package com.blockout.notifications.models.dto.users;
 import lombok.Builder;
 import lombok.Data;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 @Data
@@ -18,7 +18,7 @@ public class CustomUserDTO {
     private String pictureUrl;
     private String phoneNumber;
     private Boolean active;
-    private LocalDateTime createdAt;
-    private LocalDateTime lastUpdate;
+    private Instant createdAt;
+    private Instant lastUpdate;
     private List<UserFavoriteDTO> favorites;
 }
