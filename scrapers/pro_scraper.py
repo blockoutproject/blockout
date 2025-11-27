@@ -1,9 +1,10 @@
 import asyncio
 from dataclasses import replace
-from datetime import datetime
+from datetime import datetime, timezone
 import re
 from typing import Optional, Tuple
 import xml.etree.ElementTree as ET
+from zoneinfo import ZoneInfo
 from bs4 import BeautifulSoup
 from api.config_api import create_raw_division_mapping, get_raw_division_mappings_by_league_and_season
 from api.pools_api import get_pools_by_league_and_season
@@ -221,10 +222,21 @@ class ProScraper(Scraper):
 
                 date_str = match_el.find("Date").text or "01-01-1970"
                 heure_str = match_el.find("Heure").text or "00:00:00"
-                match_datetime = datetime.strptime(f"{date_str} {heure_str}", "%d-%m-%Y %H:%M:%S")
-                
+
+                # 1) datetime naïf au format LNV (JJ-MM-AAAA HH:MM:SS)
+                naive = datetime.strptime(
+                    f"{date_str} {heure_str}",
+                    "%d-%m-%Y %H:%M:%S",
+                )
+
+                # 2) On dit : c'est de l'heure locale France (Europe/Paris)
+                paris_time = naive.replace(tzinfo=ZoneInfo("Europe/Paris"))
+
+                # 3) Conversion en UTC pour ton backend / Instant
+                match_datetime = paris_time.astimezone(timezone.utc)
+
                 set_value = validate_set_format(match_el.find("Score").text)
-                
+
                 score_details = []
                 for i in range(1, 6):
                     set_score = validate_set_score_format(match_el.find(f"Set{i}").text)
@@ -232,45 +244,40 @@ class ProScraper(Scraper):
                         score_details.append(set_score)
                 score_str = ",".join(score_details)
 
-                # 1) Lire le match existant dans le cache
                 cache_entry = self._matches_cache.get(match_key)
 
                 if cache_entry:
-                    # Déjà présent, on récupère l'existant (deuxième param car on recup les modif du scraping ffvb)
                     _, updated_obj, _, _ = cache_entry
                     existing_match = updated_obj
                 else:
                     existing_match = None
-                                
-                # 2) Construire l'updated_match
+
                 if existing_match:
                     updated_match = replace(existing_match)
                 else:
-                    # TODO :
-                    # Nouveau match "incomplet"
-                    # Remplir le strict nécessaire
+                    # Nouveau match incomplet : pour l'instant tu zappes
                     continue
 
-                # 3) Mettre à jour les champs
+                # On injecte bien un datetime UTC aware
                 updated_match.match_date = match_datetime
+
                 if set_value and set_value != "0-0":
                     updated_match.set = set_value
 
                 if score_str:
                     updated_match.score = score_str
 
-                # 4) Fusion dans le cache
                 self.schedule_match_changes(
                     updated_match=updated_match,
                     prefix="LNV-XML",
-                    priority=DataSourcePriority.LNV_XML
+                    priority=DataSourcePriority.LNV_XML,
                 )
         except Exception as e:
             log_event(
                 action="process_xml_matches_error",
                 level="error",
                 pool_id=pool_id,
-                message=str(e)
+                message=str(e),
             )
 
     async def process_xml_rank(self, rank_root: ET.Element, pool: Pool):
