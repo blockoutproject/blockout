@@ -52,7 +52,11 @@ public class MatchService {
      */
     @Transactional
     public Match createMatch(Match match) {
-        match.setStatus(MatchStatus.UPCOMING);
+        if (match.getSet() != null) {
+            match.setStatus(MatchStatus.FINISHED);
+        } else {
+            match.setStatus(MatchStatus.UPCOMING);
+        }
         Match createdMatch = matchRepository.save(match);
         logger.info("Match created successfully",
                 keyValue("action", "create_match"),
