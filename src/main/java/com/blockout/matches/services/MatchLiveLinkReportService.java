@@ -37,9 +37,9 @@ public class MatchLiveLinkReportService {
      */
     @Transactional
     public void reportLiveLink(Long matchId, MatchLiveLinkReportRequestDTO request, String auth0Id) {
-        // On ne peut reporter que le lien actif
+        // On ne peut reporter que le lien actif du match
         MatchLiveLink liveLink = liveLinkRepository
-                .findFirstByMatchIdAndStatusOrderByCreatedAtDesc(matchId, LiveLinkStatus.ACTIVE)
+                .findFirstByMatch_IdAndStatusOrderByCreatedAtDesc(matchId, LiveLinkStatus.ACTIVE)
                 .orElseThrow(() -> {
                     logger.warn("No active live link to report",
                             keyValue("action", "report_live_link"),
@@ -48,8 +48,8 @@ public class MatchLiveLinkReportService {
                     return new MatchNotFoundException(matchId);
                 });
 
-        // Un user ne peut reporter qu'une version donnée du lien une seule fois
-        if (liveLinkReportRepository.existsByLiveLinkIdAndReporterAuth0Id(liveLink.getId(), auth0Id)) {
+        // Un user ne peut reporter cette version qu'une seule fois
+        if (liveLinkReportRepository.existsByLiveLink_IdAndReporterAuth0Id(liveLink.getId(), auth0Id)) {
             logger.info("Live link already reported by this user for this version",
                     keyValue("action", "report_live_link_ignored"),
                     keyValue("live_link_id", liveLink.getId()),
@@ -58,9 +58,9 @@ public class MatchLiveLinkReportService {
             return;
         }
 
-        // On enregistre le report
+        // Enregistrement du report
         MatchLiveLinkReport report = MatchLiveLinkReport.builder()
-                .liveLinkId(liveLink.getId())
+                .liveLink(liveLink)
                 .reporterAuth0Id(auth0Id)
                 .reason(request.getReason())
                 .createdAt(Instant.now())
@@ -69,12 +69,15 @@ public class MatchLiveLinkReportService {
         liveLinkReportRepository.save(report);
 
         // Recalcul du nombre total de reports pour ce lien
-        long reportsCount = liveLinkReportRepository.countByLiveLinkId(liveLink.getId());
+        long reportsCount = liveLinkReportRepository.countByLiveLink_Id(liveLink.getId());
         liveLink.setReportCount((int) reportsCount);
 
-        Match match = matchRepository.findById(matchId).orElse(null);
+        // On récupère le match pour appliquer un seuil dynamique
+        Match match = liveLink.getMatch();
+        if (match == null) {
+            match = matchRepository.findById(matchId).orElse(null);
+        }
 
-        // Seuil dynamique (live vs rediff finale figée)
         int threshold = moderationPolicy.determineAutoHideThreshold(match);
 
         // Auto-hide si seuil atteint

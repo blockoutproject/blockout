@@ -8,9 +8,14 @@ import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
@@ -26,22 +31,45 @@ public class MatchLiveLinkModerationPolicy {
     private static final int MAX_LINKS_PER_MATCH_PER_OWNER = 3;
     private static final int MAX_MATCHES_PER_DAY_PER_OWNER = 3;
 
-    // Règles "pro" (LNV)
+    // Règles matches pros
     private static final String PRO_LEAGUE_CODE = "AALNV";
 
     // Règles de reports
     private static final int AUTO_HIDE_THRESHOLD = 3;
     private static final int FINAL_AUTO_HIDE_THRESHOLD = 10;
 
-    // Règles rediff (post-match)
-    private static final int REDIFF_EDIT_WINDOW_DAYS = 7;
-    private static final int MAX_REDIFF_UPDATES_PER_OWNER = 2;
+    // Règles post-match
+    private static final int POST_MATCH_EDIT_WINDOW_DAYS = 7;
+    private static final int MAX_POST_MATCH_LINKS_PER_OWNER = 2;
+
+    private static final ZoneId PARIS = ZoneId.of("Europe/Paris");
+    private static final String MOD_SCOPE = "SCOPE_moderate:match_live_link";
 
     /**
-     * Vérifie l'ancienneté du compte avant d'autoriser la publication d'un live
-     * link.
+     * Retourne true si l'utilisateur courant a le scope de modération.
+     */
+    private boolean isModerator() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null) {
+            return false;
+        }
+        for (GrantedAuthority authority : auth.getAuthorities()) {
+            if (MOD_SCOPE.equals(authority.getAuthority())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Vérifie l'ancienneté du compte avant d'autoriser la publication d'un lien.
+     * (admin/modo : passe au travers).
      */
     public void validateUserAccountAge(CustomUserDTO currentUser, Long matchId, String auth0Id, Instant now) {
+        if (isModerator()) {
+            return;
+        }
+
         if (currentUser == null || currentUser.getCreatedAt() == null) {
             logger.warn("Current user not found or has no createdAt while setting live link",
                     keyValue("action", "set_live_link"),
@@ -51,7 +79,9 @@ public class MatchLiveLinkModerationPolicy {
         }
 
         Instant threshold = now.minus(MIN_ACCOUNT_AGE_DAYS, ChronoUnit.DAYS);
-        Instant userCreatedAt = currentUser.getCreatedAt();
+        Instant userCreatedAt = currentUser.getCreatedAt()
+                .atZone(PARIS)
+                .toInstant();
 
         if (userCreatedAt.isAfter(threshold)) {
             logger.info("User too recent to set live link",
@@ -67,9 +97,12 @@ public class MatchLiveLinkModerationPolicy {
     }
 
     /**
-     * Bloque les matchs pros (droits de diffusion réservés).
+     * Bloque les matchs pros (ici tu peux décider si l'admin doit aussi être bloqué ou pas).
      */
     public void validateMatchLeague(Match match, Long matchId, String auth0Id) {
+        // Si tu veux que l'admin puisse aussi bypass ça, décommente :
+        // if (isModerator()) return;
+
         if (PRO_LEAGUE_CODE.equalsIgnoreCase(match.getLeagueCode())) {
             logger.info("Live link refused for professional match",
                     keyValue("action", "set_live_link_rejected_pro_match"),
@@ -83,33 +116,42 @@ public class MatchLiveLinkModerationPolicy {
 
     /**
      * Autorise la publication au plus tôt 1h avant le début du match.
+     * (admin/modo : pas de limite de fenêtre).
      */
     public void validatePublishWindow(Match match, Instant now, Long matchId, String auth0Id) {
-        Instant matchDate = match.getMatchDate();
-        if (matchDate == null) {
-            throw new IllegalStateException("Le match n'est pas encore défini.");
+        if (isModerator()) {
+            return;
         }
 
-        // On autorise à partir de 1h avant l'instant du match
-        Instant startAllowed = matchDate.minus(1, ChronoUnit.HOURS);
+        if (match.getMatchDate() == null) {
+            return;
+        }
 
-        if (now.isBefore(startAllowed)) {
+        ZonedDateTime matchStartParis = ZonedDateTime.ofInstant(match.getMatchDate(), PARIS);
+        ZonedDateTime startAllowedParis = matchStartParis.minusHours(1);
+        ZonedDateTime nowParis = ZonedDateTime.ofInstant(now, PARIS);
+
+        if (nowParis.isBefore(startAllowedParis)) {
             logger.info("Live link refused because too early before match",
                     keyValue("action", "set_live_link_rejected_too_early"),
                     keyValue("match_id", matchId),
                     keyValue("auth0_id", auth0Id),
-                    keyValue("match_date", matchDate),
-                    keyValue("now", now),
-                    keyValue("start_allowed", startAllowed));
+                    keyValue("match_date", match.getMatchDate()),
+                    keyValue("now", nowParis));
             throw new IllegalStateException(
                     "Tu pourras publier le lien de live une heure avant le début du match.");
         }
     }
 
     /**
-     * Vérifie que l'utilisateur est propriétaire du lien actif avant modif.
+     * Vérifie que l'utilisateur est propriétaire du lien actif avant modification.
+     * (admin/modo : peut modifier n'importe quel lien).
      */
     public void validateOwnerOfActiveLink(MatchLiveLink active, String auth0Id, Long matchId) {
+        if (isModerator()) {
+            return;
+        }
+
         if (!auth0Id.equals(active.getOwnerAuth0Id())) {
             logger.warn("User tried to set live link for a match with an active link owned by someone else",
                     keyValue("action", "set_live_link_forbidden_other_owner_active"),
@@ -123,9 +165,8 @@ public class MatchLiveLinkModerationPolicy {
     }
 
     /**
-     * Applique les quotas "live" :
-     * - max de versions par match
-     * - max de matchs par jour.
+     * Applique les quotas "live" (versions/match + matchs/jour).
+     * (admin/modo : aucun quota).
      */
     public void validateLinkQuotas(
             Long matchId,
@@ -133,6 +174,10 @@ public class MatchLiveLinkModerationPolicy {
             long linksForMatchAndOwner,
             long matchesToday,
             boolean alreadyHasLinkForThisMatch) {
+
+        if (isModerator()) {
+            return;
+        }
 
         if (linksForMatchAndOwner >= MAX_LINKS_PER_MATCH_PER_OWNER) {
             logger.info("User reached per-match live link limit",
@@ -155,84 +200,90 @@ public class MatchLiveLinkModerationPolicy {
     }
 
     /**
-     * Règles post-match : fenêtre de 7 jours + max 2 rediff par owner + owner du
-     * lien.
+     * Règles pour les liens créés après le match.
+     * (admin/modo : peut créer/éditer sans limite ni fenêtre).
      */
-    public void validatePostMatchRediffRules(
+    public void validatePostMatchLinkRules(
             Match match,
             MatchLiveLink active,
             String auth0Id,
             Long matchId,
             Instant now,
-            long rediffCountForOwner) {
-        // Si le match est déjà "figé", on ne touche plus à la rediff
+            long postMatchLinkCountForOwner
+    ) {
+        if (isModerator()) {
+            return;
+        }
+
         if (match.isLiveEditLocked()) {
-            logger.info("Live link refused because match is locked (post-match rediff)",
+            logger.info("Live link refused because match is locked (post-match)",
                     keyValue("action", "set_live_link_rejected_locked"),
                     keyValue("match_id", matchId),
                     keyValue("auth0_id", auth0Id));
             throw new IllegalStateException("Ce match est verrouillé, le lien ne peut plus être modifié.");
         }
 
-        // Seul le diffuseur actuel peut mettre à jour la rediff existante
         if (active != null && !auth0Id.equals(active.getOwnerAuth0Id())) {
-            logger.warn("User tried to update final link but is not owner",
+            logger.warn("User tried to update post-match link but is not owner",
                     keyValue("action", "set_live_link_forbidden_post_match_not_owner"),
                     keyValue("match_id", matchId),
                     keyValue("auth0_id", auth0Id),
                     keyValue("owner_auth0_id", active.getOwnerAuth0Id()),
                     keyValue("active_link_id", active.getId()));
             throw new AccessDeniedException(
-                    "Seul l’utilisateur qui a diffusé ce match peut mettre à jour la rediffusion.");
+                    "Seul l’utilisateur qui a diffusé ce match peut mettre à jour le lien après match.");
         }
 
-        // Fenêtre de 7 jours après la date du match
         if (match.getMatchDate() != null) {
-            Instant limit = match.getMatchDate().plus(REDIFF_EDIT_WINDOW_DAYS, ChronoUnit.DAYS);
+            Instant limit = match.getMatchDate().plus(POST_MATCH_EDIT_WINDOW_DAYS, ChronoUnit.DAYS);
             if (now.isAfter(limit)) {
-                logger.info("Rediff update refused because beyond edit window",
-                        keyValue("action", "set_live_link_rejected_rediff_window"),
+                logger.info("Post-match link refused because beyond edit window",
+                        keyValue("action", "set_live_link_rejected_post_match_window"),
                         keyValue("match_id", matchId),
                         keyValue("auth0_id", auth0Id),
                         keyValue("match_date", match.getMatchDate()),
                         keyValue("now", now),
                         keyValue("limit", limit));
                 throw new IllegalStateException(
-                        "Tu ne peux plus modifier la rediffusion une semaine après le match.");
+                        "Tu ne peux plus modifier ou ajouter un lien une semaine après le match.");
             }
         }
 
-        // Max 2 rediff pour ce match et cet owner
-        if (rediffCountForOwner >= MAX_REDIFF_UPDATES_PER_OWNER) {
-            logger.info("Rediff update refused because user reached rediff limit",
-                    keyValue("action", "set_live_link_rejected_rediff_quota"),
+        if (postMatchLinkCountForOwner >= MAX_POST_MATCH_LINKS_PER_OWNER) {
+            logger.info("Post-match link refused because user reached post-match link limit",
+                    keyValue("action", "set_live_link_rejected_post_match_quota"),
                     keyValue("match_id", matchId),
                     keyValue("auth0_id", auth0Id),
-                    keyValue("rediff_count_for_owner", rediffCountForOwner));
+                    keyValue("post_match_link_count_for_owner", postMatchLinkCountForOwner));
             throw new IllegalStateException(
-                    "Tu as déjà mis à jour la rediffusion trop de fois pour ce match.");
+                    "Tu as déjà mis à jour le lien après match trop de fois pour ce match.");
         }
     }
 
     /**
-     * Décide si on doit verrouiller définitivement les rediff après cette
-     * sauvegarde.
+     * Décide si on doit verrouiller définitivement l'édition des liens.
+     * (admin/modo : tu peux choisir de bypasser ou non).
      */
-    public boolean shouldLockRediffAfterSave(Match match, long rediffCountAfterSave, Instant now) {
-        boolean reachedMaxRediff = rediffCountAfterSave >= MAX_REDIFF_UPDATES_PER_OWNER;
+    public boolean shouldLockLinkEditingAfterSave(Match match, long postMatchLinkCountAfterSave, Instant now) {
+        if (isModerator()) {
+            // Si tu veux que l'admin ne verrouille jamais les liens à cause des quotas/fenêtres :
+            return false;
+        }
+
+        boolean reachedMaxPostMatchLinks = postMatchLinkCountAfterSave >= MAX_POST_MATCH_LINKS_PER_OWNER;
 
         boolean outOfWindow = false;
         if (match.getMatchDate() != null) {
-            Instant limit = match.getMatchDate().plus(REDIFF_EDIT_WINDOW_DAYS, ChronoUnit.DAYS);
+            Instant limit = match.getMatchDate().plus(POST_MATCH_EDIT_WINDOW_DAYS, ChronoUnit.DAYS);
             outOfWindow = now.isAfter(limit);
         }
 
-        // On fige si on a atteint le quota ou si on sort de la fenêtre
-        return reachedMaxRediff || outOfWindow;
+        return reachedMaxPostMatchLinks || outOfWindow;
     }
 
     /**
-     * Retourne le seuil de reports pour auto-hide (différent pour rediff finale).
+     * Seuil de reports pour auto-hide.
+     * (admin/modo n'a pas de traitement particulier ici → c'est global).
      */
     public int determineAutoHideThreshold(Match match) {
         int threshold = AUTO_HIDE_THRESHOLD;
@@ -244,8 +295,13 @@ public class MatchLiveLinkModerationPolicy {
 
     /**
      * Vérifie que l'utilisateur peut masquer/supprimer le lien actif.
+     * (admin/modo : peut supprimer n'importe quel lien).
      */
     public void validateDeletePermission(MatchLiveLink link, String auth0Id, Long matchId) {
+        if (isModerator()) {
+            return;
+        }
+
         if (!auth0Id.equals(link.getOwnerAuth0Id())) {
             logger.warn("User tried to delete a live link he does not own",
                     keyValue("action", "delete_live_link_forbidden_not_owner"),

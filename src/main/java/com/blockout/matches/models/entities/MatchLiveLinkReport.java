@@ -20,8 +20,9 @@ public class MatchLiveLinkReport {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "live_link_id", nullable = false)
-    private Long liveLinkId;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "live_link_id", nullable = false)
+    private MatchLiveLink liveLink;
 
     @Column(name = "reporter_auth0_id", nullable = false, length = 255)
     private String reporterAuth0Id;
@@ -34,6 +35,6 @@ public class MatchLiveLinkReport {
 
     @PrePersist
     public void prePersist() {
-        createdAt = Instant.now();
+            createdAt = Instant.now();
     }
 }

@@ -8,9 +8,7 @@ import lombok.*;
 import java.time.Instant;
 
 @Entity
-@Table(name = "match_live_links", uniqueConstraints = {
-        @UniqueConstraint(name = "uix_match_live_links_match", columnNames = "match_id")
-})
+@Table(name = "match_live_links")
 @Getter
 @Setter
 @Builder(toBuilder = true)
@@ -22,8 +20,9 @@ public class MatchLiveLink {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "match_id", nullable = false)
-    private Long matchId;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "match_id", nullable = false)
+    private Match match;
 
     @Column(name = "owner_auth0_id", nullable = false, length = 255)
     private String ownerAuth0Id;

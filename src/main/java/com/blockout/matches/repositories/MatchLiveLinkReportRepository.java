@@ -6,7 +6,7 @@ import com.blockout.matches.models.entities.MatchLiveLinkReport;
 
 public interface MatchLiveLinkReportRepository extends JpaRepository<MatchLiveLinkReport, Long> {
 
-    boolean existsByLiveLinkIdAndReporterAuth0Id(Long liveLinkId, String reporterAuth0Id);
+    boolean existsByLiveLink_IdAndReporterAuth0Id(Long liveLinkId, String reporterAuth0Id);
 
-    long countByLiveLinkId(Long liveLinkId);
+    long countByLiveLink_Id(Long liveLinkId);
 }

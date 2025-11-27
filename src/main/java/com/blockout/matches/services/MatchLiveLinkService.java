@@ -1,6 +1,7 @@
 package com.blockout.matches.services;
 
 import com.blockout.matches.exceptions.MatchNotFoundException;
+import com.blockout.matches.models.dto.match.MatchDTO;
 import com.blockout.matches.models.dto.match.MatchLiveLinkRequestDTO;
 import com.blockout.matches.models.dto.match.MatchLiveLinkResponseDTO;
 import com.blockout.matches.models.dto.users.CustomUserDTO;
@@ -26,7 +27,9 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
@@ -51,23 +54,26 @@ public class MatchLiveLinkService {
     @Transactional(readOnly = true)
     public MatchLiveLinkResponseDTO getActiveLiveLink(Long matchId) {
         return liveLinkRepository
-                .findFirstByMatchIdAndStatusOrderByCreatedAtDesc(matchId, LiveLinkStatus.ACTIVE)
+                .findFirstByMatch_IdAndStatusOrderByCreatedAtDesc(matchId, LiveLinkStatus.ACTIVE)
                 .map(this::toResponseDto)
                 .orElse(null);
     }
 
+    /**
+     * Création / mise à jour d'un lien de match.
+     * - avant/pendant match → ACTIVE directement
+     * - après match → PENDING (validation admin)
+     */
     @Transactional
     public MatchLiveLinkResponseDTO upsertLiveLink(Long matchId, MatchLiveLinkRequestDTO request, String auth0Id) {
         CustomUserDTO currentUser = usersClientService.getCurrentUser();
         Instant now = Instant.now();
 
-        // Règle: ancienneté minimum du compte
+        // Anti-abus général (sauf modérateurs)
         moderationPolicy.validateUserAccountAge(currentUser, matchId, auth0Id, now);
 
-        // Valide l'URL et déduit le provider (YouTube/Twitch/Facebook)
         LiveProvider provider = resolveProviderFromUrl(request);
 
-        // Chargement du match
         Match match = matchRepository.findById(matchId)
                 .orElseThrow(() -> {
                     logger.warn("Match not found while setting live link",
@@ -77,33 +83,31 @@ public class MatchLiveLinkService {
                     return new MatchNotFoundException(matchId);
                 });
 
-        // Règle: pas de lien sur les matchs pros
         moderationPolicy.validateMatchLeague(match, matchId, auth0Id);
 
         boolean isFinished = match.getStatus() == MatchStatus.FINISHED;
 
         var activeOpt = liveLinkRepository
-                .findFirstByMatchIdAndStatusOrderByCreatedAtDesc(matchId, LiveLinkStatus.ACTIVE);
+                .findFirstByMatch_IdAndStatusOrderByCreatedAtDesc(matchId, LiveLinkStatus.ACTIVE);
 
-        // Cas: match terminé → gestion rediffusion finale (avec nouvelles règles)
+        // Cas post-match → lien en attente de validation (PENDING)
         if (isFinished) {
-            // On ne compte que les liens créés après la date du match comme "rediff"
-            long rediffCountForOwner = 0L;
+            long postMatchLinkCountForOwner = 0L;
             if (match.getMatchDate() != null) {
-                rediffCountForOwner = liveLinkRepository
-                        .countByMatchIdAndOwnerAuth0IdAndCreatedAtAfter(
+                postMatchLinkCountForOwner = liveLinkRepository
+                        .countByMatch_IdAndOwnerAuth0IdAndCreatedAtAfter(
                                 matchId,
                                 auth0Id,
                                 match.getMatchDate());
             }
 
-            moderationPolicy.validatePostMatchRediffRules(
+            moderationPolicy.validatePostMatchLinkRules(
                     match,
                     activeOpt.orElse(null),
                     auth0Id,
                     matchId,
                     now,
-                    rediffCountForOwner);
+                    postMatchLinkCountForOwner);
 
             return handlePostMatchUpsert(
                     match,
@@ -113,23 +117,21 @@ public class MatchLiveLinkService {
                     auth0Id,
                     currentUser,
                     now,
-                    rediffCountForOwner);
+                    postMatchLinkCountForOwner);
         }
 
-        // Cas: match non terminé → fenêtre temporelle (1h avant)
+        // Cas live (match non terminé) → fenêtre 1h avant
         moderationPolicy.validatePublishWindow(match, now, matchId, auth0Id);
 
-        // Si un lien actif existe déjà
         if (activeOpt.isPresent()) {
             MatchLiveLink active = activeOpt.get();
 
-            // Vérifie que l'utilisateur a les droits sur le lien actif
+            // Proprio ou modérateur
             moderationPolicy.validateOwnerOfActiveLink(active, auth0Id, matchId);
 
             boolean sameProvider = active.getProvider() == provider;
             boolean sameUrl = request.getUrl().equals(active.getUrl());
             if (sameProvider && sameUrl) {
-                // Pas de changement → on renvoie la version existante
                 logger.info("Live link unchanged, skipping new version",
                         keyValue("action", "set_live_link_noop"),
                         keyValue("match_id", matchId),
@@ -139,8 +141,7 @@ public class MatchLiveLinkService {
             }
         }
 
-        // Calcul des quotas "live" par match et par jour
-        long linksForMatchAndOwner = liveLinkRepository.countByMatchIdAndOwnerAuth0Id(matchId, auth0Id);
+        long linksForMatchAndOwner = liveLinkRepository.countByMatch_IdAndOwnerAuth0Id(matchId, auth0Id);
 
         ZonedDateTime nowParis = ZonedDateTime.ofInstant(now, PARIS);
         Instant startOfDayParisUtc = nowParis.toLocalDate().atStartOfDay(PARIS).toInstant();
@@ -153,7 +154,7 @@ public class MatchLiveLinkService {
 
         boolean alreadyHasLinkForThisMatch = linksForMatchAndOwner > 0;
 
-        // Règle: quotas (versions / match + matchs / jour)
+        // Quotas standard (ignorés pour modérateurs)
         moderationPolicy.validateLinkQuotas(
                 matchId,
                 auth0Id,
@@ -161,16 +162,16 @@ public class MatchLiveLinkService {
                 matchesToday,
                 alreadyHasLinkForThisMatch);
 
-        // Expiration de l'ancien lien actif éventuel
+        // On expire l'ancien lien actif s'il existe
         activeOpt.ifPresent(active -> {
             active.setStatus(LiveLinkStatus.EXPIRED);
             active.setLastUpdate(now);
             liveLinkRepository.save(active);
         });
 
-        // Création d'une nouvelle version ACTIVE (live pendant/avant match)
+        // Avant/pendant match → lien directement actif
         MatchLiveLink newLink = MatchLiveLink.builder()
-                .matchId(match.getId())
+                .match(match)
                 .ownerAuth0Id(auth0Id)
                 .provider(provider)
                 .url(request.getUrl())
@@ -195,14 +196,15 @@ public class MatchLiveLinkService {
         return toResponseDto(saved);
     }
 
+    /**
+     * Suppression logique du lien actif (owner ou modérateur).
+     */
     @Transactional
     public void deleteLiveLink(Long matchId, String auth0Id) {
-        liveLinkRepository.findFirstByMatchIdAndStatusOrderByCreatedAtDesc(matchId, LiveLinkStatus.ACTIVE)
+        liveLinkRepository.findFirstByMatch_IdAndStatusOrderByCreatedAtDesc(matchId, LiveLinkStatus.ACTIVE)
                 .ifPresent(link -> {
-                    // Vérifie que l'utilisateur est bien owner du lien
                     moderationPolicy.validateDeletePermission(link, auth0Id, matchId);
 
-                    // On masque logiquement le lien
                     link.setStatus(LiveLinkStatus.HIDDEN);
                     link.setLastUpdate(Instant.now());
                     liveLinkRepository.save(link);
@@ -215,6 +217,131 @@ public class MatchLiveLinkService {
                 });
     }
 
+    /**
+     * Liste tous les liens en statut PENDING, projetés en MatchDTO.
+     * On injecte dans le DTO les infos du lien pending (url, provider, owner).
+     */
+    @Transactional(readOnly = true)
+    public List<MatchDTO> listPendingLinks() {
+        List<MatchLiveLink> pending = liveLinkRepository.findByStatusWithMatch(LiveLinkStatus.PENDING);
+        if (pending.isEmpty()) {
+            return List.of();
+        }
+
+        return pending.stream()
+                .map(link -> {
+                    Match match = link.getMatch();
+                    if (match == null) {
+                        return null;
+                    }
+
+                    return MatchDTO.builder()
+                            .id(match.getId())
+                            .matchCode(match.getMatchCode())
+                            .leagueCode(match.getLeagueCode())
+                            .poolId(match.getPoolId())
+                            .liveCode(match.getLiveCode())
+                            .teamIdA(match.getTeamIdA())
+                            .teamIdB(match.getTeamIdB())
+                            .matchDate(match.getMatchDate())
+                            .season(match.getSeason())
+                            .set(match.getSet())
+                            .score(match.getScore())
+                            .status(match.getStatus())
+                            .venue(match.getVenue())
+                            .firstReferee(match.getFirstReferee())
+                            .secondReferee(match.getSecondReferee())
+                            // Infos du lien PENDING (candidat)
+                            .liveUrl(link.getUrl())
+                            .liveProvider(link.getProvider())
+                            .liveOwnerAuth0Id(link.getOwnerAuth0Id())
+                            .liveEditLocked(match.isLiveEditLocked())
+                            .build();
+                })
+                .filter(Objects::nonNull)
+                .toList();
+    }
+
+    /**
+     * Approuve un lien PENDING → ACTIVE.
+     */
+    @Transactional
+    public void approvePendingLink(Long liveLinkId, String adminAuth0Id) {
+        MatchLiveLink link = liveLinkRepository.findById(liveLinkId)
+                .orElseThrow(() -> new IllegalStateException("Lien introuvable."));
+
+        if (link.getStatus() != LiveLinkStatus.PENDING) {
+            throw new IllegalStateException("Ce lien n'est pas en attente de validation.");
+        }
+
+        Match match = link.getMatch();
+        if (match == null) {
+            match = matchRepository.findById(link.getMatch().getId())
+                    .orElseThrow(() -> new MatchNotFoundException(link.getMatch().getId()));
+        }
+
+        Instant now = Instant.now();
+
+        link.setStatus(LiveLinkStatus.ACTIVE);
+        link.setLastUpdate(now);
+        liveLinkRepository.save(link);
+
+        long postMatchLinkCountForOwner = 0L;
+        if (match.getMatchDate() != null) {
+            postMatchLinkCountForOwner = liveLinkRepository
+                    .countByMatch_IdAndOwnerAuth0IdAndCreatedAtAfter(
+                            match.getId(),
+                            link.getOwnerAuth0Id(),
+                            match.getMatchDate());
+        }
+
+        long postMatchLinkCountAfterSave = postMatchLinkCountForOwner;
+
+        if (moderationPolicy.shouldLockLinkEditingAfterSave(match, postMatchLinkCountAfterSave, now)) {
+            match.setLiveEditLocked(true);
+        }
+
+        match.setLastUpdate(now);
+        matchRepository.save(match);
+
+        logger.info("Pending live link approved by admin",
+                keyValue("action", "approve_pending_live_link"),
+                keyValue("live_link_id", link.getId()),
+                keyValue("match_id", match.getId()),
+                keyValue("owner_auth0_id", link.getOwnerAuth0Id()),
+                keyValue("admin_auth0_id", adminAuth0Id),
+                keyValue("post_match_link_count_after_save", postMatchLinkCountAfterSave));
+    }
+
+    /**
+     * Refuse un lien PENDING → REJECTED.
+     */
+    @Transactional
+    public void rejectPendingLink(Long liveLinkId, String adminAuth0Id) {
+        MatchLiveLink link = liveLinkRepository.findById(liveLinkId)
+                .orElseThrow(() -> new IllegalStateException("Lien introuvable."));
+
+        if (link.getStatus() != LiveLinkStatus.PENDING) {
+            throw new IllegalStateException("Ce lien n'est pas en attente de validation.");
+        }
+
+        Instant now = Instant.now();
+
+        link.setStatus(LiveLinkStatus.REJECTED);
+        link.setLastUpdate(now);
+        liveLinkRepository.save(link);
+
+        logger.info("Pending live link rejected by admin",
+                keyValue("action", "reject_pending_live_link"),
+                keyValue("live_link_id", link.getId()),
+                keyValue("match_id", link.getMatch() != null ? link.getMatch().getId() : null),
+                keyValue("owner_auth0_id", link.getOwnerAuth0Id()),
+                keyValue("admin_auth0_id", adminAuth0Id));
+    }
+
+    /**
+     * Cas post-match : création d'une nouvelle version PENDING.
+     */
     private MatchLiveLinkResponseDTO handlePostMatchUpsert(
             Match match,
             MatchLiveLink active,
@@ -223,43 +350,34 @@ public class MatchLiveLinkService {
             String auth0Id,
             CustomUserDTO currentUser,
             Instant now,
-            long rediffCountForOwner) {
+            long postMatchLinkCountForOwner) {
 
         Long matchId = match.getId();
 
-        // Si une rediff existe, on la passe en EXPIRED
         if (active != null) {
             active.setStatus(LiveLinkStatus.EXPIRED);
             active.setLastUpdate(now);
             liveLinkRepository.save(active);
         }
 
-        // Création de la rediff ACTIVE
-        MatchLiveLink finalLink = MatchLiveLink.builder()
-                .matchId(match.getId())
+        MatchLiveLink pendingLink = MatchLiveLink.builder()
+                .match(match)
                 .ownerAuth0Id(auth0Id)
                 .provider(provider)
                 .url(request.getUrl())
-                .status(LiveLinkStatus.ACTIVE)
+                .status(LiveLinkStatus.PENDING)
                 .reportCount(0)
                 .createdAt(now)
                 .lastUpdate(now)
                 .build();
 
-        MatchLiveLink saved = liveLinkRepository.save(finalLink);
-
-        long rediffCountAfterSave = rediffCountForOwner + 1;
-
-        // On fige quand on a atteint le quota ou dépassé la fenêtre
-        if (moderationPolicy.shouldLockRediffAfterSave(match, rediffCountAfterSave, now)) {
-            match.setLiveEditLocked(true);
-        }
+        MatchLiveLink saved = liveLinkRepository.save(pendingLink);
 
         match.setLastUpdate(now);
         matchRepository.save(match);
 
-        logger.info("Post-match rediff live link created",
-                keyValue("action", "set_live_link_post_match_rediff"),
+        logger.info("Post-match link created in pending status",
+                keyValue("action", "set_live_link_post_match_pending"),
                 keyValue("match_id", matchId),
                 keyValue("provider", saved.getProvider()),
                 keyValue("url", saved.getUrl()),
@@ -267,14 +385,14 @@ public class MatchLiveLinkService {
                 keyValue("owner_auth0_id", saved.getOwnerAuth0Id()),
                 keyValue("user_id", currentUser.getId()),
                 keyValue("version_id", saved.getId()),
-                keyValue("rediff_count_after_save", rediffCountAfterSave));
+                keyValue("post_match_link_count_for_owner", postMatchLinkCountForOwner));
 
         return toResponseDto(saved);
     }
 
     private MatchLiveLinkResponseDTO toResponseDto(MatchLiveLink entity) {
         return MatchLiveLinkResponseDTO.builder()
-                .matchId(entity.getMatchId())
+                .matchId(entity.getMatch() != null ? entity.getMatch().getId() : null)
                 .provider(entity.getProvider())
                 .url(entity.getUrl())
                 .status(entity.getStatus())

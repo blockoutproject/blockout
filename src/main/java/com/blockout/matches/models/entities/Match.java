@@ -1,14 +1,9 @@
 package com.blockout.matches.models.entities;
 
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-
+import lombok.*;
 import jakarta.persistence.*;
-
 import java.time.Instant;
+import java.util.List;
 
 import com.blockout.matches.models.enums.MatchStatus;
 
@@ -36,7 +31,7 @@ public class Match {
     @Column(name = "pool_id", nullable = false)
     private Long poolId;
 
-    @Column(name = "live_code", nullable = true)
+    @Column(name = "live_code")
     private Long liveCode;
 
     @Column(name = "live_edit_locked", nullable = false)
@@ -54,7 +49,7 @@ public class Match {
     @Column(name = "season", nullable = false)
     private String season;
 
-    @Column(name = "set")
+    @Column(name = "\"set\"")
     private String set;
 
     @Column(name = "score")
@@ -83,10 +78,14 @@ public class Match {
     @Column(name = "last_update", nullable = false)
     private Instant lastUpdate;
 
+    @OneToMany(mappedBy = "match", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<MatchLiveLink> liveLinks;
+
     @PrePersist
     public void prePersist() {
-        createdAt = Instant.now();
-        lastUpdate = Instant.now();
+        Instant now = Instant.now();
+        createdAt = now;
+        lastUpdate = now;
     }
 
     @PreUpdate

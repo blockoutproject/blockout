@@ -225,7 +225,7 @@ public class MatchService {
         });
 
         MatchLiveLink live = matchLiveLinkRepository
-                .findFirstByMatchIdAndStatusOrderByCreatedAtDesc(id, LiveLinkStatus.ACTIVE)
+                .findFirstByMatch_IdAndStatusOrderByCreatedAtDesc(id, LiveLinkStatus.ACTIVE)
                 .orElse(null);
 
         return MatchDTO.builder()
