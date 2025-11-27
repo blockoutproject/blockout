@@ -4,10 +4,10 @@ CREATE TABLE match_live_links (
     owner_auth0_id VARCHAR(255) NOT NULL,
     provider VARCHAR(32) NOT NULL CHECK (provider IN ('YOUTUBE', 'TWITCH', 'FACEBOOK')),
     url VARCHAR(1024) NOT NULL,
-    status VARCHAR(32) NOT NULL CHECK (status IN ('ACTIVE', 'HIDDEN', 'EXPIRED')),
+    status VARCHAR(32) NOT NULL CHECK (status IN ('ACTIVE', 'HIDDEN', 'EXPIRED', 'PENDING', 'REJECTED')),
     report_count INT NOT NULL DEFAULT 0,
-    created_at TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    last_update TIMESTAMP(6),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_update TIMESTAMPTZ,
 
     CONSTRAINT fk_match_live_links_match
         FOREIGN KEY (match_id) REFERENCES matches (id)
@@ -19,7 +19,7 @@ CREATE TABLE match_live_link_reports (
     live_link_id BIGINT NOT NULL,
     reporter_auth0_id VARCHAR(255) NOT NULL,
     reason VARCHAR(512),
-    created_at TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT fk_match_live_link_reports_live_link
         FOREIGN KEY (live_link_id) REFERENCES match_live_links (id)
