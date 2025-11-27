@@ -92,22 +92,12 @@ public class MatchLiveLinkService {
 
         // Cas post-match → lien en attente de validation (PENDING)
         if (isFinished) {
-            long postMatchLinkCountForOwner = 0L;
-            if (match.getMatchDate() != null) {
-                postMatchLinkCountForOwner = liveLinkRepository
-                        .countByMatch_IdAndOwnerAuth0IdAndCreatedAtAfter(
-                                matchId,
-                                auth0Id,
-                                match.getMatchDate());
-            }
-
             moderationPolicy.validatePostMatchLinkRules(
                     match,
                     activeOpt.orElse(null),
                     auth0Id,
                     matchId,
-                    now,
-                    postMatchLinkCountForOwner);
+                    now);
 
             return handlePostMatchUpsert(
                     match,
@@ -116,8 +106,7 @@ public class MatchLiveLinkService {
                     request,
                     auth0Id,
                     currentUser,
-                    now,
-                    postMatchLinkCountForOwner);
+                    now);
         }
 
         // Cas live (match non terminé) → fenêtre 1h avant
@@ -286,18 +275,7 @@ public class MatchLiveLinkService {
         link.setLastUpdate(now);
         liveLinkRepository.save(link);
 
-        long postMatchLinkCountForOwner = 0L;
-        if (match.getMatchDate() != null) {
-            postMatchLinkCountForOwner = liveLinkRepository
-                    .countByMatch_IdAndOwnerAuth0IdAndCreatedAtAfter(
-                            match.getId(),
-                            link.getOwnerAuth0Id(),
-                            match.getMatchDate());
-        }
-
-        long postMatchLinkCountAfterSave = postMatchLinkCountForOwner;
-
-        if (moderationPolicy.shouldLockLinkEditingAfterSave(match, postMatchLinkCountAfterSave, now)) {
+        if (moderationPolicy.shouldLockLinkEditingAfterSave(match, now)) {
             match.setLiveEditLocked(true);
         }
 
@@ -309,8 +287,7 @@ public class MatchLiveLinkService {
                 keyValue("live_link_id", link.getId()),
                 keyValue("match_id", match.getId()),
                 keyValue("owner_auth0_id", link.getOwnerAuth0Id()),
-                keyValue("admin_auth0_id", adminAuth0Id),
-                keyValue("post_match_link_count_after_save", postMatchLinkCountAfterSave));
+                keyValue("admin_auth0_id", adminAuth0Id));
     }
 
     /**
@@ -341,6 +318,9 @@ public class MatchLiveLinkService {
 
     /**
      * Cas post-match : création d'une nouvelle version PENDING.
+     * - expire l'ancien lien actif (si présent)
+     * - expire tous les anciens PENDING de ce même owner pour ce match
+     * - crée un nouveau PENDING qui devient le seul candidat en cours.
      */
     private MatchLiveLinkResponseDTO handlePostMatchUpsert(
             Match match,
@@ -349,15 +329,30 @@ public class MatchLiveLinkService {
             MatchLiveLinkRequestDTO request,
             String auth0Id,
             CustomUserDTO currentUser,
-            Instant now,
-            long postMatchLinkCountForOwner) {
+            Instant now) {
 
         Long matchId = match.getId();
 
+        // On expire l'ancien lien actif s'il existe
         if (active != null) {
             active.setStatus(LiveLinkStatus.EXPIRED);
             active.setLastUpdate(now);
             liveLinkRepository.save(active);
+        }
+
+        // On expire tous les anciens liens PENDING de ce même owner pour ce match.
+        // → un seul lien PENDING "courant" par utilisateur et par match.
+        List<MatchLiveLink> previousPendingForOwner = liveLinkRepository.findByMatch_IdAndOwnerAuth0IdAndStatus(
+                matchId,
+                auth0Id,
+                LiveLinkStatus.PENDING);
+
+        if (!previousPendingForOwner.isEmpty()) {
+            for (MatchLiveLink oldPending : previousPendingForOwner) {
+                oldPending.setStatus(LiveLinkStatus.EXPIRED);
+                oldPending.setLastUpdate(now);
+            }
+            liveLinkRepository.saveAll(previousPendingForOwner);
         }
 
         MatchLiveLink pendingLink = MatchLiveLink.builder()
@@ -384,8 +379,7 @@ public class MatchLiveLinkService {
                 keyValue("auth0_id", auth0Id),
                 keyValue("owner_auth0_id", saved.getOwnerAuth0Id()),
                 keyValue("user_id", currentUser.getId()),
-                keyValue("version_id", saved.getId()),
-                keyValue("post_match_link_count_for_owner", postMatchLinkCountForOwner));
+                keyValue("version_id", saved.getId()));
 
         return toResponseDto(saved);
     }

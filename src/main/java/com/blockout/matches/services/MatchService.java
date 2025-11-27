@@ -88,14 +88,6 @@ public class MatchService {
                 safeTeamIds,
                 safeTeamIds.size());
 
-        logger.debug("findMatches executed",
-                keyValue("action", "find_matches"),
-                keyValue("poolId", poolId),
-                keyValue("teamIds", safeTeamIds),
-                keyValue("status", status),
-                keyValue("active", active),
-                keyValue("resultCount", matches.size()));
-
         return matches;
     }
 

@@ -174,7 +174,8 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
                 AND (:teamIdsSize = 0 OR m.teamIdA IN :teamIds OR m.teamIdB IN :teamIds)
             ORDER BY m.matchDate DESC
             """)
-    List<Match> findFiltered(@Param("poolId") Long poolId,
+    List<Match> findFiltered(
+            @Param("poolId") Long poolId,
             @Param("status") MatchStatus status,
             @Param("active") Boolean active,
             @Param("teamIds") List<Long> teamIds,

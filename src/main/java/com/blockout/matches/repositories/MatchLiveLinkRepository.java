@@ -14,8 +14,7 @@ public interface MatchLiveLinkRepository extends JpaRepository<MatchLiveLink, Lo
 
     Optional<MatchLiveLink> findFirstByMatch_IdAndStatusOrderByCreatedAtDesc(
             Long matchId,
-            LiveLinkStatus status
-    );
+            LiveLinkStatus status);
 
     List<MatchLiveLink> findByMatch_Id(Long matchId);
 
@@ -30,22 +29,25 @@ public interface MatchLiveLinkRepository extends JpaRepository<MatchLiveLink, Lo
     long countDistinctMatchesByOwnerAndDay(
             @Param("ownerAuth0Id") String ownerAuth0Id,
             @Param("start") Instant start,
-            @Param("end") Instant end
-    );
+            @Param("end") Instant end);
 
     long countByMatch_IdAndOwnerAuth0IdAndCreatedAtAfter(
             Long matchId,
             String ownerAuth0Id,
-            Instant createdAtAfter
-    );
+            Instant createdAtAfter);
 
     List<MatchLiveLink> findByStatus(LiveLinkStatus status);
 
     @Query("""
-            SELECT l
-            FROM MatchLiveLink l
-            JOIN FETCH l.match m
-            WHERE l.status = :status
-        """)
+                SELECT l
+                FROM MatchLiveLink l
+                JOIN FETCH l.match m
+                WHERE l.status = :status
+            """)
     List<MatchLiveLink> findByStatusWithMatch(@Param("status") LiveLinkStatus status);
+
+    List<MatchLiveLink> findByMatch_IdAndOwnerAuth0IdAndStatus(
+            Long matchId,
+            String ownerAuth0Id,
+            LiveLinkStatus status);
 }

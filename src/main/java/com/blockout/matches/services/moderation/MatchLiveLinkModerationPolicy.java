@@ -40,7 +40,6 @@ public class MatchLiveLinkModerationPolicy {
 
     // Règles post-match
     private static final int POST_MATCH_EDIT_WINDOW_DAYS = 7;
-    private static final int MAX_POST_MATCH_LINKS_PER_OWNER = 2;
 
     private static final ZoneId PARIS = ZoneId.of("Europe/Paris");
     private static final String MOD_SCOPE = "SCOPE_moderate:match_live_link";
@@ -208,8 +207,7 @@ public class MatchLiveLinkModerationPolicy {
             MatchLiveLink active,
             String auth0Id,
             Long matchId,
-            Instant now,
-            long postMatchLinkCountForOwner
+            Instant now
     ) {
         if (isModerator()) {
             return;
@@ -248,29 +246,17 @@ public class MatchLiveLinkModerationPolicy {
                         "Tu ne peux plus modifier ou ajouter un lien une semaine après le match.");
             }
         }
-
-        if (postMatchLinkCountForOwner >= MAX_POST_MATCH_LINKS_PER_OWNER) {
-            logger.info("Post-match link refused because user reached post-match link limit",
-                    keyValue("action", "set_live_link_rejected_post_match_quota"),
-                    keyValue("match_id", matchId),
-                    keyValue("auth0_id", auth0Id),
-                    keyValue("post_match_link_count_for_owner", postMatchLinkCountForOwner));
-            throw new IllegalStateException(
-                    "Tu as déjà mis à jour le lien après match trop de fois pour ce match.");
-        }
     }
 
     /**
      * Décide si on doit verrouiller définitivement l'édition des liens.
      * (admin/modo : tu peux choisir de bypasser ou non).
      */
-    public boolean shouldLockLinkEditingAfterSave(Match match, long postMatchLinkCountAfterSave, Instant now) {
+    public boolean shouldLockLinkEditingAfterSave(Match match, Instant now) {
         if (isModerator()) {
             // Si tu veux que l'admin ne verrouille jamais les liens à cause des quotas/fenêtres :
             return false;
         }
-
-        boolean reachedMaxPostMatchLinks = postMatchLinkCountAfterSave >= MAX_POST_MATCH_LINKS_PER_OWNER;
 
         boolean outOfWindow = false;
         if (match.getMatchDate() != null) {
@@ -278,7 +264,7 @@ public class MatchLiveLinkModerationPolicy {
             outOfWindow = now.isAfter(limit);
         }
 
-        return reachedMaxPostMatchLinks || outOfWindow;
+        return outOfWindow;
     }
 
     /**
