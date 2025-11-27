@@ -30,4 +30,10 @@ public interface MatchLiveLinkRepository extends JpaRepository<MatchLiveLink, Lo
             @Param("ownerAuth0Id") String ownerAuth0Id,
             @Param("start") Instant start,
             @Param("end") Instant end);
+
+    long countByMatchIdAndOwnerAuth0IdAndCreatedAtAfter(
+            Long matchId,
+            String ownerAuth0Id,
+            Instant createdAtAfter
+    );
 }

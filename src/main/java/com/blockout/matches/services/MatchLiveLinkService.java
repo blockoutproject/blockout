@@ -1,4 +1,3 @@
-// MatchLiveLinkService.java
 package com.blockout.matches.services;
 
 import com.blockout.matches.exceptions.MatchNotFoundException;
@@ -13,10 +12,11 @@ import com.blockout.matches.models.enums.MatchStatus;
 import com.blockout.matches.repositories.MatchLiveLinkRepository;
 import com.blockout.matches.repositories.MatchRepository;
 import com.blockout.matches.services.clients.UsersClientService;
+import com.blockout.matches.services.moderation.MatchLiveLinkModerationPolicy;
+
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,12 +36,7 @@ public class MatchLiveLinkService {
 
     private static final Logger logger = LoggerFactory.getLogger(MatchLiveLinkService.class);
 
-    private static final int MIN_ACCOUNT_AGE_DAYS = 7;
-    private static final int MAX_LINKS_PER_MATCH_PER_OWNER = 3;
-    private static final int MAX_MATCHES_PER_DAY_PER_OWNER = 3;
-
-    private static final String PRO_LEAGUE_CODE = "AALNV";
-
+    // Plateformes autorisées
     private static final String[] YOUTUBE_HOSTS = { "youtube.com", "youtu.be" };
     private static final String[] TWITCH_HOSTS = { "twitch.tv" };
     private static final String[] FACEBOOK_HOSTS = { "facebook.com", "fb.com", "fb.watch" };
@@ -51,6 +46,7 @@ public class MatchLiveLinkService {
     private final MatchRepository matchRepository;
     private final MatchLiveLinkRepository liveLinkRepository;
     private final UsersClientService usersClientService;
+    private final MatchLiveLinkModerationPolicy moderationPolicy;
 
     @Transactional(readOnly = true)
     public MatchLiveLinkResponseDTO getActiveLiveLink(Long matchId) {
@@ -65,33 +61,13 @@ public class MatchLiveLinkService {
         CustomUserDTO currentUser = usersClientService.getCurrentUser();
         Instant now = Instant.now();
 
-        if (currentUser == null || currentUser.getCreatedAt() == null) {
-            logger.warn("Current user not found or has no createdAt while setting live link",
-                    keyValue("action", "set_live_link"),
-                    keyValue("match_id", matchId),
-                    keyValue("auth0_id", auth0Id));
-            throw new IllegalStateException("Impossible de vérifier l’ancienneté de ton compte.");
-        }
+        // Règle: ancienneté minimum du compte
+        moderationPolicy.validateUserAccountAge(currentUser, matchId, auth0Id, now);
 
-        Instant threshold = now.minus(MIN_ACCOUNT_AGE_DAYS, ChronoUnit.DAYS);
-        Instant userCreatedAt = currentUser.getCreatedAt()
-                .atZone(PARIS)
-                .toInstant();
-
-        if (userCreatedAt.isAfter(threshold)) {
-            logger.info("User too recent to set live link",
-                    keyValue("action", "set_live_link_rejected_young_account"),
-                    keyValue("match_id", matchId),
-                    keyValue("auth0_id", auth0Id),
-                    keyValue("user_id", currentUser.getId()),
-                    keyValue("user_created_at", currentUser.getCreatedAt()),
-                    keyValue("threshold", threshold));
-            throw new IllegalStateException(
-                    "Ton compte doit avoir au moins " + MIN_ACCOUNT_AGE_DAYS + " jours pour publier un lien de live.");
-        }
-
+        // Valide l'URL et déduit le provider (YouTube/Twitch/Facebook)
         LiveProvider provider = resolveProviderFromUrl(request);
 
+        // Chargement du match
         Match match = matchRepository.findById(matchId)
                 .orElseThrow(() -> {
                     logger.warn("Match not found while setting live link",
@@ -101,59 +77,59 @@ public class MatchLiveLinkService {
                     return new MatchNotFoundException(matchId);
                 });
 
-        if (PRO_LEAGUE_CODE.equalsIgnoreCase(match.getLeagueCode())) {
-            logger.info("Live link refused for professional match",
-                    keyValue("action", "set_live_link_rejected_pro_match"),
-                    keyValue("match_id", matchId),
-                    keyValue("auth0_id", auth0Id),
-                    keyValue("league_code", match.getLeagueCode()));
-            throw new IllegalStateException(
-                    "Les droits de diffusion des matchs professionnels sont réservés à la LNV.");
-        }
+        // Règle: pas de lien sur les matchs pros
+        moderationPolicy.validateMatchLeague(match, matchId, auth0Id);
 
         boolean isFinished = match.getStatus() == MatchStatus.FINISHED;
 
         var activeOpt = liveLinkRepository
                 .findFirstByMatchIdAndStatusOrderByCreatedAtDesc(matchId, LiveLinkStatus.ACTIVE);
 
+        // Cas: match terminé → gestion rediffusion finale (avec nouvelles règles)
         if (isFinished) {
-            return handlePostMatchUpsert(match, activeOpt.orElse(null), provider, request, auth0Id, currentUser, now);
-        }
-
-        if (match.getMatchDate() != null) {
-            ZonedDateTime matchStartParis = ZonedDateTime.ofInstant(match.getMatchDate(), PARIS);
-            ZonedDateTime startAllowedParis = matchStartParis.minusHours(1);
-            ZonedDateTime nowParis = ZonedDateTime.ofInstant(now, PARIS);
-
-            if (nowParis.isBefore(startAllowedParis)) {
-                logger.info("Live link refused because too early before match",
-                        keyValue("action", "set_live_link_rejected_too_early"),
-                        keyValue("match_id", matchId),
-                        keyValue("auth0_id", auth0Id),
-                        keyValue("match_date", match.getMatchDate()),
-                        keyValue("now", nowParis));
-                throw new IllegalStateException(
-                        "Tu pourras publier le lien de live une heure avant le début du match.");
+            // On ne compte que les liens créés après la date du match comme "rediff"
+            long rediffCountForOwner = 0L;
+            if (match.getMatchDate() != null) {
+                rediffCountForOwner = liveLinkRepository
+                        .countByMatchIdAndOwnerAuth0IdAndCreatedAtAfter(
+                                matchId,
+                                auth0Id,
+                                match.getMatchDate());
             }
+
+            moderationPolicy.validatePostMatchRediffRules(
+                    match,
+                    activeOpt.orElse(null),
+                    auth0Id,
+                    matchId,
+                    now,
+                    rediffCountForOwner);
+
+            return handlePostMatchUpsert(
+                    match,
+                    activeOpt.orElse(null),
+                    provider,
+                    request,
+                    auth0Id,
+                    currentUser,
+                    now,
+                    rediffCountForOwner);
         }
 
+        // Cas: match non terminé → fenêtre temporelle (1h avant)
+        moderationPolicy.validatePublishWindow(match, now, matchId, auth0Id);
+
+        // Si un lien actif existe déjà
         if (activeOpt.isPresent()) {
             MatchLiveLink active = activeOpt.get();
 
-            if (!auth0Id.equals(active.getOwnerAuth0Id())) {
-                logger.warn("User tried to set live link for a match with an active link owned by someone else",
-                        keyValue("action", "set_live_link_forbidden_other_owner_active"),
-                        keyValue("match_id", matchId),
-                        keyValue("auth0_id", auth0Id),
-                        keyValue("owner_auth0_id", active.getOwnerAuth0Id()),
-                        keyValue("active_link_id", active.getId()));
-                throw new AccessDeniedException(
-                        "Un autre utilisateur diffuse déjà ce match. Tu ne peux pas modifier son lien.");
-            }
+            // Vérifie que l'utilisateur a les droits sur le lien actif
+            moderationPolicy.validateOwnerOfActiveLink(active, auth0Id, matchId);
 
             boolean sameProvider = active.getProvider() == provider;
             boolean sameUrl = request.getUrl().equals(active.getUrl());
             if (sameProvider && sameUrl) {
+                // Pas de changement → on renvoie la version existante
                 logger.info("Live link unchanged, skipping new version",
                         keyValue("action", "set_live_link_noop"),
                         keyValue("match_id", matchId),
@@ -163,15 +139,8 @@ public class MatchLiveLinkService {
             }
         }
 
+        // Calcul des quotas "live" par match et par jour
         long linksForMatchAndOwner = liveLinkRepository.countByMatchIdAndOwnerAuth0Id(matchId, auth0Id);
-        if (linksForMatchAndOwner >= MAX_LINKS_PER_MATCH_PER_OWNER) {
-            logger.info("User reached per-match live link limit",
-                    keyValue("action", "set_live_link_rejected_match_quota"),
-                    keyValue("match_id", matchId),
-                    keyValue("auth0_id", auth0Id),
-                    keyValue("links_for_match", linksForMatchAndOwner));
-            throw new IllegalStateException("Tu as déjà publié trop de versions de live pour ce match.");
-        }
 
         ZonedDateTime nowParis = ZonedDateTime.ofInstant(now, PARIS);
         Instant startOfDayParisUtc = nowParis.toLocalDate().atStartOfDay(PARIS).toInstant();
@@ -183,22 +152,23 @@ public class MatchLiveLinkService {
                 endOfDayParisUtc);
 
         boolean alreadyHasLinkForThisMatch = linksForMatchAndOwner > 0;
-        if (!alreadyHasLinkForThisMatch && matchesToday >= MAX_MATCHES_PER_DAY_PER_OWNER) {
-            logger.info("User reached per-day match limit for live links",
-                    keyValue("action", "set_live_link_rejected_daily_quota"),
-                    keyValue("match_id", matchId),
-                    keyValue("auth0_id", auth0Id),
-                    keyValue("matches_today", matchesToday));
-            throw new IllegalStateException(
-                    "Tu as déjà publié des lives pour trop de matchs aujourd’hui. Réessaie demain.");
-        }
 
+        // Règle: quotas (versions / match + matchs / jour)
+        moderationPolicy.validateLinkQuotas(
+                matchId,
+                auth0Id,
+                linksForMatchAndOwner,
+                matchesToday,
+                alreadyHasLinkForThisMatch);
+
+        // Expiration de l'ancien lien actif éventuel
         activeOpt.ifPresent(active -> {
             active.setStatus(LiveLinkStatus.EXPIRED);
             active.setLastUpdate(now);
             liveLinkRepository.save(active);
         });
 
+        // Création d'une nouvelle version ACTIVE (live pendant/avant match)
         MatchLiveLink newLink = MatchLiveLink.builder()
                 .matchId(match.getId())
                 .ownerAuth0Id(auth0Id)
@@ -229,16 +199,10 @@ public class MatchLiveLinkService {
     public void deleteLiveLink(Long matchId, String auth0Id) {
         liveLinkRepository.findFirstByMatchIdAndStatusOrderByCreatedAtDesc(matchId, LiveLinkStatus.ACTIVE)
                 .ifPresent(link -> {
-                    if (!auth0Id.equals(link.getOwnerAuth0Id())) {
-                        logger.warn("User tried to delete a live link he does not own",
-                                keyValue("action", "delete_live_link_forbidden_not_owner"),
-                                keyValue("match_id", matchId),
-                                keyValue("live_link_id", link.getId()),
-                                keyValue("auth0_id", auth0Id),
-                                keyValue("owner_auth0_id", link.getOwnerAuth0Id()));
-                        throw new AccessDeniedException("Seul l’utilisateur qui a publié ce lien peut le supprimer.");
-                    }
+                    // Vérifie que l'utilisateur est bien owner du lien
+                    moderationPolicy.validateDeletePermission(link, auth0Id, matchId);
 
+                    // On masque logiquement le lien
                     link.setStatus(LiveLinkStatus.HIDDEN);
                     link.setLastUpdate(Instant.now());
                     liveLinkRepository.save(link);
@@ -258,35 +222,19 @@ public class MatchLiveLinkService {
             MatchLiveLinkRequestDTO request,
             String auth0Id,
             CustomUserDTO currentUser,
-            Instant now) {
+            Instant now,
+            long rediffCountForOwner) {
 
         Long matchId = match.getId();
 
-        if (match.isLiveEditLocked()) {
-            logger.info("Live link refused because match is locked",
-                    keyValue("action", "set_live_link_rejected_locked"),
-                    keyValue("match_id", matchId),
-                    keyValue("auth0_id", auth0Id));
-            throw new IllegalStateException("Ce match est verrouillé, le lien ne peut plus être modifié.");
-        }
-
-        if (active != null && !auth0Id.equals(active.getOwnerAuth0Id())) {
-            logger.warn("User tried to update final link but is not owner",
-                    keyValue("action", "set_live_link_forbidden_post_match_not_owner"),
-                    keyValue("match_id", matchId),
-                    keyValue("auth0_id", auth0Id),
-                    keyValue("owner_auth0_id", active.getOwnerAuth0Id()),
-                    keyValue("active_link_id", active.getId()));
-            throw new AccessDeniedException(
-                    "Seul l’utilisateur qui a diffusé ce match peut mettre à jour la rediffusion.");
-        }
-
+        // Si une rediff existe, on la passe en EXPIRED
         if (active != null) {
             active.setStatus(LiveLinkStatus.EXPIRED);
             active.setLastUpdate(now);
             liveLinkRepository.save(active);
         }
 
+        // Création de la rediff ACTIVE
         MatchLiveLink finalLink = MatchLiveLink.builder()
                 .matchId(match.getId())
                 .ownerAuth0Id(auth0Id)
@@ -300,19 +248,26 @@ public class MatchLiveLinkService {
 
         MatchLiveLink saved = liveLinkRepository.save(finalLink);
 
-        match.setLiveEditLocked(true);
+        long rediffCountAfterSave = rediffCountForOwner + 1;
+
+        // On fige quand on a atteint le quota ou dépassé la fenêtre
+        if (moderationPolicy.shouldLockRediffAfterSave(match, rediffCountAfterSave, now)) {
+            match.setLiveEditLocked(true);
+        }
+
         match.setLastUpdate(now);
         matchRepository.save(match);
 
-        logger.info("Post-match final live link created and match locked",
-                keyValue("action", "set_live_link_post_match_final"),
+        logger.info("Post-match rediff live link created",
+                keyValue("action", "set_live_link_post_match_rediff"),
                 keyValue("match_id", matchId),
                 keyValue("provider", saved.getProvider()),
                 keyValue("url", saved.getUrl()),
                 keyValue("auth0_id", auth0Id),
                 keyValue("owner_auth0_id", saved.getOwnerAuth0Id()),
                 keyValue("user_id", currentUser.getId()),
-                keyValue("version_id", saved.getId()));
+                keyValue("version_id", saved.getId()),
+                keyValue("rediff_count_after_save", rediffCountAfterSave));
 
         return toResponseDto(saved);
     }

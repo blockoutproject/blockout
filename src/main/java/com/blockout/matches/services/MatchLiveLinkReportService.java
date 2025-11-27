@@ -6,10 +6,11 @@ import com.blockout.matches.models.entities.Match;
 import com.blockout.matches.models.entities.MatchLiveLink;
 import com.blockout.matches.models.entities.MatchLiveLinkReport;
 import com.blockout.matches.models.enums.LiveLinkStatus;
-import com.blockout.matches.models.enums.MatchStatus;
 import com.blockout.matches.repositories.MatchLiveLinkReportRepository;
 import com.blockout.matches.repositories.MatchLiveLinkRepository;
 import com.blockout.matches.repositories.MatchRepository;
+import com.blockout.matches.services.moderation.MatchLiveLinkModerationPolicy;
+
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,57 +25,19 @@ import static net.logstash.logback.argument.StructuredArguments.keyValue;
 @RequiredArgsConstructor
 public class MatchLiveLinkReportService {
 
-    private static final Logger logger = LoggerFactory.getLogger(MatchLiveLinkService.class);
-
-    private static final int AUTO_HIDE_THRESHOLD = 3;
-    private static final int FINAL_AUTO_HIDE_THRESHOLD = 10;
+    private static final Logger logger = LoggerFactory.getLogger(MatchLiveLinkReportService.class);
 
     private final MatchRepository matchRepository;
     private final MatchLiveLinkRepository liveLinkRepository;
     private final MatchLiveLinkReportRepository liveLinkReportRepository;
+    private final MatchLiveLinkModerationPolicy moderationPolicy;
 
     /**
-     * Signale le lien de live actif d’un match. Un utilisateur ne peut signaler
-     * qu’une seule fois une version donnée du lien. Chaque signalement incrémente
-     * le nombre total de reports et peut entraîner un masquage automatique.
-     *
-     * <p>
-     * Comportement général :
-     * </p>
-     * <ul>
-     * <li>Le signalement porte toujours sur la version active du lien,
-     * récupérée par
-     * {@code findFirstByMatchIdAndStatusOrderByCreatedAtDesc(...)}.</li>
-     *
-     * <li>Si l’utilisateur a déjà signalé cette version, l’appel est ignoré
-     * silencieusement et simplement consigné dans les logs.</li>
-     *
-     * <li>Chaque signalement crée une entrée {@link MatchLiveLinkReport} et met
-     * à jour le {@code reportCount} du lien actif.</li>
-     *
-     * <li>Un seuil de masquage automatique est appliqué :
-     * <ul>
-     * <li>{@link #AUTO_HIDE_THRESHOLD} (3) pour les liens classiques
-     * (pendant ou avant le match),</li>
-     * <li>{@link #FINAL_AUTO_HIDE_THRESHOLD} (10) pour les liens
-     * finaux de rediffusion (match terminé et verrouillé).</li>
-     * </ul>
-     * Si le seuil est atteint ou dépassé, le lien actif est marqué
-     * comme {@link LiveLinkStatus#HIDDEN}.</li>
-     *
-     * <li>Le masquage automatique désactive immédiatement le lien,
-     * empêchant son apparition dans le front pour tous les utilisateurs.</li>
-     * </ul>
-     *
-     * @param matchId identifiant du match dont on signale le lien actif
-     * @param request motif du signalement
-     * @param auth0Id identifiant Auth0 de l’utilisateur ayant effectué le
-     *                signalement
-     *
-     * @throws MatchNotFoundException si aucun lien actif n’existe pour le match.
+     * Signale le lien actif d'un match et applique éventuellement un auto-hide.
      */
     @Transactional
     public void reportLiveLink(Long matchId, MatchLiveLinkReportRequestDTO request, String auth0Id) {
+        // On ne peut reporter que le lien actif
         MatchLiveLink liveLink = liveLinkRepository
                 .findFirstByMatchIdAndStatusOrderByCreatedAtDesc(matchId, LiveLinkStatus.ACTIVE)
                 .orElseThrow(() -> {
@@ -85,6 +48,7 @@ public class MatchLiveLinkReportService {
                     return new MatchNotFoundException(matchId);
                 });
 
+        // Un user ne peut reporter qu'une version donnée du lien une seule fois
         if (liveLinkReportRepository.existsByLiveLinkIdAndReporterAuth0Id(liveLink.getId(), auth0Id)) {
             logger.info("Live link already reported by this user for this version",
                     keyValue("action", "report_live_link_ignored"),
@@ -94,6 +58,7 @@ public class MatchLiveLinkReportService {
             return;
         }
 
+        // On enregistre le report
         MatchLiveLinkReport report = MatchLiveLinkReport.builder()
                 .liveLinkId(liveLink.getId())
                 .reporterAuth0Id(auth0Id)
@@ -103,15 +68,16 @@ public class MatchLiveLinkReportService {
 
         liveLinkReportRepository.save(report);
 
+        // Recalcul du nombre total de reports pour ce lien
         long reportsCount = liveLinkReportRepository.countByLiveLinkId(liveLink.getId());
         liveLink.setReportCount((int) reportsCount);
 
         Match match = matchRepository.findById(matchId).orElse(null);
-        int threshold = AUTO_HIDE_THRESHOLD;
-        if (match != null && match.getStatus() == MatchStatus.FINISHED && match.isLiveEditLocked()) {
-            threshold = FINAL_AUTO_HIDE_THRESHOLD;
-        }
 
+        // Seuil dynamique (live vs rediff finale figée)
+        int threshold = moderationPolicy.determineAutoHideThreshold(match);
+
+        // Auto-hide si seuil atteint
         if (reportsCount >= threshold && liveLink.getStatus() == LiveLinkStatus.ACTIVE) {
             liveLink.setStatus(LiveLinkStatus.HIDDEN);
             logger.info("Live link auto-hidden due to reports",
