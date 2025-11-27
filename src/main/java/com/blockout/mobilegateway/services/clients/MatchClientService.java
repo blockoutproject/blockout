@@ -78,8 +78,8 @@ public class MatchClientService {
                 keyValue("match_id", matchId),
                 keyValue("url", url));
 
-        ResponseEntity<MatchLiveLinkResponseDTO> response =
-                apiClientService.post(url, request, MatchLiveLinkResponseDTO.class);
+        ResponseEntity<MatchLiveLinkResponseDTO> response = apiClientService.post(url, request,
+                MatchLiveLinkResponseDTO.class);
 
         return response.getBody();
     }
@@ -108,5 +108,46 @@ public class MatchClientService {
                 keyValue("url", url));
 
         apiClientService.post(url, request, Void.class);
+    }
+
+    public List<MatchDTO> listPendingLiveLinks() {
+        String url = UriComponentsBuilder.fromUriString(baseUrl())
+                .pathSegment("live-links", "pending")
+                .build()
+                .toUriString();
+
+        logger.info("Calling matches#listPendingLiveLinks",
+                keyValue("url", url));
+
+        ResponseEntity<MatchDTO[]> response = apiClientService.get(url, MatchDTO[].class);
+
+        MatchDTO[] body = response.getBody();
+        return body != null ? List.of(body) : List.of();
+    }
+
+    public void approvePendingLiveLink(Long liveLinkId) {
+        String url = UriComponentsBuilder.fromUriString(baseUrl())
+                .pathSegment("live-links", liveLinkId.toString(), "approve")
+                .build()
+                .toUriString();
+
+        logger.info("Calling matches#approvePendingLiveLink",
+                keyValue("live_link_id", liveLinkId),
+                keyValue("url", url));
+
+        apiClientService.post(url, null, Void.class);
+    }
+
+    public void rejectPendingLiveLink(Long liveLinkId) {
+        String url = UriComponentsBuilder.fromUriString(baseUrl())
+                .pathSegment("live-links", liveLinkId.toString(), "reject")
+                .build()
+                .toUriString();
+
+        logger.info("Calling matches#rejectPendingLiveLink",
+                keyValue("live_link_id", liveLinkId),
+                keyValue("url", url));
+
+        apiClientService.post(url, null, Void.class);
     }
 }

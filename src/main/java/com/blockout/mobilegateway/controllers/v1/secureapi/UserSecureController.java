@@ -16,13 +16,13 @@ import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/v1/mobile/secure")
+@RequestMapping("/api/v1/mobile/secure/users")
 public class UserSecureController {
 
     private final UserService userService;
     private final ObjectMapper objectMapper;
 
-    @PutMapping(path = "/users/{auth0Id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PutMapping(path = "/{auth0Id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<CustomUserDTO> updateUser(
             @PathVariable String auth0Id,
             @RequestPart("data") String json,
@@ -33,13 +33,13 @@ public class UserSecureController {
         return ResponseEntity.ok(updated);
     }
 
-    @PutMapping("/users/me")
+    @PutMapping("/me")
     public ResponseEntity<CustomUserDTO> ensureCurrentUser() {
         CustomUserDTO user = userService.ensureCurrentUser();
         return ResponseEntity.ok(user);
     }
 
-    @DeleteMapping("/users/me")
+    @DeleteMapping("/me")
     public ResponseEntity<Void> deleteCurrentUser() {
         userService.deleteCurrentUser();
         return ResponseEntity.noContent().build();

@@ -405,4 +405,168 @@ public class MatchService {
 
         matchClientService.reportLiveLink(matchId, request);
     }
+
+    public List<EnrichedMatchDTO> listPendingLiveLinks(String auth0Id) {
+        logger.info("List pending live links",
+                keyValue("action", "list_pending_match_live_links"),
+                keyValue("auth0_id", auth0Id));
+
+        List<MatchDTO> pending = matchClientService.listPendingLiveLinks();
+        if (pending == null || pending.isEmpty()) {
+            logger.info("No pending live links found",
+                    keyValue("action", "list_pending_match_live_links_empty"));
+            return List.of();
+        }
+
+        // Agrège les pools et équipes à partir des matchs
+        Set<Long> poolIds = new HashSet<>(pending.size());
+        Set<Long> teamIds = new HashSet<>(pending.size() * 2);
+        for (MatchDTO m : pending) {
+            poolIds.add(m.getPoolId());
+            teamIds.add(m.getTeamIdA());
+            teamIds.add(m.getTeamIdB());
+        }
+
+        logger.info("Aggregated ids for pending live links",
+                keyValue("action", "aggregate_ids_from_pending"),
+                keyValue("unique_pool_ids", poolIds.size()),
+                keyValue("unique_team_ids", teamIds.size()));
+
+        // Pools (avec division)
+        Map<Long, PoolDTO> poolById = new HashMap<>(poolIds.size() * 2);
+        for (Long poolId : poolIds) {
+            PoolDTO pool = poolClientService.getPoolById(poolId);
+            if (pool != null) {
+                poolById.put(poolId, pool);
+            } else {
+                logger.warn("Pool not found while building pending live links view",
+                        keyValue("pool_id", poolId));
+            }
+        }
+
+        Set<Long> divisionIds = poolById.values().stream()
+                .map(PoolDTO::getDivisionId)
+                .collect(Collectors.toSet());
+
+        Map<Long, DivisionDTO> divisionById = new HashMap<>(divisionIds.size() * 2);
+        for (Long divisionId : divisionIds) {
+            DivisionDTO division = configClientService.getDivisionById(divisionId);
+            if (division != null) {
+                divisionById.put(divisionId, division);
+            } else {
+                logger.warn("Division not found while building pending live links view",
+                        keyValue("division_id", divisionId));
+            }
+        }
+
+        Map<Long, EnrichedPoolDTO> enrichedPoolById = new HashMap<>(poolById.size() * 2);
+        for (PoolDTO p : poolById.values()) {
+            DivisionDTO division = divisionById.get(p.getDivisionId());
+            if (division == null || !Boolean.TRUE.equals(division.getActive())) {
+                continue;
+            }
+            enrichedPoolById.put(p.getId(), EnrichedPoolDTO.builder()
+                    .id(p.getId())
+                    .season(p.getSeason())
+                    .leagueCode(p.getLeagueCode())
+                    .leagueName(p.getLeagueName())
+                    .name(p.getName())
+                    .shortName(p.getShortName())
+                    .format(p.getFormat())
+                    .gender(p.getGender())
+                    .followersCount(p.getFollowersCount())
+                    .division(division)
+                    .build());
+        }
+
+        // Équipes
+        Map<Long, TeamDTO> teamsMap = new HashMap<>(teamIds.size() * 2);
+        for (Long teamId : teamIds) {
+            TeamDTO team = teamClientService.getTeamById(teamId);
+            if (team != null) {
+                teamsMap.put(teamId, team);
+            } else {
+                logger.warn("Team not found while building pending live links view",
+                        keyValue("team_id", teamId));
+            }
+        }
+
+        // Logos clubs
+        enrichTeamsWithClubLogo(teamsMap.values(), clubClientService);
+
+        String base = apiClientProperties.getMobilegateway().getUrl();
+
+        // On projette chaque MatchDTO (avec son lien PENDING) en EnrichedMatchDTO
+        List<EnrichedMatchDTO> result = new ArrayList<>(pending.size());
+        for (MatchDTO match : pending) {
+            EnrichedPoolDTO enrichedPool = enrichedPoolById.get(match.getPoolId());
+            TeamDTO teamA = teamsMap.get(match.getTeamIdA());
+            TeamDTO teamB = teamsMap.get(match.getTeamIdB());
+
+            String addressToken = pdfLinkTokenService.generate(
+                    "address",
+                    match.getSeason(),
+                    match.getLeagueCode(),
+                    match.getMatchCode());
+            String sheetToken = pdfLinkTokenService.generate(
+                    "sheet",
+                    match.getSeason(),
+                    match.getLeagueCode(),
+                    match.getMatchCode());
+
+            String addressUrl = UriComponentsBuilder.fromUriString(base)
+                    .path("/public/ffvb/pdf/")
+                    .path(addressToken)
+                    .toUriString();
+            String sheetUrl = UriComponentsBuilder.fromUriString(base)
+                    .path("/public/ffvb/pdf/")
+                    .path(sheetToken)
+                    .toUriString();
+
+            result.add(EnrichedMatchDTO.builder()
+                    .id(match.getId())
+                    .matchDate(match.getMatchDate())
+                    .status(match.getStatus())
+                    .set(match.getSet())
+                    .score(match.getScore())
+                    .venue(match.getVenue())
+                    .firstReferee(match.getFirstReferee())
+                    .secondReferee(match.getSecondReferee())
+                    .liveCode(match.getLiveCode())
+                    .liveUrl(match.getLiveUrl())
+                    .liveProvider(match.getLiveProvider())
+                    .liveOwnerAuth0Id(match.getLiveOwnerAuth0Id())
+                    .liveEditLocked(match.getLiveEditLocked())
+                    .teamA(teamA)
+                    .teamB(teamB)
+                    .pool(enrichedPool)
+                    .matchAddressPdfUrl(addressUrl)
+                    .matchSheetPdfUrl(sheetUrl)
+                    .build());
+        }
+
+        logger.info("Built enriched pending live links list",
+                keyValue("action", "build_enriched_pending_live_links"),
+                keyValue("count", result.size()));
+
+        return result;
+    }
+
+    public void approvePendingLiveLink(Long liveLinkId, String auth0Id) {
+        logger.info("Approve pending live link",
+                keyValue("action", "approve_pending_match_live_link"),
+                keyValue("live_link_id", liveLinkId),
+                keyValue("auth0_id", auth0Id));
+
+        matchClientService.approvePendingLiveLink(liveLinkId);
+    }
+
+    public void rejectPendingLiveLink(Long liveLinkId, String auth0Id) {
+        logger.info("Reject pending live link",
+                keyValue("action", "reject_pending_match_live_link"),
+                keyValue("live_link_id", liveLinkId),
+                keyValue("auth0_id", auth0Id));
+
+        matchClientService.rejectPendingLiveLink(liveLinkId);
+    }
 }
