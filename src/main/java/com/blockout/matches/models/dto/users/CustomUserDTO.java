@@ -6,7 +6,7 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 @Getter
@@ -38,10 +38,10 @@ public class CustomUserDTO {
     private Boolean active;
 
     @JsonProperty("created_at")
-    private LocalDateTime createdAt;
+    private Instant createdAt;
 
     @JsonProperty("last_update")
-    private LocalDateTime lastUpdate;
+    private Instant lastUpdate;
 
     private List<UserFavoriteDTO> favorites;
 }

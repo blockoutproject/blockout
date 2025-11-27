@@ -11,8 +11,6 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
@@ -39,10 +37,9 @@ public class MatchLiveLinkModerationPolicy {
     private static final int REDIFF_EDIT_WINDOW_DAYS = 7;
     private static final int MAX_REDIFF_UPDATES_PER_OWNER = 2;
 
-    private static final ZoneId PARIS = ZoneId.of("Europe/Paris");
-
     /**
-     * Vérifie l'ancienneté du compte avant d'autoriser la publication d'un live link.
+     * Vérifie l'ancienneté du compte avant d'autoriser la publication d'un live
+     * link.
      */
     public void validateUserAccountAge(CustomUserDTO currentUser, Long matchId, String auth0Id, Instant now) {
         if (currentUser == null || currentUser.getCreatedAt() == null) {
@@ -54,9 +51,7 @@ public class MatchLiveLinkModerationPolicy {
         }
 
         Instant threshold = now.minus(MIN_ACCOUNT_AGE_DAYS, ChronoUnit.DAYS);
-        Instant userCreatedAt = currentUser.getCreatedAt()
-                .atZone(PARIS)
-                .toInstant();
+        Instant userCreatedAt = currentUser.getCreatedAt();
 
         if (userCreatedAt.isAfter(threshold)) {
             logger.info("User too recent to set live link",
@@ -90,21 +85,22 @@ public class MatchLiveLinkModerationPolicy {
      * Autorise la publication au plus tôt 1h avant le début du match.
      */
     public void validatePublishWindow(Match match, Instant now, Long matchId, String auth0Id) {
-        if (match.getMatchDate() == null) {
-            return; // si pas de date définie, on ne bloque pas
+        Instant matchDate = match.getMatchDate();
+        if (matchDate == null) {
+            throw new IllegalStateException("Le match n'est pas encore défini.");
         }
 
-        ZonedDateTime matchStartParis = ZonedDateTime.ofInstant(match.getMatchDate(), PARIS);
-        ZonedDateTime startAllowedParis = matchStartParis.minusHours(1);
-        ZonedDateTime nowParis = ZonedDateTime.ofInstant(now, PARIS);
+        // On autorise à partir de 1h avant l'instant du match
+        Instant startAllowed = matchDate.minus(1, ChronoUnit.HOURS);
 
-        if (nowParis.isBefore(startAllowedParis)) {
+        if (now.isBefore(startAllowed)) {
             logger.info("Live link refused because too early before match",
                     keyValue("action", "set_live_link_rejected_too_early"),
                     keyValue("match_id", matchId),
                     keyValue("auth0_id", auth0Id),
-                    keyValue("match_date", match.getMatchDate()),
-                    keyValue("now", nowParis));
+                    keyValue("match_date", matchDate),
+                    keyValue("now", now),
+                    keyValue("start_allowed", startAllowed));
             throw new IllegalStateException(
                     "Tu pourras publier le lien de live une heure avant le début du match.");
         }
@@ -159,7 +155,8 @@ public class MatchLiveLinkModerationPolicy {
     }
 
     /**
-     * Règles post-match : fenêtre de 7 jours + max 2 rediff par owner + owner du lien.
+     * Règles post-match : fenêtre de 7 jours + max 2 rediff par owner + owner du
+     * lien.
      */
     public void validatePostMatchRediffRules(
             Match match,
@@ -167,8 +164,7 @@ public class MatchLiveLinkModerationPolicy {
             String auth0Id,
             Long matchId,
             Instant now,
-            long rediffCountForOwner
-    ) {
+            long rediffCountForOwner) {
         // Si le match est déjà "figé", on ne touche plus à la rediff
         if (match.isLiveEditLocked()) {
             logger.info("Live link refused because match is locked (post-match rediff)",
@@ -219,7 +215,8 @@ public class MatchLiveLinkModerationPolicy {
     }
 
     /**
-     * Décide si on doit verrouiller définitivement les rediff après cette sauvegarde.
+     * Décide si on doit verrouiller définitivement les rediff après cette
+     * sauvegarde.
      */
     public boolean shouldLockRediffAfterSave(Match match, long rediffCountAfterSave, Instant now) {
         boolean reachedMaxRediff = rediffCountAfterSave >= MAX_REDIFF_UPDATES_PER_OWNER;
