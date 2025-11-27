@@ -1,4 +1,4 @@
-package com.blockout.users.models;
+package com.blockout.users.models.entities;
 
 import lombok.Data;
 import lombok.NoArgsConstructor;

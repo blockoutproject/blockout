@@ -1,7 +1,7 @@
 package com.blockout.users.models.mappers;
 
-import com.blockout.users.models.UserFavorite;
 import com.blockout.users.models.dto.UserFavoriteDTO;
+import com.blockout.users.models.entities.UserFavorite;
 
 import java.util.List;
 import java.util.stream.Collectors;

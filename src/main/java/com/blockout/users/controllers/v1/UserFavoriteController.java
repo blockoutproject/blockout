@@ -1,6 +1,6 @@
 package com.blockout.users.controllers.v1;
 
-import com.blockout.users.models.UserFavorite;
+import com.blockout.users.models.entities.UserFavorite;
 import com.blockout.users.models.enums.EntityType;
 import com.blockout.users.services.UserFavoriteService;
 

@@ -1,4 +1,4 @@
-package com.blockout.users.models;
+package com.blockout.users.models.entities;
 
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -6,7 +6,8 @@ import lombok.ToString;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import jakarta.persistence.*;
-import java.time.LocalDateTime;
+
+import java.time.Instant;
 import java.util.List;
 
 @Data
@@ -53,20 +54,20 @@ public class CustomUser {
     @Column(name = "active", nullable = false)
     private Boolean active = true;
 
-    @Column(name = "created_at")
-    private LocalDateTime createdAt;
+    @Column(name = "created_at", nullable = false)
+    private Instant createdAt;
 
-    @Column(name = "last_update")
-    private LocalDateTime lastUpdate;
+    @Column(name = "last_update", nullable = false)
+    private Instant lastUpdate;
 
     @PrePersist
     public void prePersist() {
-        createdAt = LocalDateTime.now();
-        lastUpdate = LocalDateTime.now();
+        createdAt = Instant.now();
+        lastUpdate = Instant.now();
     }
 
     @PreUpdate
     public void preUpdate() {
-        lastUpdate = LocalDateTime.now();
+        lastUpdate = Instant.now();
     }
 }

@@ -2,8 +2,8 @@ package com.blockout.users.models.mappers;
 
 import org.springframework.stereotype.Component;
 
-import com.blockout.users.models.CustomUser;
 import com.blockout.users.models.dto.CustomUserDTO;
+import com.blockout.users.models.entities.CustomUser;
 
 import lombok.RequiredArgsConstructor;
 

@@ -1,9 +1,9 @@
 package com.blockout.users.controllers.v1;
 
 import com.auth0.exception.Auth0Exception;
-import com.blockout.users.models.CustomUser;
 import com.blockout.users.models.dto.CustomUserDTO;
 import com.blockout.users.models.dto.CustomUserUpdateDTO;
+import com.blockout.users.models.entities.CustomUser;
 import com.blockout.users.services.UserService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;

@@ -7,9 +7,9 @@ import com.blockout.users.config.Auth0Properties;
 import com.blockout.users.config.Auth0TokenManager;
 import com.blockout.users.exceptions.ConflictException;
 import com.blockout.users.exceptions.CustomUserNotFoundException;
-import com.blockout.users.models.CustomUser;
 import com.blockout.users.models.dto.CustomUserDTO;
 import com.blockout.users.models.dto.CustomUserUpdateDTO;
+import com.blockout.users.models.entities.CustomUser;
 import com.blockout.users.models.enums.EventType;
 import com.blockout.users.models.mappers.CustomUserMapper;
 import com.blockout.users.repositories.UserRepository;
@@ -28,7 +28,7 @@ import org.springframework.web.multipart.MultipartFile;
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
 import java.io.IOException;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
 
@@ -123,7 +123,7 @@ public class UserService {
             if (!updated)
                 return user;
 
-            user.setLastUpdate(LocalDateTime.now());
+            user.setLastUpdate(Instant.now());
             try {
                 CustomUser saved = userRepository.save(user);
                 DiffUtils.logChanges(before, saved, logger, "update_user", saved.getId());
@@ -151,8 +151,8 @@ public class UserService {
                     .pictureUrl(auth0User.getPicture())
                     .phoneNumber(auth0User.getPhoneNumber())
                     .active(true)
-                    .createdAt(LocalDateTime.now())
-                    .lastUpdate(LocalDateTime.now())
+                    .createdAt(Instant.now())
+                    .lastUpdate(Instant.now())
                     .build();
 
             try {

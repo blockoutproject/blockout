@@ -1,8 +1,8 @@
 package com.blockout.users.services;
 
 import com.blockout.users.exceptions.CustomUserNotFoundException;
-import com.blockout.users.models.CustomUser;
-import com.blockout.users.models.UserFavorite;
+import com.blockout.users.models.entities.CustomUser;
+import com.blockout.users.models.entities.UserFavorite;
 import com.blockout.users.models.enums.EntityType;
 import com.blockout.users.models.enums.EventType;
 import com.blockout.users.repositories.UserFavoriteRepository;
