@@ -50,4 +50,8 @@ public interface MatchLiveLinkRepository extends JpaRepository<MatchLiveLink, Lo
             Long matchId,
             String ownerAuth0Id,
             LiveLinkStatus status);
+
+    Optional<MatchLiveLink> findFirstByMatch_IdAndOwnerAuth0IdOrderByCreatedAtDesc(
+            Long matchId,
+            String ownerAuth0Id);
 }

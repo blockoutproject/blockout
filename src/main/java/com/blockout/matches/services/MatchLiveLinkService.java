@@ -318,9 +318,11 @@ public class MatchLiveLinkService {
 
     /**
      * Cas post-match : création d'une nouvelle version PENDING.
-     * - expire l'ancien lien actif (si présent)
-     * - expire tous les anciens PENDING de ce même owner pour ce match
-     * - crée un nouveau PENDING qui devient le seul candidat en cours.
+     * - si même lien déjà ACTIVE ou PENDING → noop
+     * - sinon :
+     * expire l'ancien ACTIVE
+     * expire anciens PENDING de ce owner
+     * crée un nouveau PENDING
      */
     private MatchLiveLinkResponseDTO handlePostMatchUpsert(
             Match match,
@@ -333,28 +335,50 @@ public class MatchLiveLinkService {
 
         Long matchId = match.getId();
 
-        // On expire l'ancien lien actif s'il existe
+        // 🔍 1) Récupérer le dernier lien du user pour ce match
+        MatchLiveLink last = liveLinkRepository
+                .findFirstByMatch_IdAndOwnerAuth0IdOrderByCreatedAtDesc(matchId, auth0Id)
+                .orElse(null);
+
+        // 🔎 2) Si même URL + provider + status ACTIVE ou PENDING → NO-OP
+        if (last != null
+                && last.getProvider() == provider
+                && request.getUrl().equals(last.getUrl())
+                && (last.getStatus() == LiveLinkStatus.ACTIVE || last.getStatus() == LiveLinkStatus.PENDING)) {
+
+            logger.info("Post-match live link unchanged → skipping",
+                    keyValue("action", "set_live_link_post_match_noop"),
+                    keyValue("match_id", matchId),
+                    keyValue("auth0_id", auth0Id),
+                    keyValue("link_id", last.getId()),
+                    keyValue("status", last.getStatus()));
+
+            return toResponseDto(last);
+        }
+
+        // 3) Expirer lien actif s’il existe
         if (active != null) {
             active.setStatus(LiveLinkStatus.EXPIRED);
             active.setLastUpdate(now);
             liveLinkRepository.save(active);
         }
 
-        // On expire tous les anciens liens PENDING de ce même owner pour ce match.
-        // → un seul lien PENDING "courant" par utilisateur et par match.
-        List<MatchLiveLink> previousPendingForOwner = liveLinkRepository.findByMatch_IdAndOwnerAuth0IdAndStatus(
-                matchId,
-                auth0Id,
-                LiveLinkStatus.PENDING);
+        // 4) Expirer les anciens PENDING du même owner
+        List<MatchLiveLink> previousPending = liveLinkRepository
+                .findByMatch_IdAndOwnerAuth0IdAndStatus(
+                        matchId,
+                        auth0Id,
+                        LiveLinkStatus.PENDING);
 
-        if (!previousPendingForOwner.isEmpty()) {
-            for (MatchLiveLink oldPending : previousPendingForOwner) {
-                oldPending.setStatus(LiveLinkStatus.EXPIRED);
-                oldPending.setLastUpdate(now);
-            }
-            liveLinkRepository.saveAll(previousPendingForOwner);
+        if (!previousPending.isEmpty()) {
+            previousPending.forEach(p -> {
+                p.setStatus(LiveLinkStatus.EXPIRED);
+                p.setLastUpdate(now);
+            });
+            liveLinkRepository.saveAll(previousPending);
         }
 
+        // 5) Créer le nouveau lien PENDING
         MatchLiveLink pendingLink = MatchLiveLink.builder()
                 .match(match)
                 .ownerAuth0Id(auth0Id)
@@ -371,14 +395,12 @@ public class MatchLiveLinkService {
         match.setLastUpdate(now);
         matchRepository.save(match);
 
-        logger.info("Post-match link created in pending status",
+        logger.info("Post-match link created as PENDING",
                 keyValue("action", "set_live_link_post_match_pending"),
                 keyValue("match_id", matchId),
                 keyValue("provider", saved.getProvider()),
                 keyValue("url", saved.getUrl()),
                 keyValue("auth0_id", auth0Id),
-                keyValue("owner_auth0_id", saved.getOwnerAuth0Id()),
-                keyValue("user_id", currentUser.getId()),
                 keyValue("version_id", saved.getId()));
 
         return toResponseDto(saved);
