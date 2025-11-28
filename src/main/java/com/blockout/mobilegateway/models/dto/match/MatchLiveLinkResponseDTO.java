@@ -14,9 +14,15 @@ import lombok.*;
 public class MatchLiveLinkResponseDTO {
 
     @JsonProperty("match_id")
-    Long matchId;
+    private Long matchId;
 
-    LiveProvider provider;
-    String url;
-    LiveLinkStatus status;
+    private LiveProvider provider;
+    private String url;
+    private LiveLinkStatus status;
+
+    @JsonProperty("report_count")
+    private int reportCount;
+
+    @JsonProperty("owner_auth0_id")
+    private String ownerAuth0Id;
 }
