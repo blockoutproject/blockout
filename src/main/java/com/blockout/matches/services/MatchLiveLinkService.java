@@ -226,7 +226,7 @@ public class MatchLiveLinkService {
     }
 
     @Transactional
-    public void approvePendingLink(Long liveLinkId) {
+    public void approvePendingLink(Long liveLinkId, String adminAuth0Id) {
         MatchLiveLink link = liveLinkRepository.findById(liveLinkId)
                 .orElseThrow(() -> new IllegalStateException("Lien introuvable."));
 
@@ -235,12 +235,26 @@ public class MatchLiveLinkService {
         }
 
         Match match = link.getMatch();
-        if (match == null) {
-            match = matchRepository.findById(link.getMatch().getId())
-                    .orElseThrow(() -> new MatchNotFoundException(link.getMatch().getId()));
+        if (match == null || match.getId() == null) {
+            throw new MatchNotFoundException(null);
         }
 
+        Long matchId = match.getId();
         Instant now = Instant.now();
+
+        liveLinkRepository
+                .findFirstByMatch_IdAndStatusOrderByCreatedAtDesc(matchId, LiveLinkStatus.ACTIVE)
+                .ifPresent(active -> {
+                    active.setStatus(LiveLinkStatus.EXPIRED);
+                    active.setLastUpdate(now);
+                    liveLinkRepository.save(active);
+
+                    logger.info("Active live link expired due to approval of pending link",
+                            keyValue("action", "expire_active_on_pending_approval"),
+                            keyValue("expired_live_link_id", active.getId()),
+                            keyValue("match_id", matchId),
+                            keyValue("approved_pending_live_link_id", liveLinkId));
+                });
 
         link.setStatus(LiveLinkStatus.ACTIVE);
         link.setLastUpdate(now);
@@ -252,8 +266,9 @@ public class MatchLiveLinkService {
         logger.info("Pending live link approved by admin",
                 keyValue("action", "approve_pending_live_link"),
                 keyValue("live_link_id", link.getId()),
-                keyValue("match_id", match.getId()),
-                keyValue("owner_auth0_id", link.getOwnerAuth0Id()));
+                keyValue("match_id", matchId),
+                keyValue("owner_auth0_id", link.getOwnerAuth0Id()),
+                keyValue("admin_auth0_id", adminAuth0Id));
     }
 
     @Transactional
