@@ -9,8 +9,10 @@ import com.blockout.mobilegateway.models.dto.match.DayPageDTO;
 import com.blockout.mobilegateway.models.dto.match.EnrichedDayMatchesDTO;
 import com.blockout.mobilegateway.models.dto.match.EnrichedDayPageDTO;
 import com.blockout.mobilegateway.models.dto.match.EnrichedMatchDTO;
+import com.blockout.mobilegateway.models.dto.match.EnrichedMatchLiveLinkDTO;
 import com.blockout.mobilegateway.models.dto.match.EnrichedPoolMatchesDTO;
 import com.blockout.mobilegateway.models.dto.match.MatchDTO;
+import com.blockout.mobilegateway.models.dto.match.MatchLiveLinkDTO;
 import com.blockout.mobilegateway.models.dto.match.MatchLiveLinkReportRequestDTO;
 import com.blockout.mobilegateway.models.dto.match.MatchLiveLinkRequestDTO;
 import com.blockout.mobilegateway.models.dto.match.MatchLiveLinkResponseDTO;
@@ -406,22 +408,22 @@ public class MatchService {
         matchClientService.reportLiveLink(matchId, request);
     }
 
-    public List<EnrichedMatchDTO> listPendingLiveLinks(String auth0Id) {
+    public List<EnrichedMatchLiveLinkDTO> listPendingLiveLinks(String auth0Id) {
         logger.info("List pending live links",
                 keyValue("action", "list_pending_match_live_links"),
                 keyValue("auth0_id", auth0Id));
 
-        List<MatchDTO> pending = matchClientService.listPendingLiveLinks();
+        List<MatchLiveLinkDTO> pending = matchClientService.listPendingLiveLinks();
         if (pending == null || pending.isEmpty()) {
             logger.info("No pending live links found",
                     keyValue("action", "list_pending_match_live_links_empty"));
             return List.of();
         }
 
-        // Agrège les pools et équipes à partir des matchs
+        // Agrège pools et équipes à partir des liens
         Set<Long> poolIds = new HashSet<>(pending.size());
         Set<Long> teamIds = new HashSet<>(pending.size() * 2);
-        for (MatchDTO m : pending) {
+        for (MatchLiveLinkDTO m : pending) {
             poolIds.add(m.getPoolId());
             teamIds.add(m.getTeamIdA());
             teamIds.add(m.getTeamIdB());
@@ -432,7 +434,7 @@ public class MatchService {
                 keyValue("unique_pool_ids", poolIds.size()),
                 keyValue("unique_team_ids", teamIds.size()));
 
-        // Pools (avec division)
+        // Pools
         Map<Long, PoolDTO> poolById = new HashMap<>(poolIds.size() * 2);
         for (Long poolId : poolIds) {
             PoolDTO pool = poolClientService.getPoolById(poolId);
@@ -444,6 +446,7 @@ public class MatchService {
             }
         }
 
+        // Divisions
         Set<Long> divisionIds = poolById.values().stream()
                 .map(PoolDTO::getDivisionId)
                 .collect(Collectors.toSet());
@@ -457,26 +460,6 @@ public class MatchService {
                 logger.warn("Division not found while building pending live links view",
                         keyValue("division_id", divisionId));
             }
-        }
-
-        Map<Long, EnrichedPoolDTO> enrichedPoolById = new HashMap<>(poolById.size() * 2);
-        for (PoolDTO p : poolById.values()) {
-            DivisionDTO division = divisionById.get(p.getDivisionId());
-            if (division == null || !Boolean.TRUE.equals(division.getActive())) {
-                continue;
-            }
-            enrichedPoolById.put(p.getId(), EnrichedPoolDTO.builder()
-                    .id(p.getId())
-                    .season(p.getSeason())
-                    .leagueCode(p.getLeagueCode())
-                    .leagueName(p.getLeagueName())
-                    .name(p.getName())
-                    .shortName(p.getShortName())
-                    .format(p.getFormat())
-                    .gender(p.getGender())
-                    .followersCount(p.getFollowersCount())
-                    .division(division)
-                    .build());
         }
 
         // Équipes
@@ -494,55 +477,52 @@ public class MatchService {
         // Logos clubs
         enrichTeamsWithClubLogo(teamsMap.values(), clubClientService);
 
-        String base = apiClientProperties.getMobilegateway().getUrl();
+        List<EnrichedMatchLiveLinkDTO> result = new ArrayList<>(pending.size());
+        for (MatchLiveLinkDTO link : pending) {
+            PoolDTO pool = poolById.get(link.getPoolId());
+            if (pool == null) {
+                logger.warn("Skipping pending live link because pool is missing",
+                        keyValue("match_id", link.getMatchId()),
+                        keyValue("pool_id", link.getPoolId()));
+                continue;
+            }
 
-        // On projette chaque MatchDTO (avec son lien PENDING) en EnrichedMatchDTO
-        List<EnrichedMatchDTO> result = new ArrayList<>(pending.size());
-        for (MatchDTO match : pending) {
-            EnrichedPoolDTO enrichedPool = enrichedPoolById.get(match.getPoolId());
-            TeamDTO teamA = teamsMap.get(match.getTeamIdA());
-            TeamDTO teamB = teamsMap.get(match.getTeamIdB());
+            DivisionDTO division = divisionById.get(pool.getDivisionId());
+            if (division == null) {
+                logger.warn("Skipping pending live link because division is missing",
+                        keyValue("match_id", link.getMatchId()),
+                        keyValue("division_id", pool.getDivisionId()));
+                continue;
+            }
 
-            String addressToken = pdfLinkTokenService.generate(
-                    "address",
-                    match.getSeason(),
-                    match.getLeagueCode(),
-                    match.getMatchCode());
-            String sheetToken = pdfLinkTokenService.generate(
-                    "sheet",
-                    match.getSeason(),
-                    match.getLeagueCode(),
-                    match.getMatchCode());
+            TeamDTO teamA = teamsMap.get(link.getTeamIdA());
+            TeamDTO teamB = teamsMap.get(link.getTeamIdB());
+            if (teamA == null || teamB == null) {
+                logger.warn("Skipping pending live link because team is missing",
+                        keyValue("match_id", link.getMatchId()),
+                        keyValue("team_id_a", link.getTeamIdA()),
+                        keyValue("team_id_b", link.getTeamIdB()));
+                continue;
+            }
 
-            String addressUrl = UriComponentsBuilder.fromUriString(base)
-                    .path("/public/ffvb/pdf/")
-                    .path(addressToken)
-                    .toUriString();
-            String sheetUrl = UriComponentsBuilder.fromUriString(base)
-                    .path("/public/ffvb/pdf/")
-                    .path(sheetToken)
-                    .toUriString();
-
-            result.add(EnrichedMatchDTO.builder()
-                    .id(match.getId())
-                    .matchDate(match.getMatchDate())
-                    .status(match.getStatus())
-                    .set(match.getSet())
-                    .score(match.getScore())
-                    .venue(match.getVenue())
-                    .firstReferee(match.getFirstReferee())
-                    .secondReferee(match.getSecondReferee())
-                    .liveCode(match.getLiveCode())
-                    .liveUrl(match.getLiveUrl())
-                    .liveProvider(match.getLiveProvider())
-                    .liveOwnerAuth0Id(match.getLiveOwnerAuth0Id())
-                    .liveEditLocked(match.getLiveEditLocked())
+            EnrichedMatchLiveLinkDTO dto = EnrichedMatchLiveLinkDTO.builder()
+                    .liveLinkId(link.getLiveLinkId())
+                    .matchId(link.getMatchId())
+                    .matchDate(link.getMatchDate())
+                    .season(link.getSeason())
+                    .set(link.getSet())
+                    .score(link.getScore())
                     .teamA(teamA)
                     .teamB(teamB)
-                    .pool(enrichedPool)
-                    .matchAddressPdfUrl(addressUrl)
-                    .matchSheetPdfUrl(sheetUrl)
-                    .build());
+                    .poolName(pool.getShortName())
+                    .divisionName(division.getName())
+                    .leagueName(pool.getLeagueName())
+                    .liveUrl(link.getLiveUrl())
+                    .liveOwnerAuth0Id(link.getLiveOwnerAuth0Id())
+                    .liveOwnerUsername(null) // enrichissable plus tard via users API
+                    .build();
+
+            result.add(dto);
         }
 
         logger.info("Built enriched pending live links list",

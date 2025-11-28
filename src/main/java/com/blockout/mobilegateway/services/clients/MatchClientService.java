@@ -3,6 +3,7 @@ package com.blockout.mobilegateway.services.clients;
 import com.blockout.mobilegateway.config.ApiClientProperties;
 import com.blockout.mobilegateway.models.dto.match.DayPageDTO;
 import com.blockout.mobilegateway.models.dto.match.MatchDTO;
+import com.blockout.mobilegateway.models.dto.match.MatchLiveLinkDTO;
 import com.blockout.mobilegateway.models.dto.match.MatchLiveLinkReportRequestDTO;
 import com.blockout.mobilegateway.models.dto.match.MatchLiveLinkRequestDTO;
 import com.blockout.mobilegateway.models.dto.match.MatchLiveLinkResponseDTO;
@@ -110,7 +111,7 @@ public class MatchClientService {
         apiClientService.post(url, request, Void.class);
     }
 
-    public List<MatchDTO> listPendingLiveLinks() {
+    public List<MatchLiveLinkDTO> listPendingLiveLinks() {
         String url = UriComponentsBuilder.fromUriString(baseUrl())
                 .pathSegment("live-links", "pending")
                 .build()
@@ -119,9 +120,9 @@ public class MatchClientService {
         logger.info("Calling matches#listPendingLiveLinks",
                 keyValue("url", url));
 
-        ResponseEntity<MatchDTO[]> response = apiClientService.get(url, MatchDTO[].class);
+        ResponseEntity<MatchLiveLinkDTO[]> response = apiClientService.get(url, MatchLiveLinkDTO[].class);
 
-        MatchDTO[] body = response.getBody();
+        MatchLiveLinkDTO[] body = response.getBody();
         return body != null ? List.of(body) : List.of();
     }
 
