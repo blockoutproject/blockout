@@ -9,7 +9,7 @@ import com.blockout.mobilegateway.models.dto.match.DayPageDTO;
 import com.blockout.mobilegateway.models.dto.match.EnrichedDayMatchesDTO;
 import com.blockout.mobilegateway.models.dto.match.EnrichedDayPageDTO;
 import com.blockout.mobilegateway.models.dto.match.EnrichedMatchDTO;
-import com.blockout.mobilegateway.models.dto.match.EnrichedMatchLiveLinkDTO;
+import com.blockout.mobilegateway.models.dto.match.EnrichedMatchLiveSummaryDTO;
 import com.blockout.mobilegateway.models.dto.match.EnrichedPoolMatchesDTO;
 import com.blockout.mobilegateway.models.dto.match.MatchDTO;
 import com.blockout.mobilegateway.models.dto.match.MatchLiveLinkDTO;
@@ -55,10 +55,8 @@ public class MatchService {
     private final ApiClientProperties apiClientProperties;
     private final PdfLinkTokenService pdfLinkTokenService;
 
-    /* ========= LISTE PAR JOUR ========= */
-
     public EnrichedDayPageDTO getMatchList(String status, int page, int size, List<Long> poolFilterIds,
-                                           List<Long> teamFilterIds) {
+            List<Long> teamFilterIds) {
         logger.info("Fetching match list",
                 keyValue("action", "fetch_match_list"),
                 keyValue("status", status),
@@ -241,8 +239,6 @@ public class MatchService {
                 .build();
     }
 
-    /* ========= MATCH PAR ID ========= */
-
     public EnrichedMatchDTO getMatchById(Long id) {
         logger.info("Fetching match by id",
                 keyValue("action", "get_match_by_id"),
@@ -284,7 +280,8 @@ public class MatchService {
             }
         }
 
-        // Enrich logos pour toutes les équipes concernées (classement + équipes du match)
+        // Enrich logos pour toutes les équipes concernées (classement + équipes du
+        // match)
         enrichTeamsWithClubLogo(teamsMap.values(), clubClientService);
 
         TeamDTO teamA = teamsMap.get(match.getTeamIdA());
@@ -427,7 +424,7 @@ public class MatchService {
      * On consomme /api/v1/matches/live-moderation côté API matches
      * (MatchLiveSummaryDTO) sans ajouter de filtre côté gateway.
      */
-    public List<EnrichedMatchLiveLinkDTO> listMatchesForLiveModeration() {
+    public List<EnrichedMatchLiveSummaryDTO> listMatchesForLiveModeration() {
         logger.info("List live links for moderation",
                 keyValue("action", "list_match_live_links_for_moderation"));
 
@@ -480,6 +477,30 @@ public class MatchService {
             }
         }
 
+        // Pools enrichis (sans ranking ici, pas nécessaire pour la modération)
+        Map<Long, EnrichedPoolDTO> enrichedPoolById = new HashMap<>(poolById.size() * 2);
+        for (PoolDTO p : poolById.values()) {
+            DivisionDTO division = divisionById.get(p.getDivisionId());
+            if (division == null || !Boolean.TRUE.equals(division.getActive())) {
+                continue;
+            }
+            EnrichedPoolDTO enrichedPool = EnrichedPoolDTO.builder()
+                    .id(p.getId())
+                    .season(p.getSeason())
+                    .leagueCode(p.getLeagueCode())
+                    .leagueName(p.getLeagueName())
+                    .poolCode(p.getPoolCode())
+                    .name(p.getName())
+                    .shortName(p.getShortName())
+                    .format(p.getFormat())
+                    .gender(p.getGender())
+                    .followersCount(p.getFollowersCount())
+                    .division(division)
+                    .build();
+
+            enrichedPoolById.put(p.getId(), enrichedPool);
+        }
+
         // Équipes
         Map<Long, TeamDTO> teamsMap = new HashMap<>(teamIds.size() * 2);
         for (Long teamId : teamIds) {
@@ -496,21 +517,13 @@ public class MatchService {
         enrichTeamsWithClubLogo(teamsMap.values(), clubClientService);
 
         // Construction du résultat enrichi
-        List<EnrichedMatchLiveLinkDTO> result = new ArrayList<>(summaries.size());
+        List<EnrichedMatchLiveSummaryDTO> result = new ArrayList<>(summaries.size());
         for (MatchLiveSummaryDTO m : summaries) {
-            PoolDTO pool = poolById.get(m.getPoolId());
-            if (pool == null) {
-                logger.warn("Skipping match in moderation view because pool is missing",
+            EnrichedPoolDTO enrichedPool = enrichedPoolById.get(m.getPoolId());
+            if (enrichedPool == null) {
+                logger.warn("Skipping match in moderation view because enriched pool is missing or inactive",
                         keyValue("match_id", m.getId()),
                         keyValue("pool_id", m.getPoolId()));
-                continue;
-            }
-
-            DivisionDTO division = divisionById.get(pool.getDivisionId());
-            if (division == null) {
-                logger.warn("Skipping match in moderation view because division is missing",
-                        keyValue("match_id", m.getId()),
-                        keyValue("division_id", pool.getDivisionId()));
                 continue;
             }
 
@@ -524,21 +537,23 @@ public class MatchService {
                 continue;
             }
 
-            EnrichedMatchLiveLinkDTO dto = EnrichedMatchLiveLinkDTO.builder()
-                    .liveLinkId(m.getLastLiveLinkId())
-                    .matchId(m.getId())
-                    .matchDate(m.getMatchDate() != null ? m.getMatchDate().toString() : null)
+            EnrichedMatchLiveSummaryDTO dto = EnrichedMatchLiveSummaryDTO.builder()
+                    .id(m.getId())
+                    .matchDate(m.getMatchDate())
                     .season(m.getSeason())
                     .set(m.getSet())
                     .score(m.getScore())
+                    .status(m.getStatus())
+                    .liveCode(m.getLiveCode())
+                    .lastLiveLinkId(m.getLastLiveLinkId())
+                    .lastLiveLinkStatus(m.getLastLiveLinkStatus())
+                    .lastLiveLinkProvider(m.getLastLiveLinkProvider())
+                    .lastLiveLinkUrl(m.getLastLiveLinkUrl())
+                    .lastLiveLinkOwnerAuth0Id(m.getLastLiveLinkOwnerAuth0Id())
+                    .lastLiveLinkCreatedAt(m.getLastLiveLinkCreatedAt())
                     .teamA(teamA)
                     .teamB(teamB)
-                    .poolName(pool.getShortName())
-                    .divisionName(division.getName())
-                    .leagueName(pool.getLeagueName())
-                    .liveUrl(m.getLastLiveLinkUrl())
-                    .liveOwnerAuth0Id(m.getLastLiveLinkOwnerAuth0Id())
-                    .liveOwnerUsername(null) // enrichissable plus tard via users API
+                    .pool(enrichedPool)
                     .build();
 
             result.add(dto);
