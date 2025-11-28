@@ -6,6 +6,7 @@ import java.time.Instant;
 import java.util.List;
 
 import com.blockout.matches.models.enums.MatchStatus;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 @Getter
 @Setter
@@ -78,6 +79,7 @@ public class Match {
     @Column(name = "last_update", nullable = false)
     private Instant lastUpdate;
 
+    @JsonIgnore
     @OneToMany(mappedBy = "match", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<MatchLiveLink> liveLinks;
 
