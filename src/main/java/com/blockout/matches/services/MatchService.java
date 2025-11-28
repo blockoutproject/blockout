@@ -133,6 +133,7 @@ public class MatchService {
                     : maxDay.plusDays(1).atStartOfDay(PARIS).toInstant();
         }
 
+        // 1) On récupère tous les matchs de la plage
         List<Match> allMatches = (status == MatchStatus.UPCOMING)
                 ? matchRepository.findAllInRangeAsc(
                         startOfMinDay,
@@ -149,30 +150,79 @@ public class MatchService {
                         teamIds, teamIds.size(),
                         active);
 
-        Map<LocalDate, List<Match>> matchesByDate = allMatches.stream()
-                .collect(Collectors.groupingBy(m -> ZonedDateTime.ofInstant(m.getMatchDate(), PARIS).toLocalDate()));
+        if (allMatches.isEmpty()) {
+            return new DayPageDTO(Collections.emptyList(), false, hasNext(allDays, toIndex) ? page + 1 : null);
+        }
 
+        // 2) On récupère tous les liens actifs de ces matchs en un seul coup
+        List<Long> matchIds = allMatches.stream()
+                .map(Match::getId)
+                .distinct()
+                .toList();
+
+        List<MatchLiveLink> activeLinks = matchLiveLinkRepository
+                .findByMatchIdInAndStatus(matchIds, LiveLinkStatus.ACTIVE);
+
+        // Map matchId -> lien actif
+        Map<Long, MatchLiveLink> activeByMatchId = activeLinks.stream()
+                .collect(Collectors.toMap(
+                        l -> l.getMatch().getId(),
+                        l -> l,
+                        // au cas où, on garde le plus récent
+                        (l1, l2) -> l1.getCreatedAt().isAfter(l2.getCreatedAt()) ? l1 : l2));
+
+        // 3) Grouping par jour
+        Map<LocalDate, List<Match>> matchesByDate = allMatches.stream()
+                .collect(Collectors.groupingBy(
+                        m -> ZonedDateTime.ofInstant(m.getMatchDate(), PARIS).toLocalDate()));
+
+        // 4) Construction des DTO avec liveUrl / provider
         List<DayMatchesDTO> dayMatchesList = subDays.stream()
                 .map(day -> {
                     List<Match> matchesForDay = matchesByDate.getOrDefault(day, Collections.emptyList());
+
                     Map<Long, List<Match>> matchesByPool = matchesForDay.stream()
                             .collect(Collectors.groupingBy(Match::getPoolId, TreeMap::new, Collectors.toList()));
 
                     List<PoolMatchesDTO> poolsDto = matchesByPool.entrySet().stream()
-                            .map(e -> new PoolMatchesDTO(e.getKey(), e.getValue()))
-                            .collect(Collectors.toList());
+                            .map(e -> {
+                                Long poolId = e.getKey();
+                                List<MatchDTO> matchDtos = e.getValue().stream()
+                                        .map(m -> {
+                                            MatchLiveLink live = activeByMatchId.get(m.getId());
+                                            return MatchDTO.builder()
+                                                    .id(m.getId())
+                                                    .matchCode(m.getMatchCode())
+                                                    .leagueCode(m.getLeagueCode())
+                                                    .poolId(m.getPoolId())
+                                                    .liveCode(m.getLiveCode())
+                                                    .teamIdA(m.getTeamIdA())
+                                                    .teamIdB(m.getTeamIdB())
+                                                    .matchDate(m.getMatchDate())
+                                                    .season(m.getSeason())
+                                                    .set(m.getSet())
+                                                    .score(m.getScore())
+                                                    .status(m.getStatus())
+                                                    .venue(m.getVenue())
+                                                    .firstReferee(m.getFirstReferee())
+                                                    .secondReferee(m.getSecondReferee())
+                                                    .liveUrl(live != null ? live.getUrl() : null)
+                                                    .liveProvider(live != null ? live.getProvider() : null)
+                                                    .liveOwnerAuth0Id(live != null ? live.getOwnerAuth0Id() : null)
+                                                    .build();
+                                        })
+                                        .toList();
+
+                                return new PoolMatchesDTO(poolId, matchDtos);
+                            })
+                            .toList();
 
                     return new DayMatchesDTO(day, poolsDto);
                 })
-                .collect(Collectors.toList());
+                .toList();
 
         boolean hasNext = (toIndex < allDays.size());
         Integer nextPage = hasNext ? (page + 1) : null;
-
-        logger.debug("Returning paginated match result",
-                keyValue("dayGroupsCount", dayMatchesList.size()),
-                keyValue("hasNext", hasNext),
-                keyValue("nextPage", nextPage));
 
         return new DayPageDTO(dayMatchesList, hasNext, nextPage);
     }
@@ -293,7 +343,8 @@ public class MatchService {
     /**
      * Liste des matchs utilisés dans le panneau admin live :
      * - match avec au moins un lien ACTIVE ou PENDING (sans limite de temps)
-     * - sinon match avec uniquement d'autres statuts, mais date de match >= now - MODERATION_HISTORY_DAYS
+     * - sinon match avec uniquement d'autres statuts, mais date de match >= now -
+     * MODERATION_HISTORY_DAYS
      */
     @Transactional(readOnly = true)
     public List<MatchLiveSummaryDTO> listMatchesForLiveModeration() {
@@ -363,6 +414,10 @@ public class MatchService {
                 keyValue("count", result.size()));
 
         return result;
+    }
+
+    private boolean hasNext(List<LocalDate> allDays, int toIndex) {
+        return toIndex < allDays.size();
     }
 
     /**

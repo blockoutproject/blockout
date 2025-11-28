@@ -55,4 +55,14 @@ public interface MatchLiveLinkRepository extends JpaRepository<MatchLiveLink, Lo
                 JOIN FETCH l.match m
             """)
     List<MatchLiveLink> findAllWithMatch();
+
+    @Query("""
+            SELECT l
+            FROM MatchLiveLink l
+            WHERE l.match.id IN :matchIds
+                AND l.status = :status
+            """)
+    List<MatchLiveLink> findByMatchIdInAndStatus(
+            @Param("matchIds") List<Long> matchIds,
+            @Param("status") LiveLinkStatus status);
 }
