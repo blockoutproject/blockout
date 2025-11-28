@@ -190,28 +190,6 @@ public class MatchLiveLinkService {
     }
 
     @Transactional(readOnly = true)
-    public List<MatchLiveLinkDTO> listPendingLinks() {
-        List<MatchLiveLink> pending = liveLinkRepository.findByStatusWithMatch(LiveLinkStatus.PENDING);
-        if (pending.isEmpty()) {
-            return List.of();
-        }
-
-        return pending.stream()
-                .map(link -> MatchLiveLinkDTO.builder()
-                        .id(link.getId())
-                        .matchId(link.getMatch() != null ? link.getMatch().getId() : null)
-                        .provider(link.getProvider())
-                        .url(link.getUrl())
-                        .status(link.getStatus())
-                        .reportCount(link.getReportCount())
-                        .ownerAuth0Id(link.getOwnerAuth0Id())
-                        .createdAt(link.getCreatedAt())
-                        .lastUpdate(link.getLastUpdate())
-                        .build())
-                .collect(Collectors.toList());
-    }
-
-    @Transactional(readOnly = true)
     public List<MatchLiveLinkDTO> getLiveLinksHistoryForMatch(Long matchId) {
         List<MatchLiveLink> links = liveLinkRepository
                 .findByMatch_Id(matchId);

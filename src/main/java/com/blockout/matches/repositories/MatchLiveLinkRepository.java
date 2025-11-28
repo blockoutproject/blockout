@@ -38,14 +38,6 @@ public interface MatchLiveLinkRepository extends JpaRepository<MatchLiveLink, Lo
 
     List<MatchLiveLink> findByStatus(LiveLinkStatus status);
 
-    @Query("""
-                SELECT l
-                FROM MatchLiveLink l
-                JOIN FETCH l.match m
-                WHERE l.status = :status
-            """)
-    List<MatchLiveLink> findByStatusWithMatch(@Param("status") LiveLinkStatus status);
-
     List<MatchLiveLink> findByMatch_IdAndOwnerAuth0IdAndStatus(
             Long matchId,
             String ownerAuth0Id,
@@ -58,9 +50,9 @@ public interface MatchLiveLinkRepository extends JpaRepository<MatchLiveLink, Lo
     Optional<MatchLiveLink> findFirstByMatch_IdOrderByCreatedAtDesc(Long matchId);
 
     @Query("""
-            SELECT l
-            FROM MatchLiveLink l
-            JOIN FETCH l.match m
+                SELECT l
+                FROM MatchLiveLink l
+                JOIN FETCH l.match m
             """)
     List<MatchLiveLink> findAllWithMatch();
 }

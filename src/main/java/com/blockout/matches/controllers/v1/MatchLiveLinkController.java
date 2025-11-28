@@ -92,18 +92,6 @@ public class MatchLiveLinkController {
         return ResponseEntity.noContent().build();
     }
 
-    @Operation(summary = "Lister tous les liens en attente de validation (PENDING)")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Liste des liens en attente"),
-            @ApiResponse(responseCode = "403", description = "Non autorisé")
-    })
-    @PreAuthorize("hasAuthority('SCOPE_moderate:match_live_link')")
-    @GetMapping("/live-links/pending")
-    public ResponseEntity<List<MatchLiveLinkDTO>> listPendingLinks() {
-        List<MatchLiveLinkDTO> dtos = matchLiveLinkService.listPendingLinks();
-        return ResponseEntity.ok(dtos);
-    }
-
     @Operation(summary = "Approuver un lien en attente (PENDING → ACTIVE)")
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "Lien approuvé"),
