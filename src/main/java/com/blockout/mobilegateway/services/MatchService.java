@@ -207,6 +207,7 @@ public class MatchService {
                             .liveCode(m.getLiveCode())
                             .teamA(teamsMap.get(m.getTeamIdA()))
                             .teamB(teamsMap.get(m.getTeamIdB()))
+                            .liveUrl(m.getLiveUrl())
                             .build());
                 }
 
