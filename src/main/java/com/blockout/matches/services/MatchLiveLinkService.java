@@ -1,7 +1,7 @@
 package com.blockout.matches.services;
 
 import com.blockout.matches.exceptions.MatchNotFoundException;
-import com.blockout.matches.models.dto.match.MatchDTO;
+import com.blockout.matches.models.dto.match.MatchLiveLinkDTO;
 import com.blockout.matches.models.dto.match.MatchLiveLinkRequestDTO;
 import com.blockout.matches.models.dto.match.MatchLiveLinkResponseDTO;
 import com.blockout.matches.models.dto.users.CustomUserDTO;
@@ -29,7 +29,7 @@ import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Locale;
-import java.util.Objects;
+import java.util.stream.Collectors;
 
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
@@ -211,21 +211,20 @@ public class MatchLiveLinkService {
      * On injecte dans le DTO les infos du lien pending (url, provider, owner).
      */
     @Transactional(readOnly = true)
-    public List<MatchDTO> listPendingLinks() {
+    public List<MatchLiveLinkDTO> listPendingLinks() {
         List<MatchLiveLink> pending = liveLinkRepository.findByStatusWithMatch(LiveLinkStatus.PENDING);
         if (pending.isEmpty()) {
             return List.of();
         }
 
         return pending.stream()
+                .filter(link -> link.getMatch() != null)
                 .map(link -> {
                     Match match = link.getMatch();
-                    if (match == null) {
-                        return null;
-                    }
 
-                    return MatchDTO.builder()
-                            .id(match.getId())
+                    return MatchLiveLinkDTO.builder()
+                            .liveLinkId(link.getId())
+                            .matchId(match.getId())
                             .matchCode(match.getMatchCode())
                             .leagueCode(match.getLeagueCode())
                             .poolId(match.getPoolId())
@@ -240,15 +239,13 @@ public class MatchLiveLinkService {
                             .venue(match.getVenue())
                             .firstReferee(match.getFirstReferee())
                             .secondReferee(match.getSecondReferee())
-                            // Infos du lien PENDING (candidat)
                             .liveUrl(link.getUrl())
                             .liveProvider(link.getProvider())
                             .liveOwnerAuth0Id(link.getOwnerAuth0Id())
                             .liveEditLocked(match.isLiveEditLocked())
                             .build();
                 })
-                .filter(Objects::nonNull)
-                .toList();
+                .collect(Collectors.toList());
     }
 
     /**

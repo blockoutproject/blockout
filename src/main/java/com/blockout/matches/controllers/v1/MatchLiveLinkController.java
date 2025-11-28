@@ -1,6 +1,6 @@
 package com.blockout.matches.controllers.v1;
 
-import com.blockout.matches.models.dto.match.MatchDTO;
+import com.blockout.matches.models.dto.match.MatchLiveLinkDTO;
 import com.blockout.matches.models.dto.match.MatchLiveLinkReportRequestDTO;
 import com.blockout.matches.models.dto.match.MatchLiveLinkRequestDTO;
 import com.blockout.matches.models.dto.match.MatchLiveLinkResponseDTO;
@@ -101,8 +101,8 @@ public class MatchLiveLinkController {
     })
     @PreAuthorize("hasAuthority('SCOPE_moderate:match_live_link')")
     @GetMapping("/live-links/pending")
-    public ResponseEntity<List<MatchDTO>> listPendingLinks() {
-        List<MatchDTO> dtos = matchLiveLinkService.listPendingLinks();
+    public ResponseEntity<List<MatchLiveLinkDTO>> listPendingLinks() {
+        List<MatchLiveLinkDTO> dtos = matchLiveLinkService.listPendingLinks();
         return ResponseEntity.ok(dtos);
     }
 
