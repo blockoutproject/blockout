@@ -47,7 +47,7 @@ public class MatchLiveLinkModerationPolicy {
     /**
      * Retourne true si l'utilisateur courant a le scope de modération.
      */
-    private boolean isModerator() {
+    public boolean isModerator() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null) {
             return false;

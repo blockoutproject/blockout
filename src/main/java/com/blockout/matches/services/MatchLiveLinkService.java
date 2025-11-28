@@ -59,7 +59,9 @@ public class MatchLiveLinkService {
         String auth0Id = currentUser.getAuth0Id();
         Instant now = Instant.now();
 
-        // Anti-abus général (sauf modérateurs)
+        boolean isModerator = moderationPolicy.isModerator();
+
+        // Anti-abus général (sauf modérateurs – déjà géré dans la policy)
         moderationPolicy.validateUserAccountAge(currentUser, matchId, now);
 
         LiveProvider provider = resolveProviderFromUrl(request);
@@ -80,8 +82,8 @@ public class MatchLiveLinkService {
         var activeOpt = liveLinkRepository
                 .findFirstByMatch_IdAndStatusOrderByCreatedAtDesc(matchId, LiveLinkStatus.ACTIVE);
 
-        // Cas post-match → lien en attente de validation (PENDING)
-        if (isFinished) {
+        // Les modérateurs ne passent pas par le PENDING, ils suivent le flux "live"
+        if (isFinished && !isModerator) {
             moderationPolicy.validatePostMatchLinkRules(
                     match,
                     activeOpt.orElse(null),
@@ -99,7 +101,8 @@ public class MatchLiveLinkService {
                     now);
         }
 
-        // Cas live (match non terminé) → fenêtre 1h avant
+        // Cas live (match non terminé) OU modérateur (match fini ou non)
+        // → validatePublishWindow ne fait rien pour les modos
         moderationPolicy.validatePublishWindow(match, now, matchId, auth0Id);
 
         if (activeOpt.isPresent()) {
@@ -133,7 +136,7 @@ public class MatchLiveLinkService {
 
         boolean alreadyHasLinkForThisMatch = linksForMatchAndOwner > 0;
 
-        // Quotas standard (ignorés pour modérateurs)
+        // Quotas standard (ignorés pour modérateurs – déjà géré dans la policy)
         moderationPolicy.validateLinkQuotas(
                 matchId,
                 auth0Id,
@@ -148,7 +151,8 @@ public class MatchLiveLinkService {
             liveLinkRepository.save(active);
         });
 
-        // Avant/pendant match → lien directement actif
+        // Ici : que le match soit fini ou non, pour un modérateur on arrive
+        // dans ce flux → lien directement ACTIVE.
         MatchLiveLink newLink = MatchLiveLink.builder()
                 .match(match)
                 .ownerAuth0Id(auth0Id)
