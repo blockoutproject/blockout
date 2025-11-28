@@ -4,7 +4,6 @@ import com.blockout.matches.exceptions.MatchNotFoundException;
 import com.blockout.matches.models.dto.match.DayMatchesDTO;
 import com.blockout.matches.models.dto.match.DayPageDTO;
 import com.blockout.matches.models.dto.match.MatchDTO;
-import com.blockout.matches.models.dto.match.MatchScraperDTO;
 import com.blockout.matches.models.dto.match.PoolMatchesDTO;
 import com.blockout.matches.models.entities.Match;
 import com.blockout.matches.models.entities.MatchLiveLink;
@@ -66,8 +65,7 @@ public class MatchService {
     }
 
     /**
-     * Récupère les matchs en appliquant des filtres facultatifs. Pour scraper
-     * actuellement.
+     * Récupère les matchs en appliquant des filtres facultatifs. Pour scraper actuellement.
      *
      * @param poolId  identifiant de la poule (null pour ignorer le filtre)
      * @param teamIds liste d'IDs d'équipes (null ou vide pour ignorer le filtre)
@@ -75,7 +73,7 @@ public class MatchService {
      * @param active  flag d'activation (null pour ignorer le filtre)
      * @return liste de matchs correspondant aux critères
      */
-    public List<MatchScraperDTO> findMatches(
+    public List<Match> findMatches(
             Long poolId,
             List<Long> teamIds,
             MatchStatus status,
@@ -90,9 +88,7 @@ public class MatchService {
                 safeTeamIds,
                 safeTeamIds.size());
 
-        return matches.stream()
-                .map(this::toScraperDto)
-                .toList();
+        return matches;
     }
 
     /**
@@ -347,31 +343,5 @@ public class MatchService {
                 keyValue("action", "bulk_deactivate_matches"),
                 keyValue("poolId", poolId),
                 keyValue("nombreMatches", matchesToDeactivate.size()));
-    }
-
-    private MatchScraperDTO toScraperDto(Match m) {
-        if (m == null)
-            return null;
-
-        return MatchScraperDTO.builder()
-                .id(m.getId())
-                .matchCode(m.getMatchCode())
-                .leagueCode(m.getLeagueCode())
-                .poolId(m.getPoolId())
-                .teamIdA(m.getTeamIdA())
-                .teamIdB(m.getTeamIdB())
-                .matchDate(m.getMatchDate())
-                .season(m.getSeason())
-                .status(m.getStatus() != null ? m.getStatus().name() : null)
-                .set(m.getSet())
-                .score(m.getScore())
-                .venue(m.getVenue())
-                .firstReferee(m.getFirstReferee())
-                .secondReferee(m.getSecondReferee())
-                .liveCode(m.getLiveCode())
-                .active(m.getActive())
-                .createdAt(m.getCreatedAt())
-                .lastUpdate(m.getLastUpdate())
-                .build();
     }
 }

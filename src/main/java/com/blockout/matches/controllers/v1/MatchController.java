@@ -3,7 +3,6 @@ package com.blockout.matches.controllers.v1;
 import com.blockout.matches.models.dto.match.BulkMatchesDeactivateRequestDTO;
 import com.blockout.matches.models.dto.match.DayPageDTO;
 import com.blockout.matches.models.dto.match.MatchDTO;
-import com.blockout.matches.models.dto.match.MatchScraperDTO;
 import com.blockout.matches.models.entities.Match;
 import com.blockout.matches.models.enums.MatchStatus;
 import com.blockout.matches.services.MatchService;
@@ -32,12 +31,12 @@ public class MatchController {
             @ApiResponse(responseCode = "200", description = "Liste des matchs")
     })
     @GetMapping
-    public ResponseEntity<List<MatchScraperDTO>> listMatches(
+    public ResponseEntity<List<Match>> listMatches(
             @RequestParam(required = false, name = "pool_id") Long poolId,
             @RequestParam(required = false, name = "team_ids") List<Long> teamIds,
             @RequestParam(required = false) MatchStatus status,
             @RequestParam(required = false) Boolean active) {
-        List<MatchScraperDTO> matches = matchService.findMatches(poolId, teamIds, status, active);
+        List<Match> matches = matchService.findMatches(poolId, teamIds, status, active);
         return ResponseEntity.ok(matches);
     }
 
