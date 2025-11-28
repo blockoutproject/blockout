@@ -381,8 +381,6 @@ public class MatchService {
                 .build();
     }
 
-    /* ========= LIVE LINK CRUD ========= */
-
     public MatchLiveLinkResponseDTO upsertLiveLink(Long matchId, MatchLiveLinkRequestDTO request, String auth0Id) {
         logger.info("Upsert live link",
                 keyValue("action", "upsert_match_live_link"),
@@ -582,5 +580,14 @@ public class MatchService {
                 keyValue("auth0_id", auth0Id));
 
         matchClientService.rejectPendingLiveLink(liveLinkId);
+    }
+
+    public void reactivateLiveLink(Long liveLinkId, String auth0Id) {
+        logger.info("Reactivate live link",
+                keyValue("action", "reactivate_match_live_link"),
+                keyValue("live_link_id", liveLinkId),
+                keyValue("auth0_id", auth0Id));
+
+        matchClientService.reactivateLiveLink(liveLinkId);
     }
 }

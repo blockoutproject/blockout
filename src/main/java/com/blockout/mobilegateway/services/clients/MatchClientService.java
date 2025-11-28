@@ -42,7 +42,8 @@ public class MatchClientService {
                 .queryParam("page", page)
                 .queryParam("size", size)
                 .queryParamIfPresent("status", Optional.ofNullable(status))
-                // côté API matches tu as aussi "active", mais ici tu forces déjà active côté gateway
+                // côté API matches tu as aussi "active", mais ici tu forces déjà active côté
+                // gateway
                 .queryParam("active", true)
                 .queryParamIfPresent("pool_ids", Optional.ofNullable(poolIds))
                 .queryParamIfPresent("team_ids", Optional.ofNullable(teamIds))
@@ -84,8 +85,7 @@ public class MatchClientService {
         logger.info("Calling matches#listMatchesForLiveModeration",
                 keyValue("url", url));
 
-        ResponseEntity<MatchLiveSummaryDTO[]> response =
-                apiClientService.get(url, MatchLiveSummaryDTO[].class);
+        ResponseEntity<MatchLiveSummaryDTO[]> response = apiClientService.get(url, MatchLiveSummaryDTO[].class);
 
         MatchLiveSummaryDTO[] body = response.getBody();
         return body != null ? List.of(body) : List.of();
@@ -104,8 +104,7 @@ public class MatchClientService {
         ResponseEntity<MatchLiveLinkResponseDTO> response = apiClientService.post(
                 url,
                 request,
-                MatchLiveLinkResponseDTO.class
-        );
+                MatchLiveLinkResponseDTO.class);
 
         return response.getBody();
     }
@@ -146,8 +145,7 @@ public class MatchClientService {
                 keyValue("match_id", matchId),
                 keyValue("url", url));
 
-        ResponseEntity<MatchLiveLinkDTO[]> response =
-                apiClientService.get(url, MatchLiveLinkDTO[].class);
+        ResponseEntity<MatchLiveLinkDTO[]> response = apiClientService.get(url, MatchLiveLinkDTO[].class);
 
         MatchLiveLinkDTO[] body = response.getBody();
         return body != null ? List.of(body) : List.of();
@@ -162,8 +160,7 @@ public class MatchClientService {
         logger.info("Calling matches#listPendingLiveLinks",
                 keyValue("url", url));
 
-        ResponseEntity<MatchLiveLinkDTO[]> response =
-                apiClientService.get(url, MatchLiveLinkDTO[].class);
+        ResponseEntity<MatchLiveLinkDTO[]> response = apiClientService.get(url, MatchLiveLinkDTO[].class);
 
         MatchLiveLinkDTO[] body = response.getBody();
         return body != null ? List.of(body) : List.of();
@@ -189,6 +186,19 @@ public class MatchClientService {
                 .toUriString();
 
         logger.info("Calling matches#rejectPendingLiveLink",
+                keyValue("live_link_id", liveLinkId),
+                keyValue("url", url));
+
+        apiClientService.post(url, null, Void.class);
+    }
+
+    public void reactivateLiveLink(Long liveLinkId) {
+        String url = UriComponentsBuilder.fromUriString(baseUrl())
+                .pathSegment("live-links", liveLinkId.toString(), "reactivate")
+                .build()
+                .toUriString();
+
+        logger.info("Calling matches#reactivateLiveLink",
                 keyValue("live_link_id", liveLinkId),
                 keyValue("url", url));
 

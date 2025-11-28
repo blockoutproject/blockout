@@ -89,4 +89,14 @@ public class MatchSecureController {
         matchService.rejectPendingLiveLink(liveLinkId, auth0Id);
         return ResponseEntity.noContent().build();
     }
+
+    @PostMapping("/live-links/{liveLinkId}/reactivate")
+    public ResponseEntity<Void> reactivateLiveLink(
+            @PathVariable Long liveLinkId,
+            @AuthenticationPrincipal Jwt jwt) {
+
+        String auth0Id = jwt.getSubject();
+        matchService.reactivateLiveLink(liveLinkId, auth0Id);
+        return ResponseEntity.noContent().build();
+    }
 }
