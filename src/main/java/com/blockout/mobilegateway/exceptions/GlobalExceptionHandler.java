@@ -8,7 +8,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.ServletRequestBindingException;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.time.Instant;
 import java.util.Map;
@@ -22,15 +21,6 @@ public class GlobalExceptionHandler {
         return buildErrorResponse(
                 ex.getMessage(),
                 HttpStatus.INTERNAL_SERVER_ERROR,
-                request.getRequestURI());
-    }
-
-    @ExceptionHandler(NoResourceFoundException.class)
-    public ResponseEntity<Map<String, Object>> handleNoResourceFound(
-            InconsistentStateException ex, HttpServletRequest request) {
-        return buildErrorResponse(
-                ex.getMessage(),
-                HttpStatus.NOT_FOUND,
                 request.getRequestURI());
     }
 
