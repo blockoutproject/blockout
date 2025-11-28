@@ -78,7 +78,7 @@ const ProfileScreen: React.FC = () => {
                         try {
                             await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
                             await signOutSSO();
-                            await mobile.deleteCurrentUser();
+                            await mobile.users.deleteCurrentUser();
                             resetOnboarding();
                             await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
                         } catch {

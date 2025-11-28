@@ -8,7 +8,7 @@ export const useAppStatus = () => {
     return useQuery<AppStatusDTO>({
         queryKey: ['appStatus'],
         queryFn: async () => {
-            return await mobile.getAppStatus();
+            return await mobile.config.getAppStatus();
         },
         staleTime: 0,
     });

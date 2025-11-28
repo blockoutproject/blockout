@@ -13,7 +13,7 @@ import { SessionProvider, useSession } from "@/src/context/SessionProvider";
 import { SplashScreenController } from "@/src/components/splash/SplashScreen";
 import { useOnboardingStore } from "../utils/onboardingStore";
 import { addNotificationListeners, openNotificationUrlIfAny } from "../utils/notifications";
-import MaintenanceScreen from "../components/maintenance/MaintenanceScreen";
+import MaintenanceScreen from "../components/appStatus/MaintenanceScreen";
 
 const queryClient = new QueryClient();
 

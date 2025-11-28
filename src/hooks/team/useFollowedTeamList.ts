@@ -27,7 +27,7 @@ export const useFollowedTeamList = (followedTeamIds?: number[]) => {
         queryFn: async () => {
             if (!followedTeamIds?.length) return [];
 
-            const teams = await mobile.getTeamListByIds(followedTeamIds);
+            const teams = await mobile.teams.getTeamListByIds(followedTeamIds);
             return teams ?? [];
         },
         staleTime: 5 * 60 * 1000,

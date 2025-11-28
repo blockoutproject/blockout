@@ -7,7 +7,7 @@ export const useEnrichedMatchById = (id?: number) => {
 
     return useEntityById<EnrichedMatchDTO>(
         "enrichedMatches",
-        (matchId: number) => mobile.getEnrichedMatchById(matchId),
+        (matchId: number) => mobile.matches.getEnrichedMatchById(matchId),
         id
     );
 };

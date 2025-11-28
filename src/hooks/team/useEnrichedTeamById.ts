@@ -7,7 +7,7 @@ export const useEnrichedTeamById = (id?: number, enabled?: boolean) => {
 
     return useEntityById<EnrichedTeamDTO>(
         "enrichedTeams",
-        (teamId: number) => mobile.getEnrichedTeamById(teamId),
+        (teamId: number) => mobile.teams.getEnrichedTeamById(teamId),
         id,
         enabled
     );

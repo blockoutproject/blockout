@@ -8,7 +8,7 @@ export const useScraperStatuses = () => {
     return useQuery<ScraperStatus[]>({
         queryKey: ['scraper-statuses'],
         queryFn: async () => {
-            return mobile.getScraperStatuses();
+            return mobile.config.getScraperStatuses();
         },
         staleTime: 1000 * 60,
         enabled: true,

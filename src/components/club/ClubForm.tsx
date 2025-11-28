@@ -85,9 +85,18 @@ const ClubForm: React.FC<ClubFormProps> = ({ club, onSuccess, onRegisterSubmit, 
                 setLoading(true);
                 setApiError(null);
 
-                const dto = { name: values.name.trim() };
+                const dto: Partial<Club> = {
+                    name: values.name.trim(),
+                };
 
-                const updated = await mobile.updateClub(club.id, dto, imageFile ?? undefined);
+                if (imageFile) {
+                } else if (removedLogo) {
+                    dto.logoUrl = null;
+                } else if (club.logoUrl) {
+                    dto.logoUrl = club.logoUrl;
+                }
+
+                const updated = await mobile.clubs.updateClub(club.id, dto, imageFile ?? undefined);
                 await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
                 onSuccess(updated);
             } catch (err) {

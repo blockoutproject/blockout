@@ -1,6 +1,11 @@
+// FILE: src/components/match/form/MatchLiveLinkReportForm.tsx
+
 import React, { useEffect, useMemo, useState } from "react";
-import { StyleSheet, Text } from "react-native";
-import { BottomSheetScrollView, BottomSheetTextInput } from "@gorhom/bottom-sheet";
+import { StyleSheet } from "react-native";
+import {
+    BottomSheetScrollView,
+    BottomSheetTextInput,
+} from "@gorhom/bottom-sheet";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import * as Haptics from "expo-haptics";
@@ -73,19 +78,25 @@ const MatchLiveLinkReportForm: React.FC<MatchLiveLinkReportFormProps> = ({
             try {
                 setLoading(true);
                 setApiError(null);
-                await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                await Haptics.impactAsync(
+                    Haptics.ImpactFeedbackStyle.Medium,
+                );
 
                 const payload: MatchLiveLinkReportRequestDTO = {
                     reason: values.reason.trim(),
                 };
 
-                await mobile.reportMatchLiveLink(matchId, payload);
-                await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                await mobile.matches.reportMatchLiveLink(matchId, payload);
+                await Haptics.notificationAsync(
+                    Haptics.NotificationFeedbackType.Success,
+                );
                 onSuccess();
             } catch (err) {
                 const msg = getReportErrorMessage(err);
                 setApiError(msg);
-                await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+                await Haptics.notificationAsync(
+                    Haptics.NotificationFeedbackType.Error,
+                );
             } finally {
                 setLoading(false);
             }
@@ -109,7 +120,6 @@ const MatchLiveLinkReportForm: React.FC<MatchLiveLinkReportFormProps> = ({
     }, [loading, canSubmit, onStateChange]);
 
     const showFieldError = formik.touched.reason && !!formik.errors.reason;
-    const fieldError = showFieldError ? formik.errors.reason : undefined;
 
     return (
         <>
@@ -118,12 +128,17 @@ const MatchLiveLinkReportForm: React.FC<MatchLiveLinkReportFormProps> = ({
                 showsVerticalScrollIndicator={false}
             >
                 <FormCard title="Signaler un lien">
-                    <Field error={formik.errors.reason as string} touched={formik.touched.reason}>
+                    <Field
+                        error={formik.errors.reason as string}
+                        touched={formik.touched.reason}
+                    >
                         <BottomSheetTextInput
                             style={[
                                 styles.input,
                                 {
-                                    borderColor: showFieldError ? theme.error : theme.border,
+                                    borderColor: showFieldError
+                                        ? theme.error
+                                        : theme.border,
                                     color: theme.text,
                                     backgroundColor: theme.surface,
                                 },
@@ -162,10 +177,5 @@ const styles = StyleSheet.create({
         fontSize: 14,
         minHeight: 140,
         textAlignVertical: "top",
-    },
-    errorText: {
-        marginTop: 6,
-        fontSize: 12,
-        fontWeight: "600",
     },
 });

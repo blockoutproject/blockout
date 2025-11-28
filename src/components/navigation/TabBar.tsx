@@ -1,10 +1,9 @@
-import React, { useEffect, useMemo, useRef } from "react";
+import React, { useEffect, useRef, useCallback } from "react";
 import {
+    LayoutChangeEvent,
     Platform,
-    Pressable,
     StyleSheet,
     View,
-    LayoutChangeEvent,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
@@ -16,7 +15,10 @@ import Animated, {
 } from "react-native-reanimated";
 import { BlurView } from "expo-blur";
 import * as Haptics from "expo-haptics";
+
+import { TabBarItem } from "./TabBarItem";
 import { useAppTheme } from "@/src/context/ThemeProvider";
+import { useSession } from "@/src/context/SessionProvider";
 import { BOTTOM_TABBAR_HEIGHT, CORNERS } from "@/src/theme/globals";
 import { withAlpha } from "@/src/utils/utils";
 
@@ -40,62 +42,7 @@ type Props = BottomTabBarProps & {
 
 const SPRING = { damping: 25, stiffness: 340, mass: 0.8 };
 
-function TabBarItem({
-    options,
-    isFocused,
-    color,
-    size,
-    onPress,
-    onLongPress,
-    onLayout,
-    index,
-    activeIndex,
-}: {
-    options: any;
-    isFocused: boolean;
-    color: string;
-    size: number;
-    onPress: () => void;
-    onLongPress: () => void;
-    onLayout: (e: LayoutChangeEvent) => void;
-    index: number;
-    activeIndex: SharedValue<number>;
-}) {
-    const iconAnimatedStyle = useAnimatedStyle(() => {
-        const selected = activeIndex.value === index;
-        return {
-            transform: [
-                { translateY: withSpring(0, SPRING) },
-                {
-                    scale: withSpring(selected ? 1.06 : 1, {
-                        ...SPRING,
-                        damping: 14,
-                    }),
-                },
-            ],
-            opacity: withSpring(selected ? 1 : 0.9),
-        };
-    });
-
-    return (
-        <Pressable
-            onPress={onPress}
-            onLongPress={onLongPress}
-            onLayout={onLayout}
-            style={styles.item}
-            android_ripple={{ color: "rgba(255,255,255,0.05)", borderless: true }}
-            hitSlop={12}
-            accessibilityRole="button"
-            accessibilityState={isFocused ? { selected: true } : {}}
-        >
-            <Animated.View style={[styles.iconWrap, iconAnimatedStyle]}>
-                {options.tabBarIcon
-                    ? options.tabBarIcon({ focused: isFocused, color, size })
-                    : null}
-            </Animated.View>
-        </Pressable>
-    );
-}
+type LayoutMap = Record<number, { x: number; width: number }>;
 
 export default function TabBar({
     state,
@@ -113,33 +60,42 @@ export default function TabBar({
 }: Props) {
     const insets = useSafeAreaInsets();
     const theme = useAppTheme();
+    const { isMaintenance } = useSession();
 
-    /** Routes visibles = routes normales (Tabs.Protected gère déjà le masquage) */
     const routes = state.routes;
-
-    /** Index actif */
     const activeRouteIndex = state.index;
 
-    /** Mesures par index */
-    const layoutsRef = useRef<Record<number, { x: number; width: number }>>({});
+    const layoutsRef = useRef<LayoutMap>({});
     const pillX = useSharedValue(0);
-    const activeIndex = useSharedValue(activeRouteIndex);
-
-    const animateToIndex = (idx: number) => {
-        const layout = layoutsRef.current[idx];
-        if (!layout) return;
-        const left = layout.x + (layout.width - pillWidth) / 2;
-        pillX.value = withSpring(left, SPRING);
-        activeIndex.value = idx;
-    };
-
-    /** Sync animation quand nav change */
-    useEffect(() => {
-        const id = setTimeout(() => animateToIndex(activeRouteIndex), 0);
-        return () => clearTimeout(id);
-    }, [activeRouteIndex, routes.length]);
+    const activeIndex: SharedValue<number> = useSharedValue(activeRouteIndex);
 
     const offsetFromBottom = Math.max(insets.bottom, 0) + extraBottomInset;
+
+    const computePillX = useCallback(
+        (idx: number) => {
+            const layout = layoutsRef.current[idx];
+            if (!layout) return null;
+            return layout.x + (layout.width - pillWidth) / 2;
+        },
+        [pillWidth],
+    );
+
+    const animateToIndex = useCallback(
+        (idx: number) => {
+            const x = computePillX(idx);
+            if (x == null) return;
+            pillX.value = withSpring(x, SPRING);
+            activeIndex.value = idx;
+        },
+        [computePillX, pillX, activeIndex],
+    );
+
+    useEffect(() => {
+        // resynchronise quand l’onglet actif change
+        requestAnimationFrame(() => {
+            animateToIndex(activeRouteIndex);
+        });
+    }, [activeRouteIndex, animateToIndex, routes.length]);
 
     const pillStyle = useAnimatedStyle(() => ({
         transform: [
@@ -156,27 +112,60 @@ export default function TabBar({
 
     const Background =
         Platform.OS === "ios" ? (
-            <BlurView intensity={90} tint={blurTintIOS} style={StyleSheet.absoluteFill} />
+            <BlurView
+                intensity={90}
+                tint={blurTintIOS}
+                style={StyleSheet.absoluteFill}
+            />
         ) : (
             <View
                 pointerEvents="none"
-                style={[StyleSheet.absoluteFill, { backgroundColor: backgroundColorAndroid }]}
+                style={[
+                    StyleSheet.absoluteFill,
+                    { backgroundColor: backgroundColorAndroid },
+                ]}
             />
         );
 
-    const pillBg = withAlpha(activeColor, pillOpacity);
+    const pillBg = withAlpha(
+        isMaintenance ? theme.error : activeColor,
+        pillOpacity,
+    );
+
+    const handleRowLayout = () => {
+        // tente une anim dès que la barre a un layout
+        requestAnimationFrame(() => {
+            animateToIndex(activeRouteIndex);
+        });
+    };
+
+    const handleItemLayout =
+        (index: number) =>
+            (e: LayoutChangeEvent): void => {
+                const { x, width } = e.nativeEvent.layout;
+                layoutsRef.current[index] = { x, width };
+
+                if (index === activeRouteIndex) {
+                    requestAnimationFrame(() => animateToIndex(index));
+                }
+            };
 
     return (
-        <View pointerEvents="box-none" style={[styles.wrapper, { bottom: offsetFromBottom }]}>
-            <View style={[styles.box, { borderColor: theme.border }]}>
+        <View
+            pointerEvents="box-none"
+            style={[styles.wrapper, { bottom: offsetFromBottom }]}
+        >
+            <View
+                style={[
+                    styles.box,
+                    {
+                        borderColor: isMaintenance ? theme.error : theme.border,
+                    },
+                ]}
+            >
                 {Background}
 
-                <View
-                    style={styles.row}
-                    onLayout={() =>
-                        requestAnimationFrame(() => animateToIndex(activeRouteIndex))
-                    }
-                >
+                <View style={styles.row} onLayout={handleRowLayout}>
                     {/* PILL */}
                     <Animated.View
                         pointerEvents="none"
@@ -189,7 +178,9 @@ export default function TabBar({
                                 borderRadius: pillHeight / 2,
                                 backgroundColor: pillBg,
                                 borderWidth: pillBorder ? StyleSheet.hairlineWidth : 0,
-                                borderColor: pillBorder ? theme.borderSecondary : "transparent",
+                                borderColor: isMaintenance
+                                    ? theme.error
+                                    : theme.borderSecondary,
                             },
                         ]}
                     />
@@ -215,15 +206,10 @@ export default function TabBar({
                         };
 
                         const onLongPress = () => {
-                            navigation.emit({ type: "tabLongPress", target: route.key });
-                        };
-
-                        const onLayout = (e: LayoutChangeEvent) => {
-                            const { x, width } = e.nativeEvent.layout;
-                            layoutsRef.current[index] = { x, width };
-                            if (index === activeRouteIndex) {
-                                requestAnimationFrame(() => animateToIndex(index));
-                            }
+                            navigation.emit({
+                                type: "tabLongPress",
+                                target: route.key,
+                            });
                         };
 
                         const color = isFocused ? activeColor : inactiveColor;
@@ -233,14 +219,14 @@ export default function TabBar({
                             <TabBarItem
                                 key={route.key}
                                 options={options}
+                                index={index}
                                 isFocused={isFocused}
                                 color={color}
                                 size={size}
+                                activeIndex={activeIndex}
                                 onPress={onPress}
                                 onLongPress={onLongPress}
-                                onLayout={onLayout}
-                                index={index}
-                                activeIndex={activeIndex}
+                                onLayout={handleItemLayout(index)}
                             />
                         );
                     })}
@@ -273,17 +259,6 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "space-evenly",
         paddingHorizontal: 10,
-    },
-    item: {
-        flex: 1,
-        alignItems: "center",
-        justifyContent: "center",
-        minWidth: 60,
-    },
-    iconWrap: {
-        height: "100%",
-        alignItems: "center",
-        justifyContent: "center",
     },
     pill: {
         position: "absolute",

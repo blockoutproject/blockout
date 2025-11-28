@@ -7,7 +7,7 @@ export const useSearchPools = (query: string, season?: string) => {
 
     return useQuery<PoolSearchDocDTO[]>({
         queryKey: ['pools', 'search', query, season],
-        queryFn: async () => mobile.searchPools(query, season),
+        queryFn: async () => mobile.search.searchPools(query, season),
         enabled: true,
         staleTime: 1000 * 60 * 5,
         retry: false,

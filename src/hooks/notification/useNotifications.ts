@@ -17,7 +17,7 @@ export const useNotifications = (pageSize = 3) => {
     const query = useInfiniteQuery<EnrichedUserNotificationPage>({
         queryKey,
         queryFn: ({ pageParam = 0 }) =>
-            mobile.getNotifications({
+            mobile.notifications.getNotifications({
                 page: pageParam as number,
                 size: pageSize,
             }),

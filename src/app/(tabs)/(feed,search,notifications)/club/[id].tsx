@@ -214,7 +214,7 @@ const ClubScreen: React.FC = () => {
             <ReportFormSheet
                 ref={reportSheetRef}
                 context={{
-                    screen: "Club",
+                    screen: `Club#${club?.id}#${club?.name}`,
                     defaultType: ReportType.DISPLAY_BUG,
                 }}
                 onSuccess={() => {

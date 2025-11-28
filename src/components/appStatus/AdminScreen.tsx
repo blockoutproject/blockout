@@ -1,4 +1,3 @@
-// ScraperStatusScreen.tsx
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
     View,
@@ -16,16 +15,16 @@ import { useAppStatus } from "@/src/hooks/config/app/useAppStatus";
 import { useApis } from "@/src/context/ApiProvider";
 import { ScraperStatus } from "@/src/types/ScraperStatus";
 
-import ScraperStatusItem from "./ScraperStatusItem";
 import MaintenanceControlCard from "./MaintenanceControlCard";
+import ScraperControlCard from "./ScraperControlCard";
 import ApiErrorToast from "@/src/components/common/feedback/ApiErrorToast";
 import { useSession } from "@/src/context/SessionProvider";
 
-const ScraperStatusScreen: React.FC = () => {
+const AdminScreen: React.FC = () => {
     const theme = useAppTheme();
     const insets = useSafeAreaInsets();
     const { mobile } = useApis();
-    const { bypassMaintenance } = useSession();
+
     const {
         data: scrapers,
         isLoading: scrapersLoading,
@@ -61,7 +60,7 @@ const ScraperStatusScreen: React.FC = () => {
             try {
                 setApiError(null);
                 await Haptics.selectionAsync();
-                await mobile.updateScraperStatus(scraper.name, !scraper.enabled);
+                await mobile.config.updateScraperStatus(scraper.name, !scraper.enabled);
                 await refetchScrapers();
             } catch (error) {
                 console.error("Erreur lors du toggle scraper :", error);
@@ -94,14 +93,13 @@ const ScraperStatusScreen: React.FC = () => {
             setSavingMaintenance(true);
             await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
-            await mobile.updateAppStatus({
+            await mobile.config.updateAppStatus({
                 maintenance: true,
                 message: trimmedMessage,
                 imageUrl: trimmedImageUrl.length ? trimmedImageUrl : null,
             });
 
             await refetchStatus();
-            bypassMaintenance();
 
             await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         } catch (error) {
@@ -127,7 +125,7 @@ const ScraperStatusScreen: React.FC = () => {
             setSavingMaintenance(true);
             await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
-            await mobile.updateAppStatus({
+            await mobile.config.updateAppStatus({
                 maintenance: false,
                 message: undefined,
                 imageUrl: undefined,
@@ -162,9 +160,6 @@ const ScraperStatusScreen: React.FC = () => {
         );
     }
 
-    const totalScrapers = sortedScrapers.length;
-    const enabledCount = sortedScrapers.filter((s) => s.enabled).length;
-
     return (
         <>
             <BottomSheetScrollView
@@ -198,42 +193,13 @@ const ScraperStatusScreen: React.FC = () => {
                     onDisable={handleDisableMaintenance}
                 />
 
-                <View style={styles.sectionHeader}>
-                    <View style={styles.sectionHeaderLeft}>
-                        <Text style={[styles.sectionTitle, { color: theme.text }]}>
-                            Scrapers
-                        </Text>
-                        <Text style={[styles.sectionSubtitle, { color: theme.textInactive }]}>
-                            Activez / désactivez les scrapers un par un.
-                        </Text>
-                    </View>
-
-                    {totalScrapers > 0 && (
-                        <View style={styles.badge}>
-                            <Text style={[styles.badgeText, { color: theme.text }]}>
-                                {enabledCount}/{totalScrapers} actifs
-                            </Text>
-                        </View>
-                    )}
-                </View>
-
-                {sortedScrapers.length === 0 ? (
-                    <View style={styles.emptyState}>
-                        <Text style={{ color: theme.textInactive }}>
-                            Aucun scraper trouvé.
-                        </Text>
-                    </View>
-                ) : (
-                    <View style={styles.scraperList}>
-                        {sortedScrapers.map((scraper) => (
-                            <ScraperStatusItem
-                                key={scraper.id}
-                                scraper={scraper}
-                                onToggle={() => toggleScraper(scraper)}
-                            />
-                        ))}
-                    </View>
-                )}
+                <ScraperControlCard
+                    scrapers={sortedScrapers}
+                    loading={scrapersLoading}
+                    refreshing={scrapersLoading && !!scrapers}
+                    onToggleScraper={toggleScraper}
+                    onRefresh={refetchScrapers}
+                />
             </BottomSheetScrollView>
 
             <ApiErrorToast
@@ -262,49 +228,11 @@ const styles = StyleSheet.create({
         fontSize: 13,
         fontWeight: "500",
     },
-    sectionHeader: {
-        marginTop: 8,
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
-        gap: 8,
-    },
-    sectionHeaderLeft: {
-        flex: 1,
-        gap: 2,
-    },
-    sectionTitle: {
-        fontSize: 16,
-        fontWeight: "700",
-    },
-    sectionSubtitle: {
-        fontSize: 12,
-        fontWeight: "500",
-    },
-    badge: {
-        paddingHorizontal: 10,
-        paddingVertical: 4,
-        borderRadius: 999,
-        borderWidth: 1,
-        borderColor: "#ffffff22",
-    },
-    badgeText: {
-        fontSize: 11,
-        fontWeight: "600",
-    },
-    scraperList: {
-        gap: 10,
-        marginTop: 4,
-    },
     center: {
         flex: 1,
         justifyContent: "center",
         alignItems: "center",
     },
-    emptyState: {
-        alignItems: "center",
-        marginTop: 32,
-    },
 });
 
-export default ScraperStatusScreen;
+export default AdminScreen;

@@ -24,6 +24,7 @@ const LoginScreen: React.FC = () => {
     const [apiError, setApiError] = useState<string | null>(null);
 
     useEffect(() => {
+        console.log(error)
         if (!isSigningIn && error && !(error?.name === "NO_CREDENTIALS")) {
             setApiError("Erreur lors de la connexion.");
         }

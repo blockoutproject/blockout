@@ -9,8 +9,6 @@ import * as Haptics from "expo-haptics";
 
 /** Per-set score breakdown. */
 export type MatchScoreDetailsCardProps = {
-    /** Optional title (default "Score"). */
-    title?: string;
     /** Enriched match payload. */
     enrichedMatch: EnrichedMatchDTO;
 };
@@ -20,7 +18,6 @@ const LOGO = 30;
 const SET_COL_W = 32;
 
 const MatchScoreDetailsCard: React.FC<MatchScoreDetailsCardProps> = ({
-    title = "Score",
     enrichedMatch,
 }) => {
     const theme = useAppTheme();
@@ -58,7 +55,7 @@ const MatchScoreDetailsCard: React.FC<MatchScoreDetailsCardProps> = ({
                     },
                 ]}
             >
-                {title}
+                Score
             </Text>
             <View
                 style={styles.identityBlock}

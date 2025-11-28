@@ -1,5 +1,3 @@
-import { User } from "react-native-auth0";
-
 export enum UserRole {
     USER = "USER",
     ADMIN = "ADMIN"
@@ -15,11 +13,11 @@ export interface CustomUser {
     auth0Id: string;
     email: string;
     pseudo: string;
-    firstName?: string;
-    lastName?: string;
-    pictureUrl?: string;
-    phoneNumber?: string;
-    favorites?: UserFavorite[];
+    firstName: string | null;
+    lastName: string | null;
+    pictureUrl: string | null;
+    phoneNumber: string | null;
+    favorites: UserFavorite[] | null;
     active: boolean;
     createdAt: string;
     lastUpdate: string;

@@ -4,10 +4,10 @@ import { TeamSearchDocDTO } from '@/src/types/Team';
 
 export const useSearchTeams = (query: string, season?: string) => {
     const { mobile } = useApis();
-
+    
     return useQuery<TeamSearchDocDTO[]>({
         queryKey: ['teams', 'search', query, season],
-        queryFn: async () => mobile.searchTeams(query, season),
+        queryFn: async () => mobile.search.searchTeams(query, season),
         enabled: true,
         staleTime: 1000 * 60 * 5,
         retry: false,

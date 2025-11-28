@@ -10,22 +10,22 @@ import MatchLiveLinkForm, {
 
 export type MatchLiveLinkFormSheetProps = {
     matchId: number;
+    isMatchFinished: boolean;
     initialUrl?: string | null;
     snapPoint?: string | number;
     onSuccess: () => void;
     isBeforeLiveWindow?: boolean;
-    isFinalPostMatchEdit?: boolean;
 };
 
 const MatchLiveLinkFormSheet = forwardRef<BottomSheetModal, MatchLiveLinkFormSheetProps>(
     (
         {
             matchId,
+            isMatchFinished,
             initialUrl,
             onSuccess,
             snapPoint = "90%",
             isBeforeLiveWindow,
-            isFinalPostMatchEdit,
         },
         ref,
     ) => {
@@ -46,14 +46,11 @@ const MatchLiveLinkFormSheet = forwardRef<BottomSheetModal, MatchLiveLinkFormShe
         }, []);
 
         const footerLabel = useMemo(() => {
-            if (hasExisting && isFinalPostMatchEdit) {
-                return "Mettre à jour et verrouiller";
-            }
             if (hasExisting) {
                 return "Mettre à jour";
             }
             return "Ajouter";
-        }, [hasExisting, isFinalPostMatchEdit]);
+        }, [hasExisting, isMatchFinished]);
 
         const renderFooter = useCallback(
             (p: BottomSheetFooterProps) => (
@@ -76,9 +73,9 @@ const MatchLiveLinkFormSheet = forwardRef<BottomSheetModal, MatchLiveLinkFormShe
             >
                 <MatchLiveLinkForm
                     matchId={matchId}
+                    isMatchFinished={isMatchFinished}
                     initialUrl={initialUrl}
                     isBeforeLiveWindow={isBeforeLiveWindow}
-                    isFinalPostMatchEdit={isFinalPostMatchEdit}
                     onSuccess={async () => {
                         await Haptics.notificationAsync(
                             Haptics.NotificationFeedbackType.Success,

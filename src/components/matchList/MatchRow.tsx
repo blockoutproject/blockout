@@ -1,3 +1,5 @@
+// FILE: src/components/match/MatchRow.tsx
+
 import React from "react";
 import { Text, View, StyleSheet } from "react-native";
 import { EnrichedMatchDTO, MatchStatus } from "@/src/types/Match";
@@ -6,12 +8,10 @@ import { withAlpha } from "@/src/utils/utils";
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import MaskedImage from "../common/images/MaskedImage";
 import GradientBorderView from "../common/GradientBorderView";
+import InfoPill from "@/src/components/common/chips/InfoPill";
 
-/** Ligne compacte d’un match (logos, noms, heure/score). */
 export type MatchRowProps = {
-    /** Match enrichi à afficher. */
     enrichedMatch: EnrichedMatchDTO;
-    /** Division du match (pour le gradient du score). */
     division: Division;
 };
 
@@ -24,6 +24,8 @@ const MatchRow: React.FC<MatchRowProps> = ({ enrichedMatch, division }) => {
     const matchTime = `${hh}:${mm}`;
 
     const upcoming = enrichedMatch.status === MatchStatus.UPCOMING;
+    const isFinished = enrichedMatch.status === MatchStatus.FINISHED;
+    const hasLiveLink = !!enrichedMatch.liveUrl;
 
     const gradient = [
         division.firstGradientColor,
@@ -31,119 +33,113 @@ const MatchRow: React.FC<MatchRowProps> = ({ enrichedMatch, division }) => {
         division.thirdGradientColor,
     ] as const;
 
+    const livePillLabel = hasLiveLink
+        ? isFinished
+            ? "Rediffusion disponible"
+            : "Live"
+        : null;
+
     return (
         <View
             style={[
-                styles.row,
+                styles.card,
                 {
-                    borderColor: withAlpha(theme.text, 0.15),
                     backgroundColor: theme.surface,
+                    borderColor: withAlpha(theme.text, 0.30),
                 },
             ]}
             testID={`match-row-${enrichedMatch.id}`}
         >
-            <View
-                style={[
-                    styles.team,
-                    styles.teamRight,
-                ]}
-            >
-                <Text
-                    style={[
-                        styles.teamName,
-                        {
-                            color: theme.text,
-                        },
-                    ]}
-                    numberOfLines={2}
-                    lineBreakStrategyIOS="push-out"
-                    textBreakStrategy="highQuality"
-                    adjustsFontSizeToFit
-                >
-                    {enrichedMatch.teamA.shortName}
-                </Text>
+            {/* Ligne dédiée en haut à droite pour la pastille Live / Rediff */}
+            {livePillLabel && (
+                <View style={styles.topRow}>
+                    <InfoPill
+                        label={livePillLabel}
+                        leftIconName="video-outline"
+                        showRedDot={!isFinished}
+                        overlayColor={theme.backgroundSecondary}
+                        style={styles.livePill}
+                        labelStyle={styles.livePillText}
+                    />
+                </View>
+            )}
 
-                <MaskedImage
-                    uri={enrichedMatch.teamA.logoUrl}
-                    size={28}
-                    radius={8}
-                />
-            </View>
-
-            <View
-                style={styles.center}
-            >
-                {upcoming ? (
-                    <View
-                        style={[
-                            styles.timePill,
-                            {
-                                backgroundColor: withAlpha(theme.text, 0.08),
-                                borderColor: withAlpha(theme.text, 0.12),
-                            },
-                        ]}
+            {/* Ligne principale (logos + heure/score) */}
+            <View style={styles.mainRow}>
+                {/* Équipe A */}
+                <View style={[styles.team, styles.teamRight]}>
+                    <Text
+                        style={[styles.teamName, { color: theme.text }]}
+                        numberOfLines={2}
+                        adjustsFontSizeToFit
                     >
-                        <Text
+                        {enrichedMatch.teamA.shortName}
+                    </Text>
+
+                    <MaskedImage
+                        uri={enrichedMatch.teamA.logoUrl}
+                        size={28}
+                        radius={8}
+                    />
+                </View>
+
+                {/* Centre : heure / score */}
+                <View style={styles.center}>
+                    {upcoming ? (
+                        <View
                             style={[
-                                styles.timeText,
+                                styles.timePill,
                                 {
-                                    color: theme.text,
+                                    backgroundColor: withAlpha(theme.text, 0.08),
+                                    borderColor: withAlpha(theme.text, 0.12),
                                 },
                             ]}
                         >
-                            {matchTime}
-                        </Text>
-                    </View>
-                ) : (
-                    <GradientBorderView
-                        gradient={gradient}
-                        borderRadius={14}
-                        borderWidth={1}
-                    >
-                        <View
-                            style={styles.scoreBox}
-                        >
                             <Text
                                 style={[
-                                    styles.scoreText,
-                                    {
-                                        color: theme.text,
-                                    },
+                                    styles.timeText,
+                                    { color: theme.text },
                                 ]}
                             >
-                                {enrichedMatch.set || "-"}
+                                {matchTime}
                             </Text>
                         </View>
-                    </GradientBorderView>
-                )}
-            </View>
+                    ) : (
+                        <GradientBorderView
+                            gradient={gradient}
+                            borderRadius={14}
+                            borderWidth={1}
+                        >
+                            <View style={styles.scoreBox}>
+                                <Text
+                                    style={[
+                                        styles.scoreText,
+                                        { color: theme.text },
+                                    ]}
+                                >
+                                    {enrichedMatch.set || "-"}
+                                </Text>
+                            </View>
+                        </GradientBorderView>
+                    )}
+                </View>
 
-            <View
-                style={[
-                    styles.team,
-                    styles.teamLeft,
-                ]}
-            >
-                <MaskedImage
-                    uri={enrichedMatch.teamB.logoUrl}
-                    size={28}
-                    radius={8}
-                />
+                {/* Équipe B */}
+                <View style={[styles.team, styles.teamLeft]}>
+                    <MaskedImage
+                        uri={enrichedMatch.teamB.logoUrl}
+                        size={28}
+                        radius={8}
+                    />
 
-                <Text
-                    style={[
-                        styles.teamName,
-                        {
-                            color: theme.text,
-                        },
-                    ]}
-                    numberOfLines={2}
-                    lineBreakStrategyIOS="push-out"
-                    textBreakStrategy="highQuality"
-                    adjustsFontSizeToFit
-                >
-                    {enrichedMatch.teamB.shortName}
-                </Text>
+                    <Text
+                        style={[styles.teamName, { color: theme.text }]}
+                        numberOfLines={2}
+                        adjustsFontSizeToFit
+                    >
+                        {enrichedMatch.teamB.shortName}
+                    </Text>
+                </View>
             </View>
         </View>
     );
@@ -152,12 +148,21 @@ const MatchRow: React.FC<MatchRowProps> = ({ enrichedMatch, division }) => {
 export default React.memo(MatchRow);
 
 const styles = StyleSheet.create({
-    row: {
-        flexDirection: "row",
+    card: {
         borderRadius: 14,
         borderWidth: StyleSheet.hairlineWidth,
-        paddingVertical: 12,
         paddingHorizontal: 8,
+        paddingVertical: 10,
+        gap: 6,
+    },
+    topRow: {
+        marginTop: -4,
+        flexDirection: "row",
+        justifyContent: "center",
+        alignItems: "center",
+    },
+    mainRow: {
+        flexDirection: "row",
         alignItems: "center",
     },
     team: {
@@ -192,7 +197,6 @@ const styles = StyleSheet.create({
     timeText: {
         fontSize: 14,
         fontWeight: "700",
-        letterSpacing: 0.2,
     },
     scoreBox: {
         paddingHorizontal: 8,
@@ -201,6 +205,13 @@ const styles = StyleSheet.create({
     scoreText: {
         fontSize: 18,
         fontWeight: "700",
-        letterSpacing: 0.2,
+    },
+    livePill: {
+        paddingVertical: 3,
+        paddingHorizontal: 6,
+    },
+    livePillText: {
+        fontSize: 11,
+        fontWeight: "700",
     },
 });

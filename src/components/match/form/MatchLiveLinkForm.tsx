@@ -1,6 +1,11 @@
+// FILE: src/components/match/form/MatchLiveLinkForm.tsx
+
 import React, { useEffect, useMemo, useState } from "react";
 import { View, Text, StyleSheet } from "react-native";
-import { BottomSheetScrollView, BottomSheetTextInput } from "@gorhom/bottom-sheet";
+import {
+    BottomSheetScrollView,
+    BottomSheetTextInput,
+} from "@gorhom/bottom-sheet";
 import * as Haptics from "expo-haptics";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useFormik } from "formik";
@@ -12,6 +17,7 @@ import FormCard from "@/src/components/common/form/FormCard";
 import ApiErrorToast from "@/src/components/common/feedback/ApiErrorToast";
 import { ApiError } from "@/src/api/core/ApiError";
 import Field from "../../common/form/Field";
+import { withAlpha } from "@/src/utils/utils";
 
 export type MatchLiveLinkFormExternalState = {
     loading: boolean;
@@ -20,12 +26,12 @@ export type MatchLiveLinkFormExternalState = {
 
 export type MatchLiveLinkFormProps = {
     matchId: number;
+    isMatchFinished: boolean;
     initialUrl?: string | null;
     onSuccess: () => void;
     onRegisterSubmit: (submit: () => void) => void;
     onStateChange?: (state: MatchLiveLinkFormExternalState) => void;
     isBeforeLiveWindow?: boolean;
-    isFinalPostMatchEdit?: boolean;
 };
 
 export const getLiveLinkErrorMessage = (err: unknown): string => {
@@ -51,12 +57,12 @@ const validationSchema = Yup.object({
 
 const MatchLiveLinkForm: React.FC<MatchLiveLinkFormProps> = ({
     matchId,
+    isMatchFinished,
     initialUrl,
     onSuccess,
     onRegisterSubmit,
     onStateChange,
     isBeforeLiveWindow = false,
-    isFinalPostMatchEdit = false,
 }) => {
     const theme = useAppTheme();
     const { mobile } = useApis();
@@ -78,15 +84,24 @@ const MatchLiveLinkForm: React.FC<MatchLiveLinkFormProps> = ({
             try {
                 setLoading(true);
                 setApiError(null);
-                await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                await Haptics.impactAsync(
+                    Haptics.ImpactFeedbackStyle.Medium,
+                );
 
-                await mobile.upsertMatchLiveLink(matchId, { url: trimmed });
-                await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                await mobile.matches.upsertMatchLiveLink(matchId, {
+                    url: trimmed,
+                });
+                await Haptics.notificationAsync(
+                    Haptics.NotificationFeedbackType.Success,
+                );
                 onSuccess();
             } catch (err) {
+                console.log(err);
                 const msg = getLiveLinkErrorMessage(err);
                 setApiError(msg);
-                await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+                await Haptics.notificationAsync(
+                    Haptics.NotificationFeedbackType.Error,
+                );
             } finally {
                 setLoading(false);
             }
@@ -111,22 +126,23 @@ const MatchLiveLinkForm: React.FC<MatchLiveLinkFormProps> = ({
     }, [loading, canSubmit, onStateChange]);
 
     const title = useMemo(() => {
-        if (hasExisting && isFinalPostMatchEdit) return "Mettre à jour la rediffusion";
-        if (hasExisting) return "Modifier le lien du live";
+        if (hasExisting && isMatchFinished) return "Mettre à jour la rediffusion";
+        if (!hasExisting && isMatchFinished) return "Ajouter une rediffusion";
+        if (hasExisting && !isMatchFinished)
+            return "Mettre à jour le lien du live";
         return "Ajouter un lien de live";
-    }, [hasExisting, isFinalPostMatchEdit]);
+    }, [hasExisting, isMatchFinished]);
 
     const subtitle = useMemo(() => {
-        if (hasExisting && isFinalPostMatchEdit) {
-            return "Tu es sur le point de mettre à jour la rediffusion. Après cette modification, le lien sera verrouillé et tu ne pourras plus le changer.";
+        if (isMatchFinished) {
+            return "Colle ici un lien YouTube, Twitch ou Facebook vers la rediffusion. Il sera vérifié avant d’être visible sur la fiche du match.";
         }
-        return "Colle ici un lien YouTube, Twitch ou Facebook pour diffuser ce match.";
-    }, [hasExisting, isFinalPostMatchEdit]);
+        return "Colle ici un lien YouTube, Twitch ou Facebook pour partager ce match en direct.";
+    }, [isMatchFinished]);
 
     const placeholder = "https://youtube.com/…";
 
     const showFieldError = formik.touched.url && !!formik.errors.url;
-
     const wrapperBorderColor = showFieldError ? theme.error : theme.border;
 
     return (
@@ -136,7 +152,12 @@ const MatchLiveLinkForm: React.FC<MatchLiveLinkFormProps> = ({
                 showsVerticalScrollIndicator={false}
             >
                 <FormCard title={title}>
-                    <Text style={[styles.subtitle, { color: theme.textInactive }]}>
+                    <Text
+                        style={[
+                            styles.subtitle,
+                            { color: theme.textInactive },
+                        ]}
+                    >
                         {subtitle}
                     </Text>
 
@@ -145,7 +166,10 @@ const MatchLiveLinkForm: React.FC<MatchLiveLinkFormProps> = ({
                             <View
                                 style={[
                                     styles.platformIcon,
-                                    { backgroundColor: theme.surface, borderColor: theme.border },
+                                    {
+                                        backgroundColor: theme.surface,
+                                        borderColor: theme.border,
+                                    },
                                 ]}
                             >
                                 <MaterialCommunityIcons
@@ -157,7 +181,10 @@ const MatchLiveLinkForm: React.FC<MatchLiveLinkFormProps> = ({
                             <View
                                 style={[
                                     styles.platformIcon,
-                                    { backgroundColor: theme.surface, borderColor: theme.border },
+                                    {
+                                        backgroundColor: theme.surface,
+                                        borderColor: theme.border,
+                                    },
                                 ]}
                             >
                                 <MaterialCommunityIcons
@@ -169,7 +196,10 @@ const MatchLiveLinkForm: React.FC<MatchLiveLinkFormProps> = ({
                             <View
                                 style={[
                                     styles.platformIcon,
-                                    { backgroundColor: theme.surface, borderColor: theme.border },
+                                    {
+                                        backgroundColor: theme.surface,
+                                        borderColor: theme.border,
+                                    },
                                 ]}
                             >
                                 <MaterialCommunityIcons
@@ -190,27 +220,41 @@ const MatchLiveLinkForm: React.FC<MatchLiveLinkFormProps> = ({
                         </View>
                     )}
 
-                    {hasExisting && isFinalPostMatchEdit && !isBeforeLiveWindow && (
-                        <View style={styles.finalWarningBanner}>
+                    {isMatchFinished && (
+                        <View
+                            style={[
+                                styles.warningBox,
+                                {
+                                    backgroundColor: withAlpha(
+                                        theme.warning,
+                                        0.12,
+                                    ),
+                                    borderColor: theme.warning,
+                                },
+                            ]}
+                        >
                             <MaterialCommunityIcons
-                                name="alert-circle-outline"
+                                name="shield-check-outline"
                                 size={18}
                                 color={theme.warning}
                             />
                             <Text
                                 style={[
-                                    styles.finalWarningText,
+                                    styles.warningText,
                                     { color: theme.warning },
                                 ]}
                             >
-                                Cette mise à jour verrouillera la rediffusion. Tu ne
-                                pourras plus modifier le lien ensuite.
+                                Les rediffusions sont soumises à validation.
+                                Ton lien sera affiché une fois approuvé par la
+                                modération.
                             </Text>
                         </View>
                     )}
 
                     <View style={styles.fieldBlock}>
-                        <Text style={[styles.label, { color: theme.text }]}>
+                        <Text
+                            style={[styles.label, { color: theme.text }]}
+                        >
                             Lien du live
                         </Text>
 
@@ -227,8 +271,8 @@ const MatchLiveLinkForm: React.FC<MatchLiveLinkFormProps> = ({
                                         { color: theme.warning },
                                     ]}
                                 >
-                                    Tu pourras ajouter ou modifier le lien à partir d’une heure
-                                    avant le début du match.
+                                    Tu pourras ajouter ou modifier le lien à
+                                    partir d’une heure avant le début du match.
                                 </Text>
                             </View>
                         ) : (
@@ -247,7 +291,9 @@ const MatchLiveLinkForm: React.FC<MatchLiveLinkFormProps> = ({
                                 >
                                     <BottomSheetTextInput
                                         value={formik.values.url}
-                                        onChangeText={formik.handleChange("url")}
+                                        onChangeText={formik.handleChange(
+                                            "url",
+                                        )}
                                         onBlur={formik.handleBlur("url")}
                                         placeholder={placeholder}
                                         placeholderTextColor={theme.textInactive}
@@ -305,13 +351,17 @@ const styles = StyleSheet.create({
         fontSize: 11,
         fontWeight: "600",
     },
-    finalWarningBanner: {
-        marginTop: 10,
+    warningBox: {
         flexDirection: "row",
         alignItems: "center",
         gap: 8,
+        borderRadius: 12,
+        paddingHorizontal: 10,
+        paddingVertical: 8,
+        borderWidth: 1,
+        marginTop: 10,
     },
-    finalWarningText: {
+    warningText: {
         fontSize: 12,
         fontWeight: "700",
         flex: 1,

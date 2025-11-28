@@ -7,7 +7,7 @@ import { CORNERS } from "@/src/theme/globals";
 import { withAlpha } from "@/src/utils/utils";
 
 type InfoPillProps = {
-    label: string;
+    label?: string;
     style?: StyleProp<ViewStyle>;
     leftIconName?: React.ComponentProps<typeof MaterialCommunityIcons>["name"];
     leftIconSize?: number;
@@ -24,10 +24,16 @@ type InfoPillProps = {
     showRedDot?: boolean;
     redDotSize?: number;
     redDotColor?: string;
+
+    /** Nouveau : version compacte */
+    small?: boolean;
 };
 
 const GAP = 6;
+const GAP_SMALL = 4;
+
 const BLUR_INTENSITY = 20;
+
 const ELEV = [0, 2, 4, 6, 8, 12] as const;
 const RAD = [0, 2, 3, 4, 6, 8] as const;
 const OFFY = [0, 1, 1, 2, 2, 3] as const;
@@ -65,6 +71,7 @@ const InfoPill: React.FC<InfoPillProps> = ({
     showRedDot = false,
     redDotSize = 7,
     redDotColor,
+    small = false,
 }) => {
     const theme = useAppTheme();
 
@@ -77,7 +84,7 @@ const InfoPill: React.FC<InfoPillProps> = ({
     const textColor = flattened?.color ?? theme.text;
 
     const dotColor = redDotColor ?? theme.error;
-    const dotSize = Math.max(4, redDotSize);
+    const dotSize = small ? Math.max(3, redDotSize - 3) : Math.max(4, redDotSize);
 
     return (
         <View
@@ -95,6 +102,8 @@ const InfoPill: React.FC<InfoPillProps> = ({
                         borderColor: withAlpha(theme.text, 0.12),
                         borderRadius: CORNERS,
                         maxWidth,
+                        paddingVertical: small ? 3 : 6,
+                        paddingHorizontal: small ? 6 : 8,
                     },
                     style,
                 ]}
@@ -108,30 +117,44 @@ const InfoPill: React.FC<InfoPillProps> = ({
                     />
                 ) : null}
 
-                <View style={styles.row}>
+                <View
+                    style={[
+                        styles.row,
+                        { gap: small ? GAP_SMALL : GAP },
+                    ]}
+                >
                     {leftIconName ? (
                         <MaterialCommunityIcons
                             name={leftIconName}
-                            size={leftIconSize}
+                            size={small ? leftIconSize - 4 : leftIconSize}
                             color={textColor}
                         />
                     ) : null}
-
-                    <Text style={[styles.text, { color: textColor }, labelStyle]} numberOfLines={1}>
-                        {label}
-                    </Text>
+                    {label ? (
+                        <Text
+                            style={[
+                                styles.text,
+                                {
+                                    color: textColor,
+                                    fontSize: small ? 10 : 12,
+                                    fontWeight: small ? "600" : "700",
+                                },
+                                labelStyle,
+                            ]}
+                            numberOfLines={1}
+                        >
+                            {label}
+                        </Text>
+                    ) : null}
 
                     {showRedDot ? (
                         <View
-                            style={[
-                                styles.redDot,
-                                {
-                                    width: dotSize,
-                                    height: dotSize,
-                                    borderRadius: dotSize / 2,
-                                    backgroundColor: dotColor,
-                                },
-                            ]}
+                            style={{
+                                width: dotSize,
+                                height: dotSize,
+                                borderRadius: dotSize / 2,
+                                backgroundColor: dotColor,
+                            }}
                         />
                     ) : null}
                 </View>
@@ -148,19 +171,15 @@ const styles = StyleSheet.create({
     },
     pill: {
         borderWidth: StyleSheet.hairlineWidth,
-        paddingVertical: 6,
-        paddingHorizontal: 8,
         overflow: "hidden",
     },
     row: {
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "center",
-        gap: GAP,
     },
     text: {
         fontSize: 12,
         fontWeight: "700",
     },
-    redDot: {},
 });

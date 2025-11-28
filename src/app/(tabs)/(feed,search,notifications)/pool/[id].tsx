@@ -98,7 +98,9 @@ const PoolScreen: React.FC = () => {
 
             <ReportFormSheet
                 ref={reportSheetRef}
-                context={{ screen: "Pool", defaultType: ReportType.DISPLAY_BUG }}
+                context={{ 
+                    screen: `Pool#${pool?.id}#${pool?.name}`,
+                    defaultType: ReportType.DISPLAY_BUG }}
                 onSuccess={() => {
                     reportSheetRef.current?.dismiss();
                 }}

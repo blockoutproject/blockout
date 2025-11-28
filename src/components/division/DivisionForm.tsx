@@ -89,9 +89,9 @@ const DivisionForm: React.FC<DivisionFormProps> = ({ division, onSuccess, onRegi
                 setLoading(true);
                 setApiError(null);
                 if (isEditMode) {
-                    await mobile.updateDivision(division!.id, values, imageFile ?? undefined);
+                    await mobile.config.updateDivision(division!.id, values, imageFile ?? undefined);
                 } else {
-                    await mobile.createDivision(values, imageFile ?? undefined);
+                    await mobile.config.createDivision(values, imageFile ?? undefined);
                 }
                 await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
                 onSuccess();

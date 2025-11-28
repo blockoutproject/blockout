@@ -15,6 +15,7 @@ export interface Team {
     format: EnumFormat;
     gender: EnumGender;
     season: string;
+    logoUrl: string | null;
     followersCount: number;
     active: boolean;
     createdAt: string;

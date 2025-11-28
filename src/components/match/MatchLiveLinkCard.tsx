@@ -1,3 +1,5 @@
+// FILE: src/components/match/MatchLiveLinkCard.tsx
+
 import React, { useMemo, useRef } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, Linking } from "react-native";
 import * as Haptics from "expo-haptics";
@@ -7,12 +9,16 @@ import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import GradientBorderView from "@/src/components/common/GradientBorderView";
 import InfoPillGradient from "@/src/components/common/chips/InfoPillGradient";
 import { useAppTheme } from "@/src/context/ThemeProvider";
-import { EnrichedMatchDTO, LiveProvider, PROVIDER_LABELS } from "@/src/types/Match";
+import {
+    EnrichedMatchDTO,
+    LiveProvider,
+    MatchStatus,
+    PROVIDER_LABELS,
+} from "@/src/types/Match";
 import MatchLiveLinkReportFormSheet from "@/src/components/match/form/MatchLiveLinkReportFormSheet";
 import MatchLiveLinkFormSheet from "./form/MatchLiveLinkFormSheet";
 import MatchLiveLinkDeleteFormSheet from "./form/MatchLiveLinkDeleteFormSheet";
 import { useSession } from "@/src/context/SessionProvider";
-import { withAlpha } from "@/src/utils/utils";
 import useHasScopes from "@/src/hooks/user/useHasScopes";
 
 type Props = {
@@ -20,7 +26,6 @@ type Props = {
     gradient: readonly [string, string, ...string[]];
     refetch: () => void;
     canCreateLiveLinkScope: boolean;
-    onOpenSupport: () => void;
     onRequireAuth: () => void;
 };
 
@@ -31,7 +36,6 @@ const MatchLiveLinkCard: React.FC<Props> = ({
     gradient,
     refetch,
     canCreateLiveLinkScope,
-    onOpenSupport,
     onRequireAuth,
 }) => {
     const theme = useAppTheme();
@@ -40,15 +44,18 @@ const MatchLiveLinkCard: React.FC<Props> = ({
     const editSheetRef = useRef<BottomSheetModal>(null);
     const deleteSheetRef = useRef<BottomSheetModal>(null);
 
-    const { allowed: canDeleteLiveLinkScope } = useHasScopes(["delete:match_live_link"]);
-    const { allowed: canReportLiveLinkScope } = useHasScopes(["report:match_live_link"]);
+    const { allowed: canDeleteLiveLinkScope } = useHasScopes([
+        "delete:match_live_link",
+    ]);
+    const { allowed: canReportLiveLinkScope } = useHasScopes([
+        "report:match_live_link",
+    ]);
 
     const { customUser, isGuest } = useSession();
 
     const hasLiveLink = !!enrichedMatch.liveUrl;
-    const isFinished = enrichedMatch.status === "FINISHED";
+    const isFinished = enrichedMatch.status === MatchStatus.FINISHED;
     const isLive = hasLiveLink && !isFinished;
-    const isFinalLocked = !!enrichedMatch.liveEditLocked;
 
     const isOwner = useMemo(() => {
         if (!customUser?.auth0Id || !enrichedMatch.liveOwnerAuth0Id) {
@@ -57,41 +64,38 @@ const MatchLiveLinkCard: React.FC<Props> = ({
         return enrichedMatch.liveOwnerAuth0Id === customUser.auth0Id;
     }, [customUser?.auth0Id, enrichedMatch.liveOwnerAuth0Id]);
 
+    const matchDate = useMemo(() => {
+        return enrichedMatch.matchDate
+            ? new Date(enrichedMatch.matchDate)
+            : null;
+    }, [enrichedMatch.matchDate]);
+
+    const isBeforeLiveWindow = useMemo(() => {
+        if (!matchDate) return false;
+        const now = new Date();
+        const oneHourBefore = new Date(
+            matchDate.getTime() - 60 * 60 * 1000,
+        );
+        return now < oneHourBefore;
+    }, [matchDate]);
+
     const canCreateLiveLink =
-        !hasLiveLink &&
-        canCreateLiveLinkScope &&
-        (!isFinished || !isFinalLocked);
+        !hasLiveLink && canCreateLiveLinkScope && !isBeforeLiveWindow;
 
     const canEditExistingLink =
-        hasLiveLink &&
-        isOwner &&
-        canCreateLiveLinkScope &&
-        (!isFinished || !isFinalLocked);
+        hasLiveLink && isOwner && canCreateLiveLinkScope;
 
     const canDeleteLiveLink = hasLiveLink && isOwner && canDeleteLiveLinkScope;
 
-    const canReportLiveLink =
-        hasLiveLink && !isOwner && canReportLiveLinkScope;
+    const canReportLiveLink = hasLiveLink && !isOwner && canReportLiveLinkScope;
 
-    const canShowReportButton =
-        hasLiveLink && !isOwner;
-
-    const isFinalPostMatchEdit =
-        hasLiveLink && isFinished && isOwner && !isFinalLocked;
+    const canShowReportButton = hasLiveLink && !isOwner;
 
     const providerLabel = useMemo(() => {
         if (!enrichedMatch.liveProvider) return "";
         const key = enrichedMatch.liveProvider as LiveProvider;
         return PROVIDER_LABELS[key] ?? "";
     }, [enrichedMatch.liveProvider]);
-
-    const isBeforeLiveWindow = useMemo(() => {
-        if (!enrichedMatch.matchDate) return false;
-        const matchDate = new Date(enrichedMatch.matchDate);
-        const now = new Date();
-        const oneHourBefore = new Date(matchDate.getTime() - 60 * 60 * 1000);
-        return now < oneHourBefore;
-    }, [enrichedMatch.matchDate]);
 
     const leftIcon = useMemo(() => {
         switch (enrichedMatch.liveProvider as LiveProvider | null) {
@@ -128,14 +132,13 @@ const MatchLiveLinkCard: React.FC<Props> = ({
         if (!canShowReportButton) return;
 
         if (canReportLiveLink) {
-            // Utilisateur avec scope : on ouvre la sheet de report
             await handleOpenReportSheet();
         } else if (isGuest) {
-            // Invité : on lui propose de créer un compte
-            await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => { });
+            await Haptics.notificationAsync(
+                Haptics.NotificationFeedbackType.Error,
+            ).catch(() => {});
             onRequireAuth();
         }
-        // Cas "connecté sans scope" : pour l'instant, on ne fait rien
     };
 
     const handleOpenLive = async () => {
@@ -163,25 +166,21 @@ const MatchLiveLinkCard: React.FC<Props> = ({
 
     const emptyStateLabel = useMemo(() => {
         if (isFinished) {
-            return "Ajouter un lien vers la rediffusion";
+            return "Ajouter un lien de rediffusion";
         }
         return "Vous diffusez ce match ?";
     }, [isFinished]);
 
-    const headerTitle = isFinished ? "Rediffusion" : "Live";
-
-    const showRemovedWarning =
-        !hasLiveLink && isFinished && isFinalLocked;
-
     const canShowEmptyStateCta =
-        !hasLiveLink && (!isFinished || !isFinalLocked);
+        !hasLiveLink && (canCreateLiveLink || isGuest);
 
-    const shouldShowCard =
-        hasLiveLink || canShowEmptyStateCta || showRemovedWarning;
+    const shouldShowCard = hasLiveLink || canShowEmptyStateCta;
 
     if (!shouldShowCard) {
         return null;
     }
+
+    const headerTitle = isFinished ? "Rediffusion" : "Live";
 
     return (
         <>
@@ -241,47 +240,6 @@ const MatchLiveLinkCard: React.FC<Props> = ({
                 </View>
 
                 <View style={styles.content}>
-                    {showRemovedWarning && (
-                        <View
-                            style={[
-                                styles.warningBox,
-                                {
-                                    backgroundColor: withAlpha(
-                                        theme.warning,
-                                        0.12,
-                                    ),
-                                    borderColor: theme.warning,
-                                },
-                            ]}
-                        >
-                            <MaterialCommunityIcons
-                                name="alert-circle-outline"
-                                size={18}
-                                color={theme.warning}
-                            />
-                            <Text
-                                style={[
-                                    styles.warningText,
-                                    { color: theme.text },
-                                ]}
-                            >
-                                La rediffusion pour ce match a été retirée après trop de signalements.{" "}
-                                <Text
-                                    style={[
-                                        styles.warningLink,
-                                        {
-                                            color: theme.warning,
-                                        },
-                                    ]}
-                                    onPress={onOpenSupport}
-                                >
-                                    Contacte le support
-                                </Text>
-                                .
-                            </Text>
-                        </View>
-                    )}
-
                     {hasLiveLink && (
                         <View style={styles.liveBlock}>
                             <View style={styles.livePillRow}>
@@ -325,10 +283,8 @@ const MatchLiveLinkCard: React.FC<Props> = ({
                                                     styles.iconChip,
                                                     {
                                                         borderColor: theme.error,
-                                                        backgroundColor: withAlpha(
-                                                            theme.error,
-                                                            0.1,
-                                                        ),
+                                                        backgroundColor:
+                                                            theme.error + "1A",
                                                     },
                                                 ]}
                                             >
@@ -342,39 +298,10 @@ const MatchLiveLinkCard: React.FC<Props> = ({
                                     </View>
                                 )}
                             </View>
-
-                            {isFinalPostMatchEdit && (
-                                <View
-                                    style={[
-                                        styles.finalEditHint,
-                                        {
-                                            backgroundColor: withAlpha(
-                                                theme.warning,
-                                                0.08,
-                                            ),
-                                        },
-                                    ]}
-                                >
-                                    <MaterialCommunityIcons
-                                        name="lock-alert-outline"
-                                        size={16}
-                                        color={theme.warning}
-                                    />
-                                    <Text
-                                        style={[
-                                            styles.finalEditText,
-                                            { color: theme.text },
-                                        ]}
-                                    >
-                                        Dernière chance : modifier ce lien va
-                                        verrouiller définitivement la rediffusion.
-                                    </Text>
-                                </View>
-                            )}
                         </View>
                     )}
 
-                    {!hasLiveLink && !showRemovedWarning && canShowEmptyStateCta && (
+                    {!hasLiveLink && canShowEmptyStateCta && (
                         <View style={styles.addPillWrap}>
                             <InfoPillGradient
                                 leftIcon="plus-circle-outline"
@@ -382,8 +309,34 @@ const MatchLiveLinkCard: React.FC<Props> = ({
                                 label={emptyStateLabel}
                                 gradient={[theme.borderSecondary, theme.border]}
                                 variant="border"
-                                onPress={canCreateLiveLink ? handleOpenEdit : onRequireAuth}
+                                onPress={
+                                    canCreateLiveLink
+                                        ? handleOpenEdit
+                                        : onRequireAuth
+                                }
                             />
+                        </View>
+                    )}
+
+                    {isFinished && (
+                        <View
+                            style={[
+                                styles.moderationBox,
+                                {
+                                    backgroundColor: theme.surface,
+                                    borderColor: theme.border,
+                                },
+                            ]}
+                        >
+                            <Text
+                                style={[
+                                    styles.moderationHint,
+                                    { color: theme.textInactive },
+                                ]}
+                            >
+                                Les rediffusions sont vérifiées avant d’être
+                                visibles sur la fiche du match.
+                            </Text>
                         </View>
                     )}
                 </View>
@@ -393,9 +346,9 @@ const MatchLiveLinkCard: React.FC<Props> = ({
                 <MatchLiveLinkFormSheet
                     ref={editSheetRef}
                     matchId={enrichedMatch.id}
+                    isMatchFinished={isFinished}
                     initialUrl={enrichedMatch.liveUrl}
-                    isBeforeLiveWindow={isBeforeLiveWindow}
-                    isFinalPostMatchEdit={isFinalPostMatchEdit}
+                    isBeforeLiveWindow={!isFinished && isBeforeLiveWindow}
                     onSuccess={() => {
                         refetch();
                         editSheetRef.current?.dismiss();
@@ -420,7 +373,6 @@ const MatchLiveLinkCard: React.FC<Props> = ({
                     ref={reportSheetRef}
                     matchId={enrichedMatch.id}
                     onSuccess={() => {
-                        refetch();
                         reportSheetRef.current?.dismiss();
                     }}
                 />
@@ -498,35 +450,15 @@ const styles = StyleSheet.create({
     addPillWrap: {
         alignSelf: "flex-start",
     },
-    warningBox: {
-        flexDirection: "row",
-        alignItems: "flex-start",
-        gap: 8,
-        borderRadius: 12,
-        paddingHorizontal: 10,
-        paddingVertical: 8,
-        borderWidth: 1,
+    moderationBox: {
+        paddingHorizontal: 12,
+        paddingVertical: 12,
+        borderWidth: 1.5,
+        borderRadius: 14,
+        marginTop: 4,
     },
-    warningText: {
-        flex: 1,
+    moderationHint: {
         fontSize: 12,
-        fontWeight: "500",
-    },
-    warningLink: {
-        fontWeight: "700",
-        textDecorationLine: "underline",
-    },
-    finalEditHint: {
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 6,
-        borderRadius: 10,
-        paddingHorizontal: 8,
-        paddingVertical: 6,
-    },
-    finalEditText: {
-        fontSize: 11,
         fontWeight: "600",
-        flex: 1,
     },
 });

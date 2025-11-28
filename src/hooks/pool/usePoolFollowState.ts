@@ -55,9 +55,9 @@ export function usePoolFollowState(enrichedPool: EnrichedPoolDTO) {
 
         try {
             if (next) {
-                await mobile.follow(EntityType.POOL, enrichedPool.id);
+                await mobile.users.follow(EntityType.POOL, enrichedPool.id);
             } else {
-                await mobile.unfollow(EntityType.POOL, enrichedPool.id);
+                await mobile.users.unfollow(EntityType.POOL, enrichedPool.id);
             }
 
             await refetch();

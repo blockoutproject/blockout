@@ -67,7 +67,7 @@ const RawDivisionMappingForm: React.FC<RawDivisionMappingFormProps> = ({
         setIsSubmitting(true);
         setApiError(null);
         try {
-            await mobile.updateRawDivisionMapping(mapping.id, {
+            await mobile.config.updateRawDivisionMapping(mapping.id, {
                 divisionId: divisionId === "" ? null : divisionId,
                 format: format === "" ? null : format,
                 gender: gender === "" ? null : gender,

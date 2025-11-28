@@ -1,6 +1,5 @@
 import React from "react";
 import { Text, View, Pressable, StyleSheet, DimensionValue } from "react-native";
-import { Image } from "expo-image";
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import InfoPill from "@/src/components/common/chips/InfoPill";
 import { MaterialCommunityIcons } from "@expo/vector-icons";

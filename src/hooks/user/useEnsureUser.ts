@@ -12,6 +12,6 @@ export const useEnsureUser = () => {
         enabled: !!user,
         staleTime: 5 * 60 * 1000,
         retry: false,
-        queryFn: async () => mobile.ensureCurrentUser(),
+        queryFn: async () => mobile.users.ensureCurrentUser(),
     });
 };

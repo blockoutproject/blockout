@@ -52,7 +52,7 @@ const PoolForm: React.FC<PoolFormProps> = ({ pool, onSuccess, onRegisterSubmit, 
                     name: values.name.trim(),
                     shortName: values.shortName.trim()
                 };
-                const updated = await mobile.updatePool(pool.id, dto);
+                const updated = await mobile.pools.updatePool(pool.id, dto);
                 await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
                 onSuccess(updated);
             } catch {

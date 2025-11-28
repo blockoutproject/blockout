@@ -7,7 +7,6 @@ import { Image } from "expo-image";
 
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import { Division } from "@/src/types/Division";
-import ConfigApi from "@/src/api/ConfigApi";
 import { useApis } from "@/src/context/ApiProvider";
 
 type DivisionItemProps = {
@@ -18,7 +17,7 @@ type DivisionItemProps = {
 
 const DivisionItem: React.FC<DivisionItemProps> = ({ division, onPress, onDeactivated }) => {
     const theme = useAppTheme();
-    const { config } = useApis();
+    const { mobile } = useApis();
     const handlePress = () => {
         Haptics.selectionAsync();
         onPress();
@@ -27,7 +26,7 @@ const DivisionItem: React.FC<DivisionItemProps> = ({ division, onPress, onDeacti
     const handleDeactivate = async () => {
         await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
         try {
-            await config.deactivateDivision(division.id);
+            await mobile.config.deactivateDivision(division.id);
             onDeactivated();
         } catch (error) {
             console.error("Erreur lors de la désactivation :", error);

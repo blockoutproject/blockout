@@ -23,11 +23,13 @@ import RawDivisionMappingsScreen from "../rawDivisionMapping/RawDivisionMappingS
 import DivisionScreen from "../division/DivisionScreen";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import BottomSheetCustomPage from "../common/bottomSheet/BottomSheetCustomPage";
-import ScraperStatusScreen from "../appStatus/ScraperStatusScreen";
-import BottomSheetCustomModal from "../common/bottomSheet/BottomSheetCustomModal";
+import AdminScreen from "../appStatus/AdminScreen";
 import { LOGO_HEIGHT, TABBAR_HEIGHT } from "@/src/theme/globals";
 import useHasScopes from "@/src/hooks/user/useHasScopes";
 import { withAlpha } from "@/src/utils/utils";
+import { useSession } from "@/src/context/SessionProvider";
+import LiveLinkModerationScreen from "../match/moderation/MatchLiveModerationScreen";
+import MatchLiveModerationScreen from "../match/moderation/MatchLiveModerationScreen";
 
 type HeaderProps = SceneRendererProps & {
     navigationState: NavigationState<Route>;
@@ -44,10 +46,17 @@ const AnimatedFeedHeader: React.FC<HeaderProps> = ({
 }) => {
     const insets = useSafeAreaInsets();
     const theme = useAppTheme();
+    const { isMaintenance } = useSession();
 
+    const liveLinkModerationSheetRef = useRef<BottomSheetModal>(null);
     const mappingSheetRef = useRef<BottomSheetModal>(null);
     const divisionSheetRef = useRef<BottomSheetModal>(null);
     const scraperSheetRef = useRef<BottomSheetModal>(null);
+
+    const { allowed: canAccessLiveLinkModeration } = useHasScopes([
+        "moderate:match_live_link",
+    ]);
+
 
     const { allowed: canAccessRawDivisionMappings } = useHasScopes([
         "read:raw_division_mapping",
@@ -60,9 +69,10 @@ const AnimatedFeedHeader: React.FC<HeaderProps> = ({
         "create:divisions",
     ]);
 
-    const { allowed: canAccessScrapersManagement } = useHasScopes([
+    const { allowed: canAdminManagement } = useHasScopes([
         "read:scrapers",
         "update:scrapers",
+        "update:maintenance"
     ]);
 
     const { routes } = props.navigationState;
@@ -191,6 +201,12 @@ const AnimatedFeedHeader: React.FC<HeaderProps> = ({
                     />
 
                     <View style={styles.actions}>
+                        {canAccessLiveLinkModeration && (
+                            <TouchableOpacity onPress={openLocal(liveLinkModerationSheetRef)}>
+                                <MaterialCommunityIcons name="alpha-m-circle" size={28} color={theme.text} />
+                            </TouchableOpacity>
+                        )}
+
                         {canAccessRawDivisionMappings && (
                             <TouchableOpacity onPress={openLocal(mappingSheetRef)}>
                                 <MaterialCommunityIcons name="alpha-m-circle" size={28} color={theme.text} />
@@ -203,9 +219,9 @@ const AnimatedFeedHeader: React.FC<HeaderProps> = ({
                             </TouchableOpacity>
                         )}
 
-                        {canAccessScrapersManagement && (
+                        {canAdminManagement && (
                             <TouchableOpacity onPress={openLocal(scraperSheetRef)}>
-                                <MaterialCommunityIcons name="power-standby" size={28} color={theme.text} />
+                                <MaterialCommunityIcons name="power-standby" size={28} color={isMaintenance ? theme.error : theme.text} />
                             </TouchableOpacity>
                         )}
 
@@ -216,6 +232,10 @@ const AnimatedFeedHeader: React.FC<HeaderProps> = ({
                 </View>
             </Animated.View>
 
+            <BottomSheetCustomPage ref={liveLinkModerationSheetRef}>
+                <MatchLiveModerationScreen />
+            </BottomSheetCustomPage>
+
             <BottomSheetCustomPage ref={mappingSheetRef}>
                 <RawDivisionMappingsScreen />
             </BottomSheetCustomPage>
@@ -225,7 +245,7 @@ const AnimatedFeedHeader: React.FC<HeaderProps> = ({
             </BottomSheetCustomPage>
 
             <BottomSheetCustomPage ref={scraperSheetRef}>
-                <ScraperStatusScreen />
+                <AdminScreen />
             </BottomSheetCustomPage>
         </>
     );

@@ -11,7 +11,7 @@ export const useRawDivisionMappings = (
     return useQuery<RawDivisionMapping[]>({
         queryKey: ['raw-division-mappings', leagueCode, season],
         queryFn: async () => {
-            return mobile.getRawDivisionMappings(leagueCode, season);
+            return mobile.config.getRawDivisionMappings(leagueCode, season);
         },
         staleTime: 1000 * 60,
         enabled: true,

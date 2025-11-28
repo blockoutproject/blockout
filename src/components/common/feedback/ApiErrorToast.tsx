@@ -5,6 +5,7 @@ import { useAppTheme } from "@/src/context/ThemeProvider";
 import { BOTTOM_TABBAR_HEIGHT } from "@/src/theme/globals";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { withAlpha } from "@/src/utils/utils";
+import { useKeyboardVisible } from "@/src/hooks/utils/useKeyboardVisible";
 
 type ApiErrorToastProps = {
     /** Le message d'erreur à afficher. Null/undefined => caché */
@@ -32,6 +33,7 @@ const ApiErrorToast: React.FC<ApiErrorToastProps> = ({
     onHidden,
     containerStyle,
 }) => {
+    const isKeyboardVisible = useKeyboardVisible();
     const theme = useAppTheme();
     const opacity = useRef(new Animated.Value(0)).current;
     const insets = useSafeAreaInsets();
@@ -51,7 +53,6 @@ const ApiErrorToast: React.FC<ApiErrorToastProps> = ({
         let timer: number | null = null;
 
         if (message) {
-            // Show
             opacity.setValue(0);
             Animated.timing(opacity, {
                 toValue: 1,
@@ -59,7 +60,6 @@ const ApiErrorToast: React.FC<ApiErrorToastProps> = ({
                 useNativeDriver: true,
             }).start();
 
-            // Auto-hide si demandé
             if (autoHideMs > 0) {
                 timer = setTimeout(() => {
                     Animated.timing(opacity, {
@@ -95,7 +95,7 @@ const ApiErrorToast: React.FC<ApiErrorToastProps> = ({
                 {
                     backgroundColor: colors.bg,
                     borderColor: colors.border,
-                    bottom: bottomOffset || insets.bottom + BOTTOM_TABBAR_HEIGHT + 8,
+                    bottom: bottomOffset || (isKeyboardVisible ? BOTTOM_TABBAR_HEIGHT + 8 : insets.bottom + BOTTOM_TABBAR_HEIGHT + 8),
                     opacity,
                     transform: [
                         {

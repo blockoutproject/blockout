@@ -55,9 +55,9 @@ export function useTeamFollowState(enrichedTeam: EnrichedTeamDTO) {
 
         try {
             if (next) {
-                await mobile.follow(EntityType.TEAM, enrichedTeam.id);
+                await mobile.users.follow(EntityType.TEAM, enrichedTeam.id);
             } else {
-                await mobile.unfollow(EntityType.TEAM, enrichedTeam.id);
+                await mobile.users.unfollow(EntityType.TEAM, enrichedTeam.id);
             }
 
             await refetch();

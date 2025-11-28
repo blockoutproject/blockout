@@ -1,4 +1,3 @@
-// TeamForm.tsx
 import React, { useEffect, useMemo, useState } from "react";
 import { View, StyleSheet, Text, TouchableOpacity, Alert } from "react-native";
 import { BottomSheetScrollView } from "@gorhom/bottom-sheet";
@@ -92,12 +91,19 @@ const TeamForm: React.FC<TeamFormProps> = ({ team, onSuccess, onRegisterSubmit, 
                 setLoading(true);
                 setApiError(null);
 
-                const dto = {
+                const dto: Partial<Team> = {
                     name: values.name.trim(),
                     shortName: values.shortName.trim(),
                 };
 
-                const updated = await mobile.updateTeam(team.id, dto, imageFile ?? undefined);
+                if (imageFile) {
+                } else if (removedLogo) {
+                    dto.logoUrl = null;
+                } else if (team.logoUrl) {
+                    dto.logoUrl = team.logoUrl;
+                }
+
+                const updated = await mobile.teams.updateTeam(team.id, dto, imageFile ?? undefined);
                 await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
                 onSuccess(updated);
             } catch {
@@ -151,7 +157,8 @@ const TeamForm: React.FC<TeamFormProps> = ({ team, onSuccess, onRegisterSubmit, 
                     <View style={styles.buttonsRow}>
                         <TouchableOpacity
                             onPress={handlePickImage}
-                            style={[styles.logoBtn, { backgroundColor: theme.backgroundSecondary }]}>
+                            style={[styles.logoBtn, { backgroundColor: theme.backgroundSecondary }]}
+                        >
                             <MaterialCommunityIcons name="pencil-outline" size={16} color={theme.text} />
                             <Text style={[styles.logoBtnText, { color: theme.text }]}>Changer le logo</Text>
                         </TouchableOpacity>
@@ -159,7 +166,8 @@ const TeamForm: React.FC<TeamFormProps> = ({ team, onSuccess, onRegisterSubmit, 
                         {logoUri && (
                             <TouchableOpacity
                                 onPress={handleRemoveImage}
-                                style={[styles.removeBtn, { backgroundColor: theme.backgroundSecondary }]}>
+                                style={[styles.removeBtn, { backgroundColor: theme.backgroundSecondary }]}
+                            >
                                 <MaterialCommunityIcons name="trash-can-outline" size={16} color={theme.error} />
                                 <Text style={[styles.removeBtnText, { color: theme.error }]}>Supprimer</Text>
                             </TouchableOpacity>

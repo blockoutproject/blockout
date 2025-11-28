@@ -114,7 +114,7 @@ const ReportForm: React.FC<ReportFormProps> = ({ context, onSuccess, onRegisterS
                     os: `${Device.osName ?? "OS"} ${Device.osVersion ?? ""}`.trim(),
                 };
 
-                const created = await mobile.createReport(payload, images);
+                const created = await mobile.reports.createReport(payload, images);
                 await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
                 onSuccess(created);
             } catch (err) {

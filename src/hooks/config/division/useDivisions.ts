@@ -8,7 +8,7 @@ export const useDivisions = () => {
     return useQuery<Division[]>({
         queryKey: ['divisions'],
         queryFn: async () => {
-            return await mobile.getDivisions();
+            return await mobile.config.getDivisions();
         },
         staleTime: 1000 * 60,
     });

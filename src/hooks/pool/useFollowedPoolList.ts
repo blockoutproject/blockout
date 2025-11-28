@@ -28,7 +28,7 @@ export const useFollowedPoolList = (followedPoolIds?: number[]) => {
         queryFn: async () => {
             if (!followedPoolIds?.length) return [];
 
-            const pools = await mobile.getPoolListByIds(followedPoolIds);
+            const pools = await mobile.pools.getPoolListByIds(followedPoolIds);
             return pools ?? [];
         },
         staleTime: 5 * 60 * 1000,

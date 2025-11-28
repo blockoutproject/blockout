@@ -193,7 +193,6 @@ const MatchScreen: React.FC = () => {
                 gradient={gradient}
                 refetch={refetch}
                 canCreateLiveLinkScope={canCreateLiveLinkScope}
-                onOpenSupport={handleOpenReport}
                 onRequireAuth={handleRequireAuthForLiveLink}
             />
         );
@@ -328,7 +327,7 @@ const MatchScreen: React.FC = () => {
                 <ReportFormSheet
                     ref={reportSheetRef}
                     context={{
-                        screen: "Match",
+                        screen: `Match#${enrichedMatch.id}#${enrichedMatch.teamA.name}/${enrichedMatch.teamB.name}`,
                         defaultType: ReportType.DISPLAY_BUG,
                     }}
                     onSuccess={() => {

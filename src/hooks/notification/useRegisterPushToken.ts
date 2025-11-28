@@ -23,6 +23,6 @@ export function useRegisterPushToken() {
             deviceId,
         };
 
-        await mobile.registerPushToken(userId, payload);
+        await mobile.notifications.registerPushToken(userId, payload);
     };
 }

@@ -7,7 +7,7 @@ export const useEnrichedPoolById = (id?: number, enabled?: boolean) => {
 
     return useEntityById<EnrichedPoolDTO>(
         "enrichedPools",
-        (poolId: number) => mobile.getEnrichedPoolById(poolId),
+        (poolId: number) => mobile.pools.getEnrichedPoolById(poolId),
         id,
         enabled
     );

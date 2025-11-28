@@ -54,7 +54,7 @@ const LegalDocumentForm: React.FC<LegalDocumentFormProps> = ({
                 await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
                 setLoading(true);
                 setApiError(null);
-                await mobile.updateLegalDocument(document.type, values);
+                await mobile.config.updateLegalDocument(document.type, values);
                 await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
                 onSuccess();
             } catch {

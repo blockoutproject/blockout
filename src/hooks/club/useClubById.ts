@@ -7,7 +7,7 @@ export const useClubById = (id?: string) => {
 
     return useEntityById<Club>(
         "clubs",
-        (clubId: string) => mobile.getClubById(clubId),
+        (clubId: string) => mobile.clubs.getClubById(clubId),
         id
     );
 };

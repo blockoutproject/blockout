@@ -7,7 +7,7 @@ export const useTeamListByClubId = (id?: string, enabled?: boolean) => {
 
     return useEntityById<TeamSummaryDTO[]>(
         "teamList",
-        (clubId: string) => mobile.getTeamListByClubId(clubId),
+        (clubId: string) => mobile.teams.getTeamListByClubId(clubId),
         id,
         enabled
     );

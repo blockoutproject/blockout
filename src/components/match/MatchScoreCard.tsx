@@ -4,7 +4,7 @@ import * as Haptics from "expo-haptics";
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import { splitIsoDateFormatted } from "@/src/utils/utils";
 import GradientBorderView from "@/src/components/common/GradientBorderView";
-import type { EnrichedMatchDTO } from "@/src/types/Match";
+import { MatchStatus, type EnrichedMatchDTO } from "@/src/types/Match";
 import type { Team } from "@/src/types/Team";
 import InfoPill from "@/src/components/common/chips/InfoPill";
 import InfoPillGradient from "@/src/components/common/chips/InfoPillGradient";
@@ -25,6 +25,7 @@ const MatchScoreCard: React.FC<MatchScoreCardProps> = ({ enrichedMatch, gradient
     const { date, time } = splitIsoDateFormatted(enrichedMatch.matchDate);
 
     const hasLiveLink = !!enrichedMatch.liveUrl;
+    const isFinished = enrichedMatch.status === MatchStatus.FINISHED;
 
     const isMatchStarted = useMemo(() => {
         const matchMs = new Date(enrichedMatch.matchDate).getTime();
@@ -63,7 +64,7 @@ const MatchScoreCard: React.FC<MatchScoreCardProps> = ({ enrichedMatch, gradient
                 </View>
 
                 <View style={styles.headerCenter}>
-                    {hasLiveLink ? <InfoPill label="Live" showRedDot /> : null}
+                    {hasLiveLink && !isFinished ? <InfoPill leftIconName="video-outline" label="Live" showRedDot /> : null}
                 </View>
 
                 <View style={styles.headerSideRight}>

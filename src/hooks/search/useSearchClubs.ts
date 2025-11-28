@@ -7,7 +7,7 @@ export const useSearchClubs = (query: string, triggerOnEmpty = false) => {
 
     return useQuery<ClubSearchDocDTO[]>({
         queryKey: ['clubs', 'search', query],
-        queryFn: async () => mobile.searchClubs(query),
+        queryFn: async () => mobile.search.searchClubs(query),
         enabled: triggerOnEmpty || query.length > 0,
         staleTime: 1000 * 60 * 5,
         retry: false,

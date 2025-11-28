@@ -58,7 +58,7 @@ const SearchScreen: React.FC = () => {
 
             <ReportFormSheet
                 ref={reportSheetRef}
-                context={{ screen: "Search", defaultType: ReportType.DISPLAY_BUG }}
+                context={{ screen: `Search#${activeEntity}`, defaultType: ReportType.DISPLAY_BUG }}
                 onSuccess={() => {
                     reportSheetRef.current?.dismiss();
                 }}

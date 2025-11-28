@@ -47,7 +47,7 @@ const ProfileForm: React.FC<UserFormProps> = ({ user, onSuccess, onRegisterSubmi
         try {
             await Haptics.selectionAsync();
             const pickerResult = await ImagePicker.launchImageLibraryAsync({
-                mediaTypes: ["images"] as unknown as ImagePicker.MediaTypeOptions,
+                mediaTypes: ["images"],
                 allowsEditing: true,
                 aspect: [1, 1],
                 quality: 1,
@@ -92,11 +92,18 @@ const ProfileForm: React.FC<UserFormProps> = ({ user, onSuccess, onRegisterSubmi
                 setLoading(true);
                 setApiError(null);
 
-                const dto: Record<string, unknown> = {};
+                const dto: Partial<CustomUser> = {};
                 const trimmed = values.pseudo.trim();
                 if (trimmed && trimmed !== user.pseudo) dto.pseudo = trimmed;
 
-                const updated = await mobile.updateUser(user.auth0Id, dto, imageFile ?? undefined);
+                if (imageFile) {
+                } else if (removedAvatar) {
+                    dto.pictureUrl = null;
+                } else if (user.pictureUrl) {
+                    dto.pictureUrl = user.pictureUrl;
+                }
+
+                const updated = await mobile.users.updateUser(user.auth0Id, dto, imageFile ?? undefined);
                 await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
                 onSuccess(updated);
             } catch (err) {

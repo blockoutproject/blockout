@@ -97,7 +97,9 @@ const TeamScreen: React.FC = () => {
 
             <ReportFormSheet
                 ref={reportSheetRef}
-                context={{ screen: "Team", defaultType: ReportType.DISPLAY_BUG }}
+                context={{ 
+                    screen: `Team#${team?.id}#${team?.name}`,
+                    defaultType: ReportType.DISPLAY_BUG }}
                 onSuccess={() => {
                     reportSheetRef.current?.dismiss();
                 }}

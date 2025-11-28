@@ -28,7 +28,7 @@ export const useMatchList = (
     const query = useInfiniteQuery({
         queryKey,
         queryFn: ({ pageParam = 0 }) =>
-            mobile.getEnrichedMatches({
+            mobile.matches.getEnrichedMatches({
                 page: pageParam,
                 size: pageSize,
                 poolIds,
