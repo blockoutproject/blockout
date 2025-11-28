@@ -226,7 +226,7 @@ public class MatchLiveLinkService {
     }
 
     @Transactional
-    public void approvePendingLink(Long liveLinkId, String adminAuth0Id) {
+    public void approvePendingLink(Long liveLinkId) {
         MatchLiveLink link = liveLinkRepository.findById(liveLinkId)
                 .orElseThrow(() -> new IllegalStateException("Lien introuvable."));
 
@@ -267,8 +267,7 @@ public class MatchLiveLinkService {
                 keyValue("action", "approve_pending_live_link"),
                 keyValue("live_link_id", link.getId()),
                 keyValue("match_id", matchId),
-                keyValue("owner_auth0_id", link.getOwnerAuth0Id()),
-                keyValue("admin_auth0_id", adminAuth0Id));
+                keyValue("owner_auth0_id", link.getOwnerAuth0Id()));
     }
 
     @Transactional
