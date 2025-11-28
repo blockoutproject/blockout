@@ -35,9 +35,6 @@ public class Match {
     @Column(name = "live_code")
     private Long liveCode;
 
-    @Column(name = "live_edit_locked", nullable = false)
-    private boolean liveEditLocked;
-
     @Column(name = "team_id_a", nullable = false)
     private Long teamIdA;
 

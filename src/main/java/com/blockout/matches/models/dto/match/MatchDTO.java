@@ -31,5 +31,4 @@ public class MatchDTO {
     private String liveUrl;
     private LiveProvider liveProvider;
     private String liveOwnerAuth0Id;
-    private Boolean liveEditLocked;
 }

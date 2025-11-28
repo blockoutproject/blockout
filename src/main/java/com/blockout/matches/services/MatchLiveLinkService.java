@@ -39,7 +39,6 @@ public class MatchLiveLinkService {
 
     private static final Logger logger = LoggerFactory.getLogger(MatchLiveLinkService.class);
 
-    // Plateformes autorisées
     private static final String[] YOUTUBE_HOSTS = { "youtube.com", "youtu.be" };
     private static final String[] TWITCH_HOSTS = { "twitch.tv" };
     private static final String[] FACEBOOK_HOSTS = { "facebook.com", "fb.com", "fb.watch" };
@@ -51,19 +50,6 @@ public class MatchLiveLinkService {
     private final UsersClientService usersClientService;
     private final MatchLiveLinkModerationPolicy moderationPolicy;
 
-    @Transactional(readOnly = true)
-    public MatchLiveLinkResponseDTO getActiveLiveLink(Long matchId) {
-        return liveLinkRepository
-                .findFirstByMatch_IdAndStatusOrderByCreatedAtDesc(matchId, LiveLinkStatus.ACTIVE)
-                .map(this::toResponseDto)
-                .orElse(null);
-    }
-
-    /**
-     * Création / mise à jour d'un lien de match.
-     * - avant/pendant match → ACTIVE directement
-     * - après match → PENDING (validation admin)
-     */
     @Transactional
     public MatchLiveLinkResponseDTO upsertLiveLink(Long matchId, MatchLiveLinkRequestDTO request, String auth0Id) {
         CustomUserDTO currentUser = usersClientService.getCurrentUser();
@@ -185,9 +171,6 @@ public class MatchLiveLinkService {
         return toResponseDto(saved);
     }
 
-    /**
-     * Suppression logique du lien actif (owner ou modérateur).
-     */
     @Transactional
     public void deleteLiveLink(Long matchId, String auth0Id) {
         liveLinkRepository.findFirstByMatch_IdAndStatusOrderByCreatedAtDesc(matchId, LiveLinkStatus.ACTIVE)
@@ -206,10 +189,6 @@ public class MatchLiveLinkService {
                 });
     }
 
-    /**
-     * Liste tous les liens en statut PENDING, projetés en MatchDTO.
-     * On injecte dans le DTO les infos du lien pending (url, provider, owner).
-     */
     @Transactional(readOnly = true)
     public List<MatchLiveLinkDTO> listPendingLinks() {
         List<MatchLiveLink> pending = liveLinkRepository.findByStatusWithMatch(LiveLinkStatus.PENDING);
@@ -218,39 +197,52 @@ public class MatchLiveLinkService {
         }
 
         return pending.stream()
-                .filter(link -> link.getMatch() != null)
-                .map(link -> {
-                    Match match = link.getMatch();
-
-                    return MatchLiveLinkDTO.builder()
-                            .liveLinkId(link.getId())
-                            .matchId(match.getId())
-                            .matchCode(match.getMatchCode())
-                            .leagueCode(match.getLeagueCode())
-                            .poolId(match.getPoolId())
-                            .liveCode(match.getLiveCode())
-                            .teamIdA(match.getTeamIdA())
-                            .teamIdB(match.getTeamIdB())
-                            .matchDate(match.getMatchDate())
-                            .season(match.getSeason())
-                            .set(match.getSet())
-                            .score(match.getScore())
-                            .status(match.getStatus())
-                            .venue(match.getVenue())
-                            .firstReferee(match.getFirstReferee())
-                            .secondReferee(match.getSecondReferee())
-                            .liveUrl(link.getUrl())
-                            .liveProvider(link.getProvider())
-                            .liveOwnerAuth0Id(link.getOwnerAuth0Id())
-                            .liveEditLocked(match.isLiveEditLocked())
-                            .build();
-                })
+                .map(link -> MatchLiveLinkDTO.builder()
+                        .id(link.getId())
+                        .matchId(link.getMatch() != null ? link.getMatch().getId() : null)
+                        .provider(link.getProvider())
+                        .url(link.getUrl())
+                        .status(link.getStatus())
+                        .reportCount(link.getReportCount())
+                        .ownerAuth0Id(link.getOwnerAuth0Id())
+                        .createdAt(link.getCreatedAt())
+                        .lastUpdate(link.getLastUpdate())
+                        .build())
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Approuve un lien PENDING → ACTIVE.
-     */
+    @Transactional(readOnly = true)
+    public List<MatchLiveLinkDTO> getLiveLinksHistoryForMatch(Long matchId) {
+        List<MatchLiveLink> links = liveLinkRepository
+                .findByMatch_Id(matchId);
+
+        if (links.isEmpty()) {
+            logger.info("No live links found for match",
+                    keyValue("action", "get_live_links_history"),
+                    keyValue("match_id", matchId));
+            return List.of();
+        }
+
+        // On trie côté Java si tu veux l’ordre descendant par createdAt
+        List<MatchLiveLink> sorted = links.stream()
+                .sorted((a, b) -> b.getCreatedAt().compareTo(a.getCreatedAt()))
+                .collect(Collectors.toList());
+
+        return sorted.stream()
+                .map(link -> MatchLiveLinkDTO.builder()
+                        .id(link.getId())
+                        .matchId(link.getMatch() != null ? link.getMatch().getId() : null)
+                        .provider(link.getProvider())
+                        .url(link.getUrl())
+                        .status(link.getStatus())
+                        .reportCount(link.getReportCount())
+                        .ownerAuth0Id(link.getOwnerAuth0Id())
+                        .createdAt(link.getCreatedAt())
+                        .lastUpdate(link.getLastUpdate())
+                        .build())
+                .collect(Collectors.toList());
+    }
+
     @Transactional
     public void approvePendingLink(Long liveLinkId, String adminAuth0Id) {
         MatchLiveLink link = liveLinkRepository.findById(liveLinkId)
@@ -272,10 +264,6 @@ public class MatchLiveLinkService {
         link.setLastUpdate(now);
         liveLinkRepository.save(link);
 
-        if (moderationPolicy.shouldLockLinkEditingAfterSave(match, now)) {
-            match.setLiveEditLocked(true);
-        }
-
         match.setLastUpdate(now);
         matchRepository.save(match);
 
@@ -287,9 +275,6 @@ public class MatchLiveLinkService {
                 keyValue("admin_auth0_id", adminAuth0Id));
     }
 
-    /**
-     * Refuse un lien PENDING → REJECTED.
-     */
     @Transactional
     public void rejectPendingLink(Long liveLinkId, String adminAuth0Id) {
         MatchLiveLink link = liveLinkRepository.findById(liveLinkId)
@@ -313,14 +298,6 @@ public class MatchLiveLinkService {
                 keyValue("admin_auth0_id", adminAuth0Id));
     }
 
-    /**
-     * Cas post-match : création d'une nouvelle version PENDING.
-     * - si même lien déjà ACTIVE ou PENDING → noop
-     * - sinon :
-     * expire l'ancien ACTIVE
-     * expire anciens PENDING de ce owner
-     * crée un nouveau PENDING
-     */
     private MatchLiveLinkResponseDTO handlePostMatchUpsert(
             Match match,
             MatchLiveLink active,

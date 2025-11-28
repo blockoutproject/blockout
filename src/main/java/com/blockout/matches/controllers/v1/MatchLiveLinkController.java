@@ -29,18 +29,16 @@ public class MatchLiveLinkController {
     private final MatchLiveLinkService matchLiveLinkService;
     private final MatchLiveLinkReportService matchLiveLinkReportService;
 
-    @Operation(summary = "Récupérer le lien live d'un match")
+    @Operation(summary = "Lister l'historique complet des liens live d'un match")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Lien live trouvé"),
-            @ApiResponse(responseCode = "404", description = "Aucun lien live pour ce match")
+            @ApiResponse(responseCode = "200", description = "Historique des liens renvoyé"),
+            @ApiResponse(responseCode = "403", description = "Non autorisé")
     })
-    @GetMapping("/{matchId}/live-link")
-    public ResponseEntity<MatchLiveLinkResponseDTO> getLiveLink(@PathVariable Long matchId) {
-        MatchLiveLinkResponseDTO dto = matchLiveLinkService.getActiveLiveLink(matchId);
-        if (dto == null) {
-            return ResponseEntity.notFound().build();
-        }
-        return ResponseEntity.ok(dto);
+    @PreAuthorize("hasAuthority('SCOPE_moderate:match_live_link')")
+    @GetMapping("/{matchId}/live-links")
+    public ResponseEntity<List<MatchLiveLinkDTO>> getLiveLinksHistory(@PathVariable Long matchId) {
+        List<MatchLiveLinkDTO> dtos = matchLiveLinkService.getLiveLinksHistoryForMatch(matchId);
+        return ResponseEntity.ok(dtos);
     }
 
     @Operation(summary = "Créer ou mettre à jour le lien live d'un match")
@@ -61,7 +59,7 @@ public class MatchLiveLinkController {
         return ResponseEntity.ok(dto);
     }
 
-    @Operation(summary = "Supprimer le lien live d'un match")
+    @Operation(summary = "Supprimer le lien live actif d'un match")
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "Lien supprimé ou inexistant"),
             @ApiResponse(responseCode = "403", description = "Non autorisé")

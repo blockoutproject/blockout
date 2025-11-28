@@ -19,11 +19,6 @@ import java.util.Set;
 @Repository
 public interface MatchRepository extends JpaRepository<Match, Long> {
 
-    /*
-     * ----------------------------------------------------------------
-     * Requêtes simples par identifiant
-     * ----------------------------------------------------------------
-     */
     Optional<Match> findByLeagueCodeAndMatchCode(String leagueCode, String matchCode);
 
     List<Match> findByPoolId(Long poolId);
@@ -36,11 +31,6 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
 
     List<Match> findByIdInAndActiveTrue(Set<Long> matchIds);
 
-    /*
-     * ----------------------------------------------------------------
-     * Recherche par équipe
-     * ----------------------------------------------------------------
-     */
     @Query("SELECT m FROM Match m WHERE m.active = :active AND m.poolId = :poolId " +
             "AND (m.teamIdA = :teamId OR m.teamIdB = :teamId)")
     List<Match> findByActiveAndPoolIdAndTeamId(
@@ -54,11 +44,6 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
             @Param("active") Boolean active,
             @Param("teamId") Long teamId);
 
-    /*
-     * ----------------------------------------------------------------
-     * Statut et dates
-     * ----------------------------------------------------------------
-     */
     List<Match> findByStatusAndActiveAndMatchDateLessThanEqual(
             MatchStatus status, boolean active, Instant matchDate);
 
@@ -73,11 +58,6 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
             @Param("teamIdB") Long teamIdB,
             @Param("matchDate") LocalDate matchDate);
 
-    /*
-     * ----------------------------------------------------------------
-     * Requêtes de dates distinctes
-     * ----------------------------------------------------------------
-     */
     @Query("""
                 SELECT DISTINCT CAST(m.matchDate AS LocalDate)
                 FROM Match m
@@ -114,11 +94,6 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
             @Param("teamIds") List<Long> teamIds,
             @Param("teamIdsSize") int teamIdsSize);
 
-    /*
-     * ----------------------------------------------------------------
-     * Recherche dans une plage de dates
-     * ----------------------------------------------------------------
-     */
     @Query("""
             SELECT m
             FROM Match m

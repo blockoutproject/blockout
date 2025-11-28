@@ -1,2 +1,0 @@
-ALTER TABLE matches
-ADD COLUMN live_edit_locked BOOLEAN NOT NULL DEFAULT FALSE;

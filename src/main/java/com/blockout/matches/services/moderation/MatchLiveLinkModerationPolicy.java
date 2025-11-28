@@ -213,14 +213,6 @@ public class MatchLiveLinkModerationPolicy {
             return;
         }
 
-        if (match.isLiveEditLocked()) {
-            logger.info("Live link refused because match is locked (post-match)",
-                    keyValue("action", "set_live_link_rejected_locked"),
-                    keyValue("match_id", matchId),
-                    keyValue("auth0_id", auth0Id));
-            throw new IllegalStateException("Ce match est verrouillé, le lien ne peut plus être modifié.");
-        }
-
         if (active != null && !auth0Id.equals(active.getOwnerAuth0Id())) {
             logger.warn("User tried to update post-match link but is not owner",
                     keyValue("action", "set_live_link_forbidden_post_match_not_owner"),
@@ -249,34 +241,15 @@ public class MatchLiveLinkModerationPolicy {
     }
 
     /**
-     * Décide si on doit verrouiller définitivement l'édition des liens.
-     * (admin/modo : tu peux choisir de bypasser ou non).
-     */
-    public boolean shouldLockLinkEditingAfterSave(Match match, Instant now) {
-        if (isModerator()) {
-            // Si tu veux que l'admin ne verrouille jamais les liens à cause des quotas/fenêtres :
-            return false;
-        }
-
-        boolean outOfWindow = false;
-        if (match.getMatchDate() != null) {
-            Instant limit = match.getMatchDate().plus(POST_MATCH_EDIT_WINDOW_DAYS, ChronoUnit.DAYS);
-            outOfWindow = now.isAfter(limit);
-        }
-
-        return outOfWindow;
-    }
-
-    /**
      * Seuil de reports pour auto-hide.
-     * (admin/modo n'a pas de traitement particulier ici → c'est global).
+     * Ici on garde une logique différente pour les matchs terminés.
      */
     public int determineAutoHideThreshold(Match match) {
-        int threshold = AUTO_HIDE_THRESHOLD;
-        if (match != null && match.getStatus() == MatchStatus.FINISHED && match.isLiveEditLocked()) {
-            threshold = FINAL_AUTO_HIDE_THRESHOLD;
+        if (match != null && match.getStatus() == MatchStatus.FINISHED) {
+            // Match terminé → seuil plus élevé avant auto-hide définitif
+            return FINAL_AUTO_HIDE_THRESHOLD;
         }
-        return threshold;
+        return AUTO_HIDE_THRESHOLD;
     }
 
     /**

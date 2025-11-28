@@ -4,6 +4,7 @@ import com.blockout.matches.exceptions.MatchNotFoundException;
 import com.blockout.matches.models.dto.match.DayMatchesDTO;
 import com.blockout.matches.models.dto.match.DayPageDTO;
 import com.blockout.matches.models.dto.match.MatchDTO;
+import com.blockout.matches.models.dto.match.MatchLiveSummaryDTO;
 import com.blockout.matches.models.dto.match.PoolMatchesDTO;
 import com.blockout.matches.models.entities.Match;
 import com.blockout.matches.models.entities.MatchLiveLink;
@@ -26,7 +27,9 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -40,16 +43,13 @@ public class MatchService {
 
     private static final Logger logger = LoggerFactory.getLogger(MatchService.class);
 
+    private static final ZoneId PARIS = ZoneId.of("Europe/Paris");
+    private static final int MODERATION_HISTORY_DAYS = 7;
+
     private final MatchRepository matchRepository;
     private final MatchLiveLinkRepository matchLiveLinkRepository;
     private final EventPublisher eventPublisher;
 
-    /**
-     * Crée un nouveau match
-     * 
-     * @param match L'objet Match à créer
-     * @return Le match créé avec son ID généré
-     */
     @Transactional
     public Match createMatch(Match match) {
         if (match.getSet() != null) {
@@ -64,15 +64,6 @@ public class MatchService {
         return createdMatch;
     }
 
-    /**
-     * Récupère les matchs en appliquant des filtres facultatifs. Pour scraper actuellement.
-     *
-     * @param poolId  identifiant de la poule (null pour ignorer le filtre)
-     * @param teamIds liste d'IDs d'équipes (null ou vide pour ignorer le filtre)
-     * @param status  statut du match (null pour ignorer le filtre)
-     * @param active  flag d'activation (null pour ignorer le filtre)
-     * @return liste de matchs correspondant aux critères
-     */
     public List<Match> findMatches(
             Long poolId,
             List<Long> teamIds,
@@ -81,27 +72,13 @@ public class MatchService {
 
         List<Long> safeTeamIds = (teamIds == null) ? Collections.emptyList() : teamIds;
 
-        List<Match> matches = matchRepository.findFiltered(
+        return matchRepository.findFiltered(
                 poolId,
                 status,
                 active,
                 safeTeamIds,
                 safeTeamIds.size());
-
-        return matches;
     }
-
-    /**
-     * Regroupe les matchs par jour avec pagination.
-     *
-     * @param poolIds listes des pools à inclure
-     * @param teamIds listes des équipes à inclure
-     * @param status  statut des matchs (UPCOMING pour futurs, autre pour passés)
-     * @param page    indice de la page (0-based)
-     * @param size    nombre de jours par page
-     * @return un DayPageDTO contenant les groupes de matchs par jour, un indicateur
-     *         hasNext et le numéro de nextPage
-     */
 
     public DayPageDTO getMatchesByDay(
             List<Long> poolIds,
@@ -111,7 +88,6 @@ public class MatchService {
             int size,
             Boolean active) {
 
-        ZoneId PARIS = ZoneId.of("Europe/Paris");
         Instant now = Instant.now();
         LocalDate todayParis = LocalDate.now(PARIS);
 
@@ -176,7 +152,6 @@ public class MatchService {
         Map<LocalDate, List<Match>> matchesByDate = allMatches.stream()
                 .collect(Collectors.groupingBy(m -> ZonedDateTime.ofInstant(m.getMatchDate(), PARIS).toLocalDate()));
 
-        // Construction de DayMatchesDTO
         List<DayMatchesDTO> dayMatchesList = subDays.stream()
                 .map(day -> {
                     List<Match> matchesForDay = matchesByDate.getOrDefault(day, Collections.emptyList());
@@ -202,13 +177,6 @@ public class MatchService {
         return new DayPageDTO(dayMatchesList, hasNext, nextPage);
     }
 
-    /**
-     * Récupère un match par son identifiant.
-     *
-     * @param id L'identifiant du match à récupérer
-     * @return Le match correspondant
-     * @throws MatchNotFoundException Si aucun match n'est trouvé avec cet ID
-     */
     public MatchDTO getMatchById(Long id) {
 
         Match match = matchRepository.findById(id).orElseThrow(() -> {
@@ -226,7 +194,6 @@ public class MatchService {
                 .leagueCode(match.getLeagueCode())
                 .poolId(match.getPoolId())
                 .liveCode(match.getLiveCode())
-                .liveEditLocked(match.isLiveEditLocked())
                 .teamIdA(match.getTeamIdA())
                 .teamIdB(match.getTeamIdB())
                 .matchDate(match.getMatchDate())
@@ -243,13 +210,6 @@ public class MatchService {
                 .build();
     }
 
-    /**
-     * Récupère un match par son identifiant pour les test interne.
-     *
-     * @param id L'identifiant du match à récupérer
-     * @return Le match correspondant
-     * @throws MatchNotFoundException Si aucun match n'est trouvé avec cet ID
-     */
     public Match getMatchByIdInternal(Long id) {
         return matchRepository.findById(id).orElseThrow(() -> {
             logger.warn("Match non trouvé", keyValue("matchId", id));
@@ -257,14 +217,6 @@ public class MatchService {
         });
     }
 
-    /**
-     * Met à jour un match existant.
-     *
-     * @param id           L'identifiant du match à mettre à jour
-     * @param updatedMatch L'objet contenant les nouvelles données du match
-     * @return Le match mis à jour
-     * @throws MatchNotFoundException Si le match à mettre à jour n'existe pas
-     */
     @Transactional
     public Match updateMatch(Long id, Match updatedMatch) {
         return matchRepository.findById(id).map(match -> {
@@ -303,12 +255,6 @@ public class MatchService {
         });
     }
 
-    /**
-     * Désactive en masse les matches actifs d'une pool pour les codes spécifiés.
-     *
-     * @param poolId                 L'identifiant de la pool
-     * @param matchCodesToDeactivate Liste des codes de match à désactiver
-     */
     @Transactional
     public void bulkDeactivateMatches(Long poolId, List<String> matchCodesToDeactivate) {
         Set<String> toDeactivate = new HashSet<>(matchCodesToDeactivate);
@@ -328,7 +274,6 @@ public class MatchService {
             return;
         }
 
-        // Pour chaque match, on désactive et on logue individuellement
         matchesToDeactivate.forEach(match -> {
             match.setActive(false);
             logger.info("Match désactivé",
@@ -343,5 +288,110 @@ public class MatchService {
                 keyValue("action", "bulk_deactivate_matches"),
                 keyValue("poolId", poolId),
                 keyValue("nombreMatches", matchesToDeactivate.size()));
+    }
+
+    /**
+     * Liste des matchs utilisés dans le panneau admin live :
+     * - match avec au moins un lien ACTIVE ou PENDING (sans limite de temps)
+     * - sinon match avec uniquement d'autres statuts, mais date de match >= now - MODERATION_HISTORY_DAYS
+     */
+    @Transactional(readOnly = true)
+    public List<MatchLiveSummaryDTO> listMatchesForLiveModeration() {
+        Instant now = Instant.now();
+        Instant cutoff = now.minus(MODERATION_HISTORY_DAYS, ChronoUnit.DAYS);
+
+        List<MatchLiveLink> allLinks = matchLiveLinkRepository.findAllWithMatch();
+
+        Map<Long, List<MatchLiveLink>> linksByMatchId = allLinks.stream()
+                .filter(l -> l.getMatch() != null)
+                .collect(Collectors.groupingBy(l -> l.getMatch().getId()));
+
+        List<MatchLiveSummaryDTO> result = linksByMatchId.values().stream()
+                .map(linksForMatch -> {
+
+                    Match match = linksForMatch.get(0).getMatch();
+                    if (match == null) {
+                        return null;
+                    }
+
+                    boolean hasPendingOrActive = linksForMatch.stream()
+                            .anyMatch(l -> l.getStatus() == LiveLinkStatus.PENDING
+                                    || l.getStatus() == LiveLinkStatus.ACTIVE);
+
+                    if (!hasPendingOrActive) {
+                        Instant matchDate = match.getMatchDate();
+                        if (matchDate.isBefore(cutoff)) {
+                            return null;
+                        }
+                    }
+
+                    MatchLiveLink lastLink = linksForMatch.stream()
+                            .max(Comparator.comparing(MatchLiveLink::getCreatedAt))
+                            .orElse(null);
+
+                    if (lastLink == null) {
+                        return null;
+                    }
+
+                    return MatchLiveSummaryDTO.builder()
+                            .id(match.getId())
+                            .matchCode(match.getMatchCode())
+                            .leagueCode(match.getLeagueCode())
+                            .poolId(match.getPoolId())
+                            .teamIdA(match.getTeamIdA())
+                            .teamIdB(match.getTeamIdB())
+                            .matchDate(match.getMatchDate())
+                            .season(match.getSeason())
+                            .set(match.getSet())
+                            .score(match.getScore())
+                            .status(match.getStatus())
+                            .liveCode(match.getLiveCode())
+                            .lastLiveLinkId(lastLink.getId())
+                            .lastLiveLinkStatus(lastLink.getStatus())
+                            .lastLiveLinkProvider(lastLink.getProvider())
+                            .lastLiveLinkUrl(lastLink.getUrl())
+                            .lastLiveLinkOwnerAuth0Id(lastLink.getOwnerAuth0Id())
+                            .lastLiveLinkCreatedAt(lastLink.getCreatedAt())
+                            .build();
+                })
+                .filter(dto -> dto != null)
+                .sorted(Comparator.comparing(MatchLiveSummaryDTO::getMatchDate).reversed())
+                .collect(Collectors.toList());
+
+        logger.info("Returning matches for live moderation",
+                keyValue("action", "list_matches_for_live_moderation"),
+                keyValue("count", result.size()));
+
+        return result;
+    }
+
+    /**
+     * Helper éventuellement réutilisable ailleurs si tu veux un résumé isolé.
+     */
+    public MatchLiveSummaryDTO toMatchLiveSummaryDTO(Match match) {
+        MatchLiveLink lastLink = matchLiveLinkRepository
+                .findFirstByMatch_IdOrderByCreatedAtDesc(match.getId())
+                .orElse(null);
+
+        return MatchLiveSummaryDTO.builder()
+                .id(match.getId())
+                .matchCode(match.getMatchCode())
+                .leagueCode(match.getLeagueCode())
+                .poolId(match.getPoolId())
+                .teamIdA(match.getTeamIdA())
+                .teamIdB(match.getTeamIdB())
+                .matchDate(match.getMatchDate())
+                .season(match.getSeason())
+                .set(match.getSet())
+                .score(match.getScore())
+                .status(match.getStatus())
+                .liveCode(match.getLiveCode())
+                .lastLiveLinkId(lastLink != null ? lastLink.getId() : null)
+                .lastLiveLinkStatus(lastLink != null ? lastLink.getStatus() : null)
+                .lastLiveLinkProvider(lastLink != null ? lastLink.getProvider() : null)
+                .lastLiveLinkUrl(lastLink != null ? lastLink.getUrl() : null)
+                .lastLiveLinkOwnerAuth0Id(lastLink != null ? lastLink.getOwnerAuth0Id() : null)
+                .lastLiveLinkCreatedAt(lastLink != null ? lastLink.getCreatedAt() : null)
+                .build();
     }
 }
