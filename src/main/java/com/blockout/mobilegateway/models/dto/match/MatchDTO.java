@@ -62,7 +62,4 @@ public class MatchDTO {
 
     @JsonProperty("live_owner_auth0_id")
     private String liveOwnerAuth0Id;
-
-    @JsonProperty("live_edit_locked")
-    private Boolean liveEditLocked;
 }

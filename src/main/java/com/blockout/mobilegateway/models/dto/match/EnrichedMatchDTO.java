@@ -50,9 +50,6 @@ public class EnrichedMatchDTO {
     @JsonProperty("live_owner_auth0_id")
     private String liveOwnerAuth0Id;
 
-    @JsonProperty("live_edit_locked")
-    private Boolean liveEditLocked;
-
     @JsonProperty("team_a")
     private TeamDTO teamA;
 

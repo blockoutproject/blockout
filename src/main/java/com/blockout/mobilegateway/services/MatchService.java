@@ -16,6 +16,7 @@ import com.blockout.mobilegateway.models.dto.match.MatchLiveLinkDTO;
 import com.blockout.mobilegateway.models.dto.match.MatchLiveLinkReportRequestDTO;
 import com.blockout.mobilegateway.models.dto.match.MatchLiveLinkRequestDTO;
 import com.blockout.mobilegateway.models.dto.match.MatchLiveLinkResponseDTO;
+import com.blockout.mobilegateway.models.dto.match.MatchLiveSummaryDTO;
 import com.blockout.mobilegateway.models.dto.match.PoolMatchesDTO;
 import com.blockout.mobilegateway.models.dto.pool.EnrichedPoolDTO;
 import com.blockout.mobilegateway.models.dto.pool.PoolDTO;
@@ -36,8 +37,8 @@ import org.springframework.web.util.UriComponentsBuilder;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static net.logstash.logback.argument.StructuredArguments.keyValue;
 import static com.blockout.mobilegateway.utils.TeamLogoEnricher.enrichTeamsWithClubLogo;
+import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
 @Service
 @RequiredArgsConstructor
@@ -54,8 +55,10 @@ public class MatchService {
     private final ApiClientProperties apiClientProperties;
     private final PdfLinkTokenService pdfLinkTokenService;
 
+    /* ========= LISTE PAR JOUR ========= */
+
     public EnrichedDayPageDTO getMatchList(String status, int page, int size, List<Long> poolFilterIds,
-            List<Long> teamFilterIds) {
+                                           List<Long> teamFilterIds) {
         logger.info("Fetching match list",
                 keyValue("action", "fetch_match_list"),
                 keyValue("status", status),
@@ -104,7 +107,7 @@ public class MatchService {
                 keyValue("unique_pool_ids", poolIds.size()),
                 keyValue("unique_team_ids", teamIds.size()));
 
-        // Pools récupérés un par un (getById) -> cache côté PoolClientService
+        // Pools
         Map<Long, PoolDTO> poolById = new HashMap<>(poolIds.size() * 2);
         for (Long poolId : poolIds) {
             PoolDTO pool = poolClientService.getPoolById(poolId);
@@ -120,7 +123,7 @@ public class MatchService {
                 .map(PoolDTO::getDivisionId)
                 .collect(Collectors.toSet());
 
-        // Teams récupérées une par une (getById) -> cache côté TeamClientService
+        // Teams
         Map<Long, TeamDTO> teamsMap = new HashMap<>(teamIds.size() * 2);
         for (Long teamId : teamIds) {
             TeamDTO team = teamClientService.getTeamById(teamId);
@@ -132,10 +135,10 @@ public class MatchService {
             }
         }
 
-        // Enrichissement logos clubs (appel unitaire + cache côté ClubClientService)
+        // Logos clubs
         enrichTeamsWithClubLogo(teamsMap.values(), clubClientService);
 
-        // Divisions récupérées une par une (getById) -> cache côté ConfigClientService
+        // Divisions
         Map<Long, DivisionDTO> divisionById = new HashMap<>(divisionIds.size() * 2);
         for (Long divisionId : divisionIds) {
             DivisionDTO division = configClientService.getDivisionById(divisionId);
@@ -238,6 +241,8 @@ public class MatchService {
                 .build();
     }
 
+    /* ========= MATCH PAR ID ========= */
+
     public EnrichedMatchDTO getMatchById(Long id) {
         logger.info("Fetching match by id",
                 keyValue("action", "get_match_by_id"),
@@ -279,8 +284,7 @@ public class MatchService {
             }
         }
 
-        // Enrich logos pour toutes les équipes concernées (classement + équipes du
-        // match)
+        // Enrich logos pour toutes les équipes concernées (classement + équipes du match)
         enrichTeamsWithClubLogo(teamsMap.values(), clubClientService);
 
         TeamDTO teamA = teamsMap.get(match.getTeamIdA());
@@ -372,7 +376,6 @@ public class MatchService {
                 .liveUrl(match.getLiveUrl())
                 .liveProvider(match.getLiveProvider())
                 .liveOwnerAuth0Id(match.getLiveOwnerAuth0Id())
-                .liveEditLocked(match.getLiveEditLocked())
                 .teamA(teamA)
                 .teamB(teamB)
                 .pool(enrichedPool)
@@ -380,6 +383,8 @@ public class MatchService {
                 .matchSheetPdfUrl(sheetUrl)
                 .build();
     }
+
+    /* ========= LIVE LINK CRUD ========= */
 
     public MatchLiveLinkResponseDTO upsertLiveLink(Long matchId, MatchLiveLinkRequestDTO request, String auth0Id) {
         logger.info("Upsert live link",
@@ -408,29 +413,42 @@ public class MatchService {
         matchClientService.reportLiveLink(matchId, request);
     }
 
-    public List<EnrichedMatchLiveLinkDTO> listPendingLiveLinks(String auth0Id) {
-        logger.info("List pending live links",
-                keyValue("action", "list_pending_match_live_links"),
+    public List<MatchLiveLinkDTO> getLiveLinksHistory(Long matchId, String auth0Id) {
+        logger.info("Get live links history",
+                keyValue("action", "get_match_live_links_history"),
+                keyValue("match_id", matchId),
                 keyValue("auth0_id", auth0Id));
 
-        List<MatchLiveLinkDTO> pending = matchClientService.listPendingLiveLinks();
-        if (pending == null || pending.isEmpty()) {
-            logger.info("No pending live links found",
-                    keyValue("action", "list_pending_match_live_links_empty"));
+        return matchClientService.getLiveLinksHistory(matchId);
+    }
+
+    /**
+     * Retourne la liste enrichie pour modération.
+     * On consomme /api/v1/matches/live-moderation côté API matches
+     * (MatchLiveSummaryDTO) sans ajouter de filtre côté gateway.
+     */
+    public List<EnrichedMatchLiveLinkDTO> listMatchesForLiveModeration() {
+        logger.info("List live links for moderation",
+                keyValue("action", "list_match_live_links_for_moderation"));
+
+        List<MatchLiveSummaryDTO> summaries = matchClientService.listMatchesForLiveModeration();
+        if (summaries == null || summaries.isEmpty()) {
+            logger.info("No matches returned for live moderation",
+                    keyValue("action", "list_match_live_links_for_moderation_empty"));
             return List.of();
         }
 
-        // Agrège pools et équipes à partir des liens
-        Set<Long> poolIds = new HashSet<>(pending.size());
-        Set<Long> teamIds = new HashSet<>(pending.size() * 2);
-        for (MatchLiveLinkDTO m : pending) {
+        // Agrégation pools & équipes
+        Set<Long> poolIds = new HashSet<>(summaries.size());
+        Set<Long> teamIds = new HashSet<>(summaries.size() * 2);
+        for (MatchLiveSummaryDTO m : summaries) {
             poolIds.add(m.getPoolId());
             teamIds.add(m.getTeamIdA());
             teamIds.add(m.getTeamIdB());
         }
 
-        logger.info("Aggregated ids for pending live links",
-                keyValue("action", "aggregate_ids_from_pending"),
+        logger.info("Aggregated ids for live moderation",
+                keyValue("action", "aggregate_ids_from_live_moderation"),
                 keyValue("unique_pool_ids", poolIds.size()),
                 keyValue("unique_team_ids", teamIds.size()));
 
@@ -441,7 +459,7 @@ public class MatchService {
             if (pool != null) {
                 poolById.put(poolId, pool);
             } else {
-                logger.warn("Pool not found while building pending live links view",
+                logger.warn("Pool not found while building moderation view",
                         keyValue("pool_id", poolId));
             }
         }
@@ -457,7 +475,7 @@ public class MatchService {
             if (division != null) {
                 divisionById.put(divisionId, division);
             } else {
-                logger.warn("Division not found while building pending live links view",
+                logger.warn("Division not found while building moderation view",
                         keyValue("division_id", divisionId));
             }
         }
@@ -469,7 +487,7 @@ public class MatchService {
             if (team != null) {
                 teamsMap.put(teamId, team);
             } else {
-                logger.warn("Team not found while building pending live links view",
+                logger.warn("Team not found while building moderation view",
                         keyValue("team_id", teamId));
             }
         }
@@ -477,56 +495,57 @@ public class MatchService {
         // Logos clubs
         enrichTeamsWithClubLogo(teamsMap.values(), clubClientService);
 
-        List<EnrichedMatchLiveLinkDTO> result = new ArrayList<>(pending.size());
-        for (MatchLiveLinkDTO link : pending) {
-            PoolDTO pool = poolById.get(link.getPoolId());
+        // Construction du résultat enrichi
+        List<EnrichedMatchLiveLinkDTO> result = new ArrayList<>(summaries.size());
+        for (MatchLiveSummaryDTO m : summaries) {
+            PoolDTO pool = poolById.get(m.getPoolId());
             if (pool == null) {
-                logger.warn("Skipping pending live link because pool is missing",
-                        keyValue("match_id", link.getMatchId()),
-                        keyValue("pool_id", link.getPoolId()));
+                logger.warn("Skipping match in moderation view because pool is missing",
+                        keyValue("match_id", m.getId()),
+                        keyValue("pool_id", m.getPoolId()));
                 continue;
             }
 
             DivisionDTO division = divisionById.get(pool.getDivisionId());
             if (division == null) {
-                logger.warn("Skipping pending live link because division is missing",
-                        keyValue("match_id", link.getMatchId()),
+                logger.warn("Skipping match in moderation view because division is missing",
+                        keyValue("match_id", m.getId()),
                         keyValue("division_id", pool.getDivisionId()));
                 continue;
             }
 
-            TeamDTO teamA = teamsMap.get(link.getTeamIdA());
-            TeamDTO teamB = teamsMap.get(link.getTeamIdB());
+            TeamDTO teamA = teamsMap.get(m.getTeamIdA());
+            TeamDTO teamB = teamsMap.get(m.getTeamIdB());
             if (teamA == null || teamB == null) {
-                logger.warn("Skipping pending live link because team is missing",
-                        keyValue("match_id", link.getMatchId()),
-                        keyValue("team_id_a", link.getTeamIdA()),
-                        keyValue("team_id_b", link.getTeamIdB()));
+                logger.warn("Skipping match in moderation view because team is missing",
+                        keyValue("match_id", m.getId()),
+                        keyValue("team_id_a", m.getTeamIdA()),
+                        keyValue("team_id_b", m.getTeamIdB()));
                 continue;
             }
 
             EnrichedMatchLiveLinkDTO dto = EnrichedMatchLiveLinkDTO.builder()
-                    .liveLinkId(link.getLiveLinkId())
-                    .matchId(link.getMatchId())
-                    .matchDate(link.getMatchDate())
-                    .season(link.getSeason())
-                    .set(link.getSet())
-                    .score(link.getScore())
+                    .liveLinkId(m.getLastLiveLinkId())
+                    .matchId(m.getId())
+                    .matchDate(m.getMatchDate() != null ? m.getMatchDate().toString() : null)
+                    .season(m.getSeason())
+                    .set(m.getSet())
+                    .score(m.getScore())
                     .teamA(teamA)
                     .teamB(teamB)
                     .poolName(pool.getShortName())
                     .divisionName(division.getName())
                     .leagueName(pool.getLeagueName())
-                    .liveUrl(link.getLiveUrl())
-                    .liveOwnerAuth0Id(link.getLiveOwnerAuth0Id())
+                    .liveUrl(m.getLastLiveLinkUrl())
+                    .liveOwnerAuth0Id(m.getLastLiveLinkOwnerAuth0Id())
                     .liveOwnerUsername(null) // enrichissable plus tard via users API
                     .build();
 
             result.add(dto);
         }
 
-        logger.info("Built enriched pending live links list",
-                keyValue("action", "build_enriched_pending_live_links"),
+        logger.info("Built enriched moderation list",
+                keyValue("action", "build_enriched_live_moderation"),
                 keyValue("count", result.size()));
 
         return result;

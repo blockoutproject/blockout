@@ -1,6 +1,7 @@
 package com.blockout.mobilegateway.controllers.v1.secureapi;
 
 import com.blockout.mobilegateway.models.dto.match.EnrichedMatchLiveLinkDTO;
+import com.blockout.mobilegateway.models.dto.match.MatchLiveLinkDTO;
 import com.blockout.mobilegateway.models.dto.match.MatchLiveLinkReportRequestDTO;
 import com.blockout.mobilegateway.models.dto.match.MatchLiveLinkRequestDTO;
 import com.blockout.mobilegateway.models.dto.match.MatchLiveLinkResponseDTO;
@@ -53,12 +54,19 @@ public class MatchSecureController {
         return ResponseEntity.noContent().build();
     }
 
-    @GetMapping("/live-links/pending")
-    public ResponseEntity<List<EnrichedMatchLiveLinkDTO>> listPendingLiveLinks(
+    @GetMapping("/{matchId}/live-links")
+    public ResponseEntity<List<MatchLiveLinkDTO>> getLiveLinksHistory(
+            @PathVariable Long matchId,
             @AuthenticationPrincipal Jwt jwt) {
 
         String auth0Id = jwt.getSubject();
-        List<EnrichedMatchLiveLinkDTO> dtos = matchService.listPendingLiveLinks(auth0Id);
+        List<MatchLiveLinkDTO> dtos = matchService.getLiveLinksHistory(matchId, auth0Id);
+        return ResponseEntity.ok(dtos);
+    }
+
+    @GetMapping("/live-links/pending")
+    public ResponseEntity<List<EnrichedMatchLiveLinkDTO>> listMatchesForLiveModeration() {
+        List<EnrichedMatchLiveLinkDTO> dtos = matchService.listMatchesForLiveModeration();
         return ResponseEntity.ok(dtos);
     }
 

@@ -1,5 +1,8 @@
 package com.blockout.mobilegateway.models.dto.match;
 
+import java.time.Instant;
+
+import com.blockout.mobilegateway.models.enums.LiveLinkStatus;
 import com.blockout.mobilegateway.models.enums.LiveProvider;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -14,58 +17,26 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class MatchLiveLinkDTO {
 
-    @JsonProperty("live_link_id")
-    private Long liveLinkId;
+    private Long id;
 
     @JsonProperty("match_id")
     private Long matchId;
 
-    @JsonProperty("match_code")
-    private String matchCode;
+    private LiveProvider provider;
 
-    @JsonProperty("league_code")
-    private String leagueCode;
+    private String url;
 
-    @JsonProperty("pool_id")
-    private Long poolId;
+    private LiveLinkStatus status;
 
-    @JsonProperty("live_code")
-    private Long liveCode;
+    @JsonProperty("report_count")
+    private int reportCount;
 
-    @JsonProperty("team_id_a")
-    private Long teamIdA;
+    @JsonProperty("owner_auth0_id")
+    private String ownerAuth0Id;
 
-    @JsonProperty("team_id_b")
-    private Long teamIdB;
+    @JsonProperty("created_at")
+    private Instant createdAt;
 
-    @JsonProperty("match_date")
-    private String matchDate;
-
-    private String season;
-
-    private String set;
-
-    private String score;
-
-    private String status;
-
-    private String venue;
-
-    @JsonProperty("first_referee")
-    private String firstReferee;
-
-    @JsonProperty("second_referee")
-    private String secondReferee;
-
-    @JsonProperty("live_url")
-    private String liveUrl;
-
-    @JsonProperty("live_provider")
-    private LiveProvider liveProvider;
-
-    @JsonProperty("live_owner_auth0_id")
-    private String liveOwnerAuth0Id;
-
-    @JsonProperty("live_edit_locked")
-    private Boolean liveEditLocked;
+    @JsonProperty("last_update")
+    private Instant lastUpdate;
 }
