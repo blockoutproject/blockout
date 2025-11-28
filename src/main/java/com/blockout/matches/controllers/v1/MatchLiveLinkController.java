@@ -51,11 +51,9 @@ public class MatchLiveLinkController {
     @PostMapping("/{matchId}/live-link")
     public ResponseEntity<MatchLiveLinkResponseDTO> upsertLiveLink(
             @PathVariable Long matchId,
-            @RequestBody MatchLiveLinkRequestDTO request,
-            @AuthenticationPrincipal Jwt jwt) {
+            @RequestBody MatchLiveLinkRequestDTO request) {
 
-        String auth0Id = jwt.getSubject();
-        MatchLiveLinkResponseDTO dto = matchLiveLinkService.upsertLiveLink(matchId, request, auth0Id);
+        MatchLiveLinkResponseDTO dto = matchLiveLinkService.upsertLiveLink(matchId, request);
         return ResponseEntity.ok(dto);
     }
 
@@ -101,12 +99,8 @@ public class MatchLiveLinkController {
     })
     @PreAuthorize("hasAuthority('SCOPE_moderate:match_live_link')")
     @PostMapping("/live-links/{liveLinkId}/approve")
-    public ResponseEntity<Void> approvePendingLink(
-            @PathVariable Long liveLinkId,
-            @AuthenticationPrincipal Jwt jwt) {
-
-        String adminAuth0Id = jwt.getSubject();
-        matchLiveLinkService.approvePendingLink(liveLinkId, adminAuth0Id);
+    public ResponseEntity<Void> approvePendingLink(@PathVariable Long liveLinkId) {
+        matchLiveLinkService.approvePendingLink(liveLinkId);
         return ResponseEntity.noContent().build();
     }
 
@@ -119,12 +113,22 @@ public class MatchLiveLinkController {
     })
     @PreAuthorize("hasAuthority('SCOPE_moderate:match_live_link')")
     @PostMapping("/live-links/{liveLinkId}/reject")
-    public ResponseEntity<Void> rejectPendingLink(
-            @PathVariable Long liveLinkId,
-            @AuthenticationPrincipal Jwt jwt) {
+    public ResponseEntity<Void> rejectPendingLink(@PathVariable Long liveLinkId) {
+        matchLiveLinkService.rejectPendingLink(liveLinkId);
+        return ResponseEntity.noContent().build();
+    }
 
-        String adminAuth0Id = jwt.getSubject();
-        matchLiveLinkService.rejectPendingLink(liveLinkId, adminAuth0Id);
+    @Operation(summary = "Réactiver un lien rejeté / expiré / supprimé (→ ACTIVE)")
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "Lien réactivé"),
+            @ApiResponse(responseCode = "400", description = "Lien dans un état non réactivable"),
+            @ApiResponse(responseCode = "403", description = "Non autorisé"),
+            @ApiResponse(responseCode = "404", description = "Lien ou match introuvable")
+    })
+    @PreAuthorize("hasAuthority('SCOPE_moderate:match_live_link')")
+    @PostMapping("/live-links/{liveLinkId}/reactivate")
+    public ResponseEntity<Void> reactivateLiveLink(@PathVariable Long liveLinkId) {
+        matchLiveLinkService.reactivateLiveLink(liveLinkId);
         return ResponseEntity.noContent().build();
     }
 }

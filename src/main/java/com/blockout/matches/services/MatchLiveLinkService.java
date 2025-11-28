@@ -51,12 +51,16 @@ public class MatchLiveLinkService {
     private final MatchLiveLinkModerationPolicy moderationPolicy;
 
     @Transactional
-    public MatchLiveLinkResponseDTO upsertLiveLink(Long matchId, MatchLiveLinkRequestDTO request, String auth0Id) {
+    public MatchLiveLinkResponseDTO upsertLiveLink(Long matchId, MatchLiveLinkRequestDTO request) {
         CustomUserDTO currentUser = usersClientService.getCurrentUser();
+        if (currentUser == null) {
+            throw new IllegalStateException("Utilisateur courant introuvable.");
+        }
+        String auth0Id = currentUser.getAuth0Id();
         Instant now = Instant.now();
 
         // Anti-abus général (sauf modérateurs)
-        moderationPolicy.validateUserAccountAge(currentUser, matchId, auth0Id, now);
+        moderationPolicy.validateUserAccountAge(currentUser, matchId, now);
 
         LiveProvider provider = resolveProviderFromUrl(request);
 
@@ -222,7 +226,7 @@ public class MatchLiveLinkService {
     }
 
     @Transactional
-    public void approvePendingLink(Long liveLinkId, String adminAuth0Id) {
+    public void approvePendingLink(Long liveLinkId) {
         MatchLiveLink link = liveLinkRepository.findById(liveLinkId)
                 .orElseThrow(() -> new IllegalStateException("Lien introuvable."));
 
@@ -249,12 +253,11 @@ public class MatchLiveLinkService {
                 keyValue("action", "approve_pending_live_link"),
                 keyValue("live_link_id", link.getId()),
                 keyValue("match_id", match.getId()),
-                keyValue("owner_auth0_id", link.getOwnerAuth0Id()),
-                keyValue("admin_auth0_id", adminAuth0Id));
+                keyValue("owner_auth0_id", link.getOwnerAuth0Id()));
     }
 
     @Transactional
-    public void rejectPendingLink(Long liveLinkId, String adminAuth0Id) {
+    public void rejectPendingLink(Long liveLinkId) {
         MatchLiveLink link = liveLinkRepository.findById(liveLinkId)
                 .orElseThrow(() -> new IllegalStateException("Lien introuvable."));
 
@@ -272,8 +275,57 @@ public class MatchLiveLinkService {
                 keyValue("action", "reject_pending_live_link"),
                 keyValue("live_link_id", link.getId()),
                 keyValue("match_id", link.getMatch() != null ? link.getMatch().getId() : null),
-                keyValue("owner_auth0_id", link.getOwnerAuth0Id()),
-                keyValue("admin_auth0_id", adminAuth0Id));
+                keyValue("owner_auth0_id", link.getOwnerAuth0Id()));
+    }
+
+    @Transactional
+    public void reactivateLiveLink(Long liveLinkId) {
+        MatchLiveLink link = liveLinkRepository.findById(liveLinkId)
+                .orElseThrow(() -> new IllegalStateException("Lien introuvable."));
+
+        LiveLinkStatus status = link.getStatus();
+        if (status != LiveLinkStatus.REJECTED
+                && status != LiveLinkStatus.EXPIRED
+                && status != LiveLinkStatus.HIDDEN) {
+            throw new IllegalStateException("Ce lien ne peut pas être réactivé dans son état actuel.");
+        }
+
+        Match match = link.getMatch();
+        if (match == null || match.getId() == null) {
+            throw new IllegalStateException("Match associé au lien introuvable.");
+        }
+
+        Long matchId = match.getId();
+        Instant now = Instant.now();
+
+        liveLinkRepository
+                .findFirstByMatch_IdAndStatusOrderByCreatedAtDesc(matchId, LiveLinkStatus.ACTIVE)
+                .ifPresent(active -> {
+                    if (!active.getId().equals(link.getId())) {
+                        active.setStatus(LiveLinkStatus.HIDDEN);
+                        active.setLastUpdate(now);
+                        liveLinkRepository.save(active);
+
+                        logger.info("Previous active live link hidden before activation",
+                                keyValue("action", "hide_previous_active_live_link"),
+                                keyValue("match_id", matchId),
+                                keyValue("previous_live_link_id", active.getId()),
+                                keyValue("new_live_link_id", link.getId()));
+                    }
+                });
+
+        link.setStatus(LiveLinkStatus.ACTIVE);
+        link.setLastUpdate(now);
+        liveLinkRepository.save(link);
+
+        match.setLastUpdate(now);
+        matchRepository.save(match);
+
+        logger.info("Live link activated by moderation",
+                keyValue("action", "reactivate_live_link"),
+                keyValue("live_link_id", link.getId()),
+                keyValue("match_id", matchId),
+                keyValue("owner_auth0_id", link.getOwnerAuth0Id()));
     }
 
     private MatchLiveLinkResponseDTO handlePostMatchUpsert(

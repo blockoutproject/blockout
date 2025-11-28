@@ -64,7 +64,7 @@ public class MatchLiveLinkModerationPolicy {
      * Vérifie l'ancienneté du compte avant d'autoriser la publication d'un lien.
      * (admin/modo : passe au travers).
      */
-    public void validateUserAccountAge(CustomUserDTO currentUser, Long matchId, String auth0Id, Instant now) {
+    public void validateUserAccountAge(CustomUserDTO currentUser, Long matchId, Instant now) {
         if (isModerator()) {
             return;
         }
@@ -73,7 +73,7 @@ public class MatchLiveLinkModerationPolicy {
             logger.warn("Current user not found or has no createdAt while setting live link",
                     keyValue("action", "set_live_link"),
                     keyValue("match_id", matchId),
-                    keyValue("auth0_id", auth0Id));
+                    keyValue("auth0_id", currentUser.getAuth0Id()));
             throw new IllegalStateException("Impossible de vérifier l’ancienneté de ton compte.");
         }
 
@@ -86,7 +86,7 @@ public class MatchLiveLinkModerationPolicy {
             logger.info("User too recent to set live link",
                     keyValue("action", "set_live_link_rejected_young_account"),
                     keyValue("match_id", matchId),
-                    keyValue("auth0_id", auth0Id),
+                    keyValue("auth0_id", currentUser.getAuth0Id()),
                     keyValue("user_id", currentUser.getId()),
                     keyValue("user_created_at", currentUser.getCreatedAt()),
                     keyValue("threshold", threshold));
