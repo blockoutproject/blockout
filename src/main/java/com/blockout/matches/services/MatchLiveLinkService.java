@@ -335,12 +335,12 @@ public class MatchLiveLinkService {
 
         Long matchId = match.getId();
 
-        // 🔍 1) Récupérer le dernier lien du user pour ce match
+        // Récupérer le dernier lien du user pour ce match
         MatchLiveLink last = liveLinkRepository
                 .findFirstByMatch_IdAndOwnerAuth0IdOrderByCreatedAtDesc(matchId, auth0Id)
                 .orElse(null);
 
-        // 🔎 2) Si même URL + provider + status ACTIVE ou PENDING → NO-OP
+        // Si même URL + provider + status ACTIVE ou PENDING → NO-OP
         if (last != null
                 && last.getProvider() == provider
                 && request.getUrl().equals(last.getUrl())
@@ -356,14 +356,14 @@ public class MatchLiveLinkService {
             return toResponseDto(last);
         }
 
-        // 3) Expirer lien actif s’il existe
+        // Expirer lien actif s’il existe
         if (active != null) {
             active.setStatus(LiveLinkStatus.EXPIRED);
             active.setLastUpdate(now);
             liveLinkRepository.save(active);
         }
 
-        // 4) Expirer les anciens PENDING du même owner
+        // Expirer les anciens PENDING du même owner
         List<MatchLiveLink> previousPending = liveLinkRepository
                 .findByMatch_IdAndOwnerAuth0IdAndStatus(
                         matchId,
@@ -378,7 +378,7 @@ public class MatchLiveLinkService {
             liveLinkRepository.saveAll(previousPending);
         }
 
-        // 5) Créer le nouveau lien PENDING
+        // Créer le nouveau lien PENDING
         MatchLiveLink pendingLink = MatchLiveLink.builder()
                 .match(match)
                 .ownerAuth0Id(auth0Id)
