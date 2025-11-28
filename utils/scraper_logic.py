@@ -2,7 +2,6 @@ from typing import Optional
 from api.matches_api import bulk_deactivate_matches
 from api.pools_api import update_pool
 from config.logger_config import log_event
-from models.enums.match_status import MatchStatus
 from models.match import Match
 from models.pool import Pool
 from models.scraper import Scraper
