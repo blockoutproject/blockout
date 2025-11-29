@@ -4,7 +4,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Getter
 @Setter
@@ -14,5 +14,10 @@ public class AppStatusDTO {
     private boolean maintenance;
     private String message;
     private String imageUrl;
-    private LocalDateTime lastUpdate;
+    private String minVersionIos;
+    private String minVersionAndroid;
+    private String storeUrlIos;
+    private String storeUrlAndroid;
+    private String forceUpdateMessage;
+    private Instant lastUpdate;
 }

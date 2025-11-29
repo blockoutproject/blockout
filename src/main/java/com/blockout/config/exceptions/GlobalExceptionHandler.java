@@ -44,6 +44,15 @@ public class GlobalExceptionHandler {
                 request.getRequestURI());
     }
 
+    @ExceptionHandler(AppStatusNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleAppStatusNotFound(
+            AppStatusNotFoundException ex, HttpServletRequest request) {
+        return buildErrorResponse(
+                ex.getMessage(),
+                HttpStatus.NOT_FOUND,
+                request.getRequestURI());
+    }
+
     @ExceptionHandler(DivisionNotFoundException.class)
     public ResponseEntity<Map<String, Object>> handleDivisionNotFound(
             DivisionNotFoundException ex, HttpServletRequest request) {
