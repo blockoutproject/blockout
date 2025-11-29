@@ -10,7 +10,11 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 
 import { useAppTheme } from "@/src/context/ThemeProvider";
-import { LiveLinkStatus, LiveProvider, MatchLiveLinkDTO } from "@/src/types/Match";
+import {
+    LiveLinkStatus,
+    LiveProvider,
+    MatchLiveLinkDTO,
+} from "@/src/types/Match";
 
 type Props = {
     link: MatchLiveLinkDTO;
@@ -18,6 +22,15 @@ type Props = {
     onReject?: (link: MatchLiveLinkDTO) => void;
     onDeleteActive?: (link: MatchLiveLinkDTO) => void;
     onReactivate?: (link: MatchLiveLinkDTO) => void;
+};
+
+const formatDateTime = (value?: string | number | null) => {
+    if (!value) return "-";
+    try {
+        return new Date(value).toLocaleString();
+    } catch {
+        return String(value);
+    }
 };
 
 const MatchLiveLinksHistoryItem: React.FC<Props> = ({
@@ -29,60 +42,52 @@ const MatchLiveLinksHistoryItem: React.FC<Props> = ({
 }) => {
     const theme = useAppTheme();
 
-    const createdAtLabel = useMemo(() => {
-        if (!link.createdAt) return "-";
-        try {
-            return new Date(link.createdAt).toLocaleString();
-        } catch {
-            return String(link.createdAt);
-        }
-    }, [link.createdAt]);
+    const createdAtLabel = useMemo(
+        () => formatDateTime(link.createdAt),
+        [link.createdAt],
+    );
 
-    const lastUpdateLabel = useMemo(() => {
-        if (!link.lastUpdate) return "";
-        try {
-            return new Date(link.lastUpdate).toLocaleString();
-        } catch {
-            return String(link.lastUpdate);
-        }
-    }, [link.lastUpdate]);
+    const lastUpdateLabel = useMemo(
+        () => (link.lastUpdate ? formatDateTime(link.lastUpdate) : ""),
+        [link.lastUpdate],
+    );
 
     const statusConfig = useMemo(() => {
         switch (link.status as LiveLinkStatus) {
             case "PENDING":
                 return {
                     label: "En attente",
-                    bg: theme.surfaceSecondary ?? theme.surface,
+                    backgroundColor: theme.surfaceSecondary ?? theme.surface,
                     color: theme.warning ?? theme.text,
                 };
             case "ACTIVE":
                 return {
                     label: "Actif",
-                    bg: theme.surfaceSecondary ?? theme.surface,
+                    backgroundColor: theme.surfaceSecondary ?? theme.surface,
                     color: theme.success,
                 };
             case "REJECTED":
                 return {
                     label: "Rejeté",
-                    bg: theme.surfaceSecondary ?? theme.surface,
+                    backgroundColor: theme.surfaceSecondary ?? theme.surface,
                     color: theme.error,
                 };
             case "HIDDEN":
                 return {
-                    label: "Supprimé",
-                    bg: theme.borderSecondary,
-                    color: theme.textInactive,
+                    label: "Désactivé",
+                    backgroundColor: theme.surfaceSecondary ?? theme.surface,
+                    color: theme.error,
                 };
             case "EXPIRED":
                 return {
                     label: "Expiré",
-                    bg: theme.borderSecondary,
-                    color: theme.textInactive,
+                    backgroundColor: theme.borderSecondary,
+                    color: theme.text,
                 };
             default:
                 return {
                     label: "Inconnu",
-                    bg: theme.borderSecondary,
+                    backgroundColor: theme.borderSecondary,
                     color: theme.textInactive,
                 };
         }
@@ -110,17 +115,21 @@ const MatchLiveLinksHistoryItem: React.FC<Props> = ({
                 await Linking.openURL(link.url);
             }
         } catch {
+            // ignore
         }
     }, [link.url]);
 
-    const canApprove = link.status === "PENDING" && !!onApprove;
-    const canReject = link.status === "PENDING" && !!onReject;
-    const canDeleteActive = link.status === "ACTIVE" && !!onDeleteActive;
-    const canReactivate =
-        (link.status === "REJECTED" ||
-            link.status === "EXPIRED" ||
-            link.status === "HIDDEN") &&
-        !!onReactivate;
+    const isPending = link.status === "PENDING";
+    const isActive = link.status === "ACTIVE";
+    const isReactivable =
+        link.status === "REJECTED" ||
+        link.status === "EXPIRED" ||
+        link.status === "HIDDEN";
+
+    const canApprove = isPending && !!onApprove;
+    const canReject = isPending && !!onReject;
+    const canDeleteActive = isActive && !!onDeleteActive;
+    const canReactivate = isReactivable && !!onReactivate;
 
     return (
         <View
@@ -137,7 +146,7 @@ const MatchLiveLinksHistoryItem: React.FC<Props> = ({
                     <View
                         style={[
                             styles.statusPill,
-                            { backgroundColor: statusConfig.bg },
+                            { backgroundColor: statusConfig.backgroundColor },
                         ]}
                     >
                         <Text
@@ -234,7 +243,7 @@ const MatchLiveLinksHistoryItem: React.FC<Props> = ({
                     Créé le : {createdAtLabel}
                 </Text>
 
-                {lastUpdateLabel !== "" && (
+                {!!lastUpdateLabel && (
                     <Text
                         style={[
                             styles.metaText,

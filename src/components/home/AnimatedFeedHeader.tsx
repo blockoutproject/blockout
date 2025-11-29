@@ -201,12 +201,6 @@ const AnimatedFeedHeader: React.FC<HeaderProps> = ({
                     />
 
                     <View style={styles.actions}>
-                        {canAccessLiveLinkModeration && (
-                            <TouchableOpacity onPress={openLocal(liveLinkModerationSheetRef)}>
-                                <MaterialCommunityIcons name="alpha-m-circle" size={28} color={theme.text} />
-                            </TouchableOpacity>
-                        )}
-
                         {canAccessRawDivisionMappings && (
                             <TouchableOpacity onPress={openLocal(mappingSheetRef)}>
                                 <MaterialCommunityIcons name="alpha-m-circle" size={28} color={theme.text} />
@@ -216,6 +210,12 @@ const AnimatedFeedHeader: React.FC<HeaderProps> = ({
                         {canAccessDivisions && (
                             <TouchableOpacity onPress={openLocal(divisionSheetRef)}>
                                 <MaterialCommunityIcons name="alpha-d-circle" size={28} color={theme.text} />
+                            </TouchableOpacity>
+                        )}
+
+                        {canAccessLiveLinkModeration && (
+                            <TouchableOpacity onPress={openLocal(liveLinkModerationSheetRef)}>
+                                <MaterialCommunityIcons name="video-check-outline" size={28} color={theme.text} />
                             </TouchableOpacity>
                         )}
 
@@ -279,7 +279,7 @@ const styles = StyleSheet.create({
     actions: {
         flexDirection: "row",
         alignItems: "center",
-        gap: 10,
+        gap: 6,
         paddingRight: 10,
     },
     iconBtn: {

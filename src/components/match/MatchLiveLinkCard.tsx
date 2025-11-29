@@ -1,5 +1,3 @@
-// FILE: src/components/match/MatchLiveLinkCard.tsx
-
 import React, { useMemo, useRef } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, Linking } from "react-native";
 import * as Haptics from "expo-haptics";
@@ -25,7 +23,6 @@ type Props = {
     enrichedMatch: EnrichedMatchDTO;
     gradient: readonly [string, string, ...string[]];
     refetch: () => void;
-    canCreateLiveLinkScope: boolean;
     onRequireAuth: () => void;
 };
 
@@ -35,7 +32,6 @@ const MatchLiveLinkCard: React.FC<Props> = ({
     enrichedMatch,
     gradient,
     refetch,
-    canCreateLiveLinkScope,
     onRequireAuth,
 }) => {
     const theme = useAppTheme();
@@ -49,6 +45,9 @@ const MatchLiveLinkCard: React.FC<Props> = ({
     ]);
     const { allowed: canReportLiveLinkScope } = useHasScopes([
         "report:match_live_link",
+    ]);
+    const { allowed: canCreateLiveLinkScope } = useHasScopes([
+        "create:match_live_link",
     ]);
 
     const { customUser, isGuest } = useSession();
@@ -80,7 +79,7 @@ const MatchLiveLinkCard: React.FC<Props> = ({
     }, [matchDate]);
 
     const canCreateLiveLink =
-        !hasLiveLink && canCreateLiveLinkScope && !isBeforeLiveWindow;
+        !hasLiveLink && canCreateLiveLinkScope;
 
     const canEditExistingLink =
         hasLiveLink && isOwner && canCreateLiveLinkScope;
@@ -175,6 +174,8 @@ const MatchLiveLinkCard: React.FC<Props> = ({
         !hasLiveLink && (canCreateLiveLink || isGuest);
 
     const shouldShowCard = hasLiveLink || canShowEmptyStateCta;
+
+    console.log(shouldShowCard, canCreateLiveLink)
 
     if (!shouldShowCard) {
         return null;

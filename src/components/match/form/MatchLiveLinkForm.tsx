@@ -18,6 +18,7 @@ import ApiErrorToast from "@/src/components/common/feedback/ApiErrorToast";
 import { ApiError } from "@/src/api/core/ApiError";
 import Field from "../../common/form/Field";
 import { withAlpha } from "@/src/utils/utils";
+import useHasScopes from "@/src/hooks/user/useHasScopes";
 
 export type MatchLiveLinkFormExternalState = {
     loading: boolean;
@@ -67,6 +68,10 @@ const MatchLiveLinkForm: React.FC<MatchLiveLinkFormProps> = ({
     const theme = useAppTheme();
     const { mobile } = useApis();
 
+    const { allowed: isModerator } = useHasScopes([
+        "moderate:match_live_link",
+    ]);
+
     const [loading, setLoading] = useState(false);
     const [apiError, setApiError] = useState<string | null>(null);
 
@@ -77,7 +82,7 @@ const MatchLiveLinkForm: React.FC<MatchLiveLinkFormProps> = ({
         validationSchema,
         validateOnMount: true,
         onSubmit: async (values) => {
-            if (isBeforeLiveWindow) return;
+            if (isBeforeLiveWindow && !isModerator) return;
             const trimmed = values.url.trim();
             if (!trimmed) return;
 
@@ -113,7 +118,7 @@ const MatchLiveLinkForm: React.FC<MatchLiveLinkFormProps> = ({
             formik.isValid &&
             !!formik.values.url.trim() &&
             !loading &&
-            !isBeforeLiveWindow,
+            (!isBeforeLiveWindow || isModerator),
         [formik.isValid, formik.values.url, loading, isBeforeLiveWindow],
     );
 
@@ -161,64 +166,62 @@ const MatchLiveLinkForm: React.FC<MatchLiveLinkFormProps> = ({
                         {subtitle}
                     </Text>
 
-                    {!isBeforeLiveWindow && (
-                        <View style={styles.platformRow}>
-                            <View
-                                style={[
-                                    styles.platformIcon,
-                                    {
-                                        backgroundColor: theme.surface,
-                                        borderColor: theme.border,
-                                    },
-                                ]}
-                            >
-                                <MaterialCommunityIcons
-                                    name="youtube"
-                                    size={18}
-                                    color={theme.textInactive}
-                                />
-                            </View>
-                            <View
-                                style={[
-                                    styles.platformIcon,
-                                    {
-                                        backgroundColor: theme.surface,
-                                        borderColor: theme.border,
-                                    },
-                                ]}
-                            >
-                                <MaterialCommunityIcons
-                                    name="twitch"
-                                    size={18}
-                                    color={theme.textInactive}
-                                />
-                            </View>
-                            <View
-                                style={[
-                                    styles.platformIcon,
-                                    {
-                                        backgroundColor: theme.surface,
-                                        borderColor: theme.border,
-                                    },
-                                ]}
-                            >
-                                <MaterialCommunityIcons
-                                    name="facebook"
-                                    size={18}
-                                    color={theme.textInactive}
-                                />
-                            </View>
-
-                            <Text
-                                style={[
-                                    styles.platformHint,
-                                    { color: theme.textInactive },
-                                ]}
-                            >
-                                Plateformes supportées
-                            </Text>
+                    <View style={styles.platformRow}>
+                        <View
+                            style={[
+                                styles.platformIcon,
+                                {
+                                    backgroundColor: theme.surface,
+                                    borderColor: theme.border,
+                                },
+                            ]}
+                        >
+                            <MaterialCommunityIcons
+                                name="youtube"
+                                size={18}
+                                color={theme.textInactive}
+                            />
                         </View>
-                    )}
+                        <View
+                            style={[
+                                styles.platformIcon,
+                                {
+                                    backgroundColor: theme.surface,
+                                    borderColor: theme.border,
+                                },
+                            ]}
+                        >
+                            <MaterialCommunityIcons
+                                name="twitch"
+                                size={18}
+                                color={theme.textInactive}
+                            />
+                        </View>
+                        <View
+                            style={[
+                                styles.platformIcon,
+                                {
+                                    backgroundColor: theme.surface,
+                                    borderColor: theme.border,
+                                },
+                            ]}
+                        >
+                            <MaterialCommunityIcons
+                                name="facebook"
+                                size={18}
+                                color={theme.textInactive}
+                            />
+                        </View>
+
+                        <Text
+                            style={[
+                                styles.platformHint,
+                                { color: theme.textInactive },
+                            ]}
+                        >
+                            Plateformes supportées
+                        </Text>
+                    </View>
 
                     {isMatchFinished && (
                         <View
@@ -258,7 +261,7 @@ const MatchLiveLinkForm: React.FC<MatchLiveLinkFormProps> = ({
                             Lien du live
                         </Text>
 
-                        {isBeforeLiveWindow ? (
+                        {isBeforeLiveWindow && !isModerator ? (
                             <View style={styles.lockBanner}>
                                 <MaterialCommunityIcons
                                     name="clock-outline"

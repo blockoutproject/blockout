@@ -3,7 +3,6 @@ import { View, StyleSheet, ActivityIndicator, Text, Pressable, Alert, ScrollView
 import * as Haptics from "expo-haptics";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
-import * as Application from "expo-application";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useAppTheme } from "@/src/context/ThemeProvider";
@@ -21,6 +20,7 @@ import { BOTTOM_TABBAR_HEIGHT, SECTION_SEPARATOR_HEIGHT } from "@/src/theme/glob
 import { useApis } from "@/src/context/ApiProvider";
 import GuestUpsellCard from "@/src/components/user/GuestUpsellCard";
 import { useOnboardingStore } from "@/src/utils/onboardingStore";
+import { CURRENT_APP_VERSION } from "@/src/utils/appVersion";
 
 const SPINNER_BOX = 18;
 
@@ -30,7 +30,6 @@ const ProfileScreen: React.FC = () => {
     const insets = useSafeAreaInsets();
     const { refetch, customUser, isGuest, signOutSSO } = useSession();
     const { allowed: canEdit } = useHasScopes(["update:current_user"]);
-    const version = Application.nativeApplicationVersion ?? "1.0.0";
     const { resetOnboarding } = useOnboardingStore();
 
     const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -148,7 +147,7 @@ const ProfileScreen: React.FC = () => {
 
                     {/* Version app */}
                     <View style={{ alignItems: "center", marginTop: 10 }}>
-                        <Text style={[styles.versionText, { color: theme.textInactive }]}>Version {version}</Text>
+                        <Text style={[styles.versionText, { color: theme.textInactive }]}>Version {CURRENT_APP_VERSION}</Text>
                     </View>
                 </ScrollView>
 
@@ -177,7 +176,6 @@ const ProfileScreen: React.FC = () => {
         );
     }
 
-    // === AUTH MODE: profil complet ===
     const renderBody = () => {
         if (!customUser) {
             return (
@@ -252,7 +250,7 @@ const ProfileScreen: React.FC = () => {
                             </Pressable>
 
                             <View style={styles.version}>
-                                <Text style={[styles.versionText, { color: theme.textInactive }]}>Version {version}</Text>
+                                <Text style={[styles.versionText, { color: theme.textInactive }]}>Version {CURRENT_APP_VERSION}</Text>
                             </View>
                         </View>
                     </View>

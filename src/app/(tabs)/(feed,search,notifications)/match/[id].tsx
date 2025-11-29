@@ -192,7 +192,6 @@ const MatchScreen: React.FC = () => {
                 enrichedMatch={enrichedMatch}
                 gradient={gradient}
                 refetch={refetch}
-                canCreateLiveLinkScope={canCreateLiveLinkScope}
                 onRequireAuth={handleRequireAuthForLiveLink}
             />
         );

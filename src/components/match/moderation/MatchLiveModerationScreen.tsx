@@ -3,6 +3,7 @@ import React, {
     useMemo,
     useRef,
     useState,
+    useEffect,
 } from "react";
 import {
     View,
@@ -12,7 +13,7 @@ import {
     RefreshControl,
     Keyboard,
 } from "react-native";
-import { FlashList } from "@shopify/flash-list";
+import { FlashList, FlashListRef } from "@shopify/flash-list";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
@@ -32,6 +33,22 @@ import MatchLiveModerationItem from "@/src/components/match/moderation/MatchLive
 import BottomSheetCustomPage from "@/src/components/common/bottomSheet/BottomSheetCustomPage";
 import MatchLiveLinksHistoryScreen from "./MatchLiveLinksHistoryScreen";
 
+const STATUS_FILTERS: Filter[] = [
+    { name: "En attente", isActive: false },
+    { name: "Actifs", isActive: false },
+    { name: "Rejetés", isActive: false },
+    { name: "Désactivés", isActive: false },
+    { name: "Expirés", isActive: false },
+];
+
+const FILTER_NAME_TO_STATUS: Record<string, LiveLinkStatus | null> = {
+    "En attente": "PENDING",
+    Actifs: "ACTIVE",
+    Rejetés: "REJECTED",
+    Désactivés: "HIDDEN",
+    Expirés: "EXPIRED",
+};
+
 const MatchLiveModerationScreen: React.FC = () => {
     const theme = useAppTheme();
     const insets = useSafeAreaInsets();
@@ -46,69 +63,62 @@ const MatchLiveModerationScreen: React.FC = () => {
 
     const [apiError, setApiError] = useState<string | null>(null);
     const [search, setSearch] = useState("");
-    const [statusFilters, setStatusFilters] = useState<Filter[]>([
-        { name: "En attente", isActive: false },
-        { name: "Actifs", isActive: false },
-        { name: "Rejetés", isActive: false },
-        { name: "Supprimés", isActive: false },
-        { name: "Expirés", isActive: false },
-    ]);
+    const [statusFilters, setStatusFilters] =
+        useState<Filter[]>(STATUS_FILTERS);
 
     const [selectedMatch, setSelectedMatch] =
         useState<EnrichedMatchLiveSummaryDTO | null>(null);
 
     const historySheetRef = useRef<BottomSheetModal>(null);
+    const listRef =
+        useRef<FlashListRef<EnrichedMatchLiveSummaryDTO> | null>(null);
 
-    const matches: EnrichedMatchLiveSummaryDTO[] = useMemo(
+    const matches = useMemo<EnrichedMatchLiveSummaryDTO[]>(
         () => data ?? [],
         [data],
     );
 
-    const activeStatusFilterName =
-        statusFilters.find((f) => f.isActive)?.name ?? "";
-
-    const activeStatusEnum: LiveLinkStatus | null = useMemo(() => {
-        switch (activeStatusFilterName) {
-            case "En attente":
-                return "PENDING";
-            case "Actifs":
-                return "ACTIVE";
-            case "Rejetés":
-                return "REJECTED";
-            case "Supprimés":
-                return "HIDDEN";
-            case "Expirés":
-                return "EXPIRED";
-            default:
-                return null;
-        }
-    }, [activeStatusFilterName]);
-
-    const filteredMatches = useMemo(() => {
-        return matches.filter((m) => {
-            const teamALabel = m.teamA.shortName ?? m.teamA.name ?? "";
-            const teamBLabel = m.teamB.shortName ?? m.teamB.name ?? "";
-            const searchTarget = `${teamALabel} vs ${teamBLabel}`.toLowerCase();
-
-            const matchSearch =
-                search.trim().length === 0 ||
-                searchTarget.includes(search.toLowerCase());
-
-            const matchStatus =
-                !activeStatusEnum || m.lastLiveLinkStatus === activeStatusEnum;
-
-            return matchSearch && matchStatus;
-        });
-    }, [matches, search, activeStatusEnum]);
+    const activeStatusName = statusFilters.find((f) => f.isActive)?.name ?? "";
+    const activeStatus = useMemo<LiveLinkStatus | null>(
+        () => FILTER_NAME_TO_STATUS[activeStatusName] ?? null,
+        [activeStatusName],
+    );
 
     const sortedMatches = useMemo(() => {
-        return [...filteredMatches].sort((a, b) => {
-            if (!a.matchDate || !b.matchDate) return 0;
-            const da = new Date(a.matchDate).getTime();
-            const db = new Date(b.matchDate).getTime();
-            return db - da;
+        const normalizedSearch = search.trim().toLowerCase();
+
+        const filtered = matches.filter((match) => {
+            const teamALabel = match.teamA.shortName ?? match.teamA.name ?? "";
+            const teamBLabel = match.teamB.shortName ?? match.teamB.name ?? "";
+            const searchTarget = `${teamALabel} vs ${teamBLabel}`.toLowerCase();
+
+            const searchOk =
+                normalizedSearch.length === 0 ||
+                searchTarget.includes(normalizedSearch);
+
+            const statusOk =
+                !activeStatus || match.lastLiveLinkStatus === activeStatus;
+
+            return searchOk && statusOk;
         });
-    }, [filteredMatches]);
+
+        return filtered
+            .slice()
+            .sort((a, b) => {
+                if (!a.matchDate || !b.matchDate) return 0;
+                const da = new Date(a.matchDate).getTime();
+                const db = new Date(b.matchDate).getTime();
+                return db - da;
+            });
+    }, [matches, search, activeStatus]);
+
+    useEffect(() => {
+        if (!listRef.current) return;
+        listRef.current.scrollToOffset({
+            animated: false,
+            offset: 0,
+        });
+    }, [activeStatus]);
 
     const handleRefresh = useCallback(async () => {
         setApiError(null);
@@ -156,7 +166,7 @@ const MatchLiveModerationScreen: React.FC = () => {
                     />
                 </View>
 
-                <View style={styles.filtersWrapper}>
+                <View style={styles.filtersRow}>
                     <Filters
                         filters={statusFilters}
                         setFilters={setStatusFilters}
@@ -165,6 +175,7 @@ const MatchLiveModerationScreen: React.FC = () => {
                 </View>
 
                 <FlashList
+                    ref={listRef}
                     data={sortedMatches}
                     keyExtractor={(item) => item.id.toString()}
                     contentContainerStyle={{
@@ -199,7 +210,9 @@ const MatchLiveModerationScreen: React.FC = () => {
 
             <ApiErrorToast
                 bottomOffset={insets.bottom}
-                message={apiError || (isError ? "Erreur lors du chargement." : null)}
+                message={
+                    apiError || (isError ? "Erreur lors du chargement." : null)
+                }
                 onHidden={() => setApiError(null)}
             />
 
@@ -232,9 +245,8 @@ const styles = StyleSheet.create({
         alignItems: "center",
         marginHorizontal: 8,
         marginTop: 8,
-        gap: 12,
     },
-    filtersWrapper: {
+    filtersRow: {
         paddingHorizontal: 8,
         paddingTop: 6,
     },

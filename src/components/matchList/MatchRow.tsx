@@ -45,7 +45,7 @@ const MatchRow: React.FC<MatchRowProps> = ({ enrichedMatch, division }) => {
                 styles.card,
                 {
                     backgroundColor: theme.surface,
-                    borderColor: withAlpha(theme.text, 0.30),
+                    borderColor: withAlpha(theme.text, 0.25),
                 },
             ]}
             testID={`match-row-${enrichedMatch.id}`}
@@ -57,7 +57,7 @@ const MatchRow: React.FC<MatchRowProps> = ({ enrichedMatch, division }) => {
                         label={livePillLabel}
                         leftIconName="video-outline"
                         showRedDot={!isFinished}
-                        overlayColor={theme.backgroundSecondary}
+                        overlayColor={theme.background}
                         style={styles.livePill}
                         labelStyle={styles.livePillText}
                     />

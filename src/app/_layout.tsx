@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { StatusBar, View, Text } from "react-native";
+import { StatusBar } from "react-native";
 import { Stack } from "expo-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Auth0Provider } from "react-native-auth0";
@@ -13,7 +13,6 @@ import { SessionProvider, useSession } from "@/src/context/SessionProvider";
 import { SplashScreenController } from "@/src/components/splash/SplashScreen";
 import { useOnboardingStore } from "../utils/onboardingStore";
 import { addNotificationListeners, openNotificationUrlIfAny } from "../utils/notifications";
-import MaintenanceScreen from "../components/appStatus/MaintenanceScreen";
 
 const queryClient = new QueryClient();
 
@@ -33,7 +32,10 @@ export default function Root() {
             <QueryClientProvider client={queryClient}>
                 <ThemeProvider>
                     <StatusBar barStyle={"light-content"} />
-                    <Auth0Provider domain={AUTH0_CONFIG.domain} clientId={AUTH0_CONFIG.clientId}>
+                    <Auth0Provider
+                        domain={AUTH0_CONFIG.domain}
+                        clientId={AUTH0_CONFIG.clientId}
+                    >
                         <ApiProvider>
                             <SessionProvider>
                                 <SplashScreenController />
@@ -48,27 +50,54 @@ export default function Root() {
 }
 
 function RootNavigator() {
-    const { isAuthenticated, isGuest, isMaintenance, maintenanceBypass } = useSession();
+    const {
+        isAuthenticated,
+        isGuest,
+        isMaintenance,
+        maintenanceBypass,
+        isUpdateRequired,
+        updateBypass,
+    } = useSession();
     const { hasCompletedOnboarding } = useOnboardingStore();
-    
+
+    const isBlockedByUpdate = isUpdateRequired && !updateBypass;
+    const isBlockedByMaintenance = isMaintenance && !maintenanceBypass;
+    const isGloballyBlocked = isBlockedByUpdate || isBlockedByMaintenance;
+
     return (
         <BottomSheetModalProvider>
             <Stack screenOptions={{ headerShown: false, animation: "none" }}>
-                <Stack.Protected guard={(isMaintenance && !maintenanceBypass)}>
+                <Stack.Protected guard={isBlockedByMaintenance}>
                     <Stack.Screen
                         name="maintenance"
                         options={{ animation: "fade_from_bottom", animationDuration: 300 }}
                     />
                 </Stack.Protected>
+                <Stack.Protected guard={isBlockedByUpdate && !isBlockedByMaintenance}>
+                    <Stack.Screen
+                        name="update-required"
+                        options={{ animation: "fade_from_bottom", animationDuration: 300 }}
+                    />
+                </Stack.Protected>
 
-                <Stack.Protected guard={!(isGuest || isAuthenticated) && !(isMaintenance && !maintenanceBypass)}>
+                <Stack.Protected
+                    guard={
+                        !(isGuest || isAuthenticated) &&
+                        !isGloballyBlocked
+                    }
+                >
                     <Stack.Screen
                         name="sign-in"
                         options={{ animation: "fade_from_bottom", animationDuration: 300 }}
                     />
                 </Stack.Protected>
 
-                <Stack.Protected guard={(isGuest || isAuthenticated) && !(isMaintenance && !maintenanceBypass)}>
+                <Stack.Protected
+                    guard={
+                        (isGuest || isAuthenticated) &&
+                        !isGloballyBlocked
+                    }
+                >
                     <Stack.Protected guard={!hasCompletedOnboarding}>
                         <Stack.Screen
                             name="onboarding"

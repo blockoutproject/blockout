@@ -1,4 +1,3 @@
-// MaintenanceControlCard.tsx
 import React, { useMemo } from "react";
 import {
     View,
@@ -8,9 +7,11 @@ import {
     ActivityIndicator,
     Alert,
 } from "react-native";
-import { BottomSheetTextInput } from "@gorhom/bottom-sheet";
 import { Image } from "expo-image";
+
 import { useAppTheme } from "@/src/context/ThemeProvider";
+import Field from "@/src/components/common/form/Field";
+import SheetTextInput from "@/src/components/common/form/SheetTextInput";
 
 type Props = {
     maintenanceEnabled: boolean;
@@ -56,6 +57,10 @@ const MaintenanceControlCard: React.FC<Props> = ({
         if (!trimmedImageUrl) return true;
         return /^https?:\/\/.+/i.test(trimmedImageUrl);
     }, [trimmedImageUrl]);
+
+    const imageUrlError = !imageUrlLooksValid
+        ? "URL invalide (doit commencer par http:// ou https://)."
+        : undefined;
 
     const mainButtonLabel = maintenanceEnabled
         ? "Mettre à jour"
@@ -108,10 +113,10 @@ const MaintenanceControlCard: React.FC<Props> = ({
         <View
             style={[
                 styles.card,
-                {
-                    backgroundColor: theme.surface,
-                    borderColor: maintenanceEnabled ? theme.warning : theme.border,
-                },
+            {
+                backgroundColor: theme.surface,
+                borderColor: maintenanceEnabled ? theme.warning : theme.border,
+            },
             ]}
         >
             <View style={styles.headerBlock}>
@@ -150,50 +155,38 @@ const MaintenanceControlCard: React.FC<Props> = ({
                 </Text>
             </View>
 
-            <View style={styles.fieldBlock}>
-                <Text style={[styles.label, { color: theme.text }]}>
-                    Message affiché aux utilisateurs
-                </Text>
-                <BottomSheetTextInput
+            <Field
+                label="Message affiché aux utilisateurs"
+                error={undefined}
+                touched={!!trimmedMessage}
+            >
+                <SheetTextInput
                     value={maintenanceMessage}
                     onChangeText={onChangeMessage}
                     placeholder="Exemple : Nous effectuons une maintenance, l'app reviendra très vite 🚧"
-                    placeholderTextColor={theme.textInactive}
+                    enableSuggestions
                     multiline
-                    style={[
-                        styles.input,
-                        {
-                            color: theme.text,
-                            borderColor: theme.borderSecondary,
-                            backgroundColor: theme.backgroundSecondary,
-                        },
-                    ]}
-                    textAlignVertical="top"
+                    style={{ minHeight: 80, textAlignVertical: "top" }}
                 />
-            </View>
+            </Field>
 
-            <View style={styles.fieldBlock}>
-                <Text style={[styles.label, { color: theme.text }]}>
-                    Image / GIF (URL)
-                </Text>
-
+            <Field
+                label="Image / GIF (URL)"
+                error={imageUrlError}
+                touched={!!trimmedImageUrl || !!imageUrlError}
+            >
                 <View style={styles.imageRow}>
-                    <BottomSheetTextInput
+                    <SheetTextInput
                         value={maintenanceImageUrl}
                         onChangeText={onChangeImageUrl}
                         placeholder="https://..."
-                        placeholderTextColor={theme.textInactive}
-                        autoCapitalize="none"
-                        autoCorrect={false}
-                        style={[
-                            styles.imageInput,
-                            {
-                                color: theme.text,
-                                borderColor: theme.borderSecondary,
-                                backgroundColor: theme.backgroundSecondary,
-                            },
-                            !imageUrlLooksValid ? { borderColor: theme.error } : null,
-                        ]}
+                        keyboardType="url"
+                        style={
+                            imageUrlError
+                                ? { borderColor: theme.error }
+                                : undefined
+                        }
+                        containerStyle={{ flex: 1 }}
                     />
 
                     <View
@@ -201,7 +194,9 @@ const MaintenanceControlCard: React.FC<Props> = ({
                             styles.previewBox,
                             {
                                 backgroundColor: theme.backgroundSecondary,
-                                borderColor: theme.borderSecondary,
+                                borderColor: imageUrlError
+                                    ? theme.error
+                                    : theme.borderSecondary,
                             },
                         ]}
                     >
@@ -223,13 +218,7 @@ const MaintenanceControlCard: React.FC<Props> = ({
                         )}
                     </View>
                 </View>
-
-                {!imageUrlLooksValid && (
-                    <Text style={[styles.urlError, { color: theme.error }]}>
-                        URL invalide (doit commencer par http:// ou https://)
-                    </Text>
-                )}
-            </View>
+            </Field>
 
             <View style={styles.buttonsRow}>
                 <TouchableOpacity
@@ -249,7 +238,12 @@ const MaintenanceControlCard: React.FC<Props> = ({
                     {saving ? (
                         <ActivityIndicator size="small" color={theme.background} />
                     ) : (
-                        <Text style={[styles.primaryButtonText, { color: theme.background }]}>
+                        <Text
+                            style={[
+                                styles.primaryButtonText,
+                                { color: theme.background },
+                            ]}
+                        >
                             {mainButtonLabel}
                         </Text>
                     )}
@@ -269,7 +263,12 @@ const MaintenanceControlCard: React.FC<Props> = ({
                         ]}
                         activeOpacity={0.85}
                     >
-                        <Text style={[styles.secondaryButtonText, { color: theme.text }]}>
+                        <Text
+                            style={[
+                                styles.secondaryButtonText,
+                                { color: theme.text },
+                            ]}
+                        >
                             {disableButtonLabel}
                         </Text>
                     </TouchableOpacity>
@@ -278,15 +277,24 @@ const MaintenanceControlCard: React.FC<Props> = ({
 
             <View style={styles.footerRow}>
                 {lastUpdate && (
-                    <Text style={[styles.lastUpdate, { color: theme.textInactive }]}>
-                        Dernière mise à jour : {new Date(lastUpdate).toLocaleString()}
+                    <Text
+                        style={[styles.lastUpdate, { color: theme.textInactive }]}
+                        numberOfLines={1}
+                    >
+                        Dernière mise à jour :{" "}
+                        {new Date(lastUpdate).toLocaleString()}
                     </Text>
                 )}
 
                 {showMiniLoader && (
                     <View style={styles.miniLoaderRow}>
                         <ActivityIndicator size="small" color={theme.textInactive} />
-                        <Text style={[styles.miniLoaderText, { color: theme.textInactive }]}>
+                        <Text
+                            style={[
+                                styles.miniLoaderText,
+                                { color: theme.textInactive },
+                            ]}
+                        >
                             Synchronisation…
                         </Text>
                     </View>
@@ -295,6 +303,8 @@ const MaintenanceControlCard: React.FC<Props> = ({
         </View>
     );
 };
+
+export default MaintenanceControlCard;
 
 const styles = StyleSheet.create({
     card: {
@@ -305,7 +315,7 @@ const styles = StyleSheet.create({
         gap: 12,
     },
     headerBlock: {
-        gap: 10,
+        gap: 8,
     },
     titleRow: {
         flexDirection: "row",
@@ -331,41 +341,16 @@ const styles = StyleSheet.create({
         textTransform: "uppercase",
         letterSpacing: 0.3,
     },
-    fieldBlock: {
-        gap: 6,
-        marginTop: 2,
-    },
-    label: {
-        fontSize: 13,
-        fontWeight: "600",
-    },
-    input: {
-        borderWidth: 1,
-        borderRadius: 12,
-        paddingHorizontal: 10,
-        paddingVertical: 8,
-        fontSize: 13,
-        minHeight: 70,
-    },
     imageRow: {
         flexDirection: "row",
         alignItems: "center",
         gap: 10,
     },
-    imageInput: {
-        flex: 1,
-        borderWidth: 1,
-        borderRadius: 12,
-        paddingHorizontal: 10,
-        paddingVertical: 8,
-        fontSize: 13,
-        minHeight: PREVIEW_SIZE,
-    },
     previewBox: {
         width: PREVIEW_SIZE,
         height: PREVIEW_SIZE,
         borderRadius: 12,
-        borderWidth: 1,
+        borderWidth: 1.5,
         overflow: "hidden",
         alignItems: "center",
         justifyContent: "center",
@@ -379,11 +364,6 @@ const styles = StyleSheet.create({
         fontWeight: "700",
         textTransform: "uppercase",
         letterSpacing: 0.3,
-    },
-    urlError: {
-        fontSize: 11,
-        fontWeight: "600",
-        marginTop: 2,
     },
     buttonsRow: {
         flexDirection: "row",
@@ -439,5 +419,3 @@ const styles = StyleSheet.create({
         fontWeight: "500",
     },
 });
-
-export default MaintenanceControlCard;

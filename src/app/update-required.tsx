@@ -1,10 +1,13 @@
+// FILE: app/update-required.tsx
+
 import React, { useCallback, useMemo } from "react";
 import {
     View,
     Text,
     StyleSheet,
-    ActivityIndicator,
     TouchableOpacity,
+    ActivityIndicator,
+    Linking,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
@@ -13,29 +16,39 @@ import { useAppTheme } from "@/src/context/ThemeProvider";
 import { useSession } from "@/src/context/SessionProvider";
 import MaskedImage from "@/src/components/common/images/MaskedImage";
 import AppStatusLayout from "@/src/components/appStatus/AppStatusLayout";
+import { CURRENT_APP_VERSION } from "@/src/utils/appVersion";
 import { CORNERS } from "@/src/theme/globals";
+import { Image } from "expo-image";
 
-const MaintenancePage: React.FC = () => {
+const UpdateRequiredScreen: React.FC = () => {
     const {
         appStatus,
         isAppStatusLoading,
         refetchAppStatus,
-        canBypassMaintenance,
-        bypassMaintenance,
+        appUpdateUrl,
+        canBypassUpdate,
+        bypassUpdate,
     } = useSession();
 
     const theme = useAppTheme();
-    const { message, imageUrl } = appStatus ?? {
-        message: null,
-        imageUrl: null,
-    };
 
-    const displayMessage = useMemo(
+    const message = useMemo(
         () =>
-            message ??
-            "On prépare une nouvelle version de l’application. Quelques minutes et tout sera de retour.",
-        [message],
+            appStatus?.forceUpdateMessage ??
+            "Une nouvelle version de Blockout est disponible et est obligatoire pour continuer à utiliser l’application.",
+        [appStatus?.forceUpdateMessage],
     );
+
+    const handleOpenStore = useCallback(async () => {
+        if (!appUpdateUrl) return;
+        try {
+            await Haptics.selectionAsync().catch(() => {});
+            const canOpen = await Linking.canOpenURL(appUpdateUrl);
+            if (canOpen) {
+                await Linking.openURL(appUpdateUrl);
+            }
+        } catch {}
+    }, [appUpdateUrl]);
 
     const handleRetry = useCallback(async () => {
         await Haptics.impactAsync(
@@ -45,20 +58,20 @@ const MaintenancePage: React.FC = () => {
     }, [refetchAppStatus]);
 
     const handleBypass = useCallback(async () => {
-        if (!canBypassMaintenance) return;
+        if (!canBypassUpdate) return;
         await Haptics.selectionAsync().catch(() => {});
-        bypassMaintenance();
-    }, [bypassMaintenance, canBypassMaintenance]);
+        bypassUpdate();
+    }, [bypassUpdate, canBypassUpdate]);
 
     return (
-        <AppStatusLayout footer="Merci pour ta patience !">
+        <AppStatusLayout footer="Merci de garder Blockout à jour !">
             <View style={styles.cardWrapper}>
                 <View
                     style={[
                         styles.card,
                         {
                             backgroundColor: theme.surface,
-                            borderColor: theme.warning,
+                            borderColor: theme.primary,
                         },
                     ]}
                 >
@@ -70,17 +83,17 @@ const MaintenancePage: React.FC = () => {
                             ]}
                         >
                             <MaterialCommunityIcons
-                                name="tools"
+                                name="alert-decagram-outline"
                                 size={18}
-                                color={theme.warning}
+                                color={theme.primary}
                             />
                             <Text
                                 style={[
                                     styles.pillText,
-                                    { color: theme.warning },
+                                    { color: theme.primary },
                                 ]}
                             >
-                                Maintenance en cours
+                                Mise à jour requise
                             </Text>
                         </View>
 
@@ -88,15 +101,17 @@ const MaintenancePage: React.FC = () => {
                             style={[styles.title, { color: theme.text }]}
                             numberOfLines={2}
                         >
-                            On peaufine Blockout
+                            Mets Blockout à jour pour continuer
                         </Text>
                     </View>
 
                     <View style={styles.illustrationSection}>
-                        <MaskedImage
-                            uri={imageUrl ?? undefined}
-                            size={250}
-                            radius={26}
+                        <Image
+                            source={require("@/assets/images/update-required.png")}
+                            style={{
+                                width: 250,
+                                aspectRatio: 1
+                            }}
                         />
                     </View>
 
@@ -107,7 +122,16 @@ const MaintenancePage: React.FC = () => {
                                 { color: theme.textInactive },
                             ]}
                         >
-                            {displayMessage}
+                            {message}
+                        </Text>
+
+                        <Text
+                            style={[
+                                styles.versionText,
+                                { color: theme.textInactive },
+                            ]}
+                        >
+                            Version installée : {CURRENT_APP_VERSION}
                         </Text>
                     </View>
 
@@ -117,18 +141,19 @@ const MaintenancePage: React.FC = () => {
                         ) : (
                             <>
                                 <TouchableOpacity
-                                    onPress={handleRetry}
+                                    onPress={handleOpenStore}
+                                    disabled={!appUpdateUrl}
                                     activeOpacity={0.85}
                                     style={[
                                         styles.primaryButton,
                                         {
-                                            backgroundColor:
-                                                theme.backgroundSecondary,
+                                            backgroundColor: theme.primary,
+                                            opacity: appUpdateUrl ? 1 : 0.6,
                                         },
                                     ]}
                                 >
                                     <MaterialCommunityIcons
-                                        name="reload"
+                                        name="open-in-new"
                                         size={18}
                                         color={theme.text}
                                     />
@@ -138,11 +163,11 @@ const MaintenancePage: React.FC = () => {
                                             { color: theme.text },
                                         ]}
                                     >
-                                        Réessayer
+                                        Mettre à jour l’application
                                     </Text>
                                 </TouchableOpacity>
 
-                                {canBypassMaintenance && (
+                                {canBypassUpdate && (
                                     <TouchableOpacity
                                         onPress={handleBypass}
                                         activeOpacity={0.85}
@@ -173,7 +198,7 @@ const MaintenancePage: React.FC = () => {
     );
 };
 
-export default MaintenancePage;
+export default UpdateRequiredScreen;
 
 const styles = StyleSheet.create({
     cardWrapper: {
@@ -219,10 +244,15 @@ const styles = StyleSheet.create({
     },
     messageSection: {
         width: "100%",
+        gap: 4,
     },
     messageText: {
         fontSize: 14,
         lineHeight: 20,
+        textAlign: "center",
+    },
+    versionText: {
+        fontSize: 12,
         textAlign: "center",
     },
     actionsSection: {
@@ -242,19 +272,6 @@ const styles = StyleSheet.create({
     primaryButtonText: {
         fontWeight: "800",
         fontSize: 16,
-    },
-    secondaryButton: {
-        borderRadius: CORNERS,
-        paddingVertical: 10,
-        paddingHorizontal: 18,
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 8,
-    },
-    secondaryButtonText: {
-        fontWeight: "800",
-        fontSize: 15,
     },
     bypassButton: {
         marginTop: 4,

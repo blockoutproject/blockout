@@ -1,3 +1,5 @@
+// FILE: src/context/SessionProvider.tsx
+
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { useAuth0, User } from "react-native-auth0";
 import { useQueryClient } from "@tanstack/react-query";
@@ -13,6 +15,7 @@ import { useRegisterPushToken } from "../hooks/notification/useRegisterPushToken
 import { useAppStatus } from "@/src/hooks/config/app/useAppStatus";
 import useHasScopes from "@/src/hooks/user/useHasScopes";
 import type { AppStatusDTO } from "@/src/types/AppStatus";
+import { computeIsUpdateRequired, getStoreUrl } from "@/src/utils/appVersion";
 
 export type SessionActions = {
     signIn: () => Promise<void>;
@@ -23,6 +26,8 @@ export type SessionActions = {
     softResetAuth: () => Promise<void>;
     bypassMaintenance: () => void;
     resetBypassMaintenance: () => void;
+    bypassUpdate: () => void;
+    resetBypassUpdate: () => void;
 };
 
 export type SessionUserState = {
@@ -36,12 +41,21 @@ export type SessionUserState = {
     customUserError: Error | null;
     auth0UserError: Error | null;
     refetch: () => void;
+
     appStatus: AppStatusDTO | undefined;
     isAppStatusLoading: boolean;
     isAppStatusError: boolean;
+
     isMaintenance: boolean;
     maintenanceBypass: boolean;
     canBypassMaintenance: boolean;
+
+    isUpdateRequired: boolean;
+    updateBypass: boolean;
+    canBypassUpdate: boolean;
+
+    appUpdateUrl: string | null;
+
     refetchAppStatus: () => void;
 };
 
@@ -89,19 +103,41 @@ export const SessionProvider: React.FC<React.PropsWithChildren> = ({ children })
         refetch: refetchAppStatus,
     } = useAppStatus();
 
-    const { allowed: canBypassMaintenance } = useHasScopes(["update:maintenance"]);
+    // Même scope pour maintenance + update bypass
+    const { allowed: canBypassAppStatus } = useHasScopes(["update:maintenance"]);
+
     const [maintenanceBypass, setMaintenanceBypass] = useState(false);
+    const [updateBypass, setUpdateBypass] = useState(false);
 
     const isMaintenance = appStatus?.maintenance === true;
 
+    const isUpdateRequired = useMemo(
+        () => computeIsUpdateRequired(appStatus),
+        [appStatus],
+    );
+    const appUpdateUrl = useMemo(
+        () => getStoreUrl(appStatus),
+        [appStatus],
+    );
+
+    // Reset des bypass quand les conditions disparaissent
     useEffect(() => {
         if (!isMaintenance && maintenanceBypass) {
             setMaintenanceBypass(false);
         }
     }, [isMaintenance, maintenanceBypass]);
 
+    useEffect(() => {
+        if (!isUpdateRequired && updateBypass) {
+            setUpdateBypass(false);
+        }
+    }, [isUpdateRequired, updateBypass]);
+
     const bypassMaintenance = () => setMaintenanceBypass(true);
     const resetBypassMaintenance = () => setMaintenanceBypass(false);
+
+    const bypassUpdate = () => setUpdateBypass(true);
+    const resetBypassUpdate = () => setUpdateBypass(false);
 
     const isLoading = isAuth0UserLoading || isCustomUserLoading || isAppStatusLoading;
     const isError = !!auth0UserError || !!customUserError || isAppStatusError;
@@ -149,8 +185,8 @@ export const SessionProvider: React.FC<React.PropsWithChildren> = ({ children })
     }, [getCredentials, apis, refetch]);
 
     useEffect(() => {
-        refetchAppStatus()
-    }, [customUser])
+        refetchAppStatus();
+    }, [customUser, refetchAppStatus]);
 
     const clearRQCache = async () => {
         await queryClient.cancelQueries();
@@ -213,6 +249,7 @@ export const SessionProvider: React.FC<React.PropsWithChildren> = ({ children })
         }
         await softResetAuth();
         resetBypassMaintenance();
+        resetBypassUpdate();
     };
 
     const signOutSSO = async (opts?: { federated?: boolean }) => {
@@ -224,6 +261,7 @@ export const SessionProvider: React.FC<React.PropsWithChildren> = ({ children })
             await clearSession(opts);
             await clearRQCache();
             resetBypassMaintenance();
+            resetBypassUpdate();
         } catch (err) {
             console.warn("Erreur inattendue lors du logout SSO :", err);
         }
@@ -231,6 +269,7 @@ export const SessionProvider: React.FC<React.PropsWithChildren> = ({ children })
 
     const value = useMemo<SessionContextValue>(
         () => ({
+            // actions
             signIn,
             continueAsGuest,
             leaveGuest,
@@ -239,6 +278,9 @@ export const SessionProvider: React.FC<React.PropsWithChildren> = ({ children })
             softResetAuth,
             bypassMaintenance,
             resetBypassMaintenance,
+            bypassUpdate,
+            resetBypassUpdate,
+            // user state
             auth0User,
             customUser,
             isAuthenticated,
@@ -249,12 +291,17 @@ export const SessionProvider: React.FC<React.PropsWithChildren> = ({ children })
             error,
             customUserError,
             auth0UserError,
+            // app status
             appStatus,
             isAppStatusLoading,
             isAppStatusError,
             isMaintenance,
             maintenanceBypass,
-            canBypassMaintenance,
+            canBypassMaintenance: canBypassAppStatus,
+            isUpdateRequired,
+            updateBypass,
+            canBypassUpdate: canBypassAppStatus,
+            appUpdateUrl,
             refetchAppStatus,
         }),
         [
@@ -265,6 +312,9 @@ export const SessionProvider: React.FC<React.PropsWithChildren> = ({ children })
             signOutSSO,
             softResetAuth,
             bypassMaintenance,
+            resetBypassMaintenance,
+            bypassUpdate,
+            resetBypassUpdate,
             auth0User,
             customUser,
             isAuthenticated,
@@ -280,9 +330,12 @@ export const SessionProvider: React.FC<React.PropsWithChildren> = ({ children })
             isAppStatusError,
             isMaintenance,
             maintenanceBypass,
-            canBypassMaintenance,
+            canBypassAppStatus,
+            isUpdateRequired,
+            updateBypass,
+            appUpdateUrl,
             refetchAppStatus,
-        ]
+        ],
     );
 
     return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;

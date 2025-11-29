@@ -19,6 +19,7 @@ import { useSession } from "@/src/context/SessionProvider";
 import ApiErrorToast from "../common/feedback/ApiErrorToast";
 import { useApis } from "@/src/context/ApiProvider";
 import { CustomImage } from "@/src/types/Common";
+import { CURRENT_APP_VERSION } from "@/src/utils/appVersion";
 
 export type ReportFormExternalState = {
     loading: boolean;
@@ -106,7 +107,7 @@ const ReportForm: React.FC<ReportFormProps> = ({ context, onSuccess, onRegisterS
                     type: values.type,
                     title: values.title.trim(),
                     description: values.description?.trim() || undefined,
-                    appVersion: Application.nativeApplicationVersion ?? undefined,
+                    appVersion: CURRENT_APP_VERSION ?? undefined,
                     userId: context?.userId ?? customUser?.id?.toString() ?? undefined,
                     userName: customUser?.pseudo ?? "Guest",
                     screen: context?.screen ?? "Unknown",
