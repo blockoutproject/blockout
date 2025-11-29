@@ -2,7 +2,7 @@ import React, { memo } from "react";
 import { View, StyleSheet, TouchableOpacity, Text, ActivityIndicator } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { BottomSheetFooter, type BottomSheetFooterProps } from "@gorhom/bottom-sheet";
+import { BottomSheetFooter, BottomSheetFooterProps } from "@gorhom/bottom-sheet";
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import { CORNERS } from "@/src/theme/globals";
 

@@ -191,7 +191,7 @@ const ClubForm: React.FC<ClubFormProps> = ({ club, onSuccess, onRegisterSubmit, 
 export default ClubForm;
 
 const styles = StyleSheet.create({
-    scroll: { gap: 12, padding: 8 },
+    scroll: { gap: 12, padding: 8, paddingBottom: 100 },
     logoWrap: {
         borderWidth: 1.5,
         borderRadius: 22,

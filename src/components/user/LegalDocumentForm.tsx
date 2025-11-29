@@ -129,5 +129,5 @@ const LegalDocumentForm: React.FC<LegalDocumentFormProps> = ({
 export default LegalDocumentForm;
 
 const styles = StyleSheet.create({
-    content: { padding: 8, gap: 12 },
+    content: { padding: 8, paddingBottom: 100, gap: 12 },
 });

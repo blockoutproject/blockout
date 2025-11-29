@@ -226,7 +226,7 @@ const TeamForm: React.FC<TeamFormProps> = ({ team, onSuccess, onRegisterSubmit, 
 export default TeamForm;
 
 const styles = StyleSheet.create({
-    scroll: { gap: 12, padding: 8 },
+    scroll: { gap: 12, padding: 8, paddingBottom: 100 },
     logoWrap: {
         borderWidth: 1.5,
         borderRadius: 22,

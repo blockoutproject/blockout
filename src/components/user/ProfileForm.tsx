@@ -216,7 +216,7 @@ const ProfileForm: React.FC<UserFormProps> = ({ user, onSuccess, onRegisterSubmi
 export default ProfileForm;
 
 const styles = StyleSheet.create({
-    fieldContainer: { padding: 8, gap: 12 },
+    fieldContainer: { padding: 8, paddingBottom: 100, gap: 12 },
     logoWrap: {
         borderWidth: 1.5,
         borderRadius: 22,

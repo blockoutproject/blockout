@@ -1,5 +1,3 @@
-// FILE: src/components/match/form/MatchLiveLinkReportForm.tsx
-
 import React, { useEffect, useMemo, useState } from "react";
 import { StyleSheet } from "react-native";
 import {
@@ -168,6 +166,7 @@ const styles = StyleSheet.create({
     scroll: {
         gap: 12,
         padding: 8,
+        paddingBottom: 100
     },
     input: {
         borderWidth: 1.5,

@@ -96,7 +96,7 @@ const ReportForm: React.FC<ReportFormProps> = ({ context, onSuccess, onRegisterS
                 .trim()
                 .required("Il va nous falloir un peu plus de détails ... 🧐"),
         }),
-        validateOnMount: true, // ✅ clé pour avoir isValid = false tant que les champs vides
+        validateOnMount: true,
         onSubmit: async (values) => {
             try {
                 await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -288,7 +288,7 @@ const ReportForm: React.FC<ReportFormProps> = ({ context, onSuccess, onRegisterS
 export default ReportForm;
 
 const styles = StyleSheet.create({
-    scroll: { gap: 12, padding: 8 },
+    scroll: { gap: 12, padding: 8, paddingBottom: 100 },
     card: {
         borderRadius: 18,
         padding: 14,

@@ -330,6 +330,7 @@ const styles = StyleSheet.create({
     scroll: {
         gap: 12,
         padding: 8,
+        paddingBottom: 100
     },
     subtitle: {
         fontSize: 13,

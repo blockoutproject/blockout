@@ -153,7 +153,7 @@ const RawDivisionMappingForm: React.FC<RawDivisionMappingFormProps> = ({
 export default RawDivisionMappingForm;
 
 const styles = StyleSheet.create({
-    fieldContainer: { padding: 8, gap: 12 },
+    fieldContainer: { padding: 8, gap: 12, paddingBottom: 100 },
     sourceBlock: { gap: 4 },
     sourceName: { fontSize: 16, fontWeight: "700" },
 });

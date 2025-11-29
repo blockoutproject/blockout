@@ -174,7 +174,7 @@ const DivisionForm: React.FC<DivisionFormProps> = ({ division, onSuccess, onRegi
 export default DivisionForm;
 
 const styles = StyleSheet.create({
-    scroll: { gap: 12, padding: 8 },
+    scroll: { gap: 12, padding: 8, paddingBottom: 100 },
     logoWrap: { borderWidth: 1.5, borderRadius: 22, alignItems: "center", justifyContent: "center", overflow: "hidden" },
     logoMask: { width: 100, aspectRatio: 1, borderRadius: 18, overflow: "hidden", alignItems: "center", justifyContent: "center", marginVertical: 16 },
     logo: { width: "100%", height: "100%" },
