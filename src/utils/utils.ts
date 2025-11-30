@@ -98,13 +98,13 @@ export function getTeamsRankingColor(
 
     if (teamAWins > teamBWins) {
         return [
-            { teamId: teamA.id, color: `${theme.success}70` },
-            { teamId: teamB.id, color: `${theme.error}70` },
+            { teamId: teamA.id, color: withAlpha(theme.success, 0.7) },
+            { teamId: teamB.id, color: withAlpha(theme.error, 0.7) },
         ];
     } else {
         return [
-            { teamId: teamB.id, color: `${theme.success}70` },
-            { teamId: teamA.id, color: `${theme.error}70` },
+            { teamId: teamB.id, color: withAlpha(theme.success, 0.7) },
+            { teamId: teamA.id, color: withAlpha(theme.error, 0.7) },
         ];
     }
 }

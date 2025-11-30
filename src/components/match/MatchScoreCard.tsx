@@ -95,10 +95,12 @@ const MatchScoreCard: React.FC<MatchScoreCardProps> = ({ enrichedMatch, gradient
                             {time ? (
                                 <Text style={[styles.timeLarge, { color: theme.text }]}>{time}</Text>
                             ) : null}
-                            <InfoPillGradient
-                                label={isMatchStarted ? "En cours" : "À venir"}
-                                gradient={gradient}
-                            />
+                            {!isMatchStarted ? (
+                                <InfoPillGradient
+                                    label="À venir"
+                                    gradient={gradient}
+                                />
+                            ) : null}
                         </>
                     )}
                 </View>

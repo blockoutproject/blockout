@@ -1,5 +1,3 @@
-// FILE: src/context/SessionProvider.tsx
-
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { useAuth0, User } from "react-native-auth0";
 import { useQueryClient } from "@tanstack/react-query";
@@ -41,21 +39,16 @@ export type SessionUserState = {
     customUserError: Error | null;
     auth0UserError: Error | null;
     refetch: () => void;
-
     appStatus: AppStatusDTO | undefined;
     isAppStatusLoading: boolean;
     isAppStatusError: boolean;
-
     isMaintenance: boolean;
     maintenanceBypass: boolean;
     canBypassMaintenance: boolean;
-
     isUpdateRequired: boolean;
     updateBypass: boolean;
     canBypassUpdate: boolean;
-
     appUpdateUrl: string | null;
-
     refetchAppStatus: () => void;
 };
 
@@ -182,7 +175,7 @@ export const SessionProvider: React.FC<React.PropsWithChildren> = ({ children })
         return () => {
             cancelled = true;
         };
-    }, [getCredentials, apis, refetch]);
+    }, []);
 
     useEffect(() => {
         refetchAppStatus();
@@ -269,7 +262,6 @@ export const SessionProvider: React.FC<React.PropsWithChildren> = ({ children })
 
     const value = useMemo<SessionContextValue>(
         () => ({
-            // actions
             signIn,
             continueAsGuest,
             leaveGuest,
@@ -280,7 +272,6 @@ export const SessionProvider: React.FC<React.PropsWithChildren> = ({ children })
             resetBypassMaintenance,
             bypassUpdate,
             resetBypassUpdate,
-            // user state
             auth0User,
             customUser,
             isAuthenticated,
@@ -291,7 +282,6 @@ export const SessionProvider: React.FC<React.PropsWithChildren> = ({ children })
             error,
             customUserError,
             auth0UserError,
-            // app status
             appStatus,
             isAppStatusLoading,
             isAppStatusError,

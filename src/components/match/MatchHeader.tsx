@@ -13,7 +13,6 @@ import InfoPillGradient from "@/src/components/common/chips/InfoPillGradient";
 import { withAlpha } from "@/src/utils/utils";
 import * as WebBrowser from "expo-web-browser";
 import * as Haptics from "expo-haptics";
-import { he } from "date-fns/locale";
 
 /** Header content rendered over the scroll view. */
 export type HeaderContent = {
@@ -222,7 +221,7 @@ const MatchHeader: React.FC<MatchHeaderProps> = ({ onOpenReport, scrollY, header
                         </GradientBorderView>
                     ) : (
                         <InfoPillGradient
-                            label="À venir"
+                            label={headerContent.timeText || ""}
                             gradient={headerGradient}
                         />
                     )}
