@@ -39,7 +39,6 @@ public class SearchPublicController {
             @RequestParam String query,
             @RequestParam(required = false) String season
     ) {
-        System.out.println(season);
         List<TeamSearchDocDTO> results = searchService.searchTeams(query, season);
         return results.isEmpty() ? ResponseEntity.noContent().build() : ResponseEntity.ok(results);
     }

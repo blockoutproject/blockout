@@ -59,7 +59,6 @@ public class ConfigSecureController {
             @RequestPart("data") String json,
             @RequestPart(value = "image", required = false) MultipartFile image) throws JsonProcessingException {
 
-        System.out.println("Received update request for division id=" + id + " with data: " + json);
         DivisionUpdateDTO dto = objectMapper.readValue(json, DivisionUpdateDTO.class);
         DivisionDTO updated = configService.updateDivision(id, dto, image);
         return ResponseEntity.ok(updated);
