@@ -24,8 +24,7 @@ public class TeamSecureController {
     public ResponseEntity<TeamDTO> updateTeam(
             @PathVariable Long id,
             @RequestPart("data") String json,
-            @RequestPart(value = "image", required = false) MultipartFile image
-    ) throws JsonProcessingException {
+            @RequestPart(value = "image", required = false) MultipartFile image) throws JsonProcessingException {
 
         TeamUpdateDTO dto = objectMapper.readValue(json, TeamUpdateDTO.class);
         TeamDTO updated = teamService.updateTeam(id, dto, image);
