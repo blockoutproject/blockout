@@ -11,7 +11,7 @@ ALTER TABLE match_live_links
         status IN (
             'ACTIVE',
             'DEACTIVATED',
-            'BAN',
+            'BANNED',
             'EXPIRED',
             'PENDING',
             'REJECTED'
