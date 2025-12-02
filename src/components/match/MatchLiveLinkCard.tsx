@@ -49,6 +49,9 @@ const MatchLiveLinkCard: React.FC<Props> = ({
     const { allowed: canCreateLiveLinkScope } = useHasScopes([
         "create:match_live_link",
     ]);
+    const { allowed: canModerateLiveLinkScope } = useHasScopes([
+        "moderate:match_live_link",
+    ]);
 
     const { customUser, isGuest } = useSession();
 
@@ -82,13 +85,16 @@ const MatchLiveLinkCard: React.FC<Props> = ({
         !hasLiveLink && canCreateLiveLinkScope;
 
     const canEditExistingLink =
-        hasLiveLink && isOwner && canCreateLiveLinkScope;
+        hasLiveLink &&
+        (canModerateLiveLinkScope || (isOwner && canCreateLiveLinkScope));
 
-    const canDeleteLiveLink = hasLiveLink && isOwner && canDeleteLiveLinkScope;
+    const canDeleteLiveLink =
+        hasLiveLink &&
+        (canModerateLiveLinkScope || (isOwner && canDeleteLiveLinkScope));
 
     const canReportLiveLink = hasLiveLink && !isOwner && canReportLiveLinkScope;
 
-    const canShowReportButton = hasLiveLink && !isOwner;
+    const showReportButton = canReportLiveLink || (hasLiveLink && isGuest);
 
     const providerLabel = useMemo(() => {
         if (!enrichedMatch.liveProvider) return "";
@@ -128,14 +134,14 @@ const MatchLiveLinkCard: React.FC<Props> = ({
     };
 
     const handlePressReportButton = async () => {
-        if (!canShowReportButton) return;
+        if (!showReportButton) return;
 
         if (canReportLiveLink) {
             await handleOpenReportSheet();
         } else if (isGuest) {
             await Haptics.notificationAsync(
                 Haptics.NotificationFeedbackType.Error,
-            ).catch(() => {});
+            ).catch(() => { });
             onRequireAuth();
         }
     };
@@ -174,8 +180,6 @@ const MatchLiveLinkCard: React.FC<Props> = ({
         !hasLiveLink && (canCreateLiveLink || isGuest);
 
     const shouldShowCard = hasLiveLink || canShowEmptyStateCta;
-
-    console.log(shouldShowCard, canCreateLiveLink)
 
     if (!shouldShowCard) {
         return null;
@@ -218,7 +222,7 @@ const MatchLiveLinkCard: React.FC<Props> = ({
                         )}
                     </View>
 
-                    {canShowReportButton && (
+                    {showReportButton && (
                         <TouchableOpacity
                             onPress={handlePressReportButton}
                             style={styles.reportBtn}

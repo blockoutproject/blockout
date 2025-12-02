@@ -73,12 +73,19 @@ const MatchLiveModerationItem: React.FC<Props> = ({ match, onPress }) => {
                     color: theme.error,
                     icon: "close-circle-outline" as const,
                 };
-            case "HIDDEN":
+            case "DEACTIVATED":
                 return {
                     label: "Désactivé",
                     backgroundColor: theme.surfaceSecondary ?? theme.surface,
                     color: theme.textInactive,
                     icon: "eye-off-outline" as const,
+                };
+            case "BANNED":
+                return {
+                    label: "Banni",
+                    backgroundColor: theme.surfaceSecondary ?? theme.surface,
+                    color: theme.error,
+                    icon: "block-helper" as const,
                 };
             case "EXPIRED":
                 return {

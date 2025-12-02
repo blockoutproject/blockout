@@ -14,7 +14,7 @@ export const PROVIDER_LABELS: Record<LiveProvider, string> = {
 
 export type LiveProvider = "YOUTUBE" | "TWITCH" | "FACEBOOK";
 
-export type LiveLinkStatus = "ACTIVE" | "HIDDEN" | "EXPIRED" | "PENDING" | "REJECTED";
+export type LiveLinkStatus = "ACTIVE" | "DEACTIVATED" | "BANNED" | "EXPIRED" | "PENDING" | "REJECTED";
 
 export interface Match {
     id: number;
@@ -72,7 +72,6 @@ export interface EnrichedMatchDTO {
     matchSheetPdfUrl: string | null;
     liveOwnerAuth0Id: string | null;
     liveOwnerUsername: string | null;
-    liveEditLocked: boolean | null;
 }
 
 export interface EnrichedPoolMatchesDTO {

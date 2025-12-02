@@ -72,9 +72,15 @@ const MatchLiveLinksHistoryItem: React.FC<Props> = ({
                     backgroundColor: theme.surfaceSecondary ?? theme.surface,
                     color: theme.error,
                 };
-            case "HIDDEN":
+            case "DEACTIVATED":
                 return {
                     label: "Désactivé",
+                    backgroundColor: theme.surfaceSecondary ?? theme.surface,
+                    color: theme.error,
+                };
+            case "BANNED":
+                return {
+                    label: "Banni",
                     backgroundColor: theme.surfaceSecondary ?? theme.surface,
                     color: theme.error,
                 };
@@ -124,7 +130,8 @@ const MatchLiveLinksHistoryItem: React.FC<Props> = ({
     const isReactivable =
         link.status === "REJECTED" ||
         link.status === "EXPIRED" ||
-        link.status === "HIDDEN";
+        link.status === "BANNED" ||
+        link.status === "DEACTIVATED";
 
     const canApprove = isPending && !!onApprove;
     const canReject = isPending && !!onReject;

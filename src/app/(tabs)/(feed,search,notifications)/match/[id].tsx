@@ -171,17 +171,9 @@ const MatchScreen: React.FC = () => {
         }
 
         const hasLiveLink = !!enrichedMatch.liveUrl;
-        const isFinished = enrichedMatch.status === "FINISHED";
-        const isFinalLocked = !!enrichedMatch.liveEditLocked;
-
-        const showRemovedWarning =
-            !hasLiveLink && isFinished && isFinalLocked;
-
-        const canShowEmptyStateForAnyone =
-            !hasLiveLink && (!isFinished || !isFinalLocked);
 
         const shouldShowCard =
-            hasLiveLink || canShowEmptyStateForAnyone || showRemovedWarning;
+            hasLiveLink || canCreateLiveLinkScope;
 
         if (!shouldShowCard) {
             return null;

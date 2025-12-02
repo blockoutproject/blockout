@@ -32,6 +32,7 @@ import Filters from "@/src/components/common/Filters";
 import MatchLiveModerationItem from "@/src/components/match/moderation/MatchLiveModerationItem";
 import BottomSheetCustomPage from "@/src/components/common/bottomSheet/BottomSheetCustomPage";
 import MatchLiveLinksHistoryScreen from "./MatchLiveLinksHistoryScreen";
+import { Ban } from "lucide-react-native";
 
 const STATUS_FILTERS: Filter[] = [
     { name: "En attente", isActive: false },
@@ -45,7 +46,8 @@ const FILTER_NAME_TO_STATUS: Record<string, LiveLinkStatus | null> = {
     "En attente": "PENDING",
     Actifs: "ACTIVE",
     Rejetés: "REJECTED",
-    Désactivés: "HIDDEN",
+    Désactivés: "DEACTIVATED",
+    Banni: "BANNED",
     Expirés: "EXPIRED",
 };
 
