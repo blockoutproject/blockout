@@ -2,7 +2,8 @@ package com.blockout.mobilegateway.models.enums;
 
 public enum LiveLinkStatus {
     ACTIVE,
-    HIDDEN,
+    DEACTIVATED,
+    BANNED,
     EXPIRED,
     PENDING,
     REJECTED
