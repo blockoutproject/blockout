@@ -82,13 +82,14 @@ public class MatchLiveLinkReportService {
 
         // Auto-hide si seuil atteint
         if (reportsCount >= threshold && liveLink.getStatus() == LiveLinkStatus.ACTIVE) {
-            liveLink.setStatus(LiveLinkStatus.HIDDEN);
-            logger.info("Live link auto-hidden due to reports",
-                    keyValue("action", "auto_hide_live_link"),
+            liveLink.setStatus(LiveLinkStatus.BANNED);
+            logger.info("Live link auto-banned due to reports",
+                    keyValue("action", "auto_ban_live_link"),
                     keyValue("live_link_id", liveLink.getId()),
                     keyValue("match_id", matchId),
                     keyValue("reports_count", reportsCount),
-                    keyValue("threshold", threshold));
+                    keyValue("threshold", threshold),
+                    keyValue("new_status", liveLink.getStatus()));
         }
 
         liveLink.setLastUpdate(Instant.now());
@@ -101,6 +102,7 @@ public class MatchLiveLinkReportService {
                 keyValue("auth0_id", auth0Id),
                 keyValue("reason", request.getReason()),
                 keyValue("reports_total", reportsCount),
-                keyValue("threshold", threshold));
+                keyValue("threshold", threshold),
+                keyValue("status_after_report", liveLink.getStatus()));
     }
 }

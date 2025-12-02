@@ -185,15 +185,16 @@ public class MatchLiveLinkService {
                 .ifPresent(link -> {
                     moderationPolicy.validateDeletePermission(link, auth0Id, matchId);
 
-                    link.setStatus(LiveLinkStatus.HIDDEN);
+                    link.setStatus(LiveLinkStatus.DEACTIVATED);
                     link.setLastUpdate(Instant.now());
                     liveLinkRepository.save(link);
 
-                    logger.info("Live link hidden (delete requested)",
+                    logger.info("Live link deactivated (delete requested)",
                             keyValue("action", "delete_live_link"),
                             keyValue("match_id", matchId),
                             keyValue("live_link_id", link.getId()),
-                            keyValue("auth0_id", auth0Id));
+                            keyValue("auth0_id", auth0Id),
+                            keyValue("new_status", link.getStatus()));
                 });
     }
 
@@ -304,7 +305,8 @@ public class MatchLiveLinkService {
         LiveLinkStatus status = link.getStatus();
         if (status != LiveLinkStatus.REJECTED
                 && status != LiveLinkStatus.EXPIRED
-                && status != LiveLinkStatus.HIDDEN) {
+                && status != LiveLinkStatus.DEACTIVATED
+                && status != LiveLinkStatus.BANNED) {
             throw new IllegalStateException("Ce lien ne peut pas être réactivé dans son état actuel.");
         }
 
@@ -320,15 +322,16 @@ public class MatchLiveLinkService {
                 .findFirstByMatch_IdAndStatusOrderByCreatedAtDesc(matchId, LiveLinkStatus.ACTIVE)
                 .ifPresent(active -> {
                     if (!active.getId().equals(link.getId())) {
-                        active.setStatus(LiveLinkStatus.HIDDEN);
+                        active.setStatus(LiveLinkStatus.DEACTIVATED);
                         active.setLastUpdate(now);
                         liveLinkRepository.save(active);
 
-                        logger.info("Previous active live link hidden before activation",
-                                keyValue("action", "hide_previous_active_live_link"),
+                        logger.info("Previous active live link deactivated before activation",
+                                keyValue("action", "deactivate_previous_active_live_link"),
                                 keyValue("match_id", matchId),
                                 keyValue("previous_live_link_id", active.getId()),
-                                keyValue("new_live_link_id", link.getId()));
+                                keyValue("new_live_link_id", link.getId()),
+                                keyValue("new_previous_status", active.getStatus()));
                     }
                 });
 
@@ -343,7 +346,8 @@ public class MatchLiveLinkService {
                 keyValue("action", "reactivate_live_link"),
                 keyValue("live_link_id", link.getId()),
                 keyValue("match_id", matchId),
-                keyValue("owner_auth0_id", link.getOwnerAuth0Id()));
+                keyValue("owner_auth0_id", link.getOwnerAuth0Id()),
+                keyValue("new_status", link.getStatus()));
     }
 
     private MatchLiveLinkResponseDTO handlePostMatchUpsert(
