@@ -59,7 +59,7 @@ public class UserController {
             @ApiResponse(responseCode = "200", description = "Utilisateur mis à jour"),
             @ApiResponse(responseCode = "404", description = "Utilisateur introuvable")
     })
-    @PreAuthorize("hasAuthority('SCOPE_update:current_user', 'SCOPE_update:users')")
+    @PreAuthorize("hasAuthority('SCOPE_update:current_user')")
     @PutMapping(path = "/{auth0Id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<CustomUser> updateUser(
             @PathVariable String auth0Id,
