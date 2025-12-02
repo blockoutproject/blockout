@@ -5,8 +5,6 @@ import com.blockout.mobilegateway.models.dto.search.ClubSearchDocDTO;
 import com.blockout.mobilegateway.models.dto.search.PoolSearchDocDTO;
 import com.blockout.mobilegateway.models.dto.search.TeamSearchDocDTO;
 import lombok.RequiredArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -15,13 +13,9 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import static net.logstash.logback.argument.StructuredArguments.keyValue;
-
 @Service
 @RequiredArgsConstructor
 public class SearchClientService {
-
-    private static final Logger logger = LoggerFactory.getLogger(SearchClientService.class);
 
     private final ApiClientProperties apiClientProperties;
     private final ApiClientService apiClientService;
@@ -36,8 +30,6 @@ public class SearchClientService {
                 .queryParam("query", query)
                 .build()
                 .toUriString();
-
-        logger.info("Calling search#clubs", keyValue("query", query), keyValue("url", url));
 
         ResponseEntity<ClubSearchDocDTO[]> response =
                 apiClientService.get(url, ClubSearchDocDTO[].class);
@@ -57,11 +49,6 @@ public class SearchClientService {
 
         String url = builder.build().toUriString();
 
-        logger.info("Calling search#pools",
-                keyValue("query", query),
-                keyValue("season", season),
-                keyValue("url", url));
-
         ResponseEntity<PoolSearchDocDTO[]> response =
                 apiClientService.get(url, PoolSearchDocDTO[].class);
 
@@ -79,11 +66,6 @@ public class SearchClientService {
         }
 
         String url = builder.build().toUriString();
-
-        logger.info("Calling search#teams",
-                keyValue("query", query),
-                keyValue("season", season),
-                keyValue("url", url));
 
         ResponseEntity<TeamSearchDocDTO[]> response =
                 apiClientService.get(url, TeamSearchDocDTO[].class);

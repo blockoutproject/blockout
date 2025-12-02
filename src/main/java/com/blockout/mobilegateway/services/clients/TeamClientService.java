@@ -7,8 +7,6 @@ import com.blockout.mobilegateway.services.utils.MultipartBodyBuilder;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import lombok.RequiredArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
@@ -20,13 +18,10 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.*;
-import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
 @Service
 @RequiredArgsConstructor
 public class TeamClientService {
-
-    private static final Logger logger = LoggerFactory.getLogger(TeamClientService.class);
 
     private final ApiClientProperties apiClientProperties;
     private final ApiClientService apiClientService;
@@ -43,11 +38,6 @@ public class TeamClientService {
                 .build()
                 .toUriString();
 
-        logger.info("Calling team#getById",
-                keyValue("action", "call_team_get_by_id"),
-                keyValue("id", id),
-                keyValue("url", url));
-
         ResponseEntity<TeamDTO> response = apiClientService.get(url, TeamDTO.class);
         return response.getBody();
     }
@@ -62,11 +52,6 @@ public class TeamClientService {
                 .build()
                 .toUriString();
 
-        logger.info("Calling team#getByIds",
-                keyValue("action", "call_team_get_by_ids"),
-                keyValue("ids", ids),
-                keyValue("url", url));
-
         ResponseEntity<TeamDTO[]> response = apiClientService.get(url, TeamDTO[].class);
         TeamDTO[] body = response.getBody();
         return body != null ? Arrays.asList(body) : Collections.emptyList();
@@ -79,11 +64,6 @@ public class TeamClientService {
                 .queryParam("active", true)
                 .build()
                 .toUriString();
-
-        logger.info("Calling team#getByClubId",
-                keyValue("action", "call_team_get_by_club_id"),
-                keyValue("clubId", clubId),
-                keyValue("url", url));
 
         ResponseEntity<TeamDTO[]> response = apiClientService.get(url, TeamDTO[].class);
         TeamDTO[] body = response.getBody();
@@ -100,12 +80,6 @@ public class TeamClientService {
                 .pathSegment(id.toString())
                 .build()
                 .toUriString();
-
-        logger.info("Calling team#update",
-                keyValue("action", "call_team_update"),
-                keyValue("id", id),
-                keyValue("url", url),
-                keyValue("has_image", image != null));
 
         MultiValueMap<String, Object> body = MultipartBodyBuilder.buildMultipart(objectMapper, dto, image);
 

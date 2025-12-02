@@ -6,19 +6,13 @@ import com.blockout.mobilegateway.models.dto.notification.UnreadCountDTO;
 import com.blockout.mobilegateway.models.dto.notification.UserNotificationPageDTO;
 
 import lombok.RequiredArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import static net.logstash.logback.argument.StructuredArguments.keyValue;
-
 @Service
 @RequiredArgsConstructor
 public class NotificationClientService {
-
-    private static final Logger logger = LoggerFactory.getLogger(NotificationClientService.class);
 
     private final ApiClientProperties apiClientProperties;
     private final ApiClientService apiClientService;
@@ -34,11 +28,6 @@ public class NotificationClientService {
                 .build()
                 .toUriString();
 
-        logger.info("Calling notifications#getNotifications",
-                keyValue("url", url),
-                keyValue("page", page),
-                keyValue("size", size));
-
         ResponseEntity<UserNotificationPageDTO> res = apiClientService.get(url, UserNotificationPageDTO.class);
         return res.getBody();
     }
@@ -48,8 +37,6 @@ public class NotificationClientService {
                 .pathSegment("unread-count")
                 .build()
                 .toUriString();
-
-        logger.info("Calling notifications#getUnreadCount", keyValue("url", url));
 
         ResponseEntity<UnreadCountDTO> res = apiClientService.get(url, UnreadCountDTO.class);
         return res.getBody();
@@ -61,8 +48,6 @@ public class NotificationClientService {
                 .build()
                 .toUriString();
 
-        logger.info("Calling notifications#markRead", keyValue("url", url), keyValue("id", id));
-
         apiClientService.post(url, null, Void.class);
     }
 
@@ -71,8 +56,6 @@ public class NotificationClientService {
                 .pathSegment(id.toString(), "opened")
                 .build()
                 .toUriString();
-
-        logger.info("Calling notifications#markOpened", keyValue("url", url), keyValue("id", id));
 
         apiClientService.post(url, null, Void.class);
     }
@@ -83,8 +66,6 @@ public class NotificationClientService {
                 .build()
                 .toUriString();
 
-        logger.info("Calling notifications#delete", keyValue("url", url), keyValue("id", id));
-
         apiClientService.delete(url, Void.class);
     }
 
@@ -93,10 +74,6 @@ public class NotificationClientService {
                 .pathSegment("users", userId.toString(), "push-tokens")
                 .build()
                 .toUriString();
-
-        logger.info("Calling notifications#registerPushToken",
-                keyValue("url", url),
-                keyValue("userId", userId));
 
         apiClientService.post(url, req, Void.class);
     }

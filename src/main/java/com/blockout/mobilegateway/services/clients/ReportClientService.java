@@ -5,8 +5,6 @@ import com.blockout.mobilegateway.models.dto.report.GitHubIssueResponseDTO;
 import com.blockout.mobilegateway.models.dto.report.ReportCreateDTO;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
@@ -16,13 +14,9 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
-import static net.logstash.logback.argument.StructuredArguments.keyValue;
-
 @Service
 @RequiredArgsConstructor
 public class ReportClientService {
-
-    private static final Logger logger = LoggerFactory.getLogger(ReportClientService.class);
 
     private final ApiClientProperties apiClientProperties;
     private final ApiClientService apiClientService;
@@ -34,7 +28,6 @@ public class ReportClientService {
 
     public GitHubIssueResponseDTO createReport(ReportCreateDTO dto, List<MultipartFile> images) {
         String url = baseUrl();
-        logger.info("Calling reports#create", keyValue("url", url));
 
         final String jsonString;
         try {
