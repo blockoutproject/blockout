@@ -2,21 +2,14 @@ package com.blockout.users.services.clients;
 
 import com.blockout.users.config.ApiClientProperties;
 import lombok.RequiredArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.Collections;
 
-import static net.logstash.logback.argument.StructuredArguments.keyValue;
-
 @Service
 @RequiredArgsConstructor
 public class TeamClientService {
-
-    private static final Logger logger = LoggerFactory.getLogger(TeamClientService.class);
 
     private final ApiClientProperties apiClientProperties;
     private final ApiClientService apiClientService;
@@ -32,20 +25,7 @@ public class TeamClientService {
                 .build()
                 .toUriString();
 
-        logger.info("Calling team#increment_followers",
-                keyValue("action", "call_team_increment_followers"),
-                keyValue("teamId", teamId),
-                keyValue("userId", userId),
-                keyValue("url", url));
-
-        ResponseEntity<Void> response =
-                apiClientService.post(url, Collections.emptyMap(), Void.class);
-
-        logger.info("Team followers incremented",
-                keyValue("action", "call_team_increment_followers"),
-                keyValue("status", response.getStatusCode()),
-                keyValue("teamId", teamId),
-                keyValue("userId", userId));
+        apiClientService.post(url, Collections.emptyMap(), Void.class);
     }
 
     public void decrementFollowers(Long teamId, Long userId) {
@@ -55,19 +35,6 @@ public class TeamClientService {
                 .build()
                 .toUriString();
 
-        logger.info("Calling team#decrement_followers",
-                keyValue("action", "call_team_decrement_followers"),
-                keyValue("teamId", teamId),
-                keyValue("userId", userId),
-                keyValue("url", url));
-
-        ResponseEntity<Void> response =
-                apiClientService.post(url, Collections.emptyMap(), Void.class);
-
-        logger.info("Team followers decremented",
-                keyValue("action", "call_team_decrement_followers"),
-                keyValue("status", response.getStatusCode()),
-                keyValue("teamId", teamId),
-                keyValue("userId", userId));
+        apiClientService.post(url, Collections.emptyMap(), Void.class);
     }
 }
