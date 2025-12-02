@@ -25,10 +25,6 @@ public class SearchService {
                 keyValue("action", "search_clubs"),
                 keyValue("query", query));
         List<ClubSearchDocDTO> results = searchClientService.searchClubs(query);
-        logger.info("Clubs search done",
-                keyValue("action", "search_clubs"),
-                keyValue("query", query),
-                keyValue("count", results.size()));
         return results;
     }
 
@@ -38,11 +34,6 @@ public class SearchService {
                 keyValue("query", query),
                 keyValue("season", season));
         List<PoolSearchDocDTO> results = searchClientService.searchPools(query, season);
-        logger.info("Pools search done",
-                keyValue("action", "search_pools"),
-                keyValue("query", query),
-                keyValue("season", season),
-                keyValue("count", results.size()));
         return results;
     }
 
@@ -52,11 +43,6 @@ public class SearchService {
                 keyValue("query", query),
                 keyValue("season", season));
         List<TeamSearchDocDTO> results = searchClientService.searchTeams(query, season);
-        logger.info("Teams search done",
-                keyValue("action", "search_teams"),
-                keyValue("query", query),
-                keyValue("season", season),
-                keyValue("count", results.size()));
         return results;
     }
 }

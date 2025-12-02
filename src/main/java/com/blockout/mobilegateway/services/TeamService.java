@@ -43,6 +43,7 @@ public class TeamService {
     private final PoolClientService poolClientService;
 
     public EnrichedTeamDTO getTeamById(Long id) {
+        long t0 = System.nanoTime();
         logger.info("Fetch team by id",
                 keyValue("action", "get_team_by_id"),
                 keyValue("team_id", id));
@@ -58,7 +59,7 @@ public class TeamService {
         }
 
         List<PoolWithRankingDTO> poolsWithRankings = competitionClientService.getPoolsWithRankingByTeam(id);
-        logger.info("Pools with ranking fetched",
+        logger.debug("Pools with ranking fetched",
                 keyValue("action", "fetch_pools_with_ranking"),
                 keyValue("team_id", id),
                 keyValue("pools_count", poolsWithRankings != null ? poolsWithRankings.size() : 0));
@@ -138,16 +139,18 @@ public class TeamService {
                 .season(team.getSeason())
                 .followersCount(team.getFollowersCount())
                 .logoUrl(finalLogoUrl)
-                .club(club) //TODO: Virer apres passage à la 1.1.0
+                .club(club) // TODO: Virer apres passage à la 1.1.0
                 .division(division)
                 .pools(enrichedPools)
                 .build();
 
+        long t1 = System.nanoTime();
         logger.info("Built enriched team",
                 keyValue("action", "build_enriched_team"),
                 keyValue("team_id", id),
                 keyValue("pools_count", enrichedPools.size()),
-                keyValue("club_set", club != null));
+                keyValue("club_set", club != null),
+                keyValue("duration_ms", (t1 - t0) / 1_000_000));
 
         return result;
     }
@@ -156,6 +159,7 @@ public class TeamService {
         if (StringUtils.isBlank(clubId)) {
             throw new InconsistentStateException("clubId must be a non-empty string");
         }
+        long t0 = System.nanoTime();
         logger.info("Fetch teams by club",
                 keyValue("action", "get_teams_by_club"),
                 keyValue("club_id", clubId));
@@ -197,17 +201,19 @@ public class TeamService {
                             .format(t.getFormat())
                             .gender(t.getGender())
                             .season(t.getSeason())
-                            .club(club) //TODO: à enlever
+                            .club(club) // TODO: à enlever
                             .division(divisionsById.get(t.getDivisionId()))
                             .logoUrl(finalLogoUrl)
                             .build();
                 })
                 .toList();
 
+        long t1 = System.nanoTime();
         logger.info("Built team summaries for club",
                 keyValue("action", "build_team_summaries_for_club"),
                 keyValue("club_id", clubId),
-                keyValue("count", result.size()));
+                keyValue("count", result.size()),
+                keyValue("duration_ms", (t1 - t0) / 1_000_000));
 
         return result;
     }
@@ -216,6 +222,7 @@ public class TeamService {
         if (ids == null || ids.isEmpty()) {
             throw new InconsistentStateException("ids must be a non-empty list");
         }
+        long t0 = System.nanoTime();
         logger.info("Fetch teams by ids",
                 keyValue("action", "get_teams_by_ids"),
                 keyValue("ids_count", ids.size()));
@@ -284,16 +291,18 @@ public class TeamService {
                             .gender(t.getGender())
                             .season(t.getSeason())
                             .logoUrl(finalLogoUrl)
-                            .club(club) //TODO: a enlever
+                            .club(club) // TODO: a enlever
                             .division(divisionsById.get(t.getDivisionId()))
                             .build();
                 })
                 .toList();
 
+        long t1 = System.nanoTime();
         logger.info("Built team summaries by ids",
                 keyValue("action", "build_team_summaries_by_ids"),
                 keyValue("requested_ids", ids.size()),
-                keyValue("returned", result.size()));
+                keyValue("returned", result.size()),
+                keyValue("duration_ms", (t1 - t0) / 1_000_000));
 
         return result;
     }

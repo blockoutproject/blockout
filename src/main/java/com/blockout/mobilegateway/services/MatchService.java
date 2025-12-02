@@ -57,6 +57,7 @@ public class MatchService {
 
     public EnrichedDayPageDTO getMatchList(String status, int page, int size, List<Long> poolFilterIds,
             List<Long> teamFilterIds) {
+        long t0 = System.nanoTime();
         logger.info("Fetching match list",
                 keyValue("action", "fetch_match_list"),
                 keyValue("status", status),
@@ -100,7 +101,7 @@ public class MatchService {
             }
         }
 
-        logger.info("Aggregated ids",
+        logger.debug("Aggregated ids",
                 keyValue("action", "aggregate_ids_from_matches"),
                 keyValue("unique_pool_ids", poolIds.size()),
                 keyValue("unique_team_ids", teamIds.size()));
@@ -168,7 +169,7 @@ public class MatchService {
                     .build());
         }
 
-        logger.info("Fetched and enriched catalogs",
+        logger.debug("Fetched and enriched catalogs",
                 keyValue("action", "enrich_catalogs"),
                 keyValue("enriched_pools", enrichedPoolById.size()),
                 keyValue("teams", teamsMap.size()),
@@ -227,11 +228,13 @@ public class MatchService {
             }
         }
 
+        long t1 = System.nanoTime();
         logger.info("Built enriched day matches",
                 keyValue("action", "build_enriched_day_matches"),
                 keyValue("day_groups", enrichedDayMatches.size()),
                 keyValue("has_next", dayPage.isHasNext()),
-                keyValue("next_page", dayPage.getNextPage()));
+                keyValue("next_page", dayPage.getNextPage()),
+                keyValue("duration_ms", (t1 - t0) / 1_000_000));
 
         return EnrichedDayPageDTO.builder()
                 .dayMatches(enrichedDayMatches)
@@ -241,6 +244,7 @@ public class MatchService {
     }
 
     public EnrichedMatchDTO getMatchById(Long id) {
+        long t0 = System.nanoTime();
         logger.info("Fetching match by id",
                 keyValue("action", "get_match_by_id"),
                 keyValue("match_id", id));
@@ -354,12 +358,14 @@ public class MatchService {
                 .path(sheetToken)
                 .toUriString();
 
+        long t1 = System.nanoTime();
         logger.info("Built enriched match",
                 keyValue("action", "build_enriched_match"),
                 keyValue("match_id", id),
                 keyValue("pool_id", rawPool.getId()),
                 keyValue("division_id", division.getId()),
-                keyValue("ranking_count", ranking.size()));
+                keyValue("ranking_count", ranking.size()),
+                keyValue("duration_ms", (t1 - t0) / 1_000_000));
 
         return EnrichedMatchDTO.builder()
                 .id(match.getId())
@@ -443,7 +449,7 @@ public class MatchService {
             teamIds.add(m.getTeamIdB());
         }
 
-        logger.info("Aggregated ids for live moderation",
+        logger.debug("Aggregated ids for live moderation",
                 keyValue("action", "aggregate_ids_from_live_moderation"),
                 keyValue("unique_pool_ids", poolIds.size()),
                 keyValue("unique_team_ids", teamIds.size()));
@@ -558,7 +564,7 @@ public class MatchService {
             result.add(dto);
         }
 
-        logger.info("Built enriched moderation list",
+        logger.debug("Built enriched moderation list",
                 keyValue("action", "build_enriched_live_moderation"),
                 keyValue("count", result.size()));
 

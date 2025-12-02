@@ -48,7 +48,7 @@ public class NotificationService {
                 ? Collections.emptyList()
                 : base.getNotifications();
 
-        logger.info("Base notifications received",
+        logger.debug("Base notifications received",
                 keyValue("action", "base_notifications_received"),
                 keyValue("count", rawItems.size()),
                 keyValue("has_next", base != null && base.isHasNext()),
@@ -60,7 +60,7 @@ public class NotificationService {
                 .flatMap(Optional::stream)
                 .collect(Collectors.toCollection(LinkedHashSet::new));
 
-        logger.info("Extracted divisionIds from metadata",
+        logger.debug("Extracted divisionIds from metadata",
                 keyValue("action", "extract_division_ids"),
                 keyValue("division_ids_count", divisionIds.size()));
 
@@ -111,7 +111,7 @@ public class NotificationService {
                     .build());
         }
 
-        logger.info("Built enriched notifications page",
+        logger.debug("Built enriched notifications page",
                 keyValue("action", "build_enriched_notifications_page"),
                 keyValue("enriched_count", enriched.size()));
 

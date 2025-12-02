@@ -33,18 +33,12 @@ public class ConfigService {
                 keyValue("action", "update_app_status"),
                 keyValue("maintenance", dto.getMaintenance()));
         AppStatusDTO updated = configClientService.updateAppStatus(dto);
-        logger.info("App status updated",
-                keyValue("action", "update_app_status"),
-                keyValue("maintenance_after", updated != null && updated.isMaintenance()));
         return updated;
     }
 
     public List<DivisionDTO> listDivisions() {
         logger.info("Listing all divisions", keyValue("action", "list_all_divisions"));
         List<DivisionDTO> list = configClientService.listDivisions();
-        logger.info("Divisions listed successfully",
-                keyValue("action", "list_all_divisions"),
-                keyValue("count", list.size()));
         return list;
     }
 
@@ -124,10 +118,6 @@ public class ConfigService {
 
     public List<ScraperStatusDTO> listScraperStatuses() {
         logger.info("Listing scraper statuses", keyValue("action", "list_scraper_statuses"));
-        List<ScraperStatusDTO> list = configClientService.listScraperStatuses();
-        logger.info("Scraper statuses listed",
-                keyValue("action", "list_scraper_statuses"),
-                keyValue("count", list.size()));
-        return list;
+        return configClientService.listScraperStatuses();
     }
 }
