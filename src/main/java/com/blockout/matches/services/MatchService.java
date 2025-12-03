@@ -394,8 +394,9 @@ public class MatchService {
     private MatchLiveLink selectRepresentativeLink(List<MatchLiveLink> linksForMatch) {
         return linksForMatch.stream()
                 .max(Comparator
-                        .comparingInt((MatchLiveLink l) -> statusPriority(l.getStatus())).reversed()
-                        .thenComparing(MatchLiveLink::getCreatedAt,
+                        .comparingInt((MatchLiveLink l) -> statusPriority(l.getStatus()))
+                        .thenComparing(
+                                MatchLiveLink::getCreatedAt,
                                 Comparator.nullsLast(Comparator.naturalOrder())))
                 .orElse(null);
     }
