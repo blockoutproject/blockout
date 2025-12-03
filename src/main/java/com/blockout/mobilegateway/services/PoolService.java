@@ -148,7 +148,7 @@ public class PoolService {
         List<PoolDTO> pools = new ArrayList<>(uniqueIds.size());
         for (Long id : uniqueIds) {
             PoolDTO pool = poolClientService.getPoolById(id);
-            if (pool != null) {
+            if (pool != null && pool.getActive()) {
                 pools.add(pool);
             } else {
                 logger.warn("Pool not found while building pool summaries",

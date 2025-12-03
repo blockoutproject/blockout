@@ -22,6 +22,7 @@ import com.blockout.mobilegateway.models.dto.pool.EnrichedPoolDTO;
 import com.blockout.mobilegateway.models.dto.pool.PoolDTO;
 import com.blockout.mobilegateway.models.dto.team.TeamDTO;
 import com.blockout.mobilegateway.models.dto.team.TeamWithStatsDTO;
+import com.blockout.mobilegateway.models.enums.LiveLinkStatus;
 import com.blockout.mobilegateway.services.clients.ClubClientService;
 import com.blockout.mobilegateway.services.clients.CompetitionClientService;
 import com.blockout.mobilegateway.services.clients.ConfigClientService;
@@ -424,23 +425,18 @@ public class MatchService {
         return matchClientService.getLiveLinksHistory(matchId);
     }
 
-    /**
-     * Retourne la liste enrichie pour modération.
-     * On consomme /api/v1/matches/live-moderation côté API matches
-     * (MatchLiveSummaryDTO) sans ajouter de filtre côté gateway.
-     */
-    public List<EnrichedMatchLiveSummaryDTO> listMatchesForLiveModeration() {
+    public List<EnrichedMatchLiveSummaryDTO> listMatchesForLiveModeration(LiveLinkStatus statusFilter) {
         logger.info("List live links for moderation",
-                keyValue("action", "list_match_live_links_for_moderation"));
+                keyValue("action", "list_match_live_links_for_moderation"),
+                keyValue("status_filter", statusFilter));
 
-        List<MatchLiveSummaryDTO> summaries = matchClientService.listMatchesForLiveModeration();
+        List<MatchLiveSummaryDTO> summaries = matchClientService.listMatchesForLiveModeration(statusFilter);
         if (summaries == null || summaries.isEmpty()) {
             logger.info("No matches returned for live moderation",
                     keyValue("action", "list_match_live_links_for_moderation_empty"));
             return List.of();
         }
 
-        // Agrégation pools & équipes
         Set<Long> poolIds = new HashSet<>(summaries.size());
         Set<Long> teamIds = new HashSet<>(summaries.size() * 2);
         for (MatchLiveSummaryDTO m : summaries) {
@@ -454,7 +450,6 @@ public class MatchService {
                 keyValue("unique_pool_ids", poolIds.size()),
                 keyValue("unique_team_ids", teamIds.size()));
 
-        // Pools
         Map<Long, PoolDTO> poolById = new HashMap<>(poolIds.size() * 2);
         for (Long poolId : poolIds) {
             PoolDTO pool = poolClientService.getPoolById(poolId);
@@ -466,7 +461,6 @@ public class MatchService {
             }
         }
 
-        // Divisions
         Set<Long> divisionIds = poolById.values().stream()
                 .map(PoolDTO::getDivisionId)
                 .collect(Collectors.toSet());
@@ -482,7 +476,6 @@ public class MatchService {
             }
         }
 
-        // Pools enrichis (sans ranking ici, pas nécessaire pour la modération)
         Map<Long, EnrichedPoolDTO> enrichedPoolById = new HashMap<>(poolById.size() * 2);
         for (PoolDTO p : poolById.values()) {
             DivisionDTO division = divisionById.get(p.getDivisionId());
@@ -506,7 +499,6 @@ public class MatchService {
             enrichedPoolById.put(p.getId(), enrichedPool);
         }
 
-        // Équipes
         Map<Long, TeamDTO> teamsMap = new HashMap<>(teamIds.size() * 2);
         for (Long teamId : teamIds) {
             TeamDTO team = teamClientService.getTeamById(teamId);
@@ -518,10 +510,8 @@ public class MatchService {
             }
         }
 
-        // Logos clubs
         enrichTeamsWithClubLogo(teamsMap.values(), clubClientService);
 
-        // Construction du résultat enrichi
         List<EnrichedMatchLiveSummaryDTO> result = new ArrayList<>(summaries.size());
         for (MatchLiveSummaryDTO m : summaries) {
             EnrichedPoolDTO enrichedPool = enrichedPoolById.get(m.getPoolId());

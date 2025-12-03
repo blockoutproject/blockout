@@ -8,6 +8,7 @@ import com.blockout.mobilegateway.models.dto.match.MatchLiveLinkReportRequestDTO
 import com.blockout.mobilegateway.models.dto.match.MatchLiveLinkRequestDTO;
 import com.blockout.mobilegateway.models.dto.match.MatchLiveLinkResponseDTO;
 import com.blockout.mobilegateway.models.dto.match.MatchLiveSummaryDTO;
+import com.blockout.mobilegateway.models.enums.LiveLinkStatus;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -54,11 +55,16 @@ public class MatchClientService {
         return response.getBody();
     }
 
-    public List<MatchLiveSummaryDTO> listMatchesForLiveModeration() {
-        String url = UriComponentsBuilder.fromUriString(baseUrl())
-                .pathSegment("live-moderation")
-                .build()
-                .toUriString();
+    public List<MatchLiveSummaryDTO> listMatchesForLiveModeration(LiveLinkStatus statusFilter) {
+        UriComponentsBuilder builder = UriComponentsBuilder
+                .fromUriString(baseUrl())
+                .pathSegment("live-moderation");
+
+        if (statusFilter != null) {
+            builder.queryParam("status", statusFilter.name());
+        }
+
+        String url = builder.build().toUriString();
 
         ResponseEntity<MatchLiveSummaryDTO[]> response = apiClientService.get(url, MatchLiveSummaryDTO[].class);
 

@@ -231,7 +231,7 @@ public class TeamService {
         List<TeamDTO> teams = new ArrayList<>(uniqueIds.size());
         for (Long teamId : uniqueIds) {
             TeamDTO team = teamClientService.getTeamById(teamId);
-            if (team != null) {
+            if (team != null && team.getActive()) {
                 teams.add(team);
             } else {
                 logger.warn("Team not found while building team summaries by ids",
