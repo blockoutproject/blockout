@@ -155,4 +155,11 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
             @Param("active") Boolean active,
             @Param("teamIds") List<Long> teamIds,
             @Param("teamIdsSize") int teamIdsSize);
+
+    @Query("""
+        SELECT DISTINCT m
+        FROM Match m
+        JOIN FETCH m.liveLinks l
+        """)
+    List<Match> findAllWithLiveLinks();
 }

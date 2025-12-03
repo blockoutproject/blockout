@@ -38,9 +38,6 @@ public class MatchLiveLinkModerationPolicy {
     private static final int AUTO_HIDE_THRESHOLD = 3;
     private static final int FINAL_AUTO_HIDE_THRESHOLD = 10;
 
-    // Règles post-match
-    private static final int POST_MATCH_EDIT_WINDOW_DAYS = 7;
-
     private static final ZoneId PARIS = ZoneId.of("Europe/Paris");
     private static final String MOD_SCOPE = "SCOPE_moderate:match_live_link";
 
@@ -222,21 +219,6 @@ public class MatchLiveLinkModerationPolicy {
                     keyValue("active_link_id", active.getId()));
             throw new AccessDeniedException(
                     "Seul l’utilisateur qui a diffusé ce match peut mettre à jour le lien après match.");
-        }
-
-        if (match.getMatchDate() != null) {
-            Instant limit = match.getMatchDate().plus(POST_MATCH_EDIT_WINDOW_DAYS, ChronoUnit.DAYS);
-            if (now.isAfter(limit)) {
-                logger.info("Post-match link refused because beyond edit window",
-                        keyValue("action", "set_live_link_rejected_post_match_window"),
-                        keyValue("match_id", matchId),
-                        keyValue("auth0_id", auth0Id),
-                        keyValue("match_date", match.getMatchDate()),
-                        keyValue("now", now),
-                        keyValue("limit", limit));
-                throw new IllegalStateException(
-                        "Tu ne peux plus modifier ou ajouter un lien une semaine après le match.");
-            }
         }
     }
 

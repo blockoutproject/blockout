@@ -27,12 +27,12 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
-import java.time.temporal.ChronoUnit;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
@@ -44,7 +44,6 @@ public class MatchService {
     private static final Logger logger = LoggerFactory.getLogger(MatchService.class);
 
     private static final ZoneId PARIS = ZoneId.of("Europe/Paris");
-    private static final int MODERATION_HISTORY_DAYS = 7;
 
     private final MatchRepository matchRepository;
     private final MatchLiveLinkRepository matchLiveLinkRepository;
@@ -340,47 +339,25 @@ public class MatchService {
                 keyValue("nombreMatches", matchesToDeactivate.size()));
     }
 
-    /**
-     * Liste des matchs utilisés dans le panneau admin live :
-     * - match avec au moins un lien ACTIVE ou PENDING (sans limite de temps)
-     * - sinon match avec uniquement d'autres statuts, mais date de match >= now -
-     * MODERATION_HISTORY_DAYS
-     */
     @Transactional(readOnly = true)
-    public List<MatchLiveSummaryDTO> listMatchesForLiveModeration() {
-        Instant now = Instant.now();
-        Instant cutoff = now.minus(MODERATION_HISTORY_DAYS, ChronoUnit.DAYS);
+    public List<MatchLiveSummaryDTO> listMatchesForLiveModeration(LiveLinkStatus statusFilter) {
 
-        List<MatchLiveLink> allLinks = matchLiveLinkRepository.findAllWithMatch();
+        List<Match> matches = matchRepository.findAllWithLiveLinks();
 
-        Map<Long, List<MatchLiveLink>> linksByMatchId = allLinks.stream()
-                .filter(l -> l.getMatch() != null)
-                .collect(Collectors.groupingBy(l -> l.getMatch().getId()));
-
-        List<MatchLiveSummaryDTO> result = linksByMatchId.values().stream()
-                .map(linksForMatch -> {
-
-                    Match match = linksForMatch.get(0).getMatch();
-                    if (match == null) {
+        return matches.stream()
+                .map(match -> {
+                    List<MatchLiveLink> links = match.getLiveLinks();
+                    if (links == null || links.isEmpty()) {
                         return null;
                     }
 
-                    boolean hasPendingOrActive = linksForMatch.stream()
-                            .anyMatch(l -> l.getStatus() == LiveLinkStatus.PENDING
-                                    || l.getStatus() == LiveLinkStatus.ACTIVE);
-
-                    if (!hasPendingOrActive) {
-                        Instant matchDate = match.getMatchDate();
-                        if (matchDate.isBefore(cutoff)) {
-                            return null;
-                        }
+                    MatchLiveLink representative = selectRepresentativeLink(links);
+                    if (representative == null) {
+                        return null;
                     }
 
-                    MatchLiveLink lastLink = linksForMatch.stream()
-                            .max(Comparator.comparing(MatchLiveLink::getCreatedAt))
-                            .orElse(null);
-
-                    if (lastLink == null) {
+                    // Filtre optionnel
+                    if (statusFilter != null && representative.getStatus() != statusFilter) {
                         return null;
                     }
 
@@ -397,23 +374,39 @@ public class MatchService {
                             .score(match.getScore())
                             .status(match.getStatus())
                             .liveCode(match.getLiveCode())
-                            .lastLiveLinkId(lastLink.getId())
-                            .lastLiveLinkStatus(lastLink.getStatus())
-                            .lastLiveLinkProvider(lastLink.getProvider())
-                            .lastLiveLinkUrl(lastLink.getUrl())
-                            .lastLiveLinkOwnerAuth0Id(lastLink.getOwnerAuth0Id())
-                            .lastLiveLinkCreatedAt(lastLink.getCreatedAt())
+                            .lastLiveLinkId(representative.getId())
+                            .lastLiveLinkStatus(representative.getStatus())
+                            .lastLiveLinkProvider(representative.getProvider())
+                            .lastLiveLinkUrl(representative.getUrl())
+                            .lastLiveLinkOwnerAuth0Id(representative.getOwnerAuth0Id())
+                            .lastLiveLinkCreatedAt(representative.getCreatedAt())
                             .build();
                 })
-                .filter(dto -> dto != null)
+                .filter(Objects::nonNull)
                 .sorted(Comparator.comparing(MatchLiveSummaryDTO::getMatchDate).reversed())
-                .collect(Collectors.toList());
+                .toList();
+    }
 
-        logger.info("Returning matches for live moderation",
-                keyValue("action", "list_matches_for_live_moderation"),
-                keyValue("count", result.size()));
+    private MatchLiveLink selectRepresentativeLink(List<MatchLiveLink> linksForMatch) {
+        return linksForMatch.stream()
+                .max(Comparator
+                        .comparingInt((MatchLiveLink l) -> statusPriority(l.getStatus())).reversed()
+                        .thenComparing(MatchLiveLink::getCreatedAt,
+                                Comparator.nullsLast(Comparator.naturalOrder())))
+                .orElse(null);
+    }
 
-        return result;
+    private int statusPriority(LiveLinkStatus status) {
+        if (status == null)
+            return 0;
+        return switch (status) {
+            case ACTIVE -> 6;
+            case PENDING -> 5;
+            case BANNED -> 4;
+            case DEACTIVATED -> 3;
+            case REJECTED -> 2;
+            case EXPIRED -> 1;
+        };
     }
 
     private boolean hasNext(List<LocalDate> allDays, int toIndex) {

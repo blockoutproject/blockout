@@ -50,13 +50,6 @@ public interface MatchLiveLinkRepository extends JpaRepository<MatchLiveLink, Lo
     Optional<MatchLiveLink> findFirstByMatch_IdOrderByCreatedAtDesc(Long matchId);
 
     @Query("""
-                SELECT l
-                FROM MatchLiveLink l
-                JOIN FETCH l.match m
-            """)
-    List<MatchLiveLink> findAllWithMatch();
-
-    @Query("""
             SELECT l
             FROM MatchLiveLink l
             WHERE l.match.id IN :matchIds

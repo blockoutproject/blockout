@@ -5,6 +5,7 @@ import com.blockout.matches.models.dto.match.DayPageDTO;
 import com.blockout.matches.models.dto.match.MatchDTO;
 import com.blockout.matches.models.dto.match.MatchLiveSummaryDTO;
 import com.blockout.matches.models.entities.Match;
+import com.blockout.matches.models.enums.LiveLinkStatus;
 import com.blockout.matches.models.enums.MatchStatus;
 import com.blockout.matches.services.MatchService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -27,10 +28,7 @@ public class MatchController {
 
     private final MatchService matchService;
 
-    @Operation(
-            summary = "Lister les matchs",
-            description = "Retourne les matchs avec filtres optionnels : poolId, teamIds, status, active."
-    )
+    @Operation(summary = "Lister les matchs", description = "Retourne les matchs avec filtres optionnels : poolId, teamIds, status, active.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Liste des matchs")
     })
@@ -45,10 +43,7 @@ public class MatchController {
         return ResponseEntity.ok(matches);
     }
 
-    @Operation(
-            summary = "Groupes de matchs par jour",
-            description = "Retourne les groupes de matchs par jour avec pagination."
-    )
+    @Operation(summary = "Groupes de matchs par jour", description = "Retourne les groupes de matchs par jour avec pagination.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Groupes de jours retournés")
     })
@@ -67,15 +62,11 @@ public class MatchController {
                 status,
                 page,
                 size,
-                active
-        );
+                active);
         return ResponseEntity.ok(dto);
     }
 
-    @Operation(
-            summary = "Récupérer un match par ID",
-            description = "Renvoie un match par son identifiant."
-    )
+    @Operation(summary = "Récupérer un match par ID", description = "Renvoie un match par son identifiant.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Match trouvé"),
             @ApiResponse(responseCode = "404", description = "Match introuvable")
@@ -86,10 +77,7 @@ public class MatchController {
         return ResponseEntity.ok(match);
     }
 
-    @Operation(
-            summary = "Créer un match",
-            description = "Crée un nouveau match."
-    )
+    @Operation(summary = "Créer un match", description = "Crée un nouveau match.")
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Match créé"),
             @ApiResponse(responseCode = "400", description = "Requête invalide")
@@ -105,10 +93,7 @@ public class MatchController {
         return ResponseEntity.created(location).body(created);
     }
 
-    @Operation(
-            summary = "Mettre à jour un match",
-            description = "Met à jour un match existant."
-    )
+    @Operation(summary = "Mettre à jour un match", description = "Met à jour un match existant.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Match mis à jour"),
             @ApiResponse(responseCode = "404", description = "Match introuvable")
@@ -123,10 +108,7 @@ public class MatchController {
         return ResponseEntity.ok(result);
     }
 
-    @Operation(
-            summary = "Désactiver des matchs par pool",
-            description = "Désactive les matchs d'une pool via leurs matchCodes."
-    )
+    @Operation(summary = "Désactiver des matchs par pool", description = "Désactive les matchs d'une pool via leurs matchCodes.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Matches désactivés")
     })
@@ -140,21 +122,20 @@ public class MatchController {
         return ResponseEntity.ok().build();
     }
 
-    @Operation(
-            summary = "Lister les matchs avec liens live pour modération",
-            description = "Retourne les matchs ayant au moins un lien live. " +
-                    "Inclut le dernier lien (id, statut, provider, url, owner, date). " +
-                    "La sélection suit les règles métier : liens PENDING ou ACTIVE sans limite de temps, " +
-                    "et autres statuts seulement dans une fenêtre de quelques jours après le match."
-    )
+    @Operation(summary = "Lister les matchs avec liens live pour modération", description = "Retourne les matchs ayant au moins un lien live. "
+            +
+            "Inclut le dernier lien (id, statut, provider, url, owner, date). " +
+            "La sélection suit les règles métier : liens PENDING ou ACTIVE sans limite de temps, " +
+            "et autres statuts seulement dans une fenêtre de quelques jours après le match.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Liste des matchs avec leur dernier live link"),
             @ApiResponse(responseCode = "403", description = "Non autorisé")
     })
     @PreAuthorize("hasAuthority('SCOPE_moderate:match_live_link')")
     @GetMapping("/live-moderation")
-    public ResponseEntity<List<MatchLiveSummaryDTO>> listMatchesForLiveModeration() {
-        List<MatchLiveSummaryDTO> summaries = matchService.listMatchesForLiveModeration();
+    public ResponseEntity<List<MatchLiveSummaryDTO>> listMatchesForLiveModeration(
+            @RequestParam(value = "status", required = false) LiveLinkStatus statusFilter) {
+        List<MatchLiveSummaryDTO> summaries = matchService.listMatchesForLiveModeration(statusFilter);
         return ResponseEntity.ok(summaries);
     }
 }
