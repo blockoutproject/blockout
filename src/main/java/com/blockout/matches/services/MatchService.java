@@ -351,13 +351,17 @@ public class MatchService {
                         return null;
                     }
 
-                    MatchLiveLink representative = selectRepresentativeLink(links);
-                    if (representative == null) {
-                        return null;
+                    if (statusFilter != null) {
+                        boolean hasAtLeastOneWithStatus = links.stream()
+                                .anyMatch(l -> l.getStatus() == statusFilter);
+
+                        if (!hasAtLeastOneWithStatus) {
+                            return null;
+                        }
                     }
 
-                    // Filtre optionnel
-                    if (statusFilter != null && representative.getStatus() != statusFilter) {
+                    MatchLiveLink representative = selectRepresentativeLink(links);
+                    if (representative == null) {
                         return null;
                     }
 
