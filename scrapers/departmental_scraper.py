@@ -151,6 +151,9 @@ class DepartmentalScraper(Scraper):
             soup = BeautifulSoup(html_content, 'html.parser')
             pool_links = soup.select('ul#menu > li > ul > li > ul > li > a[href*="poule="]')
             
+            if not pool_links:
+                return
+            
             raw_season = None
             for a_tag in pool_links:
                 season_match = re.search(r'saison=([^&]+)', a_tag['href'])
@@ -236,4 +239,4 @@ class DepartmentalScraper(Scraper):
                 await bulk_deactivate_pools(self.session, missing_pool_ids)
 
         except Exception as e:
-            log_event(action="critical_league_error", level="error")
+            log_event(action="critical_league_error", level="error", error=str(e))
