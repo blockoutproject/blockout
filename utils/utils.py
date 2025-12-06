@@ -21,6 +21,33 @@ except Exception as e:
     )
     standardized_divisions = {}
 
+def strip_department_code(raw_department_name: str) -> str:
+    """
+    Supprime le code département au début de la chaîne, par ex. :
+    - '43 Haute Loire'      -> 'Haute Loire'
+    - '01 Ain'              -> 'Ain'
+    - '2A Corse-du-Sud'     -> 'Corse-du-Sud'
+    - '07/26 Drôme-Ardèche' -> 'Drôme-Ardèche'
+    Si le premier "mot" ne ressemble pas à un code de département, on renvoie la chaîne telle quelle.
+    """
+    if not raw_department_name:
+        return raw_department_name
+
+    parts = raw_department_name.split()
+    if not parts:
+        return raw_department_name
+
+    first = parts[0]
+
+    # Match :
+    # - 1 à 3 chiffres :  "1", "08", "974"
+    # - éventuellement une lettre : "2A", "2B"
+    # - ou du type "07/26" pour les comités bi-départementaux
+    if re.match(r"^\d{1,3}([A-Z]|/\d{1,3})?$", first):
+        return " ".join(parts[1:]).strip()
+
+    return raw_department_name
+
 def capitalize_words(text: str | None) -> str:
     """
     Transforme une chaîne tout en majuscules en capitalisant chaque mot.

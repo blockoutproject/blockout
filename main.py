@@ -47,7 +47,7 @@ async def main():
                 connector = aiohttp.TCPConnector(limit=20, ssl=False)
                 timeout = aiohttp.ClientTimeout(total=60)
                 async with aiohttp.ClientSession(timeout=timeout, trust_env=True, connector=connector) as session:
-                    scraper_types = ['pro', 'national', 'regional']
+                    scraper_types = ['pro', 'national', 'regional', 'departmental']
                     tasks = []
                     for scraper_type in scraper_types:
                         current_scraper.set(scraper_type)
