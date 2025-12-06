@@ -49,6 +49,7 @@ public class MatchLiveLinkService {
     private final MatchLiveLinkRepository liveLinkRepository;
     private final UsersClientService usersClientService;
     private final MatchLiveLinkModerationPolicy moderationPolicy;
+    private final EventPublisher eventPublisher;
 
     @Transactional
     public MatchLiveLinkResponseDTO upsertLiveLink(Long matchId, MatchLiveLinkRequestDTO request) {
@@ -175,6 +176,10 @@ public class MatchLiveLinkService {
                 keyValue("owner_auth0_id", saved.getOwnerAuth0Id()),
                 keyValue("user_id", currentUser.getId()),
                 keyValue("version_id", saved.getId()));
+
+        if (!isFinished) {
+            eventPublisher.publishMatchLiveLinkCreated(match);
+        }
 
         return toResponseDto(saved);
     }

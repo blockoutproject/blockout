@@ -3,6 +3,7 @@ package com.blockout.matches.services;
 import com.blockout.matches.config.RabbitMQConfig;
 import com.blockout.matches.models.entities.Match;
 import com.blockout.matches.models.events.MatchFinishedEvent;
+import com.blockout.matches.models.events.MatchLiveLinkCreatedEvent;
 
 import lombok.RequiredArgsConstructor;
 
@@ -11,6 +12,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.amqp.AmqpException;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Service;
+
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
 @Service
@@ -33,8 +35,9 @@ public class EventPublisher {
         try {
             rabbitTemplate.convertAndSend(
                     RabbitMQConfig.ENTITY_LIFECYCLE_EXCHANGE,
-                    "match.finished",
-                    event);
+                    RabbitMQConfig.RK_MATCH_FINISHED,
+                    event
+            );
 
             logger.info("Match finished event sent",
                     keyValue("action", "publish_match_finished"),
@@ -46,6 +49,35 @@ public class EventPublisher {
 
         } catch (AmqpException ex) {
             logger.error("Failed to publish match.finished",
+                    keyValue("matchId", match.getId()), ex);
+            throw ex;
+        }
+    }
+
+    public void publishMatchLiveLinkCreated(Match match) {
+        MatchLiveLinkCreatedEvent event = MatchLiveLinkCreatedEvent.builder()
+                .id(match.getId())
+                .teamIdA(match.getTeamIdA())
+                .teamIdB(match.getTeamIdB())
+                .poolId(match.getPoolId())
+                .build();
+
+        try {
+            rabbitTemplate.convertAndSend(
+                    RabbitMQConfig.ENTITY_LIFECYCLE_EXCHANGE,
+                    RabbitMQConfig.RK_MATCH_LIVE_LINK_CREATED,
+                    event
+            );
+
+            logger.info("Match live-link-created event sent",
+                    keyValue("action", "publish_match_live_link_created"),
+                    keyValue("matchId", match.getId()),
+                    keyValue("teamIdA", match.getTeamIdA()),
+                    keyValue("teamIdB", match.getTeamIdB()),
+                    keyValue("poolId", match.getPoolId()));
+
+        } catch (AmqpException ex) {
+            logger.error("Failed to publish match.live-link-created",
                     keyValue("matchId", match.getId()), ex);
             throw ex;
         }

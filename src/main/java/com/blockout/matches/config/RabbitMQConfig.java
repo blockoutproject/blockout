@@ -18,6 +18,12 @@ public class RabbitMQConfig {
     public static final String POOL_DEACTIVATION_QUEUE_MATCHES = "pool.deactivation.queue.matches";
     public static final String TEAM_BY_POOL_DEACTIVATION_QUEUE_MATCHES = "teambypool.deactivation.queue.matches";
 
+    public static final String MATCH_FINISHED_QUEUE = "match.finished.queue.notifications";
+    public static final String MATCH_LIVE_LINK_CREATED_QUEUE = "match.live-link-created.queue.notifications";
+
+    public static final String RK_MATCH_FINISHED = "match.finished";
+    public static final String RK_MATCH_LIVE_LINK_CREATED = "match.live-link-created";
+
     @Bean
     public TopicExchange entityLifecycleExchange() {
         return new TopicExchange(ENTITY_LIFECYCLE_EXCHANGE);
@@ -36,6 +42,16 @@ public class RabbitMQConfig {
     @Bean
     public Queue teamByPoolDeactivationQueueMatches() {
         return new Queue(TEAM_BY_POOL_DEACTIVATION_QUEUE_MATCHES, true);
+    }
+
+    @Bean
+    public Queue matchFinishedQueue() {
+        return new Queue(MATCH_FINISHED_QUEUE, true);
+    }
+
+    @Bean
+    public Queue matchLiveLinkCreatedQueue() {
+        return new Queue(MATCH_LIVE_LINK_CREATED_QUEUE, true);
     }
 
     @Bean
@@ -63,6 +79,24 @@ public class RabbitMQConfig {
         return BindingBuilder.bind(teamByPoolDeactivationQueueMatches)
                 .to(entityLifecycleExchange)
                 .with("teambypool.deactivation");
+    }
+
+    @Bean
+    public Binding bindMatchFinishedQueue(
+            TopicExchange entityLifecycleExchange,
+            Queue matchFinishedQueue) {
+        return BindingBuilder.bind(matchFinishedQueue)
+                .to(entityLifecycleExchange)
+                .with(RK_MATCH_FINISHED);
+    }
+
+    @Bean
+    public Binding bindMatchLiveLinkCreatedQueue(
+            TopicExchange entityLifecycleExchange,
+            Queue matchLiveLinkCreatedQueue) {
+        return BindingBuilder.bind(matchLiveLinkCreatedQueue)
+                .to(entityLifecycleExchange)
+                .with(RK_MATCH_LIVE_LINK_CREATED);
     }
 
     @Bean
