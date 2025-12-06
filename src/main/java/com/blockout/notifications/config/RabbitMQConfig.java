@@ -35,6 +35,12 @@ public class RabbitMQConfig {
     public static final String RK_MATCH_FINISHED = "match.finished";
     public static final String RK_MATCH_FINISHED_DLQ = "match.finished.dlq";
 
+    public static final String MATCH_LIVE_LINK_CREATED_QUEUE = "match.live-link-created.queue.notifications";
+    public static final String MATCH_LIVE_LINK_CREATED_DLQ = "match.live-link-created.queue.notifications.dlq";
+
+    public static final String RK_MATCH_LIVE_LINK_CREATED = "match.live-link-created";
+    public static final String RK_MATCH_LIVE_LINK_CREATED_DLQ = "match.live-link-created.dlq";
+
     @Bean
     public TopicExchange userFollowExchange() {
         return new TopicExchange(USER_FOLLOW_EXCHANGE);
@@ -95,6 +101,19 @@ public class RabbitMQConfig {
     }
 
     @Bean
+    public Queue matchLiveLinkCreatedQueue() {
+        return QueueBuilder.durable(MATCH_LIVE_LINK_CREATED_QUEUE)
+                .withArgument("x-dead-letter-exchange", ENTITY_LIFECYCLE_DLQ_EXCHANGE)
+                .withArgument("x-dead-letter-routing-key", RK_MATCH_LIVE_LINK_CREATED_DLQ)
+                .build();
+    }
+
+    @Bean
+    public Queue matchLiveLinkCreatedDlq() {
+        return QueueBuilder.durable(MATCH_LIVE_LINK_CREATED_DLQ).build();
+    }
+
+    @Bean
     public Binding bindUserFollowQueueTeams(Queue userFollowQueueTeams, TopicExchange userFollowExchange) {
         return BindingBuilder.bind(userFollowQueueTeams)
                 .to(userFollowExchange)
@@ -134,6 +153,22 @@ public class RabbitMQConfig {
         return BindingBuilder.bind(matchFinishedDlq)
                 .to(entityLifecycleDlqExchange)
                 .with(RK_MATCH_FINISHED_DLQ);
+    }
+
+    @Bean
+    public Binding bindMatchLiveLinkCreatedQueue(Queue matchLiveLinkCreatedQueue,
+            TopicExchange entityLifecycleExchange) {
+        return BindingBuilder.bind(matchLiveLinkCreatedQueue)
+                .to(entityLifecycleExchange)
+                .with(RK_MATCH_LIVE_LINK_CREATED);
+    }
+
+    @Bean
+    public Binding bindMatchLiveLinkCreatedDlq(Queue matchLiveLinkCreatedDlq,
+            TopicExchange entityLifecycleDlqExchange) {
+        return BindingBuilder.bind(matchLiveLinkCreatedDlq)
+                .to(entityLifecycleDlqExchange)
+                .with(RK_MATCH_LIVE_LINK_CREATED_DLQ);
     }
 
     @Bean

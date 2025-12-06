@@ -20,19 +20,35 @@ public interface NotificationSendRepository extends JpaRepository<NotificationSe
 
     @Modifying
     @Query(value = """
-            INSERT INTO notification_send (user_id, match_id, status, created_at, last_update)
-            SELECT DISTINCT fp.user_id, :matchId, 'PENDING', now(), now()
+            INSERT INTO notification_send (
+                user_id,
+                match_id,
+                notification_type,
+                status,
+                created_at,
+                last_update
+            )
+            SELECT DISTINCT
+                fp.user_id,
+                :matchId,
+                :notificationType,
+                'PENDING',
+                now(),
+                now()
             FROM followers_projection fp
             WHERE
                 (fp.entity_type = 'TEAM' AND fp.entity_id IN (:teamIdA, :teamIdB))
                 OR (fp.entity_type = 'POOL' AND fp.entity_id = :poolId)
-            ON CONFLICT (user_id, match_id) DO NOTHING
+            ON CONFLICT (user_id, match_id, notification_type) DO NOTHING
             RETURNING user_id
             """, nativeQuery = true)
-    List<Long> insertPendingForMatch(@Param("matchId") Long matchId,
+    List<Long> insertPendingForMatchAndType(
+            @Param("matchId") Long matchId,
             @Param("teamIdA") Long teamIdA,
             @Param("teamIdB") Long teamIdB,
-            @Param("poolId") Long poolId);
+            @Param("poolId") Long poolId,
+            @Param("notificationType") String notificationType
+    );
 
     /**
      * Marque SENT pour un match et une liste d'utilisateurs (seulement si encore

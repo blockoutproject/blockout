@@ -44,38 +44,86 @@ public class NotificationOrchestratorService {
     private static final int RESOLVE_PAGE_SIZE = 2_000;
     private static final int EXPO_BATCH_SIZE = 100;
 
+    /**
+     * Match terminé -> notif "MATCH_FINISHED".
+     */
     public void handleMatchFinished(Long matchId, Long teamIdA, Long teamIdB, Long poolId, String set) {
+        ResolvedContent content = resolveFinishedContent(matchId, teamIdA, teamIdB, poolId, set);
 
-        final ResolvedContent content = resolveContent(matchId, teamIdA, teamIdB, poolId, set);
-
-        final ObjectNode baseMetadata = objectMapper.createObjectNode()
+        ObjectNode baseMetadata = objectMapper.createObjectNode()
                 .put("divisionId", content.divisionId());
 
-        List<Long> reservedUserIds = notificationSendService.reservePendingForMatch(matchId, teamIdA, teamIdB, poolId);
-        if (reservedUserIds.isEmpty()) {
+        // Réservation typée MATCH_FINISHED
+        List<Long> reservedUserIds = notificationSendService
+                .reservePendingForMatchFinished(matchId, teamIdA, teamIdB, poolId);
+
+        processNotificationPipeline(
+                matchId,
+                reservedUserIds,
+                NotificationType.MATCH_FINISHED,
+                content,
+                baseMetadata,
+                "match_finished");
+    }
+
+    /**
+     * Nouveau lien de live (avant / pendant match) -> notif
+     * "MATCH_LIVE_LINK_CREATED".
+     */
+    public void handleMatchLiveLinkCreated(Long matchId, Long teamIdA, Long teamIdB, Long poolId) {
+        ResolvedContent content = resolveLiveLinkContent(matchId, teamIdA, teamIdB, poolId);
+
+        ObjectNode baseMetadata = objectMapper.createObjectNode()
+                .put("divisionId", content.divisionId());
+
+        // Réservation typée MATCH_LIVE_LINK_CREATED
+        List<Long> reservedUserIds = notificationSendService
+                .reservePendingForMatchLiveLinkCreated(matchId, teamIdA, teamIdB, poolId);
+
+        processNotificationPipeline(
+                matchId,
+                reservedUserIds,
+                NotificationType.MATCH_LIVE_LINK_CREATED,
+                content,
+                baseMetadata,
+                "match_live_link_created");
+    }
+
+    /**
+     * Pipeline générique : inbox + résolution tokens + push Expo + markSent/Failed.
+     */
+    private void processNotificationPipeline(
+            Long matchId,
+            List<Long> reservedUserIds,
+            NotificationType notificationType,
+            ResolvedContent content,
+            ObjectNode baseMetadata,
+            String logContext) {
+        if (reservedUserIds == null || reservedUserIds.isEmpty()) {
             logger.info("No recipients reserved",
-                    keyValue("action", "notification_reserve_empty"),
+                    keyValue("action", "notification_reserve_empty_" + logContext),
                     keyValue("matchId", matchId));
             return;
         }
 
         logger.info("Starting token resolution & push",
-                keyValue("action", "notification_push_start"),
+                keyValue("action", "notification_push_start_" + logContext),
                 keyValue("matchId", matchId),
                 keyValue("reservedCount", reservedUserIds.size()),
                 keyValue("resolvePageSize", RESOLVE_PAGE_SIZE),
                 keyValue("expoBatchSize", EXPO_BATCH_SIZE),
-                keyValue("title", content.title),
-                keyValue("body", content.body));
+                keyValue("title", content.title()),
+                keyValue("body", content.body()));
 
+        // 1) Inbox notifications
         List<UserNotification> bulk = new ArrayList<>(reservedUserIds.size());
         for (Long userId : reservedUserIds) {
             JsonNode meta = baseMetadata.deepCopy();
             bulk.add(UserNotification.builder()
                     .userId(userId)
-                    .type(NotificationType.MATCH_FINISHED)
-                    .title(content.title)
-                    .body(content.body)
+                    .type(notificationType)
+                    .title(content.title())
+                    .body(content.body())
                     .deepLink("/match/" + matchId)
                     .targetType(NotificationTargetType.MATCH)
                     .targetId(matchId)
@@ -88,10 +136,11 @@ public class NotificationOrchestratorService {
         userNotificationService.createNotificationsBatch(bulk);
 
         logger.info("User notifications created",
-                keyValue("action", "user_notifications_created"),
+                keyValue("action", "user_notifications_created_" + logContext),
                 keyValue("matchId", matchId),
                 keyValue("count", reservedUserIds.size()));
 
+        // 2) Pagination des users pour résolution des tokens & push Expo
         int pageIndex = 0;
         for (int from = 0; from < reservedUserIds.size(); from += RESOLVE_PAGE_SIZE, pageIndex++) {
             int to = Math.min(from + RESOLVE_PAGE_SIZE, reservedUserIds.size());
@@ -113,8 +162,8 @@ public class NotificationOrchestratorService {
                     for (String token : tokens) {
                         messages.add(ExpoMessageDTO.builder()
                                 .to(token)
-                                .title(content.title)
-                                .body(content.body)
+                                .title(content.title())
+                                .body(content.body())
                                 .userId(userId)
                                 .matchId(matchId)
                                 .data(Map.of("url", "blockout://match/" + matchId))
@@ -124,7 +173,7 @@ public class NotificationOrchestratorService {
             }
 
             logger.info("Resolve page built",
-                    keyValue("action", "notification_resolve_page"),
+                    keyValue("action", "notification_resolve_page_" + logContext),
                     keyValue("matchId", matchId),
                     keyValue("pageIndex", pageIndex),
                     keyValue("pageSize", pageUserIds.size()),
@@ -142,32 +191,37 @@ public class NotificationOrchestratorService {
                 try {
                     ExpoBatchResultDTO result = expoPushService.sendBatch(batch);
 
-                    if (result.getUserIdsOk() != null)
+                    if (result.getUserIdsOk() != null) {
                         usersSent.addAll(result.getUserIdsOk());
-                    if (result.getUserIdsFailed() != null)
+                    }
+                    if (result.getUserIdsFailed() != null) {
                         usersFailed.addAll(result.getUserIdsFailed());
-                    if (result.getInvalidTokens() != null)
+                    }
+                    if (result.getInvalidTokens() != null) {
                         invalidTokens.addAll(result.getInvalidTokens());
+                    }
 
                     logger.info("Expo batch done",
-                            keyValue("action", "expo_batch_done"),
+                            keyValue("action", "expo_batch_done_" + logContext),
                             keyValue("matchId", matchId),
                             keyValue("pageIndex", pageIndex),
                             keyValue("batchIndex", batchIndex),
                             keyValue("batchSize", batch.size()),
-                            keyValue("okUsers", result.getUserIdsOk() != null ? result.getUserIdsOk().size() : 0),
+                            keyValue("okUsers",
+                                    result.getUserIdsOk() != null ? result.getUserIdsOk().size() : 0),
                             keyValue("failedUsers",
                                     result.getUserIdsFailed() != null ? result.getUserIdsFailed().size() : 0),
                             keyValue("invalidTokens",
                                     result.getInvalidTokens() != null ? result.getInvalidTokens().size() : 0));
 
                 } catch (Exception ex) {
-                    Set<Long> batchUsers = batch.stream().map(ExpoMessageDTO::getUserId)
+                    Set<Long> batchUsers = batch.stream()
+                            .map(ExpoMessageDTO::getUserId)
                             .collect(Collectors.toCollection(LinkedHashSet::new));
                     usersFailed.addAll(batchUsers);
 
                     logger.error("Expo batch send failed",
-                            keyValue("action", "expo_batch_failed"),
+                            keyValue("action", "expo_batch_failed_" + logContext),
                             keyValue("matchId", matchId),
                             keyValue("pageIndex", pageIndex),
                             keyValue("batchIndex", batchIndex),
@@ -187,7 +241,7 @@ public class NotificationOrchestratorService {
             }
 
             logger.info("Resolve+push page done",
-                    keyValue("action", "notification_page_done"),
+                    keyValue("action", "notification_page_done_" + logContext),
                     keyValue("matchId", matchId),
                     keyValue("pageIndex", pageIndex),
                     keyValue("pageUsers", pageUserIds.size()),
@@ -196,12 +250,21 @@ public class NotificationOrchestratorService {
         }
 
         logger.info("Push pipeline completed",
-                keyValue("action", "notification_push_done"),
+                keyValue("action", "notification_push_done_" + logContext),
                 keyValue("matchId", matchId),
                 keyValue("time", Instant.now()));
     }
 
-    private ResolvedContent resolveContent(Long matchId, Long teamIdA, Long teamIdB, Long poolId, String set) {
+    // -----------------------------------------------------------------------------------------------------------------
+    // Résolution du contenu
+    // -----------------------------------------------------------------------------------------------------------------
+
+    private ResolvedContent resolveFinishedContent(
+            Long matchId,
+            Long teamIdA,
+            Long teamIdB,
+            Long poolId,
+            String set) {
         String poolName = "Match terminé";
         Long divisionId = null;
         String teamAName = "Équipe A";
@@ -250,7 +313,60 @@ public class NotificationOrchestratorService {
         return new ResolvedContent(poolName, body, divisionId);
     }
 
-    /** Petite record interne pour transporter titre+corps+logo */
+    private ResolvedContent resolveLiveLinkContent(
+            Long matchId,
+            Long teamIdA,
+            Long teamIdB,
+            Long poolId) {
+        String poolName = "Nouveau live disponible";
+        Long divisionId = null;
+        String teamAName = "Équipe A";
+        String teamBName = "Équipe B";
+
+        try {
+            PoolDTO pool = poolClientService.getPoolById(poolId);
+            if (pool != null) {
+                if (pool.getName() != null && !pool.getName().isBlank()) {
+                    poolName = pool.getName();
+                }
+                if (pool.getDivisionId() != null) {
+                    divisionId = pool.getDivisionId();
+                }
+            }
+        } catch (Exception ex) {
+            logger.warn("Failed to resolve pool name for live link",
+                    keyValue("action", "pool_resolve_failed_live_link"),
+                    keyValue("matchId", matchId),
+                    ex);
+        }
+
+        try {
+            TeamDTO ta = teamClientService.getTeamById(teamIdA);
+            if (ta != null && ta.getShortName() != null && !ta.getShortName().isBlank()) {
+                teamAName = ta.getShortName();
+            }
+
+            TeamDTO tb = teamClientService.getTeamById(teamIdB);
+            if (tb != null && tb.getShortName() != null && !tb.getShortName().isBlank()) {
+                teamBName = tb.getShortName();
+            }
+
+        } catch (Exception ex) {
+            logger.warn("Failed to resolve team names for live link",
+                    keyValue("action", "teams_resolve_failed_live_link"),
+                    keyValue("matchId", matchId),
+                    keyValue("teamIdA", teamIdA),
+                    keyValue("teamIdB", teamIdB),
+                    ex);
+        }
+
+        String title = poolName;
+        String body = String.format("Un lien de live vient d’être publié pour %s vs %s.", teamAName, teamBName);
+
+        return new ResolvedContent(title, body, divisionId);
+    }
+
+    /** Petite record interne pour transporter titre+corps+divisionId */
     private record ResolvedContent(String title, String body, Long divisionId) {
     }
 }

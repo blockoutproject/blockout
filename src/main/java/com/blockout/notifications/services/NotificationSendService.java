@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.blockout.notifications.models.enums.NotificationStatus;
+import com.blockout.notifications.models.enums.NotificationType;
 import com.blockout.notifications.repositories.NotificationSendRepository;
 
 import java.time.LocalDateTime;
@@ -24,21 +25,20 @@ public class NotificationSendService {
     private final NotificationSendRepository notificationSendRepository;
 
     /**
-     * Réserve (idempotent) tous les destinataires pour un match donné à partir des
-     * entités liées.
-     * Renvoie la liste des userIds effectivement nouvellement insérés en PENDING.
-     *
-     * @param matchId id du match
-     * @param teamIdA id équipe A
-     * @param teamIdB id équipe B
-     * @param poolId  id poule
+     * Match terminé : réserve les destinataires (idempotent) pour le type
+     * MATCH_FINISHED.
      */
     @Transactional
-    public List<Long> reservePendingForMatch(Long matchId, Long teamIdA, Long teamIdB, Long poolId) {
-        List<Long> reserved = notificationSendRepository.insertPendingForMatch(matchId, teamIdA, teamIdB, poolId);
+    public List<Long> reservePendingForMatchFinished(Long matchId, Long teamIdA, Long teamIdB, Long poolId) {
+        List<Long> reserved = notificationSendRepository.insertPendingForMatchAndType(
+                matchId,
+                teamIdA,
+                teamIdB,
+                poolId,
+                NotificationType.MATCH_FINISHED.name());
 
-        logger.info("Recipients reserved for match",
-                keyValue("action", "notification_reserve"),
+        logger.info("Recipients reserved for MATCH_FINISHED",
+                keyValue("action", "notification_reserve_match_finished"),
                 keyValue("matchId", matchId),
                 keyValue("teamIdA", teamIdA),
                 keyValue("teamIdB", teamIdB),
@@ -49,9 +49,31 @@ public class NotificationSendService {
     }
 
     /**
-     * Marque les envois comme SENT (ou SENT_NO_TOKEN si noToken=true) pour un match
-     * et une liste d'utilisateurs.
+     * Lien de live créé : réserve les destinataires (idempotent) pour le type
+     * MATCH_LIVE_LINK_CREATED.
      */
+    @Transactional
+    public List<Long> reservePendingForMatchLiveLinkCreated(Long matchId, Long teamIdA, Long teamIdB, Long poolId) {
+        List<Long> reserved = notificationSendRepository.insertPendingForMatchAndType(
+                matchId,
+                teamIdA,
+                teamIdB,
+                poolId,
+                NotificationType.MATCH_LIVE_LINK_CREATED.name());
+
+        logger.info("Recipients reserved for MATCH_LIVE_LINK_CREATED",
+                keyValue("action", "notification_reserve_match_live_link"),
+                keyValue("matchId", matchId),
+                keyValue("teamIdA", teamIdA),
+                keyValue("teamIdB", teamIdB),
+                keyValue("poolId", poolId),
+                keyValue("reservedCount", reserved.size()));
+
+        return reserved;
+    }
+
+    // ---- le reste de ton service reste identique ----
+
     @Transactional
     public int markSent(Long matchId, Collection<Long> userIds, boolean noToken) {
         LocalDateTime now = LocalDateTime.now();
@@ -71,9 +93,6 @@ public class NotificationSendService {
         return n;
     }
 
-    /**
-     * Marque des envois en FAILED avec code/raison, par ex. rejet Expo immédiat.
-     */
     @Transactional
     public int markFailed(Long matchId, Collection<Long> userIds, String errorCode, String errorDetail) {
         LocalDateTime now = LocalDateTime.now();
@@ -86,9 +105,6 @@ public class NotificationSendService {
         return n;
     }
 
-    /**
-     * Marque des envois en DELIVERED (si tu actives les receipts Expo plus tard).
-     */
     @Transactional
     public int markDelivered(Long matchId, Collection<Long> userIds) {
         LocalDateTime now = LocalDateTime.now();
