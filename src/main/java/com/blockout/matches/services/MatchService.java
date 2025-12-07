@@ -90,6 +90,14 @@ public class MatchService {
         Instant now = Instant.now();
         LocalDate todayParis = LocalDate.now(PARIS);
 
+        logger.info("getMatchesByDay called",
+                keyValue("poolIds", poolIds),
+                keyValue("teamIds", teamIds),
+                keyValue("status", status),
+                keyValue("page", page),
+                keyValue("size", size),
+                keyValue("active", active));
+
         List<LocalDate> allDays;
         if (status == MatchStatus.UPCOMING) {
             allDays = matchRepository.findDistinctUpcomingDatesIncludingToday(
@@ -103,13 +111,25 @@ public class MatchService {
                     teamIds, teamIds.size());
         }
 
+        logger.info("Distinct days found",
+                keyValue("daysCount", allDays.size()),
+                keyValue("days", allDays));
+
         int fromIndex = page * size;
         if (fromIndex >= allDays.size()) {
+            logger.warn("Pagination overflow",
+                    keyValue("fromIndex", fromIndex),
+                    keyValue("allDaysSize", allDays.size()));
             return new DayPageDTO(Collections.emptyList(), false, null);
         }
 
         int toIndex = Math.min(fromIndex + size, allDays.size());
         List<LocalDate> subDays = allDays.subList(fromIndex, toIndex);
+
+        logger.info("Pagination applied",
+                keyValue("fromIndex", fromIndex),
+                keyValue("toIndex", toIndex),
+                keyValue("subDays", subDays));
 
         LocalDate minDay, maxDay;
         if (status == MatchStatus.UPCOMING) {
@@ -132,7 +152,11 @@ public class MatchService {
                     : maxDay.plusDays(1).atStartOfDay(PARIS).toInstant();
         }
 
-        // 1) On récupère tous les matchs de la plage
+        logger.info("Date range computed",
+                keyValue("startOfMinDay", startOfMinDay),
+                keyValue("endInstant", endInstant));
+
+        // 1) Tous les matchs
         List<Match> allMatches = (status == MatchStatus.UPCOMING)
                 ? matchRepository.findAllInRangeAsc(
                         startOfMinDay,
@@ -149,11 +173,15 @@ public class MatchService {
                         teamIds, teamIds.size(),
                         active);
 
+        logger.info("Matches fetched",
+                keyValue("matchCount", allMatches.size()));
+
         if (allMatches.isEmpty()) {
+            logger.warn("No matches found in range");
             return new DayPageDTO(Collections.emptyList(), false, hasNext(allDays, toIndex) ? page + 1 : null);
         }
 
-        // 2) On récupère tous les liens actifs de ces matchs en un seul coup
+        // 2) Tous les liens actifs
         List<Long> matchIds = allMatches.stream()
                 .map(Match::getId)
                 .distinct()
@@ -162,12 +190,13 @@ public class MatchService {
         List<MatchLiveLink> activeLinks = matchLiveLinkRepository
                 .findByMatchIdInAndStatus(matchIds, LiveLinkStatus.ACTIVE);
 
-        // Map matchId -> lien actif
+        logger.info("Active live links fetched",
+                keyValue("activeLinksCount", activeLinks.size()));
+
         Map<Long, MatchLiveLink> activeByMatchId = activeLinks.stream()
                 .collect(Collectors.toMap(
                         l -> l.getMatch().getId(),
                         l -> l,
-                        // au cas où, on garde le plus récent
                         (l1, l2) -> l1.getCreatedAt().isAfter(l2.getCreatedAt()) ? l1 : l2));
 
         // 3) Grouping par jour
@@ -175,13 +204,25 @@ public class MatchService {
                 .collect(Collectors.groupingBy(
                         m -> ZonedDateTime.ofInstant(m.getMatchDate(), PARIS).toLocalDate()));
 
-        // 4) Construction des DTO avec liveUrl / provider
+        logger.info("Matches grouped by date",
+                keyValue("groupedDates", matchesByDate.keySet()));
+
+        // 4) Construction des DTO
         List<DayMatchesDTO> dayMatchesList = subDays.stream()
                 .map(day -> {
+
                     List<Match> matchesForDay = matchesByDate.getOrDefault(day, Collections.emptyList());
+
+                    logger.info("Matches for day",
+                            keyValue("day", day),
+                            keyValue("matchCount", matchesForDay.size()));
 
                     Map<Long, List<Match>> matchesByPool = matchesForDay.stream()
                             .collect(Collectors.groupingBy(Match::getPoolId, TreeMap::new, Collectors.toList()));
+
+                    logger.info("Pools for day",
+                            keyValue("day", day),
+                            keyValue("poolIds", matchesByPool.keySet()));
 
                     List<PoolMatchesDTO> poolsDto = matchesByPool.entrySet().stream()
                             .map(e -> {
@@ -189,6 +230,7 @@ public class MatchService {
                                 List<MatchDTO> matchDtos = e.getValue().stream()
                                         .map(m -> {
                                             MatchLiveLink live = activeByMatchId.get(m.getId());
+
                                             return MatchDTO.builder()
                                                     .id(m.getId())
                                                     .matchCode(m.getMatchCode())
@@ -212,6 +254,11 @@ public class MatchService {
                                         })
                                         .toList();
 
+                                logger.info("Pool matches built",
+                                        keyValue("day", day),
+                                        keyValue("poolId", poolId),
+                                        keyValue("matchCount", matchDtos.size()));
+
                                 return new PoolMatchesDTO(poolId, matchDtos);
                             })
                             .toList();
@@ -222,6 +269,11 @@ public class MatchService {
 
         boolean hasNext = (toIndex < allDays.size());
         Integer nextPage = hasNext ? (page + 1) : null;
+
+        logger.info("Final result built",
+                keyValue("dayCount", dayMatchesList.size()),
+                keyValue("hasNext", hasNext),
+                keyValue("nextPage", nextPage));
 
         return new DayPageDTO(dayMatchesList, hasNext, nextPage);
     }
