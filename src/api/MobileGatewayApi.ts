@@ -1,4 +1,3 @@
-// MobileGatewayApi.ts
 import { ClubApi } from "./ClubApi";
 import { MatchApi } from "./MatchApi";
 import { PoolApi } from "./PoolApi";

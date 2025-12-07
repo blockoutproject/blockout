@@ -91,7 +91,7 @@ const MatchLiveModerationItem: React.FC<Props> = ({ match, onPress }) => {
                 return {
                     label: "Expiré",
                     backgroundColor: theme.borderSecondary,
-                    color: theme.textInactive,
+                    color: theme.text,
                     icon: "timer-off-outline" as const,
                 };
             default:

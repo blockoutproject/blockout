@@ -225,7 +225,7 @@ const MatchList: React.FC<MatchListProps> = ({
                         retryLabel={poolIds?.length || teamIds?.length ? "Réessayer" : undefined}
                         subtitle={
                             poolIds?.length || teamIds?.length
-                                ? "Aucun match à venir pour les équipes ou poules sélectionnées."
+                                ? "Aucun match trouvé pour les équipes ou poules sélectionnées."
                                 : "Commence par suivre une équipe ou une poule pour voir les matchs ici !"
                         }
                         paddingTop={home ? "30%" : "10%"}

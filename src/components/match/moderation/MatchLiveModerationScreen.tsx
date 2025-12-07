@@ -1,9 +1,9 @@
+// MatchLiveModerationScreen.tsx
 import React, {
     useCallback,
     useMemo,
     useRef,
     useState,
-    useEffect,
 } from "react";
 import {
     View,
@@ -32,13 +32,13 @@ import Filters from "@/src/components/common/Filters";
 import MatchLiveModerationItem from "@/src/components/match/moderation/MatchLiveModerationItem";
 import BottomSheetCustomPage from "@/src/components/common/bottomSheet/BottomSheetCustomPage";
 import MatchLiveLinksHistoryScreen from "./MatchLiveLinksHistoryScreen";
-import { Ban } from "lucide-react-native";
 
 const STATUS_FILTERS: Filter[] = [
     { name: "En attente", isActive: false },
     { name: "Actifs", isActive: false },
     { name: "Rejetés", isActive: false },
     { name: "Désactivés", isActive: false },
+    { name: "Bannis", isActive: false },
     { name: "Expirés", isActive: false },
 ];
 
@@ -47,7 +47,7 @@ const FILTER_NAME_TO_STATUS: Record<string, LiveLinkStatus | null> = {
     Actifs: "ACTIVE",
     Rejetés: "REJECTED",
     Désactivés: "DEACTIVATED",
-    Banni: "BANNED",
+    Bannis: "BANNED",
     Expirés: "EXPIRED",
 };
 
@@ -55,15 +55,8 @@ const MatchLiveModerationScreen: React.FC = () => {
     const theme = useAppTheme();
     const insets = useSafeAreaInsets();
 
-    const {
-        data,
-        isLoading,
-        refetch,
-        isRefetching,
-        isError,
-    } = useLiveModerationMatches();
-
     const [apiError, setApiError] = useState<string | null>(null);
+    const [isRefreshing, setIsRefreshing] = useState(false);
     const [search, setSearch] = useState("");
     const [statusFilters, setStatusFilters] =
         useState<Filter[]>(STATUS_FILTERS);
@@ -75,15 +68,22 @@ const MatchLiveModerationScreen: React.FC = () => {
     const listRef =
         useRef<FlashListRef<EnrichedMatchLiveSummaryDTO> | null>(null);
 
-    const matches = useMemo<EnrichedMatchLiveSummaryDTO[]>(
-        () => data ?? [],
-        [data],
-    );
-
     const activeStatusName = statusFilters.find((f) => f.isActive)?.name ?? "";
     const activeStatus = useMemo<LiveLinkStatus | null>(
         () => FILTER_NAME_TO_STATUS[activeStatusName] ?? null,
         [activeStatusName],
+    );
+
+    const {
+        data,
+        isLoading,
+        refetch,
+        isError,
+    } = useLiveModerationMatches(activeStatus);
+
+    const matches = useMemo<EnrichedMatchLiveSummaryDTO[]>(
+        () => data ?? [],
+        [data],
     );
 
     const sortedMatches = useMemo(() => {
@@ -98,10 +98,7 @@ const MatchLiveModerationScreen: React.FC = () => {
                 normalizedSearch.length === 0 ||
                 searchTarget.includes(normalizedSearch);
 
-            const statusOk =
-                !activeStatus || match.lastLiveLinkStatus === activeStatus;
-
-            return searchOk && statusOk;
+            return searchOk;
         });
 
         return filtered
@@ -112,20 +109,14 @@ const MatchLiveModerationScreen: React.FC = () => {
                 const db = new Date(b.matchDate).getTime();
                 return db - da;
             });
-    }, [matches, search, activeStatus]);
-
-    useEffect(() => {
-        if (!listRef.current) return;
-        listRef.current.scrollToOffset({
-            animated: false,
-            offset: 0,
-        });
-    }, [activeStatus]);
+    }, [matches, search]);
 
     const handleRefresh = useCallback(async () => {
+        setIsRefreshing(true);
         setApiError(null);
         await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         await refetch();
+        setIsRefreshing(false);
     }, [refetch]);
 
     const handlePressMatch = useCallback(
@@ -136,24 +127,7 @@ const MatchLiveModerationScreen: React.FC = () => {
         [],
     );
 
-    if (isLoading && !data) {
-        return (
-            <>
-                <View
-                    style={[
-                        styles.center,
-                        { backgroundColor: theme.background },
-                    ]}
-                >
-                    <ActivityIndicator size="large" color={theme.text} />
-                </View>
-                <ApiErrorToast
-                    message={apiError}
-                    onHidden={() => setApiError(null)}
-                />
-            </>
-        );
-    }
+    const showFullListLoader = isLoading && !data; // premier chargement uniquement
 
     return (
         <>
@@ -176,38 +150,45 @@ const MatchLiveModerationScreen: React.FC = () => {
                     />
                 </View>
 
-                <FlashList
-                    ref={listRef}
-                    data={sortedMatches}
-                    keyExtractor={(item) => item.id.toString()}
-                    contentContainerStyle={{
-                        paddingHorizontal: 8,
-                        paddingBottom: insets.bottom + 16,
-                        paddingTop: 8,
-                    }}
-                    renderItem={({ item }) => (
-                        <MatchLiveModerationItem
-                            match={item}
-                            onPress={() => handlePressMatch(item)}
-                        />
-                    )}
-                    refreshControl={
-                        <RefreshControl
-                            refreshing={isRefetching}
-                            onRefresh={handleRefresh}
-                            tintColor={theme.text}
-                        />
-                    }
-                    ListEmptyComponent={
-                        <View style={styles.emptyState}>
-                            <Text style={{ color: theme.textInactive }}>
-                                Aucun match à modérer pour le moment.
-                            </Text>
-                        </View>
-                    }
-                    onScrollBeginDrag={Keyboard.dismiss}
-                    showsVerticalScrollIndicator={false}
-                />
+                {/* Zone liste : soit loader centré, soit FlashList */}
+                {showFullListLoader ? (
+                    <View style={styles.listLoader}>
+                        <ActivityIndicator size="large" color={theme.text} />
+                    </View>
+                ) : (
+                    <FlashList
+                        ref={listRef}
+                        data={sortedMatches}
+                        keyExtractor={(item) => item.id.toString()}
+                        contentContainerStyle={{
+                            paddingHorizontal: 8,
+                            paddingBottom: insets.bottom + 16,
+                            paddingTop: 8,
+                        }}
+                        renderItem={({ item }) => (
+                            <MatchLiveModerationItem
+                                match={item}
+                                onPress={() => handlePressMatch(item)}
+                            />
+                        )}
+                        refreshControl={
+                            <RefreshControl
+                                refreshing={isRefreshing}
+                                onRefresh={handleRefresh}
+                                tintColor={theme.text}
+                            />
+                        }
+                        ListEmptyComponent={
+                            <View style={styles.emptyState}>
+                                <Text style={{ color: theme.textInactive }}>
+                                    Aucun match à modérer pour le moment.
+                                </Text>
+                            </View>
+                        }
+                        onScrollBeginDrag={Keyboard.dismiss}
+                        showsVerticalScrollIndicator={false}
+                    />
+                )}
             </View>
 
             <ApiErrorToast
@@ -233,7 +214,7 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
     },
-    center: {
+    listLoader: {
         flex: 1,
         justifyContent: "center",
         alignItems: "center",

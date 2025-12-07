@@ -3,6 +3,7 @@ import {
     EnrichedDayPageDTO,
     EnrichedMatchDTO,
     EnrichedMatchLiveSummaryDTO,
+    LiveLinkStatus,
     MatchLiveLinkDTO,
     MatchLiveLinkReportRequestDTO,
     MatchLiveLinkRequestDTO,
@@ -54,9 +55,11 @@ export class MatchApi extends BaseApi {
         );
     }
 
-    public getMatchesForLiveModeration() {
+    public getMatchesForLiveModeration(status?: LiveLinkStatus) {
+        const params = status ? { status } : undefined;
         return this.httpAuth.get<EnrichedMatchLiveSummaryDTO[]>(
-            "/matches/live-moderation"
+            "/matches/live-moderation",
+            { params },
         );
     }
 

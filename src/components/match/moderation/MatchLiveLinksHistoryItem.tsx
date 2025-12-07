@@ -76,7 +76,7 @@ const MatchLiveLinksHistoryItem: React.FC<Props> = ({
                 return {
                     label: "Désactivé",
                     backgroundColor: theme.surfaceSecondary ?? theme.surface,
-                    color: theme.error,
+                    color: theme.textInactive,
                 };
             case "BANNED":
                 return {

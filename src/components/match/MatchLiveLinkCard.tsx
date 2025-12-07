@@ -67,22 +67,17 @@ const MatchLiveLinkCard: React.FC<Props> = ({
     }, [customUser?.auth0Id, enrichedMatch.liveOwnerAuth0Id]);
 
     const matchDate = useMemo(() => {
-        return enrichedMatch.matchDate
-            ? new Date(enrichedMatch.matchDate)
-            : null;
+        return enrichedMatch.matchDate ? new Date(enrichedMatch.matchDate) : null;
     }, [enrichedMatch.matchDate]);
 
     const isBeforeLiveWindow = useMemo(() => {
         if (!matchDate) return false;
         const now = new Date();
-        const oneHourBefore = new Date(
-            matchDate.getTime() - 60 * 60 * 1000,
-        );
+        const oneHourBefore = new Date(matchDate.getTime() - 60 * 60 * 1000);
         return now < oneHourBefore;
     }, [matchDate]);
 
-    const canCreateLiveLink =
-        !hasLiveLink && canCreateLiveLinkScope;
+    const canCreateLiveLink = !hasLiveLink && canCreateLiveLinkScope;
 
     const canEditExistingLink =
         hasLiveLink &&
@@ -93,7 +88,6 @@ const MatchLiveLinkCard: React.FC<Props> = ({
         (canModerateLiveLinkScope || (isOwner && canDeleteLiveLinkScope));
 
     const canReportLiveLink = hasLiveLink && !isOwner && canReportLiveLinkScope;
-
     const showReportButton = canReportLiveLink || (hasLiveLink && isGuest);
 
     const providerLabel = useMemo(() => {
@@ -141,7 +135,7 @@ const MatchLiveLinkCard: React.FC<Props> = ({
         } else if (isGuest) {
             await Haptics.notificationAsync(
                 Haptics.NotificationFeedbackType.Error,
-            ).catch(() => { });
+            ).catch(() => {});
             onRequireAuth();
         }
     };
@@ -176,9 +170,7 @@ const MatchLiveLinkCard: React.FC<Props> = ({
         return "Vous diffusez ce match ?";
     }, [isFinished]);
 
-    const canShowEmptyStateCta =
-        !hasLiveLink && (canCreateLiveLink || isGuest);
-
+    const canShowEmptyStateCta = !hasLiveLink && (canCreateLiveLink || isGuest);
     const shouldShowCard = hasLiveLink || canShowEmptyStateCta;
 
     if (!shouldShowCard) {
@@ -344,6 +336,39 @@ const MatchLiveLinkCard: React.FC<Props> = ({
                             </Text>
                         </View>
                     )}
+
+                    {!isFinished && hasLiveLink && !isOwner && (
+                        <View
+                            style={[
+                                styles.moderationBox,
+                                {
+                                    backgroundColor: theme.surface,
+                                    borderColor: theme.border,
+                                },
+                            ]}
+                        >
+                            <Text
+                                style={[
+                                    styles.moderationHint,
+                                    { color: theme.textInactive },
+                                ]}
+                            >
+                                Les liens de live sont publiés par la
+                                communauté et ne sont pas toujours vérifiés. Si
+                                le lien est incorrect, tu peux{" "}
+                                <Text
+                                    style={[
+                                        styles.moderationLink,
+                                        { color: theme.warning },
+                                    ]}
+                                    onPress={handlePressReportButton}
+                                >
+                                    le signaler
+                                </Text>
+                                .
+                            </Text>
+                        </View>
+                    )}
                 </View>
             </GradientBorderView>
 
@@ -465,5 +490,10 @@ const styles = StyleSheet.create({
     moderationHint: {
         fontSize: 12,
         fontWeight: "600",
+    },
+    moderationLink: {
+        fontSize: 12,
+        fontWeight: "700",
+        textDecorationLine: "underline",
     },
 });

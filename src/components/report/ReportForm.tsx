@@ -9,7 +9,6 @@ import * as ImageManipulator from "expo-image-manipulator";
 import { Image } from "expo-image";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import * as Device from "expo-device";
-import * as Application from "expo-application";
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import { ReportType, type Report, type GitHubIssueResponse } from "@/src/types/Report";
 import Filters from "@/src/components/common/Filters";
@@ -46,6 +45,7 @@ type FormValues = {
 const CATEGORY_OPTIONS = [
     { name: "Bug d'affichage", value: ReportType.DISPLAY_BUG },
     { name: "Données", value: ReportType.DATA_ERROR },
+    { name: "Logo", value: ReportType.LOGO },
     { name: "Live", value: ReportType.LIVE },
     { name: "Autre", value: ReportType.OTHER },
 ] as const;
