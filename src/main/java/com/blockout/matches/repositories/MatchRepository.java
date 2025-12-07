@@ -49,43 +49,69 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
 
     Page<Match> findAllByMatchDateLessThanEqual(Instant today, Pageable pageable);
 
-    @Query("SELECT m FROM Match m WHERE m.poolId = :poolId " +
-            "AND m.teamIdA = :teamIdA AND m.teamIdB = :teamIdB " +
-            "AND DATE(m.matchDate) = :matchDate")
+    @Query("""
+            SELECT m FROM Match m WHERE m.poolId = :poolId
+                AND m.teamIdA = :teamIdA AND m.teamIdB = :teamIdB
+                AND DATE(m.matchDate) = :matchDate
+            """)
     Optional<Match> findByPoolIdAndTeamIdAAndTeamIdBAndMatchDate(
             @Param("poolId") Long poolId,
             @Param("teamIdA") Long teamIdA,
             @Param("teamIdB") Long teamIdB,
             @Param("matchDate") LocalDate matchDate);
 
+    /**
+     * Jours distincts pour les matchs terminés, calculés en Europe/Paris.
+     * On utilise la fonction Postgres:
+     *   date(timezone('Europe/Paris', m.matchDate))
+     * que Hibernate expose via FUNCTION(...).
+     */
     @Query("""
-                SELECT DISTINCT CAST(m.matchDate AS LocalDate)
-                FROM Match m
-                WHERE m.matchDate <= :today
-                    AND m.status = 'FINISHED'
-                    AND (
-                        (:poolIdsSize > 0 AND m.poolId IN :poolIds)
-                        OR (:teamIdsSize > 0 AND (m.teamIdA IN :teamIds OR m.teamIdB IN :teamIds))
-                    )
-                ORDER BY CAST(m.matchDate AS LocalDate) DESC
+            SELECT DISTINCT FUNCTION(
+                        'date',
+                        FUNCTION('timezone', 'Europe/Paris', m.matchDate)
+                   )
+            FROM Match m
+            WHERE m.matchDate <= :now
+                AND m.status = 'FINISHED'
+                AND (
+                    (:poolIdsSize > 0 AND m.poolId IN :poolIds)
+                    OR (:teamIdsSize > 0 AND (m.teamIdA IN :teamIds OR m.teamIdB IN :teamIds))
+                )
+            ORDER BY FUNCTION(
+                        'date',
+                        FUNCTION('timezone', 'Europe/Paris', m.matchDate)
+                   ) DESC
             """)
     List<LocalDate> findDistinctDatesUntil(
-            @Param("today") Instant today,
+            @Param("now") Instant now,
             @Param("poolIds") List<Long> poolIds,
             @Param("poolIdsSize") int poolIdsSize,
             @Param("teamIds") List<Long> teamIds,
             @Param("teamIdsSize") int teamIdsSize);
 
+    /**
+     * Jours distincts à venir (UPCOMING), calculés en Europe/Paris.
+     */
     @Query("""
-                SELECT DISTINCT CAST(m.matchDate AS LocalDate)
-                FROM Match m
-                WHERE m.status = 'UPCOMING'
-                    AND CAST(m.matchDate AS LocalDate) >= :today
-                    AND (
-                        (:poolIdsSize > 0 AND m.poolId IN :poolIds)
-                        OR (:teamIdsSize > 0 AND (m.teamIdA IN :teamIds OR m.teamIdB IN :teamIds))
-                    )
-                ORDER BY CAST(m.matchDate AS LocalDate) ASC
+            SELECT DISTINCT FUNCTION(
+                        'date',
+                        FUNCTION('timezone', 'Europe/Paris', m.matchDate)
+                   )
+            FROM Match m
+            WHERE m.status = 'UPCOMING'
+                AND FUNCTION(
+                        'date',
+                        FUNCTION('timezone', 'Europe/Paris', m.matchDate)
+                    ) >= :today
+                AND (
+                    (:poolIdsSize > 0 AND m.poolId IN :poolIds)
+                    OR (:teamIdsSize > 0 AND (m.teamIdA IN :teamIds OR m.teamIdB IN :teamIds))
+                )
+            ORDER BY FUNCTION(
+                        'date',
+                        FUNCTION('timezone', 'Europe/Paris', m.matchDate)
+                   ) ASC
             """)
     List<LocalDate> findDistinctUpcomingDatesIncludingToday(
             @Param("today") LocalDate today,
@@ -157,9 +183,9 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
             @Param("teamIdsSize") int teamIdsSize);
 
     @Query("""
-        SELECT DISTINCT m
-        FROM Match m
-        JOIN FETCH m.liveLinks l
-        """)
+            SELECT DISTINCT m
+            FROM Match m
+            JOIN FETCH m.liveLinks l
+            """)
     List<Match> findAllWithLiveLinks();
 }
