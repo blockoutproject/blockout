@@ -93,24 +93,19 @@ def extract_season_from_url(url: str) -> Optional[str]:
 
 def parse_date(date_str: str, time_str: str) -> Optional[datetime]:
     """
-    Convertit des chaînes de date et d'heure en objet datetime.
+    Convertit des chaînes de date et d'heure en objet datetime UTC.
+    Si time_str == "00:00", on force directement en UTC sans conversion Paris.
     """
     try:
-        # 1) datetime NAÏF
         naive = datetime.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M")
 
-        # 2) On dit clairement : cette date est en Europe/Paris
-        paris_time = naive.replace(tzinfo=ZoneInfo("Europe/Paris"))
+        if time_str == "00:00":
+            return naive.replace(tzinfo=ZoneInfo("UTC"))
 
-        # 3) On convertit en UTC → universel
+        paris_time = naive.replace(tzinfo=ZoneInfo("Europe/Paris"))
         return paris_time.astimezone(ZoneInfo("UTC"))
-    except ValueError as e:
-        # log_event(
-        #     action="parse_date",
-        #     level="error",
-        #     message=f"Erreur lors de la conversion des dates: {date_str} {time_str}",
-        #     error=str(e)
-        # )
+
+    except ValueError:
         return None
     
 def to_dict(object) -> dict:
