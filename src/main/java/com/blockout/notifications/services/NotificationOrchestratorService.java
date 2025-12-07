@@ -318,6 +318,7 @@ public class NotificationOrchestratorService {
             Long teamIdA,
             Long teamIdB,
             Long poolId) {
+
         String poolName = "Nouveau live disponible";
         Long divisionId = null;
         String teamAName = "Équipe A";
@@ -361,7 +362,11 @@ public class NotificationOrchestratorService {
         }
 
         String title = poolName;
-        String body = String.format("Un lien de live vient d’être publié pour %s vs %s.", teamAName, teamBName);
+
+        String body = String.format(
+                "🔴 Le match %s vs %s est en live ! Clique pour regarder",
+                teamAName,
+                teamBName);
 
         return new ResolvedContent(title, body, divisionId);
     }
