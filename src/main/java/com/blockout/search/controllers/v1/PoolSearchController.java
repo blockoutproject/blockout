@@ -30,7 +30,7 @@ public class PoolSearchController {
     public ResponseEntity<List<PoolSearchDocDTO>> search(
             @RequestParam String query,
             @RequestParam(required = false) String season,
-            @RequestParam(required = false) Long divisionId
+            @RequestParam(required = false, name = "division_id") Long divisionId
     ) {
         List<PoolSearchDocDTO> results = poolSearchService.autocomplete(query, season, divisionId);
         return ResponseEntity.ok(results);

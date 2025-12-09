@@ -30,7 +30,7 @@ public class TeamSearchController {
     public ResponseEntity<List<TeamSearchDocDTO>> search(
             @RequestParam String query,
             @RequestParam(required = false) String season,
-            @RequestParam(required = false) Long divisionId
+            @RequestParam(required = false, name = "division_id") Long divisionId
     ) {
         List<TeamSearchDocDTO> results = teamSearchService.autocomplete(query, season, divisionId);
         return ResponseEntity.ok(results);
