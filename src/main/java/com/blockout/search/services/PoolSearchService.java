@@ -28,7 +28,7 @@ public class PoolSearchService {
     private static final long TERMINATE_AFTER_QUERY = 5_000L;
     private static final String TIMEOUT = "150ms";
 
-    public List<PoolSearchDocDTO> autocomplete(String input, String season) {
+    public List<PoolSearchDocDTO> autocomplete(String input, String season, Long divisionId) {
         try {
             if (input == null || input.isBlank()) {
                 Query base = Query.of(q -> q.functionScore(fs -> fs
@@ -36,7 +36,7 @@ public class PoolSearchService {
                         .functions(f -> f.randomScore(rs -> rs))
                 ));
 
-                Query finalQuery = applySeasonFilter(base, season);
+                Query finalQuery = applyFilters(base, season, divisionId);
 
                 SearchResponse<PoolSearchDocDTO> response = elasticsearchClient.search(
                         s -> s.index("pools")
@@ -47,7 +47,8 @@ public class PoolSearchService {
                                 .query(finalQuery)
                                 .source(src -> src.filter(f -> f.includes(
                                         "id", "name", "shortName",
-                                        "divisionName", "leagueCode", "leagueName",
+                                        "divisionId", "divisionName",
+                                        "leagueCode", "leagueName",
                                         "season", "gender", "logoUrl"
                                 ))),
                         PoolSearchDocDTO.class);
@@ -68,7 +69,7 @@ public class PoolSearchService {
                     )
                     .operator(Operator.And)));
 
-            Query finalQuery = applySeasonFilter(multiMatchQuery, season);
+            Query finalQuery = applyFilters(multiMatchQuery, season, divisionId);
 
             SearchResponse<PoolSearchDocDTO> response = elasticsearchClient.search(
                     s -> s.index("pools")
@@ -79,7 +80,8 @@ public class PoolSearchService {
                             .query(finalQuery)
                             .source(src -> src.filter(f -> f.includes(
                                     "id", "name", "shortName",
-                                    "divisionName", "leagueCode", "leagueName",
+                                    "divisionId", "divisionName",
+                                    "leagueCode", "leagueName",
                                     "season", "gender", "logoUrl"
                             ))),
                     PoolSearchDocDTO.class);
@@ -92,14 +94,30 @@ public class PoolSearchService {
         }
     }
 
-    private Query applySeasonFilter(Query baseQuery, String season) {
-        if (season == null || season.isBlank()) return baseQuery;
+    private Query applyFilters(Query baseQuery, String season, Long divisionId) {
+        // Pas de filtre supplémentaire => on renvoie la query de base
+        if ((season == null || season.isBlank()) && divisionId == null) {
+            return baseQuery;
+        }
 
-        Query seasonFilter = Query.of(q -> q.term(t -> t.field("season.keyword").value(season)));
+        BoolQuery.Builder bool = new BoolQuery.Builder().must(baseQuery);
 
-        return Query.of(q -> q.bool(b -> b
-                .must(baseQuery)
-                .filter(seasonFilter)
-        ));
+        if (season != null && !season.isBlank()) {
+            Query seasonFilter = Query.of(q -> q.term(t -> t
+                    .field("season.keyword")
+                    .value(season)
+            ));
+            bool.filter(seasonFilter);
+        }
+
+        if (divisionId != null) {
+            Query divisionFilter = Query.of(q -> q.term(t -> t
+                    .field("divisionId")
+                    .value(divisionId)
+            ));
+            bool.filter(divisionFilter);
+        }
+
+        return Query.of(q -> q.bool(bool.build()));
     }
 }
