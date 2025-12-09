@@ -76,7 +76,8 @@ public class PoolService {
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
 
-        // Enrichissement logos via ClubClientService.getClubLogoUrl (qui sera @Cacheable chez toi)
+        // Enrichissement logos via ClubClientService.getClubLogoUrl (qui sera
+        // @Cacheable chez toi)
         enrichTeamsWithClubLogo(teamsMap.values(), clubClientService);
 
         Comparator<TeamWithStatsDTO> rankingComparator = Comparator.comparingInt(TeamWithStatsDTO::getPoints).reversed()
@@ -117,6 +118,7 @@ public class PoolService {
                 .poolCode(rawPool.getPoolCode())
                 .name(rawPool.getName())
                 .shortName(rawPool.getShortName())
+                .rawName(rawPool.getRawName())
                 .division(division)
                 .format(rawPool.getFormat())
                 .gender(rawPool.getGender())

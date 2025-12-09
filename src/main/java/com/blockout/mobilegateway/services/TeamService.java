@@ -134,6 +134,7 @@ public class TeamService {
                 .name(team.getName())
                 .clubId(team.getClubId())
                 .shortName(team.getShortName())
+                .rawName(team.getRawName())
                 .format(team.getFormat())
                 .gender(team.getGender())
                 .season(team.getSeason())

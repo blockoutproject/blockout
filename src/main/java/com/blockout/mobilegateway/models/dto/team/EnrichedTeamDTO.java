@@ -25,6 +25,9 @@ public class EnrichedTeamDTO {
     @JsonProperty("short_name")
     private String shortName;
 
+    @JsonProperty("raw_name")
+    private String rawName;
+
     private Format format;
 
     private Gender gender;
@@ -37,7 +40,7 @@ public class EnrichedTeamDTO {
     @JsonProperty("logo_url")
     private String logoUrl;
 
-    private ClubDTO club; //TODO: Virer apres passage à la 1.1.0
+    private ClubDTO club; // TODO: Virer apres passage à la 1.1.0
 
     private DivisionDTO division;
 

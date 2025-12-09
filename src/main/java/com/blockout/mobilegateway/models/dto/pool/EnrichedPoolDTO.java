@@ -36,6 +36,9 @@ public class EnrichedPoolDTO {
     @JsonProperty("short_name")
     private String shortName;
 
+    @JsonProperty("raw_name")
+    private String rawName;
+
     private Format format;
 
     private Gender gender;
