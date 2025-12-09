@@ -14,6 +14,7 @@ import { useAppStatus } from "@/src/hooks/config/app/useAppStatus";
 import useHasScopes from "@/src/hooks/user/useHasScopes";
 import type { AppStatusDTO } from "@/src/types/AppStatus";
 import { computeIsUpdateRequired, getStoreUrl } from "@/src/utils/appVersion";
+import { ApiError } from "../api/core/ApiError";
 
 export type SessionActions = {
     signIn: () => Promise<void>;
@@ -189,10 +190,12 @@ export const SessionProvider: React.FC<React.PropsWithChildren> = ({ children })
     const primeApisWithAuth = async () => {
         const tokenSupplier = async () => {
             const creds = await getCredentials(undefined, 60);
+            console.log("[Auth] getCredentials ->", !!creds?.accessToken, "exp:", creds?.expiresIn);
             return creds?.accessToken ?? null;
         };
 
-        const onUnauthorized = async () => {
+        const onUnauthorized = async (err: ApiError) => {
+            console.warn("[Auth] onUnauthorized", err?.status, err?.message)
             try {
                 await clearCredentials();
                 await clearRQCache();

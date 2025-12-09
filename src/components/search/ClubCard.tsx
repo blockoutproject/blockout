@@ -1,7 +1,7 @@
 import React from "react";
 import { useAppTheme } from "@/src/context/ThemeProvider";
-import SearchCard from "./SearchCard";
 import { ClubSearchDocDTO } from "@/src/types/Club";
+import EntityGradientCard from "../common/EntityGradientCard";
 
 export interface ClubCardProps {
     club: ClubSearchDocDTO;
@@ -12,15 +12,19 @@ const ClubCard: React.FC<ClubCardProps> = ({ club, onPress }) => {
     const theme = useAppTheme();
 
     return (
-        <SearchCard
+        <EntityGradientCard
             title={club.name}
             imageUri={club.logoUrl}
             chips={[
-                { label: club.city, icon: "map-marker", labelStyle: { fontSize: 12, color: theme.textSecondary } },
+                {
+                    label: club.city,
+                    icon: "map-marker",
+                },
             ]}
             onPress={onPress}
             testID="club-card"
             marginBottom={12}
+            allowChipWrap
         />
     );
 };

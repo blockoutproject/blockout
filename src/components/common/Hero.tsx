@@ -1,12 +1,18 @@
 import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity, StyleSheet as RNStyleSheet } from "react-native";
+import {
+    View,
+    Text,
+    StyleSheet,
+    TouchableOpacity,
+    StyleSheet as RNStyleSheet,
+} from "react-native";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import { withAlpha } from "@/src/utils/utils";
 import MaskedImage from "@/src/components/common/images/MaskedImage";
-import InfoPill from "./chips/InfoPill";
+import InfoPillGradient from "./chips/InfoPillGradient";
 import { CORNERS } from "@/src/theme/globals";
 
 export type HeroProps = {
@@ -148,7 +154,17 @@ const Hero: React.FC<HeroProps> = ({
 
                 {!!subtitle && (
                     <View style={styles.metaRow}>
-                        <InfoPill leftIconName={subtitleIcon} label={subtitle}/>
+                        <InfoPillGradient
+                            label={subtitle}
+                            leftIcon={subtitleIcon}
+                            size="lg"
+                            variant="filled"
+                            gradient={undefined}
+                            borderWidth={1}
+                            backgroundColor={withAlpha(theme.surface, 0.9)}
+                            borderColor={withAlpha(theme.text, 0.16)}
+                            textColor={theme.text}
+                        />
                     </View>
                 )}
             </View>

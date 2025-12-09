@@ -19,4 +19,6 @@ export interface AppTheme {
     gold: string;
     silver: string;
     bronze: string;
+    male: string;
+    female: string;
 }

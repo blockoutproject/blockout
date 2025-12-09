@@ -1,5 +1,3 @@
-// FILE: src/components/match/MatchRow.tsx
-
 import React from "react";
 import { Text, View, StyleSheet } from "react-native";
 import { EnrichedMatchDTO, MatchStatus } from "@/src/types/Match";
@@ -8,7 +6,7 @@ import { withAlpha } from "@/src/utils/utils";
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import MaskedImage from "../common/images/MaskedImage";
 import GradientBorderView from "../common/GradientBorderView";
-import InfoPill from "@/src/components/common/chips/InfoPill";
+import InfoPillGradient from "@/src/components/common/chips/InfoPillGradient";
 
 export type MatchRowProps = {
     enrichedMatch: EnrichedMatchDTO;
@@ -53,11 +51,17 @@ const MatchRow: React.FC<MatchRowProps> = ({ enrichedMatch, division }) => {
             {/* Ligne dédiée en haut à droite pour la pastille Live / Rediff */}
             {livePillLabel && (
                 <View style={styles.topRow}>
-                    <InfoPill
+                    <InfoPillGradient
                         label={livePillLabel}
-                        leftIconName="video-outline"
+                        leftIcon="video-outline"
+                        gradient={undefined}
+                        variant="filled"
+                        size="sm"
+                        borderWidth={1}
+                        backgroundColor={theme.background}
+                        borderColor={withAlpha(theme.text, 0.16)}
+                        textColor={theme.text}
                         showRedDot={!isFinished}
-                        overlayColor={theme.background}
                         style={styles.livePill}
                         labelStyle={styles.livePillText}
                     />

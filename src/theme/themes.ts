@@ -21,6 +21,8 @@ export const darkTheme: AppTheme = {
     gold: "#FFD700",
     silver: "#C0C0C0",
     bronze: "#CD7F32",
+    male: "#56a5dcff",
+    female: "#df69a4ff",
 };
 
 export const lightTheme: AppTheme = {
@@ -44,18 +46,20 @@ export const lightTheme: AppTheme = {
     gold: "#FFD700",
     silver: "#C0C0C0",
     bronze: "#CD7F32",
+    male: "#56a5dcff",
+    female: "#df69a4ff",
 };
 
 export const poolBorderColorPalettes: readonly [string, string, ...string[]][] = [
-  ['#00c480', '#006fd5', '#00bcd4'], // cyber-aqua
-  ['#4800ff', '#9b00e8', '#e52e71'], // sunset
-  ['#e1af30', '#ff8100', '#e52e71'], // néon
-  // Ajoute d'autres palettes si besoin
+    ['#00c480', '#006fd5', '#00bcd4'], // cyber-aqua
+    ['#4800ff', '#9b00e8', '#e52e71'], // sunset
+    ['#e1af30', '#ff8100', '#e52e71'], // néon
+    // Ajoute d'autres palettes si besoin
 ];
 
 export const poolColorPalettes: readonly [string, string, ...string[]][] = [
-  ['#213d57', '#213d57'], // cyber-aqua
-  ['#3e2c46', '#3e2c46'], // sunset
-  ['#4c3d32', '#4c3d32'], // néon
-  // Ajoute d'autres palettes si besoin
+    ['#213d57', '#213d57'], // cyber-aqua
+    ['#3e2c46', '#3e2c46'], // sunset
+    ['#4c3d32', '#4c3d32'], // néon
+    // Ajoute d'autres palettes si besoin
 ];

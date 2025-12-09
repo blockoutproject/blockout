@@ -8,7 +8,7 @@ import { useAppTheme } from "@/src/context/ThemeProvider";
 import { useSession } from "@/src/context/SessionProvider";
 import { withAlpha } from "@/src/utils/utils";
 import MaskedImage from "@/src/components/common/images/MaskedImage";
-import InfoPill from "@/src/components/common/chips/InfoPill";
+import InfoPillGradient from "@/src/components/common/chips/InfoPillGradient";
 import ApiErrorToast from "@/src/components/common/feedback/ApiErrorToast";
 import { GradientButton } from "@/src/components/common/GradientButton";
 
@@ -24,7 +24,7 @@ const LoginScreen: React.FC = () => {
     const [apiError, setApiError] = useState<string | null>(null);
 
     useEffect(() => {
-        console.log(error)
+        console.log(error);
         if (!isSigningIn && error && !(error?.name === "NO_CREDENTIALS")) {
             setApiError("Erreur lors de la connexion.");
         }
@@ -81,9 +81,39 @@ const LoginScreen: React.FC = () => {
             </Text>
 
             <View style={styles.pillsRow}>
-                <InfoPill leftIconName="flash" label="Scores" />
-                <InfoPill leftIconName="trophy" label="Classements" />
-                <InfoPill leftIconName="bell-outline" label="Suivi équipes" />
+                <InfoPillGradient
+                    label="Scores"
+                    leftIcon="flash"
+                    size="sm"
+                    variant="filled"
+                    gradient={undefined}
+                    borderWidth={1}
+                    backgroundColor={theme.surface}
+                    borderColor={withAlpha(theme.text, 0.12)}
+                    textColor={theme.text}
+                />
+                <InfoPillGradient
+                    label="Classements"
+                    leftIcon="trophy"
+                    size="sm"
+                    variant="filled"
+                    gradient={undefined}
+                    borderWidth={1}
+                    backgroundColor={theme.surface}
+                    borderColor={withAlpha(theme.text, 0.12)}
+                    textColor={theme.text}
+                />
+                <InfoPillGradient
+                    label="Suivi équipes"
+                    leftIcon="bell-outline"
+                    size="sm"
+                    variant="filled"
+                    gradient={undefined}
+                    borderWidth={1}
+                    backgroundColor={theme.surface}
+                    borderColor={withAlpha(theme.text, 0.12)}
+                    textColor={theme.text}
+                />
             </View>
 
             <View style={styles.ctaRow}>
@@ -98,7 +128,6 @@ const LoginScreen: React.FC = () => {
                     textColor="#000"
                 />
 
-                {/* Bouton invité */}
                 <TouchableOpacity
                     onPress={onPressGuest}
                     style={styles.guestButton}

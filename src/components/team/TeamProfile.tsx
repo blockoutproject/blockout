@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { View, StyleSheet, LayoutChangeEvent } from "react-native";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
+
 import { EnrichedTeamDTO } from "@/src/types/Team";
 import { useTeamFollowState } from "@/src/hooks/team/useTeamFollowState";
 import FollowButton from "@/src/components/common/follow/FollowButton";
@@ -9,11 +10,12 @@ import FollowersCounter from "@/src/components/common/follow/FollowersCount";
 import { GenderLabels } from "@/src/types/enums/Gender";
 import { FormatLabels } from "@/src/types/enums/Format";
 import { LOGO_SIZE } from "@/src/theme/globals";
-import InfoPill from "@/src/components/common/chips/InfoPill";
 import MaskedImage from "@/src/components/common/images/MaskedImage";
 import InfoPillGradient from "../common/chips/InfoPillGradient";
 import { useSession } from "@/src/context/SessionProvider";
 import GuestPromptSheet, { GuestPromptSheetRef } from "../user/GuestPromptSheet.tsx";
+import { useAppTheme } from "@/src/context/ThemeProvider";
+import { withAlpha } from "@/src/utils/utils";
 
 export type TeamProfileProps = {
     enrichedTeam: EnrichedTeamDTO;
@@ -47,9 +49,11 @@ function splitBalanced(containerWidth: number, widths: number[], gap: number) {
 
 const TeamProfile: React.FC<TeamProfileProps> = ({ enrichedTeam }) => {
     const router = useRouter();
-    const { isFollowing, isProcessing, followersCount, onToggleFollow } = useTeamFollowState(enrichedTeam);
+    const { isFollowing, isProcessing, followersCount, onToggleFollow } =
+        useTeamFollowState(enrichedTeam);
     const { isGuest } = useSession();
     const guestSheetRef = useRef<GuestPromptSheetRef>(null);
+    const theme = useAppTheme();
 
     const gradient = [
         enrichedTeam.division.firstGradientColor,
@@ -64,7 +68,7 @@ const TeamProfile: React.FC<TeamProfileProps> = ({ enrichedTeam }) => {
             FormatLabels[enrichedTeam.format],
             String(enrichedTeam.season),
         ],
-        [enrichedTeam.division.name, enrichedTeam.gender, enrichedTeam.format, enrichedTeam.season]
+        [enrichedTeam.division.name, enrichedTeam.gender, enrichedTeam.format, enrichedTeam.season],
     );
 
     const [containerWidth, setContainerWidth] = useState(0);
@@ -123,6 +127,20 @@ const TeamProfile: React.FC<TeamProfileProps> = ({ enrichedTeam }) => {
         }
     }, [isGuest]);
 
+    const renderPill = (label: string, key: string | number) => (
+        <InfoPillGradient
+            key={key}
+            label={label}
+            size="sm"
+            variant="filled"
+            gradient={undefined} // 👉 mode "basic"
+            borderWidth={1}
+            backgroundColor={withAlpha(theme.surface, 0.95)}
+            borderColor={withAlpha(theme.text, 0.12)}
+            textColor={theme.textSecondary}
+        />
+    );
+
     return (
         <View style={styles.container} testID="team-profile">
             <MaskedImage uri={enrichedTeam.logoUrl} size={LOGO_SIZE} radius={20} />
@@ -130,15 +148,12 @@ const TeamProfile: React.FC<TeamProfileProps> = ({ enrichedTeam }) => {
             <View style={{ flex: 1 }}>
                 <View onLayout={onContainer} style={styles.twoRows}>
                     <View style={styles.pillsRow}>
-                        {top.map((i) => (
-                            <InfoPill key={`pill-${i}`} label={pills[i]} />
-                        ))}
+                        {top.map((i) => renderPill(pills[i], `pill-${i}`))}
                     </View>
 
                     <View style={styles.pillsRow}>
-                        {bottom.map((i) => (
-                            <InfoPill key={`pill-${i}`} label={pills[i]} />
-                        ))}
+                        {bottom.map((i) => renderPill(pills[i], `pill-bottom-${i}`))}
+
                         <InfoPillGradient
                             leftIcon="home"
                             rightIcon="chevron-forward-outline"
@@ -152,8 +167,11 @@ const TeamProfile: React.FC<TeamProfileProps> = ({ enrichedTeam }) => {
                 {!ready && (
                     <View pointerEvents="none" style={styles.measureRow}>
                         {pills.map((label, i) => (
-                            <View key={`measure-${i}`} onLayout={(e) => onMeasurePill(i, e)}>
-                                <InfoPill label={label} />
+                            <View
+                                key={`measure-${i}`}
+                                onLayout={(e) => onMeasurePill(i, e)}
+                            >
+                                {renderPill(label, `measure-pill-${i}`)}
                             </View>
                         ))}
                     </View>

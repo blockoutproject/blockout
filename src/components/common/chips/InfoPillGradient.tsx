@@ -1,43 +1,55 @@
 import React, { memo } from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import {
+    View,
+    Text,
+    StyleSheet,
+    TouchableOpacity,
+    StyleProp,
+    ViewStyle,
+    TextStyle,
+    DimensionValue,
+} from "react-native";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import { CORNERS } from "@/src/theme/globals";
 import GradientBorderView from "@/src/components/common/GradientBorderView";
 import GradientView from "@/src/components/common/GradientView";
 
+export type PillSize = "sm" | "md" | "lg";
 type Variant = "border" | "filled";
-type Size = "md" | "lg";
 
-type InfoPillGradientProps = {
-    /** Libellé. */
+export type InfoPillGradientProps = {
     label?: string;
-    /** Dégradé. */
-    gradient: readonly [string, string, ...string[]];
-    /** Variante. */
+    gradient?: readonly [string, string, ...string[]];
     variant?: Variant;
-    /** Taille de la pill (md = défaut, lg = +2 de padding H/V). */
-    size?: Size;
-    /** Press. */
+    size?: PillSize;
     onPress?: () => void;
-    /** Désactivation. */
     disabled?: boolean;
-    /** Largeur du bord en mode border. */
     borderWidth?: number;
-    /** Largeur max. */
-    maxWidth?: number;
-    /** Icône gauche (MDI). */
+    maxWidth?: DimensionValue;
     leftIcon?: React.ComponentProps<typeof MaterialCommunityIcons>["name"];
-    /** Icône droite (Ionicons). */
     rightIcon?: React.ComponentProps<typeof Ionicons>["name"];
-    /** Couleur du texte (fallback theme.text). */
     textColor?: string;
+    iconColor?: string;
+    backgroundColor?: string;
+    borderColor?: string;
+    style?: StyleProp<ViewStyle>;
+    labelStyle?: StyleProp<TextStyle>;
+    showRedDot?: boolean;
+    redDotSize?: number;
+    redDotColor?: string;
 };
 
-const BASE_VPAD = 6;
-const BASE_HPAD = 10;
 const GAP = 6;
-const ICON_SIZE = 14;
+
+const PILL_SIZES: Record<
+    PillSize,
+    { padV: number; padH: number; fontSize: number; fontWeight: "600" | "700"; iconSize: number }
+> = {
+    sm: { padV: 3, padH: 6, fontSize: 10, fontWeight: "600", iconSize: 12 },
+    md: { padV: 6, padH: 10, fontSize: 12, fontWeight: "700", iconSize: 14 },
+    lg: { padV: 8, padH: 12, fontSize: 13, fontWeight: "700", iconSize: 16 },
+};
 
 const InfoPillGradient: React.FC<InfoPillGradientProps> = ({
     label,
@@ -46,73 +58,166 @@ const InfoPillGradient: React.FC<InfoPillGradientProps> = ({
     size = "md",
     onPress,
     disabled,
-    borderWidth = 1,
+    borderWidth = 0.5,
     maxWidth,
     leftIcon,
     rightIcon,
     textColor,
+    iconColor,
+    backgroundColor,
+    borderColor,
+    style,
+    labelStyle,
+    showRedDot = false,
+    redDotSize,
+    redDotColor,
 }) => {
     const theme = useAppTheme();
+    const cfg = PILL_SIZES[size];
 
-    const delta = variant === "border" ? borderWidth : 0;
+    const flattenedLabel = StyleSheet.flatten(labelStyle);
+    const effectiveTextColor =
+        flattenedLabel?.color ?? textColor ?? theme.text;
+    const effectiveIconColor = iconColor ?? effectiveTextColor;
 
-    // +2 sur H/V en mode lg
-    const add = size === "lg" ? 2 : 0;
-    const baseV = BASE_VPAD + add;
-    const baseH = BASE_HPAD + add;
+    const hasGradient = !!gradient;
 
-    const padV = Math.max(2, baseV - delta);
-    const padH = Math.max(4, baseH - delta);
+    const baseBorderColor = borderColor ?? theme.border;
+    const baseBackgroundColor =
+        backgroundColor ??
+        (variant === "filled" ? theme.surface : theme.surface); // on garde un fond par défaut, plus jamais "transparent"
+
+    const dotColor = redDotColor ?? theme.error;
+    const baseDotSize =
+        redDotSize ?? (size === "sm" ? 6 : size === "lg" ? 9 : 7);
+    const dotSize = Math.max(3, baseDotSize);
 
     const content = (
         <View
             style={[
                 styles.inner,
-                {
-                    paddingVertical: padV,
-                    paddingHorizontal: padH,
-                    borderRadius: CORNERS - Math.min(CORNERS / 2, delta),
-                    backgroundColor: variant === "border" ? theme.surface : "transparent",
-                },
-                maxWidth ? { maxWidth } : undefined,
+            {
+                paddingVertical: cfg.padV,
+                paddingHorizontal: cfg.padH,
+                borderRadius: CORNERS,
+                maxWidth,
+            },
             ]}
         >
             {leftIcon ? (
-                <MaterialCommunityIcons name={leftIcon} size={ICON_SIZE} color={theme.text} />
+                <MaterialCommunityIcons
+                    name={leftIcon}
+                    size={cfg.iconSize}
+                    color={effectiveIconColor}
+                />
             ) : null}
-            {label && (
-                <Text style={[styles.text, { color: textColor ?? theme.text }]} numberOfLines={1}>
+
+            {label ? (
+                <Text
+                    style={[
+                        styles.text,
+                        {
+                            color: effectiveTextColor,
+                            fontSize: cfg.fontSize,
+                            fontWeight: cfg.fontWeight,
+                        },
+                        labelStyle,
+                    ]}
+                    numberOfLines={1}
+                >
                     {label}
                 </Text>
-            )}
-            {rightIcon ? <Ionicons name={rightIcon} size={ICON_SIZE} color={theme.text} /> : null}
+            ) : null}
+
+            {rightIcon ? (
+                <Ionicons
+                    name={rightIcon}
+                    size={cfg.iconSize}
+                    color={effectiveIconColor}
+                />
+            ) : null}
+
+            {showRedDot ? (
+                <View
+                    style={{
+                        width: dotSize,
+                        height: dotSize,
+                        borderRadius: dotSize / 2,
+                        backgroundColor: dotColor,
+                    }}
+                />
+            ) : null}
         </View>
     );
 
-    if (variant === "filled") {
+    const Wrapper = onPress ? TouchableOpacity : View;
+    const wrapperProps = onPress
+        ? { activeOpacity: 0.9, onPress, disabled }
+        : {};
+
+    // === CAS AVEC GRADIENT ===
+    if (hasGradient) {
+        if (variant === "filled") {
+            return (
+                <GradientView
+                    gradient={gradient!}
+                    style={[styles.outer, { borderRadius: CORNERS }, style]}
+                >
+                    <Wrapper {...(wrapperProps as any)}>{content}</Wrapper>
+                </GradientView>
+            );
+        }
+
+        // border + gradient : bord en gradient, intérieur avec baseBackgroundColor
         return (
-            <GradientView gradient={gradient} style={[styles.outer, { borderRadius: CORNERS }]}>
-                {onPress ? (
-                    <TouchableOpacity activeOpacity={0.9} onPress={onPress} disabled={disabled}>
+            <GradientBorderView
+                gradient={gradient!}
+                borderRadius={CORNERS}
+                borderWidth={borderWidth}
+                style={[styles.outer, style]}
+            >
+                <Wrapper {...(wrapperProps as any)}>
+                    <View
+                        style={{
+                            borderRadius: CORNERS - Math.min(
+                                CORNERS / 2,
+                                borderWidth,
+                            ),
+                            backgroundColor: baseBackgroundColor,
+                        }}
+                    >
                         {content}
-                    </TouchableOpacity>
-                ) : (
-                    content
-                )}
-            </GradientView>
+                    </View>
+                </Wrapper>
+            </GradientBorderView>
         );
     }
 
+    // === CAS SANS GRADIENT -> BASIC PILL ===
+    const basicBorderStyle = {
+        borderWidth,
+        borderColor: baseBorderColor,
+        backgroundColor: baseBackgroundColor, // ✅ plus jamais forcé à transparent
+    };
+
     return (
-        <GradientBorderView gradient={gradient} borderRadius={CORNERS} borderWidth={borderWidth} style={styles.outer}>
-            {onPress ? (
-                <TouchableOpacity activeOpacity={0.9} onPress={onPress} disabled={disabled}>
-                    {content}
-                </TouchableOpacity>
-            ) : (
-                content
-            )}
-        </GradientBorderView>
+        <View
+            style={[
+                styles.outer,
+                {
+                    borderRadius: CORNERS,
+                },
+                basicBorderStyle,
+                style,
+            ]}
+        >
+            <Wrapper
+                {...(wrapperProps as any)}
+                style={{ borderRadius: CORNERS }}
+            >
+                {content}
+            </Wrapper>
+        </View>
     );
 };
 

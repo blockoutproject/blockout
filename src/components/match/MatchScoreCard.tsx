@@ -6,10 +6,10 @@ import { splitIsoDateFormatted } from "@/src/utils/utils";
 import GradientBorderView from "@/src/components/common/GradientBorderView";
 import { MatchStatus, type EnrichedMatchDTO } from "@/src/types/Match";
 import type { Team } from "@/src/types/Team";
-import InfoPill from "@/src/components/common/chips/InfoPill";
 import InfoPillGradient from "@/src/components/common/chips/InfoPillGradient";
 import MaskedImage from "@/src/components/common/images/MaskedImage";
 import { useRouter } from "expo-router";
+import { withAlpha } from "@/src/utils/utils";
 
 export interface MatchScoreCardProps {
     enrichedMatch: EnrichedMatchDTO;
@@ -51,6 +51,20 @@ const MatchScoreCard: React.FC<MatchScoreCardProps> = ({ enrichedMatch, gradient
         </Pressable>
     );
 
+    const BasicPill = ({ label, icon, redDot }: { label: string; icon?: any; redDot?: boolean }) => (
+        <InfoPillGradient
+            label={label}
+            leftIcon={icon}
+            gradient={undefined}
+            variant="filled"
+            borderWidth={1}
+            backgroundColor={theme.surface}
+            borderColor={withAlpha(theme.text, 0.12)}
+            textColor={theme.text}
+            showRedDot={redDot}
+        />
+    );
+
     return (
         <GradientBorderView
             gradient={gradient}
@@ -58,20 +72,24 @@ const MatchScoreCard: React.FC<MatchScoreCardProps> = ({ enrichedMatch, gradient
             borderWidth={1}
             style={[styles.card, { backgroundColor: theme.background }]}
         >
+            {/* HEADER */}
             <View style={styles.headerRow}>
                 <View style={styles.headerSideLeft}>
-                    <InfoPill label={enrichedMatch.pool.division.name} />
+                    <BasicPill label={enrichedMatch.pool.division.name} />
                 </View>
 
                 <View style={styles.headerCenter}>
-                    {hasLiveLink && !isFinished ? <InfoPill leftIconName="video-outline" label="Live" showRedDot /> : null}
+                    {hasLiveLink && !isFinished ? (
+                        <BasicPill label="Live" icon="video-outline" redDot />
+                    ) : null}
                 </View>
 
                 <View style={styles.headerSideRight}>
-                    {date ? <InfoPill label={date} /> : null}
+                    {date ? <BasicPill label={date} /> : null}
                 </View>
             </View>
 
+            {/* TEAMS */}
             <View style={styles.teamsRow}>
                 <TeamBlock team={enrichedMatch.teamA} role="Locaux" />
 
@@ -88,13 +106,15 @@ const MatchScoreCard: React.FC<MatchScoreCardProps> = ({ enrichedMatch, gradient
                                     {enrichedMatch.set}
                                 </Text>
                             </GradientBorderView>
-                            {time ? <InfoPill label={time} /> : null}
+
+                            {time ? <BasicPill label={time} /> : null}
                         </>
                     ) : (
                         <>
                             {time ? (
                                 <Text style={[styles.timeLarge, { color: theme.text }]}>{time}</Text>
                             ) : null}
+
                             {!isMatchStarted ? (
                                 <InfoPillGradient
                                     label="À venir"

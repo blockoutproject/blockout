@@ -2,7 +2,7 @@ import React from "react";
 import { View, StyleSheet } from "react-native";
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import { withAlpha } from "@/src/utils/utils";
-import InfoPill from "../common/chips/InfoPill";
+import InfoPillGradient from "../common/chips/InfoPillGradient";
 import FadeIn from "../common/animations/FadeIn";
 
 /** En-tête de section présentant la date. */
@@ -15,21 +15,19 @@ const SectionDateHeader: React.FC<SectionDateHeaderProps> = ({ title }) => {
     const theme = useAppTheme();
 
     return (
-        <FadeIn >
-            <View
-                style={styles.wrapper}
-            >
-                <InfoPill
-                    style={{
-                        width: 220
-                    }}
+        <FadeIn>
+            <View style={styles.wrapper}>
+                <InfoPillGradient
                     label={title}
-                    blurEnabled
-                    blurTint="dark"
-                    overlayAlpha={0.9}
-                    overlayColor={theme.surfaceTertiary}
-                    leftIconName="calendar-blank-outline"
-                    leftIconSize={16}
+                    leftIcon="calendar-blank-outline"
+                    size="md"
+                    variant="filled"
+                    gradient={undefined}
+                    borderWidth={1}
+                    maxWidth={220}
+                    backgroundColor={withAlpha(theme.surfaceTertiary, 0.9)}
+                    borderColor={withAlpha(theme.text, 0.16)}
+                    textColor={theme.text}
                     labelStyle={{
                         fontSize: 14,
                         fontWeight: "800",

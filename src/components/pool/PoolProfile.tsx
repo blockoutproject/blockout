@@ -7,11 +7,12 @@ import FollowButton from "@/src/components/common/follow/FollowButton";
 import FollowersCounter from "@/src/components/common/follow/FollowersCount";
 import { usePoolFollowState } from "@/src/hooks/pool/usePoolFollowState";
 import { GenderLabels } from "@/src/types/enums/Gender";
-import InfoPill from "@/src/components/common/chips/InfoPill";
 import { LOGO_SIZE } from "@/src/theme/globals";
 import MaskedImage from "@/src/components/common/images/MaskedImage";
-import { computeBalancedRowsByCount } from "@/src/utils/utils";
+import { computeBalancedRowsByCount, withAlpha } from "@/src/utils/utils";
 import { useSession } from "@/src/context/SessionProvider";
+import { useAppTheme } from "@/src/context/ThemeProvider";
+import InfoPillGradient from "@/src/components/common/chips/InfoPillGradient";
 import GuestPromptSheet, { GuestPromptSheetRef } from "../user/GuestPromptSheet.tsx";
 
 export type PoolProfileProps = {
@@ -21,9 +22,11 @@ export type PoolProfileProps = {
 const GAP = 6;
 
 const PoolProfile: React.FC<PoolProfileProps> = ({ enrichedPool }) => {
-    const { isFollowing, isProcessing, followersCount, onToggleFollow } = usePoolFollowState(enrichedPool);
+    const { isFollowing, isProcessing, followersCount, onToggleFollow } =
+        usePoolFollowState(enrichedPool);
     const { isGuest } = useSession();
     const guestSheetRef = useRef<GuestPromptSheetRef>(null);
+    const theme = useAppTheme();
 
     const division = enrichedPool.division;
     const gradient = [
@@ -39,14 +42,13 @@ const PoolProfile: React.FC<PoolProfileProps> = ({ enrichedPool }) => {
             GenderLabels[enrichedPool.gender],
             String(enrichedPool.season),
         ],
-        [enrichedPool.leagueName, division.name, enrichedPool.gender, enrichedPool.season]
+        [enrichedPool.leagueName, division.name, enrichedPool.gender, enrichedPool.season],
     );
 
     const [containerWidth, setContainerWidth] = useState(0);
     const [pillWidths, setPillWidths] = useState<number[]>([]);
     const [measured, setMeasured] = useState(false);
 
-    // Reset mesures si texte/longueur change
     useEffect(() => {
         setPillWidths(Array(pillsData.length).fill(0));
         setMeasured(false);
@@ -58,7 +60,7 @@ const PoolProfile: React.FC<PoolProfileProps> = ({ enrichedPool }) => {
 
     const handleMeasurePill = useCallback((index: number, e: LayoutChangeEvent) => {
         const w = Math.ceil(e.nativeEvent.layout.width);
-        setPillWidths(prev => {
+        setPillWidths((prev) => {
             if (prev[index] === w) return prev;
             const next = prev.slice();
             next[index] = w;
@@ -69,7 +71,7 @@ const PoolProfile: React.FC<PoolProfileProps> = ({ enrichedPool }) => {
     useEffect(() => {
         if (containerWidth <= 0) return;
         if (pillWidths.length !== pillsData.length) return;
-        if (pillWidths.some(w => w <= 0)) return;
+        if (pillWidths.some((w) => w <= 0)) return;
         setMeasured(true);
     }, [containerWidth, pillWidths, pillsData.length]);
 
@@ -100,6 +102,20 @@ const PoolProfile: React.FC<PoolProfileProps> = ({ enrichedPool }) => {
         }
     }, [isGuest]);
 
+    const renderPill = (label: string, key: string | number) => (
+        <InfoPillGradient
+            key={key}
+            label={label}
+            size="sm"
+            variant="filled"
+            gradient={undefined} // 👉 mode "basic"
+            borderWidth={1}
+            backgroundColor={withAlpha(theme.surface, 0.95)}
+            borderColor={withAlpha(theme.text, 0.12)}
+            textColor={theme.textSecondary}
+        />
+    );
+
     return (
         <View style={styles.container} testID="pool-profile">
             <MaskedImage uri={division.logoUrl} size={LOGO_SIZE} radius={20} shadow />
@@ -108,14 +124,10 @@ const PoolProfile: React.FC<PoolProfileProps> = ({ enrichedPool }) => {
                 {/* Zone visible */}
                 <View onLayout={handleContainerLayout} style={styles.twoRows}>
                     <View style={styles.pillsRow}>
-                        {topIndices.map(i => (
-                            <InfoPill key={`pill-${i}`} label={pillsData[i]} />
-                        ))}
+                        {topIndices.map((i) => renderPill(pillsData[i], `pill-${i}`))}
                     </View>
                     <View style={styles.pillsRow}>
-                        {bottomIndices.map(i => (
-                            <InfoPill key={`pill-${i}`} label={pillsData[i]} />
-                        ))}
+                        {bottomIndices.map((i) => renderPill(pillsData[i], `pill-${i}`))}
                     </View>
                 </View>
 
@@ -124,7 +136,7 @@ const PoolProfile: React.FC<PoolProfileProps> = ({ enrichedPool }) => {
                     <View pointerEvents="none" style={styles.measureRow}>
                         {pillsData.map((label, i) => (
                             <View key={`measure-${i}`} onLayout={(e) => handleMeasurePill(i, e)}>
-                                <InfoPill label={label} />
+                                {renderPill(label, `measure-pill-${i}`)}
                             </View>
                         ))}
                     </View>

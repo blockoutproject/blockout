@@ -11,7 +11,6 @@ import * as Haptics from "expo-haptics";
 import { Filter } from "@/src/types/Filter";
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import InfoPillGradient from "@/src/components/common/chips/InfoPillGradient";
-import { CTA_GRADIENT } from "@/src/components/common/GradientButton";
 
 export type FiltersProps = {
     /** Tableau des filtres */

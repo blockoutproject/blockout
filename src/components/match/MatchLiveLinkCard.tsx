@@ -142,12 +142,10 @@ const MatchLiveLinkCard: React.FC<Props> = ({
 
     const handleOpenLive = async () => {
         if (!enrichedMatch.liveUrl) return;
+
         try {
             await Haptics.selectionAsync();
-            const canOpen = await Linking.canOpenURL(enrichedMatch.liveUrl);
-            if (canOpen) {
-                await Linking.openURL(enrichedMatch.liveUrl);
-            }
+            await Linking.openURL(enrichedMatch.liveUrl);
         } catch {
             // ignore
         }
