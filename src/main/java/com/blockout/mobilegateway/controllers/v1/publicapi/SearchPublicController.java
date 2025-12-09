@@ -28,7 +28,7 @@ public class SearchPublicController {
     public ResponseEntity<List<PoolSearchDocDTO>> searchPools(
             @RequestParam String query,
             @RequestParam(required = false) String season,
-            @RequestParam(required = false) Long divisionId) {
+            @RequestParam(required = false, name = "division_id") Long divisionId) {
         List<PoolSearchDocDTO> results = searchService.searchPools(query, season, divisionId);
         return results.isEmpty()
                 ? ResponseEntity.noContent().build()
@@ -39,7 +39,7 @@ public class SearchPublicController {
     public ResponseEntity<List<TeamSearchDocDTO>> searchTeams(
             @RequestParam String query,
             @RequestParam(required = false) String season,
-            @RequestParam(required = false) Long divisionId) {
+            @RequestParam(required = false, name = "division_id") Long divisionId) {
         List<TeamSearchDocDTO> results = searchService.searchTeams(query, season, divisionId);
         return results.isEmpty()
                 ? ResponseEntity.noContent().build()
