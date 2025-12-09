@@ -19,8 +19,7 @@ public class SearchPublicController {
 
     @GetMapping("/clubs")
     public ResponseEntity<List<ClubSearchDocDTO>> searchClubs(
-            @RequestParam String query
-    ) {
+            @RequestParam String query) {
         List<ClubSearchDocDTO> results = searchService.searchClubs(query);
         return results.isEmpty() ? ResponseEntity.noContent().build() : ResponseEntity.ok(results);
     }
@@ -28,18 +27,22 @@ public class SearchPublicController {
     @GetMapping("/pools")
     public ResponseEntity<List<PoolSearchDocDTO>> searchPools(
             @RequestParam String query,
-            @RequestParam(required = false) String season
-    ) {
-        List<PoolSearchDocDTO> results = searchService.searchPools(query, season);
-        return results.isEmpty() ? ResponseEntity.noContent().build() : ResponseEntity.ok(results);
+            @RequestParam(required = false) String season,
+            @RequestParam(required = false) Long divisionId) {
+        List<PoolSearchDocDTO> results = searchService.searchPools(query, season, divisionId);
+        return results.isEmpty()
+                ? ResponseEntity.noContent().build()
+                : ResponseEntity.ok(results);
     }
 
     @GetMapping("/teams")
     public ResponseEntity<List<TeamSearchDocDTO>> searchTeams(
             @RequestParam String query,
-            @RequestParam(required = false) String season
-    ) {
-        List<TeamSearchDocDTO> results = searchService.searchTeams(query, season);
-        return results.isEmpty() ? ResponseEntity.noContent().build() : ResponseEntity.ok(results);
+            @RequestParam(required = false) String season,
+            @RequestParam(required = false) Long divisionId) {
+        List<TeamSearchDocDTO> results = searchService.searchTeams(query, season, divisionId);
+        return results.isEmpty()
+                ? ResponseEntity.noContent().build()
+                : ResponseEntity.ok(results);
     }
 }
