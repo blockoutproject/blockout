@@ -47,7 +47,7 @@ public class SearchClientService {
         }
 
         if (divisionId != null) {
-            builder.queryParam("divisionId", divisionId);
+            builder.queryParam("division_id", divisionId);
         }
 
         String url = builder.build().toUriString();
@@ -68,7 +68,7 @@ public class SearchClientService {
         }
 
         if (divisionId != null) {
-            builder.queryParam("divisionId", divisionId);
+            builder.queryParam("division_id", divisionId);
         }
 
         String url = builder.build().toUriString();
