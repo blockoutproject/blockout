@@ -55,11 +55,13 @@ public class PoolIndexService {
         DivisionUpsertEvent division = configCacheService.getDivisionById(e.getDivisionId());
         String divisionName = division != null ? division.getName() : "Division inconnue";
         String logoUrl = division != null ? division.getLogoUrl() : null;
+        Long divisionId = division != null ? division.getId() : null;
 
         return PoolDoc.builder()
                 .id(e.getId())
                 .name(e.getName())
                 .shortName(e.getShortName())
+                .divisionId(divisionId)
                 .divisionName(divisionName)
                 .leagueCode(e.getLeagueCode())
                 .leagueName(e.getLeagueName())

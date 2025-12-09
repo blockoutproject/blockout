@@ -74,6 +74,7 @@ public class TeamIndexService {
                 : clubLogoUrl;
 
         String divisionName = division != null ? division.getName() : "Division inconnue";
+        Long divisionId = division != null ? division.getId() : null;
         Format format = e.getFormat();
         Gender gender = e.getGender();
 
@@ -85,6 +86,7 @@ public class TeamIndexService {
                 .clubName(clubName)
                 .clubCity(clubCity)
                 .logoUrl(logoUrl)
+                .divisionId(divisionId)
                 .divisionName(divisionName)
                 .format(format != null ? format.getLabel() : null)
                 .gender(gender != null ? gender.getLabel() : null)

@@ -1,4 +1,3 @@
-// src/main/java/com/blockout/workersearch/services/index/IndexInitializerService.java
 package com.blockout.workersearch.services.index;
 
 import jakarta.annotation.PostConstruct;

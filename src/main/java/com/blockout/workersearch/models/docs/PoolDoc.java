@@ -18,6 +18,7 @@ public class PoolDoc {
     private Long id;
     private String name;
     private String shortName;
+    private Long divisionId;
     private String divisionName;
     private String leagueCode;
     private String leagueName;

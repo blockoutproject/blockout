@@ -74,6 +74,9 @@
             "logoUrl": {
                 "type": "keyword"
             },
+            "divisionId": {
+                "type": "long"
+            },
             "divisionName": {
                 "type": "search_as_you_type",
                 "analyzer": "folded_autocomplete",
