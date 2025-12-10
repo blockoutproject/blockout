@@ -187,6 +187,7 @@ public class PoolService {
                         .name(p.getName())
                         .shortName(p.getShortName())
                         .season(p.getSeason())
+                        .format(p.getFormat())
                         .gender(p.getGender())
                         .division(divisionsById.get(p.getDivisionId()))
                         .build())
