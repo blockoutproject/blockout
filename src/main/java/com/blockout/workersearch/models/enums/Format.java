@@ -2,7 +2,8 @@ package com.blockout.workersearch.models.enums;
 
 public enum Format {
     SIX("6x6"),
-    FOUR("4x4");
+    FOUR("4x4"),
+    TWO("2x2");
 
     private final String label;
 
