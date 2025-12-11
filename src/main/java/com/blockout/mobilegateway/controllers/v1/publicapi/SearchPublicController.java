@@ -5,6 +5,7 @@ import com.blockout.mobilegateway.models.dto.search.PoolSearchDocDTO;
 import com.blockout.mobilegateway.models.dto.search.TeamSearchDocDTO;
 import com.blockout.mobilegateway.services.SearchService;
 import lombok.RequiredArgsConstructor;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -32,6 +33,7 @@ public class SearchPublicController {
             @RequestParam(required = false) String format,
             @RequestParam(required = false) String gender
     ) {
+        System.out.println(gender);
         List<TeamSearchDocDTO> results = searchService.searchTeams(query, season, divisionId, format, gender);
         return results.isEmpty()
                 ? ResponseEntity.noContent().build()
