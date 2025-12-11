@@ -24,24 +24,30 @@ public class SearchPublicController {
         return results.isEmpty() ? ResponseEntity.noContent().build() : ResponseEntity.ok(results);
     }
 
-    @GetMapping("/pools")
-    public ResponseEntity<List<PoolSearchDocDTO>> searchPools(
-            @RequestParam String query,
-            @RequestParam(required = false) String season,
-            @RequestParam(required = false) Long divisionId,
-            @RequestParam(required = false) String format
-    ) {
-        List<PoolSearchDocDTO> results = searchService.searchPools(query, season, divisionId, format);
-        return results.isEmpty() ? ResponseEntity.noContent().build() : ResponseEntity.ok(results);
-    }
-
     @GetMapping("/teams")
     public ResponseEntity<List<TeamSearchDocDTO>> searchTeams(
             @RequestParam String query,
             @RequestParam(required = false) String season,
             @RequestParam(required = false) Long divisionId,
-            @RequestParam(required = false) String format) {
-        List<TeamSearchDocDTO> results = searchService.searchTeams(query, season, divisionId, format);
-        return results.isEmpty() ? ResponseEntity.noContent().build() : ResponseEntity.ok(results);
+            @RequestParam(required = false) String format,
+            @RequestParam(required = false) String gender
+    ) {
+        List<TeamSearchDocDTO> results = searchService.searchTeams(query, season, divisionId, format, gender);
+        return results.isEmpty()
+                ? ResponseEntity.noContent().build()
+                : ResponseEntity.ok(results);
+    }
+
+    @GetMapping("/pools")
+    public ResponseEntity<List<PoolSearchDocDTO>> searchPools(
+            @RequestParam String query,
+            @RequestParam(required = false) String season,
+            @RequestParam(required = false) Long divisionId,
+            @RequestParam(required = false) String format,
+            @RequestParam(required = false) String gender) {
+        List<PoolSearchDocDTO> results = searchService.searchPools(query, season, divisionId, format, gender);
+        return results.isEmpty()
+                ? ResponseEntity.noContent().build()
+                : ResponseEntity.ok(results);
     }
 }

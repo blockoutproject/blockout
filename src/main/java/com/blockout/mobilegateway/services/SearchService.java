@@ -28,23 +28,27 @@ public class SearchService {
         return results;
     }
 
-    public List<PoolSearchDocDTO> searchPools(String query, String season, Long divisionId, String format) {
+    public List<PoolSearchDocDTO> searchPools(String query, String season, Long divisionId, String format,
+            String gender) {
         logger.info("Searching pools",
                 keyValue("action", "search_pools"),
                 keyValue("query", query),
                 keyValue("season", season),
                 keyValue("divisionId", divisionId),
-                keyValue("format", format));
-        return searchClientService.searchPools(query, season, divisionId, format);
+                keyValue("format", format),
+                keyValue("gender", gender));
+        return searchClientService.searchPools(query, season, divisionId, format, gender);
     }
 
-    public List<TeamSearchDocDTO> searchTeams(String query, String season, Long divisionId, String format) {
+    public List<TeamSearchDocDTO> searchTeams(String query, String season, Long divisionId, String format,
+            String gender) {
         logger.info("Searching teams",
                 keyValue("action", "search_teams"),
                 keyValue("query", query),
                 keyValue("season", season),
                 keyValue("divisionId", divisionId),
-                keyValue("format", format));
-        return searchClientService.searchTeams(query, season, divisionId, format);
+                keyValue("format", format),
+                keyValue("gender", gender));
+        return searchClientService.searchTeams(query, season, divisionId, format, gender);
     }
 }

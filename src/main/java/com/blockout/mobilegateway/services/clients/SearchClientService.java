@@ -4,6 +4,7 @@ import com.blockout.mobilegateway.config.ApiClientProperties;
 import com.blockout.mobilegateway.models.dto.search.ClubSearchDocDTO;
 import com.blockout.mobilegateway.models.dto.search.PoolSearchDocDTO;
 import com.blockout.mobilegateway.models.dto.search.TeamSearchDocDTO;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -37,7 +38,8 @@ public class SearchClientService {
         return body != null ? Arrays.asList(body) : Collections.emptyList();
     }
 
-    public List<PoolSearchDocDTO> searchPools(String query, String season, Long divisionId, String format) {
+    public List<PoolSearchDocDTO> searchPools(String query, String season, Long divisionId, String format,
+            String gender) {
         UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(baseUrl())
                 .pathSegment("pools")
                 .queryParam("query", query);
@@ -45,13 +47,14 @@ public class SearchClientService {
         if (season != null && !season.isBlank()) {
             builder.queryParam("season", season);
         }
-
         if (divisionId != null) {
             builder.queryParam("divisionId", divisionId);
         }
-
         if (format != null) {
             builder.queryParam("format", format);
+        }
+        if (gender != null) {
+            builder.queryParam("gender", gender);
         }
 
         String url = builder.build().toUriString();
@@ -62,7 +65,8 @@ public class SearchClientService {
         return body != null ? Arrays.asList(body) : Collections.emptyList();
     }
 
-    public List<TeamSearchDocDTO> searchTeams(String query, String season, Long divisionId, String format) {
+    public List<TeamSearchDocDTO> searchTeams(String query, String season, Long divisionId, String format,
+            String gender) {
         UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(baseUrl())
                 .pathSegment("teams")
                 .queryParam("query", query);
@@ -70,13 +74,14 @@ public class SearchClientService {
         if (season != null && !season.isBlank()) {
             builder.queryParam("season", season);
         }
-
         if (divisionId != null) {
             builder.queryParam("divisionId", divisionId);
         }
-
         if (format != null) {
             builder.queryParam("format", format);
+        }
+        if (gender != null) {
+            builder.queryParam("gender", gender);
         }
 
         String url = builder.build().toUriString();
