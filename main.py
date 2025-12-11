@@ -77,7 +77,7 @@ def schedule_scraper():
     scheduler.add_job(
         main, 
         'interval', 
-        minutes=1, 
+        minutes=2, 
         next_run_time=datetime.now(timezone.utc),
         misfire_grace_time=30,
         replace_existing=True
