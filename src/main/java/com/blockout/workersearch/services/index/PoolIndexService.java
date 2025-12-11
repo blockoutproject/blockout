@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 
 import com.blockout.workersearch.models.docs.PoolDoc;
 import com.blockout.workersearch.models.enums.Format;
+import com.blockout.workersearch.models.enums.Gender;
 import com.blockout.workersearch.models.events.DivisionUpsertEvent;
 import com.blockout.workersearch.models.events.PoolUpsertEvent;
 import com.blockout.workersearch.repositories.PoolRepository;
@@ -58,6 +59,7 @@ public class PoolIndexService {
         String logoUrl = division != null ? division.getLogoUrl() : null;
         Long divisionId = division != null ? division.getId() : null;
         Format format = e.getFormat();
+        Gender gender = e.getGender();
 
         return PoolDoc.builder()
                 .id(e.getId())
@@ -70,7 +72,7 @@ public class PoolIndexService {
                 .season(e.getSeason())
                 .logoUrl(logoUrl)
                 .format(format.name())
-                .gender(e.getGender().getLabel())
+                .gender(gender.name())
                 .build();
     }
 }
