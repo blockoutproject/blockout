@@ -20,6 +20,7 @@ public class PoolSearchDocDTO {
     private String leagueCode;
     private String leagueName;
     private String season;
+    private String format;
     private String gender;
     private String logoUrl;
 }

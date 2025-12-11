@@ -18,10 +18,7 @@ public class PoolSearchController {
 
     private final PoolSearchService poolSearchService;
 
-    @Operation(
-            summary = "Search pools",
-            description = "Recherche des poules par mots-clés sur plusieurs champs, avec filtres saison et division optionnels."
-    )
+    @Operation(summary = "Search pools", description = "Recherche des poules par mots-clés sur plusieurs champs, avec filtres saison et division optionnels.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Résultats trouvés"),
             @ApiResponse(responseCode = "204", description = "Aucun résultat trouvé")
@@ -30,9 +27,9 @@ public class PoolSearchController {
     public ResponseEntity<List<PoolSearchDocDTO>> search(
             @RequestParam String query,
             @RequestParam(required = false) String season,
-            @RequestParam(required = false, name = "division_id") Long divisionId
-    ) {
-        List<PoolSearchDocDTO> results = poolSearchService.autocomplete(query, season, divisionId);
+            @RequestParam(required = false) Long divisionId,
+            @RequestParam(required = false) String format) {
+        List<PoolSearchDocDTO> results = poolSearchService.autocomplete(query, season, divisionId, format);
         return ResponseEntity.ok(results);
     }
 }
