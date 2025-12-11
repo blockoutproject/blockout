@@ -88,19 +88,14 @@
                 "type": "keyword"
             },
             "gender": {
-                "type": "keyword"
-            },
-            "season": {
                 "type": "search_as_you_type",
                 "analyzer": "folded_autocomplete",
                 "copy_to": [
                     "all"
-                ],
-                "fields": {
-                    "keyword": {
-                        "type": "keyword"
-                    }
-                }
+                ]
+            },
+            "season": {
+                "type": "keyword"
             },
             "all": {
                 "type": "text",

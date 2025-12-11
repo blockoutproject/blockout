@@ -74,17 +74,8 @@
                     "all"
                 ]
             },
-            "season": {
-                "type": "search_as_you_type",
-                "analyzer": "folded_autocomplete",
-                "copy_to": [
-                    "all"
-                ],
-                "fields": {
-                    "keyword": {
-                        "type": "keyword"
-                    }
-                }
+            "format": {
+                "type": "keyword"
             },
             "gender": {
                 "type": "search_as_you_type",
@@ -92,6 +83,9 @@
                 "copy_to": [
                     "all"
                 ]
+            },
+            "season": {
+                "type": "keyword"
             },
             "logoUrl": {
                 "type": "keyword"

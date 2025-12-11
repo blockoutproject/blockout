@@ -88,7 +88,7 @@ public class TeamIndexService {
                 .logoUrl(logoUrl)
                 .divisionId(divisionId)
                 .divisionName(divisionName)
-                .format(format != null ? format.getLabel() : null)
+                .format(format != null ? format.name() : null)
                 .gender(gender != null ? gender.getLabel() : null)
                 .season(e.getSeason())
                 .build();

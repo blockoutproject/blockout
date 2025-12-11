@@ -24,6 +24,7 @@ public class PoolDoc {
     private String leagueName;
     private String season;
     private String logoUrl;
+    private String format;
     private String gender;
     private String all;
 }

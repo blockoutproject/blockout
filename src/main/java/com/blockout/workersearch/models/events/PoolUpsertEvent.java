@@ -1,5 +1,6 @@
 package com.blockout.workersearch.models.events;
 
+import com.blockout.workersearch.models.enums.Format;
 import com.blockout.workersearch.models.enums.Gender;
 
 import lombok.AllArgsConstructor;
@@ -19,5 +20,6 @@ public class PoolUpsertEvent {
     private String leagueCode;
     private String leagueName;
     private String season;
+    private Format format;
     private Gender gender;
 }
