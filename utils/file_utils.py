@@ -178,7 +178,7 @@ async def download_and_parse_csv(
             except asyncio.TimeoutError:
                 log_event(
                     action="download_timeout",
-                    level="warning",
+                    level="debug",
                     attempt=attempt,
                     league_code=pool.league_code,
                     pool_code=pool.pool_code,
