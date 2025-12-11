@@ -20,6 +20,9 @@ public class PoolSummaryDTO {
     @JsonProperty("league_name")
     public String leagueName;
 
+    @JsonProperty("league_code")
+    public String leagueCode;
+
     private String season;
     private Gender gender;
     private Format format;

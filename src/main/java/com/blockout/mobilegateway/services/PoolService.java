@@ -183,6 +183,7 @@ public class PoolService {
         List<PoolSummaryDTO> result = pools.stream()
                 .map(p -> PoolSummaryDTO.builder()
                         .id(p.getId())
+                        .leagueCode(p.getLeagueCode())
                         .leagueName(p.getLeagueName())
                         .name(p.getName())
                         .shortName(p.getShortName())
