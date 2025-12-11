@@ -31,20 +31,15 @@ public class PoolSearchService {
     private static final long TERMINATE_AFTER_QUERY = 5_000L;
     private static final String TIMEOUT = "150ms";
 
-    /**
-     * @param input texte tapé par l'utilisateur
-     * @param season saison filtrée (keyword, ex: "2025/2026")
-     * @param divisionId division filtrée (id numérique)
-     * @param format format filtré (ex: "SIX", "FOUR", "TWO")
-     */
-    public List<PoolSearchDocDTO> autocomplete(String input, String season, Long divisionId, String format) {
+    public List<PoolSearchDocDTO> autocomplete(String input, String season, Long divisionId, String format,
+            String gender) {
         try {
             if (input == null || input.isBlank()) {
                 Query base = Query.of(q -> q.functionScore(fs -> fs
                         .query(inner -> inner.matchAll(m -> m))
                         .functions(f -> f.randomScore(rs -> rs))));
 
-                Query finalQuery = applyFilters(base, season, divisionId, format);
+                Query finalQuery = applyFilters(base, season, divisionId, format, gender);
 
                 SearchResponse<PoolSearchDocDTO> response = elasticsearchClient.search(
                         s -> s.index("pools")
@@ -77,7 +72,7 @@ public class PoolSearchService {
                             "all")
                     .operator(Operator.And)));
 
-            Query finalQuery = applyFilters(multiMatchQuery, season, divisionId, format);
+            Query finalQuery = applyFilters(multiMatchQuery, season, divisionId, format, gender);
 
             SearchResponse<PoolSearchDocDTO> response = elasticsearchClient.search(
                     s -> s.index("pools")
@@ -104,34 +99,30 @@ public class PoolSearchService {
         }
     }
 
-    private Query applyFilters(Query baseQuery, String season, Long divisionId, String format) {
+    private Query applyFilters(Query baseQuery, String season, Long divisionId, String format, String gender) {
         if ((season == null || season.isBlank())
                 && divisionId == null
-                && (format == null || format.isBlank())) {
+                && (format == null || format.isBlank())
+                && (gender == null || gender.isBlank())) {
             return baseQuery;
         }
 
         BoolQuery.Builder bool = new BoolQuery.Builder().must(baseQuery);
 
         if (season != null && !season.isBlank()) {
-            Query seasonFilter = Query.of(q -> q.term(t -> t
-                    .field("season")
-                    .value(season)));
-            bool.filter(seasonFilter);
+            bool.filter(Query.of(q -> q.term(t -> t.field("season").value(season))));
         }
 
         if (divisionId != null) {
-            Query divisionFilter = Query.of(q -> q.term(t -> t
-                    .field("divisionId")
-                    .value(divisionId)));
-            bool.filter(divisionFilter);
+            bool.filter(Query.of(q -> q.term(t -> t.field("divisionId").value(divisionId))));
         }
 
         if (format != null && !format.isBlank()) {
-            Query formatFilter = Query.of(q -> q.term(t -> t
-                    .field("format")
-                    .value(format)));
-            bool.filter(formatFilter);
+            bool.filter(Query.of(q -> q.term(t -> t.field("format").value(format))));
+        }
+
+        if (gender != null && !gender.isBlank()) {
+            bool.filter(Query.of(q -> q.term(t -> t.field("gender").value(gender))));
         }
 
         return Query.of(q -> q.bool(bool.build()));

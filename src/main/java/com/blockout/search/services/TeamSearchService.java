@@ -6,13 +6,11 @@ import co.elastic.clients.elasticsearch._types.query_dsl.Operator;
 import co.elastic.clients.elasticsearch._types.query_dsl.Query;
 import co.elastic.clients.elasticsearch._types.query_dsl.TextQueryType;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
-
+import com.blockout.search.models.dto.TeamSearchDocDTO;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-
-import com.blockout.search.models.dto.TeamSearchDocDTO;
 
 import java.util.Collections;
 import java.util.List;
@@ -33,18 +31,24 @@ public class TeamSearchService {
 
     /**
      * @param input texte tapé par l'utilisateur
-     * @param season saison filtrée (keyword)
-     * @param divisionId division filtrée
-     * @param format format filtré (SIX / FOUR / TWO)
+     * @param season saison filtrée (keyword, ex: "2025/2026")
+     * @param divisionId division filtrée (id numérique)
+     * @param format format filtré (ex: "SIX", "FOUR", "TWO")
+     * @param gender genre filtré (ex: "M", "F", "O")
      */
-    public List<TeamSearchDocDTO> autocomplete(String input, String season, Long divisionId, String format) {
+    public List<TeamSearchDocDTO> autocomplete(
+            String input,
+            String season,
+            Long divisionId,
+            String format,
+            String gender) {
         try {
             if (input == null || input.isBlank()) {
                 Query base = Query.of(q -> q.functionScore(fs -> fs
                         .query(inner -> inner.matchAll(m -> m))
                         .functions(f -> f.randomScore(rs -> rs))));
 
-                Query finalQuery = applyFilters(base, season, divisionId, format);
+                Query finalQuery = applyFilters(base, season, divisionId, format, gender);
 
                 SearchResponse<TeamSearchDocDTO> response = elasticsearchClient.search(
                         s -> s.index("teams")
@@ -77,7 +81,7 @@ public class TeamSearchService {
                             "all")
                     .operator(Operator.And)));
 
-            Query finalQuery = applyFilters(multiMatchQuery, season, divisionId, format);
+            Query finalQuery = applyFilters(multiMatchQuery, season, divisionId, format, gender);
 
             SearchResponse<TeamSearchDocDTO> response = elasticsearchClient.search(
                     s -> s.index("teams")
@@ -103,34 +107,43 @@ public class TeamSearchService {
         }
     }
 
-    private Query applyFilters(Query baseQuery, String season, Long divisionId, String format) {
+    private Query applyFilters(
+            Query baseQuery,
+            String season,
+            Long divisionId,
+            String format,
+            String gender) {
         if ((season == null || season.isBlank())
                 && divisionId == null
-                && (format == null || format.isBlank())) {
+                && (format == null || format.isBlank())
+                && (gender == null || gender.isBlank())) {
             return baseQuery;
         }
 
         BoolQuery.Builder bool = new BoolQuery.Builder().must(baseQuery);
 
         if (season != null && !season.isBlank()) {
-            Query seasonFilter = Query.of(q -> q.term(t -> t
+            bool.filter(Query.of(q -> q.term(t -> t
                     .field("season")
-                    .value(season)));
-            bool.filter(seasonFilter);
+                    .value(season))));
         }
 
         if (divisionId != null) {
-            Query divisionFilter = Query.of(q -> q.term(t -> t
+            bool.filter(Query.of(q -> q.term(t -> t
                     .field("divisionId")
-                    .value(divisionId)));
-            bool.filter(divisionFilter);
+                    .value(divisionId))));
         }
 
         if (format != null && !format.isBlank()) {
-            Query formatFilter = Query.of(q -> q.term(t -> t
+            bool.filter(Query.of(q -> q.term(t -> t
                     .field("format")
-                    .value(format)));
-            bool.filter(formatFilter);
+                    .value(format))));
+        }
+
+        if (gender != null && !gender.isBlank()) {
+            bool.filter(Query.of(q -> q.term(t -> t
+                    .field("gender")
+                    .value(gender))));
         }
 
         return Query.of(q -> q.bool(bool.build()));
