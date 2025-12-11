@@ -138,7 +138,7 @@ async def download_and_parse_csv(
                     if attempt > 1:
                         log_event(
                             action="download_retry_success",
-                            level="info",
+                            level="debug",
                             attempt=attempt,
                             message=f"Succès après retry {attempt}/{retries}: CSV téléchargé pour {name}."
                         )
@@ -147,7 +147,7 @@ async def download_and_parse_csv(
             except aiohttp.ClientResponseError as e:
                 log_event(
                     action="download_http_error",
-                    level="warning",
+                    level="debug",
                     attempt=attempt,
                     league_code=pool.league_code,
                     pool_code=pool.pool_code,
@@ -199,7 +199,7 @@ async def download_and_parse_csv(
             if attempt < retries:
                 log_event(
                     action="download_retry",
-                    level="warning",
+                    level="debug",
                     delay=delay,
                     attempt=attempt,
                     message=f"Nouvelle tentative de téléchargement pour '{name}' après un délai de {delay} secondes."
