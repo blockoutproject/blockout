@@ -28,21 +28,20 @@ public class SearchPublicController {
     public ResponseEntity<List<PoolSearchDocDTO>> searchPools(
             @RequestParam String query,
             @RequestParam(required = false) String season,
-            @RequestParam(required = false, name = "division_id") Long divisionId) {
-        List<PoolSearchDocDTO> results = searchService.searchPools(query, season, divisionId);
-        return results.isEmpty()
-                ? ResponseEntity.noContent().build()
-                : ResponseEntity.ok(results);
+            @RequestParam(required = false) Long divisionId,
+            @RequestParam(required = false) String format
+    ) {
+        List<PoolSearchDocDTO> results = searchService.searchPools(query, season, divisionId, format);
+        return results.isEmpty() ? ResponseEntity.noContent().build() : ResponseEntity.ok(results);
     }
 
     @GetMapping("/teams")
     public ResponseEntity<List<TeamSearchDocDTO>> searchTeams(
             @RequestParam String query,
             @RequestParam(required = false) String season,
-            @RequestParam(required = false, name = "division_id") Long divisionId) {
-        List<TeamSearchDocDTO> results = searchService.searchTeams(query, season, divisionId);
-        return results.isEmpty()
-                ? ResponseEntity.noContent().build()
-                : ResponseEntity.ok(results);
+            @RequestParam(required = false) Long divisionId,
+            @RequestParam(required = false) String format) {
+        List<TeamSearchDocDTO> results = searchService.searchTeams(query, season, divisionId, format);
+        return results.isEmpty() ? ResponseEntity.noContent().build() : ResponseEntity.ok(results);
     }
 }

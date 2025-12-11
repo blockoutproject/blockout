@@ -37,7 +37,7 @@ public class SearchClientService {
         return body != null ? Arrays.asList(body) : Collections.emptyList();
     }
 
-    public List<PoolSearchDocDTO> searchPools(String query, String season, Long divisionId) {
+    public List<PoolSearchDocDTO> searchPools(String query, String season, Long divisionId, String format) {
         UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(baseUrl())
                 .pathSegment("pools")
                 .queryParam("query", query);
@@ -47,7 +47,11 @@ public class SearchClientService {
         }
 
         if (divisionId != null) {
-            builder.queryParam("division_id", divisionId);
+            builder.queryParam("divisionId", divisionId);
+        }
+
+        if (format != null) {
+            builder.queryParam("format", format);
         }
 
         String url = builder.build().toUriString();
@@ -58,7 +62,7 @@ public class SearchClientService {
         return body != null ? Arrays.asList(body) : Collections.emptyList();
     }
 
-    public List<TeamSearchDocDTO> searchTeams(String query, String season, Long divisionId) {
+    public List<TeamSearchDocDTO> searchTeams(String query, String season, Long divisionId, String format) {
         UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(baseUrl())
                 .pathSegment("teams")
                 .queryParam("query", query);
@@ -68,7 +72,11 @@ public class SearchClientService {
         }
 
         if (divisionId != null) {
-            builder.queryParam("division_id", divisionId);
+            builder.queryParam("divisionId", divisionId);
+        }
+
+        if (format != null) {
+            builder.queryParam("format", format);
         }
 
         String url = builder.build().toUriString();
