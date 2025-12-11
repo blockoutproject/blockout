@@ -48,7 +48,7 @@ public class SearchClientService {
             builder.queryParam("season", season);
         }
         if (divisionId != null) {
-            builder.queryParam("divisionId", divisionId);
+            builder.queryParam("division_id", divisionId);
         }
         if (format != null) {
             builder.queryParam("format", format);
@@ -75,7 +75,7 @@ public class SearchClientService {
             builder.queryParam("season", season);
         }
         if (divisionId != null) {
-            builder.queryParam("divisionId", divisionId);
+            builder.queryParam("division_id", divisionId);
         }
         if (format != null) {
             builder.queryParam("format", format);
