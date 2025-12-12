@@ -3,6 +3,8 @@ import { ClubSearchDocDTO } from "../types/Club";
 import { PoolSearchDocDTO } from "../types/Pool";
 import { TeamSearchDocDTO } from "../types/Team";
 import { BaseApi } from "./core/BaseApi";
+import { EnumFormat } from "../types/enums/Format";
+import { EnumGender } from "../types/enums/Gender";
 
 export class SearchApi extends BaseApi {
     constructor() {
@@ -15,20 +17,38 @@ export class SearchApi extends BaseApi {
         });
     }
 
-    public searchPools(query: string, season?: string) {
-        return this.httpPublic.get<PoolSearchDocDTO[]>("/search/pools", {
-            params: {
-                query,
-                ...(season ? { season } : {}),
-            },
-        });
-    }
-
-    public searchTeams(query: string, season?: string) {
+    public searchTeams(
+        query: string,
+        season?: string,
+        divisionId?: number,
+        format?: EnumFormat,
+        gender?: EnumGender,
+    ) {
         return this.httpPublic.get<TeamSearchDocDTO[]>("/search/teams", {
             params: {
                 query,
                 ...(season ? { season } : {}),
+                ...(typeof divisionId === "number" ? { divisionId } : {}),
+                ...(format ? { format } : {}),
+                ...(gender ? { gender } : {}),
+            },
+        });
+    }
+
+    public searchPools(
+        query: string,
+        season?: string,
+        divisionId?: number,
+        format?: EnumFormat,
+        gender?: EnumGender,
+    ) {
+        return this.httpPublic.get<PoolSearchDocDTO[]>("/search/pools", {
+            params: {
+                query,
+                ...(season ? { season } : {}),
+                ...(typeof divisionId === "number" ? { divisionId } : {}),
+                ...(format ? { format } : {}),
+                ...(gender ? { gender } : {}),
             },
         });
     }

@@ -5,9 +5,7 @@ import React, {
     useState,
 } from "react";
 import {
-    ActivityIndicator,
     FlatList,
-    StyleSheet,
     View,
 } from "react-native";
 import * as Haptics from "expo-haptics";
@@ -33,7 +31,6 @@ const FollowedPoolsList: React.FC<Props> = ({
     selectedSeason,
     onSeasonsChange,
 }) => {
-    const theme = useAppTheme();
     const insets = useSafeAreaInsets();
     const router = useRouter();
 
@@ -71,7 +68,6 @@ const FollowedPoolsList: React.FC<Props> = ({
         [insets.bottom],
     );
 
-    // 🔁 Extraction des saisons disponibles à partir des poules suivies
     useEffect(() => {
         const all = pools ?? [];
         const seasons = Array.from(

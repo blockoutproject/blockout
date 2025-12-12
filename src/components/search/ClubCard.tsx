@@ -2,6 +2,7 @@ import React from "react";
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import { ClubSearchDocDTO } from "@/src/types/Club";
 import EntityGradientCard from "../common/EntityGradientCard";
+import { withAlpha } from "@/src/utils/utils";
 
 export interface ClubCardProps {
     club: ClubSearchDocDTO;
@@ -19,6 +20,8 @@ const ClubCard: React.FC<ClubCardProps> = ({ club, onPress }) => {
                 {
                     label: club.city,
                     icon: "map-marker",
+                    borderColor: theme.textInactive,
+                    backgroundColor: withAlpha(theme.textInactive, 0.12),
                 },
             ]}
             onPress={onPress}

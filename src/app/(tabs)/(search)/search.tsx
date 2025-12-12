@@ -14,8 +14,8 @@ import ReportFormSheet from "@/src/components/report/ReportFormSheet";
 const SearchScreen: React.FC = () => {
     const [filters, setFilters] = useState<Filter[]>([
         { name: "Équipes", isActive: true },
-        { name: "Clubs", isActive: false },
         { name: "Poules", isActive: false },
+        { name: "Clubs", isActive: false },
     ]);
     const [search, setSearch] = useState("");
     const [debouncedQuery] = useDebounce(search, 300);

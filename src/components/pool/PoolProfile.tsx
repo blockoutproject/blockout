@@ -6,7 +6,7 @@ import { EnrichedPoolDTO } from "@/src/types/Pool";
 import FollowButton from "@/src/components/common/follow/FollowButton";
 import FollowersCounter from "@/src/components/common/follow/FollowersCount";
 import { usePoolFollowState } from "@/src/hooks/pool/usePoolFollowState";
-import { GenderLabels } from "@/src/types/enums/Gender";
+import { EnumGender, GenderLabels } from "@/src/types/enums/Gender";
 import { LOGO_SIZE } from "@/src/theme/globals";
 import MaskedImage from "@/src/components/common/images/MaskedImage";
 import { computeBalancedRowsByCount, withAlpha } from "@/src/utils/utils";
@@ -20,6 +20,13 @@ export type PoolProfileProps = {
 };
 
 const GAP = 6;
+
+// Petit type local pour décrire une pill
+type PillConfig = {
+    label: string;
+    borderColor?: string;
+    backgroundColor?: string;
+};
 
 const PoolProfile: React.FC<PoolProfileProps> = ({ enrichedPool }) => {
     const { isFollowing, isProcessing, followersCount, onToggleFollow } =
@@ -35,15 +42,67 @@ const PoolProfile: React.FC<PoolProfileProps> = ({ enrichedPool }) => {
         division.thirdGradientColor,
     ] as const;
 
-    const pillsData = useMemo(
-        () => [
-            enrichedPool.leagueName,
-            division.name,
-            GenderLabels[enrichedPool.gender],
-            String(enrichedPool.season),
-        ],
-        [enrichedPool.leagueName, division.name, enrichedPool.gender, enrichedPool.season],
-    );
+    const pillsData: PillConfig[] = useMemo(() => {
+        const pills: PillConfig[] = [];
+
+        if (enrichedPool.leagueName) {
+            pills.push({
+                label: enrichedPool.leagueName,
+                borderColor: theme.textInactive,
+                backgroundColor: withAlpha(theme.textInactive, 0.12),
+            });
+        }
+
+        if (division.name) {
+            const divColor = division.mainColor ?? theme.textSecondary;
+            pills.push({
+                label: division.name,
+                borderColor: divColor,
+                backgroundColor: withAlpha(divColor, 0.12),
+            });
+        }
+
+        if (enrichedPool.gender) {
+            let genderColor: string;
+            switch (enrichedPool.gender) {
+                case EnumGender.M:
+                    genderColor = theme.male;
+                    break;
+                case EnumGender.F:
+                    genderColor = theme.female;
+                    break;
+                case EnumGender.O:
+                default:
+                    genderColor = theme.textSecondary;
+                    break;
+            }
+
+            pills.push({
+                label: GenderLabels[enrichedPool.gender],
+                borderColor: genderColor,
+                backgroundColor: withAlpha(genderColor, 0.12),
+            });
+        }
+
+        if (enrichedPool.season) {
+            pills.push({
+                label: enrichedPool.season,
+                borderColor: theme.textInactive,
+                backgroundColor: withAlpha(theme.textInactive, 0.12),
+            });
+        }
+
+        return pills;
+    }, [
+        enrichedPool.leagueName,
+        enrichedPool.gender,
+        enrichedPool.season,
+        division.name,
+        division.mainColor,
+        theme.male,
+        theme.female,
+        theme.textSecondary,
+    ]);
 
     const [containerWidth, setContainerWidth] = useState(0);
     const [pillWidths, setPillWidths] = useState<number[]>([]);
@@ -52,7 +111,7 @@ const PoolProfile: React.FC<PoolProfileProps> = ({ enrichedPool }) => {
     useEffect(() => {
         setPillWidths(Array(pillsData.length).fill(0));
         setMeasured(false);
-    }, [pillsData.length, pillsData.join("|")]);
+    }, [pillsData.length, pillsData.map((p) => p.label).join("|")]);
 
     const handleContainerLayout = (e: LayoutChangeEvent) => {
         setContainerWidth(Math.max(0, Math.floor(e.nativeEvent.layout.width)));
@@ -102,26 +161,30 @@ const PoolProfile: React.FC<PoolProfileProps> = ({ enrichedPool }) => {
         }
     }, [isGuest]);
 
-    const renderPill = (label: string, key: string | number) => (
-        <InfoPillGradient
-            key={key}
-            label={label}
-            size="sm"
-            variant="filled"
-            gradient={undefined} // 👉 mode "basic"
-            borderWidth={1}
-            backgroundColor={withAlpha(theme.surface, 0.95)}
-            borderColor={withAlpha(theme.text, 0.12)}
-            textColor={theme.textSecondary}
-        />
-    );
+    const renderPill = (pill: PillConfig, key: string | number) => {
+        const baseBorder = withAlpha(theme.text, 0.12);
+        const baseBg = withAlpha(theme.surface, 0.95);
+
+        return (
+            <InfoPillGradient
+                key={key}
+                label={pill.label}
+                size="md"
+                variant="filled"
+                gradient={undefined}
+                borderWidth={1}
+                backgroundColor={pill.backgroundColor ?? baseBg}
+                borderColor={pill.borderColor ?? baseBorder}
+                textColor={theme.textSecondary}
+            />
+        );
+    };
 
     return (
         <View style={styles.container} testID="pool-profile">
             <MaskedImage uri={division.logoUrl} size={LOGO_SIZE} radius={20} shadow />
 
             <View style={{ flex: 1 }}>
-                {/* Zone visible */}
                 <View onLayout={handleContainerLayout} style={styles.twoRows}>
                     <View style={styles.pillsRow}>
                         {topIndices.map((i) => renderPill(pillsData[i], `pill-${i}`))}
@@ -131,12 +194,11 @@ const PoolProfile: React.FC<PoolProfileProps> = ({ enrichedPool }) => {
                     </View>
                 </View>
 
-                {/* Mesure cachée (1 passe) */}
                 {!measured && (
                     <View pointerEvents="none" style={styles.measureRow}>
-                        {pillsData.map((label, i) => (
+                        {pillsData.map((pill, i) => (
                             <View key={`measure-${i}`} onLayout={(e) => handleMeasurePill(i, e)}>
-                                {renderPill(label, `measure-pill-${i}`)}
+                                {renderPill(pill, `measure-pill-${i}`)}
                             </View>
                         ))}
                     </View>

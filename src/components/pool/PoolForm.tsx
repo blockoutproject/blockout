@@ -78,7 +78,7 @@ const PoolForm: React.FC<PoolFormProps> = ({ pool, onSuccess, onRegisterSubmit, 
         <>
             <BottomSheetScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
                 <FormCard>
-                    <Text style={{ color: theme.text, fontWeight: "900" }}>{pool.name}</Text>
+                    <Text style={{ color: theme.text, fontWeight: "900" }}>{pool.rawName}</Text>
                 </FormCard>
                 <FormCard>
                     <Field label="Nom" error={formik.errors.name} touched={formik.touched.name}>

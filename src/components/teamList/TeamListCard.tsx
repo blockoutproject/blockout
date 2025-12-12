@@ -40,12 +40,8 @@ const TeamListCard: React.FC<TeamListCardProps> = ({
     if (team.division?.name) {
         chips.push({
             label: team.division.name,
-        });
-    }
-
-    if (team.season) {
-        chips.push({
-            label: team.season,
+            borderColor: team.division.mainColor,
+            backgroundColor: withAlpha(team.division.mainColor, 0.12),
         });
     }
 
@@ -72,9 +68,19 @@ const TeamListCard: React.FC<TeamListCardProps> = ({
         });
     }
 
+    if (team.season) {
+        chips.push({
+            label: team.season,
+            borderColor: theme.textInactive,
+            backgroundColor: withAlpha(theme.textInactive, 0.12),
+        });
+    }
+
     if (team.format) {
         chips.push({
             label: FormatLabels[team.format],
+            borderColor: theme.textInactive,
+            backgroundColor: withAlpha(theme.textInactive, 0.12),
         });
     }
 

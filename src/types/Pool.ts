@@ -29,6 +29,7 @@ export interface EnrichedPoolDTO {
     poolCode: string;
     name: string;
     shortName: string;
+    rawName: string;
     format: EnumFormat;
     gender: EnumGender;
     followersCount: number;
@@ -44,16 +45,20 @@ export interface PoolSummaryDTO {
     gender: EnumGender;
     format: EnumFormat;
     division: Division;
+    leagueCode: string;
     leagueName: string;
 }
 
 export type PoolSearchDocDTO = {
     id: number;
     name: string;
+    divisionId: number;
     divisionName: string;
+    divisionMainColor: string;
     leagueCode: string;
     leagueName: string;
-    season: string;
     logoUrl?: string;
+    format: string;
     gender: string;
+    season: string;
 };

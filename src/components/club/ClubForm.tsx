@@ -170,6 +170,10 @@ const ClubForm: React.FC<ClubFormProps> = ({ club, onSuccess, onRegisterSubmit, 
                 </FormCard>
 
                 <FormCard>
+                    <Text style={{ color: theme.text, fontWeight: "900" }}>{club.rawName}</Text>
+                </FormCard>
+
+                <FormCard>
                     <Field label="Nom" error={formik.errors.name} touched={formik.touched.name}>
                         <SheetTextInput
                             value={formik.values.name}

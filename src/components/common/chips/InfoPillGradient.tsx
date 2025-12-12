@@ -58,7 +58,7 @@ const InfoPillGradient: React.FC<InfoPillGradientProps> = ({
     size = "md",
     onPress,
     disabled,
-    borderWidth = 0.5,
+    borderWidth = 1,
     maxWidth,
     leftIcon,
     rightIcon,

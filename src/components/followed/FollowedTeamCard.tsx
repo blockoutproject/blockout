@@ -4,6 +4,8 @@ import { TeamSummaryDTO } from "@/src/types/Team";
 import { EnumGender, GenderLabels } from "@/src/types/enums/Gender";
 import { withAlpha } from "@/src/utils/utils";
 import EntityGradientCard, { EntityCardChip } from "../common/EntityGradientCard";
+import { te } from "date-fns/locale";
+import { FormatLabels } from "@/src/types/enums/Format";
 
 export type FollowedTeamCardProps = {
     team: TeamSummaryDTO;
@@ -44,12 +46,6 @@ const FollowedTeamCard: React.FC<FollowedTeamCardProps> = ({
         });
     }
 
-    if (team.season) {
-        chips.push({
-            label: team.season,
-        });
-    }
-
     if (team.gender) {
         let genderColor: string;
         switch (team.gender) {
@@ -69,6 +65,22 @@ const FollowedTeamCard: React.FC<FollowedTeamCardProps> = ({
             label: GenderLabels[team.gender],
             borderColor: genderColor,
             backgroundColor: withAlpha(genderColor, 0.12),
+        });
+    }
+
+    if (team.season) {
+        chips.push({
+            label: team.season,
+            borderColor: theme.textInactive,
+            backgroundColor: withAlpha(theme.textInactive, 0.12),
+        });
+    }
+
+    if (team.format) {
+        chips.push({
+            label: FormatLabels[team.format],
+            borderColor: theme.textInactive,
+            backgroundColor: withAlpha(theme.textInactive, 0.12),
         });
     }
 

@@ -4,7 +4,7 @@ import { useAppTheme } from "@/src/context/ThemeProvider";
 import { PoolSummaryDTO } from "@/src/types/Pool";
 import { EnumGender, GenderLabels } from "@/src/types/enums/Gender";
 import { FormatLabels } from "@/src/types/enums/Format";
-import { withAlpha } from "@/src/utils/utils";
+import { isRegional, withAlpha } from "@/src/utils/utils";
 import EntityGradientCard, { EntityCardChip } from "../common/EntityGradientCard";
 
 export type FollowedPoolCardProps = {
@@ -28,6 +28,7 @@ const FollowedPoolCard: React.FC<FollowedPoolCardProps> = ({
 }) => {
     const theme = useAppTheme();
 
+    const isReg = isRegional(pool.leagueCode);
     const title = pool.name;
     const division = pool.division;
     const gradient = [
@@ -38,15 +39,19 @@ const FollowedPoolCard: React.FC<FollowedPoolCardProps> = ({
 
     const chips: EntityCardChip[] = [];
 
-    if (pool.division.name) {
+    if (division.name) {
         chips.push({
             label: pool.division.name,
+            borderColor: pool.division.mainColor,
+            backgroundColor: withAlpha(pool.division.mainColor, 0.12),
         });
     }
 
-    if (pool.season) {
+    if (isReg && pool.leagueName) {
         chips.push({
-            label: pool.season,
+            label: pool.leagueName,
+            borderColor: theme.textInactive,
+            backgroundColor: withAlpha(theme.textInactive, 0.12),
         });
     }
 
@@ -72,9 +77,19 @@ const FollowedPoolCard: React.FC<FollowedPoolCardProps> = ({
         });
     }
 
+    if (pool.season) {
+        chips.push({
+            label: pool.season,
+            borderColor: theme.textInactive,
+            backgroundColor: withAlpha(theme.textInactive, 0.12),
+        });
+    }
+
     if (pool.format) {
         chips.push({
             label: FormatLabels[pool.format],
+            borderColor: theme.textInactive,
+            backgroundColor: withAlpha(theme.textInactive, 0.12),
         });
     }
 

@@ -176,7 +176,7 @@ const TeamForm: React.FC<TeamFormProps> = ({ team, onSuccess, onRegisterSubmit, 
                 </FormCard>
 
                 <FormCard>
-                    <Text style={{ color: theme.text, fontWeight: "900" }}>{team.name}</Text>
+                    <Text style={{ color: theme.text, fontWeight: "900" }}>{team.rawName}</Text>
                 </FormCard>
 
                 <FormCard>

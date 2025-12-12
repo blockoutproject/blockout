@@ -1,4 +1,3 @@
-// MatchLiveModerationScreen.tsx
 import React, {
     useCallback,
     useMemo,
@@ -224,8 +223,6 @@ const styles = StyleSheet.create({
         marginTop: 40,
     },
     searchRow: {
-        flexDirection: "row",
-        alignItems: "center",
         marginHorizontal: 8,
         marginTop: 8,
     },

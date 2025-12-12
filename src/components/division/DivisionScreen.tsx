@@ -67,13 +67,15 @@ const DivisionScreen: React.FC = () => {
         <>
             <View style={[styles.container, { backgroundColor: theme.background }]}>
                 <View style={styles.searchRow}>
-                    <SearchBar value={search} onChangeText={setSearch} placeholder="Rechercher une division..." />
+                    <View style={{ flex: 1 }}>
+                        <SearchBar value={search} onChangeText={setSearch} placeholder="Rechercher une division..." />
+                    </View>
                     <TouchableOpacity onPress={() => openForm(null)} style={[styles.addButton, { backgroundColor: theme.primary }]} activeOpacity={0.8}>
                         <Text style={styles.addButtonText}>Ajouter</Text>
                     </TouchableOpacity>
                 </View>
 
-                <Filters filters={statusFilters} setFilters={setStatusFilters} singleSelect/>
+                <Filters filters={statusFilters} setFilters={setStatusFilters} singleSelect />
 
                 <FlashList
                     style={styles.flatList}

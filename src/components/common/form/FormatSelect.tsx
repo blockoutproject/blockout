@@ -15,10 +15,10 @@ import SelectSheet, {
     SelectOption,
     SelectSheetRef,
 } from "@/src/components/common/form/SelectSheet";
+import { EnumFormat, FormatLabels } from "@/src/types/enums/Format";
 
-export type SeasonSelectProps = {
-    options: SelectOption[];
-    selectedValue?: string | null;
+export type FormatSelectProps = {
+    selectedValue?: EnumFormat | null;
     onSelect: (opt: SelectOption) => void;
 
     /** UI */
@@ -30,12 +30,11 @@ export type SeasonSelectProps = {
     clearable?: boolean;
 };
 
-const SeasonSelect: React.FC<SeasonSelectProps> = ({
-    options,
+const FormatSelect: React.FC<FormatSelectProps> = ({
     selectedValue,
     onSelect,
-    title = "Choisir une saison",
-    placeholderLabel = "Saison",
+    title = "Choisir un format",
+    placeholderLabel = "Format",
     testIDButton,
     style,
     disabled = false,
@@ -44,11 +43,22 @@ const SeasonSelect: React.FC<SeasonSelectProps> = ({
     const theme = useAppTheme();
     const sheetRef = useRef<SelectSheetRef>(null);
 
+    const options: SelectOption[] = useMemo(
+        () => [
+            { value: EnumFormat.SIX, label: FormatLabels[EnumFormat.SIX] },
+            { value: EnumFormat.FOUR, label: FormatLabels[EnumFormat.FOUR] },
+            { value: EnumFormat.TWO, label: FormatLabels[EnumFormat.TWO] },
+        ],
+        [],
+    );
+
     const isDisabled = disabled || options.length === 0;
 
     const label = useMemo(() => {
-        if (selectedValue) return selectedValue;
-
+        if (selectedValue) {
+            const found = options.find((opt) => opt.value === selectedValue);
+            if (found) return found.label;
+        }
         return placeholderLabel;
     }, [selectedValue, options, placeholderLabel]);
 
@@ -72,7 +82,7 @@ const SeasonSelect: React.FC<SeasonSelectProps> = ({
                 activeOpacity={0.8}
                 disabled={isDisabled}
                 style={[
-                    styles.seasonBtn,
+                    styles.formatBtn,
                     {
                         borderColor: theme.border,
                         backgroundColor: theme.surface,
@@ -83,13 +93,13 @@ const SeasonSelect: React.FC<SeasonSelectProps> = ({
                 testID={testIDButton}
             >
                 <MaterialCommunityIcons
-                    name="calendar-month-outline"
+                    name="account-group-outline"
                     size={16}
                     color={theme.textInactive}
                 />
 
                 <Text
-                    style={[styles.seasonText, { color: theme.text }]}
+                    style={[styles.formatText, { color: theme.text }]}
                     numberOfLines={1}
                 >
                     {label}
@@ -114,10 +124,10 @@ const SeasonSelect: React.FC<SeasonSelectProps> = ({
     );
 };
 
-export default SeasonSelect;
+export default FormatSelect;
 
 const styles = StyleSheet.create({
-    seasonBtn: {
+    formatBtn: {
         flexDirection: "row",
         alignItems: "center",
         paddingHorizontal: 10,
@@ -126,7 +136,7 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         gap: 6,
     },
-    seasonText: {
+    formatText: {
         fontSize: 12,
         fontWeight: "700",
     },

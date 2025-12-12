@@ -93,9 +93,7 @@ const RawDivisionMappingScreen: React.FC = () => {
     return (
         <>
             <View style={[styles.container, { backgroundColor: theme.background }]}>
-                <View style={styles.searchRow}>
-                    <SearchBar value={search} onChangeText={setSearch} placeholder="Rechercher par nom brut..." />
-                </View>
+                <SearchBar value={search} onChangeText={setSearch} placeholder="Rechercher par nom brut..." />
 
                 <View style={styles.filterWrapper}>
                     <Filters filters={mappingFilters} setFilters={setMappingFilters} singleSelect />
@@ -142,12 +140,6 @@ export default RawDivisionMappingScreen;
 const styles = StyleSheet.create({
     container: { flex: 1, gap: 16 },
     center: { flex: 1, justifyContent: "center", alignItems: "center" },
-    searchRow: { 
-        flexDirection: "row", 
-        alignItems: "center", 
-        marginHorizontal: 8, 
-        marginTop: 16 
-    },
     filterWrapper: { flexDirection: "column", gap: 6 },
     flatList: { paddingHorizontal: 8 },
     emptyState: { alignItems: "center", marginTop: 32 },

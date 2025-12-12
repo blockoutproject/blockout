@@ -7,7 +7,7 @@ import { EnrichedTeamDTO } from "@/src/types/Team";
 import { useTeamFollowState } from "@/src/hooks/team/useTeamFollowState";
 import FollowButton from "@/src/components/common/follow/FollowButton";
 import FollowersCounter from "@/src/components/common/follow/FollowersCount";
-import { GenderLabels } from "@/src/types/enums/Gender";
+import { EnumGender, GenderLabels } from "@/src/types/enums/Gender";
 import { FormatLabels } from "@/src/types/enums/Format";
 import { LOGO_SIZE } from "@/src/theme/globals";
 import MaskedImage from "@/src/components/common/images/MaskedImage";
@@ -47,6 +47,12 @@ function splitBalanced(containerWidth: number, widths: number[], gap: number) {
     return { top: idx.slice(0, topCount), bottom: idx.slice(topCount) };
 }
 
+type PillConfig = {
+    label: string;
+    borderColor?: string;
+    backgroundColor?: string;
+};
+
 const TeamProfile: React.FC<TeamProfileProps> = ({ enrichedTeam }) => {
     const router = useRouter();
     const { isFollowing, isProcessing, followersCount, onToggleFollow } =
@@ -61,22 +67,74 @@ const TeamProfile: React.FC<TeamProfileProps> = ({ enrichedTeam }) => {
         enrichedTeam.division.thirdGradientColor,
     ] as const;
 
-    const pills = useMemo(
-        () => [
-            enrichedTeam.division.name,
-            GenderLabels[enrichedTeam.gender],
-            FormatLabels[enrichedTeam.format],
-            String(enrichedTeam.season),
-        ],
-        [enrichedTeam.division.name, enrichedTeam.gender, enrichedTeam.format, enrichedTeam.season],
-    );
+    const pills: PillConfig[] = useMemo(() => {
+        const arr: PillConfig[] = [];
+
+        if (enrichedTeam.division.name) {
+            const divColor = enrichedTeam.division.mainColor ?? theme.textSecondary;
+            arr.push({
+                label: enrichedTeam.division.name,
+                borderColor: divColor,
+                backgroundColor: withAlpha(divColor, 0.12),
+            });
+        }
+
+        if (enrichedTeam.gender) {
+            let genderColor: string;
+            switch (enrichedTeam.gender) {
+                case EnumGender.M:
+                    genderColor = theme.male;
+                    break;
+                case EnumGender.F:
+                    genderColor = theme.female;
+                    break;
+                case EnumGender.O:
+                default:
+                    genderColor = theme.textSecondary;
+                    break;
+            }
+
+            arr.push({
+                label: GenderLabels[enrichedTeam.gender],
+                borderColor: genderColor,
+                backgroundColor: withAlpha(genderColor, 0.12),
+            });
+        }
+
+        if (enrichedTeam.format) {
+            arr.push({
+                label: FormatLabels[enrichedTeam.format],
+                borderColor: theme.textInactive,
+                backgroundColor: withAlpha(theme.textInactive, 0.12),
+            });
+        }
+
+        if (enrichedTeam.season) {
+            arr.push({
+                label: enrichedTeam.season,
+                borderColor: theme.textInactive,
+                backgroundColor: withAlpha(theme.textInactive, 0.12),
+            });
+        }
+
+        return arr;
+    }, [
+        enrichedTeam.division.name,
+        enrichedTeam.division.mainColor,
+        enrichedTeam.gender,
+        enrichedTeam.format,
+        enrichedTeam.season,
+        theme.male,
+        theme.female,
+        theme.textSecondary,
+    ]);
 
     const [containerWidth, setContainerWidth] = useState(0);
     const [widths, setWidths] = useState<number[]>(Array(pills.length).fill(0));
 
     useEffect(() => {
         setWidths(Array(pills.length).fill(0));
-    }, [pills.length, pills.join("|")]);
+    }, [pills.length, pills.map((p) => p.label).join("|")]);
 
     const ready =
         containerWidth > 0 &&
@@ -127,19 +185,24 @@ const TeamProfile: React.FC<TeamProfileProps> = ({ enrichedTeam }) => {
         }
     }, [isGuest]);
 
-    const renderPill = (label: string, key: string | number) => (
-        <InfoPillGradient
-            key={key}
-            label={label}
-            size="sm"
-            variant="filled"
-            gradient={undefined} // 👉 mode "basic"
-            borderWidth={1}
-            backgroundColor={withAlpha(theme.surface, 0.95)}
-            borderColor={withAlpha(theme.text, 0.12)}
-            textColor={theme.textSecondary}
-        />
-    );
+    const renderPill = (pill: PillConfig, key: string | number) => {
+        const baseBorder = withAlpha(theme.text, 0.12);
+        const baseBg = withAlpha(theme.surface, 0.95);
+
+        return (
+            <InfoPillGradient
+                key={key}
+                label={pill.label}
+                size="md"
+                variant="filled"
+                gradient={undefined}
+                borderWidth={1}
+                backgroundColor={pill.backgroundColor ?? baseBg}
+                borderColor={pill.borderColor ?? baseBorder}
+                textColor={theme.textSecondary}
+            />
+        );
+    };
 
     return (
         <View style={styles.container} testID="team-profile">
@@ -156,6 +219,7 @@ const TeamProfile: React.FC<TeamProfileProps> = ({ enrichedTeam }) => {
 
                         <InfoPillGradient
                             leftIcon="home"
+                            size="md"
                             rightIcon="chevron-forward-outline"
                             variant="filled"
                             gradient={gradient}
@@ -166,12 +230,12 @@ const TeamProfile: React.FC<TeamProfileProps> = ({ enrichedTeam }) => {
 
                 {!ready && (
                     <View pointerEvents="none" style={styles.measureRow}>
-                        {pills.map((label, i) => (
+                        {pills.map((pill, i) => (
                             <View
                                 key={`measure-${i}`}
                                 onLayout={(e) => onMeasurePill(i, e)}
                             >
-                                {renderPill(label, `measure-pill-${i}`)}
+                                {renderPill(pill, `measure-pill-${i}`)}
                             </View>
                         ))}
                     </View>

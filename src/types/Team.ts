@@ -41,6 +41,7 @@ export interface EnrichedTeamDTO {
     clubId: string
     name: string;
     shortName: string;
+    rawName: string;
     format: EnumFormat;
     gender: EnumGender;
     season: string;
@@ -73,6 +74,8 @@ export interface TeamSearchDocDTO {
     clubName: string;
     clubCity: string;
     logoUrl: string | null;
+    divisionId: number;
+    divisionMainColor: string;
     divisionName: string;
     format: string;
     gender: string;

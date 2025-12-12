@@ -15,10 +15,10 @@ import SelectSheet, {
     SelectOption,
     SelectSheetRef,
 } from "@/src/components/common/form/SelectSheet";
+import { EnumGender, GenderLabels } from "@/src/types/enums/Gender";
 
-export type SeasonSelectProps = {
-    options: SelectOption[];
-    selectedValue?: string | null;
+export type GenderSelectProps = {
+    selectedValue?: EnumGender | null;
     onSelect: (opt: SelectOption) => void;
 
     /** UI */
@@ -30,12 +30,11 @@ export type SeasonSelectProps = {
     clearable?: boolean;
 };
 
-const SeasonSelect: React.FC<SeasonSelectProps> = ({
-    options,
+const GenderSelect: React.FC<GenderSelectProps> = ({
     selectedValue,
     onSelect,
-    title = "Choisir une saison",
-    placeholderLabel = "Saison",
+    title = "Choisir un genre",
+    placeholderLabel = "Genre",
     testIDButton,
     style,
     disabled = false,
@@ -44,11 +43,22 @@ const SeasonSelect: React.FC<SeasonSelectProps> = ({
     const theme = useAppTheme();
     const sheetRef = useRef<SelectSheetRef>(null);
 
+    const options: SelectOption[] = useMemo(
+        () => [
+            { value: EnumGender.M, label: GenderLabels[EnumGender.M] },
+            { value: EnumGender.F, label: GenderLabels[EnumGender.F] },
+            { value: EnumGender.O, label: GenderLabels[EnumGender.O] },
+        ],
+        [],
+    );
+
     const isDisabled = disabled || options.length === 0;
 
     const label = useMemo(() => {
-        if (selectedValue) return selectedValue;
-
+        if (selectedValue) {
+            const opt = options.find((o) => o.value === selectedValue);
+            if (opt) return opt.label;
+        }
         return placeholderLabel;
     }, [selectedValue, options, placeholderLabel]);
 
@@ -72,7 +82,7 @@ const SeasonSelect: React.FC<SeasonSelectProps> = ({
                 activeOpacity={0.8}
                 disabled={isDisabled}
                 style={[
-                    styles.seasonBtn,
+                    styles.genderBtn,
                     {
                         borderColor: theme.border,
                         backgroundColor: theme.surface,
@@ -83,13 +93,13 @@ const SeasonSelect: React.FC<SeasonSelectProps> = ({
                 testID={testIDButton}
             >
                 <MaterialCommunityIcons
-                    name="calendar-month-outline"
+                    name="gender-male-female"
                     size={16}
                     color={theme.textInactive}
                 />
 
                 <Text
-                    style={[styles.seasonText, { color: theme.text }]}
+                    style={[styles.genderText, { color: theme.text }]}
                     numberOfLines={1}
                 >
                     {label}
@@ -114,10 +124,10 @@ const SeasonSelect: React.FC<SeasonSelectProps> = ({
     );
 };
 
-export default SeasonSelect;
+export default GenderSelect;
 
 const styles = StyleSheet.create({
-    seasonBtn: {
+    genderBtn: {
         flexDirection: "row",
         alignItems: "center",
         paddingHorizontal: 10,
@@ -126,7 +136,7 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         gap: 6,
     },
-    seasonText: {
+    genderText: {
         fontSize: 12,
         fontWeight: "700",
     },

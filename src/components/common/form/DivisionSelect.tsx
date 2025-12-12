@@ -16,9 +16,9 @@ import SelectSheet, {
     SelectSheetRef,
 } from "@/src/components/common/form/SelectSheet";
 
-export type SeasonSelectProps = {
+export type DivisionSelectProps = {
     options: SelectOption[];
-    selectedValue?: string | null;
+    selectedValue?: number | null;
     onSelect: (opt: SelectOption) => void;
 
     /** UI */
@@ -30,12 +30,12 @@ export type SeasonSelectProps = {
     clearable?: boolean;
 };
 
-const SeasonSelect: React.FC<SeasonSelectProps> = ({
+const DivisionSelect: React.FC<DivisionSelectProps> = ({
     options,
     selectedValue,
     onSelect,
-    title = "Choisir une saison",
-    placeholderLabel = "Saison",
+    title = "Choisir une division",
+    placeholderLabel = "Division",
     testIDButton,
     style,
     disabled = false,
@@ -47,7 +47,10 @@ const SeasonSelect: React.FC<SeasonSelectProps> = ({
     const isDisabled = disabled || options.length === 0;
 
     const label = useMemo(() => {
-        if (selectedValue) return selectedValue;
+        if (selectedValue != null) {
+            const match = options.find((opt) => opt.value === selectedValue);
+            if (match) return match.label;
+        }
 
         return placeholderLabel;
     }, [selectedValue, options, placeholderLabel]);
@@ -72,7 +75,7 @@ const SeasonSelect: React.FC<SeasonSelectProps> = ({
                 activeOpacity={0.8}
                 disabled={isDisabled}
                 style={[
-                    styles.seasonBtn,
+                    styles.divisionBtn,
                     {
                         borderColor: theme.border,
                         backgroundColor: theme.surface,
@@ -83,13 +86,13 @@ const SeasonSelect: React.FC<SeasonSelectProps> = ({
                 testID={testIDButton}
             >
                 <MaterialCommunityIcons
-                    name="calendar-month-outline"
+                    name="trophy-outline"
                     size={16}
                     color={theme.textInactive}
                 />
 
                 <Text
-                    style={[styles.seasonText, { color: theme.text }]}
+                    style={[styles.divisionText, { color: theme.text }]}
                     numberOfLines={1}
                 >
                     {label}
@@ -114,10 +117,10 @@ const SeasonSelect: React.FC<SeasonSelectProps> = ({
     );
 };
 
-export default SeasonSelect;
+export default DivisionSelect;
 
 const styles = StyleSheet.create({
-    seasonBtn: {
+    divisionBtn: {
         flexDirection: "row",
         alignItems: "center",
         paddingHorizontal: 10,
@@ -126,7 +129,7 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         gap: 6,
     },
-    seasonText: {
+    divisionText: {
         fontSize: 12,
         fontWeight: "700",
     },

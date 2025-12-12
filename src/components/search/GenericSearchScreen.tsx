@@ -9,6 +9,7 @@ import {
     Platform,
     FlatList,
     ListRenderItem,
+    ScrollView,
 } from "react-native";
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -19,7 +20,12 @@ import InfoPillGradient from "../common/chips/InfoPillGradient";
 import { CTA_GRADIENT } from "../common/GradientButton";
 import FadeIn from "../common/animations/FadeIn";
 import SeasonSelect from "@/src/components/common/form/SeasonSelect";
+import DivisionSelect from "@/src/components/common/form/DivisionSelect";
+import FormatSelect from "@/src/components/common/form/FormatSelect";
+import GenderSelect from "@/src/components/common/form/GenderSelect";
 import { SelectOption } from "@/src/components/common/form/SelectSheet";
+import { EnumFormat } from "@/src/types/enums/Format";
+import { EnumGender } from "@/src/types/enums/Gender";
 
 type GenericSearchScreenProps<T> = {
     search: string;
@@ -34,11 +40,32 @@ type GenericSearchScreenProps<T> = {
     emptyMessage: string;
     renderItem: ListRenderItem<T>;
     keyExtractor?: (item: T, index: number) => string;
+
+    /** Season filter */
     seasonOptions?: SelectOption[];
     selectedSeason?: string | null;
     onSelectSeason?: (opt: SelectOption) => void;
     seasonPlaceholderLabel?: string;
     seasonTestIDButton?: string;
+
+    /** Division filter */
+    divisionOptions?: SelectOption[];
+    selectedDivisionId?: number | null;
+    onSelectDivision?: (opt: SelectOption) => void;
+    divisionPlaceholderLabel?: string;
+    divisionTestIDButton?: string;
+
+    /** Format filter */
+    selectedFormat?: EnumFormat | null;
+    onSelectFormat?: (opt: SelectOption) => void;
+    formatPlaceholderLabel?: string;
+    formatTestIDButton?: string;
+
+    /** Gender filter */
+    selectedGender?: EnumGender | null;
+    onSelectGender?: (opt: SelectOption) => void;
+    genderPlaceholderLabel?: string;
+    genderTestIDButton?: string;
 };
 
 export const GenericSearchScreen = <T,>({
@@ -60,12 +87,28 @@ export const GenericSearchScreen = <T,>({
     onSelectSeason,
     seasonPlaceholderLabel = "Saison",
     seasonTestIDButton,
+
+    divisionOptions,
+    selectedDivisionId,
+    onSelectDivision,
+    divisionPlaceholderLabel = "Division",
+    divisionTestIDButton,
+
+    selectedFormat,
+    onSelectFormat,
+    formatPlaceholderLabel = "Format",
+    formatTestIDButton,
+
+    selectedGender,
+    onSelectGender,
+    genderPlaceholderLabel = "Genre",
+    genderTestIDButton,
 }: GenericSearchScreenProps<T>) => {
     const theme = useAppTheme();
     const insets = useSafeAreaInsets();
 
     const renderEmpty = () => {
-        if (debouncedQuery.length > 1 && !isLoading && !isError) {
+        if (!isLoading && !isError) {
             return (
                 <View style={styles.emptyContainer}>
                     <Text
@@ -95,6 +138,7 @@ export const GenericSearchScreen = <T,>({
                 ]}
             >
                 <InfoPillGradient
+                    borderWidth={1}
                     label={exampleLabel}
                     gradient={CTA_GRADIENT}
                 />
@@ -103,33 +147,82 @@ export const GenericSearchScreen = <T,>({
     ) : null;
 
     const showSeasonSelect =
-        !!seasonOptions &&
-        seasonOptions.length > 0 &&
-        !!onSelectSeason;
+        !!seasonOptions && seasonOptions.length > 0 && !!onSelectSeason;
+
+    const showDivisionSelect =
+        !!divisionOptions && divisionOptions.length > 0 && !!onSelectDivision;
+
+    const showFormatSelect = !!onSelectFormat;
+    const showGenderSelect = !!onSelectGender;
+
+    const showFiltersRow =
+        showSeasonSelect ||
+        showDivisionSelect ||
+        showFormatSelect ||
+        showGenderSelect;
 
     return (
         <KeyboardAvoidingView
             style={[styles.container, { backgroundColor: theme.background }]}
             behavior={Platform.OS === "ios" ? "padding" : undefined}
         >
-            <View style={styles.searchRow}>
-                    <SearchBar
-                        value={search}
-                        onChangeText={setSearch}
-                        placeholder={placeholder}
-                        inSheet={false}
-                    />
+            <View style={styles.searchContainer}>
+                <SearchBar
+                    value={search}
+                    onChangeText={setSearch}
+                    placeholder={placeholder}
+                    inSheet={false}
+                />
 
-                {showSeasonSelect && (
-                    <SeasonSelect
-                        options={seasonOptions}
-                        selectedValue={selectedSeason}
-                        onSelect={onSelectSeason}
-                        placeholderLabel={seasonPlaceholderLabel}
-                        testIDButton={seasonTestIDButton}
-                        maxWidth={140}
-                        style={styles.seasonBtn}
-                    />
+                {showFiltersRow && (
+                    <ScrollView
+                        horizontal
+                        contentContainerStyle={styles.filtersRow}
+                        showsHorizontalScrollIndicator={false}
+                        keyboardShouldPersistTaps="handled"
+                    >
+                        {showSeasonSelect && (
+                            <SeasonSelect
+                                options={seasonOptions}
+                                selectedValue={selectedSeason}
+                                onSelect={onSelectSeason!}
+                                placeholderLabel={seasonPlaceholderLabel}
+                                testIDButton={seasonTestIDButton}
+                                style={styles.filterBtn}
+                            />
+                        )}
+
+                        {showDivisionSelect && (
+                            <DivisionSelect
+                                options={divisionOptions}
+                                selectedValue={selectedDivisionId ?? null}
+                                onSelect={onSelectDivision!}
+                                placeholderLabel={divisionPlaceholderLabel}
+                                testIDButton={divisionTestIDButton}
+                                style={styles.filterBtn}
+                            />
+                        )}
+
+                        {showFormatSelect && (
+                            <FormatSelect
+                                selectedValue={selectedFormat ?? null}
+                                onSelect={onSelectFormat!}
+                                placeholderLabel={formatPlaceholderLabel}
+                                testIDButton={formatTestIDButton}
+                                style={styles.filterBtn}
+                            />
+                        )}
+
+                        {showGenderSelect && (
+                            <GenderSelect
+                                selectedValue={selectedGender ?? null}
+                                onSelect={onSelectGender!}
+                                placeholderLabel={genderPlaceholderLabel}
+                                testIDButton={genderTestIDButton}
+                                style={styles.filterBtn}
+                            />
+                        )}
+                    </ScrollView>
                 )}
             </View>
 
@@ -168,22 +261,28 @@ export const GenericSearchScreen = <T,>({
 };
 
 const styles = StyleSheet.create({
-    container: { flex: 1, paddingHorizontal: 8 },
-    searchRow: {
+    container: {
+        flex: 1,
+        paddingHorizontal: 8,
+    },
+    searchContainer: {
         marginTop: 8,
         marginBottom: 8,
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 8,
     },
     searchBarWrap: {
-        flex: 1,
+        flexGrow: 1,
     },
-    seasonBtn: {
-        alignSelf: "stretch",
+    filtersRow: {
+        marginTop: 6,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "flex-start",
+        gap: 8,
+        paddingRight: 8,
     },
+    filterBtn: {},
     loader: { marginTop: 8 },
-    emptyContainer: { alignItems: "center" },
+    emptyContainer: { alignItems: "center", marginTop: 16 },
     emptyText: { fontSize: 14, textAlign: "center" },
     examplePillContainer: {
         alignItems: "center",

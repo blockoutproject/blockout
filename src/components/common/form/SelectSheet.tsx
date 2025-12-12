@@ -1,6 +1,6 @@
 import React, { forwardRef, useImperativeHandle, useMemo, useRef } from "react";
 import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
-import { BottomSheetModal, BottomSheetView } from "@gorhom/bottom-sheet";
+import { BottomSheetFlashList, BottomSheetFlatList, BottomSheetModal, BottomSheetView } from "@gorhom/bottom-sheet";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import * as Haptics from "expo-haptics";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import { TABBAR_HEIGHT } from "@/src/theme/globals";
 import BottomSheetCustomModal from "../bottomSheet/BottomSheetCustomModal";
+import BottomSheetCustomPage from "../bottomSheet/BottomSheetCustomPage";
 
 export type SelectOption = {
     /** Valeur renvoyée au choix. */
@@ -37,7 +38,17 @@ export type SelectSheetRef = {
 };
 
 const SelectSheet = forwardRef<SelectSheetRef, SelectSheetProps>(
-    ({ title, options, selectedValue, onSelect, clearable = true, clearLabel = "Réinitialiser" }, ref) => {
+    (
+        {
+            title,
+            options,
+            selectedValue,
+            onSelect,
+            clearable = true,
+            clearLabel = "Réinitialiser",
+        },
+        ref,
+    ) => {
         const theme = useAppTheme();
         const insets = useSafeAreaInsets();
         const sheetRef = useRef<BottomSheetModal>(null);
@@ -47,7 +58,13 @@ const SelectSheet = forwardRef<SelectSheetRef, SelectSheetProps>(
             dismiss: () => sheetRef.current?.dismiss(),
         }));
 
-        const data = useMemo(() => options, [options]);
+        const data = useMemo(
+            () =>
+                [...options].sort((a, b) =>
+                    a.label.localeCompare(b.label, "fr", { sensitivity: "base" })
+                ),
+            [options]
+        );
 
         const handleSelect = async (opt: SelectOption) => {
             await Haptics.selectionAsync();
@@ -63,40 +80,80 @@ const SelectSheet = forwardRef<SelectSheetRef, SelectSheetProps>(
 
         const renderItem = ({ item }: { item: SelectOption }) => {
             const isSelected = item.value === selectedValue;
+
             return (
                 <Pressable
                     onPress={() => handleSelect(item)}
                     style={({ pressed }) => [
                         styles.row,
-                        { backgroundColor: pressed ? theme.backgroundSecondary : "transparent" },
+                        {
+                            borderColor: isSelected
+                                ? theme.textInactive
+                                : theme.border,
+                            backgroundColor: pressed
+                                ? theme.backgroundSecondary
+                                : isSelected
+                                    ? theme.backgroundSecondary
+                                    : theme.surface,
+                        },
                     ]}
                 >
                     <Text
                         numberOfLines={1}
                         style={[
                             styles.rowLabel,
-                            { color: theme.text, fontWeight: (isSelected ? "800" : "600") as "800" | "600" },
+                            {
+                                color: theme.text,
+                                fontWeight: (isSelected ? "800" : "600") as
+                                    | "800"
+                                    | "600",
+                            },
                         ]}
                     >
                         {item.label}
                     </Text>
-                    {isSelected ? <MaterialIcons name="check" size={18} color={theme.text} /> : null}
+                    {isSelected ? (
+                        <MaterialIcons
+                            name="check"
+                            size={18}
+                            color={theme.text}
+                        />
+                    ) : null}
                 </Pressable>
             );
         };
 
         return (
-            <BottomSheetCustomModal ref={sheetRef}>
-                <BottomSheetView>
-                    <View style={[styles.header, { borderColor: theme.border }]}>
-                        <Text style={[styles.title, { color: theme.text }]} numberOfLines={1}>
+            <BottomSheetCustomPage ref={sheetRef}>
+                <View>
+                    <View
+                        style={[styles.header]}
+                    >
+                        <Text
+                            style={[styles.title, { color: theme.text }]}
+                            numberOfLines={1}
+                        >
                             {title}
                         </Text>
 
                         {clearable ? (
-                            <Pressable onPress={handleClear} hitSlop={8} style={styles.clearBtn}>
-                                <MaterialIcons name="close" size={16} color={theme.textInactive} />
-                                <Text style={[styles.clearText, { color: theme.textInactive }]} numberOfLines={1}>
+                            <Pressable
+                                onPress={handleClear}
+                                hitSlop={8}
+                                style={styles.clearBtn}
+                            >
+                                <MaterialIcons
+                                    name="close"
+                                    size={16}
+                                    color={theme.textInactive}
+                                />
+                                <Text
+                                    style={[
+                                        styles.clearText,
+                                        { color: theme.textInactive },
+                                    ]}
+                                    numberOfLines={1}
+                                >
                                     {clearLabel}
                                 </Text>
                             </Pressable>
@@ -105,18 +162,21 @@ const SelectSheet = forwardRef<SelectSheetRef, SelectSheetProps>(
                         )}
                     </View>
 
-                    <FlatList
+                    <BottomSheetFlatList
                         data={data}
-                        keyExtractor={(it) => String(it.value)}
+                        keyExtractor={(it: SelectOption) => String(it.value)}
                         renderItem={renderItem}
-                        contentContainerStyle={{ paddingBottom: insets.bottom + TABBAR_HEIGHT }}
+                        contentContainerStyle={{
+                            paddingBottom: insets.bottom + TABBAR_HEIGHT,
+                            paddingHorizontal: 8,
+                        }}
                         keyboardShouldPersistTaps="handled"
                         showsVerticalScrollIndicator={false}
                     />
-                </BottomSheetView>
-            </BottomSheetCustomModal>
+                </View>
+            </BottomSheetCustomPage>
         );
-    }
+    },
 );
 
 export default SelectSheet;
@@ -157,8 +217,12 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
+        borderRadius: 10,
+        borderWidth: StyleSheet.hairlineWidth,
+        marginVertical: 4,
     },
     rowLabel: {
         fontSize: 14,
+        flexShrink: 1,
     },
 });

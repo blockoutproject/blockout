@@ -190,7 +190,6 @@ export const SessionProvider: React.FC<React.PropsWithChildren> = ({ children })
     const primeApisWithAuth = async () => {
         const tokenSupplier = async () => {
             const creds = await getCredentials(undefined, 60);
-            console.log("[Auth] getCredentials ->", !!creds?.accessToken, "exp:", creds?.expiresIn);
             return creds?.accessToken ?? null;
         };
 

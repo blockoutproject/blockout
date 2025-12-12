@@ -49,8 +49,8 @@ const EntityGradientCard: React.FC<EntityGradientCardProps> = ({
     testID,
     logoSize = 44,
     borderRadius = 16,
-    padding = 12,
-    marginBottom = 12,
+    padding = 8,
+    marginBottom = 8,
     gradient,
 }) => {
     const theme = useAppTheme();

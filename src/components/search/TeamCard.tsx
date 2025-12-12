@@ -4,6 +4,7 @@ import { TeamSearchDocDTO } from "@/src/types/Team";
 import { EnumGender, GenderLabels } from "@/src/types/enums/Gender";
 import { withAlpha } from "@/src/utils/utils";
 import EntityGradientCard, { EntityCardChip } from "../common/EntityGradientCard";
+import { EnumFormat, FormatLabels } from "@/src/types/enums/Format";
 
 export interface TeamCardProps {
     team: TeamSearchDocDTO;
@@ -18,26 +19,28 @@ const TeamCard: React.FC<TeamCardProps> = ({ team, onPress }) => {
     if (team.divisionName) {
         chips.push({
             label: team.divisionName,
+            borderColor: team.divisionMainColor || theme.textInactive,
+            backgroundColor: withAlpha(team.divisionMainColor || theme.textInactive, 0.12),
         });
     }
 
     if (team.gender) {
         let genderColor: string;
         switch (team.gender) {
-            case "Masculin":
+            case EnumGender.M:
                 genderColor = theme.male;
                 break;
-            case "Féminin":
+            case EnumGender.F:
                 genderColor = theme.female;
                 break;
-            case "Mixte / Autre":
+            case EnumGender.O:
             default:
                 genderColor = theme.textSecondary;
                 break;
         }
 
         chips.push({
-            label: team.gender,
+            label: GenderLabels[team.gender as EnumGender],
             borderColor: genderColor,
             backgroundColor: withAlpha(genderColor, 0.12),
         });
@@ -46,6 +49,16 @@ const TeamCard: React.FC<TeamCardProps> = ({ team, onPress }) => {
     if (team.season) {
         chips.push({
             label: team.season,
+            borderColor: theme.textInactive,
+            backgroundColor: withAlpha(theme.textInactive, 0.12),
+        });
+    }
+
+    if (team.format) {
+        chips.push({
+            label: FormatLabels[team.format as EnumFormat],
+            borderColor: theme.textInactive,
+            backgroundColor: withAlpha(theme.textInactive, 0.12),
         });
     }
 
