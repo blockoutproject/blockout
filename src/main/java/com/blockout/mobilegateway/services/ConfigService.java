@@ -22,9 +22,6 @@ public class ConfigService {
     public AppStatusDTO getAppStatus() {
         logger.info("Fetching app status", keyValue("action", "get_app_status"));
         AppStatusDTO dto = configClientService.getAppStatus();
-        logger.info("App status fetched",
-                keyValue("action", "get_app_status"),
-                keyValue("maintenance", dto != null && dto.isMaintenance()));
         return dto;
     }
 
