@@ -33,7 +33,6 @@ public class SearchPublicController {
             @RequestParam(required = false) String format,
             @RequestParam(required = false) String gender
     ) {
-        System.out.println(gender);
         List<TeamSearchDocDTO> results = searchService.searchTeams(query, season, divisionId, format, gender);
         return results.isEmpty()
                 ? ResponseEntity.noContent().build()
