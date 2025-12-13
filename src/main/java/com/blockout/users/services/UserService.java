@@ -146,7 +146,7 @@ public class UserService {
             final String email = auth0User.getEmail();
 
             if (email != null && userRepository.existsByEmailIgnoreCase(email)) {
-                throw new CustomUserEmailAlreadyUsedException(email, auth0Id);
+                throw new CustomUserEmailAlreadyUsedException(email);
             }
 
             CustomUser newUser = CustomUser.builder()
