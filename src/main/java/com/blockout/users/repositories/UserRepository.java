@@ -46,4 +46,12 @@ public interface UserRepository extends JpaRepository<CustomUser, Long> {
      * @return true si l'email existe déjà, false sinon
      */
     boolean existsByEmailIgnoreCase(String email);
+
+    /**
+     * Vérifie si un pseudo existe déjà, en ignorant la casse
+     * 
+     * @param pseudo Le pseudo à vérifier
+     * @return true si le pseudo existe déjà, false sinon
+     */
+    boolean existsByPseudoIgnoreCase(String pseudo);
 }

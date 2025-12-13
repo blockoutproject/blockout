@@ -46,10 +46,6 @@ public class UserService {
     private final Auth0Properties auth0Properties;
     private final S3StorageClientService s3StorageClient;
 
-    private String generatePseudo(String email) {
-        return (email != null) ? email.split("@")[0] : "user" + System.currentTimeMillis();
-    }
-
     /**
      * Récupère un utilisateur par son ID Auth0.
      *
@@ -357,5 +353,48 @@ public class UserService {
                     keyValue("auth0Id", auth0Id));
             return new CustomUserNotFoundException(auth0Id);
         });
+    }
+
+    private String generatePseudo(String email) {
+        // Base lisible
+        String base = (email != null && email.contains("@"))
+                ? email.substring(0, email.indexOf("@"))
+                : "user";
+
+        base = normalizePseudo(base);
+
+        // 1) si libre -> go
+        if (!userRepository.existsByPseudoIgnoreCase(base)) {
+            return base;
+        }
+
+        // 2) sinon, on tente base-2, base-3, ...
+        for (int i = 2; i <= 200; i++) {
+            String candidate = base + "-" + i;
+            if (!userRepository.existsByPseudoIgnoreCase(candidate)) {
+                return candidate;
+            }
+        }
+
+        // 3) fallback anti-collision
+        return base + "-" + Long.toString(System.nanoTime(), 36);
+    }
+
+    private String normalizePseudo(String raw) {
+        if (raw == null || raw.isBlank())
+            return "user";
+
+        // slug simple (tu peux faire plus strict si besoin)
+        String s = raw.trim().toLowerCase()
+                .replaceAll("\\s+", "-")
+                .replaceAll("[^a-z0-9._-]", "-")
+                .replaceAll("-{2,}", "-")
+                .replaceAll("(^-+)|(-+$)", "");
+
+        if (s.isBlank())
+            s = "user";
+        if (s.length() > 30)
+            s = s.substring(0, 30).replaceAll("(-+$)", "");
+        return s;
     }
 }
