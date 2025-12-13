@@ -28,6 +28,15 @@ public class GlobalExceptionHandler {
                 request.getRequestURI());
     }
 
+    @ExceptionHandler(CustomUserEmailAlreadyUsedException.class)
+    public ResponseEntity<Map<String, Object>> handleEmailAlreadyUsed(
+            CustomUserEmailAlreadyUsedException ex, HttpServletRequest request) {
+        return buildErrorResponse(
+                ex.getMessage(),
+                HttpStatus.CONFLICT,
+                request.getRequestURI());
+    }
+
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<Map<String, Object>> handleAccessDenied(
             AccessDeniedException ex, HttpServletRequest request) {

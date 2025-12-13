@@ -6,6 +6,7 @@ import com.auth0.json.mgmt.users.User;
 import com.blockout.users.config.Auth0Properties;
 import com.blockout.users.config.Auth0TokenManager;
 import com.blockout.users.exceptions.ConflictException;
+import com.blockout.users.exceptions.CustomUserEmailAlreadyUsedException;
 import com.blockout.users.exceptions.CustomUserNotFoundException;
 import com.blockout.users.models.dto.CustomUserDTO;
 import com.blockout.users.models.dto.CustomUserUpdateDTO;
@@ -142,6 +143,12 @@ public class UserService {
                 throw e;
             }
         }).orElseGet(() -> {
+            final String email = auth0User.getEmail();
+
+            if (email != null && userRepository.existsByEmailIgnoreCase(email)) {
+                throw new CustomUserEmailAlreadyUsedException(email, auth0Id);
+            }
+
             CustomUser newUser = CustomUser.builder()
                     .auth0Id(auth0User.getId())
                     .email(auth0User.getEmail())

@@ -29,11 +29,21 @@ public interface UserRepository extends JpaRepository<CustomUser, Long> {
     Optional<CustomUser> findByAuth0IdWithFavorites(@Param("auth0Id") String auth0Id);
 
     /**
-     * Vérifie si un pseudo existe déjà, en ignorant la casse et en excluant un ID spécifique
+     * Vérifie si un pseudo existe déjà, en ignorant la casse et en excluant un ID
+     * spécifique
      * 
      * @param pseudo Le pseudo à vérifier
-     * @param id L'ID de l'utilisateur à exclure de la vérification (pour les mises à jour)
+     * @param id     L'ID de l'utilisateur à exclure de la vérification (pour les
+     *               mises à jour)
      * @return true si le pseudo existe déjà, false sinon
      */
     boolean existsByPseudoIgnoreCaseAndIdNot(String pseudo, Long id);
+
+    /**
+     * Vérifie si un email existe déjà, en ignorant la casse
+     * 
+     * @param email L'email à vérifier
+     * @return true si l'email existe déjà, false sinon
+     */
+    boolean existsByEmailIgnoreCase(String email);
 }
