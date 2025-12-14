@@ -142,7 +142,7 @@ public class UserService {
             final String email = auth0User.getEmail();
 
             if (email != null && userRepository.existsByEmailIgnoreCase(email)) {
-                logger.warn("Échec de la création : email déjà utilisé",
+                logger.error("Échec de la création : email déjà utilisé",
                         keyValue("action", "create_user"),
                         keyValue("auth0Id", auth0Id),
                         keyValue("email", email));
@@ -298,7 +298,7 @@ public class UserService {
                 if (!requested.isEmpty() && !Objects.equals(requested, existing.getPseudo())) {
                     boolean taken = userRepository.existsByPseudoIgnoreCaseAndIdNot(requested, existing.getId());
                     if (taken) {
-                        logger.warn("Pseudo déjà utilisé",
+                        logger.error("Pseudo déjà utilisé",
                                 keyValue("action", "update_user"),
                                 keyValue("auth0Id", auth0Id),
                                 keyValue("requestedPseudo", requested));
