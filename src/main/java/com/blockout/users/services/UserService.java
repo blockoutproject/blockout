@@ -142,6 +142,10 @@ public class UserService {
             final String email = auth0User.getEmail();
 
             if (email != null && userRepository.existsByEmailIgnoreCase(email)) {
+                logger.warn("Échec de la création : email déjà utilisé",
+                        keyValue("action", "create_user"),
+                        keyValue("auth0Id", auth0Id),
+                        keyValue("email", email));
                 throw new CustomUserEmailAlreadyUsedException(email);
             }
 
