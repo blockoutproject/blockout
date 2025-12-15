@@ -14,6 +14,7 @@ import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import com.auth0.exception.Auth0Exception;
 
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.Map;
 
 @RestControllerAdvice
@@ -34,7 +35,8 @@ public class GlobalExceptionHandler {
         return buildErrorResponse(
                 ex.getMessage(),
                 HttpStatus.CONFLICT,
-                request.getRequestURI());
+                request.getRequestURI(),
+                "EMAIL_ALREADY_USED");
     }
 
     @ExceptionHandler(AccessDeniedException.class)
@@ -122,5 +124,25 @@ public class GlobalExceptionHandler {
                 "error", status.getReasonPhrase(),
                 "message", message,
                 "path", path));
+    }
+
+    private ResponseEntity<Map<String, Object>> buildErrorResponse(
+            String message,
+            HttpStatus status,
+            String path,
+            String code) {
+
+        HashMap<String, Object> body = new HashMap<>();
+        body.put("timestamp", Instant.now().toString());
+        body.put("status", status.value());
+        body.put("error", status.getReasonPhrase());
+        body.put("message", message);
+        body.put("path", path);
+
+        if (code != null && !code.isBlank()) {
+            body.put("code", code);
+        }
+
+        return ResponseEntity.status(status).body(body);
     }
 }
