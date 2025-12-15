@@ -11,8 +11,22 @@ import MaskedImage from "@/src/components/common/images/MaskedImage";
 import InfoPillGradient from "@/src/components/common/chips/InfoPillGradient";
 import ApiErrorToast from "@/src/components/common/feedback/ApiErrorToast";
 import { GradientButton } from "@/src/components/common/GradientButton";
+import { ApiError } from "../api/core/ApiError";
 
 const APP_TITLE = "Blockout";
+
+export const getLiveLinkErrorMessage = (err: unknown): string => {
+    if (err instanceof ApiError) {
+        if (err.status === 0 || err.status >= 500) {
+            return "Le serveur rencontre un problème, réessaie dans quelques instants.";
+        }
+        if (err.message && err.message.trim().length > 0) {
+            return err.message;
+        }
+        return "Erreur lors de la connexion.";
+    }
+    return "Connection impossible, réessaie.";
+};
 
 const LoginScreen: React.FC = () => {
     const theme = useAppTheme();
@@ -25,8 +39,9 @@ const LoginScreen: React.FC = () => {
 
     useEffect(() => {
         console.log(error);
-        if (!isSigningIn && error && !(error?.name === "NO_CREDENTIALS")) {
-            setApiError("Erreur lors de la connexion.");
+        if (!isSigningIn && error && !(["NO_CREDENTIALS", "USER_CANCELLED"].includes(error?.name))) {
+            const msg = getLiveLinkErrorMessage(error);
+            setApiError(msg);
         }
     }, [error, isSigningIn]);
 
@@ -34,12 +49,10 @@ const LoginScreen: React.FC = () => {
         try {
             setIsSigningIn(true);
             setApiError(null);
-            await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             await signIn();
         } catch (err) {
             console.error(err);
-            await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-            setApiError("Erreur lors de la connexion.");
         } finally {
             setIsSigningIn(false);
         }

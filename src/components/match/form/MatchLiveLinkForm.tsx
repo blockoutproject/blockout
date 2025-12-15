@@ -1,5 +1,3 @@
-// FILE: src/components/match/form/MatchLiveLinkForm.tsx
-
 import React, { useEffect, useMemo, useState } from "react";
 import { View, Text, StyleSheet } from "react-native";
 import {

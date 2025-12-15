@@ -35,16 +35,39 @@ export const getGradientVariants = (
     };
 };
 
-export function formatDateFrenchLocale(dateString: string): string {
-    const date = new Date(dateString);
+function parseLocalDateUTC(dateString: string): Date {
+    const [year, month, day] = dateString.split("-").map(Number);
+    return new Date(Date.UTC(year, month - 1, day));
+}
 
-    const stringifiedDate = date.toLocaleDateString('fr-FR', {
+export function formatDateFrenchLocale(dateString: string): string {
+    const targetDate = parseLocalDateUTC(dateString);
+
+    // "Aujourd'hui" calculé en UTC pour rester cohérent avec LocalDate backend
+    const now = new Date();
+    const todayUTC = new Date(Date.UTC(
+        now.getUTCFullYear(),
+        now.getUTCMonth(),
+        now.getUTCDate()
+    ));
+
+    const diffDays =
+        (targetDate.getTime() - todayUTC.getTime()) / (1000 * 60 * 60 * 24);
+
+    if (diffDays === 0) return "Aujourd’hui";
+    if (diffDays === -1) return "Hier";
+    if (diffDays === 1) return "Demain";
+
+    // Format classique sinon
+    const formatted = targetDate.toLocaleDateString("fr-FR", {
         weekday: "short",
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric',
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+        timeZone: "UTC",
     });
-    return stringifiedDate.charAt(0).toUpperCase() + stringifiedDate.slice(1);
+
+    return formatted.charAt(0).toUpperCase() + formatted.slice(1);
 }
 
 export function splitIsoDate(isoString: string) {

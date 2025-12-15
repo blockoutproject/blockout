@@ -97,7 +97,6 @@ export const SessionProvider: React.FC<React.PropsWithChildren> = ({ children })
         refetch: refetchAppStatus,
     } = useAppStatus();
 
-    // Même scope pour maintenance + update bypass
     const { allowed: canBypassAppStatus } = useHasScopes(["update:maintenance"]);
 
     const [maintenanceBypass, setMaintenanceBypass] = useState(false);
@@ -177,10 +176,6 @@ export const SessionProvider: React.FC<React.PropsWithChildren> = ({ children })
             cancelled = true;
         };
     }, []);
-
-    useEffect(() => {
-        refetchAppStatus();
-    }, [customUser, refetchAppStatus]);
 
     const clearRQCache = async () => {
         await queryClient.cancelQueries();
