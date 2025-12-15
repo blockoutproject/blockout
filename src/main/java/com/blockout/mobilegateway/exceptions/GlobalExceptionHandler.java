@@ -32,10 +32,7 @@ public class GlobalExceptionHandler {
         if (status == null)
             status = HttpStatus.BAD_REQUEST;
 
-        String body = ex.getResponseBodyAsString();
-
-        String extractedMessage = ApiErrorUtils.extractMessage(body);
-        String extractedCode = ApiErrorUtils.extractCode(body);
+        String extracted = ApiErrorUtils.extractMessage(ex.getResponseBodyAsString());
 
         String fallback = switch (status) {
             case UNAUTHORIZED -> "Authentication is required or invalid.";
@@ -44,11 +41,9 @@ public class GlobalExceptionHandler {
             default -> "Client error (" + status.value() + ") occurred when calling an external service.";
         };
 
-        String message = (extractedMessage != null && !extractedMessage.isBlank())
-                ? extractedMessage
-                : fallback;
+        String message = (extracted != null && !extracted.isBlank()) ? extracted : fallback;
 
-        return buildErrorResponse(message, status, request.getRequestURI(), extractedCode);
+        return buildErrorResponse(message, status, request.getRequestURI());
     }
 
     @ExceptionHandler(IllegalStateException.class)
@@ -89,25 +84,5 @@ public class GlobalExceptionHandler {
                 "error", status.getReasonPhrase(),
                 "message", message,
                 "path", path));
-    }
-
-    private ResponseEntity<Map<String, Object>> buildErrorResponse(
-            String message,
-            HttpStatus status,
-            String path,
-            String code) {
-
-        Map<String, Object> body = new java.util.HashMap<>();
-        body.put("timestamp", Instant.now().toString());
-        body.put("status", status.value());
-        body.put("error", status.getReasonPhrase());
-        body.put("message", message);
-        body.put("path", path);
-
-        if (code != null && !code.isBlank()) {
-            body.put("code", code);
-        }
-
-        return ResponseEntity.status(status).body(body);
     }
 }
