@@ -11,9 +11,21 @@ public class ApiErrorUtils {
 
     public static String extractMessage(String responseBody) {
         try {
-            Map<String, Object> json = objectMapper.readValue(responseBody, new TypeReference<>() {});
+            Map<String, Object> json = objectMapper.readValue(responseBody, new TypeReference<>() {
+            });
             Object message = json.get("message");
             return message != null ? message.toString() : null;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    public static String extractCode(String responseBody) {
+        try {
+            Map<String, Object> json = objectMapper.readValue(responseBody, new TypeReference<>() {
+            });
+            Object code = json.get("code");
+            return code != null ? code.toString() : null;
         } catch (Exception e) {
             return null;
         }
