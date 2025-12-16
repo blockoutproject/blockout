@@ -10,9 +10,6 @@ from api.config_api import create_raw_division_mapping, get_raw_division_mapping
 from api.pools_api import get_pools_by_league_and_season
 from models.association_stats import AssociationStats
 from models.enums.datasource_priority import DataSourcePriority
-from models.enums.format import Format
-from models.enums.gender import Gender
-from models.enums.match_status import MatchStatus
 from models.pool import Pool
 from models.raw_division_mapping import RawDivisionMapping
 from models.scraper import Scraper
