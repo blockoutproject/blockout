@@ -131,7 +131,7 @@ class Scraper(ABC):
                     # Erreurs HTTP spécifiques (codes 4xx, 5xx)
                     log_event(
                         action="http_request_http_error",
-                        level="warning",
+                        level="debug",
                         url=url,
                         attempt=attempt,
                         status=e.status,
@@ -143,7 +143,7 @@ class Scraper(ABC):
                     # Timeout
                     log_event(
                         action="http_request_timeout",
-                        level="warning",
+                        level="debug",
                         url=url,
                         attempt=attempt,
                         error=str(e),
@@ -165,7 +165,7 @@ class Scraper(ABC):
                 if attempt < retries:
                     log_event(
                         action="http_request_retry",
-                        level="warning",
+                        level="debug",
                         url=url,
                         attempt=attempt,
                         delay=delay,
