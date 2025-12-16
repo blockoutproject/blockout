@@ -45,7 +45,7 @@ async def main():
         if not skipped:
             async with lock:
                 connector = aiohttp.TCPConnector(limit=20, ssl=False)
-                timeout = aiohttp.ClientTimeout(total=120)
+                timeout = aiohttp.ClientTimeout(total=150)
                 async with aiohttp.ClientSession(timeout=timeout, trust_env=True, connector=connector) as session:
                     scraper_types = ['pro', 'national', 'regional', 'departmental']
                     tasks = []
