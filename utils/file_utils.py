@@ -95,7 +95,7 @@ async def download_and_parse_csv(
     scraper: Scraper,
     pool: Pool,
     raw_season: str,
-    retries: int = 2,
+    retries: int = 3,
     delay: int = 5,
     sem: int = 5,
     timeout: int = 30
