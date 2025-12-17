@@ -107,7 +107,7 @@ async def main():
                     await run_scrapers_with_max_concurrency(
                         session=session,
                         scraper_types=scraper_types,
-                        max_concurrency=2,
+                        max_concurrency=1,
                     )
 
     except Exception as e:
