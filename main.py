@@ -102,12 +102,12 @@ async def main():
                     trust_env=True,
                     connector=connector,
                 ) as session:
-                    scraper_types = ["pro", "national", "regional", "departmental"]
+                    scraper_types = ["departmental", "national", "pro", "regional"]
 
                     await run_scrapers_with_max_concurrency(
                         session=session,
                         scraper_types=scraper_types,
-                        max_concurrency=1,
+                        max_concurrency=2,
                     )
 
     except Exception as e:
