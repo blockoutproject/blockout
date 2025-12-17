@@ -95,7 +95,7 @@ async def main():
         if not skipped:
             async with lock:
                 connector = aiohttp.TCPConnector(limit=20, ssl=False)
-                timeout = aiohttp.ClientTimeout(total=150)
+                timeout = aiohttp.ClientTimeout(total=10)
 
                 async with aiohttp.ClientSession(
                     timeout=timeout,
@@ -104,7 +104,6 @@ async def main():
                 ) as session:
                     scraper_types = ["pro", "national", "regional", "departmental"]
 
-                    # ✅ Lancement 2 par 2, en enchaînant dès qu'un slot se libère
                     await run_scrapers_with_max_concurrency(
                         session=session,
                         scraper_types=scraper_types,

@@ -98,7 +98,7 @@ async def download_and_parse_csv(
     retries: int = 3,
     delay: int = 5,
     sem: int = 5,
-    timeout: int = 30
+    timeout: int = 20
 ) -> Iterator[dict]:
     """
     Télécharge le CSV et le parse en mémoire sans le sauvegarder sur disque.
