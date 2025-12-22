@@ -35,8 +35,6 @@ async def handle_csv_download_and_parse(
         return
 
     try:
-        if existing_pool.id == 393:
-            print('11111Found pool D1M')
         parsed_data = await download_and_parse_csv(scraper, pool, raw_season)
 
         if not parsed_data:
@@ -50,12 +48,6 @@ async def handle_csv_download_and_parse(
                 message="Échec téléchargement CSV"
             )
             return
-        
-        if existing_pool.id == 393:
-            print('22222Found pool D1M')
-            print(parsed_data)
-            print(scraped_pool_ids)
-        
 
         valid_rows = [
             row for row in parsed_data
@@ -73,6 +65,8 @@ async def handle_csv_download_and_parse(
             return
 
         new_pool = await add_or_update_pool(scraper.session, pool, existing_pool, False)
+        if existing_pool.id == 393:
+            print("--------", new_pool, "ààààààààà", pool)
         pool.id = new_pool.id # Update the pool ID after creation or update for upcoming Pro Scraper functions
         await scraper.init_matches_cache(new_pool.id)
         await scraper.init_associations_cache(new_pool.id)
@@ -147,6 +141,9 @@ async def handle_csv_download_and_parse(
             new_team_b = await add_or_update_team(scraper.session, team_b_obj, existing_team_b)
             existing_teams_dict[team_b_key] = new_team_b
             scraped_team_ids.add(new_team_b.id)
+            
+            if existing_pool.id == 393:
+                print("1111111", new_team_a, "2222222", new_team_b)
 
             # Match
             match_code = row.get('match_code')
