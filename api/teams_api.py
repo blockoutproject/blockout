@@ -1,3 +1,4 @@
+import json
 from typing import List, Optional
 import aiohttp
 from config.env_config import TEAM_API_URL
@@ -31,9 +32,13 @@ async def update_team(
     Envoie une requête PUT pour mettre à jour une équipe existante.
     """
     headers = _get_headers()
+    data = aiohttp.FormData()
+
     team_dict = to_dict(team)
+    data.add_field("data", json.dumps(team_dict), content_type="application/json")
+
     url = f"{TEAM_API_URL}/{team.id}"
-    response = await session.put(url, json=team_dict, headers=headers)
+    response = await session.put(url, data=data, headers=headers)
     log_event(
         action="update_team",
         level="info",
