@@ -215,6 +215,10 @@ class DepartmentalScraper(Scraper):
                     
                     key = (pool_obj.pool_code, pool_obj.league_code, pool_obj.season)
                     existing_pool = existing_pools_dict.get(key)
+                    
+                    if league_code == 'PTBR35':
+                        print("------", existing_pool)
+                        print("°°°°°°°°°°°", pool_obj)
 
                     task = handle_csv_download_and_parse(
                         self,
