@@ -35,8 +35,13 @@ async def handle_csv_download_and_parse(
         return
 
     try:
+        if existing_pool == 393:
+            print('11111Found pool D1M')
         parsed_data = await download_and_parse_csv(scraper, pool, raw_season)
-
+        if existing_pool == 393:
+            print('22222Found pool D1M')
+            print(parsed_data)
+            print(scraped_pool_ids)
         if not parsed_data:
             if scraped_pool_ids is not None and existing_pool:
                 scraped_pool_ids.add(existing_pool.id) # Pour éviter désactivation si crash avant parsing
@@ -49,8 +54,6 @@ async def handle_csv_download_and_parse(
             )
             return
         
-        if existing_pool == 393:
-            print(f'Found pool D1M')
 
         valid_rows = [
             row for row in parsed_data
