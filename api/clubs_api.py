@@ -48,7 +48,6 @@ async def create_club(
 async def update_club(
     session: aiohttp.ClientSession,
     club: Club,
-    image_path: Optional[str] = None,
 ) -> Club:
     """
     Met à jour un club existant via PUT /clubs/{id} (multipart/form-data).
@@ -58,11 +57,7 @@ async def update_club(
 
     club_dict = to_dict(club)
     data.add_field("data", json.dumps(club_dict), content_type="application/json")
-
-    if image_path:
-        with open(image_path, "rb") as f:
-            data.add_field("image", f, filename=image_path.split("/")[-1], content_type="image/jpeg")
-
+    
     headers = _get_headers()
     response = await session.put(url, data=data, headers=headers)
     return response
