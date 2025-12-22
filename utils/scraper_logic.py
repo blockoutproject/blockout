@@ -48,6 +48,9 @@ async def handle_csv_download_and_parse(
                 message="Échec téléchargement CSV"
             )
             return
+        
+        if existing_pool == 393:
+            print(f'Found pool D1M')
 
         valid_rows = [
             row for row in parsed_data
@@ -55,6 +58,13 @@ async def handle_csv_download_and_parse(
             and parse_date(row.get('match_date'), row.get('match_time'))
         ]
         if not valid_rows:
+            log_event(
+                "invalid_rows_found_in_csv", 
+                "error", 
+                pool_name=pool.name,
+                season=raw_season, 
+                message="Échec parsing CSV"
+            )
             return
 
         new_pool = await add_or_update_pool(scraper.session, pool, existing_pool, False)
