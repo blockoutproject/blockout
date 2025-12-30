@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useCallback } from "react";
 import { View, Text, StyleSheet, Image, Pressable } from "react-native";
 import { EnrichedMatchDTO } from "@/src/types/Match";
 import { Team } from "@/src/types/Team";
@@ -6,6 +6,7 @@ import { useAppTheme } from "@/src/context/ThemeProvider";
 import GradientBorderView from "@/src/components/common/GradientBorderView";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
+import { useNavigationInterstitial } from "@/src/hooks/ads/useNavigationInterstitial";
 
 /** Per-set score breakdown. */
 export type MatchScoreDetailsCardProps = {
@@ -22,6 +23,7 @@ const MatchScoreDetailsCard: React.FC<MatchScoreDetailsCardProps> = ({
 }) => {
     const theme = useAppTheme();
     const router = useRouter();
+    const { handleNavigationWithAd } = useNavigationInterstitial();
 
     const gradient = [
         enrichedMatch.pool.division.firstGradientColor,
@@ -38,10 +40,16 @@ const MatchScoreDetailsCard: React.FC<MatchScoreDetailsCardProps> = ({
     const homeSets = setsArray.map(([h]) => h);
     const awaySets = setsArray.map(([, a]) => a);
 
-    const handleTeamPress = (teamId: number) => {
-        Haptics.selectionAsync();
-        router.push(`/team/${teamId}`);
-    };
+    const handleTeamPress = useCallback(
+        async (teamId: number) => {
+            await Haptics.selectionAsync();
+
+            handleNavigationWithAd(() => {
+                router.push(`/team/${teamId}`);
+            });
+        },
+        [router, handleNavigationWithAd]
+    );
 
     const HeaderRow: React.FC = () => (
         <View

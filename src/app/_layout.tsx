@@ -1,10 +1,16 @@
 import React, { useEffect } from "react";
-import { StatusBar } from "react-native";
+import { StatusBar, Platform } from "react-native";
 import { Stack } from "expo-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Auth0Provider } from "react-native-auth0";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
+import mobileAds from "react-native-google-mobile-ads";
+import {
+    getTrackingPermissionsAsync,
+    requestTrackingPermissionsAsync,
+    PermissionStatus,
+} from "expo-tracking-transparency";
 
 import { AUTH0_CONFIG } from "@/src/config/config";
 import { ThemeProvider } from "@/src/theme/theme-provider";
@@ -12,7 +18,10 @@ import { ApiProvider } from "@/src/context/ApiProvider";
 import { SessionProvider, useSession } from "@/src/context/SessionProvider";
 import { SplashScreenController } from "@/src/components/splash/SplashScreen";
 import { useOnboardingStore } from "../utils/onboardingStore";
-import { addNotificationListeners, openNotificationUrlIfAny } from "../utils/notifications";
+import {
+    addNotificationListeners,
+    openNotificationUrlIfAny,
+} from "../utils/notifications";
 
 const queryClient = new QueryClient();
 
@@ -27,11 +36,32 @@ export default function Root() {
         return remove;
     }, []);
 
+    useEffect(() => {
+        const initAds = async () => {
+            try {
+                if (Platform.OS === "ios") {
+                    const { status } = await getTrackingPermissionsAsync();
+
+                    if (status === PermissionStatus.UNDETERMINED) {
+                        await requestTrackingPermissionsAsync();
+                    }
+                }
+
+                await mobileAds().initialize();
+                console.log("Mobile Ads initialized ✅");
+            } catch (e) {
+                console.warn("Failed to initialize Mobile Ads", e);
+            }
+        };
+
+        initAds();
+    }, []);
+
     return (
         <GestureHandlerRootView style={{ flex: 1 }}>
             <QueryClientProvider client={queryClient}>
                 <ThemeProvider>
-                    <StatusBar barStyle={"light-content"} />
+                    <StatusBar barStyle="light-content" />
                     <Auth0Provider
                         domain={AUTH0_CONFIG.domain}
                         clientId={AUTH0_CONFIG.clientId}
@@ -73,6 +103,7 @@ function RootNavigator() {
                         options={{ animation: "fade_from_bottom", animationDuration: 300 }}
                     />
                 </Stack.Protected>
+
                 <Stack.Protected guard={isBlockedByUpdate && !isBlockedByMaintenance}>
                     <Stack.Screen
                         name="update-required"
@@ -81,10 +112,7 @@ function RootNavigator() {
                 </Stack.Protected>
 
                 <Stack.Protected
-                    guard={
-                        !(isGuest || isAuthenticated) &&
-                        !isGloballyBlocked
-                    }
+                    guard={!(isGuest || isAuthenticated) && !isGloballyBlocked}
                 >
                     <Stack.Screen
                         name="sign-in"
@@ -93,15 +121,15 @@ function RootNavigator() {
                 </Stack.Protected>
 
                 <Stack.Protected
-                    guard={
-                        (isGuest || isAuthenticated) &&
-                        !isGloballyBlocked
-                    }
+                    guard={(isGuest || isAuthenticated) && !isGloballyBlocked}
                 >
                     <Stack.Protected guard={!hasCompletedOnboarding}>
                         <Stack.Screen
                             name="onboarding"
-                            options={{ animation: "fade_from_bottom", animationDuration: 300 }}
+                            options={{
+                                animation: "fade_from_bottom",
+                                animationDuration: 300,
+                            }}
                         />
                     </Stack.Protected>
 

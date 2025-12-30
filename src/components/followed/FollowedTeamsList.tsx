@@ -5,22 +5,20 @@ import React, {
     useState,
 } from "react";
 import {
-    ActivityIndicator,
     FlatList,
-    StyleSheet,
     View,
 } from "react-native";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { useAppTheme } from "@/src/context/ThemeProvider";
 import { useFollowedTeamList } from "@/src/hooks/team/useFollowedTeamList";
 import FollowedTeamCard from "./FollowedTeamCard";
 import { BOTTOM_TABBAR_HEIGHT } from "@/src/theme/globals";
 import EmptyState from "@/src/components/common/feedback/EmptyState";
 import ErrorState from "@/src/components/common/feedback/ErrorState";
 import FollowedListSkeleton from "./FollowedListSkeleton";
+import { useNavigationInterstitial } from "@/src/hooks/ads/useNavigationInterstitial";
 
 type Props = {
     teamIds?: number[];
@@ -35,6 +33,7 @@ const FollowedTeamsList: React.FC<Props> = ({
 }) => {
     const insets = useSafeAreaInsets();
     const router = useRouter();
+    const { handleNavigationWithAd } = useNavigationInterstitial();
 
     const { teams, isLoading, isError, refetch } =
         useFollowedTeamList(teamIds);
@@ -51,12 +50,15 @@ const FollowedTeamsList: React.FC<Props> = ({
         }
     }, [refetch]);
 
-    const handlePressTeam = useCallback(
-        async (id: number) => {
+    const handleTeamPress = useCallback(
+        async (teamId: number) => {
             await Haptics.selectionAsync();
-            router.push(`/team/${id}`);
+
+            handleNavigationWithAd(() => {
+                router.push(`/team/${teamId}`);
+            });
         },
-        [router],
+        [router, handleNavigationWithAd]
     );
 
     const ListFooterComponent = useMemo(
@@ -113,7 +115,7 @@ const FollowedTeamsList: React.FC<Props> = ({
             renderItem={({ item }) => (
                 <FollowedTeamCard
                     team={item}
-                    onPress={() => handlePressTeam(item.id)}
+                    onPress={() => handleTeamPress(item.id)}
                 />
             )}
             ListFooterComponent={ListFooterComponent}

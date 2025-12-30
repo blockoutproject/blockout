@@ -1,5 +1,5 @@
 import React, { useMemo, useRef } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Linking } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import * as Haptics from "expo-haptics";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
@@ -18,6 +18,7 @@ import MatchLiveLinkFormSheet from "./form/MatchLiveLinkFormSheet";
 import MatchLiveLinkDeleteFormSheet from "./form/MatchLiveLinkDeleteFormSheet";
 import { useSession } from "@/src/context/SessionProvider";
 import useHasScopes from "@/src/hooks/user/useHasScopes";
+import { useWebLinkInterstitial } from "@/src/hooks/ads/useWebLinkInterstitial";
 
 type Props = {
     enrichedMatch: EnrichedMatchDTO;
@@ -35,6 +36,7 @@ const MatchLiveLinkCard: React.FC<Props> = ({
     onRequireAuth,
 }) => {
     const theme = useAppTheme();
+    const { openLinkWithInterstitial } = useWebLinkInterstitial();
 
     const reportSheetRef = useRef<BottomSheetModal>(null);
     const editSheetRef = useRef<BottomSheetModal>(null);
@@ -60,15 +62,15 @@ const MatchLiveLinkCard: React.FC<Props> = ({
     const isLive = hasLiveLink && !isFinished;
 
     const isOwner = useMemo(() => {
-        if (!customUser?.auth0Id || !enrichedMatch.liveOwnerAuth0Id) {
-            return false;
-        }
+        if (!customUser?.auth0Id || !enrichedMatch.liveOwnerAuth0Id) return false;
         return enrichedMatch.liveOwnerAuth0Id === customUser.auth0Id;
     }, [customUser?.auth0Id, enrichedMatch.liveOwnerAuth0Id]);
 
-    const matchDate = useMemo(() => {
-        return enrichedMatch.matchDate ? new Date(enrichedMatch.matchDate) : null;
-    }, [enrichedMatch.matchDate]);
+    const matchDate = useMemo(
+        () =>
+            enrichedMatch.matchDate ? new Date(enrichedMatch.matchDate) : null,
+        [enrichedMatch.matchDate],
+    );
 
     const isBeforeLiveWindow = useMemo(() => {
         if (!matchDate) return false;
@@ -135,45 +137,33 @@ const MatchLiveLinkCard: React.FC<Props> = ({
         } else if (isGuest) {
             await Haptics.notificationAsync(
                 Haptics.NotificationFeedbackType.Error,
-            ).catch(() => {});
+            ).catch(() => { });
             onRequireAuth();
         }
     };
 
     const handleOpenLive = async () => {
         if (!enrichedMatch.liveUrl) return;
-
-        try {
-            await Haptics.selectionAsync();
-            await Linking.openURL(enrichedMatch.liveUrl);
-        } catch {
-            // ignore
-        }
+        await Haptics.selectionAsync().catch(() => { });
+        openLinkWithInterstitial(enrichedMatch.liveUrl);
     };
 
     const liveLabel = useMemo(() => {
-        if (isFinished) {
-            return "Regarder la rediffusion";
-        }
-        if (providerLabel) {
-            return `Regarder le live sur ${providerLabel}`;
-        }
+        if (isFinished) return "Regarder la rediffusion";
+        if (providerLabel) return `Regarder le live sur ${providerLabel}`;
         return "Regarder le live";
     }, [isFinished, providerLabel]);
 
-    const emptyStateLabel = useMemo(() => {
-        if (isFinished) {
-            return "Ajouter un lien de rediffusion";
-        }
-        return "Vous diffusez ce match ?";
-    }, [isFinished]);
+    const emptyStateLabel = useMemo(
+        () =>
+            isFinished ? "Ajouter un lien de rediffusion" : "Vous diffusez ce match ?",
+        [isFinished],
+    );
 
     const canShowEmptyStateCta = !hasLiveLink && (canCreateLiveLink || isGuest);
     const shouldShowCard = hasLiveLink || canShowEmptyStateCta;
 
-    if (!shouldShowCard) {
-        return null;
-    }
+    if (!shouldShowCard) return null;
 
     const headerTitle = isFinished ? "Rediffusion" : "Live";
 
@@ -183,31 +173,16 @@ const MatchLiveLinkCard: React.FC<Props> = ({
                 gradient={gradient}
                 borderRadius={RADIUS}
                 borderWidth={1}
-                style={[
-                    styles.card,
-                    {
-                        backgroundColor: theme.background,
-                    },
-                ]}
+                style={[styles.card, { backgroundColor: theme.background }]}
             >
                 <View style={styles.headerRow}>
                     <View style={styles.titleRow}>
-                        <Text
-                            style={[
-                                styles.title,
-                                {
-                                    color: theme.text,
-                                },
-                            ]}
-                        >
+                        <Text style={[styles.title, { color: theme.text }]}>
                             {headerTitle}
                         </Text>
                         {isLive && (
                             <View
-                                style={[
-                                    styles.liveDot,
-                                    { backgroundColor: theme.error },
-                                ]}
+                                style={[styles.liveDot, { backgroundColor: theme.error }]}
                             />
                         )}
                     </View>
@@ -223,10 +198,7 @@ const MatchLiveLinkCard: React.FC<Props> = ({
                                 color={theme.textInactive}
                             />
                             <Text
-                                style={[
-                                    styles.reportText,
-                                    { color: theme.textInactive },
-                                ]}
+                                style={[styles.reportText, { color: theme.textInactive }]}
                             >
                                 Signaler
                             </Text>
@@ -258,8 +230,7 @@ const MatchLiveLinkCard: React.FC<Props> = ({
                                                     styles.iconChip,
                                                     {
                                                         borderColor: theme.border,
-                                                        backgroundColor:
-                                                            theme.surface,
+                                                        backgroundColor: theme.surface,
                                                     },
                                                 ]}
                                             >
@@ -278,8 +249,7 @@ const MatchLiveLinkCard: React.FC<Props> = ({
                                                     styles.iconChip,
                                                     {
                                                         borderColor: theme.error,
-                                                        backgroundColor:
-                                                            theme.error + "1A",
+                                                        backgroundColor: theme.error + "1A",
                                                     },
                                                 ]}
                                             >
@@ -305,66 +275,9 @@ const MatchLiveLinkCard: React.FC<Props> = ({
                                 gradient={[theme.borderSecondary, theme.border]}
                                 variant="border"
                                 onPress={
-                                    canCreateLiveLink
-                                        ? handleOpenEdit
-                                        : onRequireAuth
+                                    canCreateLiveLink ? handleOpenEdit : onRequireAuth
                                 }
                             />
-                        </View>
-                    )}
-
-                    {isFinished && (
-                        <View
-                            style={[
-                                styles.moderationBox,
-                                {
-                                    backgroundColor: theme.surface,
-                                    borderColor: theme.border,
-                                },
-                            ]}
-                        >
-                            <Text
-                                style={[
-                                    styles.moderationHint,
-                                    { color: theme.textInactive },
-                                ]}
-                            >
-                                Les rediffusions sont vérifiées avant d’être
-                                visibles sur la fiche du match.
-                            </Text>
-                        </View>
-                    )}
-
-                    {!isFinished && hasLiveLink && !isOwner && (
-                        <View
-                            style={[
-                                styles.moderationBox,
-                                {
-                                    backgroundColor: theme.surface,
-                                    borderColor: theme.border,
-                                },
-                            ]}
-                        >
-                            <Text
-                                style={[
-                                    styles.moderationHint,
-                                    { color: theme.textInactive },
-                                ]}
-                            >
-                                Les liens de live sont publiés par la
-                                communauté et ne sont pas toujours vérifiés. Si
-                                le lien est incorrect, tu peux{" "}
-                                <Text
-                                    style={[
-                                        styles.moderationLink,
-                                        { color: theme.warning },
-                                    ]}
-                                    onPress={handlePressReportButton}
-                                >
-                                    le signaler
-                                </Text>
-                                .
-                            </Text>
                         </View>
                     )}
                 </View>
@@ -412,61 +325,32 @@ const MatchLiveLinkCard: React.FC<Props> = ({
 export default MatchLiveLinkCard;
 
 const styles = StyleSheet.create({
-    card: {
-        borderRadius: RADIUS,
-        padding: 14,
-        gap: 16,
-    },
+    card: { borderRadius: RADIUS, padding: 14, gap: 16 },
     headerRow: {
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
     },
-    titleRow: {
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 6,
-    },
+    titleRow: { flexDirection: "row", alignItems: "center", gap: 6 },
     title: {
         fontSize: 14,
         fontWeight: "800",
         textTransform: "uppercase",
         letterSpacing: 0.3,
     },
-    liveDot: {
-        width: 8,
-        height: 8,
-        borderRadius: 4,
-    },
-    reportBtn: {
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 6,
-    },
-    reportText: {
-        fontSize: 12,
-        fontWeight: "600",
-    },
-    content: {
-        gap: 12,
-    },
-    liveBlock: {
-        gap: 8,
-    },
+    liveDot: { width: 8, height: 8, borderRadius: 4 },
+    reportBtn: { flexDirection: "row", alignItems: "center", gap: 6 },
+    reportText: { fontSize: 12, fontWeight: "600" },
+    content: { gap: 12 },
+    liveBlock: { gap: 8 },
     livePillRow: {
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
         gap: 8,
     },
-    livePillWrap: {
-        flexShrink: 1,
-    },
-    actionsRow: {
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 8,
-    },
+    livePillWrap: { flexShrink: 1 },
+    actionsRow: { flexDirection: "row", alignItems: "center", gap: 8 },
     iconChip: {
         width: 32,
         height: 32,
@@ -475,23 +359,5 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "center",
     },
-    addPillWrap: {
-        alignSelf: "flex-start",
-    },
-    moderationBox: {
-        paddingHorizontal: 12,
-        paddingVertical: 12,
-        borderWidth: 1.5,
-        borderRadius: 14,
-        marginTop: 4,
-    },
-    moderationHint: {
-        fontSize: 12,
-        fontWeight: "600",
-    },
-    moderationLink: {
-        fontSize: 12,
-        fontWeight: "700",
-        textDecorationLine: "underline",
-    },
+    addPillWrap: { alignSelf: "flex-start" },
 });

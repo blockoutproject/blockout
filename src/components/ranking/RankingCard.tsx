@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useCallback } from "react";
 import { View, StyleSheet } from "react-native";
 import { FlatList } from "react-native-gesture-handler";
 import * as Haptics from "expo-haptics";
@@ -9,6 +9,7 @@ import type { TeamHighlight } from "@/src/types/Team";
 import RankingRow from "./RankingRow";
 import RankingHeader from "./RankingHeader";
 import { useRouter } from "expo-router";
+import { useNavigationInterstitial } from "@/src/hooks/ads/useNavigationInterstitial";
 
 type RankingCardProps = {
     enrichedPool: EnrichedPoolDTO;
@@ -25,6 +26,7 @@ const RankingCard: React.FC<RankingCardProps> = ({
 }) => {
     const theme = useAppTheme();
     const router = useRouter();
+    const { handleNavigationWithAd } = useNavigationInterstitial();
 
     const { division } = enrichedPool;
     const gradient = [
@@ -33,15 +35,27 @@ const RankingCard: React.FC<RankingCardProps> = ({
         division.thirdGradientColor,
     ] as const;
 
-    const handleTeamPress = (teamId: number) => {
-        Haptics.selectionAsync();
-        router.push(`/team/${teamId}`);
-    };
+    const handleTeamPress = useCallback(
+        async (teamId: number) => {
+            await Haptics.selectionAsync();
 
-    const handleHeaderPress = () => {
-        Haptics.selectionAsync();
-        router.push(`/pool/${enrichedPool.id}`);
-    };
+            handleNavigationWithAd(() => {
+                router.push(`/team/${teamId}`);
+            });
+        },
+        [router, handleNavigationWithAd]
+    );
+
+    const handleHeaderPress = useCallback(
+        async () => {
+            await Haptics.selectionAsync();
+
+            handleNavigationWithAd(() => {
+                router.push(`/pool/${enrichedPool.id}`);
+            });
+        },
+        [router, handleNavigationWithAd]
+    );
 
     return (
         <GradientBorderView

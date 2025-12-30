@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React, { useCallback, useRef } from "react";
 import { ScrollView, StyleSheet, View, Pressable, Text } from "react-native";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import * as Haptics from "expo-haptics";
@@ -25,6 +25,7 @@ import {
     SECTION_SEPARATOR_HEIGHT,
 } from "@/src/theme/globals";
 import ReportFormSheet from "@/src/components/report/ReportFormSheet";
+import { useNavigationInterstitial } from "@/src/hooks/ads/useNavigationInterstitial";
 
 const ClubScreen: React.FC = () => {
     const { id } = useLocalSearchParams();
@@ -33,6 +34,7 @@ const ClubScreen: React.FC = () => {
     const router = useRouter();
     const { data: club, isLoading, error, refetch } = useClubById(String(id));
     const { allowed: canUpdateClub } = useHasScopes(["update:clubs"]);
+    const { handleNavigationWithAd } = useNavigationInterstitial();
 
     const formSheetRef = useRef<BottomSheetModal>(null);
     const reportSheetRef = useRef<BottomSheetModal>(null);
@@ -67,10 +69,16 @@ const ClubScreen: React.FC = () => {
         Linking.openURL(`https://maps.google.com/?q=${query}`);
     };
 
-    const handleOpenTeamList = () => {
-        Haptics.selectionAsync();
-        router.push(`/team-list/${club?.id}`);
-    };
+    const handleTeamListPress = useCallback(
+        async () => {
+            await Haptics.selectionAsync();
+
+            handleNavigationWithAd(() => {
+                router.push(`/team-list/${club?.id}`);
+            });
+        },
+        [router, handleNavigationWithAd]
+    );
 
     let body: React.ReactNode;
 
@@ -112,7 +120,7 @@ const ClubScreen: React.FC = () => {
                     />
 
                     <Pressable
-                        onPress={handleOpenTeamList}
+                        onPress={handleTeamListPress}
                         android_ripple={{
                             color: withAlpha(theme.text, 0.05),
                         }}

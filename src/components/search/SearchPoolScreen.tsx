@@ -8,6 +8,7 @@ import { SelectOption } from "@/src/components/common/form/SelectSheet";
 import { useDivisions } from "@/src/hooks/config/division/useDivisions";
 import { EnumFormat } from "@/src/types/enums/Format";
 import { EnumGender } from "@/src/types/enums/Gender";
+import { useNavigationInterstitial } from "@/src/hooks/ads/useNavigationInterstitial";
 
 export type SearchPoolScreenProps = {
     search: string;
@@ -22,6 +23,9 @@ const SearchPoolScreen: React.FC<SearchPoolScreenProps> = ({
     debouncedQuery,
     setSearch,
 }) => {
+    const { handleNavigationWithAd } = useNavigationInterstitial();
+    const { data: divisions } = useDivisions();
+
     const [selectedSeason, setSelectedSeason] = useState<string | null>(null);
     const [selectedDivisionId, setSelectedDivisionId] =
         useState<number | null>(null);
@@ -34,8 +38,6 @@ const SearchPoolScreen: React.FC<SearchPoolScreenProps> = ({
         () => SEASONS.map((s) => ({ value: s, label: s })),
         [],
     );
-
-    const { data: divisions } = useDivisions();
 
     const divisionOptions: SelectOption[] = useMemo(
         () =>
@@ -58,10 +60,16 @@ const SearchPoolScreen: React.FC<SearchPoolScreenProps> = ({
 
     const router = useRouter();
 
-    const handlePress = (id: number) => {
-        Haptics.selectionAsync();
-        router.push(`/pool/${id}`);
-    };
+    const handlePoolPress = useCallback(
+        async (poolId: number) => {
+            await Haptics.selectionAsync();
+
+            handleNavigationWithAd(() => {
+                router.push(`/pool/${poolId}`);
+            });
+        },
+        [router, handleNavigationWithAd]
+    );
 
     const handleSelectSeason = useCallback((opt: SelectOption) => {
         setSelectedSeason(opt.value ? String(opt.value) : null);
@@ -104,7 +112,7 @@ const SearchPoolScreen: React.FC<SearchPoolScreenProps> = ({
             exampleLabel="Exemples de poules"
             emptyMessage="Aucune poule trouvée pour cette recherche."
             renderItem={({ item }) => (
-                <PoolCard pool={item} onPress={() => handlePress(item.id)} />
+                <PoolCard pool={item} onPress={() => handlePoolPress(item.id)} />
             )}
             seasonOptions={seasonOptions}
             selectedSeason={selectedSeason}

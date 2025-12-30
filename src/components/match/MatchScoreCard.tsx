@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useCallback, useMemo } from "react";
 import { View, Text, Pressable, StyleSheet } from "react-native";
 import * as Haptics from "expo-haptics";
 import { useAppTheme } from "@/src/context/ThemeProvider";
@@ -10,6 +10,7 @@ import InfoPillGradient from "@/src/components/common/chips/InfoPillGradient";
 import MaskedImage from "@/src/components/common/images/MaskedImage";
 import { useRouter } from "expo-router";
 import { withAlpha } from "@/src/utils/utils";
+import { useNavigationInterstitial } from "@/src/hooks/ads/useNavigationInterstitial";
 
 export interface MatchScoreCardProps {
     enrichedMatch: EnrichedMatchDTO;
@@ -23,6 +24,7 @@ const MatchScoreCard: React.FC<MatchScoreCardProps> = ({ enrichedMatch, gradient
     const theme = useAppTheme();
     const router = useRouter();
     const { date, time } = splitIsoDateFormatted(enrichedMatch.matchDate);
+    const { handleNavigationWithAd } = useNavigationInterstitial();
 
     const hasLiveLink = !!enrichedMatch.liveUrl;
     const isFinished = enrichedMatch.status === MatchStatus.FINISHED;
@@ -33,10 +35,16 @@ const MatchScoreCard: React.FC<MatchScoreCardProps> = ({ enrichedMatch, gradient
         return Date.now() >= matchMs;
     }, [enrichedMatch.matchDate]);
 
-    const handleTeamPress = (teamId: number) => {
-        Haptics.selectionAsync();
-        router.push(`/team/${teamId}`);
-    };
+    const handleTeamPress = useCallback(
+        async (teamId: number) => {
+            await Haptics.selectionAsync();
+
+            handleNavigationWithAd(() => {
+                router.push(`/team/${teamId}`);
+            });
+        },
+        [router, handleNavigationWithAd]
+    );
 
     const TeamBlock: React.FC<{
         team: Team & { logoUrl: string | null };

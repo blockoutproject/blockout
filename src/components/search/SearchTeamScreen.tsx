@@ -8,6 +8,7 @@ import { SelectOption } from "@/src/components/common/form/SelectSheet";
 import { useDivisions } from "@/src/hooks/config/division/useDivisions";
 import { EnumFormat } from "@/src/types/enums/Format";
 import { EnumGender } from "@/src/types/enums/Gender";
+import { useNavigationInterstitial } from "@/src/hooks/ads/useNavigationInterstitial";
 
 export type SearchTeamScreenProps = {
     search: string;
@@ -22,6 +23,9 @@ const SearchTeamScreen: React.FC<SearchTeamScreenProps> = ({
     debouncedQuery,
     setSearch,
 }) => {
+    const { data: divisions } = useDivisions();
+    const { handleNavigationWithAd } = useNavigationInterstitial();
+
     const [selectedSeason, setSelectedSeason] = useState<string | null>(null);
     const [selectedDivisionId, setSelectedDivisionId] =
         useState<number | null>(null);
@@ -34,8 +38,6 @@ const SearchTeamScreen: React.FC<SearchTeamScreenProps> = ({
         () => SEASONS.map((s) => ({ value: s, label: s })),
         [],
     );
-
-    const { data: divisions } = useDivisions();
 
     const divisionOptions: SelectOption[] = useMemo(
         () =>
@@ -58,10 +60,16 @@ const SearchTeamScreen: React.FC<SearchTeamScreenProps> = ({
 
     const router = useRouter();
 
-    const handlePress = (id: number) => {
-        Haptics.selectionAsync();
-        router.push(`/team/${id}`);
-    };
+    const handleTeamPress = useCallback(
+        async (teamId: number) => {
+            await Haptics.selectionAsync();
+
+            handleNavigationWithAd(() => {
+                router.push(`/team/${teamId}`);
+            });
+        },
+        [router, handleNavigationWithAd]
+    );
 
     const handleSelectSeason = useCallback((opt: SelectOption) => {
         setSelectedSeason(opt.value ? String(opt.value) : null);
@@ -104,7 +112,7 @@ const SearchTeamScreen: React.FC<SearchTeamScreenProps> = ({
             exampleLabel="Exemples d’équipes"
             emptyMessage="Aucune équipe trouvée pour cette recherche."
             renderItem={({ item }) => (
-                <TeamCard team={item} onPress={() => handlePress(item.id)} />
+                <TeamCard team={item} onPress={() => handleTeamPress(item.id)} />
             )}
             seasonOptions={seasonOptions}
             selectedSeason={selectedSeason}

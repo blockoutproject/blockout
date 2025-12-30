@@ -10,6 +10,7 @@ import {
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import { FlashList, FlashListRef, ListRenderItemInfo } from "@shopify/flash-list";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import {
     MatchStatus,
@@ -24,7 +25,8 @@ import PoolItem from "./PoolItem";
 import EmptyState from "../common/feedback/EmptyState";
 import ErrorState from "../common/feedback/ErrorState";
 import { BOTTOM_TABBAR_HEIGHT, SECTION_SEPARATOR_HEIGHT } from "@/src/theme/globals";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import MatchListAdItem from "./MatchListAdItem";
+import { useNavigationInterstitial } from "@/src/hooks/ads/useNavigationInterstitial";
 
 export type MatchListProps = {
     poolIds?: number[];
@@ -39,7 +41,9 @@ export type MatchListProps = {
 
 type HeaderRow = { type: "sectionHeader"; title: string; sectionKey: string };
 type PoolRow = { type: "pool"; pool: EnrichedPoolMatchesDTO; sectionKey: string };
-type Row = HeaderRow | PoolRow;
+type AdRow = { type: "ad"; id: string; sectionKey: string };
+
+type Row = HeaderRow | PoolRow | AdRow;
 
 const AnimatedFlashList = Animated.createAnimatedComponent(FlashList<Row>);
 
@@ -68,11 +72,13 @@ const MatchList: React.FC<MatchListProps> = ({
         refetch,
     } = useMatchList(status, poolIds, teamIds);
 
+    const { handleNavigationWithAd } = useNavigationInterstitial();
+
     const [isRefreshing, setIsRefreshing] = useState(false);
 
     const handleRefresh = useCallback(async () => {
         setIsRefreshing(true);
-        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => { });
         try {
             await refetch();
         } finally {
@@ -87,27 +93,58 @@ const MatchList: React.FC<MatchListProps> = ({
     const handleMatchPress = useCallback(
         async (matchId: number) => {
             await Haptics.selectionAsync();
-            router.push(`/match/${matchId}`);
+
+            handleNavigationWithAd(() => {
+                router.push(`/match/${matchId}`);
+            });
         },
-        [router]
+        [router, handleNavigationWithAd],
     );
 
+    /**
+     * - 1 SectionDateHeader par jour
+     * - N PoolItem par jour
+     * - si home === true : on insère UNE annonce à la fin
+     *   des jours 1, 4, 7, ... (dayIndex = 0, 3, 6, ...)
+     */
     const { flatData, stickyHeaderIndices } = useMemo(() => {
         const rows: Row[] = [];
         const sticky: number[] = [];
-        dayMatches.forEach((d: EnrichedDayMatchesDTO) => {
+
+        dayMatches.forEach((d: EnrichedDayMatchesDTO, dayIndex: number) => {
             const sectionKey = String(d.date);
             const headerIndex = rows.length;
+
             rows.push({
                 type: "sectionHeader",
                 title: formatDateFrenchLocale(d.date),
                 sectionKey,
             });
             sticky.push(headerIndex);
-            d.pools.forEach((p) => rows.push({ type: "pool", pool: p, sectionKey }));
+
+            d.pools.forEach((p) => {
+                rows.push({
+                    type: "pool",
+                    pool: p,
+                    sectionKey,
+                });
+            });
+
+            const shouldInsertAdForThisDay = home && dayIndex % 4 === 1;
+
+            if (shouldInsertAdForThisDay) {
+                const adId = `ad-${sectionKey}`;
+
+                rows.push({
+                    type: "ad",
+                    id: adId,
+                    sectionKey,
+                });
+            }
         });
+
         return { flatData: rows, stickyHeaderIndices: sticky };
-    }, [dayMatches]);
+    }, [dayMatches, home]);
 
     useEffect(() => {
         scrollY.setValue(0);
@@ -118,14 +155,19 @@ const MatchList: React.FC<MatchListProps> = ({
         refetch();
     }, [scrollY, refetch]);
 
-    const getItemType = useCallback((item: Row) => {
-        return item.type === "sectionHeader" ? "sectionHeader" : "row";
-    }, []);
+    const getItemType = useCallback((item: Row) => item.type, []);
 
     const keyExtractor = useCallback((item: Row) => {
-        return item.type === "sectionHeader"
-            ? `h-${item.sectionKey}`
-            : `p-${item.pool.pool.id}-${item.sectionKey}`;
+        switch (item.type) {
+            case "sectionHeader":
+                return `h-${item.sectionKey}`;
+            case "pool":
+                return `p-${item.pool.pool.id}-${item.sectionKey}`;
+            case "ad":
+                return `ad-${item.id}-${item.sectionKey}`;
+            default:
+                return "unknown";
+        }
     }, []);
 
     const renderItem = useCallback(
@@ -141,18 +183,19 @@ const MatchList: React.FC<MatchListProps> = ({
                             showHeader={showPoolHeader}
                         />
                     );
+                case "ad":
+                    return <MatchListAdItem />;
                 default:
                     return null;
             }
         },
-        [handleMatchPress, showPoolHeader]
+        [handleMatchPress, showPoolHeader],
     );
 
-    const header = useMemo(() => {
-        return (
-            <View style={{ height: headerOffset + 4 }} />
-        );
-    }, [home]);
+    const header = useMemo(
+        () => <View style={{ height: headerOffset + 4 }} />,
+        [headerOffset],
+    );
 
     const footer = useMemo(() => {
         const footerBase = (
@@ -171,13 +214,11 @@ const MatchList: React.FC<MatchListProps> = ({
         return footerBase;
     }, [isFetchingNextPage, hasNextPage, insets]);
 
-
     let body: React.ReactNode;
+
     if (isLoading) {
         body = (
-            <View
-                style={[styles.center, { backgroundColor: theme.background }]}
-            >
+            <View style={[styles.center, { backgroundColor: theme.background }]}>
                 <ActivityIndicator size="large" color={theme.text} />
             </View>
         );
@@ -213,7 +254,7 @@ const MatchList: React.FC<MatchListProps> = ({
                             [{ nativeEvent: { contentOffset: { y: scrollY } } }],
                             {
                                 useNativeDriver: true,
-                            }
+                            },
                         )
                         : undefined
                 }

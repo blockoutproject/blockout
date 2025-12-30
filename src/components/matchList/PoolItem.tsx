@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useCallback } from "react";
 import { TouchableOpacity, View, StyleSheet } from "react-native";
 import * as Haptics from "expo-haptics";
 
@@ -11,6 +11,7 @@ import { SECTION_SEPARATOR_HEIGHT } from "@/src/theme/globals";
 import { useMappingHelper } from "@shopify/flash-list";
 import RankingHeader from "../ranking/RankingHeader";
 import { useRouter } from "expo-router";
+import { useNavigationInterstitial } from "@/src/hooks/ads/useNavigationInterstitial";
 
 /** Carte listant les matchs d’une poule. */
 export type PoolItemProps = {
@@ -32,6 +33,7 @@ const PoolItem: React.FC<PoolItemProps> = ({
     const theme = useAppTheme();
     const { getMappingKey } = useMappingHelper();
     const router = useRouter();
+    const { handleNavigationWithAd } = useNavigationInterstitial();
     const division = enrichedPoolMatches.pool.division;
 
     const gradient = [
@@ -40,10 +42,16 @@ const PoolItem: React.FC<PoolItemProps> = ({
         division.thirdGradientColor,
     ] as const;
 
-    const handleHeaderPress = () => {
-        Haptics.selectionAsync();
-        router.push(`/pool/${enrichedPoolMatches.pool.id}`);
-    };
+    const handleHeaderPress = useCallback(
+        async () => {
+            await Haptics.selectionAsync();
+
+            handleNavigationWithAd(() => {
+                router.push(`/pool/${enrichedPoolMatches.pool.id}`);
+            });
+        },
+        [router, handleNavigationWithAd]
+    );
 
     return (
         <FadeIn >

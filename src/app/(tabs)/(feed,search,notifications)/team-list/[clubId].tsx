@@ -28,12 +28,14 @@ import { useTeamListByClubId } from "@/src/hooks/team/useTeamListByClubId";
 import FollowedListSkeleton from "@/src/components/followed/FollowedListSkeleton";
 import { SelectOption } from "@/src/components/common/form/SelectSheet";
 import SeasonSelect from "@/src/components/common/form/SeasonSelect";
+import { useNavigationInterstitial } from "@/src/hooks/ads/useNavigationInterstitial";
 
 const TeamListScreen: React.FC = () => {
     const theme = useAppTheme();
     const router = useRouter();
     const insets = useSafeAreaInsets();
     const { clubId } = useLocalSearchParams();
+    const { handleNavigationWithAd } = useNavigationInterstitial();
 
     const { data, isLoading, isError, refetch } = useTeamListByClubId(
         String(clubId),
@@ -50,12 +52,15 @@ const TeamListScreen: React.FC = () => {
         reportSheetRef.current?.present();
     }, []);
 
-    const handlePress = useCallback(
-        (id: number) => {
-            Haptics.selectionAsync();
-            router.push(`/team/${id}`);
+    const handleTeamPress = useCallback(
+        async (teamId: number) => {
+            await Haptics.selectionAsync();
+
+            handleNavigationWithAd(() => {
+                router.push(`/team/${teamId}`);
+            });
         },
-        [router],
+        [router, handleNavigationWithAd]
     );
 
     const onRefresh = useCallback(async () => {
@@ -73,11 +78,11 @@ const TeamListScreen: React.FC = () => {
         ({ item }: { item: TeamSummaryDTO }) => (
             <TeamCard
                 team={item}
-                onPress={() => handlePress(item.id)}
+                onPress={() => handleTeamPress(item.id)}
                 testID={`team-card-${item.id}`}
             />
         ),
-        [handlePress],
+        [handleTeamPress],
     );
 
     useEffect(() => {

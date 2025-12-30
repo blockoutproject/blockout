@@ -44,6 +44,7 @@ import MatchLiveLinkCard from "@/src/components/match/MatchLiveLinkCard";
 import useHasScopes from "@/src/hooks/user/useHasScopes";
 import GuestPromptSheet, { GuestPromptSheetRef } from "@/src/components/user/GuestPromptSheet.tsx";
 import { useSession } from "@/src/context/SessionProvider";
+import MatchAdCard from "@/src/components/match/MatchAdCard";
 
 const AnimatedScrollView = Animated.createAnimatedComponent(ScrollView);
 
@@ -165,6 +166,16 @@ const MatchScreen: React.FC = () => {
         return <MatchScoreDetailsCard enrichedMatch={enrichedMatch} />;
     }, [enrichedMatch]);
 
+    const adCard = useMemo(() => {
+        if (!enrichedMatch) {
+            return null;
+        }
+
+        return (
+            <MatchAdCard/>
+        );
+    }, [enrichedMatch, gradient]);
+
     const liveLinkCard = useMemo(() => {
         if (!enrichedMatch || isLNV(enrichedMatch.pool.leagueCode)) {
             return null;
@@ -270,20 +281,24 @@ const MatchScreen: React.FC = () => {
                     <FadeIn appearIndex={0}>{scoreCard}</FadeIn>
                 )}
 
-                {detailsCard && (
-                    <FadeIn appearIndex={1}>{detailsCard}</FadeIn>
+                {liveLinkCard && (
+                    <FadeIn appearIndex={1}>{liveLinkCard}</FadeIn>
                 )}
 
-                {liveLinkCard && (
-                    <FadeIn appearIndex={2}>{liveLinkCard}</FadeIn>
+                {detailsCard && (
+                    <FadeIn appearIndex={2}>{detailsCard}</FadeIn>
+                )}
+
+                {adCard && (
+                    <FadeIn appearIndex={3}>{adCard}</FadeIn>
                 )}
 
                 {infoCard && (
-                    <FadeIn appearIndex={3}>{infoCard}</FadeIn>
+                    <FadeIn appearIndex={4}>{infoCard}</FadeIn>
                 )}
 
                 {rankingCard && (
-                    <FadeIn appearIndex={4}>{rankingCard}</FadeIn>
+                    <FadeIn appearIndex={5}>{rankingCard}</FadeIn>
                 )}
             </AnimatedScrollView>
         );

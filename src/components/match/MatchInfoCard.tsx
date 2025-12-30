@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useCallback } from "react";
 import { Text, View, StyleSheet } from "react-native";
 import * as Haptics from "expo-haptics";
 import { useAppTheme } from "@/src/context/ThemeProvider";
@@ -8,6 +8,7 @@ import InfoPillGradient from "@/src/components/common/chips/InfoPillGradient";
 import { useRouter } from "expo-router";
 import { openPdf } from "@/src/utils/openPdf";
 import { isLNV } from "@/src/utils/utils";
+import { useNavigationInterstitial } from "@/src/hooks/ads/useNavigationInterstitial";
 
 /** Info card with league/pool/date/venue/referees. */
 export type MatchInfoCardProps = {
@@ -20,6 +21,7 @@ const RADIUS = 18;
 const MatchInfoCard: React.FC<MatchInfoCardProps> = ({ enrichedMatch }) => {
     const theme = useAppTheme();
     const router = useRouter();
+    const { handleNavigationWithAd } = useNavigationInterstitial();
 
     const division = enrichedMatch.pool.division;
     const gradient = [
@@ -46,10 +48,16 @@ const MatchInfoCard: React.FC<MatchInfoCardProps> = ({ enrichedMatch }) => {
     const matchAddressPdfUrl = enrichedMatch.matchAddressPdfUrl;
     const matchSheetPdfUrl = enrichedMatch.matchSheetPdfUrl;
 
-    const handlePoolPress = (poolId: number) => {
-        Haptics.selectionAsync();
-        router.push(`/pool/${poolId}`);
-    };
+    const handlePoolPress = useCallback(
+        async (poolId: number) => {
+            await Haptics.selectionAsync();
+
+            handleNavigationWithAd(() => {
+                router.push(`/pool/${poolId}`);
+            });
+        },
+        [router, handleNavigationWithAd]
+    );
 
     return (
         <GradientBorderView

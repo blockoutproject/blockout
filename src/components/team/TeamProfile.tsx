@@ -16,6 +16,9 @@ import { useSession } from "@/src/context/SessionProvider";
 import GuestPromptSheet, { GuestPromptSheetRef } from "../user/GuestPromptSheet.tsx";
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import { withAlpha } from "@/src/utils/utils";
+import { useNavigationInterstitial } from "@/src/hooks/ads/useNavigationInterstitial";
+import { BannerAd, BannerAdSize } from "react-native-google-mobile-ads";
+import { ADS } from "@/src/config/ads";
 
 export type TeamProfileProps = {
     enrichedTeam: EnrichedTeamDTO;
@@ -55,6 +58,7 @@ type PillConfig = {
 
 const TeamProfile: React.FC<TeamProfileProps> = ({ enrichedTeam }) => {
     const router = useRouter();
+    const { handleNavigationWithAd } = useNavigationInterstitial();
     const { isFollowing, isProcessing, followersCount, onToggleFollow } =
         useTeamFollowState(enrichedTeam);
     const { isGuest } = useSession();
@@ -164,10 +168,16 @@ const TeamProfile: React.FC<TeamProfileProps> = ({ enrichedTeam }) => {
         });
     }, []);
 
-    const handleClubPress = (clubId: string) => {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-        router.push(`/club/${clubId}`);
-    };
+    const handleClubPress = useCallback(
+        async (clubId: string) => {
+            await Haptics.selectionAsync();
+
+            handleNavigationWithAd(() => {
+                router.push(`/club/${clubId}`);
+            });
+        },
+        [router, handleNavigationWithAd]
+    );
 
     const handleFollow = () => {
         if (isGuest) {
@@ -205,50 +215,52 @@ const TeamProfile: React.FC<TeamProfileProps> = ({ enrichedTeam }) => {
     };
 
     return (
-        <View style={styles.container} testID="team-profile">
-            <MaskedImage uri={enrichedTeam.logoUrl} size={LOGO_SIZE} radius={20} />
+        <View testID="team-profile">
+            <View style={styles.container}>
+                <MaskedImage uri={enrichedTeam.logoUrl} size={LOGO_SIZE} radius={20} />
 
-            <View style={{ flex: 1 }}>
-                <View onLayout={onContainer} style={styles.twoRows}>
-                    <View style={styles.pillsRow}>
-                        {top.map((i) => renderPill(pills[i], `pill-${i}`))}
+                <View style={{ flex: 1 }}>
+                    <View onLayout={onContainer} style={styles.twoRows}>
+                        <View style={styles.pillsRow}>
+                            {top.map((i) => renderPill(pills[i], `pill-${i}`))}
+                        </View>
+
+                        <View style={styles.pillsRow}>
+                            {bottom.map((i) => renderPill(pills[i], `pill-bottom-${i}`))}
+
+                            <InfoPillGradient
+                                leftIcon="home"
+                                size="md"
+                                rightIcon="chevron-forward-outline"
+                                variant="filled"
+                                gradient={gradient}
+                                onPress={() => handleClubPress(enrichedTeam.clubId)}
+                            />
+                        </View>
                     </View>
 
-                    <View style={styles.pillsRow}>
-                        {bottom.map((i) => renderPill(pills[i], `pill-bottom-${i}`))}
+                    {!ready && (
+                        <View pointerEvents="none" style={styles.measureRow}>
+                            {pills.map((pill, i) => (
+                                <View
+                                    key={`measure-${i}`}
+                                    onLayout={(e) => onMeasurePill(i, e)}
+                                >
+                                    {renderPill(pill, `measure-pill-${i}`)}
+                                </View>
+                            ))}
+                        </View>
+                    )}
 
-                        <InfoPillGradient
-                            leftIcon="home"
-                            size="md"
-                            rightIcon="chevron-forward-outline"
-                            variant="filled"
+                    <View style={styles.actionsRow}>
+                        <FollowButton
+                            isFollowing={isFollowing}
+                            onPress={handleFollow}
+                            disabled={isProcessing}
                             gradient={gradient}
-                            onPress={() => handleClubPress(enrichedTeam.clubId)}
                         />
+                        <FollowersCounter count={followersCount} />
                     </View>
-                </View>
-
-                {!ready && (
-                    <View pointerEvents="none" style={styles.measureRow}>
-                        {pills.map((pill, i) => (
-                            <View
-                                key={`measure-${i}`}
-                                onLayout={(e) => onMeasurePill(i, e)}
-                            >
-                                {renderPill(pill, `measure-pill-${i}`)}
-                            </View>
-                        ))}
-                    </View>
-                )}
-
-                <View style={styles.actionsRow}>
-                    <FollowButton
-                        isFollowing={isFollowing}
-                        onPress={handleFollow}
-                        disabled={isProcessing}
-                        gradient={gradient}
-                    />
-                    <FollowersCounter count={followersCount} />
                 </View>
             </View>
 

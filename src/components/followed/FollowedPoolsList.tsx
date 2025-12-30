@@ -11,14 +11,13 @@ import {
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-
-import { useAppTheme } from "@/src/context/ThemeProvider";
 import { useFollowedPoolList } from "@/src/hooks/pool/useFollowedPoolList";
 import FollowedPoolCard from "./FollowedPoolCard";
 import { BOTTOM_TABBAR_HEIGHT } from "@/src/theme/globals";
 import EmptyState from "@/src/components/common/feedback/EmptyState";
 import ErrorState from "@/src/components/common/feedback/ErrorState";
 import FollowedListSkeleton from "./FollowedListSkeleton";
+import { useNavigationInterstitial } from "@/src/hooks/ads/useNavigationInterstitial";
 
 type Props = {
     poolIds?: number[];
@@ -33,6 +32,7 @@ const FollowedPoolsList: React.FC<Props> = ({
 }) => {
     const insets = useSafeAreaInsets();
     const router = useRouter();
+    const { handleNavigationWithAd } = useNavigationInterstitial();
 
     const { pools, isLoading, isError, refetch } =
         useFollowedPoolList(poolIds);
@@ -49,12 +49,15 @@ const FollowedPoolsList: React.FC<Props> = ({
         }
     }, [refetch]);
 
-    const handlePressPool = useCallback(
-        async (id: number) => {
+    const handlePoolPress = useCallback(
+        async (poolId: number) => {
             await Haptics.selectionAsync();
-            router.push(`/pool/${id}`);
+
+            handleNavigationWithAd(() => {
+                router.push(`/pool/${poolId}`);
+            });
         },
-        [router],
+        [router, handleNavigationWithAd]
     );
 
     const ListFooterComponent = useMemo(
@@ -110,7 +113,7 @@ const FollowedPoolsList: React.FC<Props> = ({
             renderItem={({ item }) => (
                 <FollowedPoolCard
                     pool={item}
-                    onPress={() => handlePressPool(item.id)}
+                    onPress={() => handlePoolPress(item.id)}
                 />
             )}
             ListFooterComponent={ListFooterComponent}
