@@ -56,3 +56,6 @@ aws:
   region: ${AWS_REGION}
   s3:
     bucket: ${AWS_S3_BUCKET_NAME}
+
+mapbox:
+  access-token: ${MAPBOX_ACCESS_TOKEN}

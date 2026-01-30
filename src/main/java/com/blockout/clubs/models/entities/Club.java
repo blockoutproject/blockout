@@ -48,6 +48,12 @@ public class Club {
     @Column(name = "active", nullable = false)
     private Boolean active = true;
 
+    @Column(name = "latitude")
+    private Double latitude;
+
+    @Column(name = "longitude")
+    private Double longitude;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
