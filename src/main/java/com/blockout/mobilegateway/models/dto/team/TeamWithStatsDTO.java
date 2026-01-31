@@ -26,9 +26,16 @@ public class TeamWithStatsDTO {
 
     private Integer losses;
 
+    @JsonProperty("points_penalty")
     private Integer pointsPenalty;
 
+    private Double longitude;
+
+    private Double latitude;
+
+    @JsonProperty("coef_sets")
     private Double coefSets;
 
+    @JsonProperty("coef_points")
     private Double coefPoints;
 }

@@ -103,6 +103,8 @@ public class PoolService {
                             .pointsPenalty(assoc.getPointsPenalty())
                             .coefSets(assoc.getCoefSets())
                             .coefPoints(assoc.getCoefPoints())
+                            .latitude(team.getLatitude())
+                            .longitude(team.getLongitude())
                             .build();
                 })
                 .sorted(rankingComparator)

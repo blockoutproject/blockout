@@ -16,7 +16,6 @@ public class ClubPublicController {
     @GetMapping("/{id}")
     public ResponseEntity<ClubDTO> getClubById(@PathVariable("id") String id) {
         var club = clubService.getClubById(id);
-        System.out.println("-------------" + club.getLongitude() + " " + club.getLatitude());
         return ResponseEntity.ok(club);
     }
 }
