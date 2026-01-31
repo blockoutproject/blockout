@@ -28,7 +28,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
-import static com.blockout.mobilegateway.utils.TeamLogoEnricher.enrichTeamsWithClubLogo;
+import static com.blockout.mobilegateway.utils.TeamLogoEnricher.enrichTeamsWithClubData;
 
 @Service
 @RequiredArgsConstructor
@@ -82,7 +82,7 @@ public class TeamService {
             }
         }
 
-        enrichTeamsWithClubLogo(teamsMap.values(), clubClientService);
+        enrichTeamsWithClubData(teamsMap.values(), clubClientService);
 
         Set<Long> poolIds = poolsWithRankings.stream()
                 .map(PoolWithRankingDTO::getPoolId)

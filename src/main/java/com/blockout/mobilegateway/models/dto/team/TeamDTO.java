@@ -34,10 +34,14 @@ public class TeamDTO {
     private Long divisionId;
 
     private Format format;
-    
+
     private Gender gender;
 
     private String season;
+
+    private Double latitude;
+    
+    private Double longitude;
 
     @JsonProperty("followers_count")
     private Long followersCount;

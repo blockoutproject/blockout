@@ -23,7 +23,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
-import static com.blockout.mobilegateway.utils.TeamLogoEnricher.enrichTeamsWithClubLogo;
+import static com.blockout.mobilegateway.utils.TeamLogoEnricher.enrichTeamsWithClubData;
 
 @Service
 @RequiredArgsConstructor
@@ -76,9 +76,7 @@ public class PoolService {
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
 
-        // Enrichissement logos via ClubClientService.getClubLogoUrl (qui sera
-        // @Cacheable chez toi)
-        enrichTeamsWithClubLogo(teamsMap.values(), clubClientService);
+        enrichTeamsWithClubData(teamsMap.values(), clubClientService);
 
         Comparator<TeamWithStatsDTO> rankingComparator = Comparator.comparingInt(TeamWithStatsDTO::getPoints).reversed()
                 .thenComparingInt(TeamWithStatsDTO::getPointsPenalty)

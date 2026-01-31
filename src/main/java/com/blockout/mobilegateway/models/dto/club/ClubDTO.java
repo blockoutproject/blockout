@@ -35,6 +35,10 @@ public class ClubDTO {
     @JsonProperty("logo_url")
     private String logoUrl;
 
+    private Double latitude;
+
+    private Double longitude;
+
     private Boolean active;
 
     @JsonProperty("created_at")

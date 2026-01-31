@@ -38,7 +38,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static com.blockout.mobilegateway.utils.TeamLogoEnricher.enrichTeamsWithClubLogo;
+import static com.blockout.mobilegateway.utils.TeamLogoEnricher.enrichTeamsWithClubData;
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
 @Service
@@ -136,7 +136,7 @@ public class MatchService {
         }
 
         // Logos clubs
-        enrichTeamsWithClubLogo(teamsMap.values(), clubClientService);
+        enrichTeamsWithClubData(teamsMap.values(), clubClientService);
 
         // Divisions
         Map<Long, DivisionDTO> divisionById = new HashMap<>(divisionIds.size() * 2);
@@ -288,7 +288,7 @@ public class MatchService {
 
         // Enrich logos pour toutes les équipes concernées (classement + équipes du
         // match)
-        enrichTeamsWithClubLogo(teamsMap.values(), clubClientService);
+        enrichTeamsWithClubData(teamsMap.values(), clubClientService);
 
         TeamDTO teamA = teamsMap.get(match.getTeamIdA());
         if (teamA == null) {
@@ -510,7 +510,7 @@ public class MatchService {
             }
         }
 
-        enrichTeamsWithClubLogo(teamsMap.values(), clubClientService);
+        enrichTeamsWithClubData(teamsMap.values(), clubClientService);
 
         List<EnrichedMatchLiveSummaryDTO> result = new ArrayList<>(summaries.size());
         for (MatchLiveSummaryDTO m : summaries) {
