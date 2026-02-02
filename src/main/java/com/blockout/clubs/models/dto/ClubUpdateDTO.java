@@ -21,6 +21,8 @@ public class ClubUpdateDTO {
 
     private String city;
 
+    private String address;
+
     @JsonProperty("postal_code")
     private String postalCode;
 

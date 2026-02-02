@@ -26,6 +26,9 @@ public class Club {
     @Column(name = "name", nullable = false)
     private String name;
 
+    @Column(name = "address")
+    private String address;
+
     @Column(name = "city")
     private String city;
 

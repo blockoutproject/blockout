@@ -133,6 +133,8 @@ public class ClubService {
                 existing.setCity(dto.getCity());
             if (dto.getPostalCode() != null)
                 existing.setPostalCode(dto.getPostalCode());
+            if (dto.getAddress() != null)
+                existing.setAddress(dto.getAddress());
             if (dto.getEmail() != null)
                 existing.setEmail(dto.getEmail());
             if (dto.getPhoneNumber() != null)
