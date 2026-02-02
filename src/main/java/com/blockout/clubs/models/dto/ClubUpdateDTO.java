@@ -20,7 +20,6 @@ public class ClubUpdateDTO {
     private String name;
 
     private String city;
-
     private String address;
 
     @JsonProperty("postal_code")
