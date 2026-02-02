@@ -35,7 +35,7 @@ public class MapboxClient {
                 .fromUriString(BASE_URL)
                 .path("/" + encodedQ + ".json")
                 .queryParam("access_token", mapboxProperties.getAccessToken())
-                .queryParam("limit", 1)
+                .queryParam("limit", 5)
                 .queryParam("country", "fr")
                 .queryParam("language", "fr")
                 .queryParam("types", "postcode,place,address")
@@ -64,12 +64,28 @@ public class MapboxClient {
             }
 
             MapboxResponse body = response.getBody();
+
             if (body == null || body.features == null || body.features.length == 0) {
+                logger.warn("No geocoding result",
+                        keyValue("action", "mapbox_geocode_no_result"),
+                        keyValue("q", q));
+                return null;
+            }
+
+            if (body.features.length > 1) {
+                logger.warn("Ambiguous geocoding result — refusing to pick one",
+                        keyValue("action", "mapbox_geocode_ambiguous"),
+                        keyValue("q", q),
+                        keyValue("results", body.features.length));
                 return null;
             }
 
             MapboxFeature f = body.features[0];
+
             if (f.center == null || f.center.length < 2) {
+                logger.warn("Invalid geocoding result",
+                        keyValue("action", "mapbox_geocode_invalid"),
+                        keyValue("q", q));
                 return null;
             }
 
@@ -103,5 +119,6 @@ public class MapboxClient {
 
     public static class MapboxFeature {
         public double[] center;
+        public String place_name;
     }
 }

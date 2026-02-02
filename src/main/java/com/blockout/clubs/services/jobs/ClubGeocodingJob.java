@@ -28,6 +28,9 @@ public class ClubGeocodingJob {
     @Scheduled(initialDelay = 0, fixedDelay = 7 * 24 * 60 * 60 * 1000L)
     @Transactional
     public void geocodeClubs() {
+        int ambiguousTotal = 0;
+        int processed = 0;
+
         try {
             List<Club> clubs = clubRepository.findAll().stream()
                     .filter(c -> Boolean.TRUE.equals(c.getActive())
@@ -37,8 +40,15 @@ public class ClubGeocodingJob {
                     .toList();
 
             if (clubs.isEmpty()) {
-                logger.debug("No clubs to geocode",
-                        keyValue("action", "club_geocoding"));
+                long geocodedTotalInDb = clubRepository.findAll().stream()
+                        .filter(c -> c.getLatitude() != null && c.getLongitude() != null)
+                        .count();
+
+                logger.info("Club geocoding summary",
+                        keyValue("action", "club_geocoding_done"),
+                        keyValue("geocoded_total_in_db", geocodedTotalInDb),
+                        keyValue("ambiguous_total", 0),
+                        keyValue("processed", 0));
                 return;
             }
 
@@ -48,11 +58,16 @@ public class ClubGeocodingJob {
 
             for (Club club : clubs) {
                 try {
+                    processed++;
+
                     var result = mapboxClient.geocode(club.getCity(), club.getPostalCode());
 
                     if (result == null) {
-                        logger.warn("Geocoding failed",
-                                keyValue("clubId", club.getId()));
+                        ambiguousTotal++;
+                        logger.warn("Geocoding failed (ambiguous or not found)",
+                                keyValue("clubId", club.getId()),
+                                keyValue("city", club.getCity()),
+                                keyValue("postalCode", club.getPostalCode()));
                         continue;
                     }
 
@@ -72,14 +87,28 @@ public class ClubGeocodingJob {
                 }
             }
 
-            logger.info("Club geocoding job completed",
+            long geocodedTotalInDb = clubRepository.findAll().stream()
+                    .filter(c -> c.getLatitude() != null && c.getLongitude() != null)
+                    .count();
+
+            logger.info("Club geocoding summary",
                     keyValue("action", "club_geocoding_done"),
-                    keyValue("count", clubs.size()));
+                    keyValue("geocoded_total_in_db", geocodedTotalInDb),
+                    keyValue("ambiguous_total", ambiguousTotal),
+                    keyValue("processed", processed));
 
         } catch (Exception e) {
+            long geocodedTotalInDb = clubRepository.findAll().stream()
+                    .filter(c -> c.getLatitude() != null && c.getLongitude() != null)
+                    .count();
+
             logger.error("Fatal error in club geocoding job",
                     keyValue("action", "club_geocoding"),
-                    keyValue("error", e.getMessage()), e);
+                    keyValue("error", e.getMessage()),
+                    keyValue("geocoded_total_in_db", geocodedTotalInDb),
+                    keyValue("ambiguous_total", ambiguousTotal),
+                    keyValue("processed", processed),
+                    e);
         }
     }
 }
