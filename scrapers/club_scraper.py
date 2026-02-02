@@ -86,6 +86,7 @@ class ClubScraper(Scraper):
 
             # À partir d'ici, on considère qu'on a bien contacté l'adressier au moins une fois
             self.scrape_success += 1
+            
 
             # On parse le HTML
             club = self.parse_club_page(html_content, club_id)
