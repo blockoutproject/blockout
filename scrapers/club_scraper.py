@@ -114,13 +114,15 @@ class ClubScraper(Scraper):
 
     def parse_club_page(self, html_content: str, club_id: str) -> Optional[Club]:
         try:
-            soup = BeautifulSoup(html_content, "html.parser")
+            soup = BeautifulSoup(html_content, 'html.parser')
 
-            name_tag = soup.find("td", class_="titreblanc_gd")
+            # 1) Nom du club
+            name_tag = soup.find('td', class_='titreblanc_gd')
             raw_club_name = None
             if name_tag:
                 raw_club_name = name_tag.get_text(strip=True).split(maxsplit=1)[-1]
 
+            # 2) Téléphone portable
             phone_number = None
             portable_label = soup.find(text=re.compile(r"(Portable|T[ée]l\.?)", re.IGNORECASE))
             if portable_label:
@@ -130,81 +132,82 @@ class ClubScraper(Scraper):
                     if next_td:
                         phone_number = next_td.get_text(strip=True)
 
+            # 3) Email
             email = None
-            mail_link = soup.find("a", href=lambda h: h and h.startswith("mailto:"))
+            mail_link = soup.find('a', href=lambda h: h and h.startswith('mailto:'))
             if mail_link:
                 email = mail_link.get_text(strip=True)
 
+            # 4) Website
             website = None
-            site_img = soup.find("img", {"title": "Site Web"})
+            site_img = soup.find('img', {'title': 'Site Web'})
             if site_img:
-                parent_td = site_img.find_parent("td")
+                parent_td = site_img.find_parent('td')
                 if parent_td:
-                    next_td = parent_td.find_next("td")
+                    next_td = parent_td.find_next('td')
                     if next_td:
-                        link_tag = next_td.find("a", href=True)
+                        link_tag = next_td.find('a', href=True)
                         if link_tag:
-                            website = link_tag.get_text(strip=True).rstrip("/")
+                            website = link_tag.get_text(strip=True).rstrip('/')
 
+            # 5) Adresse (code postal + ville)
             postal_code, city = None, None
-            address = None
 
-            siege_header = soup.find("td", class_="lienblanc_pt", string=re.compile(r"Si[eè]ge\s+Social", re.IGNORECASE))
+            address_td = soup.find(
+                "td",
+                class_="lienquestion",
+                string=re.compile(r"^\d{5}\s+[A-Za-zÀ-ÖØ-öø-ÿ].*", re.IGNORECASE)
+            )
+
+            if address_td:
+                address_line = address_td.get_text(strip=True)
+                parts = address_line.split(maxsplit=1)
+                if len(parts) == 2:
+                    postal_code, city = parts
+            else:
+                all_tds = soup.find_all("td", class_="lienquestion")
+                pattern_fallback = re.compile(r"(?P<cp>\d{5})(?:\s+\d{5})?\s*-\s*(?P<ville>.+)", re.IGNORECASE)
+
+                for td in all_tds:
+                    text = td.get_text(strip=True)
+                    match = pattern_fallback.match(text)
+                    if match:
+                        postal_code = match.group("cp")
+                        city = match.group("ville").strip()
+                        break
+
+            # 6) NOUVEAU — récupération adresse brute (sans toucher city/postal)
+            address = None
+            address_lines = []
+
+            siege_header = soup.find("td", string=re.compile("Siège Social", re.IGNORECASE))
             if siege_header:
                 siege_table = siege_header.find_parent("table")
                 if siege_table:
-                    siege_lines = [
-                        td.get_text(" ", strip=True)
-                        for td in siege_table.find_all("td", class_="lienquestion")
-                    ]
-                    siege_lines = [l for l in siege_lines if l]
-
-                    cp_city_pattern = re.compile(r"^(?P<cp>\d{5})\s+(?P<ville>.+)$")
-                    addr_parts: list[str] = []
-
-                    for line in siege_lines:
-                        m = cp_city_pattern.match(line)
-                        if m and not postal_code and not city:
-                            postal_code = m.group("cp")
-                            city = m.group("ville").strip()
-                        else:
-                            addr_parts.append(line)
-
-                    if addr_parts:
-                        address = " / ".join(addr_parts)[:255]
-
-            if not postal_code or not city:
-                address_td = soup.find(
-                    "td",
-                    class_="lienquestion",
-                    string=re.compile(r"^\d{5}\s+[A-Za-zÀ-ÖØ-öø-ÿ].*", re.IGNORECASE),
-                )
-                if address_td:
-                    address_line = address_td.get_text(strip=True)
-                    parts = address_line.split(maxsplit=1)
-                    if len(parts) == 2:
-                        postal_code, city = parts
-                else:
-                    all_tds = soup.find_all("td", class_="lienquestion")
-                    pattern_fallback = re.compile(r"(?P<cp>\d{5})(?:\s+\d{5})?\s*-\s*(?P<ville>.+)", re.IGNORECASE)
-                    for td in all_tds:
+                    tds = siege_table.find_all("td", class_="lienquestion")
+                    for td in tds:
                         text = td.get_text(strip=True)
-                        match = pattern_fallback.match(text)
-                        if match:
-                            postal_code = match.group("cp")
-                            city = match.group("ville").strip()
+
+                        # stop dès qu'on atteint la ligne CP + ville
+                        if re.match(r"^\d{5}\s+", text):
                             break
 
+                        address_lines.append(text)
+
+            if address_lines:
+                address = ", ".join(address_lines)
+
+            # 7) Construire l’objet Club
             return Club(
                 id=club_id,
                 raw_name=raw_club_name,
                 name=raw_club_name,
+                address=address,
                 phone_number=phone_number,
                 email=email,
                 website=website,
-                address=address,
                 city=capitalize_words(city),
-                postal_code=postal_code,
+                postal_code=postal_code
             )
 
         except Exception as e:
@@ -213,6 +216,6 @@ class ClubScraper(Scraper):
                 level="error",
                 club_id=club_id,
                 error=str(e),
-                message=f"Erreur lors du parsing HTML du club {club_id}.",
+                message=f"Erreur lors du parsing HTML du club {club_id}."
             )
             return None
