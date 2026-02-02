@@ -97,7 +97,7 @@ class ClubScraper(Scraper):
 
             # Si le club existe déjà en cache (donc cloné via replace), on met à jour le clone
             if existing_obj:
-                for field in ['name', 'city', 'postal_code', 'email', 'phone_number', 'website']:
+                for field in ['name', 'city', 'postal_code', 'email', 'phone_number', 'website', 'address']:
                     setattr(updated_obj, field, getattr(club, field, None))
 
             new_club = await add_or_update_club(self.session, updated_obj, existing_obj)
