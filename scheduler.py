@@ -16,43 +16,21 @@ def _paris_now() -> datetime:
 
 
 def desired_interval_seconds(now: datetime) -> int:
-    """
-    Règles exemple (faciles à modifier) :
-
-        - Lun-Jeu:
-            00:00-12:00 => 30 min
-            12:00-23:59 => 60 min
-
-        - Ven:
-            00:00-12:00 => 60 min
-            12:00-23:59 => 30 min
-
-        - Sam:
-            00:00-12:00 => 30 min
-            12:00-23:59 => 5 min
-
-        - Dim:
-            00:00-23:59 => 5 min
-    """
     weekday = now.weekday()
 
-    if weekday == 6:  # Dimanche
+    if weekday == 6:
         return 30 * 60 if now.hour < 14 else 5 * 60
 
-    if weekday == 5:  # Samedi
+    if weekday == 5:
         return 30 * 60 if now.hour < 18 else 5 * 60
 
-    if weekday == 4:  # Vendredi
+    if weekday == 4:
         return 60 * 60 if now.hour < 16 else 30 * 60
 
     return 60 * 60
 
 
 async def maybe_run_scraper(scrape_fn):
-    """
-    Appelée fréquemment (ex: toutes les 60s).
-    Lance scrape_fn() uniquement si on a dépassé l'intervalle voulu.
-    """
     global _last_run
 
     now = _paris_now()
@@ -64,8 +42,6 @@ async def maybe_run_scraper(scrape_fn):
             if elapsed < interval:
                 return
 
-        _last_run = now
-
     log_event(
         action="scraper_triggered",
         level="info",
@@ -74,13 +50,14 @@ async def maybe_run_scraper(scrape_fn):
         now=str(now),
     )
 
-    await scrape_fn()
+    ran = await scrape_fn()
+
+    if ran:
+        async with _run_lock:
+            _last_run = now
 
 
 def schedule_scraper(scrape_fn):
-    """
-    Scheduler: évalue la règle toutes les 60 secondes.
-    """
     loop = asyncio.get_event_loop()
     scheduler = AsyncIOScheduler(event_loop=loop)
 

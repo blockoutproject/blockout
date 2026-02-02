@@ -54,7 +54,7 @@ async def run_scrapers_with_max_concurrency(
             running.add(asyncio.create_task(_run_one_scraper(session, st)))
 
 
-async def main():
+async def main() -> bool:
     start_time = datetime.now(timezone.utc)
     skipped = False
 
@@ -111,6 +111,8 @@ async def main():
         duration = (end_time - start_time).total_seconds()
         execution_duration_gauge.set(duration)
 
+    return not skipped
+
 
 if __name__ == "__main__":
     start_http_server(8000)
@@ -124,7 +126,6 @@ if __name__ == "__main__":
             message="Tâche de rafraîchissement de token démarrée.",
         )
 
-        # Scheduler avec gating (timezone gérée dans scheduler.py)
         schedule_scraper(scrape_fn=main)
 
     except Exception as e:
