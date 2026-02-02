@@ -60,7 +60,11 @@ public class ClubGeocodingJob {
                 try {
                     processed++;
 
-                    var result = mapboxClient.geocode(club.getCity(), club.getPostalCode());
+                    var result = mapboxClient.geocode(
+                            club.getCity(),
+                            club.getPostalCode(),
+                            club.getAddress()
+                    );
 
                     if (result == null) {
                         ambiguousTotal++;

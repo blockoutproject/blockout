@@ -28,7 +28,17 @@ public class MapboxClient {
     private static final String BASE_URL = "https://api.mapbox.com/geocoding/v5/mapbox.places";
 
     public GeocodingResult geocode(String city, String postalCode) {
-        String q = (postalCode + " " + city).trim();
+        return geocode(city, postalCode, null);
+    }
+
+    public GeocodingResult geocode(String city, String postalCode, String address) {
+        String q;
+        if (address != null && !address.trim().isEmpty()) {
+            q = (address.trim() + ", " + postalCode + " " + city).trim();
+        } else {
+            q = (postalCode + " " + city).trim();
+        }
+
         String encodedQ = UriUtils.encodePathSegment(q, StandardCharsets.UTF_8);
 
         String url = UriComponentsBuilder
