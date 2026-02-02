@@ -176,7 +176,7 @@ class ClubScraper(Scraper):
                         city = match.group("ville").strip()
                         break
 
-            # 6) NOUVEAU — récupération adresse brute (sans toucher city/postal)
+            # 6) Adresse brute (sans toucher city/postal)
             address = None
             address_lines = []
 
@@ -195,7 +195,14 @@ class ClubScraper(Scraper):
                         address_lines.append(text)
 
             if address_lines:
-                address = ", ".join(address_lines)
+                raw_address = ", ".join(address_lines)
+
+                # ✅ NOUVEAU: si on a 3+ "parties" (séparées par virgule), on garde les 2 dernières
+                parts = [p.strip() for p in raw_address.split(",") if p.strip()]
+                if len(parts) >= 3:
+                    raw_address = ", ".join(parts[-2:])
+
+                address = raw_address
 
             # 7) Construire l’objet Club
             return Club(
