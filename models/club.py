@@ -9,6 +9,7 @@ class Club:
     name: str
     city: Optional[str] = None
     postal_code: Optional[str] = None
+    address: Optional[str] = None
     email: Optional[str] = None
     phone_number: Optional[str] = None
     website: Optional[str] = None
