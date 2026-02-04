@@ -22,12 +22,9 @@ def desired_interval_seconds(now: datetime) -> int:
         return 30 * 60 if now.hour < 14 else 5 * 60
 
     if weekday == 5:
-        return 30 * 60 if now.hour < 18 else 5 * 60
+        return 30 * 60 if now.hour < 17 else 5 * 60
 
-    if weekday == 4:
-        return 60 * 60 if now.hour < 16 else 30 * 60
-
-    return 60 * 60
+    return 30 * 60
 
 
 async def maybe_run_scraper(scrape_fn):
