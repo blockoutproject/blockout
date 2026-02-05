@@ -1,55 +1,81 @@
-import { useCallback } from "react";
-import { Platform, StatusBar, Linking } from "react-native";
+import { useCallback, useEffect } from "react";
+import { Linking, Platform, StatusBar } from "react-native";
 import { AdEventType, InterstitialAd } from "react-native-google-mobile-ads";
 import { ADS } from "@/src/config/ads";
+import { onAdsReady } from "./adsManager";
 
+let sharedInterstitial: InterstitialAd | null = null;
 let isLoaded = false;
-let pendingOpen: (() => void) | null = null;
+let listenersAttached = false;
+let pendingUrl: string | null = null;
 
-const interstitial = InterstitialAd.createForAdRequest(ADS.INTERSTITIAL_WEB);
-
-interstitial.addAdEventListener(AdEventType.LOADED, () => {
-    isLoaded = true;
-});
-
-interstitial.addAdEventListener(AdEventType.ERROR, () => {
-    isLoaded = false;
-});
-
-interstitial.addAdEventListener(AdEventType.OPENED, () => {
-    if (Platform.OS === "ios") StatusBar.setHidden(true);
-});
-
-interstitial.addAdEventListener(AdEventType.CLOSED, () => {
-    if (Platform.OS === "ios") StatusBar.setHidden(false);
-
-    if (pendingOpen) {
-        pendingOpen();
-        pendingOpen = null;
+function ensureInterstitial() {
+    if (!sharedInterstitial) {
+        sharedInterstitial = InterstitialAd.createForAdRequest(ADS.INTERSTITIAL_WEB);
     }
 
-    isLoaded = false;
-    interstitial.load();
-});
+    if (!listenersAttached && sharedInterstitial) {
+        listenersAttached = true;
 
-interstitial.load();
+        sharedInterstitial.addAdEventListener(AdEventType.LOADED, () => {
+            isLoaded = true;
+        });
+
+        sharedInterstitial.addAdEventListener(AdEventType.ERROR, () => {
+            isLoaded = false;
+        });
+
+        sharedInterstitial.addAdEventListener(AdEventType.OPENED, () => {
+            if (Platform.OS === "ios") StatusBar.setHidden(true);
+        });
+
+        sharedInterstitial.addAdEventListener(AdEventType.CLOSED, async () => {
+            if (Platform.OS === "ios") StatusBar.setHidden(false);
+
+            const url = pendingUrl;
+            pendingUrl = null;
+
+            if (url) {
+                try {
+                    await Linking.openURL(url);
+                } catch {
+                    // ignore
+                }
+            }
+
+            isLoaded = false;
+            sharedInterstitial?.load();
+        });
+
+        sharedInterstitial.load();
+    }
+}
 
 export const useWebLinkInterstitial = () => {
-    const openLinkWithInterstitial = useCallback((url: string) => {
-        const open = async () => {
-            try {
-                await Linking.openURL(url);
-            } catch { }
-        };
+    useEffect(() => {
+        const unsubscribe = onAdsReady(() => {
+            ensureInterstitial();
+        });
+        return unsubscribe;
+    }, []);
 
-        if (!isLoaded) {
-            open();
+    const openLinkWithInterstitial = useCallback((url: string) => {
+        const interstitial = sharedInterstitial;
+
+        if (!interstitial || !isLoaded) {
+            Linking.openURL(url).catch(() => { });
             return;
         }
 
-        pendingOpen = open;
-        interstitial.show();
-        isLoaded = false;
+        pendingUrl = url;
+
+        try {
+            interstitial.show();
+            isLoaded = false;
+        } catch {
+            pendingUrl = null;
+            Linking.openURL(url).catch(() => { });
+        }
     }, []);
 
     return { openLinkWithInterstitial };

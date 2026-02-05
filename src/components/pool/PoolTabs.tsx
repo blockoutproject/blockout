@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { Animated } from "react-native";
+import { Animated, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import GenericTabView from "@/src/components/common/GenericTabView";
@@ -8,9 +8,10 @@ import RankingTab from "@/src/components/ranking/RankingTab";
 
 import { MatchStatus } from "@/src/types/Match";
 import { EnrichedPoolDTO } from "@/src/types/Pool";
-import { BOTTOM_TABBAR_HEIGHT, TABBAR_HEIGHT } from "@/src/theme/globals";
+import { TABBAR_HEIGHT } from "@/src/theme/globals";
+import PoolMapTab from "../map/poolMap/PoolMapTab";
 
-/** Tabs for pool: Ranking / Upcoming / Finished. */
+/** Tabs for pool: Ranking / Upcoming / Finished / Map. */
 export type PoolTabsProps = {
     /** Enriched pool entity. */
     enrichedPool: EnrichedPoolDTO;
@@ -24,6 +25,7 @@ const PoolTabs: React.FC<PoolTabsProps> = ({ enrichedPool }) => {
             { key: "ranking", title: "Classement" },
             { key: "upcoming", title: "À Venir" },
             { key: "finished", title: "Terminés" },
+            { key: "map", title: "Carte" }, // ✅ nouveau
         ],
         []
     );
@@ -33,11 +35,7 @@ const PoolTabs: React.FC<PoolTabsProps> = ({ enrichedPool }) => {
     }, [tabs]);
 
     const ranking = useMemo(
-        () => (
-            <RankingTab
-                enrichedPool={enrichedPool}
-            />
-        ),
+        () => <RankingTab enrichedPool={enrichedPool} />,
         [enrichedPool]
     );
 
@@ -77,29 +75,28 @@ const PoolTabs: React.FC<PoolTabsProps> = ({ enrichedPool }) => {
         [enrichedPool.id, insets.bottom, scrollYs]
     );
 
+    const map = useMemo(
+        () => (
+            <PoolMapTab
+                enrichedPool={enrichedPool}
+            />
+        ),
+        [enrichedPool]
+    );
+
     const renderTabs = useMemo(
         () =>
             tabs.map((tab) => {
-                if (tab.key === "ranking") {
-                    return { ...tab, render: () => ranking };
-                }
-                if (tab.key === "finished") {
-                    return { ...tab, render: () => finished };
-                }
-                if (tab.key === "upcoming") {
-                    return { ...tab, render: () => upcoming };
-                }
+                if (tab.key === "ranking") return { ...tab, render: () => ranking };
+                if (tab.key === "finished") return { ...tab, render: () => finished };
+                if (tab.key === "upcoming") return { ...tab, render: () => upcoming };
+                if (tab.key === "map") return { ...tab, render: () => map };
                 return { ...tab, render: () => null };
             }),
-        [tabs, ranking, finished, upcoming]
+        [tabs, ranking, finished, upcoming, map]
     );
 
-    return (
-        <GenericTabView
-            tabs={renderTabs}
-            scrollYs={scrollYs}
-        />
-    );
+    return <GenericTabView tabs={renderTabs} scrollYs={scrollYs} />;
 };
 
 export default PoolTabs;

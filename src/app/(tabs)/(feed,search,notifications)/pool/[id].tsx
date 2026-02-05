@@ -15,7 +15,6 @@ import ReportFormSheet from "@/src/components/report/ReportFormSheet";
 import useHasScopes from "@/src/hooks/user/useHasScopes";
 import PoolFormSheet from "@/src/components/pool/PoolFormSheet";
 
-/** Pool root screen. */
 const PoolScreen: React.FC = () => {
     const theme = useAppTheme();
     const { id } = useLocalSearchParams();

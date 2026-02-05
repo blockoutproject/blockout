@@ -1,58 +1,117 @@
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 import { Platform, StatusBar } from "react-native";
 import { AdEventType, InterstitialAd } from "react-native-google-mobile-ads";
 import { ADS } from "@/src/config/ads";
+import { onAdsReady } from "./adsManager";
 
 const CLICKS_BETWEEN_ADS = 10;
 
-let globalClickCount = 0;
+let sharedInterstitial: InterstitialAd | null = null;
+let listenersAttached = false;
+
 let isLoaded = false;
+let isShowing = false;
+
 let pendingNavigate: (() => void) | null = null;
 
-const interstitial = InterstitialAd.createForAdRequest(ADS.INTERSTITIAL_NAV);
+let hasShownFirstAd = false;
 
-interstitial.addAdEventListener(AdEventType.LOADED, () => {
-    isLoaded = true;
-});
+let navSinceLastAd = 0;
 
-interstitial.addAdEventListener(AdEventType.ERROR, () => {
-    isLoaded = false;
-});
-
-interstitial.addAdEventListener(AdEventType.OPENED, () => {
-    if (Platform.OS === "ios") StatusBar.setHidden(true);
-});
-
-interstitial.addAdEventListener(AdEventType.CLOSED, () => {
-    if (Platform.OS === "ios") StatusBar.setHidden(false);
-
-    if (pendingNavigate) {
-        pendingNavigate();
-        pendingNavigate = null;
+function ensureInterstitial() {
+    if (!sharedInterstitial) {
+        sharedInterstitial = InterstitialAd.createForAdRequest(ADS.INTERSTITIAL_NAV);
     }
 
-    isLoaded = false;
-    interstitial.load();
-});
+    if (!listenersAttached && sharedInterstitial) {
+        listenersAttached = true;
 
-interstitial.load();
+        sharedInterstitial.addAdEventListener(AdEventType.LOADED, () => {
+            isLoaded = true;
+        });
+
+        sharedInterstitial.addAdEventListener(AdEventType.ERROR, () => {
+            isLoaded = false;
+        });
+
+        sharedInterstitial.addAdEventListener(AdEventType.OPENED, () => {
+            isShowing = true;
+            if (Platform.OS === "ios") StatusBar.setHidden(true);
+        });
+
+        sharedInterstitial.addAdEventListener(AdEventType.CLOSED, () => {
+            isShowing = false;
+            if (Platform.OS === "ios") StatusBar.setHidden(false);
+
+            // Exécute la navigation qui attendait la pub
+            if (pendingNavigate) {
+                const nav = pendingNavigate;
+                pendingNavigate = null;
+                nav();
+            }
+
+            // On marque la pub comme "consommée"
+            isLoaded = false;
+
+            // Recharge immédiatement la suivante
+            sharedInterstitial?.load();
+        });
+
+        sharedInterstitial.load();
+    }
+}
 
 export const useNavigationInterstitial = () => {
+    useEffect(() => {
+        const unsubscribe = onAdsReady(() => {
+            ensureInterstitial();
+        });
+        return unsubscribe;
+    }, []);
+
     const handleNavigationWithAd = useCallback((navigate: () => void) => {
-        globalClickCount += 1;
+        navSinceLastAd += 1;
 
-        const shouldShow =
-            globalClickCount === 1 ||
-            globalClickCount % CLICKS_BETWEEN_ADS === 0;
+        const interstitial = sharedInterstitial;
 
-        if (!shouldShow || !isLoaded) {
+        if (!interstitial || !isLoaded || isShowing) {
             navigate();
             return;
         }
 
+        if (!hasShownFirstAd) {
+            hasShownFirstAd = true;
+
+            navSinceLastAd = 0;
+
+            pendingNavigate = navigate;
+            try {
+                interstitial.show();
+                isLoaded = false;
+            } catch {
+                pendingNavigate = null;
+                navigate();
+            }
+            return;
+        }
+
+        const shouldShow = navSinceLastAd >= CLICKS_BETWEEN_ADS;
+
+        if (!shouldShow) {
+            navigate();
+            return;
+        }
+
+        navSinceLastAd = 0;
         pendingNavigate = navigate;
-        interstitial.show();
-        isLoaded = false;
+
+        try {
+            interstitial.show();
+            isLoaded = false;
+        } catch {
+            pendingNavigate = null;
+            navigate();
+        }
     }, []);
 
     return { handleNavigationWithAd };

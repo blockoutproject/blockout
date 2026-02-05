@@ -8,6 +8,8 @@ export interface Club {
     phoneNumber: string | null;
     website: string | null;
     logoUrl: string | null;
+    longitude: number | null;
+    latitude: number | null;
     active: boolean;
     createdAt: string;
     lastUpdate: string;

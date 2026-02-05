@@ -5,7 +5,11 @@
     "scheme": [
       "blockout"
     ],
-    "version": "1.2.0",
+    "platforms": [
+      "ios",
+      "android"
+    ],
+    "version": "1.3.1",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "userInterfaceStyle": "automatic",
@@ -13,7 +17,8 @@
       "supportsTablet": false,
       "bundleIdentifier": "com.blockoutproject.blockout",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSLocationWhenInUseUsageDescription": "Nous utilisons votre position pour afficher votre localisation sur la carte (optionnel) et vous aider à vous repérer. Aucune donnée de localisation n’est stockée."
       },
       "entitlements": {
         "com.apple.developer.applesignin": [
@@ -27,7 +32,10 @@
         "foregroundImage": "./assets/images/blockout-logo-light.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.blockoutproject.blockout"
+      "package": "com.blockoutproject.blockout",
+      "permissions": [
+        "com.google.android.gms.permission.AD_ID"
+      ]
     },
     "androidNavigationBar": {
       "barStyle": "dark-content"
@@ -105,12 +113,23 @@
           ]
         }
       ],
+      "./plugins/withGoogleMobileAdsMediationFacebook",
       [
         "expo-build-properties",
         {
           "android": {
             "enableProguardInReleaseBuild": true,
-            "enableShrinkResourcesInReleaseBuild": true
+            "enableShrinkResourcesInReleaseBuild": true,
+            "dependencies": [
+              "com.google.ads.mediation:facebook:6.21.0.0"
+            ]
+          },
+          "ios": {
+            "pods": [
+              {
+                "name": "GoogleMobileAdsMediationFacebook"
+              }
+            ]
           }
         }
       ],
@@ -145,8 +164,7 @@
       "expo-secure-store",
       "expo-notifications",
       "expo-web-browser",
-      "expo-build-properties",
-      "react-native-google-mobile-ads"
+      "@maplibre/maplibre-react-native"
     ],
     "experiments": {
       "typedRoutes": true

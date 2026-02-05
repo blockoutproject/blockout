@@ -33,6 +33,7 @@ const ClubScreen: React.FC = () => {
     const theme = useAppTheme();
     const router = useRouter();
     const { data: club, isLoading, error, refetch } = useClubById(String(id));
+
     const { allowed: canUpdateClub } = useHasScopes(["update:clubs"]);
     const { handleNavigationWithAd } = useNavigationInterstitial();
 
@@ -70,11 +71,13 @@ const ClubScreen: React.FC = () => {
     };
 
     const handleTeamListPress = useCallback(
-        async () => {
+        async (clubId: string) => {
             await Haptics.selectionAsync();
 
+            if(!id) return;
+
             handleNavigationWithAd(() => {
-                router.push(`/team-list/${club?.id}`);
+                router.push(`/team-list/${clubId}`);
             });
         },
         [router, handleNavigationWithAd]
@@ -120,7 +123,7 @@ const ClubScreen: React.FC = () => {
                     />
 
                     <Pressable
-                        onPress={handleTeamListPress}
+                        onPress={() => handleTeamListPress(club.id)}
                         android_ripple={{
                             color: withAlpha(theme.text, 0.05),
                         }}

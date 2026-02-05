@@ -1,38 +1,22 @@
 import React, { memo } from "react";
-import {
-    View,
-    StyleSheet,
-    ViewStyle,
-    StyleProp,
-    Pressable,
-} from "react-native";
+import { View, StyleSheet, ViewStyle, StyleProp, Pressable } from "react-native";
 import { Image } from "expo-image";
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import * as Haptics from "expo-haptics";
 
 export type MaskedImageProps = {
-    /** URL de l’image distante */
     uri?: string | null;
-    /** Image fallback locale */
     fallback?: any;
-    /** Taille (largeur/hauteur en px) */
     size: number;
-    /** Rayon de bordure */
     radius?: number;
-    /** Couleur de fond */
     backgroundColor?: string;
-    /** Mode de rendu du contenu */
     contentFit?: "contain" | "cover";
-    /** Largeur de bordure */
     borderWidth?: number;
-    /** Couleur de bordure */
     borderColor?: string;
-    /** Active une ombre portée */
     shadow?: boolean;
-    /** Style additionnel */
     style?: StyleProp<ViewStyle>;
-    /** Action exécutée lors du clic */
     onPress?: () => void;
+    onLoad?: () => void;
 };
 
 const MaskedImage: React.FC<MaskedImageProps> = memo(
@@ -48,15 +32,15 @@ const MaskedImage: React.FC<MaskedImageProps> = memo(
         shadow = false,
         style,
         onPress,
+        onLoad,
     }) => {
         const theme = useAppTheme();
         const r = radius ?? Math.round(size * 0.28);
 
-        const Container = onPress ? Pressable : View;
+        const Container_logout = onPress ? Pressable : View;
 
         const handlePress = async () => {
             if (onPress) {
-                // Petit feedback tactile facultatif
                 await Haptics.selectionAsync();
                 onPress();
             }
@@ -64,7 +48,7 @@ const MaskedImage: React.FC<MaskedImageProps> = memo(
 
         return (
             <View style={[shadow && styles.shadow]}>
-                <Container
+                <Container_logout
                     onPress={handlePress}
                     style={[
                         {
@@ -83,13 +67,11 @@ const MaskedImage: React.FC<MaskedImageProps> = memo(
                 >
                     <Image
                         source={uri ? { uri } : fallback}
-                        style={{
-                            width: "100%",
-                            height: "100%",
-                        }}
+                        style={{ width: "100%", height: "100%" }}
                         contentFit={contentFit}
+                        onLoad={onLoad}
                     />
-                </Container>
+                </Container_logout>
             </View>
         );
     }
@@ -102,10 +84,7 @@ const styles = StyleSheet.create({
         shadowColor: "#000",
         shadowOpacity: 0.3,
         shadowRadius: 8,
-        shadowOffset: {
-            width: 0,
-            height: 4,
-        },
+        shadowOffset: { width: 0, height: 4 },
         elevation: 4,
     },
 });

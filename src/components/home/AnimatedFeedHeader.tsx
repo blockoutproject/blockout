@@ -1,10 +1,11 @@
-import React, { useRef } from "react";
+import React, { useCallback, useMemo, useRef, useState } from "react";
 import {
     TouchableOpacity,
     StyleSheet,
     Animated,
     Platform,
     View,
+    Linking,
 } from "react-native";
 import { Image } from "expo-image";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -28,8 +29,9 @@ import { LOGO_HEIGHT, TABBAR_HEIGHT } from "@/src/theme/globals";
 import useHasScopes from "@/src/hooks/user/useHasScopes";
 import { withAlpha } from "@/src/utils/utils";
 import { useSession } from "@/src/context/SessionProvider";
-import LiveLinkModerationScreen from "../match/moderation/MatchLiveModerationScreen";
 import MatchLiveModerationScreen from "../match/moderation/MatchLiveModerationScreen";
+import MaskedImage from "@/src/components/common/images/MaskedImage";
+import { CONFIG } from "@/src/config/config";
 
 type HeaderProps = SceneRendererProps & {
     navigationState: NavigationState<Route>;
@@ -53,10 +55,11 @@ const AnimatedFeedHeader: React.FC<HeaderProps> = ({
     const divisionSheetRef = useRef<BottomSheetModal>(null);
     const scraperSheetRef = useRef<BottomSheetModal>(null);
 
+    const [adminOpen, setAdminOpen] = useState(false);
+
     const { allowed: canAccessLiveLinkModeration } = useHasScopes([
         "moderate:match_live_link",
     ]);
-
 
     const { allowed: canAccessRawDivisionMappings } = useHasScopes([
         "read:raw_division_mapping",
@@ -72,8 +75,14 @@ const AnimatedFeedHeader: React.FC<HeaderProps> = ({
     const { allowed: canAdminManagement } = useHasScopes([
         "read:scrapers",
         "update:scrapers",
-        "update:maintenance"
+        "update:maintenance",
     ]);
+
+    const hasAnyAdmin =
+        canAccessRawDivisionMappings ||
+        canAccessDivisions ||
+        canAccessLiveLinkModeration ||
+        canAdminManagement;
 
     const { routes } = props.navigationState;
     const { position } = props;
@@ -120,7 +129,24 @@ const AnimatedFeedHeader: React.FC<HeaderProps> = ({
         ref.current?.present();
     };
 
+    const toggleAdmin = useCallback(async () => {
+        await Haptics.selectionAsync();
+        setAdminOpen((v) => !v);
+    }, []);
+
     const androidTint = withAlpha(theme.background, androidBackgroundAlpha);
+
+    const handleOpenInstagram = useCallback(async () => {
+        const url = CONFIG.INSTAGRAM_URL?.trim();
+        if (!url) return;
+
+        try {
+            await Haptics.selectionAsync();
+            const canOpen = await Linking.canOpenURL(url);
+            if (!canOpen) return;
+            await Linking.openURL(url);
+        } catch {}
+    }, []);
 
     return (
         <>
@@ -181,14 +207,7 @@ const AnimatedFeedHeader: React.FC<HeaderProps> = ({
                     />
                 </Animated.View>
 
-                <View
-                    style={[
-                        styles.tabBarContainer,
-                        {
-                            backgroundColor: Platform.OS === "android" ? "transparent" : "transparent",
-                        },
-                    ]}
-                >
+                <View style={styles.tabBarContainer}>
                     <TabBar
                         {...props}
                         onTabPress={Haptics.selectionAsync}
@@ -201,29 +220,54 @@ const AnimatedFeedHeader: React.FC<HeaderProps> = ({
                     />
 
                     <View style={styles.actions}>
-                        {canAccessRawDivisionMappings && (
-                            <TouchableOpacity onPress={openLocal(mappingSheetRef)}>
-                                <MaterialCommunityIcons name="alpha-m-circle" size={28} color={theme.text} />
-                            </TouchableOpacity>
+                        {hasAnyAdmin && (
+                            <View style={styles.adminWrap}>
+                                <TouchableOpacity onPress={toggleAdmin}>
+                                    <MaterialCommunityIcons
+                                        name={adminOpen ? "close-circle-outline" : "wrench-outline"}
+                                        size={24}
+                                        color={theme.text}
+                                    />
+                                </TouchableOpacity>
+
+                                {adminOpen && (
+                                    <View style={styles.adminRow}>
+                                        {canAccessRawDivisionMappings && (
+                                            <TouchableOpacity onPress={openLocal(mappingSheetRef)}>
+                                                <MaterialCommunityIcons name="alpha-m-circle" size={28} color={theme.text} />
+                                            </TouchableOpacity>
+                                        )}
+                                        {canAccessDivisions && (
+                                            <TouchableOpacity onPress={openLocal(divisionSheetRef)}>
+                                                <MaterialCommunityIcons name="alpha-d-circle" size={28} color={theme.text} />
+                                            </TouchableOpacity>
+                                        )}
+                                        {canAccessLiveLinkModeration && (
+                                            <TouchableOpacity onPress={openLocal(liveLinkModerationSheetRef)}>
+                                                <MaterialCommunityIcons name="video-check-outline" size={28} color={theme.text} />
+                                            </TouchableOpacity>
+                                        )}
+                                        {canAdminManagement && (
+                                            <TouchableOpacity onPress={openLocal(scraperSheetRef)}>
+                                                <MaterialCommunityIcons
+                                                    name="power-standby"
+                                                    size={28}
+                                                    color={isMaintenance ? theme.error : theme.text}
+                                                />
+                                            </TouchableOpacity>
+                                        )}
+                                    </View>
+                                )}
+                            </View>
                         )}
 
-                        {canAccessDivisions && (
-                            <TouchableOpacity onPress={openLocal(divisionSheetRef)}>
-                                <MaterialCommunityIcons name="alpha-d-circle" size={28} color={theme.text} />
-                            </TouchableOpacity>
-                        )}
-
-                        {canAccessLiveLinkModeration && (
-                            <TouchableOpacity onPress={openLocal(liveLinkModerationSheetRef)}>
-                                <MaterialCommunityIcons name="video-check-outline" size={28} color={theme.text} />
-                            </TouchableOpacity>
-                        )}
-
-                        {canAdminManagement && (
-                            <TouchableOpacity onPress={openLocal(scraperSheetRef)}>
-                                <MaterialCommunityIcons name="power-standby" size={28} color={isMaintenance ? theme.error : theme.text} />
-                            </TouchableOpacity>
-                        )}
+                        <MaskedImage
+                            fallback={require("@/assets/images/instagram.png")}
+                            size={28}
+                            radius={8}
+                            onPress={handleOpenInstagram}
+                            shadow
+                        />
 
                         <TouchableOpacity onPress={onOpenReport}>
                             <MaterialCommunityIcons name="flag-outline" size={28} color={theme.text} />
@@ -279,11 +323,18 @@ const styles = StyleSheet.create({
     actions: {
         flexDirection: "row",
         alignItems: "center",
-        gap: 6,
+        gap: 8,
         paddingRight: 10,
     },
-    iconBtn: {
-        padding: 4,
+    adminWrap: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 6,
+    },
+    adminRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 6,
     },
 });
 

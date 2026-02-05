@@ -12,6 +12,8 @@ export const CONFIG = {
     API_CLUBS_BASE_URL: process.env.EXPO_PUBLIC_API_CLUBS_BASE_URL || '',
     API_REPORTS_BASE_URL: process.env.EXPO_PUBLIC_API_REPORTS_BASE_URL || '',
     API_NOTIFICATIONS_BASE_URL: process.env.EXPO_PUBLIC_API_NOTIFICATIONS_BASE_URL || '',
+    MAP_URL: process.env.EXPO_PUBLIC_MAP_URL || '',
+    INSTAGRAM_URL: process.env.EXPO_PUBLIC_INSTAGRAM_URL || '',
 };
 
 export const AUTH0_CONFIG = {

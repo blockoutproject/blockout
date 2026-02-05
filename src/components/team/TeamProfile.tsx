@@ -17,8 +17,6 @@ import GuestPromptSheet, { GuestPromptSheetRef } from "../user/GuestPromptSheet.
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import { withAlpha } from "@/src/utils/utils";
 import { useNavigationInterstitial } from "@/src/hooks/ads/useNavigationInterstitial";
-import { BannerAd, BannerAdSize } from "react-native-google-mobile-ads";
-import { ADS } from "@/src/config/ads";
 
 export type TeamProfileProps = {
     enrichedTeam: EnrichedTeamDTO;

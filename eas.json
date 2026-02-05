@@ -12,17 +12,22 @@
       "env": {
         "EXPO_PUBLIC_AUTH0_DOMAIN": "login.blockoutproject.com",
         "EXPO_PUBLIC_AUTH0_CLIENT_ID": "L3AotVuEqikyNrCQexkf6S3D1LZjk69E",
-        "EXPO_PUBLIC_API_MATCHES_BASE_URL": "https://api.blockoutproject.com/api/v1/matches",
-        "EXPO_PUBLIC_API_POOLS_BASE_URL": "https://api.blockoutproject.com/api/v1/pools",
-        "EXPO_PUBLIC_API_TEAMS_BASE_URL": "https://api.blockoutproject.com/api/v1/teams",
-        "EXPO_PUBLIC_API_COMPETITIONS_BASE_URL": "https://api.blockoutproject.com/api/v1/competitions",
-        "EXPO_PUBLIC_API_USERS_BASE_URL": "https://api.blockoutproject.com/api/v1/users",
-        "EXPO_PUBLIC_API_SEARCH_BASE_URL": "https://api.blockoutproject.com/api/v1/search",
+
+        "EXPO_PUBLIC_ADS_BANNER_HOME_ANDROID": "ca-app-pub-9785209593244084/7526785502",
+        "EXPO_PUBLIC_ADS_BANNER_MATCH_ANDROID": "ca-app-pub-9785209593244084/1539961651",
+        "EXPO_PUBLIC_ADS_INTERSTITIAL_NAV_ANDROID": "ca-app-pub-9785209593244084/4270066771",
+        "EXPO_PUBLIC_ADS_INTERSTITIAL_WEB_ANDROID": "ca-app-pub-9785209593244084/4003307610",
+
+        "EXPO_PUBLIC_ADS_BANNER_HOME_IOS": "ca-app-pub-9785209593244084/5283765548",
+        "EXPO_PUBLIC_ADS_BANNER_MATCH_IOS": "ca-app-pub-9785209593244084/7087801806",
+        "EXPO_PUBLIC_ADS_INTERSTITIAL_NAV_IOS": "ca-app-pub-9785209593244084/4357696684",
+        "EXPO_PUBLIC_ADS_INTERSTITIAL_WEB_IOS": "ca-app-pub-9785209593244084/7998392946",
+
         "EXPO_PUBLIC_API_GATEWAY_BASE_URL": "https://api.blockoutproject.com/api/v1/mobile",
-        "EXPO_PUBLIC_API_CONFIG_BASE_URL": "https://api.blockoutproject.com/api/v1/config",
-        "EXPO_PUBLIC_API_CLUBS_BASE_URL": "https://api.blockoutproject.com/api/v1/clubs",
-        "EXPO_PUBLIC_API_REPORTS_BASE_URL": "https://api.blockoutproject.com/api/v1/reports",
-        "EXPO_PUBLIC_API_NOTIFICATIONS_BASE_URL": "https://api.blockoutproject.com/api/v1/notifications"
+        
+        "EXPO_PUBLIC_MAP_URL": "https://openmaptiles.geo.data.gouv.fr/styles/dark-matter/style.json",
+        "EXPO_PUBLIC_INSTAGRAM_URL": "https://www.instagram.com/blockoutproject"
+
       }
     },
     "preview": {
@@ -31,17 +36,21 @@
       "env": {
         "EXPO_PUBLIC_AUTH0_DOMAIN": "login.blockoutproject.com",
         "EXPO_PUBLIC_AUTH0_CLIENT_ID": "L3AotVuEqikyNrCQexkf6S3D1LZjk69E",
-        "EXPO_PUBLIC_API_MATCHES_BASE_URL": "https://api.blockoutproject.com/api/v1/matches",
-        "EXPO_PUBLIC_API_POOLS_BASE_URL": "https://api.blockoutproject.com/api/v1/pools",
-        "EXPO_PUBLIC_API_TEAMS_BASE_URL": "https://api.blockoutproject.com/api/v1/teams",
-        "EXPO_PUBLIC_API_COMPETITIONS_BASE_URL": "https://api.blockoutproject.com/api/v1/competitions",
-        "EXPO_PUBLIC_API_USERS_BASE_URL": "https://api.blockoutproject.com/api/v1/users",
-        "EXPO_PUBLIC_API_SEARCH_BASE_URL": "https://api.blockoutproject.com/api/v1/search",
+
+        "EXPO_PUBLIC_ADS_BANNER_HOME_ANDROID": "ca-app-pub-9785209593244084/7526785502",
+        "EXPO_PUBLIC_ADS_BANNER_MATCH_ANDROID": "ca-app-pub-9785209593244084/1539961651",
+        "EXPO_PUBLIC_ADS_INTERSTITIAL_NAV_ANDROID": "ca-app-pub-9785209593244084/4270066771",
+        "EXPO_PUBLIC_ADS_INTERSTITIAL_WEB_ANDROID": "ca-app-pub-9785209593244084/4003307610",
+
+        "EXPO_PUBLIC_ADS_BANNER_HOME_IOS": "ca-app-pub-9785209593244084/5283765548",
+        "EXPO_PUBLIC_ADS_BANNER_MATCH_IOS": "ca-app-pub-9785209593244084/7087801806",
+        "EXPO_PUBLIC_ADS_INTERSTITIAL_NAV_IOS": "ca-app-pub-9785209593244084/4357696684",
+        "EXPO_PUBLIC_ADS_INTERSTITIAL_WEB_IOS": "ca-app-pub-9785209593244084/7998392946",
+
         "EXPO_PUBLIC_API_GATEWAY_BASE_URL": "https://api.blockoutproject.com/api/v1/mobile",
-        "EXPO_PUBLIC_API_CONFIG_BASE_URL": "https://api.blockoutproject.com/api/v1/config",
-        "EXPO_PUBLIC_API_CLUBS_BASE_URL": "https://api.blockoutproject.com/api/v1/clubs",
-        "EXPO_PUBLIC_API_REPORTS_BASE_URL": "https://api.blockoutproject.com/api/v1/reports",
-        "EXPO_PUBLIC_API_NOTIFICATIONS_BASE_URL": "https://api.blockoutproject.com/api/v1/notifications"
+
+        "EXPO_PUBLIC_MAP_URL": "https://openmaptiles.geo.data.gouv.fr/styles/dark-matter/style.json",
+        "EXPO_PUBLIC_INSTAGRAM_URL": "https://www.instagram.com/blockoutproject"
       }
     },
     "production": {
@@ -50,17 +59,21 @@
       "env": {
         "EXPO_PUBLIC_AUTH0_DOMAIN": "login.blockoutproject.com",
         "EXPO_PUBLIC_AUTH0_CLIENT_ID": "L3AotVuEqikyNrCQexkf6S3D1LZjk69E",
-        "EXPO_PUBLIC_API_MATCHES_BASE_URL": "https://api.blockoutproject.com/api/v1/matches",
-        "EXPO_PUBLIC_API_POOLS_BASE_URL": "https://api.blockoutproject.com/api/v1/pools",
-        "EXPO_PUBLIC_API_TEAMS_BASE_URL": "https://api.blockoutproject.com/api/v1/teams",
-        "EXPO_PUBLIC_API_COMPETITIONS_BASE_URL": "https://api.blockoutproject.com/api/v1/competitions",
-        "EXPO_PUBLIC_API_USERS_BASE_URL": "https://api.blockoutproject.com/api/v1/users",
-        "EXPO_PUBLIC_API_SEARCH_BASE_URL": "https://api.blockoutproject.com/api/v1/search",
+
+        "EXPO_PUBLIC_ADS_BANNER_HOME_ANDROID": "ca-app-pub-9785209593244084/7526785502",
+        "EXPO_PUBLIC_ADS_BANNER_MATCH_ANDROID": "ca-app-pub-9785209593244084/1539961651",
+        "EXPO_PUBLIC_ADS_INTERSTITIAL_NAV_ANDROID": "ca-app-pub-9785209593244084/4270066771",
+        "EXPO_PUBLIC_ADS_INTERSTITIAL_WEB_ANDROID": "ca-app-pub-9785209593244084/4003307610",
+
+        "EXPO_PUBLIC_ADS_BANNER_HOME_IOS": "ca-app-pub-9785209593244084/5283765548",
+        "EXPO_PUBLIC_ADS_BANNER_MATCH_IOS": "ca-app-pub-9785209593244084/7087801806",
+        "EXPO_PUBLIC_ADS_INTERSTITIAL_NAV_IOS": "ca-app-pub-9785209593244084/4357696684",
+        "EXPO_PUBLIC_ADS_INTERSTITIAL_WEB_IOS": "ca-app-pub-9785209593244084/7998392946",
+
         "EXPO_PUBLIC_API_GATEWAY_BASE_URL": "https://api.blockoutproject.com/api/v1/mobile",
-        "EXPO_PUBLIC_API_CONFIG_BASE_URL": "https://api.blockoutproject.com/api/v1/config",
-        "EXPO_PUBLIC_API_CLUBS_BASE_URL": "https://api.blockoutproject.com/api/v1/clubs",
-        "EXPO_PUBLIC_API_REPORTS_BASE_URL": "https://api.blockoutproject.com/api/v1/reports",
-        "EXPO_PUBLIC_API_NOTIFICATIONS_BASE_URL": "https://api.blockoutproject.com/api/v1/notifications"
+
+        "EXPO_PUBLIC_MAP_URL": "https://openmaptiles.geo.data.gouv.fr/styles/dark-matter/style.json",
+        "EXPO_PUBLIC_INSTAGRAM_URL": "https://www.instagram.com/blockoutproject"
       }
     },
     "development-simulator": {
@@ -69,7 +82,27 @@
       "ios": {
         "simulator": true
       },
-      "environment": "development"
+      "environment": "development",
+      "channel": "development-simulator",
+      "env": {
+        "EXPO_PUBLIC_AUTH0_DOMAIN": "login.blockoutproject.com",
+        "EXPO_PUBLIC_AUTH0_CLIENT_ID": "L3AotVuEqikyNrCQexkf6S3D1LZjk69E",
+
+        "EXPO_PUBLIC_ADS_BANNER_HOME_ANDROID": "ca-app-pub-9785209593244084/7526785502",
+        "EXPO_PUBLIC_ADS_BANNER_MATCH_ANDROID": "ca-app-pub-9785209593244084/1539961651",
+        "EXPO_PUBLIC_ADS_INTERSTITIAL_NAV_ANDROID": "ca-app-pub-9785209593244084/4270066771",
+        "EXPO_PUBLIC_ADS_INTERSTITIAL_WEB_ANDROID": "ca-app-pub-9785209593244084/4003307610",
+
+        "EXPO_PUBLIC_ADS_BANNER_HOME_IOS": "ca-app-pub-9785209593244084/5283765548",
+        "EXPO_PUBLIC_ADS_BANNER_MATCH_IOS": "ca-app-pub-9785209593244084/7087801806",
+        "EXPO_PUBLIC_ADS_INTERSTITIAL_NAV_IOS": "ca-app-pub-9785209593244084/4357696684",
+        "EXPO_PUBLIC_ADS_INTERSTITIAL_WEB_IOS": "ca-app-pub-9785209593244084/7998392946",
+
+        "EXPO_PUBLIC_API_GATEWAY_BASE_URL": "https://api.blockoutproject.com/api/v1/mobile",
+
+        "EXPO_PUBLIC_MAP_URL": "https://openmaptiles.geo.data.gouv.fr/styles/dark-matter/style.json",
+        "EXPO_PUBLIC_INSTAGRAM_URL": "https://www.instagram.com/blockoutproject"
+      }
     }
   },
   "submit": {

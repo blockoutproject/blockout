@@ -43,11 +43,11 @@ const PoolItem: React.FC<PoolItemProps> = ({
     ] as const;
 
     const handleHeaderPress = useCallback(
-        async () => {
+        async (poolId: number) => {
             await Haptics.selectionAsync();
 
             handleNavigationWithAd(() => {
-                router.push(`/pool/${enrichedPoolMatches.pool.id}`);
+                router.push(`/pool/${poolId}`);
             });
         },
         [router, handleNavigationWithAd]
@@ -71,7 +71,7 @@ const PoolItem: React.FC<PoolItemProps> = ({
                         style={styles.innerClip}
                     >
                         {showHeader ? (
-                            <RankingHeader pool={enrichedPoolMatches.pool} onPress={handleHeaderPress} />
+                            <RankingHeader pool={enrichedPoolMatches.pool} onPress={() => handleHeaderPress(enrichedPoolMatches.pool.id)} />
                         ) : null}
 
                         <View

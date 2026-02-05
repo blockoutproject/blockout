@@ -166,15 +166,15 @@ const MatchScreen: React.FC = () => {
         return <MatchScoreDetailsCard enrichedMatch={enrichedMatch} />;
     }, [enrichedMatch]);
 
-    const adCard = useMemo(() => {
-        if (!enrichedMatch) {
-            return null;
-        }
+    // const adCard = useMemo(() => {
+    //     if (!enrichedMatch) {
+    //         return null;
+    //     }
 
-        return (
-            <MatchAdCard/>
-        );
-    }, [enrichedMatch, gradient]);
+    //     return (
+    //         <MatchAdCard />
+    //     );
+    // }, [enrichedMatch, gradient]);
 
     const liveLinkCard = useMemo(() => {
         if (!enrichedMatch || isLNV(enrichedMatch.pool.leagueCode)) {
@@ -289,13 +289,13 @@ const MatchScreen: React.FC = () => {
                     <FadeIn appearIndex={2}>{detailsCard}</FadeIn>
                 )}
 
-                {adCard && (
-                    <FadeIn appearIndex={3}>{adCard}</FadeIn>
+                {infoCard && (
+                    <FadeIn appearIndex={3}>{infoCard}</FadeIn>
                 )}
 
-                {infoCard && (
-                    <FadeIn appearIndex={4}>{infoCard}</FadeIn>
-                )}
+                {/* {adCard && (
+                    <FadeIn appearIndex={4}>{adCard}</FadeIn>
+                )} */}
 
                 {rankingCard && (
                     <FadeIn appearIndex={5}>{rankingCard}</FadeIn>

@@ -15,13 +15,23 @@ Notifications.setNotificationHandler({
     }),
 });
 
-export function openNotificationUrlIfAny(data?: Record<string, unknown>) {
+export function openNotificationUrlIfAny(
+        data?: Record<string, unknown>,
+        handleNavigationWithAd?: (cb: () => void) => void
+    ) {
     const url = (data?.url as string) || null;
     if (!url) return;
-    try {
-        Linking.openURL(url);
-    } catch (e) {
-        console.warn("[notifications] openURL failed", e);
+
+    const navigate = () => {
+        Linking.openURL(url).catch((e) => {
+            console.warn("[notifications] openURL failed", e);
+        });
+    };
+
+    if (handleNavigationWithAd) {
+        handleNavigationWithAd(navigate);
+    } else {
+        navigate();
     }
 }
 

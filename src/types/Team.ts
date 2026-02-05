@@ -34,6 +34,8 @@ export interface TeamWithStats {
     pointsPenalty: number;
     coefSets: number;
     coefPoints: number;
+    longitude: number | null;
+    latitude: number | null;
 }
 
 export interface EnrichedTeamDTO {

@@ -25,7 +25,7 @@ import PoolItem from "./PoolItem";
 import EmptyState from "../common/feedback/EmptyState";
 import ErrorState from "../common/feedback/ErrorState";
 import { BOTTOM_TABBAR_HEIGHT, SECTION_SEPARATOR_HEIGHT } from "@/src/theme/globals";
-import MatchListAdItem from "./MatchListAdItem";
+// import MatchListAdItem from "./MatchListAdItem";
 import { useNavigationInterstitial } from "@/src/hooks/ads/useNavigationInterstitial";
 
 export type MatchListProps = {
@@ -130,17 +130,17 @@ const MatchList: React.FC<MatchListProps> = ({
                 });
             });
 
-            const shouldInsertAdForThisDay = home && dayIndex % 4 === 1;
+            // const shouldInsertAdForThisDay = home && dayIndex % 4 === 1;
 
-            if (shouldInsertAdForThisDay) {
-                const adId = `ad-${sectionKey}`;
+            // if (shouldInsertAdForThisDay) {
+            //     const adId = `ad-${sectionKey}`;
 
-                rows.push({
-                    type: "ad",
-                    id: adId,
-                    sectionKey,
-                });
-            }
+            //     rows.push({
+            //         type: "ad",
+            //         id: adId,
+            //         sectionKey,
+            //     });
+            // }
         });
 
         return { flatData: rows, stickyHeaderIndices: sticky };
@@ -183,8 +183,8 @@ const MatchList: React.FC<MatchListProps> = ({
                             showHeader={showPoolHeader}
                         />
                     );
-                case "ad":
-                    return <MatchListAdItem />;
+                // case "ad":
+                //     return <MatchListAdItem />;
                 default:
                     return null;
             }

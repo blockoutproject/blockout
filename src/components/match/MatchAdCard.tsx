@@ -4,8 +4,6 @@ import { BannerAd, BannerAdSize } from "react-native-google-mobile-ads";
 
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import GradientBorderView from "@/src/components/common/GradientBorderView";
-import FadeIn from "@/src/components/common/animations/FadeIn";
-import { SECTION_SEPARATOR_HEIGHT } from "@/src/theme/globals";
 import { withAlpha } from "@/src/utils/utils";
 import MatchAdHeader from "@/src/components/match/MatchAdHeader";
 import { ADS } from "@/src/config/ads";
@@ -34,13 +32,7 @@ const MatchAdCard: React.FC = () => {
                     <View style={styles.bannerContainer}>
                         {isLoading && (
                             <View
-                                style={[
-                                    styles.loaderWrapper,
-                                    {
-                                        backgroundColor: withAlpha(theme.background, 0.6),
-                                        borderColor: withAlpha(theme.text, 0.12),
-                                    },
-                                ]}
+                                style={[styles.loaderWrapper]}
                             >
                                 <ActivityIndicator size="small" color={theme.textInactive} />
                             </View>

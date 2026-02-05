@@ -1,16 +1,10 @@
-import React, { useEffect } from "react";
-import { StatusBar, Platform } from "react-native";
+import React, { useCallback, useEffect } from "react";
+import { StatusBar } from "react-native";
 import { Stack } from "expo-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Auth0Provider } from "react-native-auth0";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
-import mobileAds from "react-native-google-mobile-ads";
-import {
-    getTrackingPermissionsAsync,
-    requestTrackingPermissionsAsync,
-    PermissionStatus,
-} from "expo-tracking-transparency";
 
 import { AUTH0_CONFIG } from "@/src/config/config";
 import { ThemeProvider } from "@/src/theme/theme-provider";
@@ -22,40 +16,30 @@ import {
     addNotificationListeners,
     openNotificationUrlIfAny,
 } from "../utils/notifications";
+import { useNavigationInterstitial } from "../hooks/ads/useNavigationInterstitial";
+import { useConsentGDPR } from "../hooks/ads/useConsentGDPR";
 
 const queryClient = new QueryClient();
 
 export default function Root() {
+    useConsentGDPR();
+
+    const { handleNavigationWithAd } = useNavigationInterstitial();
+
+    const handleNotificationRespond = useCallback(
+        (response: any) => {
+            const data = response.notification.request.content.data;
+            openNotificationUrlIfAny(data, handleNavigationWithAd);
+        },
+        [handleNavigationWithAd]
+    );
+
     useEffect(() => {
         const remove = addNotificationListeners({
-            onRespond: (response) => {
-                const data = response.notification.request.content.data;
-                openNotificationUrlIfAny(data);
-            },
+            onRespond: handleNotificationRespond,
         });
         return remove;
-    }, []);
-
-    useEffect(() => {
-        const initAds = async () => {
-            try {
-                if (Platform.OS === "ios") {
-                    const { status } = await getTrackingPermissionsAsync();
-
-                    if (status === PermissionStatus.UNDETERMINED) {
-                        await requestTrackingPermissionsAsync();
-                    }
-                }
-
-                await mobileAds().initialize();
-                console.log("Mobile Ads initialized ✅");
-            } catch (e) {
-                console.warn("Failed to initialize Mobile Ads", e);
-            }
-        };
-
-        initAds();
-    }, []);
+    }, [handleNotificationRespond]);
 
     return (
         <GestureHandlerRootView style={{ flex: 1 }}>
