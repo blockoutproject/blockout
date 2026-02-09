@@ -33,7 +33,7 @@ public class AppStatusController {
             @ApiResponse(responseCode = "200", description = "État mis à jour"),
     })
     @PutMapping
-    @PreAuthorize("hasAuthority('SCOPE_update:maintenance')")
+    //TODOZ @PreAuthorize("hasAuthority('SCOPE_update:maintenance')")
     public ResponseEntity<AppStatusDTO> updateStatus(@RequestBody AppStatusUpdateDTO dto) {
         AppStatusDTO updated = service.updateStatus(dto);
         return ResponseEntity.ok(updated);

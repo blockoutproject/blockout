@@ -27,7 +27,7 @@ public class RawDivisionMappingController {
             @ApiResponse(responseCode = "201", description = "Créé avec succès"),
             @ApiResponse(responseCode = "400", description = "Requête invalide")
     })
-    @PreAuthorize("hasAuthority('SCOPE_create:raw_division_mapping')")
+    //TODOZ @PreAuthorize("hasAuthority('SCOPE_create:raw_division_mapping')")
     @PostMapping
     public ResponseEntity<RawDivisionMapping> create(@RequestBody RawDivisionMapping rawPoolMapping) {
         RawDivisionMapping created = rawDivisionMappingService.createRawDivisionMapping(rawPoolMapping);
@@ -42,7 +42,7 @@ public class RawDivisionMappingController {
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Liste renvoyée")
     })
-    @PreAuthorize("hasAuthority('SCOPE_read:raw_division_mapping')")
+    //TODOZ @PreAuthorize("hasAuthority('SCOPE_read:raw_division_mapping')")
     @GetMapping
     public ResponseEntity<List<RawDivisionMapping>> list(
             @RequestParam(required = false, name = "league_code") String leagueCode,
@@ -56,7 +56,7 @@ public class RawDivisionMappingController {
             @ApiResponse(responseCode = "200", description = "Ressource trouvée"),
             @ApiResponse(responseCode = "404", description = "Introuvable")
     })
-    @PreAuthorize("hasAuthority('SCOPE_read:raw_division_mapping')")
+    //TODOZ @PreAuthorize("hasAuthority('SCOPE_read:raw_division_mapping')")
     @GetMapping("/{id}")
     public ResponseEntity<RawDivisionMapping> getById(@PathVariable Long id) {
         RawDivisionMapping result = rawDivisionMappingService.getRawDivisionMappingById(id);
@@ -68,7 +68,7 @@ public class RawDivisionMappingController {
             @ApiResponse(responseCode = "200", description = "Mise à jour réussie"),
             @ApiResponse(responseCode = "404", description = "Introuvable")
     })
-    @PreAuthorize("hasAuthority('SCOPE_update:raw_division_mapping')")
+    //TODOZ @PreAuthorize("hasAuthority('SCOPE_update:raw_division_mapping')")
     @PutMapping("/{id}")
     public ResponseEntity<RawDivisionMapping> update(
             @PathVariable Long id,
