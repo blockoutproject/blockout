@@ -88,7 +88,7 @@ async def main() -> bool:
                     trust_env=True,
                     connector=connector,
                 ) as session:
-                    scraper_types = ["departmental", "national", "pro", "regional"]
+                    scraper_types = ["regional", "departmental", "national", "pro"]
                     await run_scrapers_with_max_concurrency(
                         session=session,
                         scraper_types=scraper_types,
