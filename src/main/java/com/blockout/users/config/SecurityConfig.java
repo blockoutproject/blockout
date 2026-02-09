@@ -40,41 +40,26 @@ public class SecurityConfig {
                 .build();
     }
 
-    //TODOZ 
-    // @Bean
-    // @Order(2)
-    // public SecurityFilterChain apiChain(HttpSecurity http) throws Exception {
-    //     return http
-    //             .authorizeHttpRequests(auth -> auth.anyRequest().authenticated())
-    //             .oauth2ResourceServer(oauth2 -> oauth2
-    //                     .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())))
-    //             .csrf(csrf -> csrf.disable())
-    //             .cors(withDefaults())
-    //             .build();
-    // }
-
-    // private JwtAuthenticationConverter jwtAuthenticationConverter() {
-    //     var granted = new JwtGrantedAuthoritiesConverter();
-    //     granted.setAuthorityPrefix("SCOPE_");
-    //     granted.setAuthoritiesClaimName("permissions");
-
-    //     var conv = new JwtAuthenticationConverter();
-    //     conv.setJwtGrantedAuthoritiesConverter(granted);
-    //     return conv;
-    // }
-
     @Bean
     @Order(2)
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http
+    public SecurityFilterChain apiChain(HttpSecurity http) throws Exception {
+        return http
+                .authorizeHttpRequests(auth -> auth.anyRequest().authenticated())
+                .oauth2ResourceServer(oauth2 -> oauth2
+                        .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())))
                 .csrf(csrf -> csrf.disable())
-                .cors(cors -> {
-                })
-                .authorizeHttpRequests(authz -> authz
-                        .anyRequest().permitAll());
+                .cors(withDefaults())
+                .build();
+    }
 
-        // IMPORTANT: ne pas configurer oauth2ResourceServer(jwt)
-        return http.build();
+    private JwtAuthenticationConverter jwtAuthenticationConverter() {
+        var granted = new JwtGrantedAuthoritiesConverter();
+        granted.setAuthorityPrefix("SCOPE_");
+        granted.setAuthoritiesClaimName("permissions");
+
+        var conv = new JwtAuthenticationConverter();
+        conv.setJwtGrantedAuthoritiesConverter(granted);
+        return conv;
     }
 
     static class ApiKeyFilter extends OncePerRequestFilter {
