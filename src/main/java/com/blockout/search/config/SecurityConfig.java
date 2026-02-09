@@ -23,6 +23,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests((authorize) -> authorize
                     .anyRequest().permitAll() //TODOZ
                 )
+                .csrf(csrf -> csrf.disable())
                 .cors(withDefaults())
                 .oauth2ResourceServer(oauth2 -> oauth2
                     .jwt(withDefaults())
