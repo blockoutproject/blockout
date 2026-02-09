@@ -14,43 +14,29 @@ import static org.springframework.security.config.Customizer.withDefaults;
 @EnableMethodSecurity
 public class SecurityConfig {
 
-    //TODOZ 
-    // @Bean
-    // public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-    //     http
-    //         .authorizeHttpRequests(authz -> authz
-    //             .anyRequest().authenticated()
-    //         )
-    //         .cors(withDefaults())
-    //         .oauth2ResourceServer(oauth2 -> oauth2
-    //             .jwt(jwt -> jwt
-    //                 .jwtAuthenticationConverter(jwtAuthenticationConverter())
-    //             )
-    //         );
-
-    //     return http.build();
-    // }
-
-    // private JwtAuthenticationConverter jwtAuthenticationConverter() {
-    //     var jwtGrantedAuthoritiesConverter = new JwtGrantedAuthoritiesConverter();
-    //     jwtGrantedAuthoritiesConverter.setAuthorityPrefix("SCOPE_");
-    //     jwtGrantedAuthoritiesConverter.setAuthoritiesClaimName("permissions");
-
-    //     var jwtAuthenticationConverter = new JwtAuthenticationConverter();
-    //     jwtAuthenticationConverter.setJwtGrantedAuthoritiesConverter(jwtGrantedAuthoritiesConverter);
-    //     return jwtAuthenticationConverter;
-    // }
-
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-            .csrf(csrf -> csrf.disable())
-            .cors(cors -> {})
             .authorizeHttpRequests(authz -> authz
-                .anyRequest().permitAll()
+                .anyRequest().permitAll() //TODOZ
+            )
+            .cors(withDefaults())
+            .oauth2ResourceServer(oauth2 -> oauth2
+                .jwt(jwt -> jwt
+                    .jwtAuthenticationConverter(jwtAuthenticationConverter())
+                )
             );
 
-        // IMPORTANT: ne pas configurer oauth2ResourceServer(jwt)
         return http.build();
+    }
+
+    private JwtAuthenticationConverter jwtAuthenticationConverter() {
+        var jwtGrantedAuthoritiesConverter = new JwtGrantedAuthoritiesConverter();
+        jwtGrantedAuthoritiesConverter.setAuthorityPrefix("SCOPE_");
+        jwtGrantedAuthoritiesConverter.setAuthoritiesClaimName("permissions");
+
+        var jwtAuthenticationConverter = new JwtAuthenticationConverter();
+        jwtAuthenticationConverter.setJwtGrantedAuthoritiesConverter(jwtGrantedAuthoritiesConverter);
+        return jwtAuthenticationConverter;
     }
 }
