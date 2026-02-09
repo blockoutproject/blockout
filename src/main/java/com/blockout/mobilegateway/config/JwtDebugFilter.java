@@ -22,14 +22,14 @@ public class JwtDebugFilter extends OncePerRequestFilter {
             FilterChain filterChain)
             throws ServletException, IOException {
 
-        // String authHeader = request.getHeader("Authorization");
+        String authHeader = request.getHeader("Authorization");
 
-        // if (authHeader != null && authHeader.startsWith("Bearer ")) {
-        //     //String token = authHeader.substring(7);
-        //     logger.info("🧩 Received JWT token");
-        // } else {
-        //     logger.warn("⚠️ No Authorization header found for request {}", request.getRequestURI());
-        // }
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            //String token = authHeader.substring(7);
+            logger.info("🧩 Received JWT token");
+        } else {
+            logger.warn("⚠️ No Authorization header found for request {}", request.getRequestURI());
+        }
 
         filterChain.doFilter(request, response);
     }
