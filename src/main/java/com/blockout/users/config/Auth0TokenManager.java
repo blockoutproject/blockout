@@ -21,27 +21,21 @@ import static net.logstash.logback.argument.StructuredArguments.keyValue;
 public class Auth0TokenManager {
 
     private static final Logger logger = LoggerFactory.getLogger(Auth0TokenManager.class);
-
-    private static final boolean M2M_ENABLED = false;
-
     private final Auth0Properties properties;
-
-    private volatile ManagementAPI managementAPI = null;
-    private volatile LocalDateTime tokenExpiry = LocalDateTime.MAX;
+    private volatile ManagementAPI managementAPI;
+    private volatile LocalDateTime tokenExpiry;
 
     @PostConstruct
     public void init() {
-        if (!M2M_ENABLED) {
-            logger.warn("Auth0 Management API bypass enabled",
-                    keyValue("action", "auth0_management_bypass_enabled"));
-            return;
-        }
-
         try {
+            logger.info("Initializing Auth0 token manager for Management API",
+                    keyValue("action", "init_management_token"),
+                    keyValue("auth0.domain", properties.getDomain()));
             refreshToken();
         } catch (Exception e) {
             logger.error("Failed to initialize Auth0 Management token",
                     keyValue("action", "init_management_token_failed"),
+                    keyValue("auth0.domain", properties.getDomain()),
                     e);
             throw new RuntimeException("Unable to initialize Auth0 Management token", e);
         }
@@ -49,10 +43,8 @@ public class Auth0TokenManager {
 
     @Scheduled(fixedDelayString = "#{@auth0Properties.tokenRefreshDelay.toMillis()}")
     public void refreshToken() {
-
-        if (!M2M_ENABLED) {
-            return;
-        }
+        logger.info("Refreshing Auth0 Management token",
+                keyValue("action", "refresh_management_token"));
 
         try {
             AuthAPI auth = AuthAPI.newBuilder(
@@ -67,10 +59,9 @@ public class Auth0TokenManager {
             this.tokenExpiry = LocalDateTime.now().plusSeconds(holder.getExpiresIn());
             this.managementAPI = ManagementAPI.newBuilder(properties.getDomain(), accessToken).build();
 
-            logger.info("Auth0 Management token refreshed",
+            logger.info("Auth0 Management token refreshed successfully",
                     keyValue("action", "refresh_management_token_success"),
                     keyValue("expires_at", tokenExpiry));
-
         } catch (Exception e) {
             logger.error("Error refreshing Auth0 Management token",
                     keyValue("action", "refresh_management_token_error"),
