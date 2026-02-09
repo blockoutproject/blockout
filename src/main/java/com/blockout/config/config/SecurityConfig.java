@@ -15,31 +15,18 @@ import static org.springframework.security.config.Customizer.withDefaults;
 @EnableMethodSecurity
 public class SecurityConfig {
 
-    //TODOZ 
-    // @Bean
-    // public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-    //     http
-    //             .authorizeHttpRequests(authz -> authz
-    //                     .requestMatchers(HttpMethod.GET, "/api/v1/config/legal/**").permitAll()
-    //                     .requestMatchers(HttpMethod.PUT, "/api/v1/config/legal/**").hasAuthority("SCOPE_update:legal")
-    //                     .anyRequest().authenticated())
-    //             .cors(withDefaults())
-    //             .oauth2ResourceServer(oauth2 -> oauth2
-    //                     .jwt(jwt -> jwt
-    //                             .jwtAuthenticationConverter(jwtAuthenticationConverter())));
-    //     return http.build();
-    // }
-
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                .csrf(csrf -> csrf.disable())
-                .cors(cors -> {
-                })
                 .authorizeHttpRequests(authz -> authz
-                        .anyRequest().permitAll());
-
-        // IMPORTANT: ne pas configurer oauth2ResourceServer(jwt)
+                        .requestMatchers(HttpMethod.GET, "/api/v1/config/legal/**").permitAll()
+                        .requestMatchers(HttpMethod.PUT, "/api/v1/config/legal/**").hasAuthority("SCOPE_update:legal")
+                        .anyRequest().permitAll() //TODOZ
+                    )
+                .cors(withDefaults())
+                .oauth2ResourceServer(oauth2 -> oauth2
+                        .jwt(jwt -> jwt
+                                .jwtAuthenticationConverter(jwtAuthenticationConverter())));
         return http.build();
     }
 
