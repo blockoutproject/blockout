@@ -34,7 +34,7 @@ public class MatchLiveLinkController {
             @ApiResponse(responseCode = "200", description = "Historique des liens renvoyé"),
             @ApiResponse(responseCode = "403", description = "Non autorisé")
     })
-    @PreAuthorize("hasAuthority('SCOPE_moderate:match_live_link')")
+    //TODOZ @PreAuthorize("hasAuthority('SCOPE_moderate:match_live_link')")
     @GetMapping("/{matchId}/live-links")
     public ResponseEntity<List<MatchLiveLinkDTO>> getLiveLinksHistory(@PathVariable Long matchId) {
         List<MatchLiveLinkDTO> dtos = matchLiveLinkService.getLiveLinksHistoryForMatch(matchId);
@@ -47,7 +47,7 @@ public class MatchLiveLinkController {
             @ApiResponse(responseCode = "400", description = "Requête invalide"),
             @ApiResponse(responseCode = "404", description = "Match introuvable")
     })
-    @PreAuthorize("hasAuthority('SCOPE_create:match_live_link')")
+    //TODOZ @PreAuthorize("hasAuthority('SCOPE_create:match_live_link')")
     @PostMapping("/{matchId}/live-link")
     public ResponseEntity<MatchLiveLinkResponseDTO> upsertLiveLink(
             @PathVariable Long matchId,
@@ -62,7 +62,7 @@ public class MatchLiveLinkController {
             @ApiResponse(responseCode = "204", description = "Lien supprimé ou inexistant"),
             @ApiResponse(responseCode = "403", description = "Non autorisé")
     })
-    @PreAuthorize("hasAuthority('SCOPE_delete:match_live_link')")
+    //TODOZ @PreAuthorize("hasAuthority('SCOPE_delete:match_live_link')")
     @DeleteMapping("/{matchId}/live-link")
     public ResponseEntity<Void> deleteLiveLink(
             @PathVariable Long matchId,
@@ -78,7 +78,7 @@ public class MatchLiveLinkController {
             @ApiResponse(responseCode = "204", description = "Signalement enregistré"),
             @ApiResponse(responseCode = "404", description = "Aucun lien live actif pour ce match")
     })
-    @PreAuthorize("hasAuthority('SCOPE_report:match_live_link')")
+    //TODOZ @PreAuthorize("hasAuthority('SCOPE_report:match_live_link')")
     @PostMapping("/{matchId}/live-link/report")
     public ResponseEntity<Void> reportLiveLink(
             @PathVariable Long matchId,
@@ -97,7 +97,7 @@ public class MatchLiveLinkController {
             @ApiResponse(responseCode = "403", description = "Non autorisé"),
             @ApiResponse(responseCode = "404", description = "Lien ou match introuvable")
     })
-    @PreAuthorize("hasAuthority('SCOPE_moderate:match_live_link')")
+    //TODOZ @PreAuthorize("hasAuthority('SCOPE_moderate:match_live_link')")
     @PostMapping("/live-links/{liveLinkId}/approve")
     public ResponseEntity<Void> approvePendingLink(@PathVariable Long liveLinkId) {
         matchLiveLinkService.approvePendingLink(liveLinkId);
@@ -111,7 +111,7 @@ public class MatchLiveLinkController {
             @ApiResponse(responseCode = "403", description = "Non autorisé"),
             @ApiResponse(responseCode = "404", description = "Lien introuvable")
     })
-    @PreAuthorize("hasAuthority('SCOPE_moderate:match_live_link')")
+    //TODOZ @PreAuthorize("hasAuthority('SCOPE_moderate:match_live_link')")
     @PostMapping("/live-links/{liveLinkId}/reject")
     public ResponseEntity<Void> rejectPendingLink(@PathVariable Long liveLinkId) {
         matchLiveLinkService.rejectPendingLink(liveLinkId);
@@ -125,7 +125,7 @@ public class MatchLiveLinkController {
             @ApiResponse(responseCode = "403", description = "Non autorisé"),
             @ApiResponse(responseCode = "404", description = "Lien ou match introuvable")
     })
-    @PreAuthorize("hasAuthority('SCOPE_moderate:match_live_link')")
+    //TODOZ @PreAuthorize("hasAuthority('SCOPE_moderate:match_live_link')")
     @PostMapping("/live-links/{liveLinkId}/reactivate")
     public ResponseEntity<Void> reactivateLiveLink(@PathVariable Long liveLinkId) {
         matchLiveLinkService.reactivateLiveLink(liveLinkId);
