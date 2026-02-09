@@ -29,7 +29,7 @@ public class ReportController {
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Issue créée")
     })
-    @PreAuthorize("hasAuthority('SCOPE_create:reports')")
+    //TODOZ @PreAuthorize("hasAuthority('SCOPE_create:reports')")
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<GitHubIssueResponseDTO> createReport(
             @RequestPart("data") String json,
