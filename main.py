@@ -9,6 +9,7 @@ from prometheus_client import Gauge, start_http_server
 
 from api.auth0 import refresh_token_task
 from api.config_api import get_scraper_status
+from config.env_config import SCRAPER_TYPES
 from config.logger_config import log_event
 from scrapers.scraper_factory import ScraperFactory
 from scheduler import schedule_scraper
@@ -88,7 +89,7 @@ async def main() -> bool:
                     trust_env=True,
                     connector=connector,
                 ) as session:
-                    scraper_types = ["regional", "departmental", "national", "pro"]
+                    scraper_types = SCRAPER_TYPES
                     await run_scrapers_with_max_concurrency(
                         session=session,
                         scraper_types=scraper_types,
