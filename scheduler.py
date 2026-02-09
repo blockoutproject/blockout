@@ -1,6 +1,9 @@
+from __future__ import annotations
+
 import asyncio
 from datetime import datetime
 from zoneinfo import ZoneInfo
+
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from config.logger_config import log_event
@@ -17,13 +20,10 @@ def _paris_now() -> datetime:
 
 def desired_interval_seconds(now: datetime) -> int:
     weekday = now.weekday()
-
     if weekday == 6:
         return 30 * 60 if now.hour < 14 else 5 * 60
-
     if weekday == 5:
         return 30 * 60 if now.hour < 17 else 5 * 60
-
     return 30 * 60
 
 
@@ -55,8 +55,7 @@ async def maybe_run_scraper(scrape_fn):
 
 
 def schedule_scraper(scrape_fn):
-    loop = asyncio.get_event_loop()
-    scheduler = AsyncIOScheduler(event_loop=loop)
+    scheduler = AsyncIOScheduler()
 
     scheduler.add_job(
         maybe_run_scraper,
@@ -66,6 +65,8 @@ def schedule_scraper(scrape_fn):
         next_run_time=_paris_now(),
         misfire_grace_time=30,
         replace_existing=True,
+        max_instances=1,
+        coalesce=True,
     )
 
     scheduler.start()
@@ -75,13 +76,3 @@ def schedule_scraper(scrape_fn):
         level="info",
         message="Scheduler démarré (gating toutes les 60s).",
     )
-
-    try:
-        loop.run_forever()
-    except (KeyboardInterrupt, SystemExit):
-        log_event(
-            action="scheduler_shutdown",
-            level="info",
-            message="Scheduler arrêté par l'utilisateur.",
-        )
-        scheduler.shutdown()

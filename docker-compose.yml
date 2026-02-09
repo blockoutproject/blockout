@@ -1,23 +1,18 @@
 services:
-  scraper:
-    build: .
-    restart: always
-    environment:
-      TEAM_API_URL: ${TEAM_API_URL}
-      MATCH_API_URL: ${MATCH_API_URL}
-      POOL_API_URL: ${POOL_API_URL}
-      COMPETITION_API_URL: ${COMPETITION_API_URL}
-      CONFIG_API_URL: ${CONFIG_API_URL}
-      LOG_LEVEL: ${LOG_LEVEL}
-      AUTH0_DOMAIN: ${AUTH0_DOMAIN}
-      AUTH0_CLIENT_ID: ${AUTH0_CLIENT_ID}
-      AUTH0_CLIENT_SECRET: ${AUTH0_CLIENT_SECRET}
-      AUTH0_AUDIENCE: ${AUTH0_AUDIENCE}
+  netstack:
+    image: qmcgaw/gluetun:latest
+    container_name: netstack
+    cap_add: [NET_ADMIN]
     ports:
-      - 8000:8000
-    depends_on:
-      postgres:
-        condition: service_healthy
-        
-volumes:
-  postgres-data:
+      - 8888:8888
+    environment:
+      TZ: Europe/Paris
+      VPN_SERVICE_PROVIDER: nordvpn
+      VPN_TYPE: openvpn
+      OPENVPN_USER: XXX
+      OPENVPN_PASSWORD: XXX
+      OPENVPN_PROTOCOL: udp
+      FIREWALL: "on"
+      HTTPPROXY: "on"
+      SERVER_COUNTRIES: France,Belgium,Netherlands
+    restart: unless-stopped

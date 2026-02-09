@@ -1,3 +1,6 @@
+# file: utils/handlers/api_handler.py
+from __future__ import annotations
+
 from functools import wraps
 from typing import Optional, Type, Union, get_args, get_origin
 from datetime import datetime
@@ -5,6 +8,7 @@ from enum import Enum
 from dataclasses import fields
 import aiohttp
 from config.logger_config import log_event
+
 
 def handle_api_response(response_type: Optional[Type] = None):
     def decorator(func):
@@ -14,9 +18,12 @@ def handle_api_response(response_type: Optional[Type] = None):
                 response = await func(*args, **kwargs)
 
                 if not isinstance(response, aiohttp.ClientResponse):
-                    raise TypeError(f"La fonction {func.__name__} doit retourner une réponse HTTP valide (ClientResponse), mais a retourné {type(response)}.")
+                    raise TypeError(
+                        f"La fonction {func.__name__} doit retourner une réponse HTTP valide (ClientResponse), "
+                        f"mais a retourné {type(response)}."
+                    )
 
-                return await process_response(response, response_type)
+                return await process_response(response, response_type, func.__name__, args, kwargs)
 
             except Exception as e:
                 log_event(
@@ -25,17 +32,27 @@ def handle_api_response(response_type: Optional[Type] = None):
                     function=func.__name__,
                     args=str(args),
                     kwargs=str(kwargs),
-                    error=str(e)
+                    error=repr(e),
                 )
                 raise
+
         return wrapper
+
     return decorator
 
-async def process_response(response: aiohttp.ClientResponse, response_type: Optional[Type]) -> Optional[Union[dict, object]]:
-    """
-    Traite la réponse de l'API et convertit en dataclass si nécessaire.
-    """
-    if response.status in {200, 201}:
+
+async def process_response(
+    response: aiohttp.ClientResponse,
+    response_type: Optional[Type],
+    func_name: str,
+    args,
+    kwargs,
+) -> Optional[Union[dict, object]]:
+    url = str(response.url)
+    status = response.status
+    content_type = response.headers.get("Content-Type", "")
+
+    if status in {200, 201}:
         if response.content_type == "application/json":
             json_data = await response.json()
             if response_type:
@@ -44,46 +61,57 @@ async def process_response(response: aiohttp.ClientResponse, response_type: Opti
                     return [convert_to_dataclass(item, item_type) for item in json_data]
                 return convert_to_dataclass(json_data, response_type)
             return json_data
+        await response.release()
         return None
 
-    elif response.status == 204:
+    if status == 204:
         if get_origin(response_type) is list:
             return []
         return None
 
-    else:
-        error_data = await get_error_data(response)
-        error_message = error_data.get("message", "Erreur non spécifiée par l'API")
-        log_event(
-            action="api_error",
-            level="error",
-            status=response.status,
-            message=error_message
-        )
-        raise Exception(f"Erreur API {response.status}: {error_message}")
+    error_data = await get_error_data(response)
+    error_message = (
+        (error_data.get("message") if isinstance(error_data, dict) else None)
+        or (error_data.get("error") if isinstance(error_data, dict) else None)
+        or "Erreur non spécifiée par l'API"
+    )
 
-async def get_error_data(response: aiohttp.ClientResponse) -> dict:
-    """
-    Récupère les données d'erreur de la réponse de l'API.
-    """
+    log_event(
+        action="api_error",
+        level="error",
+        function=func_name,
+        url=url,
+        status=status,
+        content_type=content_type,
+        body=error_data,
+        args=str(args),
+        kwargs=str(kwargs),
+        message=error_message,
+    )
+
+    raise RuntimeError(f"Erreur API {status} sur {url}: {error_message}")
+
+
+async def get_error_data(response: aiohttp.ClientResponse) -> object:
     try:
-        return await response.json()
+        if response.content_type == "application/json":
+            return await response.json()
+        return await response.text()
     except aiohttp.ContentTypeError:
-        return {"message": await response.text()}
+        return await response.text()
+    except Exception as e:
+        return {"message": "Impossible de lire le body d'erreur", "error": repr(e)}
+
 
 def convert_to_dataclass(data: dict, cls: Type) -> object:
-    """
-    Convertit un dictionnaire en instance de dataclass, en gérant
-    les champs Enum, datetime, et autres types complexes.
-    """
     if not hasattr(cls, "__dataclass_fields__"):
         error_message = f"{cls} n'est pas une dataclass."
         log_event(
             action="convert_to_dataclass_error",
             level="error",
             data=data,
-            target_class=cls.__name__,
-            message=error_message
+            target_class=getattr(cls, "__name__", str(cls)),
+            message=error_message,
         )
         raise ValueError(error_message)
 
@@ -92,6 +120,7 @@ def convert_to_dataclass(data: dict, cls: Type) -> object:
         field_name = field.name
         field_type = field.type
         value = data.get(field_name)
+
         if value is not None:
             try:
                 value = convert_field_value(value, field_type)
@@ -102,7 +131,7 @@ def convert_to_dataclass(data: dict, cls: Type) -> object:
                     field=field_name,
                     value=value,
                     target_class=cls.__name__,
-                    error=str(e)
+                    error=repr(e),
                 )
                 raise
 
@@ -110,12 +139,10 @@ def convert_to_dataclass(data: dict, cls: Type) -> object:
 
     return cls(**init_args)
 
+
 def convert_field_value(value: any, field_type: Type) -> any:
-    """
-    Convertit la valeur d'un champ en fonction de son type.
-    """
     if isinstance(field_type, type) and issubclass(field_type, Enum):
         return field_type(value)
-    elif (field_type == datetime or field_type == Optional[datetime]) and isinstance(value, str):
+    if (field_type == datetime or field_type == Optional[datetime]) and isinstance(value, str):
         return datetime.fromisoformat(value)
     return value

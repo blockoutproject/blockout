@@ -36,7 +36,6 @@ async def handle_csv_download_and_parse(
 
     try:
         parsed_data = await download_and_parse_csv(scraper, pool, raw_season)
-
         if not parsed_data:
             if scraped_pool_ids is not None and existing_pool:
                 scraped_pool_ids.add(existing_pool.id) # Pour éviter désactivation si crash avant parsing

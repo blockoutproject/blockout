@@ -1,19 +1,20 @@
+from __future__ import annotations
+
 import asyncio
-import aiohttp
 from datetime import datetime, timezone
-from prometheus_client import Gauge, start_http_server
 from contextvars import ContextVar
+
+import aiohttp
+from prometheus_client import Gauge, start_http_server
 
 from api.auth0 import refresh_token_task
 from api.config_api import get_scraper_status
 from config.logger_config import log_event
 from scrapers.scraper_factory import ScraperFactory
-
 from scheduler import schedule_scraper
 
 current_scraper = ContextVar("current_scraper", default="global_scraper")
 
-MIRROR_TOKEN = None
 lock = asyncio.Lock()
 
 execution_duration_gauge = Gauge(
@@ -41,11 +42,7 @@ async def run_scrapers_with_max_concurrency(
         running.add(asyncio.create_task(_run_one_scraper(session, st)))
 
     while running:
-        done, running = await asyncio.wait(
-            running,
-            return_when=asyncio.FIRST_COMPLETED,
-        )
-
+        done, running = await asyncio.wait(running, return_when=asyncio.FIRST_COMPLETED)
         for t in done:
             t.result()
 
@@ -92,7 +89,6 @@ async def main() -> bool:
                     connector=connector,
                 ) as session:
                     scraper_types = ["departmental", "national", "pro", "regional"]
-
                     await run_scrapers_with_max_concurrency(
                         session=session,
                         scraper_types=scraper_types,
@@ -108,32 +104,24 @@ async def main() -> bool:
         )
     finally:
         end_time = datetime.now(timezone.utc)
-        duration = (end_time - start_time).total_seconds()
-        execution_duration_gauge.set(duration)
+        execution_duration_gauge.set((end_time - start_time).total_seconds())
 
     return not skipped
 
 
-if __name__ == "__main__":
+async def app() -> None:
     start_http_server(8000)
-    loop = asyncio.get_event_loop()
 
-    try:
-        loop.create_task(refresh_token_task())
-        log_event(
-            action="refresh_token_task_started",
-            level="info",
-            message="Tâche de rafraîchissement de token démarrée.",
-        )
+    asyncio.create_task(refresh_token_task())
+    log_event(
+        action="refresh_token_task_started",
+        level="info",
+        message="Tâche de rafraîchissement de token démarrée.",
+    )
 
-        schedule_scraper(scrape_fn=main)
+    schedule_scraper(scrape_fn=main)
+    await asyncio.Event().wait()
 
-    except Exception as e:
-        log_event(
-            action="startup_error",
-            level="error",
-            message="Erreur lors du démarrage",
-            error=str(e),
-        )
-    finally:
-        loop.run_until_complete(asyncio.sleep(0))
+
+if __name__ == "__main__":
+    asyncio.run(app())
