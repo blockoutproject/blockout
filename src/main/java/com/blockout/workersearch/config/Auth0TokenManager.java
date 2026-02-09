@@ -21,22 +21,26 @@ public class Auth0TokenManager {
 
     private static final Logger logger = LoggerFactory.getLogger(Auth0TokenManager.class);
 
+    private static final boolean M2M_ENABLED = false;
+
     private final Auth0Properties auth0Properties;
 
-    private volatile String accessToken;
-    private volatile LocalDateTime tokenExpiry;
+    private volatile String accessToken = "";
+    private volatile LocalDateTime tokenExpiry = LocalDateTime.MAX;
 
     @PostConstruct
     public void init() {
+        if (!M2M_ENABLED) {
+            logger.warn("Auth0 M2M bypass enabled",
+                    keyValue("action", "auth0_bypass_enabled"));
+            return;
+        }
+
         try {
-            logger.info("Initializing Auth0 token manager",
-                    keyValue("action", "init_token_manager"));
             refreshToken();
         } catch (Exception e) {
             logger.error("Failed to initialize Auth0 token",
                     keyValue("action", "init_token_failed"),
-                    keyValue("auth0.domain", auth0Properties.getDomain()),
-                    keyValue("auth0.audience", auth0Properties.getAudience()),
                     e);
             throw new RuntimeException("Unable to initialize Auth0 token", e);
         }
@@ -44,8 +48,10 @@ public class Auth0TokenManager {
 
     @Scheduled(fixedDelayString = "#{@auth0Properties.tokenRefreshDelay.toMillis()}")
     public void refreshToken() {
-        logger.info("Refreshing Auth0 token",
-                keyValue("action", "refresh_token_start"));
+
+        if (!M2M_ENABLED) {
+            return;
+        }
 
         try {
             AuthAPI auth = AuthAPI.newBuilder(
@@ -60,9 +66,10 @@ public class Auth0TokenManager {
             this.accessToken = holder.getAccessToken();
             this.tokenExpiry = LocalDateTime.now().plusSeconds(holder.getExpiresIn());
 
-            logger.info("Auth0 token successfully refreshed",
+            logger.info("Auth0 token refreshed",
                     keyValue("action", "refresh_token_success"),
                     keyValue("expires_at", tokenExpiry));
+
         } catch (Exception e) {
             logger.error("Error refreshing Auth0 token",
                     keyValue("action", "refresh_token_error"),
@@ -71,7 +78,7 @@ public class Auth0TokenManager {
     }
 
     public String getAccessToken() {
-        return accessToken;
+        return accessToken == null ? "" : accessToken;
     }
 
     public LocalDateTime getTokenExpiry() {
