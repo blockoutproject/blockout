@@ -25,6 +25,8 @@ public class RestTemplatesConfig {
     private static final int CONNECT_TIMEOUT_MS = (int) Duration.ofSeconds(3).toMillis();
     private static final int READ_TIMEOUT_MS = (int) Duration.ofSeconds(10).toMillis();
 
+    private static final boolean M2M_ENABLED = false;
+
     private HttpComponentsClientHttpRequestFactory requestFactory() {
         PoolingHttpClientConnectionManager connManager = new PoolingHttpClientConnectionManager();
         connManager.setDefaultConnectionConfig(
@@ -47,7 +49,6 @@ public class RestTemplatesConfig {
         return new HttpComponentsClientHttpRequestFactory(http);
     }
 
-    /** RestTemplate qui FORWARDE le token de l'utilisateur courant. */
     @Bean
     @Qualifier("forwardRestTemplate")
     public RestTemplate forwardRestTemplate() {
@@ -57,7 +58,6 @@ public class RestTemplatesConfig {
             if (auth instanceof JwtAuthenticationToken jwt) {
                 req.getHeaders().setBearerAuth(jwt.getToken().getTokenValue());
             } else {
-                // Par sécurité: si on attend un contexte user et qu'il n'y en a pas, on échoue.
                 throw new IllegalStateException("No JwtAuthenticationToken in SecurityContext for forwarded call");
             }
             return exec.execute(req, body);
@@ -66,17 +66,17 @@ public class RestTemplatesConfig {
         return rt;
     }
 
-    /**
-     * RestTemplate qui utilise un token M2M (Client Credentials) pour les appels
-     * internes.
-     */
     @Bean
     @Qualifier("serviceRestTemplate")
     public RestTemplate serviceRestTemplate(Auth0TokenManager tokenManager) {
         RestTemplate rt = new RestTemplate(requestFactory());
         ClientHttpRequestInterceptor m2m = (req, body, exec) -> {
-            String token = tokenManager.getAccessToken();
-            req.getHeaders().setBearerAuth(token);
+            if (M2M_ENABLED) {
+                String token = tokenManager.getAccessToken();
+                if (token != null && !token.isBlank()) {
+                    req.getHeaders().setBearerAuth(token);
+                }
+            }
             return exec.execute(req, body);
         };
         rt.setInterceptors(List.of(m2m));
