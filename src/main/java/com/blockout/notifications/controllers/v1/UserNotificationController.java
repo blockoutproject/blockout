@@ -22,7 +22,7 @@ public class UserNotificationController {
 
     @Operation(summary = "Lister les notifications", description = "Retourne les notifications de l'utilisateur connecté avec pagination simple.")
     @ApiResponses(@ApiResponse(responseCode = "200", description = "Liste de notifications"))
-    @PreAuthorize("hasAuthority('SCOPE_read:current_user')")
+    //TODOZ @PreAuthorize("hasAuthority('SCOPE_read:current_user')")
     @GetMapping
     public ResponseEntity<UserNotificationPageDTO> getNotifications(
             @RequestParam(defaultValue = "0") int page,
@@ -33,7 +33,7 @@ public class UserNotificationController {
 
     @Operation(summary = "Unread notifications count")
     @ApiResponses(@ApiResponse(responseCode = "200", description = "Unread count"))
-    @PreAuthorize("hasAuthority('SCOPE_read:current_user')")
+    //TODOZ @PreAuthorize("hasAuthority('SCOPE_read:current_user')")
     @GetMapping("/unread-count")
     public ResponseEntity<UnreadCountDTO> unreadCount() {
         long count = userNotificationService.unreadCount();
@@ -45,7 +45,7 @@ public class UserNotificationController {
             @ApiResponse(responseCode = "204", description = "Marked"),
             @ApiResponse(responseCode = "404", description = "Not found")
     })
-    @PreAuthorize("hasAuthority('SCOPE_read:current_user')")
+    //TODOZ @PreAuthorize("hasAuthority('SCOPE_read:current_user')")
     @PostMapping("/{id}/read")
     public ResponseEntity<Void> markRead(@PathVariable Long id) {
         return userNotificationService.markRead(id)
@@ -58,7 +58,7 @@ public class UserNotificationController {
             @ApiResponse(responseCode = "204", description = "Marked"),
             @ApiResponse(responseCode = "404", description = "Not found")
     })
-    @PreAuthorize("hasAuthority('SCOPE_read:current_user')")
+    //TODOZ @PreAuthorize("hasAuthority('SCOPE_read:current_user')")
     @PostMapping("/{id}/opened")
     public ResponseEntity<Void> markOpened(@PathVariable Long id) {
         return userNotificationService.markOpened(id)
@@ -71,7 +71,7 @@ public class UserNotificationController {
             @ApiResponse(responseCode = "204", description = "Deleted"),
             @ApiResponse(responseCode = "404", description = "Not found")
     })
-    @PreAuthorize("hasAuthority('SCOPE_read:current_user')")
+    //TODOZ @PreAuthorize("hasAuthority('SCOPE_read:current_user')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         return userNotificationService.delete(id)
