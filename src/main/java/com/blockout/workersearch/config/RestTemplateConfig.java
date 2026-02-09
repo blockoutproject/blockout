@@ -21,7 +21,9 @@ public class RestTemplateConfig {
 
         ClientHttpRequestInterceptor interceptor = (request, body, execution) -> {
             String token = tokenManager.getAccessToken();
-            request.getHeaders().add("Authorization", "Bearer " + token);
+            if (token != null && !token.isBlank()) {
+                request.getHeaders().setBearerAuth(token);
+            }
             return execution.execute(request, body);
         };
 
