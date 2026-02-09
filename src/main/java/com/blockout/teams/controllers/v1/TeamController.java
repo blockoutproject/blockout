@@ -63,7 +63,7 @@ public class TeamController {
             @ApiResponse(responseCode = "201", description = "Équipe créée"),
             @ApiResponse(responseCode = "400", description = "Requête invalide")
     })
-    @PreAuthorize("hasAuthority('SCOPE_create:teams')")
+    //TODOZ @PreAuthorize("hasAuthority('SCOPE_create:teams')")
     @PostMapping
     public ResponseEntity<Team> createTeam(@RequestBody Team team) {
         Team created = teamService.createTeam(team);
@@ -79,7 +79,7 @@ public class TeamController {
             @ApiResponse(responseCode = "200", description = "Équipe mise à jour"),
             @ApiResponse(responseCode = "404", description = "Équipe introuvable")
     })
-    @PreAuthorize("hasAuthority('SCOPE_update:teams')")
+    //TODOZ @PreAuthorize("hasAuthority('SCOPE_update:teams')")
     @PutMapping(path = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Team> updateTeam(
             @PathVariable Long id,
@@ -96,7 +96,7 @@ public class TeamController {
             @ApiResponse(responseCode = "204", description = "Équipe désactivée"),
             @ApiResponse(responseCode = "404", description = "Équipe introuvable")
     })
-    @PreAuthorize("hasAuthority('SCOPE_delete:teams')")
+    //TODOZ @PreAuthorize("hasAuthority('SCOPE_delete:teams')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deactivateTeam(@PathVariable Long id) {
         teamService.deactivateTeam(id);
@@ -119,7 +119,7 @@ public class TeamController {
             @ApiResponse(responseCode = "200", description = "Compteur incrémenté"),
             @ApiResponse(responseCode = "404", description = "Équipe introuvable")
     })
-    @PreAuthorize("hasAuthority('SCOPE_follow:teams')")
+    //TODOZ @PreAuthorize("hasAuthority('SCOPE_follow:teams')")
     @PostMapping("/{teamId}/followers/increment")
     public ResponseEntity<Team> incrementFollowers(
             @PathVariable Long teamId,
@@ -134,7 +134,7 @@ public class TeamController {
             @ApiResponse(responseCode = "200", description = "Compteur décrémenté"),
             @ApiResponse(responseCode = "404", description = "Équipe introuvable")
     })
-    @PreAuthorize("hasAuthority('SCOPE_follow:teams')")
+    //TODOZ @PreAuthorize("hasAuthority('SCOPE_follow:teams')")
     @PostMapping("/{teamId}/followers/decrement")
     public ResponseEntity<Team> decrementFollowers(
             @PathVariable Long teamId,
