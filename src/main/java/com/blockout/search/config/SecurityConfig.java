@@ -13,20 +13,34 @@ import static org.springframework.security.config.Customizer.withDefaults;
 @Configuration
 public class SecurityConfig {
 
+    // @Bean
+    // public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    //     /*
+    //     This is where we configure the security required for our endpoints and setup our app to serve as
+    //     an OAuth2 Resource Server, using JWT validation.
+    //     */
+    //     return http
+    //             .authorizeHttpRequests((authorize) -> authorize
+    //                 .anyRequest().authenticated()
+    //             )
+    //             .cors(withDefaults())
+    //             .oauth2ResourceServer(oauth2 -> oauth2
+    //                 .jwt(withDefaults())
+    //             )
+    //             .build();
+    // }
+
+
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        /*
-        This is where we configure the security required for our endpoints and setup our app to serve as
-        an OAuth2 Resource Server, using JWT validation.
-        */
-        return http
-                .authorizeHttpRequests((authorize) -> authorize
-                    .anyRequest().authenticated()
-                )
-                .cors(withDefaults())
-                .oauth2ResourceServer(oauth2 -> oauth2
-                    .jwt(withDefaults())
-                )
-                .build();
+        http
+            .csrf(csrf -> csrf.disable())
+            .cors(cors -> {})
+            .authorizeHttpRequests(authz -> authz
+                .anyRequest().permitAll()
+            );
+
+        // IMPORTANT: ne pas configurer oauth2ResourceServer(jwt)
+        return http.build();
     }
 }
