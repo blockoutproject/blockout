@@ -47,10 +47,10 @@ public class UserFavoriteController {
             @ApiResponse(responseCode = "204", description = "Suivi effectué"),
             @ApiResponse(responseCode = "404", description = "Utilisateur introuvable")
     })
-    @PreAuthorize("""
-                (#entityType.name() == 'TEAM' and hasAuthority('SCOPE_follow:teams')) or
-                (#entityType.name() == 'POOL' and hasAuthority('SCOPE_follow:pools'))
-            """)
+    //TODOZ @PreAuthorize("""
+                //TODOZ (#entityType.name() == 'TEAM' and hasAuthority('SCOPE_follow:teams')) or
+               //TODOZ  (#entityType.name() == 'POOL' and hasAuthority('SCOPE_follow:pools'))
+         //TODOZ    """)
     @PostMapping("/favorites/follow")
     public ResponseEntity<Void> follow(
             @AuthenticationPrincipal Jwt jwt,
@@ -66,10 +66,10 @@ public class UserFavoriteController {
             @ApiResponse(responseCode = "204", description = "Suivi supprimé"),
             @ApiResponse(responseCode = "404", description = "Utilisateur introuvable")
     })
-    @PreAuthorize("""
-                (#entityType.name() == 'TEAM' and hasAuthority('SCOPE_follow:teams')) or
-                (#entityType.name() == 'POOL' and hasAuthority('SCOPE_follow:pools'))
-            """)
+    //TODOZ @PreAuthorize("""
+                //TODOZ (#entityType.name() == 'TEAM' and hasAuthority('SCOPE_follow:teams')) or
+                //TODOZ (#entityType.name() == 'POOL' and hasAuthority('SCOPE_follow:pools'))
+            //TODOZ """)
     @DeleteMapping("/favorites/follow")
     public ResponseEntity<Void> unfollow(
             @AuthenticationPrincipal Jwt jwt,
