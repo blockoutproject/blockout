@@ -37,7 +37,7 @@ public class MatchTestController {
             @ApiResponse(responseCode = "202", description = "Event publié"),
             @ApiResponse(responseCode = "404", description = "Match introuvable")
     })
-    //TODOZ @PreAuthorize("hasAuthority('SCOPE_publish:events')")
+    @PreAuthorize("hasAuthority('SCOPE_publish:events')")
     @PostMapping("/{id}/emit-finished")
     public ResponseEntity<Void> emitFinishedById(@PathVariable Long id) {
         Match match = matchService.getMatchByIdInternal(id);
@@ -58,7 +58,7 @@ public class MatchTestController {
     @ApiResponses({
             @ApiResponse(responseCode = "202", description = "Event publié")
     })
-    //TODOZ @PreAuthorize("hasAuthority('SCOPE_publish:events')")
+    @PreAuthorize("hasAuthority('SCOPE_publish:events')")
     @PostMapping("/emit-finished")
     public ResponseEntity<Void> emitFinishedCustom(@RequestBody MatchFinishedEvent event) {
 

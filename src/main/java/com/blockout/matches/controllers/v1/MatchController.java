@@ -82,7 +82,7 @@ public class MatchController {
             @ApiResponse(responseCode = "201", description = "Match créé"),
             @ApiResponse(responseCode = "400", description = "Requête invalide")
     })
-    //TODOZ @PreAuthorize("hasAuthority('SCOPE_create:matches')")
+    @PreAuthorize("hasAuthority('SCOPE_create:matches')")
     @PostMapping
     public ResponseEntity<Match> createMatch(@RequestBody Match match) {
         Match created = matchService.createMatch(match);
@@ -98,7 +98,7 @@ public class MatchController {
             @ApiResponse(responseCode = "200", description = "Match mis à jour"),
             @ApiResponse(responseCode = "404", description = "Match introuvable")
     })
-    //TODOZ @PreAuthorize("hasAuthority('SCOPE_update:matches')")
+    @PreAuthorize("hasAuthority('SCOPE_update:matches')")
     @PutMapping("/{id}")
     public ResponseEntity<Match> updateMatch(
             @PathVariable Long id,
@@ -112,7 +112,7 @@ public class MatchController {
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Matches désactivés")
     })
-    //TODOZ @PreAuthorize("hasAuthority('SCOPE_delete:matches')")
+    @PreAuthorize("hasAuthority('SCOPE_delete:matches')")
     @PutMapping("/pools/{poolId}/bulk-deactivate")
     public ResponseEntity<Void> bulkDeactivateMatches(
             @PathVariable Long poolId,
@@ -131,7 +131,7 @@ public class MatchController {
             @ApiResponse(responseCode = "200", description = "Liste des matchs avec leur dernier live link"),
             @ApiResponse(responseCode = "403", description = "Non autorisé")
     })
-    //TODOZ @PreAuthorize("hasAuthority('SCOPE_moderate:match_live_link')")
+    @PreAuthorize("hasAuthority('SCOPE_moderate:match_live_link')")
     @GetMapping("/live-moderation")
     public ResponseEntity<List<MatchLiveSummaryDTO>> listMatchesForLiveModeration(
             @RequestParam(value = "status", required = false) LiveLinkStatus statusFilter) {
