@@ -10,7 +10,7 @@ import java.util.Collections;
 @Configuration
 public class RestTemplateConfig {
 
-    private static final boolean M2M_ENABLED = false;
+    private static final boolean M2M_ENABLED = true;
 
     private final Auth0TokenManager tokenManager;
 
