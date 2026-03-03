@@ -25,7 +25,7 @@ public class RestTemplatesConfig {
     private static final int CONNECT_TIMEOUT_MS = (int) Duration.ofSeconds(3).toMillis();
     private static final int READ_TIMEOUT_MS = (int) Duration.ofSeconds(10).toMillis();
 
-    private static final boolean M2M_ENABLED = false;
+    private static final boolean M2M_ENABLED = true;
 
     private HttpComponentsClientHttpRequestFactory requestFactory() {
         PoolingHttpClientConnectionManager connManager = new PoolingHttpClientConnectionManager();

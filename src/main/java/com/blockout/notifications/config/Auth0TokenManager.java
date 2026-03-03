@@ -21,7 +21,7 @@ public class Auth0TokenManager {
 
     private static final Logger logger = LoggerFactory.getLogger(Auth0TokenManager.class);
 
-    private static final boolean M2M_ENABLED = false;
+    private static final boolean M2M_ENABLED = true;
 
     private final Auth0Properties auth0Properties;
 

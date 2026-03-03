@@ -25,7 +25,7 @@ public class PushTokenController {
             @ApiResponse(responseCode = "202", description = "Token enregistré/actualisé"),
             @ApiResponse(responseCode = "404", description = "Utilisateur introuvable")
     })
-    //TODOZ @PreAuthorize("hasAuthority('SCOPE_update:current_user')")
+    @PreAuthorize("hasAuthority('SCOPE_update:current_user')")
     @PostMapping("/users/{userId}/push-tokens")
     public ResponseEntity<Void> register(
             @PathVariable Long userId,
