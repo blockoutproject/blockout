@@ -16,36 +16,32 @@ import InfoPillGradient from "./chips/InfoPillGradient";
 import { CORNERS } from "@/src/theme/globals";
 
 export type HeroProps = {
-    /** Titre principal. */
     title: string;
-    /** Sous-titre (ex: ville, email). */
     subtitle?: string;
-    /** Icône du sous-titre. */
     subtitleIcon?: React.ComponentProps<typeof MaterialCommunityIcons>["name"];
-    /** URI de l’avatar. */
+
     avatarUri?: string | null;
-    /** Fallback local pour l’avatar. */
     avatarFallback: any;
-    /** URI du fond (par défaut on reprend l’avatar). */
+
     backgroundUri?: string | null;
-    /** Fallback local pour le fond (par défaut on reprend l’avatarFallback). */
     backgroundFallback?: any;
-    /** Bouton d’édition. */
+
     onEdit?: () => void;
-    /** Test IDs. */
     testID?: string;
     editTestID?: string;
-    /** Style/params visuels. */
+
     containerRadius?: number;
     avatarSize?: number;
     avatarRadius?: number;
     blurRadius?: number;
     titleLines?: number;
+
+    topLeftNode?: React.ReactNode;
 };
 
 const DEFAULTS = {
     containerRadius: 18,
-    avatarSize: 120,
+    avatarSize: 100,
     avatarRadius: 24,
     blurRadius: 60,
     titleLines: 2,
@@ -73,6 +69,8 @@ const Hero: React.FC<HeroProps> = ({
     avatarRadius = DEFAULTS.avatarRadius,
     blurRadius = DEFAULTS.blurRadius,
     titleLines = DEFAULTS.titleLines,
+
+    topLeftNode,
 }) => {
     const theme = useAppTheme();
 
@@ -83,7 +81,6 @@ const Hero: React.FC<HeroProps> = ({
 
     return (
         <View style={[styles.wrapper, { borderRadius: containerRadius }]} testID={testID}>
-            {/* Fond flou */}
             <Image
                 source={bgSource}
                 style={RNStyleSheet.absoluteFill}
@@ -91,7 +88,6 @@ const Hero: React.FC<HeroProps> = ({
                 blurRadius={blurRadius}
             />
 
-            {/* Gradients croisés pour lisibilité */}
             <LinearGradient
                 pointerEvents="none"
                 colors={[
@@ -117,7 +113,12 @@ const Hero: React.FC<HeroProps> = ({
                 style={RNStyleSheet.absoluteFill}
             />
 
-            {/* Bouton edit */}
+            {topLeftNode ? (
+                <View style={styles.topLeftNode}>
+                    {topLeftNode}
+                </View>
+            ) : null}
+
             {onEdit ? (
                 <TouchableOpacity
                     onPress={onEdit}
@@ -136,7 +137,6 @@ const Hero: React.FC<HeroProps> = ({
                 </TouchableOpacity>
             ) : null}
 
-            {/* Contenu */}
             <View style={styles.content}>
                 <MaskedImage
                     uri={avatarUri || undefined}
@@ -145,10 +145,7 @@ const Hero: React.FC<HeroProps> = ({
                     shadow
                 />
 
-                <Text
-                    style={[styles.title, { color: theme.text }]}
-                    numberOfLines={titleLines}
-                >
+                <Text style={[styles.title, { color: theme.text }]} numberOfLines={titleLines}>
                     {title}
                 </Text>
 
@@ -179,11 +176,17 @@ const styles = StyleSheet.create({
         overflow: "hidden",
         position: "relative",
     },
+    topLeftNode: {
+        position: "absolute",
+        top: 10,
+        left: 10,
+        zIndex: 6,
+    },
     content: {
         alignItems: "center",
         gap: 8,
         paddingHorizontal: 12,
-        paddingVertical: 24,
+        paddingVertical: 18,
     },
     title: {
         textAlign: "center",
@@ -198,10 +201,6 @@ const styles = StyleSheet.create({
         alignItems: "center",
         gap: 6,
         paddingHorizontal: 8,
-    },
-    metaText: {
-        fontSize: 14,
-        fontWeight: "600",
     },
     fab: {
         position: "absolute",

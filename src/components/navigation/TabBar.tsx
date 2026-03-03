@@ -1,10 +1,5 @@
-import React, { useEffect, useRef, useCallback } from "react";
-import {
-    LayoutChangeEvent,
-    Platform,
-    StyleSheet,
-    View,
-} from "react-native";
+import React, { useEffect, useRef, useCallback, useMemo } from "react";
+import { LayoutChangeEvent, Platform, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import Animated, {
@@ -19,6 +14,7 @@ import * as Haptics from "expo-haptics";
 import { TabBarItem } from "./TabBarItem";
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import { useSession } from "@/src/context/SessionProvider";
+import { usePurchases } from "@/src/context/PurchasesProvider";
 import { BOTTOM_TABBAR_HEIGHT, CORNERS } from "@/src/theme/globals";
 import { withAlpha } from "@/src/utils/utils";
 
@@ -61,6 +57,7 @@ export default function TabBar({
     const insets = useSafeAreaInsets();
     const theme = useAppTheme();
     const { isMaintenance } = useSession();
+    const { isPro } = usePurchases();
 
     const routes = state.routes;
     const activeRouteIndex = state.index;
@@ -91,7 +88,6 @@ export default function TabBar({
     );
 
     useEffect(() => {
-        // resynchronise quand l’onglet actif change
         requestAnimationFrame(() => {
             animateToIndex(activeRouteIndex);
         });
@@ -112,28 +108,25 @@ export default function TabBar({
 
     const Background =
         Platform.OS === "ios" ? (
-            <BlurView
-                intensity={90}
-                tint={blurTintIOS}
-                style={StyleSheet.absoluteFill}
-            />
+            <BlurView intensity={90} tint={blurTintIOS} style={StyleSheet.absoluteFill} />
         ) : (
             <View
                 pointerEvents="none"
-                style={[
-                    StyleSheet.absoluteFill,
-                    { backgroundColor: backgroundColorAndroid },
-                ]}
+                style={[StyleSheet.absoluteFill, { backgroundColor: backgroundColorAndroid }]}
             />
         );
 
-    const pillBg = withAlpha(
-        isMaintenance ? theme.error : activeColor,
-        pillOpacity,
-    );
+    const accentColor = isMaintenance ? theme.error : activeColor;
+    const pillBg = withAlpha(accentColor, pillOpacity);
+
+    const borderColor = isMaintenance ? theme.error : isPro ? theme.gold : theme.border;
+
+    const boxBorderWidth = useMemo(() => {
+        if (isMaintenance || isPro) return 2;
+        return StyleSheet.hairlineWidth;
+    }, [isMaintenance, isPro]);
 
     const handleRowLayout = () => {
-        // tente une anim dès que la barre a un layout
         requestAnimationFrame(() => {
             animateToIndex(activeRouteIndex);
         });
@@ -151,22 +144,11 @@ export default function TabBar({
             };
 
     return (
-        <View
-            pointerEvents="box-none"
-            style={[styles.wrapper, { bottom: offsetFromBottom }]}
-        >
-            <View
-                style={[
-                    styles.box,
-                    {
-                        borderColor: isMaintenance ? theme.error : theme.border,
-                    },
-                ]}
-            >
+        <View pointerEvents="box-none" style={[styles.wrapper, { bottom: offsetFromBottom }]}>
+            <View style={[styles.box, { borderColor, borderWidth: boxBorderWidth }]}>
                 {Background}
 
                 <View style={styles.row} onLayout={handleRowLayout}>
-                    {/* PILL */}
                     <Animated.View
                         pointerEvents="none"
                         style={[
@@ -178,14 +160,11 @@ export default function TabBar({
                                 borderRadius: pillHeight / 2,
                                 backgroundColor: pillBg,
                                 borderWidth: pillBorder ? StyleSheet.hairlineWidth : 0,
-                                borderColor: isMaintenance
-                                    ? theme.error
-                                    : theme.borderSecondary,
+                                borderColor: theme.borderSecondary,
                             },
                         ]}
                     />
 
-                    {/* ITEMS */}
                     {routes.map((route, index) => {
                         const { options } = descriptors[route.key];
                         const isFocused = index === activeRouteIndex;
@@ -212,7 +191,7 @@ export default function TabBar({
                             });
                         };
 
-                        const color = isFocused ? activeColor : inactiveColor;
+                        const color = isFocused ? accentColor : inactiveColor;
                         const size = 26;
 
                         return (
@@ -243,7 +222,6 @@ const styles = StyleSheet.create({
         right: 0,
     },
     box: {
-        borderWidth: StyleSheet.hairlineWidth,
         marginHorizontal: 16,
         borderRadius: CORNERS,
         overflow: "hidden",

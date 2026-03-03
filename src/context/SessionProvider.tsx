@@ -51,11 +51,13 @@ export type SessionUserState = {
     canBypassUpdate: boolean;
     appUpdateUrl: string | null;
     refetchAppStatus: () => void;
+    isBootstrapped: boolean;
 };
 
 export type SessionContextValue = SessionActions & SessionUserState;
 
 const SessionContext = createContext<SessionContextValue | null>(null);
+
 export const useSession = () => {
     const ctx = useContext(SessionContext);
     if (!ctx) throw new Error("useSession must be used within <SessionProvider>");
@@ -101,36 +103,19 @@ export const SessionProvider: React.FC<React.PropsWithChildren> = ({ children })
 
     const [maintenanceBypass, setMaintenanceBypass] = useState(false);
     const [updateBypass, setUpdateBypass] = useState(false);
+    const [isBootstrapped, setIsBootstrapped] = useState(false);
 
     const isMaintenance = appStatus?.maintenance === true;
+    const isUpdateRequired = useMemo(() => computeIsUpdateRequired(appStatus), [appStatus]);
+    const appUpdateUrl = useMemo(() => getStoreUrl(appStatus), [appStatus]);
 
-    const isUpdateRequired = useMemo(
-        () => computeIsUpdateRequired(appStatus),
-        [appStatus],
-    );
-    const appUpdateUrl = useMemo(
-        () => getStoreUrl(appStatus),
-        [appStatus],
-    );
-
-    // Reset des bypass quand les conditions disparaissent
     useEffect(() => {
-        if (!isMaintenance && maintenanceBypass) {
-            setMaintenanceBypass(false);
-        }
+        if (!isMaintenance && maintenanceBypass) setMaintenanceBypass(false);
     }, [isMaintenance, maintenanceBypass]);
 
     useEffect(() => {
-        if (!isUpdateRequired && updateBypass) {
-            setUpdateBypass(false);
-        }
+        if (!isUpdateRequired && updateBypass) setUpdateBypass(false);
     }, [isUpdateRequired, updateBypass]);
-
-    const bypassMaintenance = () => setMaintenanceBypass(true);
-    const resetBypassMaintenance = () => setMaintenanceBypass(false);
-
-    const bypassUpdate = () => setUpdateBypass(true);
-    const resetBypassUpdate = () => setUpdateBypass(false);
 
     const isLoading = isAuth0UserLoading || isCustomUserLoading || isAppStatusLoading;
     const isError = !!auth0UserError || !!customUserError || isAppStatusError;
@@ -145,9 +130,7 @@ export const SessionProvider: React.FC<React.PropsWithChildren> = ({ children })
                 if (customUser?.id && token) {
                     await registerPushToken(customUser.id, token).catch(() => { });
                 }
-            } catch (err) {
-                console.warn("Erreur lors de l’enregistrement du push token :", err);
-            }
+            } catch { }
         })();
     }, [isAuthenticated, hasCompletedOnboarding, customUser?.id]);
 
@@ -157,7 +140,6 @@ export const SessionProvider: React.FC<React.PropsWithChildren> = ({ children })
         const bootstrapAuth = async () => {
             try {
                 const creds = await getCredentials(undefined, 60).catch(() => null);
-                if (cancelled) return;
 
                 if (creds?.accessToken) {
                     await primeApisWithAuth();
@@ -165,9 +147,10 @@ export const SessionProvider: React.FC<React.PropsWithChildren> = ({ children })
                 } else {
                     setAuthOnApis(apis, undefined, undefined);
                 }
-            } catch (err) {
-                console.warn("[Session] bootstrapAuth failed:", err);
+            } catch {
                 setAuthOnApis(apis, undefined, undefined);
+            } finally {
+                if (!cancelled) setIsBootstrapped(true);
             }
         };
 
@@ -189,7 +172,6 @@ export const SessionProvider: React.FC<React.PropsWithChildren> = ({ children })
         };
 
         const onUnauthorized = async (err: ApiError) => {
-            console.warn("[Auth] onUnauthorized", err?.status, err?.message)
             try {
                 await clearCredentials();
                 await clearRQCache();
@@ -227,34 +209,24 @@ export const SessionProvider: React.FC<React.PropsWithChildren> = ({ children })
             await clearCredentials();
             setAuthOnApis(apis, undefined, undefined);
             await clearRQCache();
-        } catch (err) {
-            console.warn("Erreur inattendue lors du softResetAuth :", err);
-        }
+        } catch { }
     };
 
     const signOutLocal = async () => {
-        if (isGuest) {
-            await leaveGuest();
-            return;
-        }
+        if (isGuest) return leaveGuest();
         await softResetAuth();
-        resetBypassMaintenance();
-        resetBypassUpdate();
+        setMaintenanceBypass(false);
+        setUpdateBypass(false);
     };
 
     const signOutSSO = async (opts?: { federated?: boolean }) => {
         try {
-            if (isGuest) {
-                await leaveGuest();
-                return;
-            }
+            if (isGuest) return leaveGuest();
             await clearSession(opts);
             await clearRQCache();
-            resetBypassMaintenance();
-            resetBypassUpdate();
-        } catch (err) {
-            console.warn("Erreur inattendue lors du logout SSO :", err);
-        }
+            setMaintenanceBypass(false);
+            setUpdateBypass(false);
+        } catch { }
     };
 
     const value = useMemo<SessionContextValue>(
@@ -265,10 +237,10 @@ export const SessionProvider: React.FC<React.PropsWithChildren> = ({ children })
             signOutLocal,
             signOutSSO,
             softResetAuth,
-            bypassMaintenance,
-            resetBypassMaintenance,
-            bypassUpdate,
-            resetBypassUpdate,
+            bypassMaintenance: () => setMaintenanceBypass(true),
+            resetBypassMaintenance: () => setMaintenanceBypass(false),
+            bypassUpdate: () => setUpdateBypass(true),
+            resetBypassUpdate: () => setUpdateBypass(false),
             auth0User,
             customUser,
             isAuthenticated,
@@ -290,25 +262,15 @@ export const SessionProvider: React.FC<React.PropsWithChildren> = ({ children })
             canBypassUpdate: canBypassAppStatus,
             appUpdateUrl,
             refetchAppStatus,
+            isBootstrapped,
         }),
         [
-            signIn,
-            continueAsGuest,
-            leaveGuest,
-            signOutLocal,
-            signOutSSO,
-            softResetAuth,
-            bypassMaintenance,
-            resetBypassMaintenance,
-            bypassUpdate,
-            resetBypassUpdate,
             auth0User,
             customUser,
             isAuthenticated,
             isGuest,
             isLoading,
             isError,
-            refetch,
             error,
             customUserError,
             auth0UserError,
@@ -322,6 +284,7 @@ export const SessionProvider: React.FC<React.PropsWithChildren> = ({ children })
             updateBypass,
             appUpdateUrl,
             refetchAppStatus,
+            isBootstrapped,
         ],
     );
 

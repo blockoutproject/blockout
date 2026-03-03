@@ -14,7 +14,6 @@ import { ReportType } from '@/src/types/Report';
 import FollowedScreen from '@/src/components/followed/FollowedScreen';
 import { openNotificationUrlIfAny } from '@/src/utils/notifications';
 import * as Notifications from 'expo-notifications';
-import { Redirect } from 'expo-router';
 
 const FeedScreen: React.FC = () => {
     const insets = useSafeAreaInsets();
@@ -144,9 +143,6 @@ const FeedScreen: React.FC = () => {
             openNotificationUrlIfAny(data as Record<string, unknown>);
         }
     }, [lastNotificationResponse]);
-
-    //if (isGuest) return <Redirect href={"/(tabs)/(search)/search"} />
-
     return (
         <>
             <TabView

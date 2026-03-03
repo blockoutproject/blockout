@@ -12,8 +12,7 @@ import InfoPillGradient from "@/src/components/common/chips/InfoPillGradient";
 import ApiErrorToast from "@/src/components/common/feedback/ApiErrorToast";
 import { GradientButton } from "@/src/components/common/GradientButton";
 import { ApiError } from "../api/core/ApiError";
-
-const APP_TITLE = "Blockout";
+import { APP_TITLE } from "../theme/globals";
 
 export const getLiveLinkErrorMessage = (err: unknown): string => {
     if (err instanceof ApiError) {
@@ -97,7 +96,7 @@ const LoginScreen: React.FC = () => {
                 <InfoPillGradient
                     label="Scores"
                     leftIcon="flash"
-                    size="sm"
+                    size="md"
                     variant="filled"
                     gradient={undefined}
                     borderWidth={1}
@@ -108,7 +107,7 @@ const LoginScreen: React.FC = () => {
                 <InfoPillGradient
                     label="Classements"
                     leftIcon="trophy"
-                    size="sm"
+                    size="md"
                     variant="filled"
                     gradient={undefined}
                     borderWidth={1}
@@ -119,7 +118,7 @@ const LoginScreen: React.FC = () => {
                 <InfoPillGradient
                     label="Suivi équipes"
                     leftIcon="bell-outline"
-                    size="sm"
+                    size="md"
                     variant="filled"
                     gradient={undefined}
                     borderWidth={1}

@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef, useState } from "react";
+import React, { useCallback } from "react";
 import {
     TouchableOpacity,
     StyleSheet,
@@ -6,8 +6,8 @@ import {
     Platform,
     View,
     Linking,
+    Text,
 } from "react-native";
-import { Image } from "expo-image";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import {
     TabBar,
@@ -20,18 +20,15 @@ import { LinearGradient } from "expo-linear-gradient";
 import { BlurView } from "expo-blur";
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import * as Haptics from "expo-haptics";
-import RawDivisionMappingsScreen from "../rawDivisionMapping/RawDivisionMappingScreen";
-import DivisionScreen from "../division/DivisionScreen";
-import { BottomSheetModal } from "@gorhom/bottom-sheet";
-import BottomSheetCustomPage from "../common/bottomSheet/BottomSheetCustomPage";
-import AdminScreen from "../appStatus/AdminScreen";
-import { LOGO_HEIGHT, TABBAR_HEIGHT } from "@/src/theme/globals";
-import useHasScopes from "@/src/hooks/user/useHasScopes";
+import { APP_TITLE, LOGO_HEIGHT, TABBAR_HEIGHT } from "@/src/theme/globals";
 import { withAlpha } from "@/src/utils/utils";
 import { useSession } from "@/src/context/SessionProvider";
-import MatchLiveModerationScreen from "../match/moderation/MatchLiveModerationScreen";
-import MaskedImage from "@/src/components/common/images/MaskedImage";
 import { CONFIG } from "@/src/config/config";
+import RevenueCatUI from "react-native-purchases-ui";
+import InfoPillGradient from "../common/chips/InfoPillGradient";
+import { usePurchases } from "@/src/context/PurchasesProvider";
+import { GOLD_GRADIENT } from "../common/GradientButton";
+import MaskedImage from "@/src/components/common/images/MaskedImage";
 
 type HeaderProps = SceneRendererProps & {
     navigationState: NavigationState<Route>;
@@ -39,6 +36,8 @@ type HeaderProps = SceneRendererProps & {
     androidBackgroundAlpha?: number;
     onOpenReport: () => void;
 };
+
+const INSTAGRAM_SIZE = 28;
 
 const AnimatedFeedHeader: React.FC<HeaderProps> = ({
     scrollYs,
@@ -48,41 +47,8 @@ const AnimatedFeedHeader: React.FC<HeaderProps> = ({
 }) => {
     const insets = useSafeAreaInsets();
     const theme = useAppTheme();
-    const { isMaintenance } = useSession();
-
-    const liveLinkModerationSheetRef = useRef<BottomSheetModal>(null);
-    const mappingSheetRef = useRef<BottomSheetModal>(null);
-    const divisionSheetRef = useRef<BottomSheetModal>(null);
-    const scraperSheetRef = useRef<BottomSheetModal>(null);
-
-    const [adminOpen, setAdminOpen] = useState(false);
-
-    const { allowed: canAccessLiveLinkModeration } = useHasScopes([
-        "moderate:match_live_link",
-    ]);
-
-    const { allowed: canAccessRawDivisionMappings } = useHasScopes([
-        "read:raw_division_mapping",
-        "update:raw_division_mapping",
-    ]);
-
-    const { allowed: canAccessDivisions } = useHasScopes([
-        "read:divisions",
-        "update:divisions",
-        "create:divisions",
-    ]);
-
-    const { allowed: canAdminManagement } = useHasScopes([
-        "read:scrapers",
-        "update:scrapers",
-        "update:maintenance",
-    ]);
-
-    const hasAnyAdmin =
-        canAccessRawDivisionMappings ||
-        canAccessDivisions ||
-        canAccessLiveLinkModeration ||
-        canAdminManagement;
+    const { isAuthenticated } = useSession();
+    const { isPro, isHydrated } = usePurchases();
 
     const { routes } = props.navigationState;
     const { position } = props;
@@ -92,7 +58,7 @@ const AnimatedFeedHeader: React.FC<HeaderProps> = ({
             inputRange: routes.map((__, idx) => idx),
             outputRange: routes.map((__, idx) => (idx === i ? 1 : 0)),
             extrapolate: "clamp",
-        })
+        }),
     );
 
     const progressByRoute = routes.map((r) =>
@@ -100,14 +66,14 @@ const AnimatedFeedHeader: React.FC<HeaderProps> = ({
             inputRange: [0, LOGO_HEIGHT],
             outputRange: [0, 1],
             extrapolate: "clamp",
-        })
+        }),
     );
 
     const combinedProgress = progressByRoute
         .map((p, i) => Animated.multiply(p, weights[i]))
         .reduce<Animated.AnimatedAddition<number>>(
             (acc, cur) => (acc ? Animated.add(acc, cur) : cur),
-            new Animated.Value(0)
+            new Animated.Value(0),
         );
 
     const translateY = combinedProgress.interpolate({
@@ -123,30 +89,22 @@ const AnimatedFeedHeader: React.FC<HeaderProps> = ({
     });
 
     const blurOpacity = combinedProgress;
-
-    const openLocal = (ref: React.RefObject<BottomSheetModal | null>) => () => {
-        Haptics.selectionAsync();
-        ref.current?.present();
-    };
-
-    const toggleAdmin = useCallback(async () => {
-        await Haptics.selectionAsync();
-        setAdminOpen((v) => !v);
-    }, []);
-
     const androidTint = withAlpha(theme.background, androidBackgroundAlpha);
 
     const handleOpenInstagram = useCallback(async () => {
         const url = CONFIG.INSTAGRAM_URL?.trim();
         if (!url) return;
-
-        try {
-            await Haptics.selectionAsync();
-            const canOpen = await Linking.canOpenURL(url);
-            if (!canOpen) return;
-            await Linking.openURL(url);
-        } catch {}
+        await Haptics.selectionAsync();
+        const canOpen = await Linking.canOpenURL(url);
+        if (canOpen) await Linking.openURL(url);
     }, []);
+
+    const handleOpenPro = useCallback(async () => {
+        await Haptics.selectionAsync();
+        await RevenueCatUI.presentPaywall();
+    }, []);
+
+    const showUpgradeCta = isAuthenticated && isHydrated && !isPro;
 
     return (
         <>
@@ -174,10 +132,7 @@ const AnimatedFeedHeader: React.FC<HeaderProps> = ({
                             <Animated.View
                                 style={[
                                     StyleSheet.absoluteFill,
-                                    {
-                                        backgroundColor: androidTint,
-                                        opacity: blurOpacity,
-                                    },
+                                    { backgroundColor: androidTint, opacity: blurOpacity },
                                 ]}
                             />
                             <LinearGradient
@@ -185,26 +140,45 @@ const AnimatedFeedHeader: React.FC<HeaderProps> = ({
                                 start={{ x: 0, y: 0.35 }}
                                 end={{ x: 0, y: 1 }}
                                 style={StyleSheet.absoluteFill}
-                                pointerEvents="none"
                             />
                         </>
                     )}
                 </View>
 
                 <Animated.View
-                    style={{
-                        height: LOGO_HEIGHT,
-                        opacity: titleOpacity,
-                        justifyContent: "center",
-                        alignItems: "flex-start",
-                        paddingLeft: 16,
-                    }}
+                    style={[
+                        styles.logoRow,
+                        {
+                            opacity: titleOpacity,
+                        },
+                    ]}
                 >
-                    <Image
-                        source={require("@/assets/images/blockout-logo-with-title-light.png")}
-                        style={styles.teamLogo}
-                        contentFit="contain"
-                    />
+                    <View style={styles.leftCluster}>
+                        <View style={styles.brandRow}>
+                            <MaskedImage
+                                fallback={require("@/assets/images/blockout-logo-dark.png")}
+                                size={26}
+                                radius={6}
+                            />
+                            <Text style={[styles.title, { color: theme.text }]}>
+                                {APP_TITLE}
+                            </Text>
+                        </View>
+
+                        {isHydrated && isPro && (
+                            <Text style={[styles.titlePro, { color: theme.gold }]}>
+                                Pro
+                            </Text>
+                        )}
+                    </View>
+
+                    <TouchableOpacity onPress={handleOpenInstagram} activeOpacity={0.85}>
+                        <MaterialCommunityIcons
+                            name="instagram"
+                            size={INSTAGRAM_SIZE}
+                            color={theme.text}
+                        />
+                    </TouchableOpacity>
                 </Animated.View>
 
                 <View style={styles.tabBarContainer}>
@@ -216,58 +190,27 @@ const AnimatedFeedHeader: React.FC<HeaderProps> = ({
                         style={styles.tabBar}
                         activeColor={theme.text}
                         inactiveColor={theme.textInactive}
-                        android_ripple={{ color: "transparent" }}
                     />
 
                     <View style={styles.actions}>
-                        {hasAnyAdmin && (
-                            <View style={styles.adminWrap}>
-                                <TouchableOpacity onPress={toggleAdmin}>
-                                    <MaterialCommunityIcons
-                                        name={adminOpen ? "close-circle-outline" : "wrench-outline"}
-                                        size={24}
-                                        color={theme.text}
-                                    />
-                                </TouchableOpacity>
-
-                                {adminOpen && (
-                                    <View style={styles.adminRow}>
-                                        {canAccessRawDivisionMappings && (
-                                            <TouchableOpacity onPress={openLocal(mappingSheetRef)}>
-                                                <MaterialCommunityIcons name="alpha-m-circle" size={28} color={theme.text} />
-                                            </TouchableOpacity>
-                                        )}
-                                        {canAccessDivisions && (
-                                            <TouchableOpacity onPress={openLocal(divisionSheetRef)}>
-                                                <MaterialCommunityIcons name="alpha-d-circle" size={28} color={theme.text} />
-                                            </TouchableOpacity>
-                                        )}
-                                        {canAccessLiveLinkModeration && (
-                                            <TouchableOpacity onPress={openLocal(liveLinkModerationSheetRef)}>
-                                                <MaterialCommunityIcons name="video-check-outline" size={28} color={theme.text} />
-                                            </TouchableOpacity>
-                                        )}
-                                        {canAdminManagement && (
-                                            <TouchableOpacity onPress={openLocal(scraperSheetRef)}>
-                                                <MaterialCommunityIcons
-                                                    name="power-standby"
-                                                    size={28}
-                                                    color={isMaintenance ? theme.error : theme.text}
-                                                />
-                                            </TouchableOpacity>
-                                        )}
-                                    </View>
-                                )}
+                        {showUpgradeCta && (
+                            <View style={{ marginRight: 4 }}>
+                                <InfoPillGradient
+                                    size="md"
+                                    borderWidth={1}
+                                    backgroundColor="transparent"
+                                    variant="border"
+                                    gradient={GOLD_GRADIENT}
+                                    leftIcon="rocket-launch-outline"
+                                    label="Passer à Pro"
+                                    onPress={handleOpenPro}
+                                    textColor={theme.gold}
+                                    iconColor={theme.gold}
+                                    labelStyle={{ color: theme.gold, fontWeight: "900" }}
+                                    style={styles.proPill}
+                                />
                             </View>
                         )}
-
-                        <MaskedImage
-                            fallback={require("@/assets/images/instagram.png")}
-                            size={28}
-                            radius={8}
-                            onPress={handleOpenInstagram}
-                            shadow
-                        />
 
                         <TouchableOpacity onPress={onOpenReport}>
                             <MaterialCommunityIcons name="flag-outline" size={28} color={theme.text} />
@@ -275,67 +218,63 @@ const AnimatedFeedHeader: React.FC<HeaderProps> = ({
                     </View>
                 </View>
             </Animated.View>
-
-            <BottomSheetCustomPage ref={liveLinkModerationSheetRef}>
-                <MatchLiveModerationScreen />
-            </BottomSheetCustomPage>
-
-            <BottomSheetCustomPage ref={mappingSheetRef}>
-                <RawDivisionMappingsScreen />
-            </BottomSheetCustomPage>
-
-            <BottomSheetCustomPage ref={divisionSheetRef}>
-                <DivisionScreen />
-            </BottomSheetCustomPage>
-
-            <BottomSheetCustomPage ref={scraperSheetRef}>
-                <AdminScreen />
-            </BottomSheetCustomPage>
         </>
     );
 };
 
 const styles = StyleSheet.create({
-    container: {
-        position: "absolute",
-        top: 0,
-        left: 0,
-        right: 0,
-        zIndex: 10,
+    container: { position: "absolute", top: 0, left: 0, right: 0, zIndex: 10 },
+
+    logoRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        paddingLeft: 10,
+        paddingRight: 10,
+        justifyContent: "space-between",
+    },
+
+    leftCluster: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 6,
+        flexShrink: 1,
+    },
+
+    brandRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 6,
+    },
+
+    title: {
+        fontFamily: "Outfit",
+        fontSize: 30,
+        fontWeight: "900",
+    },
+
+    titlePro: {
+        fontFamily: "Outfit",
+        fontSize: 30,
+        fontWeight: "400",
     },
     tabBarContainer: {
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
     },
-    tabBar: {
-        flex: 1,
-        marginLeft: 6,
-        height: TABBAR_HEIGHT,
-        backgroundColor: "transparent",
-    },
-    tabStyle: {
-        width: "auto",
-        paddingHorizontal: 4,
-    },
-    teamLogo: { flex: 1, aspectRatio: 5 },
+    tabBar: { flex: 1, height: TABBAR_HEIGHT, marginLeft: 6, backgroundColor: "transparent" },
+    tabStyle: { width: "auto", paddingHorizontal: 4 },
     indicator: { width: 0.5, height: 3 },
+
     actions: {
         flexDirection: "row",
         alignItems: "center",
-        gap: 8,
+        gap: 6,
         paddingRight: 10,
     },
-    adminWrap: {
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 6,
-    },
-    adminRow: {
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 6,
-    },
+
+    proPill: { alignSelf: "flex-start", borderRadius: 999 },
+    proBadge: {},
 });
 
 export default AnimatedFeedHeader;

@@ -1,15 +1,17 @@
 import React, { useMemo } from "react";
-import { Animated, View } from "react-native";
+import { Animated } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import GenericTabView from "@/src/components/common/GenericTabView";
 import MatchList from "@/src/components/matchList/MatchListContainer";
 import RankingTab from "@/src/components/ranking/RankingTab";
+import ProUpsellTab from "@/src/components/club/ProUpsellTab";
 
 import { MatchStatus } from "@/src/types/Match";
 import { EnrichedPoolDTO } from "@/src/types/Pool";
 import { TABBAR_HEIGHT } from "@/src/theme/globals";
-import PoolMapTab from "../map/poolMap/PoolMapTab";
+import PoolMapTab from "./PoolMapTab";
+import { usePurchases } from "@/src/context/PurchasesProvider";
 
 /** Tabs for pool: Ranking / Upcoming / Finished / Map. */
 export type PoolTabsProps = {
@@ -19,13 +21,14 @@ export type PoolTabsProps = {
 
 const PoolTabs: React.FC<PoolTabsProps> = ({ enrichedPool }) => {
     const insets = useSafeAreaInsets();
+    const { isPro } = usePurchases();
 
     const tabs = useMemo(
         () => [
             { key: "ranking", title: "Classement" },
             { key: "upcoming", title: "À Venir" },
             { key: "finished", title: "Terminés" },
-            { key: "map", title: "Carte" }, // ✅ nouveau
+            { key: "map", title: "Carte" },
         ],
         []
     );
@@ -34,10 +37,7 @@ const PoolTabs: React.FC<PoolTabsProps> = ({ enrichedPool }) => {
         return Object.fromEntries(tabs.map((tab) => [tab.key, new Animated.Value(0)]));
     }, [tabs]);
 
-    const ranking = useMemo(
-        () => <RankingTab enrichedPool={enrichedPool} />,
-        [enrichedPool]
-    );
+    const ranking = useMemo(() => <RankingTab enrichedPool={enrichedPool} />, [enrichedPool]);
 
     const finished = useMemo(
         () => (
@@ -46,11 +46,7 @@ const PoolTabs: React.FC<PoolTabsProps> = ({ enrichedPool }) => {
                 status={MatchStatus.FINISHED}
                 scrollY={scrollYs["finished"]}
                 headerOffset={TABBAR_HEIGHT}
-                contentContainerStyle={[
-                    {
-                        paddingHorizontal: 4,
-                    },
-                ]}
+                contentContainerStyle={[{ paddingHorizontal: 4 }]}
                 showPoolHeader={false}
             />
         ),
@@ -64,25 +60,20 @@ const PoolTabs: React.FC<PoolTabsProps> = ({ enrichedPool }) => {
                 status={MatchStatus.UPCOMING}
                 scrollY={scrollYs["upcoming"]}
                 headerOffset={TABBAR_HEIGHT}
-                contentContainerStyle={[
-                    {
-                        paddingHorizontal: 4,
-                    },
-                ]}
+                contentContainerStyle={[{ paddingHorizontal: 4 }]}
                 showPoolHeader={false}
             />
         ),
         [enrichedPool.id, insets.bottom, scrollYs]
     );
 
-    const map = useMemo(
-        () => (
-            <PoolMapTab
-                enrichedPool={enrichedPool}
-            />
-        ),
-        [enrichedPool]
-    );
+    const map = useMemo(() => {
+        if (!isPro) {
+            return <ProUpsellTab subtitle="Accède à la carte géographique des équipes de la poule avec Blockout Pro." />;
+        }
+
+        return <PoolMapTab enrichedPool={enrichedPool} />;
+    }, [enrichedPool, isPro]);
 
     const renderTabs = useMemo(
         () =>

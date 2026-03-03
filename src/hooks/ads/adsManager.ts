@@ -27,20 +27,17 @@ export function onAdsReady(listener: () => void) {
 
 async function runInitFlow() {
     try {
-        // ⚠️ garde RESET seulement en dev
         if (__DEV__) {
             await AdsConsent.reset();
         }
 
         const consentInfo = await AdsConsent.requestInfoUpdate();
-        console.log("[AdsConsent] status:", consentInfo.status);
 
         if (
             consentInfo.isConsentFormAvailable &&
             consentInfo.status === AdsConsentStatus.REQUIRED
         ) {
             await AdsConsent.showForm();
-            console.log("[AdsConsent] form shown");
         }
 
         if (Platform.OS === "ios") {
@@ -51,7 +48,6 @@ async function runInitFlow() {
         }
 
         await mobileAds().initialize();
-        console.log("[Ads] Mobile Ads initialized ✅");
 
         adsReady = true;
         listeners.forEach((fn) => fn());

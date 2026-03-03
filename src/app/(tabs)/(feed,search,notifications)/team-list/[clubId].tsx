@@ -37,7 +37,6 @@ const TeamListScreen: React.FC = () => {
     const { clubId } = useLocalSearchParams();
     const { handleNavigationWithAd } = useNavigationInterstitial();
 
-    console.log("Rendering TeamListScreen for clubId:", clubId);
     const { data, isLoading, isError, refetch } = useTeamListByClubId(
         String(clubId),
     );

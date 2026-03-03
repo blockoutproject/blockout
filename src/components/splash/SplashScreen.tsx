@@ -3,11 +3,13 @@ import { SplashScreen } from "expo-router";
 import { useSession } from "../../context/SessionProvider";
 
 export function SplashScreenController() {
-    const { isLoading } = useSession();
+    const { isLoading, isBootstrapped } = useSession();
 
     useEffect(() => {
-        if (!isLoading) SplashScreen.hide();
-    }, [isLoading]);
+        if (!isLoading && isBootstrapped) {
+            SplashScreen.hide();
+        }
+    }, [isLoading, isBootstrapped]);
 
     return null;
 }

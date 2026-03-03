@@ -3,6 +3,7 @@ import { Linking, Platform, StatusBar } from "react-native";
 import { AdEventType, InterstitialAd } from "react-native-google-mobile-ads";
 import { ADS } from "@/src/config/ads";
 import { onAdsReady } from "./adsManager";
+import { usePurchases } from "@/src/context/PurchasesProvider";
 
 let sharedInterstitial: InterstitialAd | null = null;
 let isLoaded = false;
@@ -38,9 +39,7 @@ function ensureInterstitial() {
             if (url) {
                 try {
                     await Linking.openURL(url);
-                } catch {
-                    // ignore
-                }
+                } catch { }
             }
 
             isLoaded = false;
@@ -52,31 +51,42 @@ function ensureInterstitial() {
 }
 
 export const useWebLinkInterstitial = () => {
+    const { isPro } = usePurchases();
+
     useEffect(() => {
+        if (isPro) return;
         const unsubscribe = onAdsReady(() => {
             ensureInterstitial();
         });
         return unsubscribe;
-    }, []);
+    }, [isPro]);
 
-    const openLinkWithInterstitial = useCallback((url: string) => {
-        const interstitial = sharedInterstitial;
+    const openLinkWithInterstitial = useCallback(
+        (url: string) => {
+            if (isPro) {
+                Linking.openURL(url).catch(() => { });
+                return;
+            }
 
-        if (!interstitial || !isLoaded) {
-            Linking.openURL(url).catch(() => { });
-            return;
-        }
+            const interstitial = sharedInterstitial;
 
-        pendingUrl = url;
+            if (!interstitial || !isLoaded) {
+                Linking.openURL(url).catch(() => { });
+                return;
+            }
 
-        try {
-            interstitial.show();
-            isLoaded = false;
-        } catch {
-            pendingUrl = null;
-            Linking.openURL(url).catch(() => { });
-        }
-    }, []);
+            pendingUrl = url;
+
+            try {
+                interstitial.show();
+                isLoaded = false;
+            } catch {
+                pendingUrl = null;
+                Linking.openURL(url).catch(() => { });
+            }
+        },
+        [isPro],
+    );
 
     return { openLinkWithInterstitial };
 };

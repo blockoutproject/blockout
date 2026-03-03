@@ -7,6 +7,7 @@ export interface Club {
     email: string | null;
     phoneNumber: string | null;
     website: string | null;
+    address: string | null;
     logoUrl: string | null;
     longitude: number | null;
     latitude: number | null;

@@ -10,36 +10,25 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
-import Animated, {
-    useAnimatedStyle,
-    useSharedValue,
-    withSpring,
-} from "react-native-reanimated";
+import Animated, { useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
 
 export type GradientButtonProps = {
-    /** Callback au press */
     onPress: () => Promise<void> | void;
-    /** Désactive le bouton */
     disabled?: boolean;
-    /** Affiche l’état de chargement */
     loading?: boolean;
-    /** Libellé par défaut */
     label: string;
-    /** Libellé pendant le chargement */
     loadingLabel?: string;
-    /** Icône à gauche */
     leftIcon?: React.ReactNode;
-    /** Affiche l’icône même en chargement */
     showLeftIconWhenLoading?: boolean;
-    /** Style du conteneur pressable (wrapper externe) */
     style?: ViewStyle;
-    /** Couleur du texte et du spinner */
     textColor?: string;
-    /** Largeur adaptative */
     fullWidth?: boolean;
+    gradient?: [string, string, string];
 };
 
 export const CTA_GRADIENT: [string, string, string] = ["#24b3c9ff", "#8f8bfaff", "#F472B6"];
+export const GOLD_GRADIENT: [string, string, string] = ["#fedc84", "#CFAE70", "#9E844C"];
+
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 export const GradientButton: React.FC<GradientButtonProps> = ({
@@ -53,6 +42,7 @@ export const GradientButton: React.FC<GradientButtonProps> = ({
     style,
     textColor = "#000000",
     fullWidth,
+    gradient = CTA_GRADIENT,
 }) => {
     const scale = useSharedValue(1);
 
@@ -90,19 +80,14 @@ export const GradientButton: React.FC<GradientButtonProps> = ({
             onPressIn={handlePressIn}
             onPressOut={handlePressOut}
             onPress={handlePress}
-            style={[
-                styles.pressable,
-                fullWidth ? styles.fullWidth : null,
-                animatedStyle,
-                style,
-            ]}
+            style={[styles.pressable, fullWidth ? styles.fullWidth : null, animatedStyle, style]}
             disabled={isDisabled}
             accessibilityRole="button"
             accessibilityState={{ disabled: isDisabled, busy: !!loading }}
             testID="gradient-button"
         >
             <LinearGradient
-                colors={CTA_GRADIENT}
+                colors={gradient}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={[styles.button, loading && styles.buttonLoading, fullWidth && styles.buttonFull]}
@@ -115,9 +100,7 @@ export const GradientButton: React.FC<GradientButtonProps> = ({
                     {loading ? (
                         <>
                             <ActivityIndicator size="small" color={textColor} />
-                            <Text style={[styles.text, { color: textColor }]}>
-                                {loadingLabel ?? label}
-                            </Text>
+                            <Text style={[styles.text, { color: textColor }]}>{loadingLabel ?? label}</Text>
                         </>
                     ) : (
                         <Text style={[styles.text, { color: textColor }]}>{label}</Text>

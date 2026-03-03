@@ -3,6 +3,7 @@ import { Platform, StatusBar } from "react-native";
 import { AdEventType, InterstitialAd } from "react-native-google-mobile-ads";
 import { ADS } from "@/src/config/ads";
 import { onAdsReady } from "./adsManager";
+import { usePurchases } from "@/src/context/PurchasesProvider";
 
 const CLICKS_BETWEEN_ADS = 10;
 
@@ -15,7 +16,6 @@ let isShowing = false;
 let pendingNavigate: (() => void) | null = null;
 
 let hasShownFirstAd = false;
-
 let navSinceLastAd = 0;
 
 function ensureInterstitial() {
@@ -43,17 +43,13 @@ function ensureInterstitial() {
             isShowing = false;
             if (Platform.OS === "ios") StatusBar.setHidden(false);
 
-            // Exécute la navigation qui attendait la pub
             if (pendingNavigate) {
                 const nav = pendingNavigate;
                 pendingNavigate = null;
                 nav();
             }
 
-            // On marque la pub comme "consommée"
             isLoaded = false;
-
-            // Recharge immédiatement la suivante
             sharedInterstitial?.load();
         });
 
@@ -62,29 +58,57 @@ function ensureInterstitial() {
 }
 
 export const useNavigationInterstitial = () => {
+    const { isPro } = usePurchases();
+
     useEffect(() => {
+        if (isPro) return;
         const unsubscribe = onAdsReady(() => {
             ensureInterstitial();
         });
         return unsubscribe;
-    }, []);
+    }, [isPro]);
 
-    const handleNavigationWithAd = useCallback((navigate: () => void) => {
-        navSinceLastAd += 1;
+    const handleNavigationWithAd = useCallback(
+        (navigate: () => void) => {
+            if (isPro) {
+                navigate();
+                return;
+            }
 
-        const interstitial = sharedInterstitial;
+            navSinceLastAd += 1;
 
-        if (!interstitial || !isLoaded || isShowing) {
-            navigate();
-            return;
-        }
+            const interstitial = sharedInterstitial;
 
-        if (!hasShownFirstAd) {
-            hasShownFirstAd = true;
+            if (!interstitial || !isLoaded || isShowing) {
+                navigate();
+                return;
+            }
+
+            if (!hasShownFirstAd) {
+                hasShownFirstAd = true;
+                navSinceLastAd = 0;
+
+                pendingNavigate = navigate;
+                try {
+                    interstitial.show();
+                    isLoaded = false;
+                } catch {
+                    pendingNavigate = null;
+                    navigate();
+                }
+                return;
+            }
+
+            const shouldShow = navSinceLastAd >= CLICKS_BETWEEN_ADS;
+
+            if (!shouldShow) {
+                navigate();
+                return;
+            }
 
             navSinceLastAd = 0;
-
             pendingNavigate = navigate;
+
             try {
                 interstitial.show();
                 isLoaded = false;
@@ -92,27 +116,9 @@ export const useNavigationInterstitial = () => {
                 pendingNavigate = null;
                 navigate();
             }
-            return;
-        }
-
-        const shouldShow = navSinceLastAd >= CLICKS_BETWEEN_ADS;
-
-        if (!shouldShow) {
-            navigate();
-            return;
-        }
-
-        navSinceLastAd = 0;
-        pendingNavigate = navigate;
-
-        try {
-            interstitial.show();
-            isLoaded = false;
-        } catch {
-            pendingNavigate = null;
-            navigate();
-        }
-    }, []);
+        },
+        [isPro],
+    );
 
     return { handleNavigationWithAd };
 };

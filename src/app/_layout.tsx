@@ -12,48 +12,26 @@ import { ApiProvider } from "@/src/context/ApiProvider";
 import { SessionProvider, useSession } from "@/src/context/SessionProvider";
 import { SplashScreenController } from "@/src/components/splash/SplashScreen";
 import { useOnboardingStore } from "../utils/onboardingStore";
-import {
-    addNotificationListeners,
-    openNotificationUrlIfAny,
-} from "../utils/notifications";
+import { addNotificationListeners, openNotificationUrlIfAny } from "../utils/notifications";
 import { useNavigationInterstitial } from "../hooks/ads/useNavigationInterstitial";
 import { useConsentGDPR } from "../hooks/ads/useConsentGDPR";
+import { PurchasesProvider } from "../context/PurchasesProvider";
 
 const queryClient = new QueryClient();
 
 export default function Root() {
-    useConsentGDPR();
-
-    const { handleNavigationWithAd } = useNavigationInterstitial();
-
-    const handleNotificationRespond = useCallback(
-        (response: any) => {
-            const data = response.notification.request.content.data;
-            openNotificationUrlIfAny(data, handleNavigationWithAd);
-        },
-        [handleNavigationWithAd]
-    );
-
-    useEffect(() => {
-        const remove = addNotificationListeners({
-            onRespond: handleNotificationRespond,
-        });
-        return remove;
-    }, [handleNotificationRespond]);
-
     return (
         <GestureHandlerRootView style={{ flex: 1 }}>
             <QueryClientProvider client={queryClient}>
                 <ThemeProvider>
                     <StatusBar barStyle="light-content" />
-                    <Auth0Provider
-                        domain={AUTH0_CONFIG.domain}
-                        clientId={AUTH0_CONFIG.clientId}
-                    >
+                    <Auth0Provider domain={AUTH0_CONFIG.domain} clientId={AUTH0_CONFIG.clientId}>
                         <ApiProvider>
                             <SessionProvider>
-                                <SplashScreenController />
-                                <RootNavigator />
+                                <PurchasesProvider>
+                                    <SplashScreenController />
+                                    <RootNavigator />
+                                </PurchasesProvider>
                             </SessionProvider>
                         </ApiProvider>
                     </Auth0Provider>
@@ -64,6 +42,23 @@ export default function Root() {
 }
 
 function RootNavigator() {
+    useConsentGDPR();
+
+    const { handleNavigationWithAd } = useNavigationInterstitial();
+
+    const handleNotificationRespond = useCallback(
+        (response: any) => {
+            const data = response.notification.request.content.data;
+            openNotificationUrlIfAny(data, handleNavigationWithAd);
+        },
+        [handleNavigationWithAd],
+    );
+
+    useEffect(() => {
+        const remove = addNotificationListeners({ onRespond: handleNotificationRespond });
+        return remove;
+    }, [handleNotificationRespond]);
+
     const {
         isAuthenticated,
         isGuest,
@@ -72,6 +67,7 @@ function RootNavigator() {
         isUpdateRequired,
         updateBypass,
     } = useSession();
+
     const { hasCompletedOnboarding } = useOnboardingStore();
 
     const isBlockedByUpdate = isUpdateRequired && !updateBypass;
@@ -95,25 +91,18 @@ function RootNavigator() {
                     />
                 </Stack.Protected>
 
-                <Stack.Protected
-                    guard={!(isGuest || isAuthenticated) && !isGloballyBlocked}
-                >
+                <Stack.Protected guard={!(isGuest || isAuthenticated) && !isGloballyBlocked}>
                     <Stack.Screen
                         name="sign-in"
                         options={{ animation: "fade_from_bottom", animationDuration: 300 }}
                     />
                 </Stack.Protected>
 
-                <Stack.Protected
-                    guard={(isGuest || isAuthenticated) && !isGloballyBlocked}
-                >
+                <Stack.Protected guard={(isGuest || isAuthenticated) && !isGloballyBlocked}>
                     <Stack.Protected guard={!hasCompletedOnboarding}>
                         <Stack.Screen
                             name="onboarding"
-                            options={{
-                                animation: "fade_from_bottom",
-                                animationDuration: 300,
-                            }}
+                            options={{ animation: "fade_from_bottom", animationDuration: 300 }}
                         />
                     </Stack.Protected>
 
