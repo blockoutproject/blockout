@@ -34,7 +34,7 @@ public class ClubController {
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Liste des clubs"),
     })
-    //TODOZ @PreAuthorize("hasAuthority('SCOPE_read:clubs')")
+    @PreAuthorize("hasAuthority('SCOPE_read:clubs')")
     @GetMapping
     public ResponseEntity<List<Club>> listClubs(
             @RequestParam(required = false) List<String> ids,
@@ -48,7 +48,7 @@ public class ClubController {
             @ApiResponse(responseCode = "200", description = "Club trouvé"),
             @ApiResponse(responseCode = "404", description = "Club introuvable")
     })
-    //TODOZ @PreAuthorize("hasAuthority('SCOPE_read:clubs')")
+    @PreAuthorize("hasAuthority('SCOPE_read:clubs')")
     @GetMapping("/{id}")
     public ResponseEntity<Club> getClubById(@PathVariable String id) {
         Club club = clubService.getClubById(id);
@@ -60,7 +60,7 @@ public class ClubController {
             @ApiResponse(responseCode = "201", description = "Club créé"),
             @ApiResponse(responseCode = "400", description = "Requête invalide")
     })
-    //TODOZ @PreAuthorize("hasAuthority('SCOPE_create:clubs')")
+    @PreAuthorize("hasAuthority('SCOPE_create:clubs')")
     @PostMapping(consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Club> createClub(
             @RequestPart("data") String json,
@@ -82,7 +82,7 @@ public class ClubController {
             @ApiResponse(responseCode = "200", description = "Club mis à jour"),
             @ApiResponse(responseCode = "404", description = "Club introuvable")
     })
-    //TODOZ @PreAuthorize("hasAuthority('SCOPE_update:clubs')")
+    @PreAuthorize("hasAuthority('SCOPE_update:clubs')")
     @PutMapping(path = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Club> updateClub(
             @PathVariable String id,
@@ -99,7 +99,7 @@ public class ClubController {
             @ApiResponse(responseCode = "204", description = "Club désactivé"),
             @ApiResponse(responseCode = "404", description = "Club introuvable")
     })
-    //TODOZ @PreAuthorize("hasAuthority('SCOPE_delete:clubs')")
+    @PreAuthorize("hasAuthority('SCOPE_delete:clubs')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deactivateClub(@PathVariable String id) {
         clubService.deactivateClub(id);
