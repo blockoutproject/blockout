@@ -8,7 +8,7 @@ from auth0.authentication import GetToken
 from config.env_config import AUTH0_DOMAIN, AUTH0_AUDIENCE, AUTH0_CLIENT_ID, AUTH0_CLIENT_SECRET
 from config.logger_config import log_event
 
-M2M_ENABLED = False
+M2M_ENABLED = True
 
 _MIRROR_TOKEN: str | None = ""
 _TOKEN_EXP_EPOCH: float = float("inf")
