@@ -53,7 +53,7 @@ public class PoolController {
             @ApiResponse(responseCode = "201", description = "Pool créée"),
             @ApiResponse(responseCode = "400", description = "Requête invalide")
     })
-    //TODOZ @PreAuthorize("hasAuthority('SCOPE_create:pools')")
+    @PreAuthorize("hasAuthority('SCOPE_create:pools')")
     @PostMapping
     public ResponseEntity<Pool> createPool(@RequestBody Pool pool) {
         Pool created = poolService.createPool(pool);
@@ -69,7 +69,7 @@ public class PoolController {
             @ApiResponse(responseCode = "200", description = "Pool mise à jour"),
             @ApiResponse(responseCode = "404", description = "Pool introuvable")
     })
-    //TODOZ @PreAuthorize("hasAuthority('SCOPE_update:pools')")
+    @PreAuthorize("hasAuthority('SCOPE_update:pools')")
     @PutMapping(path = "/{id}")
     public ResponseEntity<Pool> updatePool(
             @PathVariable Long id,
@@ -84,7 +84,7 @@ public class PoolController {
             @ApiResponse(responseCode = "204", description = "Pool désactivée"),
             @ApiResponse(responseCode = "404", description = "Pool introuvable")
     })
-    //TODOZ @PreAuthorize("hasAuthority('SCOPE_delete:pools')")
+    @PreAuthorize("hasAuthority('SCOPE_delete:pools')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deactivatePool(@PathVariable Long id) {
         poolService.deactivatePool(id);
@@ -96,7 +96,7 @@ public class PoolController {
             @ApiResponse(responseCode = "200", description = "Compteur incrémenté"),
             @ApiResponse(responseCode = "404", description = "Pool introuvable")
     })
-    //TODOZ @PreAuthorize("hasAuthority('SCOPE_follow:pools')")
+    @PreAuthorize("hasAuthority('SCOPE_follow:pools')")
     @PostMapping("/{poolId}/followers/increment")
     public ResponseEntity<Pool> incrementFollowers(
             @PathVariable Long poolId,
@@ -111,7 +111,7 @@ public class PoolController {
             @ApiResponse(responseCode = "200", description = "Compteur décrémenté"),
             @ApiResponse(responseCode = "404", description = "Pool introuvable")
     })
-    //TODOZ @PreAuthorize("hasAuthority('SCOPE_follow:pools')")
+    @PreAuthorize("hasAuthority('SCOPE_follow:pools')")
     @PostMapping("/{poolId}/followers/decrement")
     public ResponseEntity<Pool> decrementFollowers(
             @PathVariable Long poolId,
