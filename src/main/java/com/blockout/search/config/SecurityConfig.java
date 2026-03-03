@@ -21,7 +21,7 @@ public class SecurityConfig {
         */
         return http
                 .authorizeHttpRequests((authorize) -> authorize
-                    .anyRequest().permitAll() //TODOZ
+                    .anyRequest().authenticated()
                 )
                 .csrf(csrf -> csrf.disable())
                 .cors(withDefaults())
