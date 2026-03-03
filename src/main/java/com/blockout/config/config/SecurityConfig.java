@@ -21,7 +21,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(authz -> authz
                         .requestMatchers(HttpMethod.GET, "/api/v1/config/legal/**").permitAll()
                         .requestMatchers(HttpMethod.PUT, "/api/v1/config/legal/**").hasAuthority("SCOPE_update:legal")
-                        .anyRequest().permitAll() // TODOZ
+                        .anyRequest().authenticated()
                 )
                 .csrf(csrf -> csrf.disable())
                 .cors(withDefaults())

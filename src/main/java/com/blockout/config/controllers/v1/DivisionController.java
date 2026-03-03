@@ -33,7 +33,7 @@ public class DivisionController {
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Liste des divisions renvoyée")
     })
-    //TODOZ @PreAuthorize("hasAuthority('SCOPE_read:divisions')")
+    @PreAuthorize("hasAuthority('SCOPE_read:divisions')")
     @GetMapping
     public ResponseEntity<List<Division>> listAll() {
         List<Division> divisions = divisionService.findAll();
@@ -45,7 +45,7 @@ public class DivisionController {
             @ApiResponse(responseCode = "200", description = "Division trouvée"),
             @ApiResponse(responseCode = "404", description = "Division introuvable")
     })
-    //TODOZ @PreAuthorize("hasAuthority('SCOPE_read:divisions')")
+    @PreAuthorize("hasAuthority('SCOPE_read:divisions')")
     @GetMapping("/{id}")
     public ResponseEntity<Division> getDivisionById(@PathVariable Long id) {
         Division division = divisionService.getDivisionById(id);
@@ -57,7 +57,7 @@ public class DivisionController {
             @ApiResponse(responseCode = "201", description = "Division créée ou réactivée"),
             @ApiResponse(responseCode = "400", description = "Requête invalide")
     })
-    //TODOZ @PreAuthorize("hasAuthority('SCOPE_create:divisions')")
+    @PreAuthorize("hasAuthority('SCOPE_create:divisions')")
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Division> createDivision(
             @RequestPart("data") String json,
@@ -79,7 +79,7 @@ public class DivisionController {
             @ApiResponse(responseCode = "200", description = "Division mise à jour"),
             @ApiResponse(responseCode = "404", description = "Division introuvable")
     })
-    //TODOZ @PreAuthorize("hasAuthority('SCOPE_update:divisions')")
+    @PreAuthorize("hasAuthority('SCOPE_update:divisions')")
     @PutMapping(path = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Division> updateDivision(
             @PathVariable Long id,
@@ -96,7 +96,7 @@ public class DivisionController {
             @ApiResponse(responseCode = "204", description = "Division désactivée"),
             @ApiResponse(responseCode = "404", description = "Division introuvable")
     })
-    //TODOZ @PreAuthorize("hasAuthority('SCOPE_delete:divisions')")
+    @PreAuthorize("hasAuthority('SCOPE_delete:divisions')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deactivate(@PathVariable Long id) {
         divisionService.deactivateDivision(id);

@@ -37,7 +37,7 @@ public class LegalDocumentController {
             @ApiResponse(responseCode = "404", description = "Document introuvable")
     })
     @PutMapping("/{type}")
-    //TODOZ @PreAuthorize("hasAuthority('SCOPE_update:legal')")
+    @PreAuthorize("hasAuthority('SCOPE_update:legal')")
     public ResponseEntity<LegalDocument> updateLegal(
             @PathVariable String type,
             @RequestBody LegalDocumentUpdateDTO dto) {

@@ -38,7 +38,7 @@ public class ScraperStatusController {
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "État mis à jour")
     })
-    //TODOZ @PreAuthorize("hasAuthority('SCOPE_update:scrapers')")
+    @PreAuthorize("hasAuthority('SCOPE_update:scrapers')")
     @PutMapping("/{name}/enabled")
     public ResponseEntity<ScraperStatus> updateStatus(
             @PathVariable ScraperName name,
@@ -51,7 +51,7 @@ public class ScraperStatusController {
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Liste des statuts renvoyée")
     })
-    //TODOZ @PreAuthorize("hasAuthority('SCOPE_read:scrapers')")
+    @PreAuthorize("hasAuthority('SCOPE_read:scrapers')")
     @GetMapping("/status")
     public ResponseEntity<List<ScraperStatus>> listAll() {
         return ResponseEntity.ok(scraperStatusService.findAll());
