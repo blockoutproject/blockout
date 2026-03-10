@@ -81,6 +81,7 @@ async def handle_csv_download_and_parse(
 
         scraped_team_ids = set()
         scraped_match_codes = set()
+        is_nat_or_pro = new_pool.league_code in {"AALNV", "ABCCS"}
         
         # Vérification des matchs anormaux pour savoir si on parse le classement avec un calcul ou avec la page HTML
         has_anomalous_match = False
@@ -170,7 +171,7 @@ async def handle_csv_download_and_parse(
                     active_team_ids.add(team_obj.id)
 
             # Association stats
-            if not has_anomalous_match and updated_match.set:
+            if not has_anomalous_match and updated_match.set and not is_nat_or_pro:
                 try:
                     set_a, set_b = updated_match.set.split('-')
                     team_a_stats, team_b_stats = compute_volleyball_match_stats(set_a, set_b, updated_match.score)
@@ -190,7 +191,7 @@ async def handle_csv_download_and_parse(
             scraper.schedule_match_changes(updated_match=updated_match, prefix="CSV", priority=DataSourcePriority.FFVB)
 
         # Fallback classement si anomalie
-        if has_anomalous_match:
+        if has_anomalous_match or is_nat_or_pro:
             stats_list = await extract_club_stats_list(scraper, raw_season, new_pool)
             fallback_teams = await get_teams(scraper.session, ids=list(active_team_ids)) or []
             team_lookup = {normalize(t.raw_name): t for t in fallback_teams}
