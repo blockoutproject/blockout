@@ -84,12 +84,12 @@ async def handle_csv_download_and_parse(
         is_nat_or_pro = new_pool.league_code in {"AALNV", "ABCCS"}
         
         # Vérification des matchs anormaux pour savoir si on parse le classement avec un calcul ou avec la page HTML
-        has_anomalous_match = False
-        for row in valid_rows:
-            set_str = row.get("set")
-            if set_str and is_anomalous_set_format(set_str):
-                has_anomalous_match = True
-                break 
+        has_anomalous_match = True
+        # for row in valid_rows:
+        #     set_str = row.get("set")
+        #     if set_str and is_anomalous_set_format(set_str):
+        #         has_anomalous_match = True
+        #         break 
 
         for row in valid_rows:
             match_datetime = parse_date(row.get('match_date'), row.get('match_time'))
@@ -171,22 +171,22 @@ async def handle_csv_download_and_parse(
                     active_team_ids.add(team_obj.id)
 
             # Association stats
-            if not has_anomalous_match and updated_match.set and not is_nat_or_pro:
-                try:
-                    set_a, set_b = updated_match.set.split('-')
-                    team_a_stats, team_b_stats = compute_volleyball_match_stats(set_a, set_b, updated_match.score)
+            # if not has_anomalous_match and updated_match.set and not is_nat_or_pro:
+            #     try:
+            #         set_a, set_b = updated_match.set.split('-')
+            #         team_a_stats, team_b_stats = compute_volleyball_match_stats(set_a, set_b, updated_match.score)
 
-                    scraper.schedule_association_update(new_pool.id, new_team_a.id, team_a_stats)
-                    scraper.schedule_association_update(new_pool.id, new_team_b.id, team_b_stats)
-                except Exception as e:
-                    log_event(
-                        "score_parsing_exception", 
-                        "error", 
-                        match_code=match_code, 
-                        set=updated_match.set,
-                        error=str(e), 
-                        message="Erreur parsing score pour calcul des stats"
-                    )
+            #         scraper.schedule_association_update(new_pool.id, new_team_a.id, team_a_stats)
+            #         scraper.schedule_association_update(new_pool.id, new_team_b.id, team_b_stats)
+            #     except Exception as e:
+            #         log_event(
+            #             "score_parsing_exception", 
+            #             "error", 
+            #             match_code=match_code, 
+            #             set=updated_match.set,
+            #             error=str(e), 
+            #             message="Erreur parsing score pour calcul des stats"
+            #         )
 
             scraper.schedule_match_changes(updated_match=updated_match, prefix="CSV", priority=DataSourcePriority.FFVB)
 
