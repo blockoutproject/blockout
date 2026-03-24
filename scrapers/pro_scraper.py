@@ -41,6 +41,13 @@ class ProScraper(Scraper):
                 "lnv_xml_rank_url": "https://www.lnv.fr/xml/classement-LAM.xml",
             },
             {
+                "pool_code": "PAZ",
+                "name": "Marmara SpikeLigue - Playoffs",
+                "lnv_url": "https://lnv-web.dataproject.com/CompetitionMatches.aspx?ID=125",
+                "lnv_xml_matches_url": "https://www.lnv.fr/xml/calendrier-LAM.xml",
+                "lnv_xml_rank_url": "https://www.lnv.fr/xml/classement-LAM.xml",
+            },
+            {
                 "pool_code": "LBM",
                 "name": "Ligue B Masculine",
                 "lnv_url": "https://lnv-web.dataproject.com/CompetitionMatches.aspx?ID=126",
@@ -50,6 +57,13 @@ class ProScraper(Scraper):
             {
                 "pool_code": "SPS",
                 "name": "Saforelle Power 6",
+                "lnv_url": "https://lnv-web.dataproject.com/CompetitionMatches.aspx?ID=124",
+                "lnv_xml_matches_url": "https://www.lnv.fr/xml/calendrier-LAF.xml",
+                "lnv_xml_rank_url": "https://www.lnv.fr/xml/classement-LAF.xml",
+            },
+            {
+                "pool_code": "FAZ",
+                "name": "Saforelle Power 6 - Playoffs",
                 "lnv_url": "https://lnv-web.dataproject.com/CompetitionMatches.aspx?ID=124",
                 "lnv_xml_matches_url": "https://www.lnv.fr/xml/calendrier-LAF.xml",
                 "lnv_xml_rank_url": "https://www.lnv.fr/xml/classement-LAF.xml",
