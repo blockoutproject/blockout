@@ -31,7 +31,7 @@ public class TeamSearchService {
 
     /**
      * @param input texte tapé par l'utilisateur
-     * @param season saison filtrée (keyword, ex: "2025/2026")
+     * @param season saison filtrée (keyword, ex: "2026/2027")
      * @param divisionId division filtrée (id numérique)
      * @param format format filtré (ex: "SIX", "FOUR", "TWO")
      * @param gender genre filtré (ex: "M", "F", "O")
