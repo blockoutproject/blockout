@@ -1,0 +1,33 @@
+{
+  "name": "@blockout/local-platform",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "infra/local-platform",
+  "projectType": "application",
+  "tags": ["scope:infra", "type:application", "platform:docker"],
+  "targets": {
+    "config": {
+      "executor": "nx:run-commands",
+      "cache": true,
+      "options": {
+        "cwd": "infra/local-platform",
+        "command": "docker compose config --quiet"
+      }
+    },
+    "serve": {
+      "executor": "nx:run-commands",
+      "continuous": true,
+      "options": {
+        "cwd": "infra/local-platform",
+        "command": "docker compose up"
+      }
+    },
+    "stop": {
+      "executor": "nx:run-commands",
+      "cache": false,
+      "options": {
+        "cwd": "infra/local-platform",
+        "command": "docker compose down"
+      }
+    }
+  }
+}
