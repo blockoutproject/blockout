@@ -1,0 +1,33 @@
+{
+  "name": "@blockout/club-scraper",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "apps/scrapers/club-scraper",
+  "projectType": "application",
+  "tags": ["scope:scrapers", "type:application", "platform:python"],
+  "targets": {
+    "serve": {
+      "executor": "nx:run-commands",
+      "continuous": true,
+      "options": {
+        "cwd": "apps/scrapers/club-scraper",
+        "command": "python3 main.py"
+      }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "cache": true,
+      "options": {
+        "cwd": "apps/scrapers/club-scraper",
+        "command": "python3 -m pytest"
+      }
+    },
+    "docker-build": {
+      "executor": "nx:run-commands",
+      "cache": false,
+      "options": {
+        "cwd": "apps/scrapers/club-scraper",
+        "command": "docker build --tag blockoutproject/blockout-scraper-clubs:latest ."
+      }
+    }
+  }
+}
