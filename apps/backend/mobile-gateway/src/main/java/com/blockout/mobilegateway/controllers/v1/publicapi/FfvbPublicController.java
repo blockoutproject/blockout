@@ -65,7 +65,7 @@ public class FfvbPublicController {
                     String genderFolder = p.codmatch().startsWith("SPS") ? "Women" : "Men";
                     url = UriComponentsBuilder
                             .fromUriString(String.format(
-                                    "https://www.lnv.fr/pdf/2025/DataVolley/%s/%s-2026.pdf",
+                                    "https://www.lnv.fr/pdf/2025/DataVolley/%s/%s-2027.pdf",
                                     genderFolder, p.codmatch()))
                             .toUriString();
                 } else {

@@ -42,8 +42,9 @@ state moves to GitHub and this file becomes a historical migration record.
   - Evidence: `npm run compare:maaatch -- <path>` reports shared roots, policies, variants, and deferred skills.
 - [x] MRG-005 Define the completion evidence format used by every later phase.
   - Evidence: completed items use one indented `Evidence:` line naming the durable source or successful check.
-- [ ] MRG-006 Reconcile the two excluded legacy working-tree changes before their deployable source freeze.
-  - Execution mode: PLAN_REQUIRED
+- [x] MRG-006 Reconcile the two excluded legacy working-tree changes before their deployable source freeze.
+  - Evidence: the monorepo mirrors both preserved 2026/2027 legacy deltas; targeted compile, scraper syntax, docs, and
+    diff checks pass.
 
 ## Phase MRG-100 — Agentic Foundation
 
