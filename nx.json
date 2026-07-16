@@ -47,5 +47,33 @@
         "verbose": false
       }
     }
-  ]
+  ],
+  "generators": {
+    "@nx/expo": {
+      "application": {
+        "linter": "none",
+        "unitTestRunner": "none",
+        "e2eTestRunner": "none",
+        "useProjectJson": true
+      },
+      "library": {
+        "linter": "none",
+        "unitTestRunner": "none",
+        "strict": true
+      },
+      "component": {
+        "skipTests": true
+      }
+    },
+    "@nx/react": {
+      "library": {
+        "style": "none",
+        "bundler": "none",
+        "linter": "none",
+        "unitTestRunner": "none",
+        "component": false,
+        "strict": true
+      }
+    }
+  }
 }

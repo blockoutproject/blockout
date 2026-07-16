@@ -98,8 +98,11 @@ state moves to GitHub and this file becomes a historical migration record.
       boundary prepared for Orval-generated clients without changing runtime defaults.
   - Evidence: `TanstackQueryProvider` owns the unchanged singleton client inside mobile; Nx discovery, mobile typecheck,
     Expo Android/iOS export, formatting, docs, structural comparison, and diff checks pass.
-- [ ] MRG-204 Align `nx.json` named inputs, root TypeScript references, workspace ownership, and generators while
+- [x] MRG-204 Align `nx.json` named inputs, root TypeScript references, workspace ownership, and generators while
       retaining the Expo plugin instead of Next.js.
+  - Evidence: Nx retains Expo, TypeScript, and Maven plugins; generator defaults preserve the test-free workspace
+    policy; root references target only mobile and contracts; direct React generator ownership, sync, dry-runs,
+    discovery, typechecks, formatting, documentation, structural comparison, and diff checks pass.
 - [x] MRG-205 Align root documentation and agent entrypoints with Maaatch; keep only technology-required extra files.
   - Evidence: `README.md`, `CLAUDE.md`, `DESIGN.md`, and the documentation index route the same repository roles.
 - [x] MRG-206 Add a repeatable structural comparison command under `scripts`.
