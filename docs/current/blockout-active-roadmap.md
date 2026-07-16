@@ -164,8 +164,11 @@ state moves to GitHub and this file becomes a historical migration record.
   - Evidence: `docs/migration/backend-contract-audits/mrg-259-reports-service.md` inventories both REST boundaries,
     every Blockout/multipart/S3/GitHub/Discord field, BFF/Expo casing and consumers, side-effect ordering, validation,
     security leaks, tests, unknowns, and provisional target roles without runtime changes.
-- [ ] MRG-260 Audit `notification-service` field by field, including REST DTOs, direct persistence projections, Expo
+- [x] MRG-260 Audit `notification-service` field by field, including REST DTOs, direct persistence projections, Expo
       vendor payloads, event consumers, pagination, token ownership, and mobile-gateway consumers.
+  - Evidence: `docs/migration/backend-contract-audits/mrg-260-notification-service.md` inventories all REST, event,
+    persistence, Expo, BFF, and mobile fields; token ownership, delivery consistency, pagination, casing, mapper and
+    compatibility gaps; existing tests, unknowns, and provisional target roles without runtime changes.
 - [ ] MRG-261 Audit `search-service` field by field, including search document DTOs, query/filter semantics, empty-result
       behavior, Elasticsearch ownership, and mobile-gateway consumers.
 - [ ] MRG-262 Audit `search-worker` field by field, including copied service DTOs, cache bootstrap clients, event
