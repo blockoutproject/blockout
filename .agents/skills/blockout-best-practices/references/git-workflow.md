@@ -228,9 +228,9 @@ not by itself complete a roadmap issue or unlock its dependents.
 After an authorized merge, fetch `origin/develop`, then fast-forward the local `develop` branch with
 `git merge --ff-only origin/develop` and verify status plus the resulting commit. If another worktree owns `develop`,
 update the remote-tracking ref in the current worktree and report the owning checkout that still needs synchronization;
-do not force a switch, detach that checkout, or rewrite either branch. The explicitly invoked
-[`Merge Runbook`](../../../../docs/runbooks/tasks/merge.md) is the exception: it never updates local or remaining PR
-branches and leaves every listed branch refresh to the user.
+do not force a switch, detach that checkout, or rewrite either branch. The future Merge Runbook activated by Phase
+MRG-1000 will be the exception: it will never update local or remaining PR branches and will leave every listed branch
+refresh to the user.
 
 ## Final Report
 

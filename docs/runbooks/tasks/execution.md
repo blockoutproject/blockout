@@ -1,183 +1,95 @@
-# Task Execution Runbook
+# Local Roadmap Task Execution
 
-> Migration status: dormant until Phase MRG-1000 in `docs/current/blockout-active-roadmap.md`. Use the local roadmap during migration.
+Use this runbook during Blockout migration to execute exactly one task from
+`docs/current/blockout-active-roadmap.md`, validate it, record its evidence, commit it, and push it directly to
+`origin/main`.
 
-Use this when the user explicitly asks to plan or execute a selected or already acquired Blockout task.
+This is the only active task runbook until Phase MRG-1000 activates the Maaatch GitHub Roadmap and GitFlow. It does not
+create an issue, branch, pull request, claim, or merge operation.
 
-## Rules
+## Authorization Boundary
 
-- Preserve unrelated user changes.
-- Execute only the claimed issue and frozen workset.
-- Do not edit generated artifacts by hand.
-- Do not develop the task-specific execution plan, create a branch, or edit task files until the claim protocol
-  succeeds.
-- For `PLAN_REQUIRED`, do not create a branch or edit task files until the current user approves the claimed execution
-  plan.
-- In a managed local checkout, use one authenticated `gh` transport outside the sandbox for issue, Project, and PR
-  operations. The compact helper's `authenticatedLogin` is sufficient identity evidence when it is used. Use the
-  connector only for a capability gap and prove identities match before mixing evidence.
-- Run Git network operations and every `.git` write outside the sandbox on their first attempt. Keep reads, edits, and
-  local validation inside the sandbox.
-- Read `github-roadmap-operations.md` for operation mechanics and load lifecycle/governance only when needed. Do not
-  create a mutating roadmap CLI or Markdown claim ledger.
+Invoking this runbook authorizes the repository changes, Git commit, and direct `main` push required for one roadmap
+task. It never authorizes:
 
-## Entry Profile
+- production image publication or a Dokploy webhook;
+- disabling a standalone repository workflow;
+- destructive Git, history rewriting, force-push, or discarding unrelated work;
+- product behavior or architecture decisions not already resolved by current sources;
+- execution of a second roadmap task.
 
-Always start with `git status --short --branch`, inspect relevant dirty diffs, and identify exactly one profile from
-Roadmap operations:
+## Read-Only Selection
 
-### `FRESH`
+Before any repository or Git mutation:
 
-1. Read Roadmap operations.
-2. Read the compact Project index, target issue, fields, labels, assignees, native dependencies, linked PRs, complete
-   workset, and active/quarantined claims.
-3. Read [`../../current/blockout-product-runtime-context.md`](../../current/blockout-product-runtime-context.md),
-   [`../../current/blockout-agent-brief.md`](../../current/blockout-agent-brief.md), and scope-specific references.
-4. Confirm source gate, Execution Mode, Ready contract, workset grammar, and conflicts before claim.
+1. Run `git status --short --branch` and require a clean worktree on local `main` tracking `origin/main`.
+2. Read `docs/current/blockout-active-roadmap.md` from top to bottom.
+3. Select the first unchecked item matching `- [ ] MRG-...`. Do not skip it for a more convenient later task.
+4. Read its indented metadata and dependencies.
+5. Treat the task as `DEFAULT_EXECUTION` unless it has the exact metadata line
+   `- Execution mode: PLAN_REQUIRED`.
+6. Stop without mutation when the task is blocked, depends on incomplete work, is already implemented, or cannot be
+   scoped from current repository evidence.
 
-### `ACQUIRED_SAME_TASK`
+## PLAN_REQUIRED Gate
 
-1. Reuse the same uninterrupted task's stable acquisition evidence, loaded references, source gate, and Execution Mode.
-2. Revalidate only target, claim owner/event, workset/conflicts, branch, PR, and unexpected Project drift.
-3. Continue from branch creation without selecting, assigning, or loading unchanged sources again.
+Evaluate this gate immediately after selection and before fetching, synchronizing `main`, editing files, or changing
+the roadmap.
 
-### `RESUME`
+- If the selected task is `DEFAULT_EXECUTION`, continue.
+- If it is `PLAN_REQUIRED`, continue only when the current Codex collaboration mode is explicitly `Plan`.
+- If Plan mode is absent, inactive, or cannot be proven, fail closed with this result:
 
-1. Read Roadmap operations if it is not already loaded in the current task.
-2. Obtain a fresh compact index and read target, workset/conflicts, assignment event, branch, PR, and sources that may
-   have drifted since the interruption.
-3. Continue at the first incomplete step without selecting or assigning again.
+```text
+PLAN_REQUIRED: Codex Plan mode is not active. No repository or Git mutation was performed.
+```
 
-For every profile, `BLOCK` stops execution. `PLAN_REQUIRED` keeps branch creation and task-file edits closed until the
-current user approves the claimed plan. If connector fallback is required, read both authenticated logins and stop
-unless they match exactly.
+When Plan mode is active, follow its planning and approval lifecycle. Do not edit implementation files, mark the task
+complete, commit, or push until the plan has been approved and execution is authorized.
 
-## Resume And Recovery Preflight
+## Main Preflight
 
-Before a new claim, inspect whether the target already has one:
+After the execution-mode gate passes:
 
-1. Resume an `In Progress`, `In Review`, or assigned `Blocked` issue only when exactly the authenticated user owns it.
-   In the same uninterrupted task, reuse stable acquisition evidence under the freshness guard and revalidate only
-   drift-sensitive workset, conflict, branch, PR, and assignment state. Continue without selecting or assigning again.
-2. Stop when another user owns the claim.
-3. Quarantine `Ready` with an assignee, an active status without exactly one assignee, closed non-terminal items, and
-   active claims whose workset or `area:*` labels are invalid. Reserve every parseable lock until recovery. If an active
-   workset cannot be parsed far enough to determine its locks, stop all new claims.
+1. Fetch `origin/main`.
+2. Require local `main` to equal `origin/main`; fast-forward it when it is only behind.
+3. Stop on divergence, an unexpected upstream, a dirty worktree, or any unrelated local change.
+4. Read `blockout-best-practices`, the current runtime context, the selected task's sources, and only the references
+   required by its scope.
+5. Derive a bounded implementation and validation set from the task. If a meaningful product, UX, architecture,
+   ownership, deployment, or source decision remains unresolved, stop and change the task to `PLAN_REQUIRED` in a
+   separate explicitly authorized roadmap-editing operation.
 
-## Mandatory Claim Before Planning, Branch, Or Editing
+## Execution
 
-Skip the mutation steps only when the resume preflight proves a coherent claim created by acquisition or earlier
-execution. The same stable evidence remains mandatory.
+1. Implement only the selected task.
+2. Preserve current production behavior and deployable boundaries unless the task and user explicitly authorize a
+   later cutover phase.
+3. Add newly discovered follow-up work to the appropriate future roadmap phase only when it is necessary to keep the
+   roadmap accurate; do not execute that follow-up now.
+4. Run every scope-appropriate generation, validation, compile, build, or existing test required by
+   `blockout-best-practices`.
+5. Inspect the final diff and rerun invalidated checks after the last relevant edit.
+6. If implementation or validation fails, leave the task unchecked and do not commit or push.
 
-### Read phase
+## Completion And Publication
 
-1. Read the compact paginated Project index and targeted detailed claim evidence.
-2. Collect active claims and quarantined claims defined above.
-3. Compare the target workset with every active claim.
-4. If any write or external lock overlaps, leave the issue `Ready`, report the conflicting issue, owner, and exact
-   locks, and stop.
-5. Confirm the target is unassigned and the intended assignee is the authenticated GitHub user.
+Only after the implementation and all required validations succeed:
 
-### Mutation phase
-
-1. Add the authenticated user as the single assignee through `gh api`.
-2. Resolve the live Project schema once for the uninterrupted workflow, then update `Status` to `In Progress`.
-3. Immediately reread compact decision state, target assignees, relevant worksets, and assignment timeline, then
-   obtain a second consecutive matching snapshot.
-
-If a mutation fails or its result is ambiguous, stop and follow Roadmap operations' partial-claim recovery. Proceed
-only after its two stable post-claim snapshots authorize plan development and, subject to the `PLAN_REQUIRED` gate,
-branch creation and editing.
-
-If the reread reveals a concurrent overlap, apply the canonical arbitration in Roadmap operations and release only the
-losing claim. Only the unique conflict-free winner may continue; branch creation still requires an approved plan when
-the task is `PLAN_REQUIRED`.
-
-## PLAN_REQUIRED Planning Gate
-
-After the two stable post-claim snapshots:
-
-1. research and resolve the named product, UX, visual, architecture, ownership, source-gate, or priority decisions with
-   the current user;
-2. keep branch creation and task-file edits closed until the current user approves the resulting execution plan;
-3. if the approved plan needs a new path or external resource, complete Scope Expansion before touching it;
-4. if the user abandons planning, rejects the plan, or hands the task back before implementation, remove the assignee,
-   return the item to `Ready`, and reread both postconditions;
-5. if planning exposes a real blocker, apply Roadmap lifecycle's `Blocked` guard and explicitly retain or release the
-   workset instead of leaving an idle `In Progress` claim.
-
-The planning claim records ownership and reserves the workset; it is not implementation approval.
-
-## Scope Expansion
-
-Before touching a new path or external resource, stop and follow Roadmap operations' scope-expansion protocol. The
-expansion yields to every incumbent reservation. Preserve the previous valid workset for restoration and stop in
-quarantine if a body/label rollback is partial or ambiguous.
-
-## GitFlow
-
-Follow `.agents/skills/blockout-best-practices/references/git-workflow.md`:
-
-1. create or reuse the claimed issue's branch;
-2. implement only the workset;
-3. run scope-appropriate validation;
-4. inspect and stage only intended files;
-5. commit and push;
-6. open or update a draft PR targeting `develop`;
-7. batch safe PR metadata, link the issue, and report checks run or skipped;
-8. verify the structural link with a targeted issue/PR query;
-9. transition the issue to `In Review`, then reread only the target issue, PR, assignee, workset, and changed Project
-   field while retaining the reservation.
-
-When execution was started by [`ready-drain.md`](ready-drain.md), stop after this publication gate. Do not select or
-claim another issue in the same task. The controller must verify the coherent review reservation and create a fresh
-worktree task for the next acquisition.
-
-This runbook authorizes the non-destructive Git/GitHub operations required for that flow. It does not authorize force
-pushes, destructive Git, staging unrelated files, hand-editing generated artifacts, or bypassing a user override.
-
-Opening the draft PR is not release authorization. Before merge, require the current user's explicit merge approval,
-remove draft state, reread the latest diff and claim, inspect current reviews and checks, and require every applicable
-validation and required check to pass. A missing or failing required check needs an explicit human waiver recorded on
-the PR. The absence of branch protection does not waive this gate.
-
-Use Git workflow's deterministic link-mode, zero-step CI, rebase-based branch-refresh, merge-commit PR integration,
-and post-merge `develop` synchronization paths.
-
-If another PR changed `develop` after this PR's last validation, invalidate the prior release evidence. Refresh the
-branch by rebasing it onto current `develop`, resolve conflicts, rerun affected checks, and obtain new merge
-authorization when the effective diff or release risk changed. Never merge `develop` into the task branch.
-
-## Completion And Release
-
-Apply Roadmap lifecycle's canonical guards for `Blocked`, explicit claim release, `In Review`, repository or
-external-only `Done`, rejection, post-merge work, Epic rollup, and terminal integrity. Reread all postconditions after
-each mutation; never infer completion from a merged PR or mutation response alone.
-
-After any merge or terminal or blocker state change, run lifecycle's Dependency Unlock Reconciliation before reporting
-completion or acquiring more work. Reread fresh native dependents and all their blockers; move an unassigned dependent
-to `Ready` only when every blocker is closed and its complete Ready contract, source gate, delivered-state challenge,
-and workset compatibility pass. Otherwise keep it `Blocked` and report the exact unresolved requirement. Recalculate
-affected parent Epics after dependent transitions, then require two consecutive matching snapshots for the completed
-task, direct dependents, relevant successors, and parents.
-
-## Validation Defaults
-
-Bind every completed local validation to the exact tree it checked. Reuse it only while no relevant tracked or
-untracked file changes. A new commit with the same validated tree may reuse the result; any relevant tree change must
-rerun the impacted validation. This working evidence never replaces current PR checks, reviews, diff, claim, or waiver
-evidence before merge.
-
-- Docs/governance only: inspect links and terminology, perform live read-only Project calculations, and run
-  `git diff --check`.
-- Contracts: generate contracts and impacted clients/server sources.
-- Backend: targeted Maven generation, compile, or existing tests.
-- Frontend: typecheck, usually build, and browser evidence for visual changes.
-
-Do not add unit tests unless the user explicitly requests them.
+1. Change the selected checkbox from `[ ]` to `[x]`.
+2. Add one indented `Evidence:` line naming the durable source and successful checks.
+3. Run `npm run validate:docs`, `npm run validate:agents`, and `git diff --check` in addition to task-specific checks.
+4. Stage only the intended task files and the roadmap evidence.
+5. Inspect `git diff --cached --check`, the staged file list, and the staged diff.
+6. Commit in English with a focused message containing the roadmap ID.
+7. Fetch `origin/main` again and require the remote head to remain the preflight head. Stop on remote movement; never
+   force-push or silently rebase a completed task.
+8. Push the commit with `git push origin main`.
+9. Monitor the resulting shadow CI run to completion. Report a failed CI without rewriting history or triggering
+   production actions.
+10. Stop after this single task.
 
 ## Final Report
 
-Include issue, owner, workset, compatibility result, source gate, Execution Mode, changed files, validations, skipped
-checks, branch, commit, push, draft PR, final Project status, release decision or waiver when applicable, and any parent
-or successor transition.
+Report the roadmap ID and title, execution mode, changed areas, validations and skipped checks, roadmap evidence,
+commit, push result, CI result, and any real blocker. State explicitly that no production deployment occurred.

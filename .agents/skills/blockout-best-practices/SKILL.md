@@ -35,6 +35,7 @@ credential mutation, or retirement of standalone repositories.
 | Task signal                                                        | Read                                                                                              |
 | ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------- |
 | Current migration task, phase, dependency, or completion evidence  | `docs/current/blockout-active-roadmap.md`                                                         |
+| Execute the next local migration task and push it to `main`        | `docs/runbooks/tasks/execution.md`                                                                |
 | Current product/runtime posture and closed boundaries              | `docs/current/blockout-product-runtime-context.md`                                                |
 | Product behavior or runtime change                                 | `references/baseline-v1-policy.md`                                                                |
 | OpenAPI contract, DTO, endpoint, or future generated client/server | `references/contract-first.md`, then the endpoint or pagination policy                            |
@@ -75,6 +76,8 @@ revalidation. Generated output, history, and the migration roadmap never activat
 ## Roadmap Workflow
 
 - Work one roadmap item or one explicitly compatible batch at a time.
+- During local-roadmap mode, `docs/runbooks/tasks/execution.md` is the only active task runbook and overrides the
+  dormant GitHub branch/PR workflow for its single direct-to-`main` publication.
 - Revalidate the item against current source before editing.
 - Update the item's checkbox and short evidence only after validation succeeds.
 - Add newly discovered work to the correct future phase instead of expanding the current item silently.

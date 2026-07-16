@@ -42,6 +42,8 @@ const expectedComposeFiles = [
   'pgadmin/servers.json',
 ];
 
+const expectedTaskRunbooks = ['execution.md'];
+
 const forbiddenPatterns = [
   ['Maaatch npm scope', /@maaatch\//],
   ['Maaatch Java package', /com\.maaatch/],
@@ -70,6 +72,9 @@ compareExactSet('docs/current', currentDocuments, expectedCurrentDocuments);
 
 const composeFiles = relativeFiles(join(workspaceRoot, 'infra/compose'));
 compareExactSet('infra/compose', composeFiles, expectedComposeFiles);
+
+const taskRunbooks = relativeFiles(join(workspaceRoot, 'docs/runbooks/tasks'));
+compareExactSet('docs/runbooks/tasks', taskRunbooks, expectedTaskRunbooks);
 
 for (const file of markdownFiles(skillRoot)) {
   const content = readFileSync(file, 'utf8');

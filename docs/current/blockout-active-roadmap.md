@@ -12,6 +12,8 @@ state moves to GitHub and this file becomes a historical migration record.
 - Preserve current production behavior until each deployable completes its own cutover.
 - Complete and validate one item before checking it off.
 - Add evidence as one short indented line below the completed item.
+- Unmarked pending items use `DEFAULT_EXECUTION`. A pending item that requires Codex Plan mode has the exact indented
+  metadata `- Execution mode: PLAN_REQUIRED`.
 - Do not use this roadmap to authorize product behavior changes.
 - Do not reset Git history, disable standalone workflows, publish production images, or call Dokploy before the owning
   phase explicitly opens that action.
@@ -41,6 +43,7 @@ state moves to GitHub and this file becomes a historical migration record.
 - [x] MRG-005 Define the completion evidence format used by every later phase.
   - Evidence: completed items use one indented `Evidence:` line naming the durable source or successful check.
 - [ ] MRG-006 Reconcile the two excluded legacy working-tree changes before their deployable source freeze.
+  - Execution mode: PLAN_REQUIRED
 
 ## Phase MRG-100 — Agentic Foundation
 
@@ -57,9 +60,8 @@ state moves to GitHub and this file becomes a historical migration record.
       replacing web-only rules with Expo and React Native equivalents.
 - [ ] MRG-106 Align every generic skill present in Maaatch that applies to Expo/React or shared TypeScript code; record
       Next.js- or shadcn-only skills as non-applicable rather than copying them blindly.
-- [x] MRG-107 Align task runbooks with Maaatch while keeping GitHub acquisition and merge paths dormant during local
-      migration mode.
-  - Evidence: discovery, acquisition, execution, ready-drain, and merge mirror Maaatch and carry dormant markers.
+- [x] MRG-107 Establish one temporary local-roadmap task runbook while GitHub acquisition and merge remain dormant.
+  - Evidence: `docs/runbooks/tasks/execution.md` selects one item, enforces Plan mode, validates it, and pushes `main`.
 - [x] MRG-108 Add a skill/reference consistency validator that rejects missing router targets and stale project paths.
   - Evidence: `npm run validate:agents` validates policies, `docs/current`, and the exact Compose topology.
 - [ ] MRG-109 Remove temporary migration exceptions from the router after the target architecture is active.

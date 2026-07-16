@@ -4,14 +4,11 @@ Runbooks are reusable procedures. They do not own task state or production autho
 
 ## Task Workflows
 
-- [`tasks/discovery.md`](tasks/discovery.md): read-only task discovery after GitHub Roadmap activation.
-- [`tasks/acquisition.md`](tasks/acquisition.md): claim a configured Roadmap task after activation.
-- [`tasks/execution.md`](tasks/execution.md): execute approved work through validation and publication after activation.
-- [`tasks/ready-drain.md`](tasks/ready-drain.md): drain compatible Ready tasks after activation.
-- [`tasks/merge.md`](tasks/merge.md): merge only after explicit authorization and current evidence.
+- [`tasks/execution.md`](tasks/execution.md): select the next local roadmap task, execute and validate it, record its
+  evidence, commit it, and push it directly to `main`.
 
-These GitHub workflows are dormant during local migration-roadmap mode. Use
-[`../current/blockout-active-roadmap.md`](../current/blockout-active-roadmap.md) until Phase MRG-1000.
+This is the only active task workflow during migration. GitHub acquisition, branch, pull-request, ready-drain, and
+merge runbooks return only when Phase MRG-1000 activates the final Maaatch GitFlow.
 
 ## Audit and Execution Pairs
 

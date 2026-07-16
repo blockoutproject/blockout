@@ -7,13 +7,13 @@ operational source of truth. This index routes each operation to one focused own
 
 ## Required Reference
 
-| Operation                                                                                                                | Read                                                                                                                                                           |
-| ------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Inspect, acquire, claim, resume, expand scope, or operate an issue/PR through draft publication                          | [`github-roadmap-operations.md`](github-roadmap-operations.md)                                                                                                 |
-| Drain compatible Ready issues into separate Codex tasks and draft PRs                                                    | [`github-roadmap-operations.md`](github-roadmap-operations.md) plus [`ready-drain.md`](../../../../docs/runbooks/tasks/ready-drain.md)                         |
-| Select and merge one eligible pull request                                                                               | [`github-roadmap-lifecycle.md`](github-roadmap-lifecycle.md), [`git-workflow.md`](git-workflow.md), and [`merge.md`](../../../../docs/runbooks/tasks/merge.md) |
-| Classify issue type or execution mode, transition lifecycle state, review, release, complete, reject, or roll up an Epic | [`github-roadmap-lifecycle.md`](github-roadmap-lifecycle.md)                                                                                                   |
-| Change Project fields, options, tracks, priorities, views, workflows, migration state, or governance structure           | [`github-roadmap-governance.md`](github-roadmap-governance.md)                                                                                                 |
+| Operation                                                                                                                | Read                                                           |
+| ------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------- |
+| Inspect, acquire, claim, resume, expand scope, or operate an issue/PR through draft publication                          | [`github-roadmap-operations.md`](github-roadmap-operations.md) |
+| Drain compatible Ready issues into separate Codex tasks and draft PRs                                                    | Runbook intentionally unavailable until Phase MRG-1000         |
+| Select and merge one eligible pull request                                                                               | Runbook intentionally unavailable until Phase MRG-1000         |
+| Classify issue type or execution mode, transition lifecycle state, review, release, complete, reject, or roll up an Epic | [`github-roadmap-lifecycle.md`](github-roadmap-lifecycle.md)   |
+| Change Project fields, options, tracks, priorities, views, workflows, migration state, or governance structure           | [`github-roadmap-governance.md`](github-roadmap-governance.md) |
 
 Ordinary next-task discovery, acquisition, and execution through a draft PR read the operations reference only. Load
 the lifecycle reference when a lifecycle decision or release guard is needed. Load governance only for Project
