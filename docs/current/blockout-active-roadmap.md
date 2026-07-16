@@ -153,8 +153,12 @@ state moves to GitHub and this file becomes a historical migration record.
     match/day/live/report fields, result transitions, pagination, live policies and moderation states, three unconsumed
     deactivation queues, notification events, scraper transport/cache behavior, BFF fan-out and projection drift,
     Expo/TanStack consumers, casing, validation, tests, unknowns, and provisional target roles without runtime changes.
-- [ ] MRG-258 Audit `users-service` field by field, including the existing mappers, direct entity responses, Auth0
+- [x] MRG-258 Audit `users-service` field by field, including the existing mappers, direct entity responses, Auth0
       identity, favorites, S3 ownership, events, and mobile-gateway consumers.
+  - Evidence: `docs/migration/backend-contract-audits/mrg-258-users-service.md` inventories all nine REST operations,
+    user/favorite fields, mixed mapper/entity responses, Auth0 token/link/role/delete flows, S3 multipart ownership,
+    distributed follower counters/events, notification projections, BFF/Expo session and deletion behavior, casing,
+    privacy, validation, tests, unknowns, and provisional target roles without runtime changes.
 - [ ] MRG-259 Audit `reports-service` field by field, separating Blockout request/response contracts from multipart,
       S3, GitHub, and Discord vendor shapes.
 - [ ] MRG-260 Audit `notification-service` field by field, including REST DTOs, direct persistence projections, Expo
