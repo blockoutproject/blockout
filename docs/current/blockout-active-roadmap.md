@@ -215,8 +215,13 @@ state moves to GitHub and this file becomes a historical migration record.
     runtime changes. Prettier, local-link validation, the Maaatch structure comparison, diff checks, and the Maven
     package build pass. Tests remain skipped because this audit changes documentation only; the sole gateway
     context-load test remains coupled to a missing `AUTH0_ISSUER` fixture.
-- [ ] MRG-267 Produce the cross-service type and field-lineage matrix, classifying every duplicate or unused-looking
+- [x] MRG-267 Produce the cross-service type and field-lineage matrix, classifying every duplicate or unused-looking
       field as required, derived, compatibility-only, vendor-owned, persistence-only, event-only, or removable.
+  - Evidence: `docs/migration/backend-contract-audits/mrg-267-cross-service-type-field-lineage-matrix.md` consolidates
+    all 15 service, worker, gateway, Expo, scraper, event, store, and vendor audits into 19 duplicate-type families,
+    boundary-local field classifications, canonical camelCase ownership, removal gates, and the MRG-268 decision
+    handoff without runtime changes; Prettier, local-link validation, the Maaatch structure comparison, diff checks,
+    and the full backend Maven package build pass with tests intentionally skipped for this documentation-only task.
 - [ ] MRG-268 Approve the target service-by-service data architecture and migration sequence for generated API DTOs,
       application commands/views/records, domain concepts, JPA entities, event payloads, mappers, and BFF projections.
   - Execution mode: PLAN_REQUIRED
