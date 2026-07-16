@@ -112,8 +112,11 @@ state moves to GitHub and this file becomes a historical migration record.
 
 ## Phase MRG-250 — Backend Contract And Data-Boundary Audit
 
-- [ ] MRG-251 Define the read-only service audit template: endpoint and event entrypoints, DTO and entity fields,
+- [x] MRG-251 Define the read-only service audit template: endpoint and event entrypoints, DTO and entity fields,
       producer/consumer lineage, validation, persistence, conversions, annotations, duplicated types, and tests.
+  - Evidence: `docs/migration/backend-contract-data-audit-template.md` defines evidence statuses, field classifications,
+    per-operation and per-field matrices, conversion and persistence inventories, BFF call graphs, parity evidence,
+    completion gates, and the handoff to target-architecture approval without changing runtime code.
 - [ ] MRG-252 Audit `config-service` field by field, including direct entity responses, multipart JSON parsing, scraper
       configuration consumers, and the distinction between API, application, and persistence shapes.
 - [ ] MRG-253 Audit `clubs-service` field by field, including multipart create/update flows, S3 ownership, scraper calls,
