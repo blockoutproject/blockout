@@ -51,6 +51,25 @@ credential mutation, or retirement of standalone repositories.
 | Issue, branch, commit, push, pull request, or merge                | `references/git-workflow.md`                                                                      |
 | Future GitHub Roadmap activation                                   | `references/github-roadmap-policy.md`; do not activate it before the roadmap phase                |
 
+## Generic Skill Router
+
+Use these generic Maaatch-aligned skills only within Blockout's technology and product boundaries:
+
+| Skill | Blockout status | Scope |
+| --- | --- | --- |
+| `karpathy-guidelines` | Applicable | Planning, implementation discipline, and code review |
+| `no-use-effect` | Adapted | React Native effects; direct effects remain valid for real external synchronization |
+| `nx-workspace-patterns` | Applicable | Nx structure, subject to `references/nx-workspace-policy.md` and Expo variants |
+| `vercel-composition-patterns` | Adapted | Framework-neutral React composition translated to native primitives |
+| `vercel-react-best-practices` | Adapted | Allowlisted React and JavaScript rules only; its Next.js, server, DOM, and browser rules are inactive |
+| `next-best-practices` | Non-applicable | Next.js runtime and App Router are not present |
+| `shadcn` | Non-applicable | shadcn, Tailwind, and DOM component registries are not part of the mobile stack |
+| `web-design-guidelines` | Non-applicable | Browser interface checks do not replace React Native accessibility and platform validation |
+| `zod` | Non-applicable for now | Blockout does not currently install Zod; mobile forms use Formik and Yup |
+
+Do not create placeholder copies of non-applicable skills. Reassess a classification only when an authoritative
+roadmap task changes the stack; MRG-505 owns the later mobile skill audit after the architecture is defined.
+
 If current sources do not justify proposed behavior, stop runtime implementation and request product or architecture
 revalidation. Generated output, history, and the migration roadmap never activate product behavior by continuity.
 

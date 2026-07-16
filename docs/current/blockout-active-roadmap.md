@@ -61,8 +61,10 @@ state moves to GitHub and this file becomes a historical migration record.
       replacing web-only rules with Expo and React Native equivalents.
   - Evidence: the mobile policy now covers Expo-native layering, state, UI, security, and validation; docs links and
     the Maaatch structural comparison pass.
-- [ ] MRG-106 Align every generic skill present in Maaatch that applies to Expo/React or shared TypeScript code; record
+- [x] MRG-106 Align every generic skill present in Maaatch that applies to Expo/React or shared TypeScript code; record
       Next.js- or shadcn-only skills as non-applicable rather than copying them blindly.
+  - Evidence: applicable React skills are present with Expo scope, and structural comparison enforces explicit
+    `MATCH` or `NONAPP` classifications for every Maaatch generic skill.
 - [x] MRG-107 Establish one temporary local-roadmap task runbook while GitHub acquisition and merge remain dormant.
   - Evidence: `docs/runbooks/tasks/execution.md` selects one item, enforces Plan mode, validates it, and pushes `main`.
 - [ ] MRG-109 Remove temporary migration exceptions from the router after the target architecture is active.

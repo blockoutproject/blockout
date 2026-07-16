@@ -79,23 +79,33 @@ console.log(
   'VARIANT no Python Nx plugin -> explicit scraper project.json files',
 );
 
-const ignoredGenericSkills = new Set([
-  'maaatch-best-practices',
-  'next-best-practices',
-  'shadcn',
+const nonApplicableGenericSkills = new Map([
+  ['next-best-practices', 'Next.js runtime and App Router are absent'],
+  ['shadcn', 'shadcn, Tailwind, and DOM registries are absent'],
+  ['web-design-guidelines', 'browser-only interface review'],
+  ['zod', 'Zod is not installed; mobile forms use Formik and Yup'],
 ]);
 const maaatchGenericSkills = directories(
   join(maaatchRoot, '.agents/skills'),
-).filter((name) => !ignoredGenericSkills.has(name));
+).filter((name) => name !== 'maaatch-best-practices');
 const blockoutSkills = new Set(
   directories(join(blockoutRoot, '.agents/skills')),
 );
 
 console.log('\nGENERIC SKILLS');
 for (const name of maaatchGenericSkills) {
-  console.log(
-    `${(blockoutSkills.has(name) ? 'MATCH' : 'DEFER').padEnd(7)} ${name}`,
-  );
+  const nonApplicableReason = nonApplicableGenericSkills.get(name);
+  if (nonApplicableReason) {
+    console.log(`NONAPP  ${name} (${nonApplicableReason})`);
+    if (blockoutSkills.has(name)) {
+      failures.push(`Non-applicable generic skill copied into Blockout: ${name}`);
+    }
+    continue;
+  }
+
+  const present = blockoutSkills.has(name);
+  console.log(`${(present ? 'MATCH' : 'GAP').padEnd(7)} ${name}`);
+  if (!present) failures.push(`Missing applicable generic skill: ${name}`);
 }
 
 console.log('\nBLOCKOUT-ONLY SURFACES');
