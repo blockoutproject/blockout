@@ -8,8 +8,9 @@ Task state belongs in GitHub once the Blockout Roadmap Project is configured.
 1. Run `git status --short --branch`.
 2. Read `current/blockout-product-runtime-context.md`.
 3. Read `current/blockout-agent-brief.md`.
-4. Load `.agents/skills/blockout-best-practices/SKILL.md`.
-5. Load only the scope-specific references and source files needed by the task.
+4. For migration work, read `current/blockout-monorepo-readiness.md`.
+5. Load `.agents/skills/blockout-best-practices/SKILL.md`.
+6. Load only the scope-specific references and source files needed by the task.
 
 ## Documentation Map
 

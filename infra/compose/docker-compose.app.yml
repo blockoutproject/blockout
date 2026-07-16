@@ -1,5 +1,6 @@
 services:
   blockout-postgres-pools:
+    container_name: blockout-postgres-pools
     image: postgres:17
     restart: always
     environment:
@@ -14,6 +15,7 @@ services:
       - blockout-network
 
   blockout-postgres-teams:
+    container_name: blockout-postgres-teams
     image: postgres:17
     restart: always
     environment:
@@ -28,6 +30,7 @@ services:
       - blockout-network
 
   blockout-postgres-matches:
+    container_name: blockout-postgres-matches
     image: postgres:17
     restart: always
     environment:
@@ -42,6 +45,7 @@ services:
       - blockout-network
 
   blockout-postgres-competitions:
+    container_name: blockout-postgres-competitions
     image: postgres:17
     restart: always
     environment:
@@ -56,6 +60,7 @@ services:
       - blockout-network
 
   blockout-postgres-users:
+    container_name: blockout-postgres-users
     image: postgres:17
     restart: always
     environment:
@@ -70,6 +75,7 @@ services:
       - blockout-network
 
   blockout-postgres-clubs:
+    container_name: blockout-postgres-clubs
     image: postgres:17
     restart: always
     environment:
@@ -84,6 +90,7 @@ services:
       - blockout-network
 
   blockout-postgres-config:
+    container_name: blockout-postgres-config
     image: postgres:17
     restart: always
     environment:
@@ -98,6 +105,7 @@ services:
       - blockout-network
 
   blockout-postgres-notifications:
+    container_name: blockout-postgres-notifications
     image: postgres:17
     restart: always
     environment:

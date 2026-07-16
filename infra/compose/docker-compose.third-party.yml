@@ -1,10 +1,11 @@
 services:
   blockout-rabbitmq:
+    container_name: blockout-rabbitmq
     image: rabbitmq:4-management
     restart: always
     environment:
-      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER:-blockout}
-      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS:-change-me}
+      RABBITMQ_DEFAULT_USER: blockout
+      RABBITMQ_DEFAULT_PASS: change-me
     ports:
       - '5672:5672'
       - '15672:15672'
@@ -14,11 +15,12 @@ services:
       - blockout-network
 
   blockout-pgadmin:
+    container_name: blockout-pgadmin
     image: dpage/pgadmin4
     restart: always
     environment:
-      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-admin@blockout.local}
-      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-change-me}
+      PGADMIN_DEFAULT_EMAIL: admin@blockout.local
+      PGADMIN_DEFAULT_PASSWORD: change-me
     ports:
       - '5050:80'
     volumes:
@@ -28,12 +30,13 @@ services:
       - blockout-network
 
   blockout-elasticsearch:
+    container_name: blockout-elasticsearch
     image: docker.elastic.co/elasticsearch/elasticsearch:8.15.5
     environment:
       discovery.type: single-node
       xpack.security.enabled: 'false'
       bootstrap.memory_lock: 'true'
-      ES_JAVA_OPTS: ${ES_JAVA_OPTS:--Xms1g -Xmx1g}
+      ES_JAVA_OPTS: -Xms1g -Xmx1g
     ulimits:
       memlock:
         soft: -1
@@ -45,118 +48,6 @@ services:
     networks:
       - blockout-network
 
-  blockout-kibana:
-    image: docker.elastic.co/kibana/kibana:8.15.5
-    depends_on:
-      - blockout-elasticsearch
-    environment:
-      ELASTICSEARCH_HOSTS: http://blockout-elasticsearch:9200
-    ports:
-      - '5601:5601'
-    networks:
-      - blockout-network
-
-  blockout-gluetun:
-    image: qmcgaw/gluetun:latest
-    profiles:
-      - scraping
-    cap_add:
-      - NET_ADMIN
-    environment:
-      VPN_SERVICE_PROVIDER: nordvpn
-      VPN_TYPE: openvpn
-      OPENVPN_USER: ${NORD_USER:-change-me}
-      OPENVPN_PASSWORD: ${NORD_PASS:-change-me}
-      OPENVPN_PROTOCOL: udp
-      FIREWALL: 'on'
-      HTTPPROXY: 'on'
-      SERVER_COUNTRIES: France,Belgium,Netherlands
-      TZ: Europe/Paris
-    ports:
-      - '8888:8888'
-    restart: unless-stopped
-    networks:
-      - blockout-network
-
-  blockout-portainer:
-    image: portainer/portainer-ce:latest
-    profiles:
-      - tooling
-    restart: always
-    ports:
-      - '5051:9000'
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - portainer_data:/data
-    networks:
-      - blockout-network
-
-  blockout-nginx:
-    image: nginx:latest
-    profiles:
-      - gateway
-    ports:
-      - '80:80'
-      - '443:443'
-    volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-    networks:
-      - blockout-network
-
-  blockout-loki:
-    image: grafana/loki:3.2.1
-    profiles:
-      - observability
-    command: -config.file=/etc/loki/local-config.yaml
-    volumes:
-      - loki_data:/loki
-      - ./observability/loki-config.yaml:/etc/loki/local-config.yaml:ro
-    ports:
-      - '3100:3100'
-    networks:
-      - blockout-network
-
-  blockout-promtail:
-    image: grafana/promtail:3.2.1
-    profiles:
-      - observability
-    command: -config.file=/etc/promtail/config.yaml
-    volumes:
-      - /var/lib/docker/containers:/var/lib/docker/containers:ro
-      - promtail_positions:/etc/promtail
-      - ./observability/promtail-config.yaml:/etc/promtail/config.yaml:ro
-    depends_on:
-      - blockout-loki
-    networks:
-      - blockout-network
-
-  blockout-prometheus:
-    image: prom/prometheus:latest
-    profiles:
-      - observability
-    volumes:
-      - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-    ports:
-      - '9090:9090'
-    networks:
-      - blockout-network
-
-  blockout-grafana:
-    image: grafana/grafana:latest
-    profiles:
-      - observability
-    environment:
-      GF_SECURITY_ADMIN_USER: ${GF_SECURITY_ADMIN_USER:-admin}
-      GF_SECURITY_ADMIN_PASSWORD: ${GF_SECURITY_ADMIN_PASSWORD:-change-me}
-    ports:
-      - '3000:3000'
-    volumes:
-      - grafana_data:/var/lib/grafana
-    depends_on:
-      - blockout-loki
-    networks:
-      - blockout-network
-
 volumes:
   rabbitmq_data:
     name: blockout_rabbitmq_data
@@ -164,15 +55,6 @@ volumes:
     name: blockout_pgadmin_data
   elasticsearch_data:
     name: blockout_elasticsearch_data
-  loki_data:
-    name: blockout_loki_data
-  promtail_positions:
-    name: blockout_promtail_positions
-  grafana_data:
-    name: blockout_grafana_data
-  portainer_data:
-    name: blockout_portainer_data
-
 networks:
   blockout-network:
     name: blockout-network

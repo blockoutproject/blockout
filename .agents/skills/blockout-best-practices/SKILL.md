@@ -50,6 +50,7 @@ authoritative read set.
 - Use the backend Maven reactor at `apps/backend/pom.xml`; do not restore independent Spring Boot parent POMs.
 - Backend Dockerfiles build with `apps/backend` as their context.
 - Scrapers are explicit Nx projects without a Python Nx plugin unless a dedicated architecture decision changes that.
+- Local Compose files mirror Maaatch and are not represented as an Nx project.
 - Generated output, local caches, build directories, secrets, and real environment files stay untracked.
 
 ## Repository Map

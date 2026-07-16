@@ -6,7 +6,8 @@
 2. Read `blockout-product-runtime-context.md`.
 3. Read `.agents/skills/blockout-best-practices/SKILL.md`.
 4. Inspect the owning deployable and its `.env.example`.
-5. For deployment or migration work, read `docs/migration/monorepo-cutover.md`.
+5. For deployment or migration work, read `blockout-monorepo-readiness.md` and
+   `docs/migration/monorepo-cutover.md`.
 
 ## Current Posture
 

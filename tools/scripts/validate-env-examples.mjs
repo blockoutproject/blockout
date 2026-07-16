@@ -51,12 +51,14 @@ function exampleVariables(examplePath) {
 }
 
 function validate(owner, files, patterns) {
+  const expected = variablesFrom(files, patterns);
+  if (expected.size === 0) return [];
+
   const examplePath = join(owner, '.env.example');
   if (!existsSync(examplePath)) {
     return [`${relative(workspaceRoot, owner)}: missing .env.example`];
   }
 
-  const expected = variablesFrom(files, patterns);
   const documented = exampleVariables(examplePath);
   return [...expected]
     .filter((variable) => !documented.has(variable))

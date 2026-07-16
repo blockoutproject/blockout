@@ -1,8 +1,8 @@
 # BlockOut
 
-BlockOut is an Nx monorepo for the mobile application, Spring Boot services, Python scrapers, and local platform tooling.
+BlockOut is an Nx monorepo for the mobile application, Spring Boot services, Python scrapers, and local Docker dependencies.
 
-The workspace intentionally follows the same structural conventions as Maaatch: deployable applications live under `apps`, Spring Boot services form a Maven reactor, frontend applications use the relevant Nx plugin, and non-plugin applications are declared with explicit Nx projects.
+The workspace intentionally follows the same structural conventions as Maaatch: deployable applications live under `apps`, Spring Boot services form a Maven reactor, frontend applications use the relevant Nx plugin, and scrapers are declared with explicit Nx projects.
 
 ## Requirements
 
@@ -37,6 +37,8 @@ infra/
   compose/
     docker-compose.app.yml
     docker-compose.third-party.yml
+    pgadmin/
+      servers.json
 ```
 
 ## Install and inspect
@@ -47,7 +49,7 @@ npm exec nx show projects
 ```
 
 Each deployable owns a safe `.env.example`. Run `npm run validate:env` to verify that every runtime variable
-referenced by Spring, Python, Expo, or Compose is documented.
+referenced by Spring, Python, or Expo is documented.
 
 ## Backend
 
@@ -84,16 +86,18 @@ npm exec nx run @blockout/competition-scraper:docker-build
 npm exec nx run @blockout/club-scraper:docker-build
 ```
 
-## Local platform
+## Local Docker dependencies
 
 All local Docker orchestration is centralized under `infra/compose`, following the Maaatch split between application
 databases and third-party dependencies.
 
 ```bash
-cp infra/compose/.env.example infra/compose/.env
-npm exec nx run @blockout/local-platform:config
-npm exec nx run @blockout/local-platform:serve
+docker compose --file infra/compose/docker-compose.third-party.yml --file infra/compose/docker-compose.app.yml config
+docker compose --file infra/compose/docker-compose.third-party.yml --file infra/compose/docker-compose.app.yml up
 ```
+
+The app Compose file owns the eight PostgreSQL databases. The third-party file only owns RabbitMQ, Elasticsearch,
+and pgAdmin. Application processes run separately through Maven, Nx, or Python.
 
 ## Production migration
 

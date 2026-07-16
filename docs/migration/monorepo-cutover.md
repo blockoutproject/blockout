@@ -9,7 +9,7 @@ The target structure follows Maaatch conventions:
 - Spring Boot applications are Maven reactor modules under `apps/backend` and are discovered by `@nx/maven`.
 - The Expo application lives under `apps/frontend/mobile` and is discovered by `@nx/expo`.
 - Python scrapers live under `apps/scrapers` and use explicit `project.json` files with `nx:run-commands` targets.
-- Local platform tooling lives under `infra` and uses an explicit Nx project.
+- Local Docker dependencies live under `infra/compose` outside the Nx project graph, matching Maaatch.
 
 ## Repository map
 
@@ -30,14 +30,16 @@ The target structure follows Maaatch conventions:
 | `blockout-mobile-app`        | `apps/frontend/mobile`              | `@blockout/mobile`                  |
 | `blockout-scraper`           | `apps/scrapers/competition-scraper` | `@blockout/competition-scraper`     |
 | `blockout-scraper-clubs`     | `apps/scrapers/club-scraper`        | `@blockout/club-scraper`            |
-| `blockout-pgadmin`           | `infra/compose`                     | `@blockout/local-platform`          |
 
 All imports preserve the committed `main` history of their source repository.
 
 ## Current migration stage
 
+The current evidence and deployment gaps are tracked in
+[`../current/blockout-monorepo-readiness.md`](../current/blockout-monorepo-readiness.md).
+
 - Application histories are imported.
-- Nx, Maven, Expo, scraper, and local platform integration is active.
+- Nx, Maven, Expo, scraper, and centralized local Compose integration is active.
 - CI performs shadow validation only.
 - No monorepo workflow logs in to Docker Hub, pushes an image, calls a Dokploy webhook, or deploys production.
 - Every standalone repository remains the production source of truth until its individual cutover is complete.
@@ -60,7 +62,7 @@ npm exec nx run @blockout/mobile:export --platform=android
 mvn -f apps/backend/pom.xml -DskipTests compile
 npm exec nx run @blockout/competition-scraper:docker-build
 npm exec nx run @blockout/club-scraper:docker-build
-npm exec nx run @blockout/local-platform:config
+docker compose --file infra/compose/docker-compose.third-party.yml --file infra/compose/docker-compose.app.yml config --quiet
 ```
 
 Backend images must use `apps/backend` as their Docker build context. For example:
@@ -70,8 +72,8 @@ docker build --file apps/backend/clubs-service/Dockerfile --tag blockout-shadow/
 ```
 
 Local Docker Compose orchestration is centralized in `infra/compose`. Service directories do not own Compose files.
-`docker-compose.app.yml` owns the service databases and `docker-compose.third-party.yml` owns shared local
-dependencies.
+As in Maaatch, this directory contains only the two Compose files and pgAdmin server registration. The app file owns
+the service databases; the third-party file owns RabbitMQ, Elasticsearch, and pgAdmin.
 
 The imported Spring Boot context tests currently require runtime configuration such as `AUTH0_ISSUER`. Until dedicated test profiles are added, shadow CI compiles the full Maven reactor but does not claim that runtime-dependent tests pass.
 

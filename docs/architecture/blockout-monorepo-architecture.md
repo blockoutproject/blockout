@@ -26,7 +26,8 @@ tools/scripts/             Repository validation and maintenance scripts
 
 - `@nx/maven` infers Maven modules.
 - `@nx/expo/plugin` infers Expo targets.
-- Scrapers and infrastructure use explicit `project.json` files.
+- Scrapers use explicit `project.json` files.
+- Local Compose files are intentionally not an Nx project, matching Maaatch.
 - Nx provides the stable command surface; framework-native tools remain authoritative inside targets.
 
 ## Non-goals

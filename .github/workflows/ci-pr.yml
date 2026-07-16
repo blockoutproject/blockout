@@ -78,13 +78,10 @@ jobs:
       - name: Build club scraper image
         run: docker build --tag blockout-shadow/club-scraper:${{ github.sha }} apps/scrapers/club-scraper
 
-  local-platform:
+  local-compose:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
 
       - name: Validate Docker Compose configuration
         run: docker compose --file infra/compose/docker-compose.third-party.yml --file infra/compose/docker-compose.app.yml config --quiet
-
-      - name: Validate optional Docker Compose profiles
-        run: docker compose --file infra/compose/docker-compose.third-party.yml --file infra/compose/docker-compose.app.yml --profile scraping --profile observability --profile tooling --profile gateway config --quiet
