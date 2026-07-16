@@ -259,10 +259,13 @@ state moves to GitHub and this file becomes a historical migration record.
     the missing MRG-376 config-service slice and clarifies MRG-801 removal of the standalone `local-compose` CI job.
     Source reconciliation, Prettier, local-link validation, Maaatch structure comparison, diff checks, and the full
     backend Maven package build pass with tests intentionally skipped for this documentation-only task.
-- [ ] MRG-304 Publish the cutover matrix for standalone and monorepo coexistence from the approved MRG-268 architecture,
+- [x] MRG-304 Publish the cutover matrix for standalone and monorepo coexistence from the approved MRG-268 architecture,
       including per-boundary compatibility, deployment order, rollback, and the exact point where temporary snake_case
       reads and duplicated legacy shapes can be removed.
-  - Execution mode: PLAN_REQUIRED
+  - Evidence: `docs/migration/mrg-304-contract-coexistence-cutover-matrix.md` fixes REST v1/v2 and RabbitMQ v1/v2
+    coexistence for all 130 operations, 11 routes, and 19 queues, with provider-first task ownership, rollback,
+    telemetry, and 30-day removal gates; Prettier, docs links, Maaatch comparison, diff checks, and the backend Maven
+    package baseline pass with runtime checks intentionally skipped for this documentation-only task.
 - [ ] MRG-305 Define the Blockout fragment layout for shared schemas, internal service APIs, and the mobile-gateway BFF
       under `libs/shared/contracts/specs/source/**`, retaining Blockout service ownership and Expo terminology.
 - [ ] MRG-306 Port Maaatch's deterministic OpenAPI bundle generator with Blockout service names and output paths.
@@ -388,23 +391,32 @@ state moves to GitHub and this file becomes a historical migration record.
 - [ ] MRG-372 Introduce transactional outboxes for matches and users plus event-ID deduplication for migrated consumers,
       preserving existing queue, retry, requeue, and DLQ behavior.
 - [ ] MRG-351 Remove global Jackson `SNAKE_CASE` and slice-owned Blockout annotations from config, clubs, teams, and
-      pools only after every caller for those boundaries uses canonical camelCase.
+      pools canonical v2 paths only after every v2 caller uses camelCase; retain the isolated v1 transport adapters
+      and their adapter-local snake_case mapper until the MRG-304 production-retirement gate.
 - [ ] MRG-373 Remove global Jackson `SNAKE_CASE` and slice-owned Blockout annotations from competition, matches, and
-      users only after every caller for those boundaries uses canonical camelCase.
+      users canonical v2 paths only after every v2 caller uses camelCase; retain the isolated v1 transport adapters
+      required by MRG-304.
 - [ ] MRG-374 Remove global Jackson `SNAKE_CASE` and slice-owned Blockout annotations from reports, notifications,
-      search-service, and search-worker only after every caller uses canonical camelCase.
+      search-service, and search-worker canonical v2 paths only after every v2 caller uses camelCase; retain isolated
+      v1 adapters and vendor-native mappings.
 - [ ] MRG-375 Remove global Jackson `SNAKE_CASE` and slice-owned Blockout annotations from `mobile-gateway` only after
-      every generated downstream and Expo boundary uses canonical camelCase.
+      every generated downstream and Expo v2 boundary uses canonical camelCase; keep the BFF v1 adapter available for
+      every still-supported mobile version.
 - [ ] MRG-352 Remove legacy `@JsonProperty`, `@JsonAlias`, and naming adapters used only for Blockout snake_case;
-      retain documented annotations only at genuine vendor or compatibility boundaries.
+      retain documented annotations only at genuine vendor boundaries and retain snake_case conversion only inside
+      the explicit MRG-304 v1 transport adapters.
 - [ ] MRG-353 Remove Expo request/response case transformation, `transformCase`, and obsolete case-conversion packages
-      after every generated BFF client is active.
+      after every generated BFF v2 client is active; legacy mobile releases continue through the server-side v1 BFF
+      adapter rather than a converter in the current Expo release.
 - [ ] MRG-354 Add a repository-wide allowlisted guard proving Blockout-owned REST, event, Expo, and scraper wire keys are
-      camelCase while database columns, Python identifiers, and external vendor payloads remain out of scope.
+      camelCase while explicitly allowlisting only isolated v1 adapters, database columns, Python identifiers, and
+      external vendor payloads.
 - [ ] MRG-355 Add complete contract generation, backend generation, Expo generation, scraper generation when selected,
-      formatting, compilation, and deterministic no-diff checks to local verification.
+      event generation, formatting, compilation, deterministic no-diff checks, and v1-adapter isolation checks to local
+      verification.
 - [ ] MRG-356 Mark each REST and event boundary contract-authoritative only after source, generated artifacts, mappers,
-      all consumers, runtime parity, compatibility removal, and rollback evidence are complete.
+      all canonical consumers, runtime parity, rollback evidence, and canonical-conversion cleanup are complete; the
+      separately isolated v1 adapter may remain until the MRG-304 30-day production-retirement gate.
 
 ## Phase MRG-400 — Backend Architecture
 
@@ -459,7 +471,8 @@ state moves to GitHub and this file becomes a historical migration record.
 - [ ] MRG-416 Restructure `mobile-gateway` competition, match, and live facade workflows with dedicated projectors or
       projection services, explicit pagination/fan-out policy, partial-failure semantics, and response mappers.
 - [ ] MRG-417 Remove fields, handwritten DTO copies, conversion helpers, and temporary compatibility shapes only after
-      the MRG-267 lineage and migrated contract consumers prove they are unused.
+      the MRG-267 lineage and migrated canonical consumers prove they are unused; preserve adapter-local v1 transport
+      records and mappings until the final MRG-304 retirement gate.
 - [ ] MRG-418 Add strict service-local MapStruct configuration where structural mapping benefits from it; keep manual
       mapping only for real aggregation, policy, or non-trivial transformation logic.
 - [ ] MRG-419 Align code documentation and existing behavioral mapper/projection tests incrementally in every touched
@@ -516,7 +529,8 @@ state moves to GitHub and this file becomes a historical migration record.
 
 ## Phase MRG-900 — Production Cutover
 
-- [ ] MRG-901 Create a protected GitHub Environment or distinct secret namespace for each deployable.
+- [ ] MRG-901 Capture the required read-only deployment and RabbitMQ snapshot from MRG-304, then create a protected
+      GitHub Environment or distinct secret namespace for each deployable only after its activation unknowns close.
 - [ ] MRG-902 Add one manual, path-scoped shadow publication workflow for a low-risk service.
 - [ ] MRG-903 Publish an immutable `monorepo-<sha>` candidate without replacing `latest` or calling Dokploy.
 - [ ] MRG-904 Smoke the candidate on a non-routing target and prove rollback.
@@ -524,6 +538,9 @@ state moves to GitHub and this file becomes a historical migration record.
 - [ ] MRG-906 Repeat source freeze, candidate, smoke, cutover, observation, and rollback proof for all fourteen images.
 - [ ] MRG-907 Complete the separate EAS/mobile release cutover.
 - [ ] MRG-908 Disable standalone workflows only after their monorepo replacements are observed successfully.
+- [ ] MRG-909 Retire REST v1 adapters and event v1 routes only after MRG-905 through MRG-908, every production caller
+      migration, mobile-store minimum-version gate, empty and unacknowledged-free legacy queues, and 30 consecutive
+      days of zero v1 REST and event use; require explicit production authorization.
 
 ## Phase MRG-1000 — Clean History And Maaatch GitFlow
 

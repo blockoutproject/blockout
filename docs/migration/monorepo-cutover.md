@@ -44,6 +44,17 @@ The current evidence, sequencing, and deployment gaps are tracked in the
 - No monorepo workflow logs in to Docker Hub, pushes an image, calls a Dokploy webhook, or deploys production.
 - Every standalone repository remains the production source of truth until its individual cutover is complete.
 
+## Contract coexistence before production cutover
+
+The [MRG-304 contract coexistence matrix](mrg-304-contract-coexistence-cutover-matrix.md) is the authoritative
+pre-production sequence for REST `/api/v1`/`/api/v2` compatibility and RabbitMQ v1/v2 routes. Generated contract work
+must complete its provider-first deployment, rollback, telemetry, and zero-use gates without removing isolated legacy
+adapters.
+
+Before any production activation, the owning production task must first capture the read-only deployment and RabbitMQ
+snapshot required by MRG-304. A missing snapshot is a hard activation gate. This runbook does not authorize a v1
+retirement, broker mutation, image publication, or Dokploy call.
+
 At import time, two local uncommitted changes were intentionally not copied into the monorepo:
 
 - `blockout-mobile-gateway/src/main/java/com/blockout/mobilegateway/controllers/v1/publicapi/FfvbPublicController.java`

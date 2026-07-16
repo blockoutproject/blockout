@@ -121,6 +121,11 @@ request/response case conversion, or reflective Python serialization that leaks 
 
 ### 3.1 Vertical Compatibility Rule
 
+The exact REST v1/v2 paths, caller tasks, RabbitMQ v2 names, deployment order, rollback state, telemetry, and removal
+gates are fixed by the
+[MRG-304 coexistence matrix](../migration/mrg-304-contract-coexistence-cutover-matrix.md). Later generator and vertical
+migration tasks implement that matrix; they do not select a different compatibility topology.
+
 Each boundary migrates independently:
 
 1. capture current requests, responses, errors, authentication, null behavior, ordering, pagination, multipart bytes,
