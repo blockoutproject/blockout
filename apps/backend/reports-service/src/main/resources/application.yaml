@@ -1,0 +1,44 @@
+server:
+  port: 8091
+
+spring:
+  application:
+    name: ${APPLICATION_NAME:reports}
+
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 5MB
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${AUTH0_ISSUER}
+
+  jackson:
+    property-naming-strategy: SNAKE_CASE
+
+  config:
+    import: optional:file:.env.local[.properties]
+    on-missing-location: fail
+
+logging:
+  level:
+    root: ${LOGGING_LEVEL_ROOT:INFO}
+
+aws:
+  credentials:
+    access-key: ${AWS_ACCESS_KEY_ID}
+    secret-key: ${AWS_SECRET_ACCESS_KEY}
+  region: ${AWS_REGION}
+  s3:
+    bucket: ${AWS_S3_BUCKET_NAME}
+
+github:
+  token: ${GITHUB_TOKEN}
+  owner: BlockoutProject
+  repo: blockout-api-reports
+
+discord:
+  webhook-url: ${DISCORD_WEBHOOK_URL}
