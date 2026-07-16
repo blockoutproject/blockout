@@ -233,9 +233,15 @@ state moves to GitHub and this file becomes a historical migration record.
 
 ## Phase MRG-300 — Contract-First Foundation
 
-- [ ] MRG-301 Build the deployed REST wire inventory from the MRG-250 field-lineage evidence, recording each owner,
+- [x] MRG-301 Build the deployed REST wire inventory from the MRG-250 field-lineage evidence, recording each owner,
       caller, method, path, parameter, security rule, request, response, error, pagination, multipart behavior, and
       current snake_case/camelCase name without treating Springdoc output as the target source.
+  - Evidence: `docs/migration/mrg-301-deployed-rest-wire-inventory.md` freezes all 130 current operations across 35
+    controllers as 80 owner-service and 50 BFF boundaries, with exact parameters, security, callers, shapes, error,
+    pagination, multipart, casing, field-registry, and unknown-external-caller evidence; source reconciliation finds
+    130 unique inventory rows, zero explicit operation IDs, and no search-worker controller. Prettier, local-link
+    validation, Maaatch structure comparison, diff checks, and the backend Maven package build pass with tests
+    intentionally skipped for this documentation-only task.
 - [ ] MRG-302 Inventory every RabbitMQ exchange, routing key, producer, consumer, event class, serialized payload, retry
       assumption, and casing rule separately from REST contracts.
 - [ ] MRG-303 Inventory every handwritten backend HTTP client, Expo API module, scraper request builder, Jackson naming
