@@ -1,0 +1,8 @@
+{
+  "name": "@blockout/mobile",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "apps/frontend/mobile/src",
+  "projectType": "application",
+  "tags": ["scope:frontend", "type:application", "platform:mobile"],
+  "targets": {}
+}

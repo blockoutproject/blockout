@@ -1,5 +1,3 @@
 {
-  "babelrcRoots": [
-    "*"
-  ]
+  "babelrcRoots": [".", "apps/*", "apps/*/*", "libs/*", "libs/*/*"]
 }

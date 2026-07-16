@@ -50,7 +50,7 @@ const ApiErrorToast: React.FC<ApiErrorToastProps> = ({
     );
 
     useEffect(() => {
-        let timer: number | null = null;
+        let timer: ReturnType<typeof setTimeout> | null = null;
 
         if (message) {
             opacity.setValue(0);

@@ -89,7 +89,8 @@ export class HttpClient {
             (res: AxiosResponse) => {
                 if (this.transformCase) {
                     const ct = res.headers?.["content-type"];
-                    const looksJson = ct && ct.toLowerCase().includes("application/json");
+                    const looksJson =
+                        typeof ct === "string" && ct.toLowerCase().includes("application/json");
                     if (looksJson && res.data && typeof res.data === "object") {
                         res.data = camelcaseKeys(res.data, { deep: true });
                     }
