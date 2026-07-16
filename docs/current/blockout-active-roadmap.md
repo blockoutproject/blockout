@@ -123,8 +123,12 @@ state moves to GitHub and this file becomes a historical migration record.
     persistence families, every field and duplicate consumer shape, casing and multipart conversions, BFF/worker/Expo
     and scraper lineage, validation, errors, caches, tests, unknowns, and provisional MRG-268 ownership without runtime
     changes.
-- [ ] MRG-253 Audit `clubs-service` field by field, including multipart create/update flows, S3 ownership, scraper calls,
+- [x] MRG-253 Audit `clubs-service` field by field, including multipart create/update flows, S3 ownership, scraper calls,
       entity construction, event publication, and mobile-gateway consumers.
+  - Evidence: `docs/migration/backend-contract-audits/mrg-253-clubs-service.md` inventories all six REST operations,
+    multipart and per-field semantics, direct entity construction, PostgreSQL/S3/Mapbox ownership, RabbitMQ and
+    deactivation flows, scraper/worker/BFF/Expo copies and conversions, aggregation call graphs, casing, validation,
+    errors, tests, unknowns, and provisional MRG-268 roles without runtime changes.
 - [ ] MRG-254 Audit `teams-service` field by field, including multipart updates, entity construction, follower counts,
       club/division dependencies, events, scraper calls, and mobile-gateway consumers.
 - [ ] MRG-255 Audit `pools-service` field by field, including entity construction, follower counts, filters, events,
