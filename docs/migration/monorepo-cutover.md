@@ -35,8 +35,8 @@ All imports preserve the committed `main` history of their source repository.
 
 ## Current migration stage
 
-The current evidence and deployment gaps are tracked in
-[`../current/blockout-monorepo-readiness.md`](../current/blockout-monorepo-readiness.md).
+The current evidence, sequencing, and deployment gaps are tracked in the
+[Blockout active roadmap](../current/blockout-active-roadmap.md).
 
 - Application histories are imported.
 - Nx, Maven, Expo, scraper, and centralized local Compose integration is active.

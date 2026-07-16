@@ -4,7 +4,10 @@
   "namedInputs": {
     "default": ["{projectRoot}/**/*", "sharedGlobals"],
     "production": ["default"],
-    "sharedGlobals": []
+    "sharedGlobals": [
+      "{workspaceRoot}/.github/workflows/ci-push.yml",
+      "{workspaceRoot}/.github/workflows/ci-pr.yml"
+    ]
   },
   "plugins": [
     {

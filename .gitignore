@@ -44,6 +44,11 @@ Thumbs.db
 .claude/worktrees
 .claude/settings.local.json
 
+# Local runtime logs
+/logs/
+apps/backend/*/logs/
+apps/frontend/mobile/logs/
+
 # Expo
 node_modules/
 .expo/

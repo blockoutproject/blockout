@@ -11,7 +11,6 @@ function markdownFiles(path) {
 
 const files = [
   join(workspaceRoot, 'README.md'),
-  join(workspaceRoot, 'AGENTS.md'),
   join(workspaceRoot, 'CLAUDE.md'),
   ...markdownFiles(join(workspaceRoot, 'docs')),
   ...markdownFiles(join(workspaceRoot, '.agents')),

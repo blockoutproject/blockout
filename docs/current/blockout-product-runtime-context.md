@@ -1,10 +1,23 @@
-# Blockout Product and Runtime Context
+# Blockout Product And Runtime Context
+
+This document summarizes the currently delivered runtime posture and the boundaries that structural migration must not
+reopen. It is not the migration roadmap.
+
+## Sources Of Truth
+
+| Question                                             | Source                                                                           |
+| ---------------------------------------------------- | -------------------------------------------------------------------------------- |
+| Migration tasks, order, dependencies, and completion | [`blockout-active-roadmap.md`](blockout-active-roadmap.md)                       |
+| Delivered runtime behavior                           | Current source, deployed behavior, and existing tests                            |
+| Production deployment authority                      | Standalone repositories and live Dokploy configuration                           |
+| Product and architecture boundaries                  | [`../architecture/`](../architecture/) and future durable decisions              |
+| Repository operating rules                           | [Blockout Best Practices](../../.agents/skills/blockout-best-practices/SKILL.md) |
+
+## Current Runtime Posture
 
 Blockout is a production volleyball mobile platform composed of an Expo application, Spring Boot services, scheduled
 Python scrapers, PostgreSQL databases, RabbitMQ, Elasticsearch, Auth0, S3-compatible storage, Expo notifications, and
 supporting integrations.
-
-## Runtime Boundaries
 
 | Deployable           | Port | Primary dependencies                                          |
 | -------------------- | ---: | ------------------------------------------------------------- |
@@ -23,13 +36,21 @@ supporting integrations.
 | competition-scraper  | 8000 | Auth0, backend APIs, optional HTTP proxy                      |
 | club-scraper         | 8001 | Auth0, backend APIs                                           |
 
-## Migration Boundary
+Verify these statements against current source and live deployment configuration before changing behavior.
 
-The monorepo is not yet the production deployment authority. Structural equivalence, shadow builds, runtime
-configuration parity, and per-deployable rollback must be proven before any standalone source is retired.
+## Boundaries That Stay Closed
 
-Two uncommitted legacy working-tree changes were intentionally excluded from the initial import and must be reconciled
-before the corresponding source freeze:
+- The monorepo is not production deployment authority until each deployable completes cutover.
+- Structural similarity with Maaatch does not import Maaatch product behavior, domain models, or Next.js assumptions.
+- Contract-first migration must preserve existing endpoint and payload behavior until an explicit product task changes
+  it.
+- Service and database ownership remain separate.
+- Expo signing credentials, Firebase files, EAS credentials, Docker Hub credentials, and Dokploy webhooks remain
+  external secrets.
+- The two excluded legacy working-tree changes remain unresolved until explicitly reconciled.
 
-- `blockout-mobile-gateway/.../FfvbPublicController.java`
-- `blockout-scraper/scrapers/pro_scraper.py`
+## Maintenance
+
+Update this file only when delivered runtime posture or a durable closed boundary changes. Put migration task state in
+the active roadmap, durable decisions in `docs/decisions/**`, architecture state in `docs/architecture/**`, and detailed
+validation evidence in Git and CI.

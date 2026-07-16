@@ -3,6 +3,9 @@
   "version": "0.0.0",
   "license": "MIT",
   "scripts": {
+    "compare:maaatch": "node scripts/compare-maaatch-structure.mjs",
+    "local:logs": "node tools/local-logs/collect-local-logs.mjs",
+    "validate:agents": "node tools/scripts/validate-agent-foundation.mjs",
     "validate:docs": "node tools/scripts/validate-doc-links.mjs",
     "validate:env": "node tools/scripts/validate-env-examples.mjs"
   },

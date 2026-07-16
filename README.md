@@ -33,6 +33,12 @@ apps/
   scrapers/
     club-scraper/
     competition-scraper/
+libs/
+  react/
+  shared/
+    contracts/
+packages/
+scripts/
 infra/
   compose/
     docker-compose.app.yml
@@ -103,8 +109,14 @@ and pgAdmin. Application processes run separately through Maven, Nx, or Python.
 
 This repository does not own production deployments yet. Existing repositories remain authoritative until each deployable is cut over independently and verified. See [the monorepo cutover runbook](docs/migration/monorepo-cutover.md).
 
+The migration itself is coordinated through the local
+[Blockout active roadmap](docs/current/blockout-active-roadmap.md). GitHub Roadmap and Maaatch-style GitFlow become
+authoritative only after the workspace has reached the final migration phase.
+
 ## Agentic operation
 
-Agents start with [`AGENTS.md`](AGENTS.md), [Blockout Best Practices](.agents/skills/blockout-best-practices/SKILL.md),
-and the [current agent brief](docs/current/blockout-agent-brief.md). The [documentation index](docs/README.md) routes
-architecture, migration, audit, execution, and GitHub workflow tasks.
+Agents start with [`CLAUDE.md`](CLAUDE.md),
+[Blockout Best Practices](.agents/skills/blockout-best-practices/SKILL.md), the
+[current agent brief](docs/current/blockout-agent-brief.md), and the
+[active roadmap](docs/current/blockout-active-roadmap.md). The [documentation index](docs/README.md) routes
+architecture, migration, audit, execution, and future GitHub workflow tasks.

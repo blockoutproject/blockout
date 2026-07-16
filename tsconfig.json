@@ -1,9 +1,13 @@
 {
   "extends": "./tsconfig.base.json",
+  "compileOnSave": false,
   "files": [],
   "references": [
     {
       "path": "./apps/frontend/mobile"
+    },
+    {
+      "path": "./libs/shared/contracts"
     }
   ]
 }
