@@ -1,6 +1,7 @@
 name: CI Push
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - develop
@@ -43,6 +44,12 @@ jobs:
 
       - run: npm ci
 
+      - name: Validate environment examples
+        run: npm run validate:env
+
+      - name: Validate documentation links
+        run: npm run validate:docs
+
       - name: Validate Nx project graph
         run: npm exec nx show projects
 
@@ -57,6 +64,15 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Validate scraper syntax
+        run: |
+          python -m compileall -q apps/scrapers/competition-scraper
+          python -m compileall -q apps/scrapers/club-scraper
+
       - name: Build competition scraper image
         run: docker build --tag blockout-shadow/competition-scraper:${{ github.sha }} apps/scrapers/competition-scraper
 
@@ -69,4 +85,7 @@ jobs:
       - uses: actions/checkout@v5
 
       - name: Validate Docker Compose configuration
-        run: docker compose --file infra/local-platform/docker-compose.yml config --quiet
+        run: docker compose --file infra/compose/docker-compose.third-party.yml --file infra/compose/docker-compose.app.yml config --quiet
+
+      - name: Validate optional Docker Compose profiles
+        run: docker compose --file infra/compose/docker-compose.third-party.yml --file infra/compose/docker-compose.app.yml --profile scraping --profile observability --profile tooling --profile gateway config --quiet

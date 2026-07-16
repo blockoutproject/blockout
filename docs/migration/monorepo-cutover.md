@@ -30,7 +30,7 @@ The target structure follows Maaatch conventions:
 | `blockout-mobile-app`        | `apps/frontend/mobile`              | `@blockout/mobile`                  |
 | `blockout-scraper`           | `apps/scrapers/competition-scraper` | `@blockout/competition-scraper`     |
 | `blockout-scraper-clubs`     | `apps/scrapers/club-scraper`        | `@blockout/club-scraper`            |
-| `blockout-pgadmin`           | `infra/local-platform`              | `@blockout/local-platform`          |
+| `blockout-pgadmin`           | `infra/compose`                     | `@blockout/local-platform`          |
 
 All imports preserve the committed `main` history of their source repository.
 
@@ -69,7 +69,24 @@ Backend images must use `apps/backend` as their Docker build context. For exampl
 docker build --file apps/backend/clubs-service/Dockerfile --tag blockout-shadow/clubs-service:local apps/backend
 ```
 
+Local Docker Compose orchestration is centralized in `infra/compose`. Service directories do not own Compose files.
+`docker-compose.app.yml` owns the service databases and `docker-compose.third-party.yml` owns shared local
+dependencies.
+
 The imported Spring Boot context tests currently require runtime configuration such as `AUTH0_ISSUER`. Until dedicated test profiles are added, shadow CI compiles the full Maven reactor but does not claim that runtime-dependent tests pass.
+
+## Known cutover gates
+
+- The imported scraper repositories currently collect no pytest tests. Nx provides syntax checks and CI builds both
+  images, but behavioral scraper validation still requires shadow execution against safe endpoints.
+- Python requirements and several container base images retain the standalone repositories' floating version strategy.
+  Pinning them is a separate runtime change, not part of structural migration.
+- `reports-service` still targets the legacy `blockout-api-reports` GitHub repository in its Spring configuration.
+  Decide explicitly whether report creation remains there or moves to `blockout` before that service's cutover.
+- Spring context tests need dedicated non-production configuration and disposable dependencies before CI can safely
+  promote reactor `verify` from a known configuration failure to a required gate.
+- Expo dependency validation can use its local SDK map offline, but a store-release candidate still requires an
+  online EAS dependency/build validation and installed-device smoke test.
 
 ## Deployment invariants
 

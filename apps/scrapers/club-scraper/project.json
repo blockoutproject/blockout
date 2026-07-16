@@ -13,12 +13,12 @@
         "command": "python3 main.py"
       }
     },
-    "test": {
+    "syntax-check": {
       "executor": "nx:run-commands",
       "cache": true,
       "options": {
         "cwd": "apps/scrapers/club-scraper",
-        "command": "python3 -m pytest"
+        "command": "python3 -m compileall -q ."
       }
     },
     "docker-build": {

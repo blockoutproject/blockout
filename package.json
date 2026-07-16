@@ -2,7 +2,10 @@
   "name": "@blockout/source",
   "version": "0.0.0",
   "license": "MIT",
-  "scripts": {},
+  "scripts": {
+    "validate:docs": "node tools/scripts/validate-doc-links.mjs",
+    "validate:env": "node tools/scripts/validate-env-examples.mjs"
+  },
   "private": true,
   "workspaces": [
     "packages/*",

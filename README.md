@@ -34,7 +34,9 @@ apps/
     club-scraper/
     competition-scraper/
 infra/
-  local-platform/
+  compose/
+    docker-compose.app.yml
+    docker-compose.third-party.yml
 ```
 
 ## Install and inspect
@@ -43,6 +45,9 @@ infra/
 npm ci
 npm exec nx show projects
 ```
+
+Each deployable owns a safe `.env.example`. Run `npm run validate:env` to verify that every runtime variable
+referenced by Spring, Python, Expo, or Compose is documented.
 
 ## Backend
 
@@ -73,13 +78,19 @@ Native Google Services configuration is injected through `GOOGLE_SERVICES_JSON`;
 The scrapers intentionally use explicit Nx projects rather than a Python plugin.
 
 ```bash
+npm exec nx run @blockout/competition-scraper:syntax-check
+npm exec nx run @blockout/club-scraper:syntax-check
 npm exec nx run @blockout/competition-scraper:docker-build
 npm exec nx run @blockout/club-scraper:docker-build
 ```
 
 ## Local platform
 
+All local Docker orchestration is centralized under `infra/compose`, following the Maaatch split between application
+databases and third-party dependencies.
+
 ```bash
+cp infra/compose/.env.example infra/compose/.env
 npm exec nx run @blockout/local-platform:config
 npm exec nx run @blockout/local-platform:serve
 ```
@@ -87,3 +98,9 @@ npm exec nx run @blockout/local-platform:serve
 ## Production migration
 
 This repository does not own production deployments yet. Existing repositories remain authoritative until each deployable is cut over independently and verified. See [the monorepo cutover runbook](docs/migration/monorepo-cutover.md).
+
+## Agentic operation
+
+Agents start with [`AGENTS.md`](AGENTS.md), [Blockout Best Practices](.agents/skills/blockout-best-practices/SKILL.md),
+and the [current agent brief](docs/current/blockout-agent-brief.md). The [documentation index](docs/README.md) routes
+architecture, migration, audit, execution, and GitHub workflow tasks.

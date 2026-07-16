@@ -1,0 +1,69 @@
+query RoadmapProjectIndex(
+  $owner: String!
+  $projectNumber: Int!
+  $endCursor: String
+) {
+  organization(login: $owner) {
+    projectV2(number: $projectNumber) {
+      id
+      title
+      updatedAt
+      fields(first: 100) {
+        nodes {
+          __typename
+          ... on ProjectV2FieldCommon {
+            id
+            name
+          }
+          ... on ProjectV2SingleSelectField {
+            options {
+              id
+              name
+            }
+          }
+        }
+      }
+      items(first: 100, after: $endCursor) {
+        pageInfo {
+          hasNextPage
+          endCursor
+        }
+        nodes {
+          id
+          updatedAt
+          type
+          content {
+            ... on Issue {
+              number
+              title
+              state
+              updatedAt
+              assignees(first: 20) {
+                nodes {
+                  login
+                }
+              }
+              labels(first: 50) {
+                nodes {
+                  name
+                }
+              }
+            }
+          }
+          fieldValues(first: 50) {
+            nodes {
+              ... on ProjectV2ItemFieldSingleSelectValue {
+                name
+                field {
+                  ... on ProjectV2FieldCommon {
+                    name
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

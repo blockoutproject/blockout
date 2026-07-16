@@ -1,0 +1,76 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "Blockout Pools",
+      "Group": "Blockout",
+      "Host": "blockout-postgres-pools",
+      "Port": 5432,
+      "MaintenanceDB": "blockout_pools",
+      "Username": "blockout_pools",
+      "SSLMode": "prefer"
+    },
+    "2": {
+      "Name": "Blockout Teams",
+      "Group": "Blockout",
+      "Host": "blockout-postgres-teams",
+      "Port": 5432,
+      "MaintenanceDB": "blockout_teams",
+      "Username": "blockout_teams",
+      "SSLMode": "prefer"
+    },
+    "3": {
+      "Name": "Blockout Matches",
+      "Group": "Blockout",
+      "Host": "blockout-postgres-matches",
+      "Port": 5432,
+      "MaintenanceDB": "blockout_matches",
+      "Username": "blockout_matches",
+      "SSLMode": "prefer"
+    },
+    "4": {
+      "Name": "Blockout Competitions",
+      "Group": "Blockout",
+      "Host": "blockout-postgres-competitions",
+      "Port": 5432,
+      "MaintenanceDB": "blockout_competitions",
+      "Username": "blockout_competitions",
+      "SSLMode": "prefer"
+    },
+    "5": {
+      "Name": "Blockout Users",
+      "Group": "Blockout",
+      "Host": "blockout-postgres-users",
+      "Port": 5432,
+      "MaintenanceDB": "blockout_users",
+      "Username": "blockout_users",
+      "SSLMode": "prefer"
+    },
+    "6": {
+      "Name": "Blockout Clubs",
+      "Group": "Blockout",
+      "Host": "blockout-postgres-clubs",
+      "Port": 5432,
+      "MaintenanceDB": "blockout_clubs",
+      "Username": "blockout_clubs",
+      "SSLMode": "prefer"
+    },
+    "7": {
+      "Name": "Blockout Config",
+      "Group": "Blockout",
+      "Host": "blockout-postgres-config",
+      "Port": 5432,
+      "MaintenanceDB": "blockout_config",
+      "Username": "blockout_config",
+      "SSLMode": "prefer"
+    },
+    "8": {
+      "Name": "Blockout Notifications",
+      "Group": "Blockout",
+      "Host": "blockout-postgres-notifications",
+      "Port": 5432,
+      "MaintenanceDB": "blockout_notifications",
+      "Username": "blockout_notifications",
+      "SSLMode": "prefer"
+    }
+  }
+}
