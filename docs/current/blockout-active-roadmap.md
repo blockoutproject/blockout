@@ -117,8 +117,12 @@ state moves to GitHub and this file becomes a historical migration record.
   - Evidence: `docs/migration/backend-contract-data-audit-template.md` defines evidence statuses, field classifications,
     per-operation and per-field matrices, conversion and persistence inventories, BFF call graphs, parity evidence,
     completion gates, and the handoff to target-architecture approval without changing runtime code.
-- [ ] MRG-252 Audit `config-service` field by field, including direct entity responses, multipart JSON parsing, scraper
+- [x] MRG-252 Audit `config-service` field by field, including direct entity responses, multipart JSON parsing, scraper
       configuration consumers, and the distinction between API, application, and persistence shapes.
+  - Evidence: `docs/migration/backend-contract-audits/mrg-252-config-service.md` inventories all 16 operations, five
+    persistence families, every field and duplicate consumer shape, casing and multipart conversions, BFF/worker/Expo
+    and scraper lineage, validation, errors, caches, tests, unknowns, and provisional MRG-268 ownership without runtime
+    changes.
 - [ ] MRG-253 Audit `clubs-service` field by field, including multipart create/update flows, S3 ownership, scraper calls,
       entity construction, event publication, and mobile-gateway consumers.
 - [ ] MRG-254 Audit `teams-service` field by field, including multipart updates, entity construction, follower counts,
