@@ -206,8 +206,15 @@ state moves to GitHub and this file becomes a historical migration record.
     Prettier, local-link validation, the Maaatch structure comparison, diff checks, and the Maven package build pass.
     Tests remain skipped because this audit changes documentation only; the sole gateway context-load test is already
     documented as coupled to a missing `AUTH0_ISSUER` fixture.
-- [ ] MRG-266 Audit `mobile-gateway` competition, match, and live aggregation call graphs, including pagination,
+- [x] MRG-266 Audit `mobile-gateway` competition, match, and live aggregation call graphs, including pagination,
       ranking assembly, fan-out cardinality, partial failure, ordering, and exact Expo field consumers.
+  - Evidence: `docs/migration/backend-contract-audits/mrg-266-gateway-competition-match-live-aggregations.md`
+    reconstructs all ten match-facing facade operations; exact list/detail/moderation fan-out; date pagination and its
+    empty-continuation loss; ranking and signed-PDF assembly; ordering, bounds, silent drops, null/failure behavior;
+    live relays/history; copied, derived, compatibility, and unused fields; and every proven Expo consumer without
+    runtime changes. Prettier, local-link validation, the Maaatch structure comparison, diff checks, and the Maven
+    package build pass. Tests remain skipped because this audit changes documentation only; the sole gateway
+    context-load test remains coupled to a missing `AUTH0_ISSUER` fixture.
 - [ ] MRG-267 Produce the cross-service type and field-lineage matrix, classifying every duplicate or unused-looking
       field as required, derived, compatibility-only, vendor-owned, persistence-only, event-only, or removable.
 - [ ] MRG-268 Approve the target service-by-service data architecture and migration sequence for generated API DTOs,
