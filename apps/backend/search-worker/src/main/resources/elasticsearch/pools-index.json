@@ -1,0 +1,101 @@
+{
+    "settings": {
+        "analysis": {
+            "filter": {
+                "french_elision": {
+                    "type": "elision",
+                    "articles_case": true,
+                    "articles": [
+                        "l",
+                        "m",
+                        "t",
+                        "qu",
+                        "n",
+                        "s",
+                        "j",
+                        "d",
+                        "c",
+                        "jusqu",
+                        "quoiqu",
+                        "lorsqu",
+                        "puisqu"
+                    ]
+                }
+            },
+            "analyzer": {
+                "folded_autocomplete": {
+                    "type": "custom",
+                    "tokenizer": "standard",
+                    "filter": [
+                        "lowercase",
+                        "asciifolding",
+                        "french_elision"
+                    ]
+                }
+            }
+        }
+    },
+    "mappings": {
+        "properties": {
+            "id": {
+                "type": "long"
+            },
+            "name": {
+                "type": "search_as_you_type",
+                "analyzer": "folded_autocomplete",
+                "copy_to": [
+                    "all"
+                ]
+            },
+            "shortName": {
+                "type": "search_as_you_type",
+                "analyzer": "folded_autocomplete",
+                "copy_to": [
+                    "all"
+                ]
+            },
+            "divisionId": {
+                "type": "long"
+            },
+            "divisionName": {
+                "type": "search_as_you_type",
+                "analyzer": "folded_autocomplete",
+                "copy_to": [
+                    "all"
+                ]
+            },
+            "leagueCode": {
+                "type": "keyword"
+            },
+            "leagueName": {
+                "type": "search_as_you_type",
+                "analyzer": "folded_autocomplete",
+                "copy_to": [
+                    "all"
+                ]
+            },
+            "format": {
+                "type": "keyword"
+            },
+            "gender": {
+                "type": "keyword"
+            },
+            "season": {
+                "type": "keyword"
+            },
+            "logoUrl": {
+                "type": "keyword"
+            },
+            "all": {
+                "type": "text",
+                "analyzer": "folded_autocomplete"
+            },
+            "name_suggest": {
+                "type": "completion",
+                "analyzer": "folded_autocomplete",
+                "preserve_separators": true,
+                "preserve_position_increments": true
+            }
+        }
+    }
+}
