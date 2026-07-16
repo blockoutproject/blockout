@@ -141,8 +141,12 @@ state moves to GitHub and this file becomes a historical migration record.
     direct entity and update fields, persistence, followers, cascades, scraper reactivation, worker/search projections,
     BFF/notification/Expo lineage, casing, duplication, validation, tests, unknowns, and provisional target roles without
     runtime changes.
-- [ ] MRG-256 Audit `competition-service` field by field, including association persistence, ranking calculations, bulk
+- [x] MRG-256 Audit `competition-service` field by field, including association persistence, ranking calculations, bulk
       deactivation events, scraper calls, and every BFF ranking projection consumer.
+  - Evidence: `docs/migration/backend-contract-audits/mrg-256-competition-service.md` inventories all eight operations,
+    24 association fields, 17-stat replacement, add/reactivate and bulk cascades, event consumers, scraper calculations,
+    BFF ranking/fan-out projections, casing, validation, tests, unknowns, and provisional target roles without runtime
+    changes.
 - [ ] MRG-257 Audit `matches-service` field by field, including match entities, day/page projections, live links, live
       summaries, moderation/report flows, events, scraper calls, and every BFF consumer.
 - [ ] MRG-258 Audit `users-service` field by field, including the existing mappers, direct entity responses, Auth0
