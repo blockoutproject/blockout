@@ -159,8 +159,11 @@ state moves to GitHub and this file becomes a historical migration record.
     user/favorite fields, mixed mapper/entity responses, Auth0 token/link/role/delete flows, S3 multipart ownership,
     distributed follower counters/events, notification projections, BFF/Expo session and deletion behavior, casing,
     privacy, validation, tests, unknowns, and provisional target roles without runtime changes.
-- [ ] MRG-259 Audit `reports-service` field by field, separating Blockout request/response contracts from multipart,
+- [x] MRG-259 Audit `reports-service` field by field, separating Blockout request/response contracts from multipart,
       S3, GitHub, and Discord vendor shapes.
+  - Evidence: `docs/migration/backend-contract-audits/mrg-259-reports-service.md` inventories both REST boundaries,
+    every Blockout/multipart/S3/GitHub/Discord field, BFF/Expo casing and consumers, side-effect ordering, validation,
+    security leaks, tests, unknowns, and provisional target roles without runtime changes.
 - [ ] MRG-260 Audit `notification-service` field by field, including REST DTOs, direct persistence projections, Expo
       vendor payloads, event consumers, pagination, token ownership, and mobile-gateway consumers.
 - [ ] MRG-261 Audit `search-service` field by field, including search document DTOs, query/filter semantics, empty-result
