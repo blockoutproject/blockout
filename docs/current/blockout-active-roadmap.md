@@ -94,8 +94,10 @@ state moves to GitHub and this file becomes a historical migration record.
   - Evidence: `packages`, `libs/react`, `libs/shared`, and `scripts` are present at the workspace root.
 - [x] MRG-202 Reserve `libs/shared/contracts` as the future contract source boundary.
   - Evidence: Nx discovers `@blockout/contracts` and its inferred `typecheck` target passes.
-- [ ] MRG-203 Keep TanStack Query owned by `apps/frontend/mobile` and introduce a mobile-local query client/provider
+- [x] MRG-203 Keep TanStack Query owned by `apps/frontend/mobile` and introduce a mobile-local query client/provider
       boundary prepared for Orval-generated clients without changing runtime defaults.
+  - Evidence: `TanstackQueryProvider` owns the unchanged singleton client inside mobile; Nx discovery, mobile typecheck,
+    Expo Android/iOS export, formatting, docs, structural comparison, and diff checks pass.
 - [ ] MRG-204 Align `nx.json` named inputs, root TypeScript references, workspace ownership, and generators while
       retaining the Expo plugin instead of Next.js.
 - [x] MRG-205 Align root documentation and agent entrypoints with Maaatch; keep only technology-required extra files.

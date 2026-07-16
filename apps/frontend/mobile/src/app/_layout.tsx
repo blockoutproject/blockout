@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect } from "react";
 import { StatusBar } from "react-native";
 import { Stack } from "expo-router";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Auth0Provider } from "react-native-auth0";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
@@ -10,6 +9,7 @@ import { AUTH0_CONFIG } from "@/src/config/config";
 import { ThemeProvider } from "@/src/theme/theme-provider";
 import { ApiProvider } from "@/src/context/ApiProvider";
 import { SessionProvider, useSession } from "@/src/context/SessionProvider";
+import { TanstackQueryProvider } from "@/src/context/TanstackQueryProvider";
 import { SplashScreenController } from "@/src/components/splash/SplashScreen";
 import { useOnboardingStore } from "../utils/onboardingStore";
 import { addNotificationListeners, openNotificationUrlIfAny } from "../utils/notifications";
@@ -17,12 +17,15 @@ import { useNavigationInterstitial } from "../hooks/ads/useNavigationInterstitia
 import { useConsentGDPR } from "../hooks/ads/useConsentGDPR";
 import { PurchasesProvider } from "../context/PurchasesProvider";
 
-const queryClient = new QueryClient();
-
+/**
+ * Composes the application-wide mobile providers around the root navigator.
+ *
+ * @returns The Expo application root.
+ */
 export default function Root() {
     return (
         <GestureHandlerRootView style={{ flex: 1 }}>
-            <QueryClientProvider client={queryClient}>
+            <TanstackQueryProvider>
                 <ThemeProvider>
                     <StatusBar barStyle="light-content" />
                     <Auth0Provider domain={AUTH0_CONFIG.domain} clientId={AUTH0_CONFIG.clientId}>
@@ -36,11 +39,16 @@ export default function Root() {
                         </ApiProvider>
                     </Auth0Provider>
                 </ThemeProvider>
-            </QueryClientProvider>
+            </TanstackQueryProvider>
         </GestureHandlerRootView>
     );
 }
 
+/**
+ * Renders the protected route tree from session, update, maintenance, and onboarding state.
+ *
+ * @returns The root Expo Router stack.
+ */
 function RootNavigator() {
     useConsentGDPR();
 
