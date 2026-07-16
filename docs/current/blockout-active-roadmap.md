@@ -242,8 +242,15 @@ state moves to GitHub and this file becomes a historical migration record.
     130 unique inventory rows, zero explicit operation IDs, and no search-worker controller. Prettier, local-link
     validation, Maaatch structure comparison, diff checks, and the backend Maven package build pass with tests
     intentionally skipped for this documentation-only task.
-- [ ] MRG-302 Inventory every RabbitMQ exchange, routing key, producer, consumer, event class, serialized payload, retry
+- [x] MRG-302 Inventory every RabbitMQ exchange, routing key, producer, consumer, event class, serialized payload, retry
       assumption, and casing rule separately from REST contracts.
+  - Evidence: `docs/migration/mrg-302-deployed-rabbitmq-wire-inventory.md` freezes four topic exchanges, 11 producer
+    keys, ten dead-letter keys, 19 primary queues, ten DLQs, 29 bindings, ten publisher methods, 14 listeners, five
+    unconsumed primary queues, 25 routed event-class copies, producer failure/transaction gaps, consumer
+    acknowledgement and retry assumptions, and exact camelCase converter fixtures plus current `__TypeId__` headers;
+    it records the two inequivalent cross-service queue declarations and keeps broker/runtime facts explicit without
+    changing topology or runtime code. Prettier, local-link validation, Maaatch structure comparison, diff checks, and
+    the backend Maven package build pass with tests intentionally skipped for this documentation-only task.
 - [ ] MRG-303 Inventory every handwritten backend HTTP client, Expo API module, scraper request builder, Jackson naming
       setting or annotation, and case-conversion dependency; assign each one to a future generated or external adapter.
 - [ ] MRG-304 Publish the cutover matrix for standalone and monorepo coexistence from the approved MRG-268 architecture,
