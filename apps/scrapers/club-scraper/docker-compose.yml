@@ -1,0 +1,22 @@
+services:
+  scraper-clubs:
+    build: .
+    restart: always
+    environment:
+      TEAM_API_URL: ${TEAM_API_URL}
+      CLUB_API_URL: ${CLUB_API_URL}
+      COMPETITION_API_URL: ${COMPETITION_API_URL}
+      CONFIG_API_URL: ${CONFIG_API_URL}
+      LOG_LEVEL: ${LOG_LEVEL}
+      AUTH0_DOMAIN: ${AUTH0_DOMAIN}
+      AUTH0_CLIENT_ID: ${AUTH0_CLIENT_ID}
+      AUTH0_CLIENT_SECRET: ${AUTH0_CLIENT_SECRET}
+      AUTH0_AUDIENCE: ${AUTH0_AUDIENCE}
+    ports:
+      - 8001:8001
+    depends_on:
+      postgres:
+        condition: service_healthy
+        
+volumes:
+  postgres-data:
