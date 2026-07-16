@@ -5,6 +5,30 @@
 Read this reference before changing backend mappings between generated OpenAPI DTOs, domain, read models, and
 persistence entities.
 
+## Audit Before Mapping Changes
+
+Before defining or restructuring a service boundary, produce a read-only field-lineage audit that records:
+
+- every REST and event entrypoint plus its concrete request, response, error, pagination, and multipart shapes;
+- every DTO, application shape, domain concept, JPA entity, event, vendor payload, and duplicated cross-module type;
+- each field's producer, consumer, validation, default, derivation, persistence column, serialization name, and current
+  frontend, scraper, worker, or downstream use;
+- every direct entity exposure, DTO-to-entity construction, handwritten copy, `ObjectMapper` conversion, missing or
+  existing mapper, and compatibility adapter;
+- the proposed owner and target role for each retained shape, without changing code during the audit task.
+
+For BFF workflows, also record the downstream call graph, fan-out cardinality, repeated lookups, ordering, pagination,
+partial-failure behavior, null/fallback rules, authorization, caching, and the consumer-backed reason for every enriched
+field. A large projection is not automatically wrong, but each field and aggregation step must have explicit ownership.
+
+Classify every field as required, derived, compatibility-only, vendor-owned, persistence-only, event-only, or removable.
+Do not delete an apparently unused field until all consumers, runtime parity, deployment order, and rollback have been
+proven in a later task.
+
+Records are one implementation form, not the goal of the audit. Introduce a record only when a stable immutable
+application command, view, decision, plan, or domain value has a clear owner. Do not create one-to-one record mirrors of
+generated DTOs or JPA entities merely to satisfy layering.
+
 ## Boundaries
 
 - OpenAPI DTO: HTTP contract shape.
@@ -17,11 +41,9 @@ without turning generated object DTOs into domain or persistence.
 
 Generated object DTOs may appear only at an explicit contract-payload boundary when the payload is itself a durable
 OpenAPI-owned JSON shape. In that case, the owning `PayloadPolicy`, `PayloadMapper`, API mapper, or persistence edge
-must
-parse, validate, or serialize the generated object locally, then expose an application contract, read model, neutral
-payload, or JSON tree to the rest of the use case. Do not expose generated payload DTOs as application service
-contracts,
-JPA fields, BFF models, or general-purpose feature domain objects.
+must parse, validate, or serialize the generated object locally, then expose an application contract, read model,
+neutral payload, or JSON tree to the rest of the use case. Do not expose generated payload DTOs as application service
+contracts, JPA fields, BFF models, or general-purpose feature domain objects.
 
 ## Naming
 

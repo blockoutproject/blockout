@@ -8,6 +8,22 @@ The commands and paths in this policy describe the target state. Until the contr
 implemented by the active roadmap, do not invent missing generation targets or present the reserved contract package
 as an active source of runtime APIs.
 
+## Reconstructing The Legacy Contract
+
+- Blockout's current Springdoc output, controller annotations, handwritten DTOs, entities exposed by controllers,
+  mobile types, scraper dictionaries, events, and observed callers are discovery evidence. None is the target contract
+  source by itself.
+- Audit each service and BFF workflow before writing its authoritative fragments. Record every field's producer,
+  consumer, validation, persistence role, compatibility need, casing, and frontend-visible purpose.
+- Do not copy a large legacy DTO into OpenAPI merely because it serializes today. Keep a field only when deployed
+  behavior, a current consumer, compatibility, or an approved product contract requires it.
+- Do not remove or rename an apparently unused field during discovery. Classify it first, prove all consumers and
+  rollback behavior, then remove it only in the scheduled migration slice.
+- Reconstruct BFF contracts from frontend workflows and proven aggregation semantics, not by concatenating downstream
+  service DTOs. Preserve ordering, pagination, partial-failure, null/fallback, and enrichment behavior explicitly.
+- The read-only audit, target contract definition, generated-boundary migration, internal Java restructuring, consumer
+  cutover, and legacy cleanup are separate roadmap tasks.
+
 ## Core Rule
 
 - OpenAPI source fragments are the source of truth.

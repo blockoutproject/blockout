@@ -156,8 +156,9 @@ with a behavioral rewrite unless the task owns both.
 
 ## Remote Data And API Access
 
-The current application has active TanStack Query consumers and one root `QueryClientProvider`. Preserve that runtime
-behavior until MRG-203 moves shared TanStack ownership to `libs/react/tanstack`.
+The current application has active TanStack Query consumers and one root `QueryClientProvider`. TanStack and future
+Orval integration remain owned by `apps/frontend/mobile` because Blockout has one React application. Preserve the
+current provider lifetime and defaults until MRG-203 introduces the mobile-local boundary.
 
 - Access current API clients through `ApiProvider` and `useApis`; do not instantiate competing clients in screens or
   hooks.
@@ -165,6 +166,8 @@ behavior until MRG-203 moves shared TanStack ownership to `libs/react/tanstack`.
   tokens through route params, component props, query keys, logs, or persisted client state.
 - Use the current `MobileGatewayApi` facade for mobile product calls. Do not revive direct service clients or add a new
   endpoint merely because a backend route exists.
+- Route generated Orval clients and hooks through the single mobile-owned query client, auth/error transport, and
+  module boundaries. Do not create a shared TanStack package without a second real application consumer.
 - Keep query keys stable, serializable, domain-named, and complete for every value that changes the result. Normalize
   unordered identifier inputs before including them in a key.
 - Put query functions and mutation/invalidation policy in domain hooks. Components should consume screen-ready query

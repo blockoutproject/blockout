@@ -34,6 +34,12 @@ state moves to GitHub and this file becomes a historical migration record.
   annotations, with 220 concentrated in `mobile-gateway`.
 - The Expo HTTP boundary currently snake-cases requests and camel-cases responses globally, while both Python scrapers
   send Blockout-owned query and JSON payload keys directly in snake_case.
+- `mobile-gateway` currently contains 52 DTO classes among 111 Java classes and no mapper package; outside
+  `users-service`, the audited deployables likewise contain no mapper classes.
+- DTO names and shapes are copied across service, worker, and gateway modules, while several controllers expose JPA
+  entities directly and BFF aggregation services construct large enriched response DTOs inside orchestration loops.
+- Eleven backend modules depend on Springdoc for implementation-derived API documentation; no backend module currently
+  configures OpenAPI Generator from an authoritative source contract.
 - Two uncommitted legacy changes were intentionally excluded and require explicit reconciliation before source freeze:
   `blockout-mobile-gateway/.../FfvbPublicController.java` and `blockout-scraper/scrapers/pro_scraper.py`.
 
@@ -78,6 +84,9 @@ state moves to GitHub and this file becomes a historical migration record.
 - [x] MRG-108 Correct dependency order and expand contract-first adaptation into independently verifiable tasks.
   - Evidence: final cleanup now follows architecture activation, while REST, event, backend, Expo, scraper, camelCase,
     generated-client, and no-diff work have explicit gates adapted from Maaatch.
+- [x] MRG-110 Correct TanStack ownership and add backend data-boundary audits before contract reconstruction.
+  - Evidence: TanStack remains mobile-owned for the single Expo application, and service/BFF DTO, entity, mapper,
+    duplication, field-lineage, and aggregation audits now precede generated contract and Java restructuring work.
 
 ## Phase MRG-200 — Workspace Skeleton
 
@@ -85,8 +94,8 @@ state moves to GitHub and this file becomes a historical migration record.
   - Evidence: `packages`, `libs/react`, `libs/shared`, and `scripts` are present at the workspace root.
 - [x] MRG-202 Reserve `libs/shared/contracts` as the future contract source boundary.
   - Evidence: Nx discovers `@blockout/contracts` and its inferred `typecheck` target passes.
-- [ ] MRG-203 Introduce `libs/react/tanstack` and move the mobile query client/provider without changing runtime
-      defaults.
+- [ ] MRG-203 Keep TanStack Query owned by `apps/frontend/mobile` and introduce a mobile-local query client/provider
+      boundary prepared for Orval-generated clients without changing runtime defaults.
 - [ ] MRG-204 Align `nx.json` named inputs, root TypeScript references, workspace ownership, and generators while
       retaining the Expo plugin instead of Next.js.
 - [x] MRG-205 Align root documentation and agent entrypoints with Maaatch; keep only technology-required extra files.
@@ -96,16 +105,58 @@ state moves to GitHub and this file becomes a historical migration record.
 - [x] MRG-207 Align Maaatch's local log collector without adding a local observability stack.
   - Evidence: `npm run local:logs -- --help` passes and all configured processes write to one Git-ignored JSONL file.
 
+## Phase MRG-250 — Backend Contract And Data-Boundary Audit
+
+- [ ] MRG-251 Define the read-only service audit template: endpoint and event entrypoints, DTO and entity fields,
+      producer/consumer lineage, validation, persistence, conversions, annotations, duplicated types, and tests.
+- [ ] MRG-252 Audit `config-service` field by field, including direct entity responses, multipart JSON parsing, scraper
+      configuration consumers, and the distinction between API, application, and persistence shapes.
+- [ ] MRG-253 Audit `clubs-service` field by field, including multipart create/update flows, S3 ownership, scraper calls,
+      entity construction, event publication, and mobile-gateway consumers.
+- [ ] MRG-254 Audit `teams-service` field by field, including multipart updates, entity construction, follower counts,
+      club/division dependencies, events, scraper calls, and mobile-gateway consumers.
+- [ ] MRG-255 Audit `pools-service` field by field, including entity construction, follower counts, filters, events,
+      scraper calls, and mobile-gateway consumers.
+- [ ] MRG-256 Audit `competition-service` field by field, including association persistence, ranking calculations, bulk
+      deactivation events, scraper calls, and every BFF ranking projection consumer.
+- [ ] MRG-257 Audit `matches-service` field by field, including match entities, day/page projections, live links, live
+      summaries, moderation/report flows, events, scraper calls, and every BFF consumer.
+- [ ] MRG-258 Audit `users-service` field by field, including the existing mappers, direct entity responses, Auth0
+      identity, favorites, S3 ownership, events, and mobile-gateway consumers.
+- [ ] MRG-259 Audit `reports-service` field by field, separating Blockout request/response contracts from multipart,
+      S3, GitHub, and Discord vendor shapes.
+- [ ] MRG-260 Audit `notification-service` field by field, including REST DTOs, direct persistence projections, Expo
+      vendor payloads, event consumers, pagination, token ownership, and mobile-gateway consumers.
+- [ ] MRG-261 Audit `search-service` field by field, including search document DTOs, query/filter semantics, empty-result
+      behavior, Elasticsearch ownership, and mobile-gateway consumers.
+- [ ] MRG-262 Audit `search-worker` field by field, including copied service DTOs, cache bootstrap clients, event
+      payloads, index documents, scheduled jobs, and Elasticsearch write ownership.
+- [ ] MRG-263 Audit the `mobile-gateway` public and secure facade operation by operation, mapping each controller, copied
+      downstream DTO, handwritten client, error translation, auth rule, and Expo caller.
+- [ ] MRG-264 Audit `mobile-gateway` configuration, user, report, search, and notification orchestration, documenting
+      every aggregation, pass-through, fallback, duplicated field, and frontend-visible reason for each projection.
+- [ ] MRG-265 Audit `mobile-gateway` club, team, and pool aggregation call graphs, including fan-out cardinality,
+      ordering, null handling, enrichment rules, repeated lookups, temporary fields, and exact Expo field consumers.
+- [ ] MRG-266 Audit `mobile-gateway` competition, match, and live aggregation call graphs, including pagination,
+      ranking assembly, fan-out cardinality, partial failure, ordering, and exact Expo field consumers.
+- [ ] MRG-267 Produce the cross-service type and field-lineage matrix, classifying every duplicate or unused-looking
+      field as required, derived, compatibility-only, vendor-owned, persistence-only, event-only, or removable.
+- [ ] MRG-268 Approve the target service-by-service data architecture and migration sequence for generated API DTOs,
+      application commands/views/records, domain concepts, JPA entities, event payloads, mappers, and BFF projections.
+  - Execution mode: PLAN_REQUIRED
+
 ## Phase MRG-300 — Contract-First Foundation
 
-- [ ] MRG-301 Inventory every deployed REST operation and record its owner, caller, method, path, parameters, security,
-      request, success shape, errors, pagination, multipart behavior, and current snake_case/camelCase wire names.
+- [ ] MRG-301 Build the deployed REST wire inventory from the MRG-250 field-lineage evidence, recording each owner,
+      caller, method, path, parameter, security rule, request, response, error, pagination, multipart behavior, and
+      current snake_case/camelCase name without treating Springdoc output as the target source.
 - [ ] MRG-302 Inventory every RabbitMQ exchange, routing key, producer, consumer, event class, serialized payload, retry
       assumption, and casing rule separately from REST contracts.
 - [ ] MRG-303 Inventory every handwritten backend HTTP client, Expo API module, scraper request builder, Jackson naming
       setting or annotation, and case-conversion dependency; assign each one to a future generated or external adapter.
-- [ ] MRG-304 Publish the cutover matrix for standalone and monorepo coexistence, including per-boundary compatibility,
-      deployment order, rollback, and the exact point where temporary snake_case reads can be removed.
+- [ ] MRG-304 Publish the cutover matrix for standalone and monorepo coexistence from the approved MRG-268 architecture,
+      including per-boundary compatibility, deployment order, rollback, and the exact point where temporary snake_case
+      reads and duplicated legacy shapes can be removed.
   - Execution mode: PLAN_REQUIRED
 - [ ] MRG-305 Define the Blockout fragment layout for shared schemas, internal service APIs, and the mobile-gateway BFF
       under `libs/shared/contracts/specs/source/**`, retaining Blockout service ownership and Expo terminology.
@@ -133,28 +184,29 @@ state moves to GitHub and this file becomes a historical migration record.
   - Execution mode: PLAN_REQUIRED
 - [ ] MRG-316 Add shared REST primitives for Problem Details errors, security, pagination, bounded lists, identifiers,
       dates, and shared enums before service-specific schemas duplicate them.
-- [ ] MRG-317 Define and bundle the `config-service` contract from production evidence using canonical camelCase wire
-      names, without changing runtime behavior.
-- [ ] MRG-318 Define and bundle the `clubs-service` contract from production evidence using canonical camelCase wire
-      names, including multipart operations.
-- [ ] MRG-319 Define and bundle the `teams-service` contract from production evidence using canonical camelCase wire
-      names, including multipart operations.
-- [ ] MRG-320 Define and bundle the `pools-service` contract from production evidence using canonical camelCase wire
-      names.
-- [ ] MRG-321 Define and bundle the `competition-service` contract from production evidence using canonical camelCase
-      wire names.
-- [ ] MRG-322 Define and bundle the `matches-service` contract from production evidence using canonical camelCase wire
-      names, including live-link and live-summary projections.
-- [ ] MRG-323 Define and bundle the `users-service` contract from production evidence using canonical camelCase wire
-      names and current authentication semantics.
-- [ ] MRG-324 Define and bundle the `reports-service` contract from production evidence, separating Blockout camelCase
-      payloads from GitHub and Discord vendor payload adapters.
-- [ ] MRG-325 Define and bundle the `notification-service` REST contract from production evidence, keeping RabbitMQ
-      event contracts in their separately selected source format.
-- [ ] MRG-326 Define and bundle the `search-service` contract from production evidence using canonical camelCase wire
-      names; classify `search-worker` as an event consumer rather than inventing REST behavior.
-- [ ] MRG-327 Define and bundle the complete `mobile-gateway` BFF contract from production evidence, with UI-facing
-      projections distinct from internal-service DTOs.
+- [ ] MRG-317 Define and bundle the `config-service` contract from its approved audit using only required wire fields and
+      canonical camelCase names, without changing runtime behavior.
+- [ ] MRG-318 Define and bundle the `clubs-service` contract from its approved audit using only required camelCase wire
+      fields, including multipart operations.
+- [ ] MRG-319 Define and bundle the `teams-service` contract from its approved audit using only required camelCase wire
+      fields, including multipart operations.
+- [ ] MRG-320 Define and bundle the `pools-service` contract from its approved audit using only required camelCase wire
+      fields.
+- [ ] MRG-321 Define and bundle the `competition-service` contract from its approved audit using only required
+      camelCase wire fields and explicit ranking semantics.
+- [ ] MRG-322 Define and bundle the `matches-service` contract from its approved audit using only required camelCase
+      wire fields, including day pages, live links, and live summaries.
+- [ ] MRG-323 Define and bundle the `users-service` contract from its approved audit using only required camelCase wire
+      fields and current authentication semantics.
+- [ ] MRG-324 Define and bundle the `reports-service` contract from its approved audit, separating required Blockout
+      camelCase payloads from GitHub and Discord vendor adapters.
+- [ ] MRG-325 Define and bundle the `notification-service` REST contract from its approved audit, keeping RabbitMQ event
+      contracts in their separately selected source format.
+- [ ] MRG-326 Define and bundle the `search-service` contract from its approved audit using only required camelCase wire
+      fields; classify `search-worker` as an event consumer rather than inventing REST behavior.
+- [ ] MRG-327 Define and bundle the complete `mobile-gateway` BFF contract from the approved aggregation audits, with
+      UI-facing projections distinct from internal-service DTOs and every retained enriched field justified by a real
+      frontend contract.
 - [ ] MRG-328 Configure the approved Expo generator and Nx target to produce transport clients, DTOs, and Zod contract
       schemas from the mobile-gateway bundle without importing React Native UI or form concerns into generated code.
 - [ ] MRG-329 Adapt and activate Maaatch's Zod guidance for generated Expo contract validation while retaining the
@@ -208,21 +260,55 @@ state moves to GitHub and this file becomes a historical migration record.
 
 ## Phase MRG-400 — Backend Architecture
 
-- [ ] MRG-401 Audit every service against the Maaatch feature-first Java policy without editing production behavior.
-- [ ] MRG-402 Define Blockout service ownership, shared-model boundaries, and mobile-gateway facade responsibilities.
-- [ ] MRG-403 Plan service-by-service package migrations from technical bags to feature-first roles.
-- [ ] MRG-404 Align DTO, application, domain, persistence, mapper, endpoint, error, and pagination boundaries.
-- [ ] MRG-405 Align code documentation and existing-test conventions incrementally per touched module.
-- [ ] MRG-406 Preserve Flyway as the production-safe technology variant and audit every migration history before
-      package/schema changes.
-- [ ] MRG-407 Add dedicated test configuration and disposable dependencies so the reactor can safely require `verify`.
-- [ ] MRG-408 Rebuild and smoke every backend image with production-shaped environment contracts.
+- [ ] MRG-401 Establish the implementation slice rule from MRG-268: migrate one service feature at a time, keep generated
+      DTOs at adapters, and require behavioral parity before removing any legacy type or field.
+- [ ] MRG-402 Restructure `config-service` into explicit API, application, domain where justified, and persistence
+      boundaries with role-owned records and mappers.
+- [ ] MRG-403 Restructure `clubs-service` into explicit API, application, domain, persistence, S3, scraper-facing, and
+      event boundaries with role-owned records and mappers.
+- [ ] MRG-404 Restructure `teams-service` into explicit API, application, domain, persistence, S3, scraper-facing, and
+      event boundaries with role-owned records and mappers.
+- [ ] MRG-405 Restructure `pools-service` into explicit API, application, domain, persistence, scraper-facing, and event
+      boundaries with role-owned records and mappers.
+- [ ] MRG-406 Restructure `competition-service` association, ranking, bulk-command, persistence, and event boundaries
+      with role-owned records, projectors, policies, and mappers.
+- [ ] MRG-407 Restructure `matches-service` match, day projection, live-link, moderation/report, persistence, and event
+      boundaries with role-owned records, projectors, policies, and mappers.
+- [ ] MRG-408 Restructure `users-service` account, favorites, Auth0, S3, persistence, and event boundaries; retain and
+      relocate existing mappers only where their source/target ownership remains correct.
+- [ ] MRG-409 Restructure `reports-service` Blockout API, application flow, attachment storage, GitHub, and Discord
+      adapters without leaking vendor DTOs into application contracts.
+- [ ] MRG-410 Restructure `notification-service` notification, token, projection, pagination, Expo adapter, persistence,
+      and event boundaries with role-owned records and mappers.
+- [ ] MRG-411 Restructure `search-service` query, filter, search-view, and Elasticsearch adapter boundaries without
+      changing result ordering or empty-result behavior.
+- [ ] MRG-412 Restructure `search-worker` cache bootstrap, scheduled jobs, event consumers, index projections, and
+      Elasticsearch adapters without reusing generated transport DTOs as worker domain models.
+- [ ] MRG-413 Replace `mobile-gateway` copied downstream DTOs and generic client services with generated client adapters
+      that map immediately to workflow-owned application inputs and views.
+- [ ] MRG-414 Restructure `mobile-gateway` configuration, user, report, search, and notification facade workflows with
+      thin controllers, named orchestration, explicit projections, and API mappers.
+- [ ] MRG-415 Restructure `mobile-gateway` club, team, and pool facade workflows with dedicated projectors or projection
+      services, explicit fan-out policy, stable ordering, and response mappers.
+- [ ] MRG-416 Restructure `mobile-gateway` competition, match, and live facade workflows with dedicated projectors or
+      projection services, explicit pagination/fan-out policy, partial-failure semantics, and response mappers.
+- [ ] MRG-417 Remove fields, handwritten DTO copies, conversion helpers, and temporary compatibility shapes only after
+      the MRG-267 lineage and migrated contract consumers prove they are unused.
+- [ ] MRG-418 Add strict service-local MapStruct configuration where structural mapping benefits from it; keep manual
+      mapping only for real aggregation, policy, or non-trivial transformation logic.
+- [ ] MRG-419 Align code documentation and existing behavioral mapper/projection tests incrementally in every touched
+      service; do not add source-scanning tests or tests that only restate framework wiring.
+- [ ] MRG-420 Preserve Flyway and audit each service migration history before moving persistence types or changing any
+      schema mapping; package restructuring alone must not alter database structure.
+- [ ] MRG-421 Add dedicated test configuration and disposable dependencies, then require reactor `verify`, rebuild all
+      backend images, and smoke production-shaped environment contracts.
 
 ## Phase MRG-500 — Mobile Architecture
 
 - [ ] MRG-501 Audit the Expo application against Maaatch frontend boundaries adapted for React Native.
 - [ ] MRG-502 Separate generated API clients, application modules, view models, forms, navigation, and infrastructure.
-- [ ] MRG-503 Move reusable React/TanStack ownership to `libs/react` where behavior can remain identical.
+- [ ] MRG-503 Keep TanStack and Orval integration mobile-owned while moving only proven framework-neutral React
+      primitives to `libs/react`; do not create a shared library for a single consumer.
 - [ ] MRG-504 Define the Blockout mobile architecture and design-system source documents.
 - [ ] MRG-505 Re-audit and adapt Maaatch React, effect, Zod, logging, and documentation skills after the generated-client
       architecture is active; keep Next.js, shadcn, and web-only guidance explicitly non-applicable.
