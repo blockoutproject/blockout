@@ -189,8 +189,14 @@ state moves to GitHub and this file becomes a historical migration record.
     unused/type-drift cases, unknowns, and provisional contract-first roles without runtime changes; Prettier,
     local-link validation, diff checks, the Maaatch structure comparison, and the Maven package build pass. The sole
     context-load test remains pre-existingly coupled to a missing `AUTH0_ISSUER` fixture.
-- [ ] MRG-264 Audit `mobile-gateway` configuration, user, report, search, and notification orchestration, documenting
+- [x] MRG-264 Audit `mobile-gateway` configuration, user, report, search, and notification orchestration, documenting
       every aggregation, pass-through, fallback, duplicated field, and frontend-visible reason for each projection.
+  - Evidence: `docs/migration/backend-contract-audits/mrg-264-gateway-config-user-report-search-notification.md`
+    reconstructs all 30 configuration, user, report, search, and notification facade operations; their exact single-
+    owner relays or notification fan-out; auth, cache, multipart, casing, null, fallback, error, and logging behavior; every
+    copied, derived, unused-looking, or drifted field; and every proven Expo purpose without runtime changes. Prettier,
+    local-link validation, the Maaatch structure comparison, diff checks, and the Maven package build pass. The sole
+    gateway context-load test remains pre-existingly coupled to a missing `AUTH0_ISSUER` fixture.
 - [ ] MRG-265 Audit `mobile-gateway` club, team, and pool aggregation call graphs, including fan-out cardinality,
       ordering, null handling, enrichment rules, repeated lookups, temporary fields, and exact Expo field consumers.
 - [ ] MRG-266 Audit `mobile-gateway` competition, match, and live aggregation call graphs, including pagination,
