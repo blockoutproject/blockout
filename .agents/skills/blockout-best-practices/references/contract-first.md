@@ -22,6 +22,21 @@ Never hand-edit:
 - `apps/backend/*/target/generated-sources/**`
 - the generated `schemaMappings` block in `apps/backend/pom.xml`
 
+## Canonical JSON Naming
+
+- Every Blockout-owned REST property, query parameter, multipart JSON part, and asynchronous event field uses
+  `camelCase` in its authoritative contract and on the wire.
+- OpenAPI fragments and the selected event-contract source declare the canonical `camelCase` names directly. Generated
+  Java, TypeScript, validation, and approved Python artifacts must preserve those names without a global case converter.
+- Java and TypeScript identifiers therefore use their natural `camelCase`. Python application identifiers may retain
+  idiomatic `snake_case`, but adapters must emit and consume canonical `camelCase` keys at Blockout-owned boundaries.
+- Database columns and migration identifiers may remain `snake_case`; persistence naming is not a JSON contract.
+- Third-party payloads such as federation, Auth0, GitHub, or Discord may retain the provider's casing inside an explicit
+  infrastructure adapter. Do not leak those names into Blockout-owned contracts.
+- Do not keep `@JsonProperty`, `@JsonAlias`, a Jackson naming strategy, or client request/response transforms solely to
+  translate permanent Blockout snake_case. A temporary compatibility read must be named in the active cutover matrix,
+  covered by parity and rollback checks, and removed by its scheduled cleanup task.
+
 ## Choose The Shape
 
 - Schema only: add the schema in the owning service; use `x-contract-schema-roots` only as a temporary bridge.

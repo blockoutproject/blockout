@@ -14,6 +14,10 @@ state moves to GitHub and this file becomes a historical migration record.
 - Add evidence as one short indented line below the completed item.
 - Unmarked pending items use `DEFAULT_EXECUTION`. A pending item that requires Codex Plan mode has the exact indented
   metadata `- Execution mode: PLAN_REQUIRED`.
+- The migration owner authorizes evidence-based roadmap maintenance whenever live repository evidence exposes a
+  missing dependency, unsafe order, or insufficient task granularity. Perform that maintenance as one focused
+  roadmap-editing iteration; never use it to skip work, mark implementation complete, or execute a newly added task in
+  the same iteration.
 - Do not use this roadmap to authorize product behavior changes.
 - Do not reset Git history, disable standalone workflows, publish production images, or call Dokploy before the owning
   phase explicitly opens that action.
@@ -26,6 +30,10 @@ state moves to GitHub and this file becomes a historical migration record.
 - Monorepo CI is shadow-only. It does not publish images or call Dokploy.
 - The GitHub repository currently has no Actions secrets, variables, or environments.
 - Standalone repositories still publish the fourteen production images and call their own Dokploy webhook.
+- All twelve Spring modules configure Jackson `SNAKE_CASE`; ten modules also contain about 327 explicit Jackson naming
+  annotations, with 220 concentrated in `mobile-gateway`.
+- The Expo HTTP boundary currently snake-cases requests and camel-cases responses globally, while both Python scrapers
+  send Blockout-owned query and JSON payload keys directly in snake_case.
 - Two uncommitted legacy changes were intentionally excluded and require explicit reconciliation before source freeze:
   `blockout-mobile-gateway/.../FfvbPublicController.java` and `blockout-scraper/scrapers/pro_scraper.py`.
 
@@ -67,7 +75,9 @@ state moves to GitHub and this file becomes a historical migration record.
     `MATCH` or `NONAPP` classifications for every Maaatch generic skill.
 - [x] MRG-107 Establish one temporary local-roadmap task runbook while GitHub acquisition and merge remain dormant.
   - Evidence: `docs/runbooks/tasks/execution.md` selects one item, enforces Plan mode, validates it, and pushes `main`.
-- [ ] MRG-109 Remove temporary migration exceptions from the router after the target architecture is active.
+- [x] MRG-108 Correct dependency order and expand contract-first adaptation into independently verifiable tasks.
+  - Evidence: final cleanup now follows architecture activation, while REST, event, backend, Expo, scraper, camelCase,
+    generated-client, and no-diff work have explicit gates adapted from Maaatch.
 
 ## Phase MRG-200 — Workspace Skeleton
 
@@ -88,17 +98,113 @@ state moves to GitHub and this file becomes a historical migration record.
 
 ## Phase MRG-300 — Contract-First Foundation
 
-- [ ] MRG-301 Inventory every currently deployed REST endpoint, request/response shape, event payload, and mobile API
-      client source without changing behavior.
-- [ ] MRG-302 Define the Blockout shared OpenAPI fragment layout under `libs/shared/contracts/specs/source/**`.
-- [ ] MRG-303 Port Maaatch's deterministic bundle generator and tests with Blockout service names.
-- [ ] MRG-304 Introduce generated bundles as outputs and prove regeneration is deterministic.
-- [ ] MRG-305 Configure the backend parent for OpenAPI generation and future shared generated models.
-- [ ] MRG-306 Configure Expo-compatible client generation and isolate generated clients from mobile view models.
-- [ ] MRG-307 Migrate one low-risk API end to end before converting the remaining services.
-- [ ] MRG-308 Add contract generation and no-diff checks to local verification and CI.
-- [ ] MRG-309 Mark each service contract-authoritative only after source, generated backend, generated client, and runtime
-      parity have all been proven.
+- [ ] MRG-301 Inventory every deployed REST operation and record its owner, caller, method, path, parameters, security,
+      request, success shape, errors, pagination, multipart behavior, and current snake_case/camelCase wire names.
+- [ ] MRG-302 Inventory every RabbitMQ exchange, routing key, producer, consumer, event class, serialized payload, retry
+      assumption, and casing rule separately from REST contracts.
+- [ ] MRG-303 Inventory every handwritten backend HTTP client, Expo API module, scraper request builder, Jackson naming
+      setting or annotation, and case-conversion dependency; assign each one to a future generated or external adapter.
+- [ ] MRG-304 Publish the cutover matrix for standalone and monorepo coexistence, including per-boundary compatibility,
+      deployment order, rollback, and the exact point where temporary snake_case reads can be removed.
+  - Execution mode: PLAN_REQUIRED
+- [ ] MRG-305 Define the Blockout fragment layout for shared schemas, internal service APIs, and the mobile-gateway BFF
+      under `libs/shared/contracts/specs/source/**`, retaining Blockout service ownership and Expo terminology.
+- [ ] MRG-306 Port Maaatch's deterministic OpenAPI bundle generator with Blockout service names and output paths.
+- [ ] MRG-307 Port and adapt Maaatch's bundle tests for missing references, transitive schemas, stable ordering, shared
+      enums, and deterministic output.
+- [ ] MRG-308 Add source-contract lint that rejects snake_case property and Blockout-owned query names, duplicate
+      operation IDs, inline stable enums, ambiguous DTO suffixes, and undocumented exceptions.
+- [ ] MRG-309 Introduce generated OpenAPI bundles under `libs/shared/contracts/generated/specs/**` and prove two clean
+      generations produce no diff.
+- [ ] MRG-310 Port Maaatch's generated `schemaMappings` synchronizer and protect its backend parent block from manual
+      edits.
+- [ ] MRG-311 Configure the backend parent plugin management, Java type mappings, generated-source ownership, and
+      shared generator options without generating service APIs yet.
+- [ ] MRG-312 Add the backend `shared-models` module for generated shared enums and rare technical primitives, then
+      compile it in the Maven reactor.
+- [ ] MRG-313 Select the Expo-compatible TypeScript client and contract-schema generator, including React Query
+      integration, auth/error mutator, output ownership, caching, formatting, and generated-file policy.
+  - Execution mode: PLAN_REQUIRED
+- [ ] MRG-314 Decide whether the two Python scrapers use a generated Python client, generated models with handwritten
+      transport, or a typed handwritten adapter; define packaging, async support, auth, multipart, and retry criteria.
+  - Execution mode: PLAN_REQUIRED
+- [ ] MRG-315 Select and document the authoritative event-contract format and generator strategy for RabbitMQ payloads;
+      do not model asynchronous messaging as fake OpenAPI endpoints.
+  - Execution mode: PLAN_REQUIRED
+- [ ] MRG-316 Add shared REST primitives for Problem Details errors, security, pagination, bounded lists, identifiers,
+      dates, and shared enums before service-specific schemas duplicate them.
+- [ ] MRG-317 Define and bundle the `config-service` contract from production evidence using canonical camelCase wire
+      names, without changing runtime behavior.
+- [ ] MRG-318 Define and bundle the `clubs-service` contract from production evidence using canonical camelCase wire
+      names, including multipart operations.
+- [ ] MRG-319 Define and bundle the `teams-service` contract from production evidence using canonical camelCase wire
+      names, including multipart operations.
+- [ ] MRG-320 Define and bundle the `pools-service` contract from production evidence using canonical camelCase wire
+      names.
+- [ ] MRG-321 Define and bundle the `competition-service` contract from production evidence using canonical camelCase
+      wire names.
+- [ ] MRG-322 Define and bundle the `matches-service` contract from production evidence using canonical camelCase wire
+      names, including live-link and live-summary projections.
+- [ ] MRG-323 Define and bundle the `users-service` contract from production evidence using canonical camelCase wire
+      names and current authentication semantics.
+- [ ] MRG-324 Define and bundle the `reports-service` contract from production evidence, separating Blockout camelCase
+      payloads from GitHub and Discord vendor payload adapters.
+- [ ] MRG-325 Define and bundle the `notification-service` REST contract from production evidence, keeping RabbitMQ
+      event contracts in their separately selected source format.
+- [ ] MRG-326 Define and bundle the `search-service` contract from production evidence using canonical camelCase wire
+      names; classify `search-worker` as an event consumer rather than inventing REST behavior.
+- [ ] MRG-327 Define and bundle the complete `mobile-gateway` BFF contract from production evidence, with UI-facing
+      projections distinct from internal-service DTOs.
+- [ ] MRG-328 Configure the approved Expo generator and Nx target to produce transport clients, DTOs, and Zod contract
+      schemas from the mobile-gateway bundle without importing React Native UI or form concerns into generated code.
+- [ ] MRG-329 Adapt and activate Maaatch's Zod guidance for generated Expo contract validation while retaining the
+      existing Formik/Yup form stack until a separately planned form migration is justified.
+- [ ] MRG-330 Configure the approved scraper client/model generation path from the internal service bundles and keep
+      generated code isolated from scraper parsing, scheduling, and domain models.
+- [ ] MRG-331 Configure generated Spring interfaces and models for `config-service`, map them at the API boundary, and
+      migrate one low-risk vertical slice to camelCase with compatibility and rollback evidence.
+- [ ] MRG-332 Replace handwritten `mobile-gateway` access to the MRG-331 slice with its generated internal client and
+      prove request, response, error, auth, and casing parity.
+- [ ] MRG-333 Replace the matching Expo handwritten call with the generated BFF client and generated contract schema,
+      retaining module view-model and query ownership.
+- [ ] MRG-334 Migrate `clubs-service` generated server boundaries and internal generated clients, including multipart
+      mapping and temporary compatibility defined by MRG-304.
+- [ ] MRG-335 Migrate `teams-service` generated server boundaries and internal generated clients, including multipart
+      mapping and temporary compatibility defined by MRG-304.
+- [ ] MRG-336 Migrate `pools-service` generated server boundaries and internal generated clients with parity evidence.
+- [ ] MRG-337 Migrate `competition-service` generated server boundaries and internal generated clients with parity
+      evidence.
+- [ ] MRG-338 Migrate `matches-service` generated server boundaries and internal generated clients with parity evidence.
+- [ ] MRG-339 Migrate `users-service` generated server boundaries and internal generated clients without changing Auth0
+      ownership or authentication behavior.
+- [ ] MRG-340 Migrate `reports-service` generated server boundaries and internal generated clients while preserving
+      explicit GitHub and Discord vendor adapters.
+- [ ] MRG-341 Migrate `notification-service` REST boundaries and internal generated clients with parity evidence.
+- [ ] MRG-342 Migrate `search-service` generated server boundaries and internal generated clients with parity evidence.
+- [ ] MRG-343 Migrate every remaining `mobile-gateway` endpoint to generated internal clients, generated BFF interfaces,
+      explicit mappers, and canonical camelCase payloads.
+- [ ] MRG-344 Migrate Expo authentication and configuration modules to generated BFF clients and contract schemas.
+- [ ] MRG-345 Migrate Expo club, team, and pool modules to generated BFF clients and contract schemas.
+- [ ] MRG-346 Migrate Expo competition and match modules to generated BFF clients and contract schemas.
+- [ ] MRG-347 Migrate Expo user, search, notification, and report modules to generated BFF clients and contract schemas.
+- [ ] MRG-348 Migrate `club-scraper` Blockout API boundaries to canonical camelCase using the approved generated or typed
+      adapter while preserving Python snake_case identifiers and external federation payloads.
+- [ ] MRG-349 Migrate `competition-scraper` Blockout API boundaries to canonical camelCase using the approved generated
+      or typed adapter while preserving Python snake_case identifiers and external federation payloads.
+- [ ] MRG-350 Define, generate where approved, and migrate every RabbitMQ event contract producer and consumer with
+      compatibility, ordering, retry, and rollback evidence.
+- [ ] MRG-351 Remove global Jackson `SNAKE_CASE` configuration service by service after all callers for each boundary
+      use canonical camelCase.
+- [ ] MRG-352 Remove legacy `@JsonProperty`, `@JsonAlias`, and naming adapters used only for Blockout snake_case;
+      retain documented annotations only at genuine vendor or compatibility boundaries.
+- [ ] MRG-353 Remove Expo request/response case transformation, `transformCase`, and obsolete case-conversion packages
+      after every generated BFF client is active.
+- [ ] MRG-354 Add a repository-wide allowlisted guard proving Blockout-owned REST, event, Expo, and scraper wire keys are
+      camelCase while database columns, Python identifiers, and external vendor payloads remain out of scope.
+- [ ] MRG-355 Add complete contract generation, backend generation, Expo generation, scraper generation when selected,
+      formatting, compilation, and deterministic no-diff checks to local verification.
+- [ ] MRG-356 Mark each REST and event boundary contract-authoritative only after source, generated artifacts, mappers,
+      all consumers, runtime parity, compatibility removal, and rollback evidence are complete.
 
 ## Phase MRG-400 — Backend Architecture
 
@@ -118,13 +224,14 @@ state moves to GitHub and this file becomes a historical migration record.
 - [ ] MRG-502 Separate generated API clients, application modules, view models, forms, navigation, and infrastructure.
 - [ ] MRG-503 Move reusable React/TanStack ownership to `libs/react` where behavior can remain identical.
 - [ ] MRG-504 Define the Blockout mobile architecture and design-system source documents.
-- [ ] MRG-505 Align React, effect, schema validation, logging, and documentation skills with the mobile stack.
+- [ ] MRG-505 Re-audit and adapt Maaatch React, effect, Zod, logging, and documentation skills after the generated-client
+      architecture is active; keep Next.js, shadcn, and web-only guidance explicitly non-applicable.
 - [ ] MRG-506 Prove Android and iOS exports, online EAS builds, credentials, updates, and installed-device smoke flows.
 
 ## Phase MRG-600 — Scraper Architecture
 
-- [ ] MRG-601 Audit both scrapers for shared boundaries, configuration ownership, scheduling, proxy behavior, and API
-      contracts.
+- [ ] MRG-601 Audit both scrapers for shared boundaries, generated-client ownership, configuration, scheduling, proxy
+      behavior, Blockout camelCase wire contracts, and external federation adapters.
 - [ ] MRG-602 Keep explicit Nx projects unless an evidenced Python workspace decision replaces them.
 - [ ] MRG-603 Pin and validate Python dependencies and base images in a behavior-preserving change.
 - [ ] MRG-604 Add real behavioral tests and safe fixture-based scraper validation.
@@ -146,7 +253,8 @@ state moves to GitHub and this file becomes a historical migration record.
 ## Phase MRG-800 — CI And Quality Gates
 
 - [ ] MRG-801 Align CI job structure with Maaatch while retaining Expo and scraper-specific jobs.
-- [ ] MRG-802 Add contract generation and deterministic no-diff validation.
+- [ ] MRG-802 Enforce the Phase MRG-300 generation and deterministic no-diff matrix in CI for contracts, backend, Expo,
+      and the approved scraper/event generators.
 - [ ] MRG-803 Upgrade backend CI from compile-only to verified tests after test infrastructure is reliable.
 - [ ] MRG-804 Add actual backend image builds for changed deployables rather than Dockerfile syntax checks only.
 - [ ] MRG-805 Remove the `setup-python@v5` deprecation warning.
@@ -167,6 +275,7 @@ state moves to GitHub and this file becomes a historical migration record.
 
 - [ ] MRG-1001 Confirm every structural, contract, runtime, CI, and production cutover gate is complete.
 - [ ] MRG-1002 Archive the temporary migration evidence and remove migration-only exceptions.
+- [ ] MRG-109 Remove temporary migration exceptions from the router after the target architecture is active.
 - [ ] MRG-1003 Reset or recreate the GitHub repository history only after an explicit backup and final user approval.
 - [ ] MRG-1004 Configure `develop`, branch protection, labels, issue templates, Roadmap Project, and GitHub Environments to
       match Maaatch.

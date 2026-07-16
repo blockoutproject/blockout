@@ -18,6 +18,12 @@ task. It never authorizes:
 - product behavior or architecture decisions not already resolved by current sources;
 - execution of a second roadmap task.
 
+The migration owner also grants standing authorization for evidence-based roadmap maintenance when live repository
+evidence exposes a missing dependency, unsafe order, stale assumption, or insufficient task granularity. Treat such
+maintenance as one focused roadmap-editing iteration: it may add, split, reorder, or classify future tasks and update
+their governing references, but it must not implement a newly added task, mark blocked implementation complete, or
+weaken a safety or approval gate. Record the maintenance itself as a completed roadmap item with validation evidence.
+
 ## Read-Only Selection
 
 Before any repository or Git mutation:
@@ -29,7 +35,8 @@ Before any repository or Git mutation:
 5. Treat the task as `DEFAULT_EXECUTION` unless it has the exact metadata line
    `- Execution mode: PLAN_REQUIRED`.
 6. Stop without mutation when the task is blocked, depends on incomplete work, is already implemented, or cannot be
-   scoped from current repository evidence.
+   scoped from current repository evidence. If the standing roadmap-maintenance authorization applies, a separate
+   roadmap-editing iteration may correct the dependency or scope before selection restarts from the top.
 
 ## PLAN_REQUIRED Gate
 
