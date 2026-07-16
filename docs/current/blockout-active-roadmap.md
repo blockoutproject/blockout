@@ -197,8 +197,15 @@ state moves to GitHub and this file becomes a historical migration record.
     copied, derived, unused-looking, or drifted field; and every proven Expo purpose without runtime changes. Prettier,
     local-link validation, the Maaatch structure comparison, diff checks, and the Maven package build pass. The sole
     gateway context-load test remains pre-existingly coupled to a missing `AUTH0_ISSUER` fixture.
-- [ ] MRG-265 Audit `mobile-gateway` club, team, and pool aggregation call graphs, including fan-out cardinality,
+- [x] MRG-265 Audit `mobile-gateway` club, team, and pool aggregation call graphs, including fan-out cardinality,
       ordering, null handling, enrichment rules, repeated lookups, temporary fields, and exact Expo field consumers.
+  - Evidence: `docs/migration/backend-contract-audits/mrg-265-gateway-club-team-pool-aggregations.md` reconstructs all
+    nine club, team, and pool facade operations; exact cold/cache-aware fan-out formulas; ordering, deduplication,
+    null, missing, inactive, and partial-result behavior; mutable enrichment and cache risks; update/multipart paths;
+    copied, derived, compatibility, and unused-looking fields; and every proven Expo consumer without runtime changes.
+    Prettier, local-link validation, the Maaatch structure comparison, diff checks, and the Maven package build pass.
+    Tests remain skipped because this audit changes documentation only; the sole gateway context-load test is already
+    documented as coupled to a missing `AUTH0_ISSUER` fixture.
 - [ ] MRG-266 Audit `mobile-gateway` competition, match, and live aggregation call graphs, including pagination,
       ranking assembly, fan-out cardinality, partial failure, ordering, and exact Expo field consumers.
 - [ ] MRG-267 Produce the cross-service type and field-lineage matrix, classifying every duplicate or unused-looking
