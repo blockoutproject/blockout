@@ -251,8 +251,14 @@ state moves to GitHub and this file becomes a historical migration record.
     it records the two inequivalent cross-service queue declarations and keeps broker/runtime facts explicit without
     changing topology or runtime code. Prettier, local-link validation, Maaatch structure comparison, diff checks, and
     the backend Maven package build pass with tests intentionally skipped for this documentation-only task.
-- [ ] MRG-303 Inventory every handwritten backend HTTP client, Expo API module, scraper request builder, Jackson naming
+- [x] MRG-303 Inventory every handwritten backend HTTP client, Expo API module, scraper request builder, Jackson naming
       setting or annotation, and case-conversion dependency; assign each one to a future generated or external adapter.
+  - Evidence: `docs/migration/mrg-303-handwritten-client-casing-inventory.md` assigns 25 internal backend client
+    classes, 14 external integrations, 48 Expo API methods, 24 Blockout and 11 provider scraper calls, 12 global
+    `SNAKE_CASE` settings, and all 327 `@JsonProperty` sites to generated, external, or gated-removal owners; it adds
+    the missing MRG-376 config-service slice and clarifies MRG-801 removal of the standalone `local-compose` CI job.
+    Source reconciliation, Prettier, local-link validation, Maaatch structure comparison, diff checks, and the full
+    backend Maven package build pass with tests intentionally skipped for this documentation-only task.
 - [ ] MRG-304 Publish the cutover matrix for standalone and monorepo coexistence from the approved MRG-268 architecture,
       including per-boundary compatibility, deployment order, rollback, and the exact point where temporary snake_case
       reads and duplicated legacy shapes can be removed.
@@ -322,6 +328,9 @@ state moves to GitHub and this file becomes a historical migration record.
       prove request, response, error, auth, and casing parity.
 - [ ] MRG-333 Replace the matching Expo handwritten call with the generated BFF client and generated contract schema,
       retaining module view-model and query ownership.
+- [ ] MRG-376 Migrate the remaining `config-service` app-status, division, raw-mapping, and scraper-status generated
+      server boundaries with application records, entity mappings, compatibility, and the search-worker generated
+      snapshot client; leave BFF, Expo, and scraper caller cutovers to MRG-343, MRG-344, MRG-348, and MRG-349.
 - [ ] MRG-334 Migrate `clubs-service` generated server boundaries and internal generated clients, including multipart
       mapping and temporary compatibility defined by MRG-304.
 - [ ] MRG-335 Migrate `teams-service` generated server boundaries and internal generated clients, including multipart
@@ -495,7 +504,9 @@ state moves to GitHub and this file becomes a historical migration record.
 
 ## Phase MRG-800 — CI And Quality Gates
 
-- [ ] MRG-801 Align CI job structure with Maaatch while retaining Expo and scraper-specific jobs.
+- [ ] MRG-801 Align CI job structure with Maaatch while retaining Expo and scraper-specific jobs; remove the standalone
+      `local-compose` job from pull-request and push workflows, keep Compose config validation in the local verifier,
+      and retain it in CI only as a step of a general repository/infrastructure job when current evidence justifies it.
 - [ ] MRG-802 Enforce the Phase MRG-300 generation and deterministic no-diff matrix in CI for contracts, backend, Expo,
       and the approved scraper/event generators.
 - [ ] MRG-803 Upgrade backend CI from compile-only to verified tests after test infrastructure is reliable.

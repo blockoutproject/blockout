@@ -27,6 +27,7 @@ GitHub Project task planning remains dormant until the final GitFlow activation 
 | Backend audit        | [`migration/backend-contract-data-audit-template.md`](migration/backend-contract-data-audit-template.md)                     | Read-only service and BFF field-lineage audit template    |
 | REST wire inventory  | [`migration/mrg-301-deployed-rest-wire-inventory.md`](migration/mrg-301-deployed-rest-wire-inventory.md)                     | Current 130-operation contract discovery baseline         |
 | Event wire inventory | [`migration/mrg-302-deployed-rabbitmq-wire-inventory.md`](migration/mrg-302-deployed-rabbitmq-wire-inventory.md)             | Current RabbitMQ topology and payload discovery baseline  |
+| Client/casing audit  | [`migration/mrg-303-handwritten-client-casing-inventory.md`](migration/mrg-303-handwritten-client-casing-inventory.md)       | Current handwritten client and conversion ownership       |
 | Production cutover   | [`migration/monorepo-cutover.md`](migration/monorepo-cutover.md)                                                             | Temporary per-deployable migration and rollback procedure |
 
 ## Documentation Map
