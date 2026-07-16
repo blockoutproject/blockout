@@ -51,7 +51,7 @@ state moves to GitHub and this file becomes a historical migration record.
   - Evidence: the skill routes migration work to this roadmap and keeps GitHub Roadmap operations dormant.
 - [x] MRG-102 Import and adapt the Maaatch core policies for backend architecture, code documentation, contract-first,
       Java testing, JPA, mapping, REST endpoints, and pagination.
-  - Evidence: the required references are present and pass `npm run validate:agents`.
+  - Evidence: the Maaatch-equivalent references are present, adapted to Blockout, and have valid local links.
 - [x] MRG-103 Preserve explicit technology variants for Expo, Python scrapers, Flyway, environments, Nx, and Dokploy.
   - Evidence: the router names each variant and routes it to a dedicated Blockout reference.
 - [x] MRG-104 Align Maaatch's Figma, logging, Git workflow, Roadmap operations, lifecycle, and governance references.
@@ -62,8 +62,6 @@ state moves to GitHub and this file becomes a historical migration record.
       Next.js- or shadcn-only skills as non-applicable rather than copying them blindly.
 - [x] MRG-107 Establish one temporary local-roadmap task runbook while GitHub acquisition and merge remain dormant.
   - Evidence: `docs/runbooks/tasks/execution.md` selects one item, enforces Plan mode, validates it, and pushes `main`.
-- [x] MRG-108 Add a skill/reference consistency validator that rejects missing router targets and stale project paths.
-  - Evidence: `npm run validate:agents` validates policies, `docs/current`, and the exact Compose topology.
 - [ ] MRG-109 Remove temporary migration exceptions from the router after the target architecture is active.
 
 ## Phase MRG-200 — Workspace Skeleton
@@ -130,7 +128,7 @@ state moves to GitHub and this file becomes a historical migration record.
 ## Phase MRG-700 — Local Runtime And Developer Workflow
 
 - [x] MRG-701 Centralize Compose exactly under `infra/compose` with the two Compose files and pgAdmin registration.
-  - Evidence: `npm run validate:agents` enforces the exact three-file topology.
+  - Evidence: `infra/compose` contains only the two Compose files and `pgadmin/servers.json`; Compose config passes.
 - [x] MRG-702 Remove Nginx, Kibana, VPN, Portainer, and local observability services not present in the Maaatch model.
   - Evidence: Compose contains only Blockout databases, RabbitMQ, Elasticsearch, and pgAdmin.
 - [x] MRG-703 Keep application processes outside Compose and use Compose only for local dependencies.

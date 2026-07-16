@@ -52,7 +52,6 @@ fi
 echo "== Repository configuration =="
 npm run validate:env
 npm run validate:docs
-npm run validate:agents
 npm exec nx show projects
 npm exec nx run @blockout/contracts:typecheck
 

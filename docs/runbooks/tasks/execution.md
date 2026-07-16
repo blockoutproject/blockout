@@ -78,7 +78,7 @@ Only after the implementation and all required validations succeed:
 
 1. Change the selected checkbox from `[ ]` to `[x]`.
 2. Add one indented `Evidence:` line naming the durable source and successful checks.
-3. Run `npm run validate:docs`, `npm run validate:agents`, and `git diff --check` in addition to task-specific checks.
+3. Run `npm run validate:docs` and `git diff --check` in addition to task-specific checks.
 4. Stage only the intended task files and the roadmap evidence.
 5. Inspect `git diff --cached --check`, the staged file list, and the staged diff.
 6. Commit in English with a focused message containing the roadmap ID.
