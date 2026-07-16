@@ -129,8 +129,12 @@ state moves to GitHub and this file becomes a historical migration record.
     multipart and per-field semantics, direct entity construction, PostgreSQL/S3/Mapbox ownership, RabbitMQ and
     deactivation flows, scraper/worker/BFF/Expo copies and conversions, aggregation call graphs, casing, validation,
     errors, tests, unknowns, and provisional MRG-268 roles without runtime changes.
-- [ ] MRG-254 Audit `teams-service` field by field, including multipart updates, entity construction, follower counts,
+- [x] MRG-254 Audit `teams-service` field by field, including multipart updates, entity construction, follower counts,
       club/division dependencies, events, scraper calls, and mobile-gateway consumers.
+  - Evidence: `docs/migration/backend-contract-audits/mrg-254-teams-service.md` inventories all eight REST operations,
+    entity and multipart fields, filters, S3, follower consistency, RabbitMQ/deactivation flows, duplicated enums and
+    DTOs, scraper/worker/BFF/Expo lineage, aggregation fan-out, validation, tests, unknowns, and provisional MRG-268
+    roles without runtime changes.
 - [ ] MRG-255 Audit `pools-service` field by field, including entity construction, follower counts, filters, events,
       scraper calls, and mobile-gateway consumers.
 - [ ] MRG-256 Audit `competition-service` field by field, including association persistence, ranking calculations, bulk
