@@ -169,8 +169,11 @@ state moves to GitHub and this file becomes a historical migration record.
   - Evidence: `docs/migration/backend-contract-audits/mrg-260-notification-service.md` inventories all REST, event,
     persistence, Expo, BFF, and mobile fields; token ownership, delivery consistency, pagination, casing, mapper and
     compatibility gaps; existing tests, unknowns, and provisional target roles without runtime changes.
-- [ ] MRG-261 Audit `search-service` field by field, including search document DTOs, query/filter semantics, empty-result
+- [x] MRG-261 Audit `search-service` field by field, including search document DTOs, query/filter semantics, empty-result
       behavior, Elasticsearch ownership, and mobile-gateway consumers.
+  - Evidence: `docs/migration/backend-contract-audits/mrg-261-search-service.md` inventories all internal and BFF
+    operations, query/filter/result/index fields, Elasticsearch ownership, ordering, bounds, empty/error behavior,
+    casing, copied DTOs, Expo consumers, tests, unknowns, and provisional roles without runtime changes.
 - [ ] MRG-262 Audit `search-worker` field by field, including copied service DTOs, cache bootstrap clients, event
       payloads, index documents, scheduled jobs, and Elasticsearch write ownership.
 - [ ] MRG-263 Audit the `mobile-gateway` public and secure facade operation by operation, mapping each controller, copied
