@@ -1,0 +1,23 @@
+{
+  "name": "@blockout/mobile",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "eas-build-post-install": "cd ../../.. && node tools/scripts/eas-build-post-install.mjs . apps/frontend/mobile"
+  },
+  "dependencies": {
+    "@expo/metro-config": "*",
+    "expo": "*",
+    "expo-splash-screen": "*",
+    "expo-status-bar": "*",
+    "expo-system-ui": "*",
+    "metro-config": "*",
+    "metro-resolver": "*",
+    "react": "*",
+    "react-native": "*",
+    "react-native-svg": "*",
+    "react-native-svg-transformer": "*",
+    "react-native-web": "*"
+  },
+  "devDependencies": {}
+}
