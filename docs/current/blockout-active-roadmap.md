@@ -135,8 +135,12 @@ state moves to GitHub and this file becomes a historical migration record.
     entity and multipart fields, filters, S3, follower consistency, RabbitMQ/deactivation flows, duplicated enums and
     DTOs, scraper/worker/BFF/Expo lineage, aggregation fan-out, validation, tests, unknowns, and provisional MRG-268
     roles without runtime changes.
-- [ ] MRG-255 Audit `pools-service` field by field, including entity construction, follower counts, filters, events,
+- [x] MRG-255 Audit `pools-service` field by field, including entity construction, follower counts, filters, events,
       scraper calls, and mobile-gateway consumers.
+  - Evidence: `docs/migration/backend-contract-audits/mrg-255-pools-service.md` inventories all seven REST operations,
+    direct entity and update fields, persistence, followers, cascades, scraper reactivation, worker/search projections,
+    BFF/notification/Expo lineage, casing, duplication, validation, tests, unknowns, and provisional target roles without
+    runtime changes.
 - [ ] MRG-256 Audit `competition-service` field by field, including association persistence, ranking calculations, bulk
       deactivation events, scraper calls, and every BFF ranking projection consumer.
 - [ ] MRG-257 Audit `matches-service` field by field, including match entities, day/page projections, live links, live
