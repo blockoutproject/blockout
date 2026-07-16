@@ -1,0 +1,69 @@
+import React, { useMemo } from "react";
+import { View, StyleSheet } from "react-native";
+
+import Filters from "@/src/components/common/Filters";
+import { Filter } from "@/src/types/Filter";
+import { CORNERS } from "@/src/theme/globals";
+import { useAppTheme } from "@/src/context/ThemeProvider";
+
+type Props = {
+    filters: Filter[];
+    setFilters: (next: Filter[] | ((prev: Filter[]) => Filter[])) => void;
+    headerOffset: number;
+    seasonNode: React.ReactNode;
+};
+
+const FollowedListHeader: React.FC<Props> = ({
+    filters,
+    setFilters,
+    headerOffset,
+    seasonNode,
+}) => {
+    const theme = useAppTheme();
+
+    const Spacer = useMemo(
+        () => (
+            <View
+                style={{
+                    height: headerOffset,
+                    backgroundColor: theme.background,
+                }}
+            />
+        ),
+        [headerOffset, theme.background],
+    );
+
+    return (
+        <View>
+            {Spacer}
+
+            <View style={styles.row}>
+                <Filters
+                    filters={filters}
+                    setFilters={setFilters}
+                    singleSelect
+                    requireSelection
+                    scrollable={false}
+                    style={{
+                        backgroundColor: "transparent",
+                    }}
+
+                />
+
+                {seasonNode}
+            </View>
+        </View>
+    );
+};
+
+export default FollowedListHeader;
+
+const styles = StyleSheet.create({
+    row: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        paddingVertical: 8,
+        paddingRight: 8,
+    },
+});

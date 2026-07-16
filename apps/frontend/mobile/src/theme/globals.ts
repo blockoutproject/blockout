@@ -1,0 +1,14 @@
+export const APP_TITLE = "Blockout";
+export const HEADER_HEIGHT = 48;
+export const TABBAR_HEIGHT = 48;
+export const LOGO_HEIGHT = 40;
+export const FONT_SIZE = 17;
+export const BORDER_RADIUS = 26;
+export const CORNERS = 999;
+export const LOGO_SIZE = 96;
+export const BOTTOM_TABBAR_HEIGHT = 64;
+export const TABBAR_INDICATOR_HEIGHT = 3;
+export const SEARCHBAR_HEIGHT = 36;
+export const SECTION_SEPARATOR_HEIGHT = 12;
+export const FOLLOWED_HEADER = 54;
+export const TABBAR_ICON_SIZE = 28;
