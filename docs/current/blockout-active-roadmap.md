@@ -181,8 +181,14 @@ state moves to GitHub and this file becomes a historical migration record.
     casing bridge, write-consistency risk, missing parity test, unknown, and provisional target role without runtime
     changes; Prettier, local-link validation, the Maaatch structure comparison, diff checks, and the Maven package build
     pass.
-- [ ] MRG-263 Audit the `mobile-gateway` public and secure facade operation by operation, mapping each controller, copied
+- [x] MRG-263 Audit the `mobile-gateway` public and secure facade operation by operation, mapping each controller, copied
       downstream DTO, handwritten client, error translation, auth rule, and Expo caller.
+  - Evidence: `docs/migration/backend-contract-audits/mrg-263-mobile-gateway-facade.md` inventories all 50 public and
+    secure operations, 11 handwritten clients, 52 DTOs and eight enums, incoming and downstream auth selection, casing
+    bridges, multipart/binary behavior, error translation, cache boundaries, every Expo API entry and proven caller,
+    unused/type-drift cases, unknowns, and provisional contract-first roles without runtime changes; Prettier,
+    local-link validation, diff checks, the Maaatch structure comparison, and the Maven package build pass. The sole
+    context-load test remains pre-existingly coupled to a missing `AUTH0_ISSUER` fixture.
 - [ ] MRG-264 Audit `mobile-gateway` configuration, user, report, search, and notification orchestration, documenting
       every aggregation, pass-through, fallback, duplicated field, and frontend-visible reason for each projection.
 - [ ] MRG-265 Audit `mobile-gateway` club, team, and pool aggregation call graphs, including fan-out cardinality,
