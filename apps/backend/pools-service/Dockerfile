@@ -1,13 +1,13 @@
-# Étape 1 : Construire l'application avec Maven
 FROM maven:3.9.11-eclipse-temurin-21-alpine AS builder
-WORKDIR /app
-COPY pom.xml ./
-COPY src ./src
-RUN mvn clean package -DskipTests
+WORKDIR /workspace
 
-# Étape 2 : Conteneur exécutable léger basé sur Alpine
+COPY pom.xml ./pom.xml
+COPY pools-service/pom.xml ./pools-service/pom.xml
+COPY pools-service/src ./pools-service/src
+RUN mvn -f pools-service/pom.xml clean package -DskipTests
+
 FROM eclipse-temurin:21-alpine
 WORKDIR /app
-COPY --from=builder /app/target/*.jar app.jar
+COPY --from=builder /workspace/pools-service/target/*.jar app.jar
 EXPOSE 8081
 ENTRYPOINT ["java", "-jar", "app.jar"]

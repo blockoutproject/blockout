@@ -1,0 +1,72 @@
+name: CI Pull Request
+
+on:
+  pull_request:
+    branches:
+      - develop
+      - main
+
+concurrency:
+  group: ci-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Compile Maven reactor
+        run: mvn -f apps/backend/pom.xml -DskipTests compile
+
+      - name: Validate backend Dockerfiles
+        run: for file in apps/backend/*/Dockerfile; do docker build --check --file "$file" apps/backend || exit 1; done
+
+  mobile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Validate Nx project graph
+        run: npm exec nx show projects
+
+      - name: Typecheck mobile application
+        run: npm exec nx run @blockout/mobile:typecheck
+
+      - name: Export Android bundle
+        run: npm exec nx run @blockout/mobile:export --platform=android
+
+  scrapers:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Build competition scraper image
+        run: docker build --tag blockout-shadow/competition-scraper:${{ github.sha }} apps/scrapers/competition-scraper
+
+      - name: Build club scraper image
+        run: docker build --tag blockout-shadow/club-scraper:${{ github.sha }} apps/scrapers/club-scraper
+
+  local-platform:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Validate Docker Compose configuration
+        run: docker compose --file infra/local-platform/docker-compose.yml config --quiet
