@@ -147,8 +147,12 @@ state moves to GitHub and this file becomes a historical migration record.
     24 association fields, 17-stat replacement, add/reactivate and bulk cascades, event consumers, scraper calculations,
     BFF ranking/fan-out projections, casing, validation, tests, unknowns, and provisional target roles without runtime
     changes.
-- [ ] MRG-257 Audit `matches-service` field by field, including match entities, day/page projections, live links, live
+- [x] MRG-257 Audit `matches-service` field by field, including match entities, day/page projections, live links, live
       summaries, moderation/report flows, events, scraper calls, and every BFF consumer.
+  - Evidence: `docs/migration/backend-contract-audits/mrg-257-matches-service.md` inventories all 16 REST operations,
+    match/day/live/report fields, result transitions, pagination, live policies and moderation states, three unconsumed
+    deactivation queues, notification events, scraper transport/cache behavior, BFF fan-out and projection drift,
+    Expo/TanStack consumers, casing, validation, tests, unknowns, and provisional target roles without runtime changes.
 - [ ] MRG-258 Audit `users-service` field by field, including the existing mappers, direct entity responses, Auth0
       identity, favorites, S3 ownership, events, and mobile-gateway consumers.
 - [ ] MRG-259 Audit `reports-service` field by field, separating Blockout request/response contracts from multipart,
