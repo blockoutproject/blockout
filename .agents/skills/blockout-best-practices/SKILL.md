@@ -37,6 +37,7 @@ credential mutation, or retirement of standalone repositories.
 | Current migration task, phase, dependency, or completion evidence  | `docs/current/blockout-active-roadmap.md`                                                         |
 | Execute the next local migration task and push it to `main`        | `docs/runbooks/tasks/execution.md`                                                                |
 | Current product/runtime posture and closed boundaries              | `docs/current/blockout-product-runtime-context.md`                                                |
+| Approved backend contract, data, mapper, and service architecture  | `docs/architecture/blockout-backend-contract-data-architecture.md`                                |
 | Product behavior or runtime change                                 | `references/baseline-v1-policy.md`                                                                |
 | OpenAPI contract, DTO, endpoint, or future generated client/server | `references/contract-first.md`, then the endpoint or pagination policy                            |
 | Backend Java structure, Maven ownership, or documentation          | `references/backend-java-policy.md` and `references/code-documentation-policy.md`                 |
@@ -55,17 +56,17 @@ credential mutation, or retirement of standalone repositories.
 
 Use these generic Maaatch-aligned skills only within Blockout's technology and product boundaries:
 
-| Skill | Blockout status | Scope |
-| --- | --- | --- |
-| `karpathy-guidelines` | Applicable | Planning, implementation discipline, and code review |
-| `no-use-effect` | Adapted | React Native effects; direct effects remain valid for real external synchronization |
-| `nx-workspace-patterns` | Applicable | Nx structure, subject to `references/nx-workspace-policy.md` and Expo variants |
-| `vercel-composition-patterns` | Adapted | Framework-neutral React composition translated to native primitives |
-| `vercel-react-best-practices` | Adapted | Allowlisted React and JavaScript rules only; its Next.js, server, DOM, and browser rules are inactive |
-| `next-best-practices` | Non-applicable | Next.js runtime and App Router are not present |
-| `shadcn` | Non-applicable | shadcn, Tailwind, and DOM component registries are not part of the mobile stack |
-| `web-design-guidelines` | Non-applicable | Browser interface checks do not replace React Native accessibility and platform validation |
-| `zod` | Non-applicable for now | Blockout does not currently install Zod; mobile forms use Formik and Yup |
+| Skill                         | Blockout status        | Scope                                                                                                 |
+| ----------------------------- | ---------------------- | ----------------------------------------------------------------------------------------------------- |
+| `karpathy-guidelines`         | Applicable             | Planning, implementation discipline, and code review                                                  |
+| `no-use-effect`               | Adapted                | React Native effects; direct effects remain valid for real external synchronization                   |
+| `nx-workspace-patterns`       | Applicable             | Nx structure, subject to `references/nx-workspace-policy.md` and Expo variants                        |
+| `vercel-composition-patterns` | Adapted                | Framework-neutral React composition translated to native primitives                                   |
+| `vercel-react-best-practices` | Adapted                | Allowlisted React and JavaScript rules only; its Next.js, server, DOM, and browser rules are inactive |
+| `next-best-practices`         | Non-applicable         | Next.js runtime and App Router are not present                                                        |
+| `shadcn`                      | Non-applicable         | shadcn, Tailwind, and DOM component registries are not part of the mobile stack                       |
+| `web-design-guidelines`       | Non-applicable         | Browser interface checks do not replace React Native accessibility and platform validation            |
+| `zod`                         | Non-applicable for now | Blockout does not currently install Zod; mobile forms use Formik and Yup                              |
 
 Do not create placeholder copies of non-applicable skills. Reassess a classification only when an authoritative
 roadmap task changes the stack; MRG-505 owns the later mobile skill audit after the architecture is defined.

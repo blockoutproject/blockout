@@ -1,6 +1,6 @@
 # Blockout Active Migration Roadmap
 
-Last updated: 2026-07-16.
+Last updated: 2026-07-17.
 
 This roadmap is the temporary source of truth for migrating Blockout to the Maaatch monorepo structure and operating
 model. It replaces GitHub task planning only for this migration. Once the final GitFlow phase is complete, active task
@@ -222,9 +222,14 @@ state moves to GitHub and this file becomes a historical migration record.
     boundary-local field classifications, canonical camelCase ownership, removal gates, and the MRG-268 decision
     handoff without runtime changes; Prettier, local-link validation, the Maaatch structure comparison, diff checks,
     and the full backend Maven package build pass with tests intentionally skipped for this documentation-only task.
-- [ ] MRG-268 Approve the target service-by-service data architecture and migration sequence for generated API DTOs,
+- [x] MRG-268 Approve the target service-by-service data architecture and migration sequence for generated API DTOs,
       application commands/views/records, domain concepts, JPA entities, event payloads, mappers, and BFF projections.
-  - Execution mode: PLAN_REQUIRED
+  - Evidence: `docs/architecture/blockout-backend-contract-data-architecture.md` approves the boundary taxonomy,
+    service and workflow targets, camelCase compatibility sequence, mapper ownership, event/outbox posture, Expo and
+    Python rules, and legal-document pilot; this roadmap adds the detailed MRG-357 through MRG-375 and MRG-422 through
+    MRG-430 slices. Prettier, local-link validation, Maaatch structure comparison, diff checks, and the backend Maven
+    package build pass with tests intentionally skipped; mobile exports, scraper builds, and runtime tests remain
+    skipped because this task changes architecture documentation and task structure only.
 
 ## Phase MRG-300 — Contract-First Foundation
 
@@ -285,17 +290,21 @@ state moves to GitHub and this file becomes a historical migration record.
       contracts in their separately selected source format.
 - [ ] MRG-326 Define and bundle the `search-service` contract from its approved audit using only required camelCase wire
       fields; classify `search-worker` as an event consumer rather than inventing REST behavior.
-- [ ] MRG-327 Define and bundle the complete `mobile-gateway` BFF contract from the approved aggregation audits, with
-      UI-facing projections distinct from internal-service DTOs and every retained enriched field justified by a real
-      frontend contract.
+- [ ] MRG-327 Define and bundle the `mobile-gateway` configuration, user, report, search, and notification BFF contracts
+      from the approved aggregation audits, with workflow projections distinct from internal-service DTOs.
+- [ ] MRG-357 Define and bundle the `mobile-gateway` club, team, and pool BFF contracts, retaining only consumer-backed
+      enriched fields and explicit ordering, missing-data, privacy, and partial-result semantics.
+- [ ] MRG-358 Define and bundle the `mobile-gateway` competition, match, and live BFF contracts, separating list,
+      detail, history, moderation, ranking, pagination, signed-link, and partial-result projections.
 - [ ] MRG-328 Configure the approved Expo generator and Nx target to produce transport clients, DTOs, and Zod contract
       schemas from the mobile-gateway bundle without importing React Native UI or form concerns into generated code.
 - [ ] MRG-329 Adapt and activate Maaatch's Zod guidance for generated Expo contract validation while retaining the
       existing Formik/Yup form stack until a separately planned form migration is justified.
 - [ ] MRG-330 Configure the approved scraper client/model generation path from the internal service bundles and keep
       generated code isolated from scraper parsing, scheduling, and domain models.
-- [ ] MRG-331 Configure generated Spring interfaces and models for `config-service`, map them at the API boundary, and
-      migrate one low-risk vertical slice to camelCase with compatibility and rollback evidence.
+- [ ] MRG-331 Configure generated Spring interfaces and models for `config-service`, then migrate legal-document read
+      and update through generated DTOs, role-owned application records, entity mapping, canonical camelCase,
+      Problem Details compatibility, and rollback evidence.
 - [ ] MRG-332 Replace handwritten `mobile-gateway` access to the MRG-331 slice with its generated internal client and
       prove request, response, error, auth, and casing parity.
 - [ ] MRG-333 Replace the matching Expo handwritten call with the generated BFF client and generated contract schema,
@@ -305,17 +314,39 @@ state moves to GitHub and this file becomes a historical migration record.
 - [ ] MRG-335 Migrate `teams-service` generated server boundaries and internal generated clients, including multipart
       mapping and temporary compatibility defined by MRG-304.
 - [ ] MRG-336 Migrate `pools-service` generated server boundaries and internal generated clients with parity evidence.
-- [ ] MRG-337 Migrate `competition-service` generated server boundaries and internal generated clients with parity
-      evidence.
-- [ ] MRG-338 Migrate `matches-service` generated server boundaries and internal generated clients with parity evidence.
-- [ ] MRG-339 Migrate `users-service` generated server boundaries and internal generated clients without changing Auth0
-      ownership or authentication behavior.
+- [ ] MRG-337 Migrate `competition-service` association and statistics generated server boundaries and internal clients,
+      preserving full-snapshot, validation, persistence, and reactivation behavior.
+- [ ] MRG-359 Migrate `competition-service` ranking boundaries through one owner projection and ordering policy, with
+      exact BFF/Expo ordering and tie parity.
+- [ ] MRG-360 Migrate `competition-service` bulk lifecycle and cascade boundaries, preserving missing-ID, zero-item,
+      deactivation, transaction, and rollback behavior without activating absent consumers.
+- [ ] MRG-338 Migrate `matches-service` match core and day-page generated boundaries and internal clients with date,
+      pagination, ordering, status, null, and scraper parity.
+- [ ] MRG-361 Migrate `matches-service` live command, response, and history boundaries while preserving ownership,
+      quota, state-transition, provider, ordering, and compatibility behavior.
+- [ ] MRG-362 Migrate `matches-service` moderation and live-report boundaries with explicit commands, views, validation,
+      representative-selection, filter, error, and concurrency parity.
+- [ ] MRG-339 Migrate `users-service` account and profile generated boundaries and clients, keeping local UUID identity,
+      Auth0 resolution, image intent, authentication, and current behavior explicit.
+- [ ] MRG-363 Migrate `users-service` favorite commands and projections, making favorites the canonical source while
+      retaining counter, optimistic UI, and event compatibility.
+- [ ] MRG-364 Migrate `users-service` identity-link, account-deletion, and storage boundaries behind explicit Auth0 and
+      S3 adapters without changing current deletion, retention, or authentication behavior.
 - [ ] MRG-340 Migrate `reports-service` generated server boundaries and internal generated clients while preserving
       explicit GitHub and Discord vendor adapters.
-- [ ] MRG-341 Migrate `notification-service` REST boundaries and internal generated clients with parity evidence.
+- [ ] MRG-341 Migrate `notification-service` inbox and page read boundaries with generated clients, stable ordering,
+      standard target pagination, legacy continuation compatibility, and BFF enrichment parity.
+- [ ] MRG-365 Migrate `notification-service` push-token, unread, read, opened, and delete boundaries with current-user
+      ownership, validation, device lifecycle, response, and compatibility evidence.
+- [ ] MRG-366 Separate and migrate `notification-service` delivery-state inputs from provider ticket/receipt models,
+      preserving current send, retry, invalid-token, and incomplete-receipt behavior until separately changed.
 - [ ] MRG-342 Migrate `search-service` generated server boundaries and internal generated clients with parity evidence.
-- [ ] MRG-343 Migrate every remaining `mobile-gateway` endpoint to generated internal clients, generated BFF interfaces,
-      explicit mappers, and canonical camelCase payloads.
+- [ ] MRG-343 Migrate remaining `mobile-gateway` configuration, user, report, search, and notification relay workflows
+      to generated clients and BFF interfaces with workflow-owned commands, views, mappers, and compatibility.
+- [ ] MRG-367 Migrate `mobile-gateway` club, team, and pool workflows to generated clients and BFF interfaces with
+      immutable projections, explicit privacy, ordering, cache, fan-out, and missing-data policy.
+- [ ] MRG-368 Migrate `mobile-gateway` competition, match, and live workflows to generated clients and BFF interfaces
+      with separate list, detail, ranking, history, moderation, signed-link, and partial-result projections.
 - [ ] MRG-344 Migrate Expo authentication and configuration modules to generated BFF clients and contract schemas.
 - [ ] MRG-345 Migrate Expo club, team, and pool modules to generated BFF clients and contract schemas.
 - [ ] MRG-346 Migrate Expo competition and match modules to generated BFF clients and contract schemas.
@@ -324,10 +355,24 @@ state moves to GitHub and this file becomes a historical migration record.
       adapter while preserving Python snake_case identifiers and external federation payloads.
 - [ ] MRG-349 Migrate `competition-scraper` Blockout API boundaries to canonical camelCase using the approved generated
       or typed adapter while preserving Python snake_case identifiers and external federation payloads.
-- [ ] MRG-350 Define, generate where approved, and migrate every RabbitMQ event contract producer and consumer with
-      compatibility, ordering, retry, and rollback evidence.
-- [ ] MRG-351 Remove global Jackson `SNAKE_CASE` configuration service by service after all callers for each boundary
-      use canonical camelCase.
+- [ ] MRG-350 Establish the generated event foundation selected by MRG-315, then migrate club, team, and pool lifecycle
+      event contracts with canonical camelCase, versioning, compatibility, ordering, retry, and rollback evidence.
+- [ ] MRG-369 Migrate favorite and follow event contracts and projections with canonical user UUIDs, idempotency,
+      compatibility, reconciliation, and rollback evidence.
+- [ ] MRG-370 Migrate match-finished and live-link event contracts and consumers with versioning, compatibility,
+      acknowledgement, ordering, retry, and rollback evidence.
+- [ ] MRG-371 Introduce transactional outboxes for clubs, teams, pools, and competition with event IDs, schema versions,
+      idempotent publication, observation, cleanup, and per-service rollback.
+- [ ] MRG-372 Introduce transactional outboxes for matches and users plus event-ID deduplication for migrated consumers,
+      preserving existing queue, retry, requeue, and DLQ behavior.
+- [ ] MRG-351 Remove global Jackson `SNAKE_CASE` and slice-owned Blockout annotations from config, clubs, teams, and
+      pools only after every caller for those boundaries uses canonical camelCase.
+- [ ] MRG-373 Remove global Jackson `SNAKE_CASE` and slice-owned Blockout annotations from competition, matches, and
+      users only after every caller for those boundaries uses canonical camelCase.
+- [ ] MRG-374 Remove global Jackson `SNAKE_CASE` and slice-owned Blockout annotations from reports, notifications,
+      search-service, and search-worker only after every caller uses canonical camelCase.
+- [ ] MRG-375 Remove global Jackson `SNAKE_CASE` and slice-owned Blockout annotations from `mobile-gateway` only after
+      every generated downstream and Expo boundary uses canonical camelCase.
 - [ ] MRG-352 Remove legacy `@JsonProperty`, `@JsonAlias`, and naming adapters used only for Blockout snake_case;
       retain documented annotations only at genuine vendor or compatibility boundaries.
 - [ ] MRG-353 Remove Expo request/response case transformation, `transformCase`, and obsolete case-conversion packages
@@ -351,20 +396,38 @@ state moves to GitHub and this file becomes a historical migration record.
       event boundaries with role-owned records and mappers.
 - [ ] MRG-405 Restructure `pools-service` into explicit API, application, domain, persistence, scraper-facing, and event
       boundaries with role-owned records and mappers.
-- [ ] MRG-406 Restructure `competition-service` association, ranking, bulk-command, persistence, and event boundaries
-      with role-owned records, projectors, policies, and mappers.
-- [ ] MRG-407 Restructure `matches-service` match, day projection, live-link, moderation/report, persistence, and event
-      boundaries with role-owned records, projectors, policies, and mappers.
-- [ ] MRG-408 Restructure `users-service` account, favorites, Auth0, S3, persistence, and event boundaries; retain and
-      relocate existing mappers only where their source/target ownership remains correct.
+- [ ] MRG-406 Restructure `competition-service` association, statistics snapshot, bulk-command, and persistence
+      boundaries with validated commands, role-owned views, dedicated entities, and structural mappers.
+- [ ] MRG-422 Consolidate `competition-service` ranking, lifecycle, cascade, and event internals behind one ranking
+      policy/projector, explicit transaction ownership, lifecycle services, and outbox adapters.
+- [ ] MRG-407 Restructure `matches-service` match core, day projection, and persistence boundaries with separate
+      commands, views, entities, projectors, and mappers.
+- [ ] MRG-423 Restructure `matches-service` live-link decision, state, history, provider, and event internals while
+      keeping live policy owned by the service and enrichment owned by the BFF.
+- [ ] MRG-424 Restructure `matches-service` moderation and live-report internals into explicit commands, views,
+      policies, entities, projections, and adapter mappings.
+- [ ] MRG-408 Restructure `users-service` account, profile, local identity, Auth0, S3, and persistence boundaries;
+      retain and relocate existing mappers only where their source/target ownership remains correct.
+- [ ] MRG-425 Restructure `users-service` favorite internals as the canonical source and make team, pool, and
+      notification follower state explicit derived, idempotent, rebuildable projections.
+- [ ] MRG-426 Restructure `users-service` deletion and storage orchestration with explicit application plans, identity
+      and object-storage ports, retention behavior, transaction ownership, and event/outbox adapters.
 - [ ] MRG-409 Restructure `reports-service` Blockout API, application flow, attachment storage, GitHub, and Discord
       adapters without leaking vendor DTOs into application contracts.
-- [ ] MRG-410 Restructure `notification-service` notification, token, projection, pagination, Expo adapter, persistence,
-      and event boundaries with role-owned records and mappers.
+- [ ] MRG-410 Restructure `notification-service` inbox, token, pagination, and persistence boundaries with role-owned
+      commands, page views, entities, and mappers.
+- [ ] MRG-427 Restructure `notification-service` delivery decisions, delivery ledger, retry state, and Expo provider
+      adapter without leaking provider tickets or receipts into application contracts.
+- [ ] MRG-428 Restructure `notification-service` event and follower projection internals as idempotent, rebuildable
+      consumers with explicit reconciliation, deduplication, acknowledgement, and rollback policy.
 - [ ] MRG-411 Restructure `search-service` query, filter, search-view, and Elasticsearch adapter boundaries without
       changing result ordering or empty-result behavior.
-- [ ] MRG-412 Restructure `search-worker` cache bootstrap, scheduled jobs, event consumers, index projections, and
-      Elasticsearch adapters without reusing generated transport DTOs as worker domain models.
+- [ ] MRG-412 Restructure `search-worker` bootstrap, schedules, generated client adapters, and immutable cache snapshots
+      without reusing generated transport DTOs as worker domain models.
+- [ ] MRG-429 Restructure `search-worker` event-consumer and incremental-projection internals with versioned event
+      inputs, idempotency, stale-write protection, cache consistency, and reconciliation evidence.
+- [ ] MRG-430 Implement versioned Elasticsearch index documents, validation, atomic alias swaps, bounded rollback-index
+      retention, cleanup, and failed-rebuild reconciliation behind explicit worker application operations.
 - [ ] MRG-413 Replace `mobile-gateway` copied downstream DTOs and generic client services with generated client adapters
       that map immediately to workflow-owned application inputs and views.
 - [ ] MRG-414 Restructure `mobile-gateway` configuration, user, report, search, and notification facade workflows with

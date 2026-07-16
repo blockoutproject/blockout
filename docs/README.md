@@ -17,14 +17,15 @@ GitHub Project task planning remains dormant until the final GitFlow activation 
 
 ## Active Documents
 
-| Area               | File                                                                                                     | Role                                                      |
-| ------------------ | -------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
-| Migration roadmap  | [`current/blockout-active-roadmap.md`](current/blockout-active-roadmap.md)                               | Temporary task order, dependencies, and completion state  |
-| Product context    | [`current/blockout-product-runtime-context.md`](current/blockout-product-runtime-context.md)             | Delivered runtime posture and boundaries that stay closed |
-| Agent brief        | [`current/blockout-agent-brief.md`](current/blockout-agent-brief.md)                                     | Minimal migration selection and source routing            |
-| Repository router  | [Blockout Best Practices](../.agents/skills/blockout-best-practices/SKILL.md)                            | Universal rules and reference routing                     |
-| Backend audit      | [`migration/backend-contract-data-audit-template.md`](migration/backend-contract-data-audit-template.md) | Read-only service and BFF field-lineage audit template    |
-| Production cutover | [`migration/monorepo-cutover.md`](migration/monorepo-cutover.md)                                         | Temporary per-deployable migration and rollback procedure |
+| Area                 | File                                                                                                                         | Role                                                      |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| Migration roadmap    | [`current/blockout-active-roadmap.md`](current/blockout-active-roadmap.md)                                                   | Temporary task order, dependencies, and completion state  |
+| Product context      | [`current/blockout-product-runtime-context.md`](current/blockout-product-runtime-context.md)                                 | Delivered runtime posture and boundaries that stay closed |
+| Agent brief          | [`current/blockout-agent-brief.md`](current/blockout-agent-brief.md)                                                         | Minimal migration selection and source routing            |
+| Backend architecture | [`architecture/blockout-backend-contract-data-architecture.md`](architecture/blockout-backend-contract-data-architecture.md) | Approved contract, data, mapping, and service target      |
+| Repository router    | [Blockout Best Practices](../.agents/skills/blockout-best-practices/SKILL.md)                                                | Universal rules and reference routing                     |
+| Backend audit        | [`migration/backend-contract-data-audit-template.md`](migration/backend-contract-data-audit-template.md)                     | Read-only service and BFF field-lineage audit template    |
+| Production cutover   | [`migration/monorepo-cutover.md`](migration/monorepo-cutover.md)                                                             | Temporary per-deployable migration and rollback procedure |
 
 ## Documentation Map
 

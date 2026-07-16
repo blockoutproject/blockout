@@ -22,6 +22,13 @@ tools/scripts/             Repository validation and maintenance scripts
 - `infra/compose/docker-compose.app.yml` owns local application databases.
 - `infra/compose/docker-compose.third-party.yml` owns shared local dependencies.
 
+## Backend Contract And Data Architecture
+
+[`blockout-backend-contract-data-architecture.md`](blockout-backend-contract-data-architecture.md) owns the approved
+target separation between source contracts, generated DTOs, application records, domain concepts, JPA entities,
+events, mappers, BFF projections, Expo clients, and scraper adapters. Apply it only through the ordered migration
+roadmap so current production behavior and deployable boundaries remain stable.
+
 ## Nx Integration
 
 - `@nx/maven` infers Maven modules.
@@ -34,5 +41,5 @@ tools/scripts/             Repository validation and maintenance scripts
 
 - No service merge or database merge.
 - No contract or endpoint redesign.
-- No package-architecture rewrite during migration.
+- No bulk package-architecture rewrite outside the owning migration slice.
 - No production deployment consolidation before per-deployable cutover.

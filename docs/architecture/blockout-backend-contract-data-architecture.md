@@ -1,0 +1,356 @@
+# Blockout Backend Contract And Data Architecture
+
+- Status: approved target architecture
+- Approved by: MRG-268 Plan-mode decision
+- Approval date: 2026-07-17
+- Runtime effect: none; this document governs later incremental migration tasks
+- Evidence baseline: MRG-252 through MRG-267 audits and the checked-out production-shaped source
+
+## Purpose
+
+This document defines the target contract, data, mapping, and service-boundary architecture for Blockout. It is the
+durable decision source for Phase MRG-300 contract-first work and Phase MRG-400 backend restructuring.
+
+The target follows the generated-boundary structure proven in Maaatch while preserving Blockout's Expo application,
+Python scrapers, Spring Boot services, Flyway migrations, RabbitMQ topology, Elasticsearch projections, Auth0 model,
+and independent deployable ownership.
+
+The migration has two controlled passes:
+
+1. stabilize every REST, event, BFF, Expo, and scraper boundary with generated or typed contracts, explicit application
+   shapes, mappers, compatibility evidence, and rollback; then
+2. restructure each service internally by feature after its boundaries are stable.
+
+The first pass may introduce only the application records and mappers required to isolate a migrated boundary. It must
+not turn a contract cutover into an unbounded package rewrite. The second pass completes the deeper application,
+domain, persistence, projection, and infrastructure separation.
+
+## Closed Boundaries
+
+- Preserve current product-visible behavior until a separate task explicitly approves a change.
+- Preserve service ownership, database ownership, ports, security intent, environment contracts, image behavior, and
+  standalone production authority.
+- Do not copy Maaatch product vocabulary, web architecture, Next.js behavior, or shared TanStack ownership.
+- Do not expose new endpoints, activate currently absent listeners, change privacy behavior, or repair ambiguous
+  ordering, pagination, null, partial-failure, or fallback semantics by architectural inference.
+- Do not delete a field or type merely because the current monorepo has no consumer. MRG-267 removal gates remain
+  mandatory.
+- Do not treat Springdoc output, handwritten DTOs, generated artifacts, database schemas, events, Expo types, or
+  scraper dictionaries as the target contract source by themselves.
+
+## 1. Boundary Taxonomy
+
+| Boundary         | Owner                                                           | Allowed forms                                                               | Forbidden coupling                                          |
+| ---------------- | --------------------------------------------------------------- | --------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| REST source      | OpenAPI fragments under `libs/shared/contracts/specs/source/**` | schemas, paths, errors, security, pagination, multipart                     | controller-derived source authority                         |
+| REST adapter     | owning service `api` package                                    | generated API interfaces/models, controllers, API mappers                   | JPA entities or generated DTOs as application contracts     |
+| Application      | owning feature or BFF workflow                                  | commands, query inputs, views, snapshots, decisions, plans, policies, ports | transport DTOs, JPA repositories, vendor SDK models         |
+| Domain           | owning feature, only when invariants justify it                 | values, pure concepts, policies, domain exceptions                          | Spring Web, Spring Data, generated objects, vendor clients  |
+| Persistence      | owning service infrastructure                                   | JPA entities, repositories, persistence-local mappers                       | API responses, BFF projections, generated object DTO fields |
+| Event            | separately selected event-contract source                       | versioned payloads, envelope metadata, producer/consumer adapters           | fake OpenAPI endpoints or REST DTO reuse                    |
+| BFF inbound      | workflow `api` package                                          | generated BFF DTOs and API mappers                                          | downstream generated client DTOs                            |
+| BFF outbound     | workflow infrastructure adapter                                 | generated downstream client and adapter mapper                              | generated client DTOs leaving the adapter                   |
+| Expo transport   | `apps/frontend/mobile`                                          | Orval output, generated contract schemas, auth/error mutator                | screen state, form semantics, shared TanStack package       |
+| Expo application | owning mobile domain                                            | TanStack policy, query composition, view/form models, navigation state      | handwritten transport DTO mirrors                           |
+| Python transport | scraper infrastructure adapter                                  | generated models/client or typed adapter selected by MRG-314                | provider-shaped or snake_case keys on Blockout wires        |
+| Vendor           | owning infrastructure adapter                                   | Auth0, Mapbox, S3, GitHub, Discord, FFVB/LNV, Expo provider shapes          | vendor names leaking into Blockout contracts                |
+
+### 1.1 Role-Owned Java Records
+
+Records are used only for stable immutable application roles. Approved forms include:
+
+- commands and query inputs owned by one use case;
+- read views returned to an API mapper or another application collaborator;
+- immutable snapshots with historical or consistency meaning;
+- decisions and plans produced by policies;
+- pure domain values with real invariants.
+
+Do not create a record solely because a generated DTO or entity exists. A mechanical
+`GeneratedDto -> IdenticalRecord -> Entity` chain adds no ownership and is prohibited. Do not create generic `records`,
+`data`, `models`, or `mappers` bags. Place each record in the role package that owns it.
+
+### 1.2 Generated Models
+
+Generated Java and TypeScript object models are transport artifacts. They may exist only at the adapter that owns the
+wire boundary. Generated enums may cross backend boundaries when they are stable shared contract values. Generated
+object models must not become domain entities, JPA fields, application service interfaces, BFF application views,
+worker cache records, Elasticsearch documents, mobile view models, or form models.
+
+## 2. Package And Mapper Rules
+
+Backend services are organized by business feature first and technical role second. Small services may retain a flat
+`api`, `application`, `domain`, `infrastructure`, `config`, and `shared` layout while it remains coherent. Complex
+services split by feature. Empty architecture folders are not created.
+
+Mappers live at the translated boundary:
+
+- generated request/response to application command/view: `api/mappers`;
+- simple entity-to-view mapping: beside the target application view family;
+- repository-backed assembly or enrichment: `application/projection` as a projector or projection service;
+- application policy, payload, or mutation conversion: the owning application role;
+- persistence-local conversion: `infrastructure/persistence/mappers`;
+- BFF downstream generated DTO conversion: the owning outbound infrastructure adapter.
+
+Each service introduces a strict local MapStruct configuration when structural mapping benefits from it:
+
+- Spring component model;
+- constructor injection;
+- null checks before nested conversion;
+- unmapped target fields reported as errors;
+- one mapper per coherent source/target family;
+- explicit mappings only for renamed, nested, flattened, ignored, defaulted, or qualified fields.
+
+Manual mapping remains mandatory for aggregation, partial-result policy, ranking, authorization decisions, vendor
+translation, explicit update intent, event construction, and any transformation whose meaning is more important than
+its field correspondence.
+
+## 3. Canonical Contracts And Casing
+
+Every Blockout-owned REST property, query parameter, multipart JSON property, and event field is canonical camelCase.
+The canonical name is declared directly in the source contract and preserved by generated artifacts.
+
+The following are intentionally outside the wire-casing rule:
+
+- PostgreSQL tables, columns, constraints, and Flyway identifiers;
+- idiomatic Python application identifiers;
+- Elasticsearch provider mapping names that are not Blockout REST/event fields;
+- third-party payloads contained inside explicit vendor adapters.
+
+The target state contains no global Jackson `SNAKE_CASE` strategy, Blockout-only `@JsonProperty` or `@JsonAlias`, Expo
+request/response case conversion, or reflective Python serialization that leaks snake_case onto a Blockout wire.
+
+### 3.1 Vertical Compatibility Rule
+
+Each boundary migrates independently:
+
+1. capture current requests, responses, errors, authentication, null behavior, ordering, pagination, multipart bytes,
+   event bytes, and caller versions;
+2. define the canonical camelCase source contract;
+3. generate the owning server and clients;
+4. write only canonical camelCase from the new path;
+5. accept legacy snake_case temporarily through a named compatibility adapter when MRG-304 proves it is required;
+6. migrate every backend, BFF, Expo, scraper, worker, event, and external caller in the boundary's support window;
+7. prove parity and rollback;
+8. remove the adapter, annotations, copied types, and case conversion for that boundary only.
+
+Compatibility is never embedded permanently in generated models, application records, domain values, or entities.
+
+## 4. Shared Models
+
+The backend `shared-models` module contains stable generated enums and rare cross-boundary technical primitives only.
+It must not contain shared Club, Team, Pool, User, Match, Notification, Search, Report, or other business object DTOs.
+
+The approved initial REST enum set is:
+
+- `FormatEnum`;
+- `GenderEnum`;
+- `ScraperNameEnum`;
+- `EntityTypeEnum`;
+- `DevicePlatformEnum`;
+- `MatchStatusEnum`;
+- `LiveLinkStatusEnum`;
+- `LiveProviderEnum`;
+- `ReportTypeEnum`;
+- `NotificationStatusEnum`;
+- `NotificationTargetTypeEnum`;
+- `NotificationTypeEnum`.
+
+MRG-301 through MRG-303 must confirm exact deployed values before generation. Provider labels and French display text
+remain application projections rather than enum metadata. `EventType` remains owned by the event-contract source
+selected in MRG-315. The unreferenced legacy `UserGender` remains a removal candidate under MRG-267 gates.
+
+Approved technical primitives include Problem Details, page information, bounded-list wrappers, identifiers, dates,
+and security shapes only when several contracts share identical semantics.
+
+## 5. Error And Collection Contracts
+
+The target error body is Problem Details compatible and includes a stable machine-readable `code`. A safe request
+identifier is included when the runtime can supply one. Services translate application exceptions at the API edge;
+the BFF translates downstream failures into its own safe facade contract without leaking service or vendor bodies.
+
+Error migration is progressive. Current status codes, response bodies, and security-filter behavior are captured first.
+Legacy bodies remain available only through the compatibility mechanism recorded in MRG-304. Generated clients switch
+to Problem Details before the legacy path is removed.
+
+Collections follow two shapes:
+
+- `*ListResponse` with `items` only for a complete, intentionally bounded collection;
+- `*PageResponse` with `items` and `pageInfo` for a growable collection, with zero-based `page`, bounded `pageSize`,
+  required `hasNext`, and deterministic ordering.
+
+Grouped business projections may use a dedicated response when the grouping is itself the consumer contract. Match-day
+grouping is the accepted example. A grouped projection still documents continuation and ordering explicitly.
+
+Migration does not silently standardize current behavior. Current empty responses, `nextPage`, inconsistent ordering,
+partial omissions, fallbacks, and null semantics are captured as compatibility behavior. Any correction receives a
+separate approved task.
+
+## 6. Event Architecture
+
+RabbitMQ contracts are independent from OpenAPI. MRG-315 selects the source format and generator, but the architecture
+is already fixed:
+
+- every event has a stable type, event ID, schema version, occurrence time, producer identity, and typed payload;
+- the owning service maps application facts to the event payload at the messaging adapter;
+- producers use a transactional outbox introduced progressively per service;
+- an outbox publisher retries idempotently and records publication state without changing the business transaction;
+- consumers deduplicate by event ID, validate the supported schema version, and preserve current acknowledgement,
+  requeue, retry, and DLQ behavior until separately approved;
+- event payloads do not double as REST DTOs, cache snapshots, index documents, or application views;
+- a missing current listener is not activated by contract migration alone.
+
+The rollout families are catalog lifecycle events, favorite/follow events, and match/live events. Each family migrates
+and rolls back independently.
+
+## 7. Cross-Service Sources Of Truth
+
+### 7.1 User Identity
+
+The local Blockout user UUID is the canonical business and persistence identifier. Auth0 subjects, linked identities,
+tokens, roles, and provider profiles are vendor-owned inputs resolved in an identity adapter. Auth0 subjects do not
+become general domain IDs or appear in unrelated contracts when the local UUID is sufficient.
+
+Identity migration preserves current authentication and authorization behavior. Account linking, deletion ordering,
+retention, and post-link token behavior require their existing evidence or a separately approved product/security
+decision before changing.
+
+### 7.2 Favorites And Followers
+
+`users-service` favorites are the canonical source. Team and pool follower counts and notification follower stores are
+derived projections. Target projection updates are idempotent, rebuildable, observable, and reconciled against the
+canonical favorite set. Existing synchronous counter behavior stays active until event/outbox and reconciliation
+parity are proven.
+
+### 7.3 Search Indices
+
+`search-worker` owns Elasticsearch write projections; `search-service` owns search reads. Search documents are store
+projections, not API DTOs.
+
+Full rebuilds create a versioned index, populate and validate it, atomically switch a stable alias, retain the previous
+index for a bounded rollback window, and delete it only after observation. Incremental events and full snapshots carry
+enough identity/version evidence to avoid stale overwrites once MRG-302, MRG-315, and MRG-350 define it.
+
+## 8. Service Target Matrix
+
+| Deployable           | Application ownership                                                                                                               | Persistence/infrastructure ownership                                            | Boundary disposition                                                            |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| config-service       | app-status commands/views, division commands/views, legal commands/views, raw-mapping commands/views, scraper-status commands/views | dedicated entities, repositories, division image storage                        | split all entity exposure; preserve operation-specific null behavior            |
+| clubs-service        | create/update commands with explicit logo intent, ClubView, location state                                                          | ClubEntity, S3 storage, Mapbox adapter, outbox                                  | BFF owns public phone filtering; vendor casing stays in Mapbox                  |
+| teams-service        | create/update/logo commands, TeamView, follower projection inputs                                                                   | TeamEntity, S3 storage, event/outbox adapters                                   | no embedded Club object as a general business model                             |
+| pools-service        | create/update/reactivation commands, PoolView, follower projection inputs                                                           | PoolEntity, event/outbox adapters                                               | BFF ranking/summary views remain separate                                       |
+| competition-service  | association/statistics snapshots, ranking views/policy, lifecycle and cascade commands                                              | association entities, repositories, outbox                                      | one ranking policy/projector owns ordering; full stats stay owner data          |
+| matches-service      | match/day views, match commands, live policies/views, moderation/report commands/views                                              | match/live/report entities, repositories, event/outbox adapters                 | matches owns live decisions; BFF only enriches                                  |
+| users-service        | account/profile commands/views, image intent, favorites, identity resolution, deletion orchestration                                | user/favorite entities, Auth0 and S3 adapters, outbox                           | local UUID canonical; Auth0 remains vendor-owned                                |
+| reports-service      | Blockout report command/result and attachment inputs                                                                                | S3, GitHub, and Discord adapters                                                | vendor request/results never define Blockout API types                          |
+| notification-service | inbox/page views, token command, follower projection, delivery decisions                                                            | inbox/token/ledger entities, Rabbit adapters, Expo provider adapter             | favorites are upstream truth; provider payloads stay contained                  |
+| search-service       | search query input and result views                                                                                                 | Elasticsearch read adapter                                                      | store documents never leave infrastructure                                      |
+| search-worker        | immutable source snapshots, projection commands, scheduler/reconciliation inputs                                                    | generated HTTP clients, Rabbit adapters, caches, versioned index/alias adapters | no REST server contract; transport/event/cache/document shapes stay separate    |
+| mobile-gateway       | facade commands/views, orchestration, projectors, authorization and compatibility policy by mobile workflow                         | generated downstream clients, cache adapters, FFVB/LNV adapters                 | generated DTOs mapped immediately; caches store immutable application snapshots |
+
+## 9. Mobile-Gateway Workflows
+
+`mobile-gateway` is organized by frontend workflow, not by a mirror of downstream services. The approved workflow
+families are:
+
+- configuration and legal;
+- clubs;
+- teams;
+- pools;
+- match list and detail;
+- live submission, history, and moderation;
+- user account and favorites;
+- reports;
+- search;
+- notifications.
+
+Inbound generated BFF models map to application commands. Outbound generated client models map immediately to
+workflow-owned views or inputs inside the owning infrastructure adapter. Application projectors own fan-out,
+deduplication, stable ordering, enrichment, cache use, missing-data handling, and partial-result behavior. API mappers
+perform no network, repository, authorization, or cache work.
+
+Current fan-out and failure behavior remains the compatibility baseline. Batching or concurrency is permitted only
+after fixtures prove equivalent ordering, omissions, errors, authorization, and results. Caches hold immutable
+application snapshots with explicit keys, TTLs, and invalidation; generated mutable DTOs are never cached or mutated.
+
+Competition ranking is ultimately owned by `competition-service`. Signed federation PDF links remain a BFF
+infrastructure concern and enter views only as derived values.
+
+## 10. Expo And Scraper Boundaries
+
+Expo owns Orval-generated DTOs, transport operations, validation schemas, query keys, TanStack hooks, query client, and
+the auth/error mutator. Simple generated hooks may be consumed directly. A handwritten domain hook is introduced only
+when it owns real cache, invalidation, pagination, orchestration, or view-model policy. Forms remain Formik/Yup models;
+generated wire validation does not replace user-facing form semantics.
+
+No generated transport type becomes route state, form state, persisted state, or a broad screen model. Deterministic
+view/form transforms remain mobile-owned when the UI needs a different shape.
+
+Each Python scraper keeps parsing, scheduling, proxy, authentication, federation, and domain values separate from its
+Blockout adapter. Python identifiers may remain snake_case. The adapter selected by MRG-314 is the only owner allowed
+to translate those identifiers to canonical camelCase Blockout keys. Federation/provider payload casing is unchanged.
+
+## 11. Migration Slice Rule
+
+Every vertical migration task follows this exact lifecycle:
+
+1. capture deployed/current parity and supported callers;
+2. define or update the authoritative source contract;
+3. generate all configured impacted artifacts and prove deterministic output;
+4. introduce the minimum role-owned application contracts and mappers required for isolation;
+5. migrate persistence and infrastructure adapters while keeping entities, vendor adapters, event adapters, and
+   generated clients at their owning edges;
+6. migrate downstream BFF, Expo, scraper, worker, or event callers in the task's declared set;
+7. prove request, response, error, auth, null, ordering, pagination, multipart, partial-result, event, and rollback parity
+   applicable to the slice;
+8. remove only the legacy types, annotations, and conversions whose MRG-267 gates are closed;
+9. compile/build the impacted deployables and run existing behavior tests;
+10. record compatibility removal and rollback evidence before declaring the boundary authoritative.
+
+The first complete slice is `config-service` legal-document read and update. It proves generated server interfaces and
+models, application command/view records, entity mapping, BFF generated client/projection, Expo generated client/hooks,
+Problem Details compatibility, canonical camelCase, and rollback without involving multipart, events, or scrapers.
+
+## 12. Approved Roadmap Sequence
+
+1. MRG-301 through MRG-304 capture deployed REST, event, handwritten-client, casing, coexistence, and rollback truth.
+2. MRG-305 through MRG-316 establish fragments, deterministic bundling, lint, backend generation, shared models, and
+   the separately approved Expo, Python, and event generators.
+3. MRG-317 through MRG-330 define owner REST contracts, the BFF workflow contracts, Expo generation, and scraper
+   generation.
+4. MRG-331 through MRG-333 deliver the legal-document pilot across service, BFF, and Expo.
+5. The remaining service, BFF, Expo, and scraper boundaries migrate in dependency order with the detailed roadmap
+   splits approved by MRG-268.
+6. Event families and service outboxes migrate independently after the event source is approved.
+7. Jackson naming, legacy annotations, Expo transforms, and case-conversion packages retire in service waves only after
+   all callers are canonical.
+8. Repository guards, generation/no-diff verification, and boundary-authority evidence close Phase MRG-300.
+9. Phase MRG-400 completes deep service restructuring in a second controlled pass.
+
+## 13. Deferred Tool Decisions
+
+This architecture fixes ownership but deliberately leaves three tool selections to their existing Plan gates:
+
+- MRG-313 selects exact Orval client mode, React Query options, validation output, directories, mutator, cache defaults,
+  and generated-file policy within the mobile-owned boundary;
+- MRG-314 selects a generated Python client, generated models with handwritten async transport, or a typed handwritten
+  adapter against explicit packaging, auth, multipart, retry, timeout, and proxy criteria;
+- MRG-315 selects the event source format and generator without changing the approved outbox, envelope, versioning,
+  idempotency, or adapter boundaries.
+
+These tasks may choose tools only within the ownership and casing rules above. They may not reopen the architectural
+decisions approved by MRG-268 without a new Plan-mode decision.
+
+## 14. Completion Evidence For Later Boundaries
+
+A REST or event boundary becomes contract-authoritative only when all of the following are proven:
+
+- source contract and generated artifacts are deterministic;
+- generated server/client models remain adapter-owned;
+- application and persistence mappings are explicit;
+- BFF, Expo, scraper, worker, event, and known external consumers are migrated;
+- canonical camelCase is emitted and temporary legacy reads are removed;
+- current behavior or an explicitly approved replacement is covered by parity evidence;
+- the deployment and rollback order is executable;
+- MRG-267 compatibility/removal gates are closed for every removed field or type;
+- relevant generation, compilation, build, existing tests, and CI pass;
+- standalone production authority remains unchanged until the later cutover phase.
