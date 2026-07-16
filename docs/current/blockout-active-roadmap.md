@@ -57,8 +57,10 @@ state moves to GitHub and this file becomes a historical migration record.
   - Evidence: the router names each variant and routes it to a dedicated Blockout reference.
 - [x] MRG-104 Align Maaatch's Figma, logging, Git workflow, Roadmap operations, lifecycle, and governance references.
   - Evidence: the full reference set is present with an explicit dormant marker on future GitHub workflows.
-- [ ] MRG-105 Expand `frontend-mobile-policy.md` to the same architectural depth as Maaatch's frontend policy while
+- [x] MRG-105 Expand `frontend-mobile-policy.md` to the same architectural depth as Maaatch's frontend policy while
       replacing web-only rules with Expo and React Native equivalents.
+  - Evidence: the mobile policy now covers Expo-native layering, state, UI, security, and validation; docs links and
+    the Maaatch structural comparison pass.
 - [ ] MRG-106 Align every generic skill present in Maaatch that applies to Expo/React or shared TypeScript code; record
       Next.js- or shadcn-only skills as non-applicable rather than copying them blindly.
 - [x] MRG-107 Establish one temporary local-roadmap task runbook while GitHub acquisition and merge remain dormant.
