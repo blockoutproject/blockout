@@ -174,8 +174,13 @@ state moves to GitHub and this file becomes a historical migration record.
   - Evidence: `docs/migration/backend-contract-audits/mrg-261-search-service.md` inventories all internal and BFF
     operations, query/filter/result/index fields, Elasticsearch ownership, ordering, bounds, empty/error behavior,
     casing, copied DTOs, Expo consumers, tests, unknowns, and provisional roles without runtime changes.
-- [ ] MRG-262 Audit `search-worker` field by field, including copied service DTOs, cache bootstrap clients, event
+- [x] MRG-262 Audit `search-worker` field by field, including copied service DTOs, cache bootstrap clients, event
       payloads, index documents, scheduled jobs, and Elasticsearch write ownership.
+  - Evidence: `docs/migration/backend-contract-audits/mrg-262-search-worker.md` inventories every HTTP snapshot, copied
+    DTO field, event payload, cache projection, scheduler, index document and mapping, Rabbit acknowledgement path,
+    casing bridge, write-consistency risk, missing parity test, unknown, and provisional target role without runtime
+    changes; Prettier, local-link validation, the Maaatch structure comparison, diff checks, and the Maven package build
+    pass.
 - [ ] MRG-263 Audit the `mobile-gateway` public and secure facade operation by operation, mapping each controller, copied
       downstream DTO, handwritten client, error translation, auth rule, and Expo caller.
 - [ ] MRG-264 Audit `mobile-gateway` configuration, user, report, search, and notification orchestration, documenting
