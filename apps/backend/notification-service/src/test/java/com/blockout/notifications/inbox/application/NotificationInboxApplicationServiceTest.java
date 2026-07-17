@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException
 import com.blockout.notifications.user.application.CurrentUserProvider;
 import com.blockout.notifications.user.application.CurrentUserResolver;
 import com.blockout.notifications.user.application.CurrentUserSnapshot;
+import com.blockout.notifications.user.application.CurrentUserNotFoundException;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -57,9 +58,9 @@ class NotificationInboxApplicationServiceTest {
     void preservesTheDeployedMissingUserFailure() {
         users.result = null;
 
-        assertThatIllegalArgumentException()
-                .isThrownBy(() -> service.listCanonical(0, 20))
-                .withMessage("Utilisateur introuvable");
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> service.listCanonical(0, 20))
+                .isInstanceOf(CurrentUserNotFoundException.class)
+                .hasMessage("Utilisateur introuvable");
         assertThat(inbox.lastCall).isNull();
     }
 

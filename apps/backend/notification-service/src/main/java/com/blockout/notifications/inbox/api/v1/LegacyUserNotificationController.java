@@ -1,8 +1,7 @@
 package com.blockout.notifications.inbox.api.v1;
 
 import com.blockout.notifications.inbox.application.NotificationInboxQuery;
-import com.blockout.notifications.models.dto.notifications.UnreadCountDTO;
-import com.blockout.notifications.services.UserNotificationService;
+import com.blockout.notifications.inbox.application.NotificationInboxMutations;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
@@ -25,7 +24,7 @@ public class LegacyUserNotificationController {
     private final NotificationInboxQuery inbox;
     private final LegacyNotificationMapper mapper;
     private final LegacyNotificationsJson json;
-    private final UserNotificationService mutations;
+    private final NotificationInboxMutations mutations;
 
     /** Preserves the v1 query names, wrapper, ordering, and continuation behavior. */
     @PreAuthorize("hasAuthority('SCOPE_read:current_user')")
@@ -39,8 +38,8 @@ public class LegacyUserNotificationController {
     /** Retains the existing unread response until MRG-365 migrates it. */
     @PreAuthorize("hasAuthority('SCOPE_read:current_user')")
     @GetMapping("/unread-count")
-    public ResponseEntity<UnreadCountDTO> unreadCount() {
-        return ResponseEntity.ok(new UnreadCountDTO(mutations.unreadCount()));
+    public ResponseEntity<LegacyUnreadNotificationResponse> unreadCount() {
+        return ResponseEntity.ok(new LegacyUnreadNotificationResponse(mutations.unreadCount()));
     }
 
     /** Retains the existing state-sensitive read result until MRG-365. */

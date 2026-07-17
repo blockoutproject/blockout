@@ -21,7 +21,7 @@ public class CurrentUserResolver {
         CurrentUserSnapshot user = provider.getCurrentUser();
         if (user == null || user.id() == null) {
             LOGGER.warn("User not found for auth0Id", keyValue("action", "resolve_user_id_failed"));
-            throw new IllegalArgumentException("Utilisateur introuvable");
+            throw new CurrentUserNotFoundException();
         }
         return user.id();
     }

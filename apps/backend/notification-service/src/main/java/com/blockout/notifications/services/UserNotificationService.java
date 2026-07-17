@@ -10,7 +10,6 @@ import com.blockout.notifications.models.entity.UserNotification;
 import com.blockout.notifications.models.enums.NotificationTargetType;
 import com.blockout.notifications.models.enums.NotificationType;
 import com.blockout.notifications.repositories.UserNotificationRepository;
-import com.blockout.notifications.user.application.CurrentUserResolver;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -26,7 +25,6 @@ public class UserNotificationService {
     private static final Logger logger = LoggerFactory.getLogger(UserNotificationService.class);
 
     private final UserNotificationRepository repository;
-    private final CurrentUserResolver currentUser;
     private final ObjectMapper objectMapper;
 
     @Transactional
@@ -82,52 +80,5 @@ public class UserNotificationService {
                 keyValue("type", type));
 
         return saved;
-    }
-
-    public long unreadCount() {
-        Long userId = currentUser.requireUserId();
-        return repository.countByUserIdAndIsReadFalse(userId);
-    }
-
-    @Transactional
-    public boolean markRead(Long notificationId) {
-        Long userId = currentUser.requireUserId();
-        int n = repository.markRead(userId, notificationId, Instant.now());
-        if (n > 0) {
-            logger.info("Notification marked read",
-                    keyValue("action", "notification_mark_read"),
-                    keyValue("userId", userId),
-                    keyValue("notificationId", notificationId));
-            return true;
-        }
-        return false;
-    }
-
-    @Transactional
-    public boolean markOpened(Long notificationId) {
-        Long userId = currentUser.requireUserId();
-        int n = repository.markOpened(userId, notificationId, Instant.now()); 
-        if (n > 0) {
-            logger.info("Notification marked opened",
-                    keyValue("action", "notification_mark_opened"),
-                    keyValue("userId", userId),
-                    keyValue("notificationId", notificationId));
-            return true;
-        }
-        return false;
-    }
-
-    @Transactional
-    public boolean delete(Long notificationId) {
-        Long userId = currentUser.requireUserId();
-        int n = repository.deleteForUser(userId, notificationId);
-        if (n > 0) {
-            logger.info("Notification deleted",
-                    keyValue("action", "notification_delete"),
-                    keyValue("userId", userId),
-                    keyValue("notificationId", notificationId));
-            return true;
-        }
-        return false;
     }
 }

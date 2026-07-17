@@ -17,8 +17,6 @@ public interface PushTokenRepository extends JpaRepository<PushToken, Long> {
 
     Optional<PushToken> findByUserIdAndDeviceId(Long userId, String deviceId);
 
-    List<PushToken> findAllByUserIdAndDeviceId(Long userId, String deviceId);
-
     List<PushToken> findAllByUserIdInAndActiveTrue(List<Long> userIds);
 
     @Modifying

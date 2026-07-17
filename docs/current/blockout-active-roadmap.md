@@ -842,8 +842,24 @@ state moves to GitHub and this file becomes a historical migration record.
     repositories, production, Maaatch, Blockout Orval settings, and Python generator settings are unchanged;
     `docs/migration/mrg-341-notification-inbox-runtime-migration.md` records parity, rollback, deferred mutation
     ownership, and the temporary `Legacy*`/`*V2*` source-name retirement gates.
-- [ ] MRG-365 Migrate `notification-service` push-token, unread, read, opened, and delete boundaries with current-user
+- [x] MRG-365 Migrate `notification-service` push-token, unread, read, opened, and delete boundaries with current-user
       ownership, validation, device lifecycle, response, and compatibility evidence.
+  - Evidence: `NOTIF-02` through `NOTIF-06` now implement the generated mutation and push-token interfaces through
+    current-user inbox mutation use cases, an immutable push registration command, strict generated/legacy mapping,
+    persistence ports, progressive Problem Details, and the compatibility telemetry introduced by MRG-341. Unread v2
+    returns `unreadCount` while v1 retains `unread`; read, opened, and delete preserve ownership-scoped, state-sensitive
+    `204`/`404` results and one UTC mutation instant. Canonical push input validates positive identity, token, shared
+    platform, and device fields while the isolated v1 adapter retains snake_case and historical permissive failure
+    paths. Token reattachment, blank-device preservation, user/device rotation, reactivation, duplicate cleanup, and
+    creation order remain unchanged. The caller-selected push `userId` authorization defect is explicitly retained
+    because the approved MRG-325/MRG-304 path freezes it; correction requires a separate coordinated contract/security
+    task. The old unread and push DTOs and mixed registration method are removed; delivery token resolution and
+    provider deactivation remain assigned to MRG-366. Thirty-one notification tests, thirty contract tests, clean
+    generated compilation, source confinement, full 14-module backend packaging, documentation, Maaatch comparison,
+    Prettier, and whitespace checks pass. Contracts, generated artifacts, databases, events, BFF, Expo, scrapers,
+    standalone repositories, production, Maaatch, Orval, and Python generation are unchanged;
+    `docs/migration/mrg-365-notification-mutation-token-runtime-migration.md` records parity, rollback, security debt,
+    device lifecycle, and temporary coexistence-name retirement gates.
 - [ ] MRG-366 Separate and migrate `notification-service` delivery-state inputs from provider ticket/receipt models,
       preserving current send, retry, invalid-token, and incomplete-receipt behavior until separately changed.
 - [ ] MRG-342 Migrate `search-service` generated server boundaries and internal generated clients with parity evidence.

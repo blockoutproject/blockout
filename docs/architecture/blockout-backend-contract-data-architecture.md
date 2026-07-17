@@ -378,6 +378,9 @@ provider ports, preserved partial failures, and absence of an in-scope internal 
 The generated notification inbox page, stable canonical ordering, explicit enrichment identity, isolated legacy
 continuation/casing adapter, and generated current-user client are recorded in the
 [MRG-341 notification migration](../migration/mrg-341-notification-inbox-runtime-migration.md).
+The current-user mutation boundary, state-sensitive result parity, validated generated push-token command, preserved
+device lifecycle, and explicit caller-selected identity debt are recorded in the
+[MRG-365 notification mutation migration](../migration/mrg-365-notification-mutation-token-runtime-migration.md).
 
 ## 12. Approved Roadmap Sequence
 

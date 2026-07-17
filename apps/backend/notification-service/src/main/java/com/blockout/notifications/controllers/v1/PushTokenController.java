@@ -13,8 +13,8 @@ import org.springframework.web.bind.annotation.*;
 
 import com.blockout.notifications.inbox.api.v1.LegacyNotificationsJson;
 import com.blockout.notifications.inbox.api.v1.LegacyRegisterPushTokenRequest;
-import com.blockout.notifications.models.dto.pushTokens.RegisterPushTokenRequestDTO;
-import com.blockout.notifications.services.PushTokenService;
+import com.blockout.notifications.inbox.api.v1.LegacyNotificationMapper;
+import com.blockout.notifications.push.application.PushTokenRegistration;
 import com.fasterxml.jackson.core.JsonProcessingException;
 
 @RestController
@@ -22,8 +22,9 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 @RequestMapping("/api/v1/notifications")
 public class PushTokenController {
 
-    private final PushTokenService pushTokenService;
+    private final PushTokenRegistration registration;
     private final LegacyNotificationsJson json;
+    private final LegacyNotificationMapper mapper;
 
     @Operation(summary = "Enregistrer / mettre à jour un push token")
     @ApiResponses({
@@ -36,11 +37,7 @@ public class PushTokenController {
             @PathVariable Long userId,
             @RequestBody String body) throws JsonProcessingException {
         LegacyRegisterPushTokenRequest request = json.readPushToken(body);
-        pushTokenService.register(userId, RegisterPushTokenRequestDTO.builder()
-                .expoPushToken(request.expoPushToken())
-                .platform(request.platform())
-                .deviceId(request.deviceId())
-                .build());
+        registration.register(mapper.toCommand(userId, request));
         return ResponseEntity.accepted().build();
     }
 }
