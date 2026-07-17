@@ -299,8 +299,14 @@ state moves to GitHub and this file becomes a historical migration record.
     authority. The generator now cleans its owned output, the bundle suite rejects stale artifacts, and both shadow CI
     workflows regenerate and require a clean generated tree; source lint, nine tests, two consecutive generations,
     formatting, documentation links, Maaatch comparison, typecheck, shell-shape checks, and diff checks pass.
-- [ ] MRG-310 Port Maaatch's generated `schemaMappings` synchronizer and protect its backend parent block from manual
+- [x] MRG-310 Port Maaatch's generated `schemaMappings` synchronizer and protect its backend parent block from manual
       edits.
+  - Evidence: the uncached `@blockout/contracts:sync-backend-schema-mappings` target derives a lexically ordered,
+    duplicate-free `com.blockout.shared.model` mapping block from shared source schemas, handles the progressive empty
+    source state, and rejects missing or repeated protection markers. Four synchronizer tests, the composite
+    `generate-contracts` target, both shadow CI workflows, a dormant Maven plugin-management anchor, two clean syncs,
+    contract tests/lint/generation, Maven baseline compilation, formatting, documentation links, Maaatch comparison,
+    Nx discovery/typecheck, and diff checks pass without generating service APIs.
 - [ ] MRG-311 Configure the backend parent plugin management, Java type mappings, generated-source ownership, and
       shared generator options without generating service APIs yet.
 - [ ] MRG-312 Add the backend `shared-models` module for generated shared enums and rare technical primitives, then

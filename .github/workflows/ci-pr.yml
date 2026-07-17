@@ -58,11 +58,11 @@ jobs:
       - name: Lint OpenAPI source
         run: npm exec nx run @blockout/contracts:lint-openapi-source
 
-      - name: Generate OpenAPI bundles
-        run: npm exec nx run @blockout/contracts:generate-openapi-bundles
+      - name: Generate contract artifacts
+        run: npm exec nx run @blockout/contracts:generate-contracts
 
-      - name: Verify OpenAPI bundles are committed
-        run: test -z "$(git status --porcelain -- libs/shared/contracts/generated/specs)"
+      - name: Verify contract artifacts are committed
+        run: test -z "$(git status --porcelain -- libs/shared/contracts/generated/specs apps/backend/pom.xml)"
 
       - name: Typecheck reserved contract boundary
         run: npm exec nx run @blockout/contracts:typecheck

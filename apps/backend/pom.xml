@@ -37,5 +37,25 @@
         <java.version>21</java.version>
         <lombok.version>1.18.38</lombok.version>
         <mapstruct.version>1.6.3</mapstruct.version>
+        <openapi-generator-maven-plugin.version>7.19.0</openapi-generator-maven-plugin.version>
     </properties>
+
+    <build>
+        <pluginManagement>
+            <plugins>
+                <!-- Dormant ownership anchor. MRG-311 adds the shared generator configuration. -->
+                <plugin>
+                    <groupId>org.openapitools</groupId>
+                    <artifactId>openapi-generator-maven-plugin</artifactId>
+                    <version>${openapi-generator-maven-plugin.version}</version>
+                    <configuration>
+            <!-- BEGIN generated schemaMappings -->
+            <schemaMappings>
+            </schemaMappings>
+            <!-- END generated schemaMappings -->
+                    </configuration>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+    </build>
 </project>

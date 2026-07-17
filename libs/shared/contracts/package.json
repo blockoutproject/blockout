@@ -19,7 +19,7 @@
         "executor": "nx:run-commands",
         "cache": false,
         "options": {
-          "command": "node --test libs/shared/contracts/specs/scripts/bundle-openapi.test.mjs libs/shared/contracts/specs/scripts/lint-openapi-source.test.mjs"
+          "command": "node --test libs/shared/contracts/specs/scripts/bundle-openapi.test.mjs libs/shared/contracts/specs/scripts/lint-openapi-source.test.mjs libs/shared/contracts/specs/scripts/sync-backend-schema-mappings.test.mjs"
         }
       },
       "lint-openapi-source": {
@@ -47,6 +47,36 @@
         "options": {
           "command": "node libs/shared/contracts/specs/scripts/bundle-openapi.mjs"
         }
+      },
+      "sync-backend-schema-mappings": {
+        "executor": "nx:run-commands",
+        "cache": false,
+        "inputs": [
+          "{projectRoot}/specs/source/shared/schemas/**/*.json",
+          "{projectRoot}/specs/scripts/sync-backend-schema-mappings.mjs",
+          "{workspaceRoot}/apps/backend/pom.xml"
+        ],
+        "outputs": [
+          "{workspaceRoot}/apps/backend/pom.xml"
+        ],
+        "options": {
+          "command": "node libs/shared/contracts/specs/scripts/sync-backend-schema-mappings.mjs"
+        }
+      },
+      "generate-contracts": {
+        "executor": "nx:noop",
+        "outputs": [
+          "{projectRoot}/generated/specs/*.json",
+          "{workspaceRoot}/apps/backend/pom.xml"
+        ],
+        "dependsOn": [
+          {
+            "target": "generate-openapi-bundles"
+          },
+          {
+            "target": "sync-backend-schema-mappings"
+          }
+        ]
       }
     }
   }

@@ -7,16 +7,25 @@ The [source layout](specs/source/README.md) fixes shared schemas, service-owned 
 `mobile-gateway` BFF structure. Future authoritative OpenAPI fragments live under that tree. Generated bundles,
 backend generated models, Python clients, and Expo generated clients remain outputs.
 
-The deterministic bundle entrypoint is available through:
+The complete contract-artifact entrypoint is:
 
 ```bash
-npm exec nx run @blockout/contracts:generate-openapi-bundles
+npm exec nx run @blockout/contracts:generate-contracts
 ```
 
-It discovers service source directories lexicographically, cleans its owned output directory, and writes bundles only
-to `generated/specs/*.json`. The committed bundles currently contain the shared and deployable contract shells with no
-operations or business schemas. MRG-316 and the owner contract tasks populate those shells; their presence alone does
-not make a runtime boundary contract-authoritative.
+It discovers service directories lexicographically, regenerates bundles under `generated/specs/*.json`, and
+synchronizes the backend parent `schemaMappings` block from
+`specs/source/shared/schemas/*.json`. The synchronizer maps every shared schema to
+`com.blockout.shared.model.<SchemaName>` in lexical order. The OpenAPI Maven plugin declaration remains dormant until
+MRG-311 adds the shared generator configuration; no backend API or model generation is active yet.
+
+The generated bundle directory and the block between `BEGIN generated schemaMappings` and
+`END generated schemaMappings` are generated artifacts. Edit source fragments or generation scripts instead of
+editing either artifact manually. CI regenerates both and requires a clean tree.
+
+The committed bundles currently contain the shared and deployable contract shells with no operations or business
+schemas. MRG-316 and the owner contract tasks populate those shells; their presence alone does not make a runtime
+boundary contract-authoritative.
 The bundler's fixture and workspace guarantees run through:
 
 ```bash
