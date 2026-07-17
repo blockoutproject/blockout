@@ -1,0 +1,58 @@
+{
+  "MatchFinished": {
+    "amqpProperties": {
+      "correlationId": "migration-370",
+      "messageId": "00000000-0000-4000-8000-000000000370",
+      "timestamp": "2026-07-17T14:00:00Z",
+      "type": "MATCH_FINISHED"
+    },
+    "body": {
+      "aggregateVersion": null,
+      "correlationId": "migration-370",
+      "eventId": "00000000-0000-4000-8000-000000000370",
+      "eventType": "MATCH_FINISHED",
+      "occurredAt": "2026-07-17T14:00:00Z",
+      "orderingKey": "match:5",
+      "payload": {
+        "matchId": 5,
+        "poolId": 4,
+        "set": "2-1",
+        "teamIdA": 2,
+        "teamIdB": 6
+      },
+      "producer": "matches-service",
+      "schemaVersion": "2.0.0"
+    },
+    "headers": {
+      "x-blockout-ordering-key": "match:5",
+      "x-blockout-producer": "matches-service",
+      "x-blockout-schema-version": "2.0.0"
+    },
+    "schema": "MatchFinishedV2Event"
+  },
+  "MatchLiveLinkCreated": {
+    "amqpProperties": {
+      "correlationId": "migration-370",
+      "messageId": "00000000-0000-4000-8000-000000000371",
+      "timestamp": "2026-07-17T14:00:01Z",
+      "type": "MATCH_LIVE_LINK_CREATED"
+    },
+    "body": {
+      "aggregateVersion": null,
+      "correlationId": "migration-370",
+      "eventId": "00000000-0000-4000-8000-000000000371",
+      "eventType": "MATCH_LIVE_LINK_CREATED",
+      "occurredAt": "2026-07-17T14:00:01Z",
+      "orderingKey": "match:5",
+      "payload": { "matchId": 5, "poolId": 4, "teamIdA": 2, "teamIdB": 6 },
+      "producer": "matches-service",
+      "schemaVersion": "2.0.0"
+    },
+    "headers": {
+      "x-blockout-ordering-key": "match:5",
+      "x-blockout-producer": "matches-service",
+      "x-blockout-schema-version": "2.0.0"
+    },
+    "schema": "MatchLiveLinkCreatedV2Event"
+  }
+}

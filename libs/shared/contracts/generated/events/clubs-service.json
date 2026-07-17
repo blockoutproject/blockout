@@ -87,7 +87,9 @@
                   "TEAM_FOLLOWED",
                   "TEAM_UNFOLLOWED",
                   "POOL_FOLLOWED",
-                  "POOL_UNFOLLOWED"
+                  "POOL_UNFOLLOWED",
+                  "MATCH_FINISHED",
+                  "MATCH_LIVE_LINK_CREATED"
                 ],
                 "type": "string"
               },
@@ -228,7 +230,9 @@
                   "TEAM_FOLLOWED",
                   "TEAM_UNFOLLOWED",
                   "POOL_FOLLOWED",
-                  "POOL_UNFOLLOWED"
+                  "POOL_UNFOLLOWED",
+                  "MATCH_FINISHED",
+                  "MATCH_LIVE_LINK_CREATED"
                 ],
                 "type": "string"
               },
@@ -398,7 +402,9 @@
                     "TEAM_FOLLOWED",
                     "TEAM_UNFOLLOWED",
                     "POOL_FOLLOWED",
-                    "POOL_UNFOLLOWED"
+                    "POOL_UNFOLLOWED",
+                    "MATCH_FINISHED",
+                    "MATCH_LIVE_LINK_CREATED"
                   ],
                   "type": "string"
                 },
@@ -542,7 +548,9 @@
                     "TEAM_FOLLOWED",
                     "TEAM_UNFOLLOWED",
                     "POOL_FOLLOWED",
-                    "POOL_UNFOLLOWED"
+                    "POOL_UNFOLLOWED",
+                    "MATCH_FINISHED",
+                    "MATCH_LIVE_LINK_CREATED"
                   ],
                   "type": "string"
                 },

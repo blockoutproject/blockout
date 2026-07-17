@@ -8,6 +8,12 @@
       "ClubUpsertV2Message": {
         "$ref": "./shared/messages/lifecycle.json#/$defs/ClubUpsertV2Message"
       },
+      "MatchFinishedV2Message": {
+        "$ref": "./shared/messages/matches.json#/$defs/MatchFinishedV2Message"
+      },
+      "MatchLiveLinkCreatedV2Message": {
+        "$ref": "./shared/messages/matches.json#/$defs/MatchLiveLinkCreatedV2Message"
+      },
       "PoolFollowedV2Message": {
         "$ref": "./shared/messages/favorites.json#/$defs/PoolFollowedV2Message"
       },
@@ -51,6 +57,18 @@
       },
       "EventType": {
         "$ref": "./shared/schemas/lifecycle.json#/$defs/EventType"
+      },
+      "MatchFinishedV2Event": {
+        "$ref": "./shared/schemas/lifecycle.json#/$defs/MatchFinishedV2Event"
+      },
+      "MatchFinishedV2Payload": {
+        "$ref": "./shared/schemas/lifecycle.json#/$defs/MatchFinishedV2Payload"
+      },
+      "MatchLiveLinkCreatedV2Event": {
+        "$ref": "./shared/schemas/lifecycle.json#/$defs/MatchLiveLinkCreatedV2Event"
+      },
+      "MatchLiveLinkCreatedV2Payload": {
+        "$ref": "./shared/schemas/lifecycle.json#/$defs/MatchLiveLinkCreatedV2Payload"
       },
       "PoolDeactivationV2Event": {
         "$ref": "./shared/schemas/lifecycle.json#/$defs/PoolDeactivationV2Event"
@@ -177,13 +195,13 @@
       "owner": null
     },
     "Q-14": {
-      "disposition": "deferred-mrg-370",
+      "disposition": "active",
       "queue": "match.finished.queue.notifications.v2",
       "dlq": "match.finished.queue.notifications.dlq.v2",
       "owner": "notification-service"
     },
     "Q-15": {
-      "disposition": "deferred-mrg-370",
+      "disposition": "active",
       "queue": "match.live-link-created.queue.notifications.v2",
       "dlq": "match.live-link-created.queue.notifications.dlq.v2",
       "owner": "notification-service"
@@ -225,12 +243,12 @@
       "task": "MRG-350"
     },
     "EV-MF": {
-      "disposition": "deferred",
+      "disposition": "active",
       "route": "match.finished.v2",
       "task": "MRG-370"
     },
     "EV-ML": {
-      "disposition": "deferred",
+      "disposition": "active",
       "route": "match.live-link-created.v2",
       "task": "MRG-370"
     },

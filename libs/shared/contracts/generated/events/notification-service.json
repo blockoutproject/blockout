@@ -1,6 +1,335 @@
 {
   "asyncapi": "3.0.0",
   "channels": {
+    "MatchFinished": {
+      "address": "match.finished.v2",
+      "bindings": {
+        "amqp": {
+          "bindingVersion": "0.3.0",
+          "exchange": {
+            "autoDelete": false,
+            "durable": true,
+            "name": "entity.lifecycle.exchange",
+            "type": "topic"
+          },
+          "is": "routingKey"
+        }
+      },
+      "messages": {
+        "MatchFinishedV2Message": {
+          "bindings": {
+            "amqp": {
+              "bindingVersion": "0.3.0",
+              "contentEncoding": "UTF-8",
+              "messageType": "MATCH_FINISHED"
+            }
+          },
+          "contentType": "application/json",
+          "headers": {
+            "additionalProperties": false,
+            "properties": {
+              "x-blockout-aggregate-version": {
+                "format": "int64",
+                "minimum": 0,
+                "type": "integer"
+              },
+              "x-blockout-ordering-key": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "x-blockout-producer": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "x-blockout-schema-version": {
+                "const": "2.0.0",
+                "type": "string"
+              }
+            },
+            "required": [
+              "x-blockout-schema-version",
+              "x-blockout-producer",
+              "x-blockout-ordering-key"
+            ],
+            "type": "object"
+          },
+          "name": "MatchFinishedV2Message",
+          "payload": {
+            "additionalProperties": false,
+            "properties": {
+              "aggregateVersion": {
+                "format": "int64",
+                "minimum": 0,
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "correlationId": {
+                "minLength": 1,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "eventId": {
+                "format": "uuid",
+                "type": "string"
+              },
+              "eventType": {
+                "enum": [
+                  "CLUB_UPSERT",
+                  "TEAM_UPSERT",
+                  "POOL_UPSERT",
+                  "CLUB_DEACTIVATED",
+                  "TEAM_DEACTIVATED",
+                  "POOL_DEACTIVATED",
+                  "TEAM_FOLLOWED",
+                  "TEAM_UNFOLLOWED",
+                  "POOL_FOLLOWED",
+                  "POOL_UNFOLLOWED",
+                  "MATCH_FINISHED",
+                  "MATCH_LIVE_LINK_CREATED"
+                ],
+                "type": "string"
+              },
+              "occurredAt": {
+                "format": "date-time",
+                "type": "string"
+              },
+              "orderingKey": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "payload": {
+                "additionalProperties": false,
+                "properties": {
+                  "matchId": {
+                    "format": "int64",
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  "poolId": {
+                    "format": "int64",
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  "set": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "teamIdA": {
+                    "format": "int64",
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  "teamIdB": {
+                    "format": "int64",
+                    "minimum": 1,
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "matchId",
+                  "teamIdA",
+                  "teamIdB",
+                  "poolId",
+                  "set"
+                ],
+                "type": "object"
+              },
+              "producer": {
+                "const": "matches-service",
+                "type": "string"
+              },
+              "schemaVersion": {
+                "const": "2.0.0",
+                "type": "string"
+              }
+            },
+            "required": [
+              "eventId",
+              "eventType",
+              "schemaVersion",
+              "occurredAt",
+              "producer",
+              "orderingKey",
+              "payload"
+            ],
+            "type": "object"
+          },
+          "title": "Match finished v2",
+          "x-blockout-amqp-properties": [
+            "messageId",
+            "type",
+            "timestamp",
+            "correlationId"
+          ]
+        }
+      }
+    },
+    "MatchLiveLinkCreated": {
+      "address": "match.live-link-created.v2",
+      "bindings": {
+        "amqp": {
+          "bindingVersion": "0.3.0",
+          "exchange": {
+            "autoDelete": false,
+            "durable": true,
+            "name": "entity.lifecycle.exchange",
+            "type": "topic"
+          },
+          "is": "routingKey"
+        }
+      },
+      "messages": {
+        "MatchLiveLinkCreatedV2Message": {
+          "bindings": {
+            "amqp": {
+              "bindingVersion": "0.3.0",
+              "contentEncoding": "UTF-8",
+              "messageType": "MATCH_LIVE_LINK_CREATED"
+            }
+          },
+          "contentType": "application/json",
+          "headers": {
+            "additionalProperties": false,
+            "properties": {
+              "x-blockout-aggregate-version": {
+                "format": "int64",
+                "minimum": 0,
+                "type": "integer"
+              },
+              "x-blockout-ordering-key": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "x-blockout-producer": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "x-blockout-schema-version": {
+                "const": "2.0.0",
+                "type": "string"
+              }
+            },
+            "required": [
+              "x-blockout-schema-version",
+              "x-blockout-producer",
+              "x-blockout-ordering-key"
+            ],
+            "type": "object"
+          },
+          "name": "MatchLiveLinkCreatedV2Message",
+          "payload": {
+            "additionalProperties": false,
+            "properties": {
+              "aggregateVersion": {
+                "format": "int64",
+                "minimum": 0,
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "correlationId": {
+                "minLength": 1,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "eventId": {
+                "format": "uuid",
+                "type": "string"
+              },
+              "eventType": {
+                "enum": [
+                  "CLUB_UPSERT",
+                  "TEAM_UPSERT",
+                  "POOL_UPSERT",
+                  "CLUB_DEACTIVATED",
+                  "TEAM_DEACTIVATED",
+                  "POOL_DEACTIVATED",
+                  "TEAM_FOLLOWED",
+                  "TEAM_UNFOLLOWED",
+                  "POOL_FOLLOWED",
+                  "POOL_UNFOLLOWED",
+                  "MATCH_FINISHED",
+                  "MATCH_LIVE_LINK_CREATED"
+                ],
+                "type": "string"
+              },
+              "occurredAt": {
+                "format": "date-time",
+                "type": "string"
+              },
+              "orderingKey": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "payload": {
+                "additionalProperties": false,
+                "properties": {
+                  "matchId": {
+                    "format": "int64",
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  "poolId": {
+                    "format": "int64",
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  "teamIdA": {
+                    "format": "int64",
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  "teamIdB": {
+                    "format": "int64",
+                    "minimum": 1,
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "matchId",
+                  "teamIdA",
+                  "teamIdB",
+                  "poolId"
+                ],
+                "type": "object"
+              },
+              "producer": {
+                "const": "matches-service",
+                "type": "string"
+              },
+              "schemaVersion": {
+                "const": "2.0.0",
+                "type": "string"
+              }
+            },
+            "required": [
+              "eventId",
+              "eventType",
+              "schemaVersion",
+              "occurredAt",
+              "producer",
+              "orderingKey",
+              "payload"
+            ],
+            "type": "object"
+          },
+          "title": "Match live link created v2",
+          "x-blockout-amqp-properties": [
+            "messageId",
+            "type",
+            "timestamp",
+            "correlationId"
+          ]
+        }
+      }
+    },
     "PoolFollow": {
       "address": "pool.follow.v2",
       "bindings": {
@@ -87,7 +416,9 @@
                   "TEAM_FOLLOWED",
                   "TEAM_UNFOLLOWED",
                   "POOL_FOLLOWED",
-                  "POOL_UNFOLLOWED"
+                  "POOL_UNFOLLOWED",
+                  "MATCH_FINISHED",
+                  "MATCH_LIVE_LINK_CREATED"
                 ],
                 "type": "string"
               },
@@ -218,7 +549,9 @@
                   "TEAM_FOLLOWED",
                   "TEAM_UNFOLLOWED",
                   "POOL_FOLLOWED",
-                  "POOL_UNFOLLOWED"
+                  "POOL_UNFOLLOWED",
+                  "MATCH_FINISHED",
+                  "MATCH_LIVE_LINK_CREATED"
                 ],
                 "type": "string"
               },
@@ -366,7 +699,9 @@
                   "TEAM_FOLLOWED",
                   "TEAM_UNFOLLOWED",
                   "POOL_FOLLOWED",
-                  "POOL_UNFOLLOWED"
+                  "POOL_UNFOLLOWED",
+                  "MATCH_FINISHED",
+                  "MATCH_LIVE_LINK_CREATED"
                 ],
                 "type": "string"
               },
@@ -497,7 +832,9 @@
                   "TEAM_FOLLOWED",
                   "TEAM_UNFOLLOWED",
                   "POOL_FOLLOWED",
-                  "POOL_UNFOLLOWED"
+                  "POOL_UNFOLLOWED",
+                  "MATCH_FINISHED",
+                  "MATCH_LIVE_LINK_CREATED"
                 ],
                 "type": "string"
               },
@@ -566,6 +903,341 @@
     "version": "2.0.0"
   },
   "operations": {
+    "consumeMatchFinished": {
+      "action": "receive",
+      "channel": {
+        "address": "match.finished.v2",
+        "bindings": {
+          "amqp": {
+            "bindingVersion": "0.3.0",
+            "exchange": {
+              "autoDelete": false,
+              "durable": true,
+              "name": "entity.lifecycle.exchange",
+              "type": "topic"
+            },
+            "is": "routingKey"
+          }
+        },
+        "messages": {
+          "MatchFinishedV2Message": {
+            "bindings": {
+              "amqp": {
+                "bindingVersion": "0.3.0",
+                "contentEncoding": "UTF-8",
+                "messageType": "MATCH_FINISHED"
+              }
+            },
+            "contentType": "application/json",
+            "headers": {
+              "additionalProperties": false,
+              "properties": {
+                "x-blockout-aggregate-version": {
+                  "format": "int64",
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "x-blockout-ordering-key": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "x-blockout-producer": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "x-blockout-schema-version": {
+                  "const": "2.0.0",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "x-blockout-schema-version",
+                "x-blockout-producer",
+                "x-blockout-ordering-key"
+              ],
+              "type": "object"
+            },
+            "name": "MatchFinishedV2Message",
+            "payload": {
+              "additionalProperties": false,
+              "properties": {
+                "aggregateVersion": {
+                  "format": "int64",
+                  "minimum": 0,
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                },
+                "correlationId": {
+                  "minLength": 1,
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "eventId": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "eventType": {
+                  "enum": [
+                    "CLUB_UPSERT",
+                    "TEAM_UPSERT",
+                    "POOL_UPSERT",
+                    "CLUB_DEACTIVATED",
+                    "TEAM_DEACTIVATED",
+                    "POOL_DEACTIVATED",
+                    "TEAM_FOLLOWED",
+                    "TEAM_UNFOLLOWED",
+                    "POOL_FOLLOWED",
+                    "POOL_UNFOLLOWED",
+                    "MATCH_FINISHED",
+                    "MATCH_LIVE_LINK_CREATED"
+                  ],
+                  "type": "string"
+                },
+                "occurredAt": {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                "orderingKey": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "payload": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "matchId": {
+                      "format": "int64",
+                      "minimum": 1,
+                      "type": "integer"
+                    },
+                    "poolId": {
+                      "format": "int64",
+                      "minimum": 1,
+                      "type": "integer"
+                    },
+                    "set": {
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "teamIdA": {
+                      "format": "int64",
+                      "minimum": 1,
+                      "type": "integer"
+                    },
+                    "teamIdB": {
+                      "format": "int64",
+                      "minimum": 1,
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "matchId",
+                    "teamIdA",
+                    "teamIdB",
+                    "poolId",
+                    "set"
+                  ],
+                  "type": "object"
+                },
+                "producer": {
+                  "const": "matches-service",
+                  "type": "string"
+                },
+                "schemaVersion": {
+                  "const": "2.0.0",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "eventId",
+                "eventType",
+                "schemaVersion",
+                "occurredAt",
+                "producer",
+                "orderingKey",
+                "payload"
+              ],
+              "type": "object"
+            },
+            "title": "Match finished v2",
+            "x-blockout-amqp-properties": [
+              "messageId",
+              "type",
+              "timestamp",
+              "correlationId"
+            ]
+          }
+        }
+      }
+    },
+    "consumeMatchLiveLinkCreated": {
+      "action": "receive",
+      "channel": {
+        "address": "match.live-link-created.v2",
+        "bindings": {
+          "amqp": {
+            "bindingVersion": "0.3.0",
+            "exchange": {
+              "autoDelete": false,
+              "durable": true,
+              "name": "entity.lifecycle.exchange",
+              "type": "topic"
+            },
+            "is": "routingKey"
+          }
+        },
+        "messages": {
+          "MatchLiveLinkCreatedV2Message": {
+            "bindings": {
+              "amqp": {
+                "bindingVersion": "0.3.0",
+                "contentEncoding": "UTF-8",
+                "messageType": "MATCH_LIVE_LINK_CREATED"
+              }
+            },
+            "contentType": "application/json",
+            "headers": {
+              "additionalProperties": false,
+              "properties": {
+                "x-blockout-aggregate-version": {
+                  "format": "int64",
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "x-blockout-ordering-key": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "x-blockout-producer": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "x-blockout-schema-version": {
+                  "const": "2.0.0",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "x-blockout-schema-version",
+                "x-blockout-producer",
+                "x-blockout-ordering-key"
+              ],
+              "type": "object"
+            },
+            "name": "MatchLiveLinkCreatedV2Message",
+            "payload": {
+              "additionalProperties": false,
+              "properties": {
+                "aggregateVersion": {
+                  "format": "int64",
+                  "minimum": 0,
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                },
+                "correlationId": {
+                  "minLength": 1,
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "eventId": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "eventType": {
+                  "enum": [
+                    "CLUB_UPSERT",
+                    "TEAM_UPSERT",
+                    "POOL_UPSERT",
+                    "CLUB_DEACTIVATED",
+                    "TEAM_DEACTIVATED",
+                    "POOL_DEACTIVATED",
+                    "TEAM_FOLLOWED",
+                    "TEAM_UNFOLLOWED",
+                    "POOL_FOLLOWED",
+                    "POOL_UNFOLLOWED",
+                    "MATCH_FINISHED",
+                    "MATCH_LIVE_LINK_CREATED"
+                  ],
+                  "type": "string"
+                },
+                "occurredAt": {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                "orderingKey": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "payload": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "matchId": {
+                      "format": "int64",
+                      "minimum": 1,
+                      "type": "integer"
+                    },
+                    "poolId": {
+                      "format": "int64",
+                      "minimum": 1,
+                      "type": "integer"
+                    },
+                    "teamIdA": {
+                      "format": "int64",
+                      "minimum": 1,
+                      "type": "integer"
+                    },
+                    "teamIdB": {
+                      "format": "int64",
+                      "minimum": 1,
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "matchId",
+                    "teamIdA",
+                    "teamIdB",
+                    "poolId"
+                  ],
+                  "type": "object"
+                },
+                "producer": {
+                  "const": "matches-service",
+                  "type": "string"
+                },
+                "schemaVersion": {
+                  "const": "2.0.0",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "eventId",
+                "eventType",
+                "schemaVersion",
+                "occurredAt",
+                "producer",
+                "orderingKey",
+                "payload"
+              ],
+              "type": "object"
+            },
+            "title": "Match live link created v2",
+            "x-blockout-amqp-properties": [
+              "messageId",
+              "type",
+              "timestamp",
+              "correlationId"
+            ]
+          }
+        }
+      }
+    },
     "consumePoolFollow": {
       "action": "receive",
       "channel": {
@@ -654,7 +1326,9 @@
                     "TEAM_FOLLOWED",
                     "TEAM_UNFOLLOWED",
                     "POOL_FOLLOWED",
-                    "POOL_UNFOLLOWED"
+                    "POOL_UNFOLLOWED",
+                    "MATCH_FINISHED",
+                    "MATCH_LIVE_LINK_CREATED"
                   ],
                   "type": "string"
                 },
@@ -785,7 +1459,9 @@
                     "TEAM_FOLLOWED",
                     "TEAM_UNFOLLOWED",
                     "POOL_FOLLOWED",
-                    "POOL_UNFOLLOWED"
+                    "POOL_UNFOLLOWED",
+                    "MATCH_FINISHED",
+                    "MATCH_LIVE_LINK_CREATED"
                   ],
                   "type": "string"
                 },
@@ -936,7 +1612,9 @@
                     "TEAM_FOLLOWED",
                     "TEAM_UNFOLLOWED",
                     "POOL_FOLLOWED",
-                    "POOL_UNFOLLOWED"
+                    "POOL_UNFOLLOWED",
+                    "MATCH_FINISHED",
+                    "MATCH_LIVE_LINK_CREATED"
                   ],
                   "type": "string"
                 },
@@ -1067,7 +1745,9 @@
                     "TEAM_FOLLOWED",
                     "TEAM_UNFOLLOWED",
                     "POOL_FOLLOWED",
-                    "POOL_UNFOLLOWED"
+                    "POOL_UNFOLLOWED",
+                    "MATCH_FINISHED",
+                    "MATCH_LIVE_LINK_CREATED"
                   ],
                   "type": "string"
                 },
@@ -1131,11 +1811,9 @@
       }
     }
   },
-  "x-blockout-deferred-routes": [
-    "match.finished.v2",
-    "match.live-link-created.v2"
-  ],
   "x-blockout-primary-queues": [
+    "match.finished.queue.notifications.v2",
+    "match.live-link-created.queue.notifications.v2",
     "team.follow.queue.notifications.v2",
     "pool.follow.queue.notifications.v2"
   ]

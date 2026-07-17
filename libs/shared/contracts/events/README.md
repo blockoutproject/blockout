@@ -29,10 +29,11 @@ mvn -Dmaven.repo.local=.m2/repository -f apps/backend/pom.xml -pl event-contract
 Run generation twice before committing and require identical output. MRG-802 owns moving the complete deterministic
 generation, committed-output, compilation, reconciliation, and forbidden-source checks into CI.
 
-## Active MRG-350 And MRG-369 Boundary
+## Active MRG-350, MRG-369, And MRG-370 Boundary
 
 MRG-350 defines the six club, team, and pool lifecycle event families. MRG-369 adds team/pool followed and unfollowed
-facts with positive numeric user and target IDs, activates only the approved notification-owned Q-18/Q-19 successor
-contracts, and keeps their v2 side-effect listeners and users publication inactive until MRG-372. Match routes remain
-deferred. `EV-TPD`, Q-11 through Q-13, and Q-16 through Q-17 retain explicit no-v2 dispositions. No outbox,
+facts with positive numeric user and target IDs and activates only Q-18/Q-19. MRG-370 adds audited match-finished and
+live-link facts with positive match/team/pool IDs and activates only the notification-owned Q-14/Q-15 successor
+contracts. All v2 side-effect listeners and users/matches publication remain inactive until MRG-372. `EV-TPD`, Q-11
+through Q-13, and Q-16 through Q-17 retain explicit no-v2 dispositions. No outbox,
 deduplication, traffic switch, broker operation, or production action is authorized by the contract source.

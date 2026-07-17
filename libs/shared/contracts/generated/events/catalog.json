@@ -73,7 +73,9 @@
                 "TEAM_FOLLOWED",
                 "TEAM_UNFOLLOWED",
                 "POOL_FOLLOWED",
-                "POOL_UNFOLLOWED"
+                "POOL_UNFOLLOWED",
+                "MATCH_FINISHED",
+                "MATCH_LIVE_LINK_CREATED"
               ],
               "type": "string"
             },
@@ -197,7 +199,9 @@
                 "TEAM_FOLLOWED",
                 "TEAM_UNFOLLOWED",
                 "POOL_FOLLOWED",
-                "POOL_UNFOLLOWED"
+                "POOL_UNFOLLOWED",
+                "MATCH_FINISHED",
+                "MATCH_LIVE_LINK_CREATED"
               ],
               "type": "string"
             },
@@ -263,6 +267,301 @@
           "type": "object"
         },
         "title": "Club upsert v2",
+        "x-blockout-amqp-properties": [
+          "messageId",
+          "type",
+          "timestamp",
+          "correlationId"
+        ]
+      },
+      "MatchFinishedV2Message": {
+        "bindings": {
+          "amqp": {
+            "bindingVersion": "0.3.0",
+            "contentEncoding": "UTF-8",
+            "messageType": "MATCH_FINISHED"
+          }
+        },
+        "contentType": "application/json",
+        "headers": {
+          "additionalProperties": false,
+          "properties": {
+            "x-blockout-aggregate-version": {
+              "format": "int64",
+              "minimum": 0,
+              "type": "integer"
+            },
+            "x-blockout-ordering-key": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "x-blockout-producer": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "x-blockout-schema-version": {
+              "const": "2.0.0",
+              "type": "string"
+            }
+          },
+          "required": [
+            "x-blockout-schema-version",
+            "x-blockout-producer",
+            "x-blockout-ordering-key"
+          ],
+          "type": "object"
+        },
+        "name": "MatchFinishedV2Message",
+        "payload": {
+          "additionalProperties": false,
+          "properties": {
+            "aggregateVersion": {
+              "format": "int64",
+              "minimum": 0,
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "correlationId": {
+              "minLength": 1,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "eventId": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "eventType": {
+              "enum": [
+                "CLUB_UPSERT",
+                "TEAM_UPSERT",
+                "POOL_UPSERT",
+                "CLUB_DEACTIVATED",
+                "TEAM_DEACTIVATED",
+                "POOL_DEACTIVATED",
+                "TEAM_FOLLOWED",
+                "TEAM_UNFOLLOWED",
+                "POOL_FOLLOWED",
+                "POOL_UNFOLLOWED",
+                "MATCH_FINISHED",
+                "MATCH_LIVE_LINK_CREATED"
+              ],
+              "type": "string"
+            },
+            "occurredAt": {
+              "format": "date-time",
+              "type": "string"
+            },
+            "orderingKey": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "payload": {
+              "additionalProperties": false,
+              "properties": {
+                "matchId": {
+                  "format": "int64",
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                "poolId": {
+                  "format": "int64",
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                "set": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "teamIdA": {
+                  "format": "int64",
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                "teamIdB": {
+                  "format": "int64",
+                  "minimum": 1,
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "matchId",
+                "teamIdA",
+                "teamIdB",
+                "poolId",
+                "set"
+              ],
+              "type": "object"
+            },
+            "producer": {
+              "const": "matches-service",
+              "type": "string"
+            },
+            "schemaVersion": {
+              "const": "2.0.0",
+              "type": "string"
+            }
+          },
+          "required": [
+            "eventId",
+            "eventType",
+            "schemaVersion",
+            "occurredAt",
+            "producer",
+            "orderingKey",
+            "payload"
+          ],
+          "type": "object"
+        },
+        "title": "Match finished v2",
+        "x-blockout-amqp-properties": [
+          "messageId",
+          "type",
+          "timestamp",
+          "correlationId"
+        ]
+      },
+      "MatchLiveLinkCreatedV2Message": {
+        "bindings": {
+          "amqp": {
+            "bindingVersion": "0.3.0",
+            "contentEncoding": "UTF-8",
+            "messageType": "MATCH_LIVE_LINK_CREATED"
+          }
+        },
+        "contentType": "application/json",
+        "headers": {
+          "additionalProperties": false,
+          "properties": {
+            "x-blockout-aggregate-version": {
+              "format": "int64",
+              "minimum": 0,
+              "type": "integer"
+            },
+            "x-blockout-ordering-key": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "x-blockout-producer": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "x-blockout-schema-version": {
+              "const": "2.0.0",
+              "type": "string"
+            }
+          },
+          "required": [
+            "x-blockout-schema-version",
+            "x-blockout-producer",
+            "x-blockout-ordering-key"
+          ],
+          "type": "object"
+        },
+        "name": "MatchLiveLinkCreatedV2Message",
+        "payload": {
+          "additionalProperties": false,
+          "properties": {
+            "aggregateVersion": {
+              "format": "int64",
+              "minimum": 0,
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "correlationId": {
+              "minLength": 1,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "eventId": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "eventType": {
+              "enum": [
+                "CLUB_UPSERT",
+                "TEAM_UPSERT",
+                "POOL_UPSERT",
+                "CLUB_DEACTIVATED",
+                "TEAM_DEACTIVATED",
+                "POOL_DEACTIVATED",
+                "TEAM_FOLLOWED",
+                "TEAM_UNFOLLOWED",
+                "POOL_FOLLOWED",
+                "POOL_UNFOLLOWED",
+                "MATCH_FINISHED",
+                "MATCH_LIVE_LINK_CREATED"
+              ],
+              "type": "string"
+            },
+            "occurredAt": {
+              "format": "date-time",
+              "type": "string"
+            },
+            "orderingKey": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "payload": {
+              "additionalProperties": false,
+              "properties": {
+                "matchId": {
+                  "format": "int64",
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                "poolId": {
+                  "format": "int64",
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                "teamIdA": {
+                  "format": "int64",
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                "teamIdB": {
+                  "format": "int64",
+                  "minimum": 1,
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "matchId",
+                "teamIdA",
+                "teamIdB",
+                "poolId"
+              ],
+              "type": "object"
+            },
+            "producer": {
+              "const": "matches-service",
+              "type": "string"
+            },
+            "schemaVersion": {
+              "const": "2.0.0",
+              "type": "string"
+            }
+          },
+          "required": [
+            "eventId",
+            "eventType",
+            "schemaVersion",
+            "occurredAt",
+            "producer",
+            "orderingKey",
+            "payload"
+          ],
+          "type": "object"
+        },
+        "title": "Match live link created v2",
         "x-blockout-amqp-properties": [
           "messageId",
           "type",
@@ -341,7 +640,9 @@
                 "TEAM_FOLLOWED",
                 "TEAM_UNFOLLOWED",
                 "POOL_FOLLOWED",
-                "POOL_UNFOLLOWED"
+                "POOL_UNFOLLOWED",
+                "MATCH_FINISHED",
+                "MATCH_LIVE_LINK_CREATED"
               ],
               "type": "string"
             },
@@ -466,7 +767,9 @@
                 "TEAM_FOLLOWED",
                 "TEAM_UNFOLLOWED",
                 "POOL_FOLLOWED",
-                "POOL_UNFOLLOWED"
+                "POOL_UNFOLLOWED",
+                "MATCH_FINISHED",
+                "MATCH_LIVE_LINK_CREATED"
               ],
               "type": "string"
             },
@@ -597,7 +900,9 @@
                 "TEAM_FOLLOWED",
                 "TEAM_UNFOLLOWED",
                 "POOL_FOLLOWED",
-                "POOL_UNFOLLOWED"
+                "POOL_UNFOLLOWED",
+                "MATCH_FINISHED",
+                "MATCH_LIVE_LINK_CREATED"
               ],
               "type": "string"
             },
@@ -728,7 +1033,9 @@
                 "TEAM_FOLLOWED",
                 "TEAM_UNFOLLOWED",
                 "POOL_FOLLOWED",
-                "POOL_UNFOLLOWED"
+                "POOL_UNFOLLOWED",
+                "MATCH_FINISHED",
+                "MATCH_LIVE_LINK_CREATED"
               ],
               "type": "string"
             },
@@ -898,7 +1205,9 @@
                 "TEAM_FOLLOWED",
                 "TEAM_UNFOLLOWED",
                 "POOL_FOLLOWED",
-                "POOL_UNFOLLOWED"
+                "POOL_UNFOLLOWED",
+                "MATCH_FINISHED",
+                "MATCH_LIVE_LINK_CREATED"
               ],
               "type": "string"
             },
@@ -1023,7 +1332,9 @@
                 "TEAM_FOLLOWED",
                 "TEAM_UNFOLLOWED",
                 "POOL_FOLLOWED",
-                "POOL_UNFOLLOWED"
+                "POOL_UNFOLLOWED",
+                "MATCH_FINISHED",
+                "MATCH_LIVE_LINK_CREATED"
               ],
               "type": "string"
             },
@@ -1154,7 +1465,9 @@
                 "TEAM_FOLLOWED",
                 "TEAM_UNFOLLOWED",
                 "POOL_FOLLOWED",
-                "POOL_UNFOLLOWED"
+                "POOL_UNFOLLOWED",
+                "MATCH_FINISHED",
+                "MATCH_LIVE_LINK_CREATED"
               ],
               "type": "string"
             },
@@ -1285,7 +1598,9 @@
                 "TEAM_FOLLOWED",
                 "TEAM_UNFOLLOWED",
                 "POOL_FOLLOWED",
-                "POOL_UNFOLLOWED"
+                "POOL_UNFOLLOWED",
+                "MATCH_FINISHED",
+                "MATCH_LIVE_LINK_CREATED"
               ],
               "type": "string"
             },
@@ -1418,7 +1733,9 @@
               "TEAM_FOLLOWED",
               "TEAM_UNFOLLOWED",
               "POOL_FOLLOWED",
-              "POOL_UNFOLLOWED"
+              "POOL_UNFOLLOWED",
+              "MATCH_FINISHED",
+              "MATCH_LIVE_LINK_CREATED"
             ],
             "type": "string"
           },
@@ -1509,7 +1826,9 @@
               "TEAM_FOLLOWED",
               "TEAM_UNFOLLOWED",
               "POOL_FOLLOWED",
-              "POOL_UNFOLLOWED"
+              "POOL_UNFOLLOWED",
+              "MATCH_FINISHED",
+              "MATCH_LIVE_LINK_CREATED"
             ],
             "type": "string"
           },
@@ -1641,7 +1960,9 @@
               "TEAM_FOLLOWED",
               "TEAM_UNFOLLOWED",
               "POOL_FOLLOWED",
-              "POOL_UNFOLLOWED"
+              "POOL_UNFOLLOWED",
+              "MATCH_FINISHED",
+              "MATCH_LIVE_LINK_CREATED"
             ],
             "type": "string"
           },
@@ -1685,9 +2006,283 @@
           "TEAM_FOLLOWED",
           "TEAM_UNFOLLOWED",
           "POOL_FOLLOWED",
-          "POOL_UNFOLLOWED"
+          "POOL_UNFOLLOWED",
+          "MATCH_FINISHED",
+          "MATCH_LIVE_LINK_CREATED"
         ],
         "type": "string"
+      },
+      "MatchFinishedV2Event": {
+        "additionalProperties": false,
+        "properties": {
+          "aggregateVersion": {
+            "format": "int64",
+            "minimum": 0,
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "correlationId": {
+            "minLength": 1,
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "eventId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "eventType": {
+            "enum": [
+              "CLUB_UPSERT",
+              "TEAM_UPSERT",
+              "POOL_UPSERT",
+              "CLUB_DEACTIVATED",
+              "TEAM_DEACTIVATED",
+              "POOL_DEACTIVATED",
+              "TEAM_FOLLOWED",
+              "TEAM_UNFOLLOWED",
+              "POOL_FOLLOWED",
+              "POOL_UNFOLLOWED",
+              "MATCH_FINISHED",
+              "MATCH_LIVE_LINK_CREATED"
+            ],
+            "type": "string"
+          },
+          "occurredAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "orderingKey": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "payload": {
+            "additionalProperties": false,
+            "properties": {
+              "matchId": {
+                "format": "int64",
+                "minimum": 1,
+                "type": "integer"
+              },
+              "poolId": {
+                "format": "int64",
+                "minimum": 1,
+                "type": "integer"
+              },
+              "set": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "teamIdA": {
+                "format": "int64",
+                "minimum": 1,
+                "type": "integer"
+              },
+              "teamIdB": {
+                "format": "int64",
+                "minimum": 1,
+                "type": "integer"
+              }
+            },
+            "required": [
+              "matchId",
+              "teamIdA",
+              "teamIdB",
+              "poolId",
+              "set"
+            ],
+            "type": "object"
+          },
+          "producer": {
+            "const": "matches-service",
+            "type": "string"
+          },
+          "schemaVersion": {
+            "const": "2.0.0",
+            "type": "string"
+          }
+        },
+        "required": [
+          "eventId",
+          "eventType",
+          "schemaVersion",
+          "occurredAt",
+          "producer",
+          "orderingKey",
+          "payload"
+        ],
+        "type": "object"
+      },
+      "MatchFinishedV2Payload": {
+        "additionalProperties": false,
+        "properties": {
+          "matchId": {
+            "format": "int64",
+            "minimum": 1,
+            "type": "integer"
+          },
+          "poolId": {
+            "format": "int64",
+            "minimum": 1,
+            "type": "integer"
+          },
+          "set": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "teamIdA": {
+            "format": "int64",
+            "minimum": 1,
+            "type": "integer"
+          },
+          "teamIdB": {
+            "format": "int64",
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "matchId",
+          "teamIdA",
+          "teamIdB",
+          "poolId",
+          "set"
+        ],
+        "type": "object"
+      },
+      "MatchLiveLinkCreatedV2Event": {
+        "additionalProperties": false,
+        "properties": {
+          "aggregateVersion": {
+            "format": "int64",
+            "minimum": 0,
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "correlationId": {
+            "minLength": 1,
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "eventId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "eventType": {
+            "enum": [
+              "CLUB_UPSERT",
+              "TEAM_UPSERT",
+              "POOL_UPSERT",
+              "CLUB_DEACTIVATED",
+              "TEAM_DEACTIVATED",
+              "POOL_DEACTIVATED",
+              "TEAM_FOLLOWED",
+              "TEAM_UNFOLLOWED",
+              "POOL_FOLLOWED",
+              "POOL_UNFOLLOWED",
+              "MATCH_FINISHED",
+              "MATCH_LIVE_LINK_CREATED"
+            ],
+            "type": "string"
+          },
+          "occurredAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "orderingKey": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "payload": {
+            "additionalProperties": false,
+            "properties": {
+              "matchId": {
+                "format": "int64",
+                "minimum": 1,
+                "type": "integer"
+              },
+              "poolId": {
+                "format": "int64",
+                "minimum": 1,
+                "type": "integer"
+              },
+              "teamIdA": {
+                "format": "int64",
+                "minimum": 1,
+                "type": "integer"
+              },
+              "teamIdB": {
+                "format": "int64",
+                "minimum": 1,
+                "type": "integer"
+              }
+            },
+            "required": [
+              "matchId",
+              "teamIdA",
+              "teamIdB",
+              "poolId"
+            ],
+            "type": "object"
+          },
+          "producer": {
+            "const": "matches-service",
+            "type": "string"
+          },
+          "schemaVersion": {
+            "const": "2.0.0",
+            "type": "string"
+          }
+        },
+        "required": [
+          "eventId",
+          "eventType",
+          "schemaVersion",
+          "occurredAt",
+          "producer",
+          "orderingKey",
+          "payload"
+        ],
+        "type": "object"
+      },
+      "MatchLiveLinkCreatedV2Payload": {
+        "additionalProperties": false,
+        "properties": {
+          "matchId": {
+            "format": "int64",
+            "minimum": 1,
+            "type": "integer"
+          },
+          "poolId": {
+            "format": "int64",
+            "minimum": 1,
+            "type": "integer"
+          },
+          "teamIdA": {
+            "format": "int64",
+            "minimum": 1,
+            "type": "integer"
+          },
+          "teamIdB": {
+            "format": "int64",
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "matchId",
+          "teamIdA",
+          "teamIdB",
+          "poolId"
+        ],
+        "type": "object"
       },
       "PoolDeactivationV2Event": {
         "additionalProperties": false,
@@ -1722,7 +2317,9 @@
               "TEAM_FOLLOWED",
               "TEAM_UNFOLLOWED",
               "POOL_FOLLOWED",
-              "POOL_UNFOLLOWED"
+              "POOL_UNFOLLOWED",
+              "MATCH_FINISHED",
+              "MATCH_LIVE_LINK_CREATED"
             ],
             "type": "string"
           },
@@ -1835,7 +2432,9 @@
               "TEAM_FOLLOWED",
               "TEAM_UNFOLLOWED",
               "POOL_FOLLOWED",
-              "POOL_UNFOLLOWED"
+              "POOL_UNFOLLOWED",
+              "MATCH_FINISHED",
+              "MATCH_LIVE_LINK_CREATED"
             ],
             "type": "string"
           },
@@ -1920,7 +2519,9 @@
               "TEAM_FOLLOWED",
               "TEAM_UNFOLLOWED",
               "POOL_FOLLOWED",
-              "POOL_UNFOLLOWED"
+              "POOL_UNFOLLOWED",
+              "MATCH_FINISHED",
+              "MATCH_LIVE_LINK_CREATED"
             ],
             "type": "string"
           },
@@ -2005,7 +2606,9 @@
               "TEAM_FOLLOWED",
               "TEAM_UNFOLLOWED",
               "POOL_FOLLOWED",
-              "POOL_UNFOLLOWED"
+              "POOL_UNFOLLOWED",
+              "MATCH_FINISHED",
+              "MATCH_LIVE_LINK_CREATED"
             ],
             "type": "string"
           },
@@ -2188,7 +2791,9 @@
               "TEAM_FOLLOWED",
               "TEAM_UNFOLLOWED",
               "POOL_FOLLOWED",
-              "POOL_UNFOLLOWED"
+              "POOL_UNFOLLOWED",
+              "MATCH_FINISHED",
+              "MATCH_LIVE_LINK_CREATED"
             ],
             "type": "string"
           },
@@ -2301,7 +2906,9 @@
               "TEAM_FOLLOWED",
               "TEAM_UNFOLLOWED",
               "POOL_FOLLOWED",
-              "POOL_UNFOLLOWED"
+              "POOL_UNFOLLOWED",
+              "MATCH_FINISHED",
+              "MATCH_LIVE_LINK_CREATED"
             ],
             "type": "string"
           },
@@ -2386,7 +2993,9 @@
               "TEAM_FOLLOWED",
               "TEAM_UNFOLLOWED",
               "POOL_FOLLOWED",
-              "POOL_UNFOLLOWED"
+              "POOL_UNFOLLOWED",
+              "MATCH_FINISHED",
+              "MATCH_LIVE_LINK_CREATED"
             ],
             "type": "string"
           },
@@ -2471,7 +3080,9 @@
               "TEAM_FOLLOWED",
               "TEAM_UNFOLLOWED",
               "POOL_FOLLOWED",
-              "POOL_UNFOLLOWED"
+              "POOL_UNFOLLOWED",
+              "MATCH_FINISHED",
+              "MATCH_LIVE_LINK_CREATED"
             ],
             "type": "string"
           },
@@ -2705,13 +3316,13 @@
       "queue": null
     },
     "Q-14": {
-      "disposition": "deferred-mrg-370",
+      "disposition": "active",
       "dlq": "match.finished.queue.notifications.dlq.v2",
       "owner": "notification-service",
       "queue": "match.finished.queue.notifications.v2"
     },
     "Q-15": {
-      "disposition": "deferred-mrg-370",
+      "disposition": "active",
       "dlq": "match.live-link-created.queue.notifications.dlq.v2",
       "owner": "notification-service",
       "queue": "match.live-link-created.queue.notifications.v2"
@@ -2753,12 +3364,12 @@
       "task": "MRG-350"
     },
     "EV-MF": {
-      "disposition": "deferred",
+      "disposition": "active",
       "route": "match.finished.v2",
       "task": "MRG-370"
     },
     "EV-ML": {
-      "disposition": "deferred",
+      "disposition": "active",
       "route": "match.live-link-created.v2",
       "task": "MRG-370"
     },

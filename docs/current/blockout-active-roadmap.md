@@ -1117,9 +1117,20 @@ state moves to GitHub and this file becomes a historical migration record.
     effect, deduplication, cutover, deployment, broker action,
     Q-16/Q-17 successor, match event, production, MRG-9xx, or MRG-1000 work; detailed compatibility and rollback are in
     `docs/migration/mrg-369-favorite-follow-event-contract-migration.md`.
-- [ ] MRG-370 Add the audited match-finished/live-link `EventType` values, AsyncAPI payloads, generated records,
+- [x] MRG-370 Add the audited match-finished/live-link `EventType` values, AsyncAPI payloads, generated records,
       publisher and consumer adapter mappings, acknowledgement/order/version parity, notification-owned Q-14/Q-15 v2
       declarations, golden JSON, and rollback without changing the MRG-315 envelope/tooling/topology.
+  - Evidence: `match.finished.v2` and `match.live-link-created.v2` now own explicit event types, positive `int64`
+    match/team/pool identifiers, a required finished set, match-scoped ordering keys, two golden fixtures, two generated
+    envelopes, two generated payload records, and dormant matches publisher/notification consumer mappings.
+    Notification alone declares the approved Q-14/Q-15 v2 queue/DLQ bindings; the existing default-container v1
+    listeners remain the only active side-effect consumers and matches still publishes only v1 until MRG-372. Eight
+    contract tests and six focused Java tests prove exact producer/schema/type/order/aggregate-version validation,
+    notification queue ownership, and acknowledgement parity. Deterministic generation yields twenty-three Java files;
+    targeted compilation/tests, repository validation, and complete CI pass. No outbox, dual-publish, v2 listener,
+    deduplication, acknowledgement/retry/requeue change, cutover, deployment, broker action, production, MRG-9xx, or
+    MRG-1000 work; detailed compatibility and rollback are in
+    `docs/migration/mrg-370-match-event-contract-migration.md`.
 - [ ] MRG-371 Introduce transactional outboxes for clubs, teams, pools, and competition with one event UUID, semantic
       schema version, ordering metadata, idempotent per-v1/v2 publication, shared `x-blockout-event-id`, observation,
       cleanup, and per-service rollback; prohibit direct dual-publish.

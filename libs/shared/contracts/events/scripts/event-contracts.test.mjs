@@ -56,15 +56,15 @@ test('keeps the catalog component-only and all owned envelopes exact', async () 
   assert.equal(catalog.channels, undefined);
   assert.equal(catalog.operations, undefined);
   assert.equal(catalog.servers, undefined);
-  assert.equal(Object.keys(catalog.components.messages).length, 10);
-  assert.equal(Object.keys(catalog.components.schemas).length, 20);
+  assert.equal(Object.keys(catalog.components.messages).length, 12);
+  assert.equal(Object.keys(catalog.components.schemas).length, 24);
 
   const definitions = (await readJson(lifecycleFile)).$defs;
   const common = definitions.EventEnvelope;
   const eventNames = Object.keys(definitions).filter((name) =>
     /V2Event$/.test(name),
   );
-  assert.equal(eventNames.length, 10);
+  assert.equal(eventNames.length, 12);
   for (const name of eventNames) {
     assert.deepEqual(
       Object.keys(definitions[name].properties).sort(),
@@ -86,7 +86,25 @@ test('keeps the catalog component-only and all owned envelopes exact', async () 
     'TEAM_UNFOLLOWED',
     'POOL_FOLLOWED',
     'POOL_UNFOLLOWED',
+    'MATCH_FINISHED',
+    'MATCH_LIVE_LINK_CREATED',
   ]);
+
+  for (const name of [
+    'MatchFinishedV2Payload',
+    'MatchLiveLinkCreatedV2Payload',
+  ]) {
+    for (const [field, property] of Object.entries(
+      definitions[name].properties,
+    )) {
+      if (field !== 'set') {
+        assert.equal(property.type, 'integer');
+        assert.equal(property.format, 'int64');
+        assert.equal(property.minimum, 1);
+      }
+    }
+  }
+  assert.equal(definitions.MatchFinishedV2Payload.properties.set.minLength, 1);
 
   const favoriteDefinitions = (await readJson(favoritesFile)).$defs;
   for (const name of [
@@ -160,7 +178,18 @@ test('reconciles all eleven routes and nineteen primary queues without orphan ac
       .filter(([, value]) => value.disposition === 'active')
       .map(([id]) => id)
       .sort(),
-    ['EV-CD', 'EV-CU', 'EV-PD', 'EV-PF', 'EV-PU', 'EV-TD', 'EV-TF', 'EV-TU'],
+    [
+      'EV-CD',
+      'EV-CU',
+      'EV-MF',
+      'EV-ML',
+      'EV-PD',
+      'EV-PF',
+      'EV-PU',
+      'EV-TD',
+      'EV-TF',
+      'EV-TU',
+    ],
   );
   assert.deepEqual(
     ['Q-11', 'Q-12', 'Q-13', 'Q-16', 'Q-17'].map(
@@ -196,6 +225,8 @@ test('reconciles all eleven routes and nineteen primary queues without orphan ac
   assert.deepEqual([...activeAddresses].sort(), [
     'club.deactivation.v2',
     'club.upsert.v2',
+    'match.finished.v2',
+    'match.live-link-created.v2',
     'pool.deactivation.v2',
     'pool.follow.v2',
     'pool.upsert.v2',
@@ -206,22 +237,26 @@ test('reconciles all eleven routes and nineteen primary queues without orphan ac
   const declaredQueues = roots.flatMap(
     (root) => root['x-blockout-primary-queues'] ?? [],
   );
-  assert.equal(declaredQueues.length, 12);
-  assert.equal(new Set(declaredQueues).size, 12);
+  assert.equal(declaredQueues.length, 14);
+  assert.equal(new Set(declaredQueues).size, 14);
   assert.ok(!JSON.stringify(roots).includes('teambypool.deactivation.v2'));
 });
 
-test('commits generated Java 21 records with no runtime framework leakage', async () => {
+test('commits generated Java records with no runtime framework leakage', async () => {
   const files = (await readdir(generatedPackage))
     .filter((name) => name.endsWith('.java'))
     .sort();
-  assert.equal(files.length, 19);
+  assert.equal(files.length, 23);
   assert.deepEqual(files, [
     'ClubDeactivationV2Event.java',
     'ClubDeactivationV2Payload.java',
     'ClubUpsertV2Event.java',
     'ClubUpsertV2Payload.java',
     'EventType.java',
+    'MatchFinishedV2Event.java',
+    'MatchFinishedV2Payload.java',
+    'MatchLiveLinkCreatedV2Event.java',
+    'MatchLiveLinkCreatedV2Payload.java',
     'PoolDeactivationV2Event.java',
     'PoolDeactivationV2Payload.java',
     'PoolFollowV2Payload.java',
@@ -341,6 +376,34 @@ test('locks favorite golden bodies and omits absent aggregate headers', async ()
     assert.ok(!('x-blockout-aggregate-version' in fixture.headers));
     assert.deepEqual(findUnderscoredKeys(fixture.body), []);
     assert.ok(!JSON.stringify(fixture).includes('__TypeId__'));
+  }
+});
+
+test('locks match golden bodies and absent aggregate versions', async () => {
+  const fixtures = await readJson(
+    path.join(SOURCE_ROOT, '../tests/golden/matches.json'),
+  );
+  const definitions = (await readJson(lifecycleFile)).$defs;
+  assert.equal(Object.keys(fixtures).length, 2);
+  for (const [name, fixture] of Object.entries(fixtures)) {
+    const schema = definitions[fixture.schema];
+    assert.ok(schema, name);
+    assert.deepEqual(
+      Object.keys(fixture.body).sort(),
+      Object.keys(schema.properties).sort(),
+      name,
+    );
+    const payloadName = fixture.schema.replace(/V2Event$/, 'V2Payload');
+    assert.deepEqual(
+      Object.keys(fixture.body.payload).sort(),
+      Object.keys(definitions[payloadName].properties).sort(),
+      name,
+    );
+    assert.equal(fixture.body.aggregateVersion, null);
+    assert.ok(!('x-blockout-aggregate-version' in fixture.headers));
+    assert.equal(fixture.amqpProperties.messageId, fixture.body.eventId);
+    assert.equal(fixture.amqpProperties.type, fixture.body.eventType);
+    assert.deepEqual(findUnderscoredKeys(fixture.body), []);
   }
 });
 

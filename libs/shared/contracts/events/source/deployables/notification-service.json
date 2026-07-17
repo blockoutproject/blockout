@@ -1,6 +1,12 @@
 {
   "asyncapi": "3.0.0",
   "channels": {
+    "MatchFinished": {
+      "$ref": "../shared/channels/matches.json#/$defs/MatchFinished"
+    },
+    "MatchLiveLinkCreated": {
+      "$ref": "../shared/channels/matches.json#/$defs/MatchLiveLinkCreated"
+    },
     "PoolFollow": {
       "$ref": "../shared/channels/favorites.json#/$defs/PoolFollow"
     },
@@ -14,6 +20,14 @@
     "version": "2.0.0"
   },
   "operations": {
+    "consumeMatchFinished": {
+      "action": "receive",
+      "channel": { "$ref": "#/channels/MatchFinished" }
+    },
+    "consumeMatchLiveLinkCreated": {
+      "action": "receive",
+      "channel": { "$ref": "#/channels/MatchLiveLinkCreated" }
+    },
     "consumePoolFollow": {
       "action": "receive",
       "channel": { "$ref": "#/channels/PoolFollow" }
@@ -23,11 +37,9 @@
       "channel": { "$ref": "#/channels/TeamFollow" }
     }
   },
-  "x-blockout-deferred-routes": [
-    "match.finished.v2",
-    "match.live-link-created.v2"
-  ],
   "x-blockout-primary-queues": [
+    "match.finished.queue.notifications.v2",
+    "match.live-link-created.queue.notifications.v2",
     "team.follow.queue.notifications.v2",
     "pool.follow.queue.notifications.v2"
   ]
