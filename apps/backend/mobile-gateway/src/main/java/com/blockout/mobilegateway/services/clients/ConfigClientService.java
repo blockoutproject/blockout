@@ -9,7 +9,7 @@ import com.blockout.mobilegateway.models.dto.config.RawDivisionMappingDTO;
 import com.blockout.mobilegateway.models.dto.config.RawDivisionMappingUpdateDTO;
 import com.blockout.mobilegateway.models.dto.config.ScraperStatusDTO;
 import com.blockout.mobilegateway.services.utils.MultipartBodyBuilder;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.blockout.mobilegateway.shared.api.v1.LegacyMobileGatewayJson;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
@@ -31,7 +31,7 @@ public class ConfigClientService {
 
     private final ApiClientProperties apiClientProperties;
     private final ApiClientService apiClientService;
-    private final ObjectMapper objectMapper;
+    private final LegacyMobileGatewayJson legacyJson;
 
     private String baseUrl() {
         return apiClientProperties.getConfig().getUrl();
@@ -86,7 +86,7 @@ public class ConfigClientService {
                 .build()
                 .toUriString();
 
-        MultiValueMap<String, Object> body = MultipartBodyBuilder.buildMultipart(objectMapper, dto, image);
+        MultiValueMap<String, Object> body = MultipartBodyBuilder.buildMultipart(legacyJson, dto, image);
 
         ResponseEntity<DivisionDTO> response = apiClientService.postMultipart(url, body, DivisionDTO.class);
         return response.getBody();
@@ -103,7 +103,7 @@ public class ConfigClientService {
                 .build()
                 .toUriString();
 
-        MultiValueMap<String, Object> body = MultipartBodyBuilder.buildMultipart(objectMapper, dto, image);
+        MultiValueMap<String, Object> body = MultipartBodyBuilder.buildMultipart(legacyJson, dto, image);
 
         ResponseEntity<DivisionDTO> response = apiClientService.putMultipart(url, body, DivisionDTO.class);
         return response.getBody();

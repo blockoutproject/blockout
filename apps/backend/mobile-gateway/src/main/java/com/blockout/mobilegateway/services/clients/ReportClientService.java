@@ -3,7 +3,7 @@ package com.blockout.mobilegateway.services.clients;
 import com.blockout.mobilegateway.config.ApiClientProperties;
 import com.blockout.mobilegateway.models.dto.report.GitHubIssueResponseDTO;
 import com.blockout.mobilegateway.models.dto.report.ReportCreateDTO;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.blockout.mobilegateway.shared.api.v1.LegacyMobileGatewayJson;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.*;
@@ -20,7 +20,7 @@ public class ReportClientService {
 
     private final ApiClientProperties apiClientProperties;
     private final ApiClientService apiClientService;
-    private final ObjectMapper objectMapper;
+    private final LegacyMobileGatewayJson legacyJson;
 
     private String baseUrl() {
         return apiClientProperties.getReport().getUrl();
@@ -31,7 +31,7 @@ public class ReportClientService {
 
         final String jsonString;
         try {
-            jsonString = objectMapper.writeValueAsString(dto);
+            jsonString = legacyJson.write(dto);
         } catch (Exception e) {
             throw new RuntimeException("Failed to serialize ReportCreateDTO", e);
         }

@@ -1,5 +1,10 @@
 package com.blockout.mobilegateway.config;
 
+import com.blockout.mobilegateway.security.Auth0TokenManager;
+import com.blockout.mobilegateway.shared.api.v1.LegacyMobileGatewayJson;
+import java.net.InetSocketAddress;
+import java.net.Proxy;
+import java.time.Duration;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.web.client.RestTemplateBuilder;
@@ -7,16 +12,12 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.client.ClientHttpRequestInterceptor;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
+import org.springframework.http.converter.HttpMessageConverter;
+import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.web.client.RestTemplate;
-
-import com.blockout.mobilegateway.security.Auth0TokenManager;
-
-import java.net.InetSocketAddress;
-import java.net.Proxy;
-import java.time.Duration;
 
 @Configuration
 @RequiredArgsConstructor
@@ -24,6 +25,7 @@ public class RestTemplateConfig {
 
     private final FfvbProxyProperties proxyProperties;
     private final Auth0TokenManager tokenManager;
+    private final LegacyMobileGatewayJson legacyJson;
 
     @Bean
     @Qualifier("internalAuthRestTemplate")
@@ -50,6 +52,35 @@ public class RestTemplateConfig {
             .connectTimeout(Duration.ofSeconds(5))
             .readTimeout(Duration.ofSeconds(15))
             .build();
+    }
+
+    @Bean
+    @Qualifier("legacyInternalAuthRestTemplate")
+    public RestTemplate legacyInternalAuthRestTemplate(RestTemplateBuilder builder) {
+        RestTemplate restTemplate = builder
+                .additionalInterceptors(bearerTokenFromSecurityContext())
+                .connectTimeout(Duration.ofSeconds(5))
+                .readTimeout(Duration.ofSeconds(15))
+                .build();
+        return useLegacyJson(restTemplate);
+    }
+
+    @Bean
+    @Qualifier("legacyInternalM2MRestTemplate")
+    public RestTemplate legacyInternalM2MRestTemplate(RestTemplateBuilder builder) {
+        ClientHttpRequestInterceptor m2m = (request, body, execution) -> {
+            String token = tokenManager.getAccessToken();
+            if (token != null && !token.isBlank()) {
+                request.getHeaders().setBearerAuth(token);
+            }
+            return execution.execute(request, body);
+        };
+        RestTemplate restTemplate = builder
+                .additionalInterceptors(m2m)
+                .connectTimeout(Duration.ofSeconds(5))
+                .readTimeout(Duration.ofSeconds(15))
+                .build();
+        return useLegacyJson(restTemplate);
     }
     
     @Bean
@@ -84,5 +115,14 @@ public class RestTemplateConfig {
             }
             return execution.execute(request, body);
         };
+    }
+
+    private RestTemplate useLegacyJson(RestTemplate restTemplate) {
+        for (HttpMessageConverter<?> converter : restTemplate.getMessageConverters()) {
+            if (converter instanceof MappingJackson2HttpMessageConverter jacksonConverter) {
+                jacksonConverter.setObjectMapper(legacyJson.copyMapper());
+            }
+        }
+        return restTemplate;
     }
 }

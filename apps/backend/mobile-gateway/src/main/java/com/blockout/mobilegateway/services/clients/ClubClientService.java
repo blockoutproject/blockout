@@ -4,7 +4,7 @@ import com.blockout.mobilegateway.config.ApiClientProperties;
 import com.blockout.mobilegateway.models.dto.club.ClubDTO;
 import com.blockout.mobilegateway.models.dto.club.ClubUpdateDTO;
 import com.blockout.mobilegateway.services.utils.MultipartBodyBuilder;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.blockout.mobilegateway.shared.api.v1.LegacyMobileGatewayJson;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
@@ -22,7 +22,7 @@ public class ClubClientService {
 
     private final ApiClientProperties apiClientProperties;
     private final ApiClientService apiClientService;
-    private final ObjectMapper objectMapper;
+    private final LegacyMobileGatewayJson legacyJson;
 
     private String baseUrl() {
         return apiClientProperties.getClub().getUrl();
@@ -60,7 +60,7 @@ public class ClubClientService {
                 .pathSegment(id)
                 .build().toUriString();
 
-        MultiValueMap<String, Object> body = MultipartBodyBuilder.buildMultipart(objectMapper, dto, image);
+        MultiValueMap<String, Object> body = MultipartBodyBuilder.buildMultipart(legacyJson, dto, image);
 
         ResponseEntity<ClubDTO> response = apiClientService.putMultipart(url, body, ClubDTO.class);
         return response.getBody();

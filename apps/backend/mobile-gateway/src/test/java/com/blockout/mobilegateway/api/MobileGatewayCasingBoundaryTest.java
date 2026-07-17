@@ -14,6 +14,7 @@ import com.blockout.mobilegateway.models.enums.DevicePlatform;
 import com.blockout.mobilegateway.models.enums.EntityType;
 import com.blockout.mobilegateway.models.enums.Format;
 import com.blockout.mobilegateway.models.enums.Gender;
+import com.blockout.mobilegateway.shared.api.v1.LegacyMobileGatewayJson;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
 import java.util.List;
@@ -22,6 +23,7 @@ import org.junit.jupiter.api.Test;
 class MobileGatewayCasingBoundaryTest {
 
     private final ObjectMapper mapper = new ObjectMapper().findAndRegisterModules();
+    private final LegacyMobileGatewayJson legacyJson = new LegacyMobileGatewayJson(mapper);
 
     @Test
     void generatedCanonicalModelsUseCamelCaseWithTheDefaultMapper() throws Exception {
@@ -36,7 +38,7 @@ class MobileGatewayCasingBoundaryTest {
     }
 
     @Test
-    void retainedV1ResponseDtosStaySnakeCaseWithTheDefaultMapper() throws Exception {
+    void retainedV1ResponseDtosStaySnakeCaseOnlyThroughTheExplicitV1Adapter() throws Exception {
         var club = ClubSearchDocDTO.builder().logoUrl("club.png").build();
         var team = TeamSearchDocDTO.builder()
                 .shortName("TM")
@@ -67,16 +69,18 @@ class MobileGatewayCasingBoundaryTest {
                         .build()))
                 .build();
 
-        assertThat(mapper.writeValueAsString(club)).contains("\"logo_url\"").doesNotContain("logoUrl");
-        assertThat(mapper.writeValueAsString(team))
+        assertThat(mapper.writeValueAsString(club)).contains("\"logoUrl\"").doesNotContain("logo_url");
+
+        assertThat(legacyJson.write(club)).contains("\"logo_url\"").doesNotContain("logoUrl");
+        assertThat(legacyJson.write(team))
                 .contains("\"short_name\"", "\"club_id\"", "\"club_name\"", "\"club_city\"",
                         "\"logo_url\"", "\"division_name\"")
                 .doesNotContain("shortName", "clubId", "clubName", "clubCity", "logoUrl", "divisionName");
-        assertThat(mapper.writeValueAsString(pool))
+        assertThat(legacyJson.write(pool))
                 .contains("\"short_name\"", "\"division_name\"", "\"league_code\"", "\"league_name\"",
                         "\"logo_url\"")
                 .doesNotContain("shortName", "divisionName", "leagueCode", "leagueName", "logoUrl");
-        assertThat(mapper.writeValueAsString(user))
+        assertThat(legacyJson.write(user))
                 .contains("\"auth0_id\"", "\"first_name\"", "\"last_name\"", "\"picture_url\"",
                         "\"phone_number\"", "\"created_at\"", "\"last_update\"", "\"entity_type\"",
                         "\"entity_id\"")
@@ -85,11 +89,11 @@ class MobileGatewayCasingBoundaryTest {
     }
 
     @Test
-    void retainedV1RequestDtosReadSnakeCaseWithTheDefaultMapper() throws Exception {
-        var rawMapping = mapper.readValue(
+    void retainedV1RequestDtosReadSnakeCaseOnlyThroughTheExplicitV1Adapter() throws Exception {
+        var rawMapping = legacyJson.read(
                 "{\"division_id\":7,\"format\":\"SIX\",\"gender\":\"M\"}",
                 RawDivisionMappingUpdateDTO.class);
-        var pushToken = mapper.readValue(
+        var pushToken = legacyJson.read(
                 "{\"expo_push_token\":\"ExponentPushToken[value]\",\"platform\":\"IOS\","
                         + "\"device_id\":\"phone-1\"}",
                 RegisterPushTokenRequestDTO.class);

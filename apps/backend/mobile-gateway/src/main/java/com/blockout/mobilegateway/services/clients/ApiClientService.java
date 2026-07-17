@@ -24,8 +24,8 @@ public class ApiClientService {
     private final RestTemplate withM2M;
 
     public ApiClientService(
-            @Qualifier("internalAuthRestTemplate") RestTemplate withUser,
-            @Qualifier("internalM2MRestTemplate") RestTemplate withM2M) {
+            @Qualifier("legacyInternalAuthRestTemplate") RestTemplate withUser,
+            @Qualifier("legacyInternalM2MRestTemplate") RestTemplate withM2M) {
         this.withUser = withUser;
         this.withM2M = withM2M;
     }

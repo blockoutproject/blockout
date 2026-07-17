@@ -10,8 +10,8 @@ import com.blockout.mobilegateway.models.dto.config.RawDivisionMappingDTO;
 import com.blockout.mobilegateway.models.dto.config.RawDivisionMappingUpdateDTO;
 import com.blockout.mobilegateway.models.dto.config.ScraperStatusDTO;
 import com.blockout.mobilegateway.services.ConfigService;
+import com.blockout.mobilegateway.shared.api.v1.LegacyMobileGatewayJson;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 
 import java.net.URI;
@@ -29,7 +29,7 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 public class ConfigSecureController {
 
     private final ConfigService configService;
-    private final ObjectMapper objectMapper;
+    private final LegacyMobileGatewayJson legacyJson;
 
     @PutMapping("/app-status")
     public ResponseEntity<AppStatusDTO> updateAppStatus(@RequestBody AppStatusUpdateDTO dto) {
@@ -42,7 +42,7 @@ public class ConfigSecureController {
             @RequestPart("data") String json,
             @RequestPart(value = "image", required = false) MultipartFile image) throws JsonProcessingException {
 
-        DivisionUpdateDTO dto = objectMapper.readValue(json, DivisionUpdateDTO.class);
+        DivisionUpdateDTO dto = legacyJson.read(json, DivisionUpdateDTO.class);
         DivisionDTO created = configService.createDivision(dto, image);
 
         URI location = ServletUriComponentsBuilder.fromCurrentRequest()
@@ -59,7 +59,7 @@ public class ConfigSecureController {
             @RequestPart("data") String json,
             @RequestPart(value = "image", required = false) MultipartFile image) throws JsonProcessingException {
 
-        DivisionUpdateDTO dto = objectMapper.readValue(json, DivisionUpdateDTO.class);
+        DivisionUpdateDTO dto = legacyJson.read(json, DivisionUpdateDTO.class);
         DivisionDTO updated = configService.updateDivision(id, dto, image);
         return ResponseEntity.ok(updated);
     }

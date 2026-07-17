@@ -4,7 +4,7 @@ import com.blockout.mobilegateway.config.ApiClientProperties;
 import com.blockout.mobilegateway.models.dto.user.CustomUserDTO;
 import com.blockout.mobilegateway.models.dto.user.CustomUserUpdateDTO;
 import com.blockout.mobilegateway.services.utils.MultipartBodyBuilder;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.blockout.mobilegateway.shared.api.v1.LegacyMobileGatewayJson;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Caching;
@@ -20,7 +20,7 @@ public class UserClientService {
 
     private final ApiClientProperties apiClientProperties;
     private final ApiClientService apiClientService;
-    private final ObjectMapper objectMapper;
+    private final LegacyMobileGatewayJson legacyJson;
 
     private String baseUrl() {
         return apiClientProperties.getUser().getUrl();
@@ -32,7 +32,7 @@ public class UserClientService {
                 .build()
                 .toUriString();
 
-        MultiValueMap<String, Object> body = MultipartBodyBuilder.buildMultipart(objectMapper, dto, image);
+        MultiValueMap<String, Object> body = MultipartBodyBuilder.buildMultipart(legacyJson, dto, image);
 
         ResponseEntity<CustomUserDTO> response = apiClientService.putMultipart(url, body, CustomUserDTO.class);
         return response.getBody();

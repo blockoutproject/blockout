@@ -4,7 +4,7 @@ import com.blockout.mobilegateway.config.ApiClientProperties;
 import com.blockout.mobilegateway.models.dto.team.TeamDTO;
 import com.blockout.mobilegateway.models.dto.team.TeamUpdateDTO;
 import com.blockout.mobilegateway.services.utils.MultipartBodyBuilder;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.blockout.mobilegateway.shared.api.v1.LegacyMobileGatewayJson;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
@@ -25,7 +25,7 @@ public class TeamClientService {
 
     private final ApiClientProperties apiClientProperties;
     private final ApiClientService apiClientService;
-    private final ObjectMapper objectMapper;
+    private final LegacyMobileGatewayJson legacyJson;
 
     private String baseUrl() {
         return apiClientProperties.getTeam().getUrl();
@@ -81,7 +81,7 @@ public class TeamClientService {
                 .build()
                 .toUriString();
 
-        MultiValueMap<String, Object> body = MultipartBodyBuilder.buildMultipart(objectMapper, dto, image);
+        MultiValueMap<String, Object> body = MultipartBodyBuilder.buildMultipart(legacyJson, dto, image);
 
         ResponseEntity<TeamDTO> response = apiClientService.putMultipart(url, body, TeamDTO.class);
         return response.getBody();

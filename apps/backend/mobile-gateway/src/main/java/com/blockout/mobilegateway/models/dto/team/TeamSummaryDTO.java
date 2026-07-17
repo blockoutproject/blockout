@@ -4,7 +4,6 @@ import com.blockout.mobilegateway.models.dto.club.ClubDTO;
 import com.blockout.mobilegateway.models.dto.config.DivisionDTO;
 import com.blockout.mobilegateway.models.enums.Gender;
 import com.blockout.mobilegateway.models.enums.Format;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.*;
 
 @Data
@@ -18,13 +17,11 @@ public class TeamSummaryDTO {
     private Gender gender;
     private Format format;
 
-    @JsonProperty("logo_url")
     private String logoUrl;
 
     private DivisionDTO division;
 
     private ClubDTO club; //TODO: a enlever
 
-    @JsonProperty("short_name")
     private String shortName;
 }

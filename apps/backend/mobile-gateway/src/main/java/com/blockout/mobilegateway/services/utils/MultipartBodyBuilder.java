@@ -1,6 +1,6 @@
 package com.blockout.mobilegateway.services.utils;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.blockout.mobilegateway.shared.api.v1.LegacyMobileGatewayJson;
 import lombok.experimental.UtilityClass;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.*;
@@ -16,13 +16,13 @@ public class MultipartBodyBuilder {
      * à partir d'un DTO JSON et d'un fichier image.
      */
     public static <T> MultiValueMap<String, Object> buildMultipart(
-            ObjectMapper objectMapper,
+            LegacyMobileGatewayJson legacyJson,
             T dto,
             MultipartFile image) {
 
         final String jsonString;
         try {
-            jsonString = objectMapper.writeValueAsString(dto);
+            jsonString = legacyJson.write(dto);
         } catch (Exception e) {
             throw new RuntimeException("Failed to serialize DTO to JSON", e);
         }

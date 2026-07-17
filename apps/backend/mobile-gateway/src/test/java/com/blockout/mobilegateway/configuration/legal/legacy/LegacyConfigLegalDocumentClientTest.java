@@ -6,8 +6,14 @@ import static org.springframework.test.web.client.match.MockRestRequestMatchers.
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
 import com.blockout.mobilegateway.config.ApiClientProperties;
+import com.blockout.mobilegateway.config.Auth0Properties;
+import com.blockout.mobilegateway.config.RestTemplateConfig;
+import com.blockout.mobilegateway.security.Auth0TokenManager;
 import com.blockout.mobilegateway.services.clients.ApiClientService;
+import com.blockout.mobilegateway.shared.api.v1.LegacyMobileGatewayJson;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
+import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.client.MockRestServiceServer;
@@ -17,8 +23,10 @@ class LegacyConfigLegalDocumentClientTest {
 
     @Test
     void legacyAdapterKeepsV1PathAndCompleteSnakeCaseBody() {
-        RestTemplate user = new RestTemplate();
-        RestTemplate m2m = new RestTemplate();
+        var legacyJson = new LegacyMobileGatewayJson(new ObjectMapper().findAndRegisterModules());
+        var restTemplates = new RestTemplateConfig(null, new Auth0TokenManager(new Auth0Properties()), legacyJson);
+        RestTemplate user = restTemplates.legacyInternalAuthRestTemplate(new RestTemplateBuilder());
+        RestTemplate m2m = restTemplates.legacyInternalM2MRestTemplate(new RestTemplateBuilder());
         MockRestServiceServer server = MockRestServiceServer.bindTo(m2m).build();
         ApiClientProperties properties = new ApiClientProperties();
         properties.getConfig().setUrl("https://config.example");

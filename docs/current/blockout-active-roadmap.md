@@ -1211,9 +1211,20 @@ state moves to GitHub and this file becomes a historical migration record.
     checks, and CI are required before publication. No form migration, mobile release, deployment, production
     observation, v1 retirement, MRG-9xx, or MRG-1000 action; caller evidence, compatibility, rollback, and the retained
     MRG-304 gate are recorded in `docs/migration/mrg-375-mobile-gateway-casing-cleanup.md`.
-- [ ] MRG-352 Remove legacy `@JsonProperty`, `@JsonAlias`, and naming adapters used only for Blockout snake_case;
+- [x] MRG-352 Remove legacy `@JsonProperty`, `@JsonAlias`, and naming adapters used only for Blockout snake_case;
       retain documented annotations only at genuine vendor boundaries and retain snake_case conversion only inside
       the explicit MRG-304 v1 transport adapters.
+  - Evidence: backend application source now contains zero `@JsonProperty`, `@JsonAlias`, or `@JsonNaming` sites and
+    zero global naming strategies. The final 244 field annotations are removed from the historical mobile DTO graph
+    after a baseline comparison proves every value is reproducible by the local strategy. Exactly twelve explicit v1
+    JSON adapters retain local `SNAKE_CASE`, including the new mobile BFF adapter wired only to v1 request reads,
+    v1-controller response advice, dedicated legacy downstream transports, and manual multipart JSON. Generated v2
+    clients and the default mapper remain canonical camelCase. Six retained `@JsonIgnoreProperties` sites are
+    non-naming Elasticsearch read tolerance. Focused adapter, MVC, transport, and v1 compatibility suites plus
+    complete backend compilation, repository gates, generated-file checks, and CI are required before publication.
+    No deployment, production observation, v1 retirement, MRG-9xx, or MRG-1000 action; compatibility, rollback, and
+    the retained MRG-304 gate are recorded in
+    `docs/migration/mrg-352-blockout-jackson-annotation-retirement.md`.
 - [ ] MRG-353 Remove Expo request/response case transformation, `transformCase`, and obsolete case-conversion packages
       after every generated BFF v2 client is active; legacy mobile releases continue through the server-side v1 BFF
       adapter rather than a converter in the current Expo release. Do not combine this casing cleanup with any form

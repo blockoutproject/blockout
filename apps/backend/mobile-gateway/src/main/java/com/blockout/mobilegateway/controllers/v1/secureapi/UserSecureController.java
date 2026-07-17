@@ -3,8 +3,8 @@ package com.blockout.mobilegateway.controllers.v1.secureapi;
 import com.blockout.mobilegateway.models.dto.user.CustomUserDTO;
 import com.blockout.mobilegateway.models.dto.user.CustomUserUpdateDTO;
 import com.blockout.mobilegateway.services.UserService;
+import com.blockout.mobilegateway.shared.api.v1.LegacyMobileGatewayJson;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
@@ -20,7 +20,7 @@ import org.springframework.web.multipart.MultipartFile;
 public class UserSecureController {
 
     private final UserService userService;
-    private final ObjectMapper objectMapper;
+    private final LegacyMobileGatewayJson legacyJson;
 
     @PutMapping(path = "/users/{auth0Id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<CustomUserDTO> updateUser(
@@ -28,7 +28,7 @@ public class UserSecureController {
             @RequestPart("data") String json,
             @RequestPart(value = "image", required = false) MultipartFile image) throws JsonProcessingException {
 
-        CustomUserUpdateDTO dto = objectMapper.readValue(json, CustomUserUpdateDTO.class);
+        CustomUserUpdateDTO dto = legacyJson.read(json, CustomUserUpdateDTO.class);
         CustomUserDTO updated = userService.updateUser(auth0Id, dto, image);
         return ResponseEntity.ok(updated);
     }

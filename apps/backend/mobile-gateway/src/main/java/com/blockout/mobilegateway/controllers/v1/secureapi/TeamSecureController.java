@@ -3,8 +3,8 @@ package com.blockout.mobilegateway.controllers.v1.secureapi;
 import com.blockout.mobilegateway.models.dto.team.TeamDTO;
 import com.blockout.mobilegateway.models.dto.team.TeamUpdateDTO;
 import com.blockout.mobilegateway.services.TeamService;
+import com.blockout.mobilegateway.shared.api.v1.LegacyMobileGatewayJson;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
@@ -18,7 +18,7 @@ import org.springframework.web.multipart.MultipartFile;
 public class TeamSecureController {
 
     private final TeamService teamService;
-    private final ObjectMapper objectMapper;
+    private final LegacyMobileGatewayJson legacyJson;
 
     @PutMapping(path = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<TeamDTO> updateTeam(
@@ -26,7 +26,7 @@ public class TeamSecureController {
             @RequestPart("data") String json,
             @RequestPart(value = "image", required = false) MultipartFile image) throws JsonProcessingException {
 
-        TeamUpdateDTO dto = objectMapper.readValue(json, TeamUpdateDTO.class);
+        TeamUpdateDTO dto = legacyJson.read(json, TeamUpdateDTO.class);
         TeamDTO updated = teamService.updateTeam(id, dto, image);
         return ResponseEntity.ok(updated);
     }
