@@ -1225,10 +1225,19 @@ state moves to GitHub and this file becomes a historical migration record.
     No deployment, production observation, v1 retirement, MRG-9xx, or MRG-1000 action; compatibility, rollback, and
     the retained MRG-304 gate are recorded in
     `docs/migration/mrg-352-blockout-jackson-annotation-retirement.md`.
-- [ ] MRG-353 Remove Expo request/response case transformation, `transformCase`, and obsolete case-conversion packages
+- [x] MRG-353 Remove Expo request/response case transformation, `transformCase`, and obsolete case-conversion packages
       after every generated BFF v2 client is active; legacy mobile releases continue through the server-side v1 BFF
       adapter rather than a converter in the current Expo release. Do not combine this casing cleanup with any form
       migration.
+  - Evidence: all fifty current mobile-gateway v2 operations are contract-generated and active Expo source imports
+    only generated endpoint/model/schema modules. The unused handwritten `HttpClient`, `BaseApi`, and `ApiRegistry`,
+    global request/response transforms, `transformCase`, `appendJsonSnake`, and the `axios-case-converter`,
+    `camelcase-keys`, and `snakecase-keys` dependency graph are removed. The Orval mutator retains only auth, query,
+    cancellation, and error policy and passes canonical camelCase data unchanged. Mobile typecheck, generated-client
+    verification, contract checks, Expo export, package-lock installation, repository gates, and CI are required
+    before publication. No form migration, Expo release, deployment, production observation, v1 retirement,
+    MRG-9xx, or MRG-1000 action; compatibility, rollback, and the retained MRG-304 server-v1 gate are recorded in
+    `docs/migration/mrg-353-expo-case-conversion-retirement.md`.
 - [ ] MRG-354 Add a repository-wide allowlisted guard proving Blockout-owned REST, event, Expo, and scraper wire keys are
       camelCase while explicitly allowlisting only isolated v1 adapters, database columns, Python identifiers, and
       external vendor payloads.

@@ -2,7 +2,8 @@ import axios, { AxiosError, AxiosHeaders, AxiosRequestConfig } from 'axios';
 import qs from 'qs';
 import { CONFIG } from '@/src/config/config';
 import { ApiError } from './ApiError';
-import type { TokenSupplier } from './HttpClient';
+
+export type TokenSupplier = () => Promise<string | null>;
 
 type UnauthorizedHandler = (error: ApiError) => void | Promise<void>;
 

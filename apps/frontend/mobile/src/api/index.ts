@@ -1,7 +1,9 @@
-import { TokenSupplier } from '@/src/api/core/HttpClient';
 import { ApiError } from '@/src/api/core/ApiError';
 import { MobileGatewayApi } from '@/src/api/MobileGatewayApi';
-import { setOrvalAuthContext } from '@/src/api/core/orvalAxios';
+import {
+  setOrvalAuthContext,
+  type TokenSupplier,
+} from '@/src/api/core/orvalAxios';
 
 export type ApiClients = {
   mobile: MobileGatewayApi;

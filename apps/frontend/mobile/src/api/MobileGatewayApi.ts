@@ -1,5 +1,5 @@
-import { TokenSupplier } from '@/src/api/core/HttpClient';
 import { ApiError } from '@/src/api/core/ApiError';
+import type { TokenSupplier } from '@/src/api/core/orvalAxios';
 
 /** Compatibility shell retained until the generated-only API provider cleanup task. */
 export class MobileGatewayApi {
