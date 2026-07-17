@@ -9,12 +9,12 @@ import com.blockout.notifications.models.dto.ResolvePageDTO;
 import com.blockout.notifications.models.dto.expo.ExpoBatchResultDTO;
 import com.blockout.notifications.models.dto.expo.ExpoMessageDTO;
 import com.blockout.notifications.models.dto.pool.PoolDTO;
-import com.blockout.notifications.models.dto.team.TeamDTO;
 import com.blockout.notifications.models.entity.UserNotification;
 import com.blockout.notifications.models.enums.NotificationTargetType;
 import com.blockout.notifications.models.enums.NotificationType;
 import com.blockout.notifications.services.clients.PoolClientService;
-import com.blockout.notifications.services.clients.TeamClientService;
+import com.blockout.notifications.team.application.TeamCatalog;
+import com.blockout.notifications.team.application.TeamNameSnapshot;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -37,7 +37,7 @@ public class NotificationOrchestratorService {
     private final PushTokenService pushTokenService;
 
     private final PoolClientService poolClientService;
-    private final TeamClientService teamClientService;
+    private final TeamCatalog teamCatalog;
 
     private final ObjectMapper objectMapper;
 
@@ -288,14 +288,14 @@ public class NotificationOrchestratorService {
         }
 
         try {
-            TeamDTO ta = teamClientService.getTeamById(teamIdA);
-            if (ta != null && ta.getShortName() != null && !ta.getShortName().isBlank()) {
-                teamAName = ta.getShortName();
+            TeamNameSnapshot ta = teamCatalog.getById(teamIdA);
+            if (ta != null && ta.shortName() != null && !ta.shortName().isBlank()) {
+                teamAName = ta.shortName();
             }
 
-            TeamDTO tb = teamClientService.getTeamById(teamIdB);
-            if (tb != null && tb.getShortName() != null && !tb.getShortName().isBlank()) {
-                teamBName = tb.getShortName();
+            TeamNameSnapshot tb = teamCatalog.getById(teamIdB);
+            if (tb != null && tb.shortName() != null && !tb.shortName().isBlank()) {
+                teamBName = tb.shortName();
             }
 
         } catch (Exception ex) {
@@ -342,14 +342,14 @@ public class NotificationOrchestratorService {
         }
 
         try {
-            TeamDTO ta = teamClientService.getTeamById(teamIdA);
-            if (ta != null && ta.getShortName() != null && !ta.getShortName().isBlank()) {
-                teamAName = ta.getShortName();
+            TeamNameSnapshot ta = teamCatalog.getById(teamIdA);
+            if (ta != null && ta.shortName() != null && !ta.shortName().isBlank()) {
+                teamAName = ta.shortName();
             }
 
-            TeamDTO tb = teamClientService.getTeamById(teamIdB);
-            if (tb != null && tb.getShortName() != null && !tb.getShortName().isBlank()) {
-                teamBName = tb.getShortName();
+            TeamNameSnapshot tb = teamCatalog.getById(teamIdB);
+            if (tb != null && tb.shortName() != null && !tb.shortName().isBlank()) {
+                teamBName = tb.shortName();
             }
 
         } catch (Exception ex) {

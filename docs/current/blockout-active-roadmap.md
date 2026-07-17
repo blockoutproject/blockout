@@ -659,8 +659,21 @@ state moves to GitHub and this file becomes a historical migration record.
     complete 14-module Maven package, documentation links, Maaatch comparison, Prettier, and whitespace checks pass.
     Mobile-gateway, Expo, Python scrapers, databases, event topology, standalone repositories, production, Maaatch,
     Orval settings, and Python generator settings remain unchanged.
-- [ ] MRG-335 Migrate `teams-service` generated server boundaries and internal generated clients, including multipart
+- [x] MRG-335 Migrate `teams-service` generated server boundaries and internal generated clients, including multipart
       mapping and temporary compatibility defined by MRG-304.
+  - Evidence: all eight team operations now implement generated v2 Spring interfaces through feature-owned canonical
+    and legacy create commands, null-preserving updates, `TeamView`/paged projections, a dedicated JPA entity, strict
+    MapStruct mappings, explicit logo intent, an S3 port, follower commands, progressive Problem Details, and
+    per-operation coexistence telemetry. The isolated v1 adapter retains snake_case records, direct entity-shaped
+    creation and defaults, audit fields, complete list shapes, filters, ordering, logo behavior, scopes, full follower
+    responses, soft/cascade deactivation, errors, and the unversioned upsert event without entity exposure or
+    handwritten Jackson annotations. Search-worker, notification-service, and users-service now use official
+    generated Java team clients with their existing Auth0 transports, normalized v2 URLs, immediate immutable
+    projections, complete worker page aggregation, canonical `userId`, and generated `204` follower calls; three
+    handwritten clients and two copied DTOs are removed. The 17 new targeted Java tests plus six retained worker tests,
+    contract/lint, full backend, documentation, Maaatch comparison, Prettier, and whitespace checks pass.
+    Mobile-gateway, Expo, Python scrapers, databases, event topology, standalone repositories, production, Maaatch,
+    Blockout Orval settings, and Python generator settings remain unchanged.
 - [ ] MRG-336 Migrate `pools-service` generated server boundaries and internal generated clients with parity evidence.
 - [ ] MRG-337 Migrate `competition-service` association and statistics generated server boundaries and internal clients,
       preserving full-snapshot, validation, persistence, and reactivation behavior.

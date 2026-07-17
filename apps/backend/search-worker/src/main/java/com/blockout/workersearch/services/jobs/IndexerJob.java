@@ -8,14 +8,15 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import com.blockout.workersearch.models.dto.pool.PoolDTO;
-import com.blockout.workersearch.models.dto.team.TeamDTO;
 import com.blockout.workersearch.club.application.ClubCatalog;
 import com.blockout.workersearch.club.application.ClubSnapshot;
 import com.blockout.workersearch.models.events.ClubUpsertEvent;
 import com.blockout.workersearch.models.events.PoolUpsertEvent;
 import com.blockout.workersearch.models.events.TeamUpsertEvent;
 import com.blockout.workersearch.services.clients.PoolClientService;
-import com.blockout.workersearch.services.clients.TeamClientService;
+import com.blockout.workersearch.team.application.TeamCatalog;
+import com.blockout.workersearch.team.application.TeamSnapshot;
+import com.blockout.workersearch.team.outbound.TeamSnapshotEventProjector;
 import com.blockout.workersearch.services.index.ClubIndexService;
 import com.blockout.workersearch.services.index.PoolIndexService;
 import com.blockout.workersearch.services.index.TeamIndexService;
@@ -31,7 +32,8 @@ public class IndexerJob {
     private static final Logger logger = LoggerFactory.getLogger(IndexerJob.class);
 
     private final ClubCatalog clubCatalog;
-    private final TeamClientService teamClientService;
+    private final TeamCatalog teamCatalog;
+    private final TeamSnapshotEventProjector teamProjector;
     private final PoolClientService poolClientService;
     private final ClubIndexService clubIndexService;
     private final TeamIndexService teamIndexService;
@@ -66,19 +68,9 @@ public class IndexerJob {
 
     private void reindexTeams() {
         teamIndexService.deleteAll();
-        List<TeamDTO> teams = teamClientService.listActiveTeams();
+        List<TeamSnapshot> teams = teamCatalog.findActiveTeams();
         List<TeamUpsertEvent> events = teams.stream()
-                .map(team -> TeamUpsertEvent.builder()
-                        .id(team.getId())
-                        .name(team.getName())
-                        .shortName(team.getShortName())
-                        .clubId(team.getClubId())
-                        .divisionId(team.getDivisionId())
-                        .format(team.getFormat())
-                        .gender(team.getGender())
-                        .season(team.getSeason())
-                        .logoUrl(team.getLogoUrl())
-                        .build())
+                .map(teamProjector::project)
                 .toList();
 
         logger.info("Reindexing teams", keyValue("count", events.size()));

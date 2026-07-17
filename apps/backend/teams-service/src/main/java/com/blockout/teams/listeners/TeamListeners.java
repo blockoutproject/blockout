@@ -3,7 +3,7 @@ package com.blockout.teams.listeners;
 import com.blockout.teams.config.RabbitMQConfig;
 import com.blockout.teams.models.events.ClubDeactivationEvent;
 import com.blockout.teams.models.events.TeamDeactivationEvent;
-import com.blockout.teams.services.TeamService;
+import com.blockout.teams.team.application.TeamService;
 
 import lombok.RequiredArgsConstructor;
 
@@ -19,12 +19,12 @@ public class TeamListeners {
     @RabbitListener(queues = RabbitMQConfig.TEAM_DEACTIVATION_QUEUE_TEAMS)
     public void handleTeamDeactivation(TeamDeactivationEvent event) {
         Long teamId = event.getTeamId();
-        teamService.deactivateTeam(teamId);
+        teamService.deactivate(teamId);
     }
 
     @RabbitListener(queues = RabbitMQConfig.CLUB_DEACTIVATION_QUEUE_TEAMS)
     public void handleClubDeactivation(ClubDeactivationEvent event) {
         String clubId = event.getClubId();
-        teamService.deactivateTeamsByClubId(clubId);
+        teamService.deactivateByClubId(clubId);
     }
 }

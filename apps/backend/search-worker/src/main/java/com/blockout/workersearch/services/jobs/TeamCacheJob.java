@@ -8,7 +8,8 @@ import org.springframework.stereotype.Service;
 
 import com.blockout.workersearch.models.events.TeamUpsertEvent;
 import com.blockout.workersearch.services.caches.TeamCacheService;
-import com.blockout.workersearch.services.clients.TeamClientService;
+import com.blockout.workersearch.team.application.TeamCatalog;
+import com.blockout.workersearch.team.outbound.TeamSnapshotEventProjector;
 
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
@@ -17,25 +18,16 @@ import static net.logstash.logback.argument.StructuredArguments.keyValue;
 public class TeamCacheJob {
 
     private static final Logger logger = LoggerFactory.getLogger(TeamCacheJob.class);
-    private final TeamClientService teamClientService;
+    private final TeamCatalog teamCatalog;
+    private final TeamSnapshotEventProjector teamProjector;
     private final TeamCacheService teamCacheService;
 
     @Scheduled(fixedRate = 600000)
     public void refreshTeamCache() {
         try {
-            var teams = teamClientService.listActiveTeams();
+            var teams = teamCatalog.findActiveTeams();
             var events = teams.stream()
-                    .map(team -> TeamUpsertEvent.builder()
-                            .id(team.getId())
-                            .name(team.getName())
-                            .shortName(team.getShortName())
-                            .clubId(team.getClubId())
-                            .divisionId(team.getDivisionId())
-                            .format(team.getFormat())
-                            .gender(team.getGender())
-                            .season(team.getSeason())
-                            .logoUrl(team.getLogoUrl())
-                            .build())
+                    .map(teamProjector::project)
                     .toList();
 
             teamCacheService.replaceAll(events);
