@@ -33,6 +33,18 @@
     },
     {
       "name": "MobilePools"
+    },
+    {
+      "name": "MobileMatches"
+    },
+    {
+      "name": "MobileMatchLiveLinks"
+    },
+    {
+      "name": "MobileMatchModeration"
+    },
+    {
+      "name": "MobileFederationDocuments"
     }
   ],
   "security": [
@@ -1017,6 +1029,451 @@
         }
       }
     },
+    "/api/v2/mobile/public/ffvb/pdf/{token}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/MobileFederationPdfToken"
+        }
+      ],
+      "get": {
+        "operationId": "getMobileFederationPdf",
+        "tags": [
+          "MobileFederationDocuments"
+        ],
+        "summary": "Continue to a signed federation PDF",
+        "description": "Validates the short-lived BFF token and proxies the selected FFVB or LNV PDF without exposing vendor parameters as a public contract.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Requested federation PDF.",
+            "headers": {
+              "Cache-Control": {
+                "description": "Signed documents are never stored by clients or intermediaries.",
+                "schema": {
+                  "type": "string",
+                  "pattern": "^no-store$"
+                }
+              }
+            },
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestProblem"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedProblem"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorProblem"
+          },
+          "502": {
+            "$ref": "#/components/responses/MobileFederationBadGatewayProblem"
+          }
+        }
+      }
+    },
+    "/api/v2/mobile/public/matches": {
+      "get": {
+        "operationId": "listMobileMatchDays",
+        "tags": [
+          "MobileMatches"
+        ],
+        "summary": "List enriched mobile match days",
+        "description": "Pages distinct Paris-local dates, preserves status-dependent day, pool, and match order after silent catalog drops, and retains the audited terminal-empty continuation behavior.",
+        "security": [],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Page"
+          },
+          {
+            "$ref": "#/components/parameters/MobileMatchDayPageSize"
+          },
+          {
+            "$ref": "#/components/parameters/MobileMatchPoolIds"
+          },
+          {
+            "$ref": "#/components/parameters/MobileMatchTeamIds"
+          },
+          {
+            "$ref": "#/components/parameters/MobileMatchStatus"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Requested enriched match-day page.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileMatchDayPageResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestProblem"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorProblem"
+          }
+        }
+      }
+    },
+    "/api/v2/mobile/public/matches/{id}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/MobileMatchId"
+        }
+      ],
+      "get": {
+        "operationId": "getMobileMatch",
+        "tags": [
+          "MobileMatches"
+        ],
+        "summary": "Get an enriched mobile match",
+        "description": "Builds the screen-ready match, competition ranking, and signed-document projection. Missing required match, pool, division, side, ranking team, or signing input fails the whole request.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Requested enriched mobile match.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileMatchDetail"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorProblem"
+          }
+        }
+      }
+    },
+    "/api/v2/mobile/secure/matches/{matchId}/live-link": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/MobileLiveMatchId"
+        }
+      ],
+      "post": {
+        "operationId": "upsertMobileMatchLiveLink",
+        "tags": [
+          "MobileMatchLiveLinks"
+        ],
+        "summary": "Create or update a mobile match live link",
+        "description": "Delegates provider, ownership, account-age, quota, timing, professional-league, and state decisions to matches-service.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpsertMobileMatchLiveLinkRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Current mobile live-link command result.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileMatchLiveLinkResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestProblem"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedProblem"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenProblem"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundProblem"
+          },
+          "409": {
+            "$ref": "#/components/responses/ConflictProblem"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorProblem"
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteMobileMatchLiveLink",
+        "tags": [
+          "MobileMatchLiveLinks"
+        ],
+        "summary": "Deactivate the active mobile match live link",
+        "description": "Returns 204 when no active link exists and retains matches-service owner or moderator authorization.",
+        "responses": {
+          "204": {
+            "description": "Active link deactivated or already absent."
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedProblem"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenProblem"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorProblem"
+          }
+        }
+      }
+    },
+    "/api/v2/mobile/secure/matches/{matchId}/live-link/report": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/MobileLiveMatchId"
+        }
+      ],
+      "post": {
+        "operationId": "reportMobileMatchLiveLink",
+        "tags": [
+          "MobileMatchLiveLinks"
+        ],
+        "summary": "Report the active mobile match live link",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReportMobileMatchLiveLinkRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Live-link report accepted."
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestProblem"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedProblem"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenProblem"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundProblem"
+          },
+          "409": {
+            "$ref": "#/components/responses/ConflictProblem"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorProblem"
+          }
+        }
+      }
+    },
+    "/api/v2/mobile/secure/matches/{matchId}/live-links": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/MobileLiveMatchId"
+        }
+      ],
+      "get": {
+        "operationId": "listMobileMatchLiveLinkHistory",
+        "tags": [
+          "MobileMatchModeration"
+        ],
+        "summary": "List mobile match live-link history",
+        "description": "Returns newest-first history as a canonical page. An absent match remains indistinguishable from an existing match with no links; the v1 adapter aggregates all pages into its legacy array.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Page"
+          },
+          {
+            "$ref": "#/components/parameters/PageSize"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Requested mobile live-link history page.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileMatchLiveLinkHistoryPageResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestProblem"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedProblem"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenProblem"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorProblem"
+          }
+        }
+      }
+    },
+    "/api/v2/mobile/secure/matches/live-moderation": {
+      "get": {
+        "operationId": "listMobileMatchesForLiveModeration",
+        "tags": [
+          "MobileMatchModeration"
+        ],
+        "summary": "List enriched mobile matches for live moderation",
+        "description": "Status filters historical existence while representative fields retain their independent priority selection. Missing catalog dependencies silently drop rows without omission metadata; the v1 adapter aggregates canonical pages.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/MobileLiveLinkStatus"
+          },
+          {
+            "$ref": "#/components/parameters/Page"
+          },
+          {
+            "$ref": "#/components/parameters/PageSize"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Requested enriched moderation page.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileMatchModerationPageResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestProblem"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedProblem"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenProblem"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorProblem"
+          }
+        }
+      }
+    },
+    "/api/v2/mobile/secure/matches/live-links/{id}/approve": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/MobileLiveLinkId"
+        }
+      ],
+      "post": {
+        "operationId": "approveMobileMatchLiveLink",
+        "tags": [
+          "MobileMatchModeration"
+        ],
+        "summary": "Approve a pending mobile match live link",
+        "responses": {
+          "204": {
+            "description": "Live link approved."
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestProblem"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedProblem"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenProblem"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundProblem"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorProblem"
+          }
+        }
+      }
+    },
+    "/api/v2/mobile/secure/matches/live-links/{id}/reject": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/MobileLiveLinkId"
+        }
+      ],
+      "post": {
+        "operationId": "rejectMobileMatchLiveLink",
+        "tags": [
+          "MobileMatchModeration"
+        ],
+        "summary": "Reject a pending mobile match live link",
+        "responses": {
+          "204": {
+            "description": "Live link rejected."
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestProblem"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedProblem"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenProblem"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundProblem"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorProblem"
+          }
+        }
+      }
+    },
+    "/api/v2/mobile/secure/matches/live-links/{id}/reactivate": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/MobileLiveLinkId"
+        }
+      ],
+      "post": {
+        "operationId": "reactivateMobileMatchLiveLink",
+        "tags": [
+          "MobileMatchModeration"
+        ],
+        "summary": "Reactivate an eligible mobile match live link",
+        "responses": {
+          "204": {
+            "description": "Live link reactivated."
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestProblem"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedProblem"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenProblem"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundProblem"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorProblem"
+          }
+        }
+      }
+    },
     "/api/v2/mobile/secure/notifications": {
       "get": {
         "operationId": "listMobileNotifications",
@@ -1812,6 +2269,97 @@
             "$ref": "#/components/schemas/NumericIdentifier"
           }
         }
+      },
+      "MobileMatchId": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "$ref": "#/components/schemas/NumericIdentifier"
+        }
+      },
+      "MobileLiveMatchId": {
+        "name": "matchId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "$ref": "#/components/schemas/NumericIdentifier"
+        }
+      },
+      "MobileLiveLinkId": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "$ref": "#/components/schemas/NumericIdentifier"
+        }
+      },
+      "MobileMatchPoolIds": {
+        "name": "poolIds",
+        "in": "query",
+        "required": false,
+        "description": "Optional set-like pool filter. Pool and team filters retain the current downstream OR semantics.",
+        "style": "form",
+        "explode": true,
+        "schema": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/NumericIdentifier"
+          }
+        }
+      },
+      "MobileMatchTeamIds": {
+        "name": "teamIds",
+        "in": "query",
+        "required": false,
+        "description": "Optional set-like team filter. Pool and team filters retain the current downstream OR semantics.",
+        "style": "form",
+        "explode": true,
+        "schema": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/NumericIdentifier"
+          }
+        }
+      },
+      "MobileMatchStatus": {
+        "name": "status",
+        "in": "query",
+        "required": true,
+        "schema": {
+          "$ref": "#/components/schemas/MatchStatusEnum"
+        }
+      },
+      "MobileMatchDayPageSize": {
+        "name": "pageSize",
+        "in": "query",
+        "required": false,
+        "description": "Number of distinct Paris-local match dates requested, not a bound on match rows or enrichment fan-out.",
+        "schema": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "default": 4
+        }
+      },
+      "MobileLiveLinkStatus": {
+        "name": "status",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "$ref": "#/components/schemas/LiveLinkStatusEnum"
+        }
+      },
+      "MobileFederationPdfToken": {
+        "name": "token",
+        "in": "path",
+        "required": true,
+        "description": "Short-lived signed continuation token generated by the mobile match-detail workflow.",
+        "schema": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        }
       }
     },
     "headers": {
@@ -1917,6 +2465,21 @@
       },
       "InternalServerErrorProblem": {
         "description": "The server could not complete the request.",
+        "headers": {
+          "X-Request-ID": {
+            "$ref": "#/components/headers/RequestId"
+          }
+        },
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/ProblemDetail"
+            }
+          }
+        }
+      },
+      "MobileFederationBadGatewayProblem": {
+        "description": "The federation document provider could not complete the proxied request.",
         "headers": {
           "X-Request-ID": {
             "$ref": "#/components/headers/RequestId"
@@ -2774,6 +3337,212 @@
         },
         "additionalProperties": false
       },
+      "MobileMatchDayPageResponse": {
+        "type": "object",
+        "description": "Dedicated page of enriched Paris-local match days. A null or empty downstream body forces hasNext false and nextPage null even when a downstream continuation existed; later enrichment-only drops preserve the downstream continuation.",
+        "required": [
+          "dayMatches",
+          "hasNext",
+          "nextPage"
+        ],
+        "properties": {
+          "dayMatches": {
+            "type": "array",
+            "description": "Day groups in current status-dependent order after empty pools and days are removed.",
+            "items": {
+              "$ref": "#/components/schemas/MobileMatchDayGroup"
+            }
+          },
+          "hasNext": {
+            "type": "boolean"
+          },
+          "nextPage": {
+            "type": "integer",
+            "minimum": 0,
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "MobileMatchDetail": {
+        "type": "object",
+        "description": "Screen-ready match detail separated from list, moderation, downstream owner, persistence, and vendor transports. Every required dependency and both signed continuations are all-or-error.",
+        "required": [
+          "id",
+          "matchDate",
+          "set",
+          "score",
+          "status",
+          "venue",
+          "firstReferee",
+          "secondReferee",
+          "liveUrl",
+          "liveProvider",
+          "liveOwnerAuth0Id",
+          "teamA",
+          "teamB",
+          "pool",
+          "signedDocuments"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/NumericIdentifier"
+          },
+          "matchDate": {
+            "$ref": "#/components/schemas/UtcDateTime"
+          },
+          "set": {
+            "type": "string",
+            "nullable": true
+          },
+          "score": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "$ref": "#/components/schemas/MatchStatusEnum"
+          },
+          "venue": {
+            "type": "string",
+            "nullable": true
+          },
+          "firstReferee": {
+            "type": "string",
+            "nullable": true
+          },
+          "secondReferee": {
+            "type": "string",
+            "nullable": true
+          },
+          "liveUrl": {
+            "type": "string",
+            "maxLength": 1024,
+            "nullable": true
+          },
+          "liveProvider": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/LiveProviderEnum"
+              }
+            ],
+            "nullable": true
+          },
+          "liveOwnerAuth0Id": {
+            "type": "string",
+            "nullable": true
+          },
+          "teamA": {
+            "$ref": "#/components/schemas/MobileMatchDetailTeam"
+          },
+          "teamB": {
+            "$ref": "#/components/schemas/MobileMatchDetailTeam"
+          },
+          "pool": {
+            "$ref": "#/components/schemas/MobileMatchDetailPool"
+          },
+          "signedDocuments": {
+            "$ref": "#/components/schemas/MobileMatchSignedDocuments"
+          }
+        },
+        "additionalProperties": false
+      },
+      "UpsertMobileMatchLiveLinkRequest": {
+        "type": "object",
+        "description": "Mobile live-link input. Provider and every policy decision remain server-owned.",
+        "required": [
+          "url"
+        ],
+        "properties": {
+          "url": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1024
+          }
+        },
+        "additionalProperties": false
+      },
+      "MobileMatchLiveLinkResult": {
+        "type": "object",
+        "description": "Narrow command result retained for generated-client compatibility even though the current Expo mutation ignores its body.",
+        "required": [
+          "matchId",
+          "provider",
+          "url",
+          "status"
+        ],
+        "properties": {
+          "matchId": {
+            "$ref": "#/components/schemas/NumericIdentifier"
+          },
+          "provider": {
+            "$ref": "#/components/schemas/LiveProviderEnum"
+          },
+          "url": {
+            "type": "string",
+            "maxLength": 1024
+          },
+          "status": {
+            "$ref": "#/components/schemas/LiveLinkStatusEnum"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReportMobileMatchLiveLinkRequest": {
+        "type": "object",
+        "description": "Mobile report explanation using the current submitted-form constraints.",
+        "required": [
+          "reason"
+        ],
+        "properties": {
+          "reason": {
+            "type": "string",
+            "minLength": 10,
+            "maxLength": 500
+          }
+        },
+        "additionalProperties": false
+      },
+      "MobileMatchLiveLinkHistoryPageResponse": {
+        "type": "object",
+        "description": "Canonical zero-based history page. The v1 facade aggregates every page to preserve its unbounded raw array until retirement.",
+        "required": [
+          "items",
+          "pageInfo"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MobileMatchLiveLinkHistoryItem"
+            }
+          },
+          "pageInfo": {
+            "$ref": "#/components/schemas/PageInfo"
+          }
+        },
+        "additionalProperties": false
+      },
+      "MobileMatchModerationPageResponse": {
+        "type": "object",
+        "description": "Canonical zero-based moderation page after silent BFF enrichment drops. pageInfo describes the downstream page and deliberately carries no omitted-item count.",
+        "required": [
+          "items",
+          "pageInfo"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "description": "Rows retain downstream matchDate-descending relative order after drops, with no immutable-ID tie-breaker.",
+            "items": {
+              "$ref": "#/components/schemas/MobileMatchModerationItem"
+            }
+          },
+          "pageInfo": {
+            "$ref": "#/components/schemas/PageInfo"
+          }
+        },
+        "additionalProperties": false
+      },
       "MobileNotificationPageResponse": {
         "type": "object",
         "description": "Stable zero-based Expo inbox page. Handwritten hooks may derive legacy next-page state from pageInfo.",
@@ -3080,6 +3849,26 @@
         "description": "Canonical UUID identifier wire shape.",
         "x-java-type": "java.util.UUID"
       },
+      "MatchStatusEnum": {
+        "type": "string",
+        "description": "Observable Blockout match lifecycle states.",
+        "enum": [
+          "UPCOMING",
+          "FINISHED"
+        ]
+      },
+      "LiveLinkStatusEnum": {
+        "type": "string",
+        "description": "Moderation and lifecycle states for a match live link.",
+        "enum": [
+          "ACTIVE",
+          "DEACTIVATED",
+          "BANNED",
+          "EXPIRED",
+          "PENDING",
+          "REJECTED"
+        ]
+      },
       "ProblemDetail": {
         "type": "object",
         "description": "Canonical Blockout Problem Details body. Legacy v1 error bodies remain compatibility-adapter owned.",
@@ -3381,6 +4170,284 @@
         "description": "RFC 3339 timestamp normalized to UTC on Blockout-owned wires.",
         "x-java-type": "java.time.Instant"
       },
+      "MobileMatchDayGroup": {
+        "type": "object",
+        "required": [
+          "date",
+          "pools"
+        ],
+        "properties": {
+          "date": {
+            "$ref": "#/components/schemas/CalendarDate"
+          },
+          "pools": {
+            "type": "array",
+            "description": "Pool groups retain downstream pool order after missing or inactive-division groups are silently removed.",
+            "minItems": 1,
+            "items": {
+              "$ref": "#/components/schemas/MobileMatchPoolGroup"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "LiveProviderEnum": {
+        "type": "string",
+        "description": "Supported providers for a match live link.",
+        "enum": [
+          "YOUTUBE",
+          "TWITCH",
+          "FACEBOOK"
+        ]
+      },
+      "MobileMatchDetailTeam": {
+        "type": "object",
+        "description": "Match-detail team identity and display projection.",
+        "required": [
+          "id",
+          "name",
+          "shortName",
+          "logoUrl"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/NumericIdentifier"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "shortName": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "logoUrl": {
+            "type": "string",
+            "maxLength": 2048,
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "MobileMatchDetailPool": {
+        "type": "object",
+        "description": "Match-detail pool metadata, styling, and ranking projection without pool-profile-only fields.",
+        "required": [
+          "id",
+          "season",
+          "poolCode",
+          "leagueCode",
+          "leagueName",
+          "name",
+          "shortName",
+          "gender",
+          "ranking",
+          "division"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/NumericIdentifier"
+          },
+          "season": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "poolCode": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "leagueCode": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "leagueName": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "shortName": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "gender": {
+            "$ref": "#/components/schemas/GenderEnum"
+          },
+          "ranking": {
+            "type": "array",
+            "description": "Current five-key gateway ranking order. Exact ties retain unspecified association order; array position is authoritative and no ordinal is invented.",
+            "items": {
+              "$ref": "#/components/schemas/MobileMatchRankingTeam"
+            }
+          },
+          "division": {
+            "$ref": "#/components/schemas/MobileMatchDetailDivision"
+          }
+        },
+        "additionalProperties": false
+      },
+      "MobileMatchSignedDocuments": {
+        "type": "object",
+        "description": "BFF-owned short-lived continuations to federation PDFs. Both URLs are produced when detail succeeds; missing claims or signing failure abort the detail under the current policy.",
+        "required": [
+          "addressPdfUrl",
+          "sheetPdfUrl"
+        ],
+        "properties": {
+          "addressPdfUrl": {
+            "type": "string",
+            "format": "uri"
+          },
+          "sheetPdfUrl": {
+            "type": "string",
+            "format": "uri"
+          }
+        },
+        "additionalProperties": false
+      },
+      "MobileMatchLiveLinkHistoryItem": {
+        "type": "object",
+        "description": "One live-link version in current createdAt-descending order with no immutable-ID tie-breaker. matchId is route context and is not repeated.",
+        "required": [
+          "id",
+          "provider",
+          "url",
+          "status",
+          "reportCount",
+          "ownerAuth0Id",
+          "createdAt",
+          "lastUpdate"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/NumericIdentifier"
+          },
+          "provider": {
+            "$ref": "#/components/schemas/LiveProviderEnum"
+          },
+          "url": {
+            "type": "string",
+            "maxLength": 1024
+          },
+          "status": {
+            "$ref": "#/components/schemas/LiveLinkStatusEnum"
+          },
+          "reportCount": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          },
+          "ownerAuth0Id": {
+            "type": "string"
+          },
+          "createdAt": {
+            "$ref": "#/components/schemas/UtcDateTime"
+          },
+          "lastUpdate": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UtcDateTime"
+              }
+            ],
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "PageInfo": {
+        "type": "object",
+        "description": "Pagination metadata for zero-based Blockout collection responses. hasNext is guaranteed; totalItems is optional unless an operation explicitly guarantees an exact count.",
+        "required": [
+          "page",
+          "pageSize",
+          "hasNext"
+        ],
+        "properties": {
+          "page": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "pageSize": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "totalItems": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "hasNext": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "MobileMatchModerationItem": {
+        "type": "object",
+        "description": "Consumer-backed moderation card. The status filter may match a different historical link than the representative status shown here.",
+        "required": [
+          "id",
+          "matchDate",
+          "season",
+          "set",
+          "lastLiveLinkStatus",
+          "lastLiveLinkCreatedAt",
+          "teamA",
+          "teamB",
+          "pool"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/NumericIdentifier"
+          },
+          "matchDate": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UtcDateTime"
+              }
+            ],
+            "nullable": true
+          },
+          "season": {
+            "type": "string",
+            "maxLength": 255,
+            "nullable": true
+          },
+          "set": {
+            "type": "string",
+            "nullable": true
+          },
+          "lastLiveLinkStatus": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/LiveLinkStatusEnum"
+              }
+            ],
+            "nullable": true
+          },
+          "lastLiveLinkCreatedAt": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UtcDateTime"
+              }
+            ],
+            "nullable": true
+          },
+          "teamA": {
+            "$ref": "#/components/schemas/MobileMatchModerationTeam"
+          },
+          "teamB": {
+            "$ref": "#/components/schemas/MobileMatchModerationTeam"
+          },
+          "pool": {
+            "$ref": "#/components/schemas/MobileMatchModerationPool"
+          }
+        },
+        "additionalProperties": false
+      },
       "MobileNotification": {
         "type": "object",
         "description": "Minimal Expo inbox projection enriched with an optional division logo.",
@@ -3416,35 +4483,6 @@
             "type": "string",
             "maxLength": 2048,
             "nullable": true
-          }
-        },
-        "additionalProperties": false
-      },
-      "PageInfo": {
-        "type": "object",
-        "description": "Pagination metadata for zero-based Blockout collection responses. hasNext is guaranteed; totalItems is optional unless an operation explicitly guarantees an exact count.",
-        "required": [
-          "page",
-          "pageSize",
-          "hasNext"
-        ],
-        "properties": {
-          "page": {
-            "type": "integer",
-            "minimum": 0
-          },
-          "pageSize": {
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 100
-          },
-          "totalItems": {
-            "type": "integer",
-            "format": "int64",
-            "minimum": 0
-          },
-          "hasNext": {
-            "type": "boolean"
           }
         },
         "additionalProperties": false
@@ -3627,6 +4665,335 @@
           },
           "entityId": {
             "$ref": "#/components/schemas/NumericIdentifier"
+          }
+        },
+        "additionalProperties": false
+      },
+      "CalendarDate": {
+        "type": "string",
+        "format": "date",
+        "description": "Calendar date without a time zone.",
+        "x-java-type": "java.time.LocalDate"
+      },
+      "MobileMatchPoolGroup": {
+        "type": "object",
+        "required": [
+          "pool",
+          "matches"
+        ],
+        "properties": {
+          "pool": {
+            "$ref": "#/components/schemas/MobileMatchListPool"
+          },
+          "matches": {
+            "type": "array",
+            "description": "Match rows retain downstream date order with no immutable-ID tie-breaker.",
+            "minItems": 1,
+            "items": {
+              "$ref": "#/components/schemas/MobileMatchListItem"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "MobileMatchRankingTeam": {
+        "type": "object",
+        "description": "Match-screen ranking row. Comparator inputs not rendered by Expo remain internal to the projector.",
+        "required": [
+          "id",
+          "shortName",
+          "logoUrl",
+          "points",
+          "played",
+          "wins",
+          "losses"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/NumericIdentifier"
+          },
+          "shortName": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "logoUrl": {
+            "type": "string",
+            "maxLength": 2048,
+            "nullable": true
+          },
+          "points": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "played": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "wins": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "losses": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "MobileMatchDetailDivision": {
+        "type": "object",
+        "description": "Division label, highlight, gradient, and logo inputs consumed by the match screen.",
+        "required": [
+          "name",
+          "mainColor",
+          "firstGradientColor",
+          "secondGradientColor",
+          "thirdGradientColor",
+          "logoUrl"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "mainColor": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "firstGradientColor": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "secondGradientColor": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "thirdGradientColor": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "logoUrl": {
+            "type": "string",
+            "maxLength": 2048,
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "MobileMatchModerationTeam": {
+        "type": "object",
+        "description": "Team search, label, and logo values used by a moderation card.",
+        "required": [
+          "name",
+          "shortName",
+          "logoUrl"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "shortName": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "logoUrl": {
+            "type": "string",
+            "maxLength": 2048,
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "MobileMatchModerationPool": {
+        "type": "object",
+        "description": "Pool and division labels consumed by a moderation card.",
+        "required": [
+          "shortName",
+          "leagueName",
+          "division"
+        ],
+        "properties": {
+          "shortName": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "leagueName": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "division": {
+            "$ref": "#/components/schemas/MobileMatchModerationDivision"
+          }
+        },
+        "additionalProperties": false
+      },
+      "MobileMatchListPool": {
+        "type": "object",
+        "description": "Match-list pool header projection without detail, ranking, follower, lifecycle, or audit fields.",
+        "required": [
+          "id",
+          "leagueCode",
+          "leagueName",
+          "shortName",
+          "gender",
+          "division"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/NumericIdentifier"
+          },
+          "leagueCode": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "leagueName": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "shortName": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "gender": {
+            "$ref": "#/components/schemas/GenderEnum"
+          },
+          "division": {
+            "$ref": "#/components/schemas/MobileMatchListDivision"
+          }
+        },
+        "additionalProperties": false
+      },
+      "MobileMatchListItem": {
+        "type": "object",
+        "description": "Narrow match-list row. Missing team lookups remain nullable partial sides and do not drop the match; the response exposes no partial-result marker.",
+        "required": [
+          "id",
+          "matchDate",
+          "set",
+          "status",
+          "liveUrl",
+          "teamA",
+          "teamB"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/NumericIdentifier"
+          },
+          "matchDate": {
+            "$ref": "#/components/schemas/UtcDateTime"
+          },
+          "set": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "$ref": "#/components/schemas/MatchStatusEnum"
+          },
+          "liveUrl": {
+            "type": "string",
+            "maxLength": 1024,
+            "nullable": true
+          },
+          "teamA": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MobileMatchListTeam"
+              }
+            ],
+            "nullable": true
+          },
+          "teamB": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MobileMatchListTeam"
+              }
+            ],
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "MobileMatchModerationDivision": {
+        "type": "object",
+        "description": "Division label and gradient used by a moderation card.",
+        "required": [
+          "name",
+          "firstGradientColor",
+          "secondGradientColor",
+          "thirdGradientColor"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "firstGradientColor": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "secondGradientColor": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "thirdGradientColor": {
+            "type": "string",
+            "maxLength": 255
+          }
+        },
+        "additionalProperties": false
+      },
+      "MobileMatchListDivision": {
+        "type": "object",
+        "description": "Division label and styling consumed by match-list pool headers and rows.",
+        "required": [
+          "name",
+          "firstGradientColor",
+          "secondGradientColor",
+          "thirdGradientColor",
+          "logoUrl"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "firstGradientColor": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "secondGradientColor": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "thirdGradientColor": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "logoUrl": {
+            "type": "string",
+            "maxLength": 2048,
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "MobileMatchListTeam": {
+        "type": "object",
+        "description": "Match-list team label and immutable logo fallback result.",
+        "required": [
+          "shortName",
+          "logoUrl"
+        ],
+        "properties": {
+          "shortName": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "logoUrl": {
+            "type": "string",
+            "maxLength": 2048,
+            "nullable": true
           }
         },
         "additionalProperties": false

@@ -30,8 +30,8 @@ The committed shared bundle contains the MRG-316 technical catalog. Deployable b
 pagination, request-correlation, and Problem Details components while resolving only the shared schemas their active
 operations or reusable components reference. MRG-317 through MRG-327 make `config.json`, `clubs.json`, `teams.json`,
 `pools.json`, `competition.json`, `matches.json`, `users.json`, `reports.json`, `notification.json`, and `search.json`
-authoritative owner bundles, and make 39 audited `mobile-gateway.json` relay and club/team/pool operations authoritative.
-The later match task completes its aggregation workflows.
+authoritative owner bundles, and make all 50 audited `mobile-gateway.json` operations authoritative across relay,
+club/team/pool, match/live/moderation, and signed-document workflows.
 Bundle authority defines the target contract; it does not activate routes or change runtime authority.
 The bundler's fixture and workspace guarantees run through:
 

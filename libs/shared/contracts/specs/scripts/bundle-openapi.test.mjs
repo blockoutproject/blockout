@@ -1968,7 +1968,6 @@ test('workspace mobile gateway contract separates the nine club team and pool wo
     },
   );
   assert.equal(workflowOperations.length, 9);
-  assert.equal(operations.length, 39);
   for (const { key, operation } of workflowOperations) {
     if (key.includes('/public/')) {
       assert.deepEqual(operation.security, []);
@@ -2157,6 +2156,309 @@ test('workspace mobile gateway contract separates the nine club team and pool wo
     Object.keys(gateway.components.schemas.UpdateMobilePoolRequest.properties),
     ['name', 'shortName'],
   );
+});
+
+test('workspace mobile gateway contract separates the eleven match live moderation and signed document workflows', async () => {
+  const gateway = await readJson(
+    path.join(generatedSpecsDir, 'mobile-gateway.json'),
+  );
+  const workflowTags = new Set([
+    'MobileMatches',
+    'MobileMatchLiveLinks',
+    'MobileMatchModeration',
+    'MobileFederationDocuments',
+  ]);
+  const operations = Object.entries(gateway.paths).flatMap(
+    ([operationPath, pathItem]) =>
+      Object.entries(pathItem)
+        .filter(([method]) => method !== 'parameters')
+        .map(([method, operation]) => ({
+          key: `${method.toUpperCase()} ${operationPath}`,
+          operation,
+        })),
+  );
+  const workflowOperations = operations.filter(({ operation }) =>
+    operation.tags.some((tag) => workflowTags.has(tag)),
+  );
+
+  assert.deepEqual(
+    Object.fromEntries(
+      workflowOperations
+        .map(({ key, operation }) => [key, operation.operationId])
+        .sort(([left], [right]) => left.localeCompare(right)),
+    ),
+    {
+      'DELETE /api/v2/mobile/secure/matches/{matchId}/live-link':
+        'deleteMobileMatchLiveLink',
+      'GET /api/v2/mobile/public/ffvb/pdf/{token}': 'getMobileFederationPdf',
+      'GET /api/v2/mobile/public/matches': 'listMobileMatchDays',
+      'GET /api/v2/mobile/public/matches/{id}': 'getMobileMatch',
+      'GET /api/v2/mobile/secure/matches/live-moderation':
+        'listMobileMatchesForLiveModeration',
+      'GET /api/v2/mobile/secure/matches/{matchId}/live-links':
+        'listMobileMatchLiveLinkHistory',
+      'POST /api/v2/mobile/secure/matches/live-links/{id}/approve':
+        'approveMobileMatchLiveLink',
+      'POST /api/v2/mobile/secure/matches/live-links/{id}/reactivate':
+        'reactivateMobileMatchLiveLink',
+      'POST /api/v2/mobile/secure/matches/live-links/{id}/reject':
+        'rejectMobileMatchLiveLink',
+      'POST /api/v2/mobile/secure/matches/{matchId}/live-link':
+        'upsertMobileMatchLiveLink',
+      'POST /api/v2/mobile/secure/matches/{matchId}/live-link/report':
+        'reportMobileMatchLiveLink',
+    },
+  );
+  assert.equal(workflowOperations.length, 11);
+  assert.equal(operations.length, 50);
+  assert.equal(
+    new Set(operations.map(({ operation }) => operation.operationId)).size,
+    50,
+  );
+
+  for (const { key, operation } of workflowOperations) {
+    if (key.includes('/public/')) {
+      assert.deepEqual(operation.security, [], key);
+    } else {
+      assert.equal(operation.security, undefined, key);
+    }
+  }
+
+  const matchList = gateway.paths['/api/v2/mobile/public/matches'].get;
+  assert.deepEqual(
+    matchList.parameters.map(({ $ref }) => $ref),
+    [
+      '#/components/parameters/Page',
+      '#/components/parameters/MobileMatchDayPageSize',
+      '#/components/parameters/MobileMatchPoolIds',
+      '#/components/parameters/MobileMatchTeamIds',
+      '#/components/parameters/MobileMatchStatus',
+    ],
+  );
+  assert.equal(
+    gateway.components.parameters.MobileMatchDayPageSize.name,
+    'pageSize',
+  );
+  assert.equal(
+    gateway.components.parameters.MobileMatchDayPageSize.schema.default,
+    4,
+  );
+  assert.equal(gateway.components.parameters.MobileMatchStatus.required, true);
+  assert.equal(gateway.components.parameters.MobileMatchPoolIds.explode, true);
+  assert.equal(gateway.components.parameters.MobileMatchTeamIds.explode, true);
+  assert.deepEqual(
+    Object.keys(
+      gateway.components.schemas.MobileMatchDayPageResponse.properties,
+    ),
+    ['dayMatches', 'hasNext', 'nextPage'],
+  );
+  assert.match(
+    gateway.components.schemas.MobileMatchDayPageResponse.description,
+    /forces hasNext false and nextPage null/,
+  );
+  assert.match(
+    gateway.components.schemas.MobileMatchPoolGroup.properties.matches
+      .description,
+    /no immutable-ID tie-breaker/,
+  );
+  assert.deepEqual(
+    Object.keys(gateway.components.schemas.MobileMatchListItem.properties),
+    ['id', 'matchDate', 'set', 'status', 'liveUrl', 'teamA', 'teamB'],
+  );
+  assert.equal(
+    gateway.components.schemas.MobileMatchListItem.properties.teamA.nullable,
+    true,
+  );
+  assert.equal(
+    gateway.components.schemas.MobileMatchListItem.properties.teamB.nullable,
+    true,
+  );
+  assert.deepEqual(
+    Object.keys(gateway.components.schemas.MobileMatchListTeam.properties),
+    ['shortName', 'logoUrl'],
+  );
+  assert.deepEqual(
+    Object.keys(gateway.components.schemas.MobileMatchListPool.properties),
+    ['id', 'leagueCode', 'leagueName', 'shortName', 'gender', 'division'],
+  );
+
+  assert.deepEqual(
+    Object.keys(gateway.components.schemas.MobileMatchDetail.properties),
+    [
+      'id',
+      'matchDate',
+      'set',
+      'score',
+      'status',
+      'venue',
+      'firstReferee',
+      'secondReferee',
+      'liveUrl',
+      'liveProvider',
+      'liveOwnerAuth0Id',
+      'teamA',
+      'teamB',
+      'pool',
+      'signedDocuments',
+    ],
+  );
+  for (const compatibilityField of [
+    'liveCode',
+    'season',
+    'liveOwnerUsername',
+    'matchAddressPdfUrl',
+    'matchSheetPdfUrl',
+  ]) {
+    assert.equal(
+      gateway.components.schemas.MobileMatchDetail.properties[
+        compatibilityField
+      ],
+      undefined,
+    );
+  }
+  assert.deepEqual(
+    Object.keys(
+      gateway.components.schemas.MobileMatchSignedDocuments.properties,
+    ),
+    ['addressPdfUrl', 'sheetPdfUrl'],
+  );
+  assert.deepEqual(
+    Object.keys(gateway.components.schemas.MobileMatchDetailTeam.properties),
+    ['id', 'name', 'shortName', 'logoUrl'],
+  );
+  assert.deepEqual(
+    Object.keys(gateway.components.schemas.MobileMatchRankingTeam.properties),
+    ['id', 'shortName', 'logoUrl', 'points', 'played', 'wins', 'losses'],
+  );
+  for (const rankingInternalField of [
+    'name',
+    'pointsPenalty',
+    'coefSets',
+    'coefPoints',
+    'latitude',
+    'longitude',
+  ]) {
+    assert.equal(
+      gateway.components.schemas.MobileMatchRankingTeam.properties[
+        rankingInternalField
+      ],
+      undefined,
+    );
+  }
+  assert.match(
+    gateway.components.schemas.MobileMatchDetailPool.properties.ranking
+      .description,
+    /Exact ties retain unspecified association order/,
+  );
+
+  const history =
+    gateway.paths['/api/v2/mobile/secure/matches/{matchId}/live-links'].get;
+  const moderation =
+    gateway.paths['/api/v2/mobile/secure/matches/live-moderation'].get;
+  assert.deepEqual(
+    history.parameters.map(({ $ref }) => $ref),
+    ['#/components/parameters/Page', '#/components/parameters/PageSize'],
+  );
+  assert.deepEqual(
+    moderation.parameters.map(({ $ref }) => $ref),
+    [
+      '#/components/parameters/MobileLiveLinkStatus',
+      '#/components/parameters/Page',
+      '#/components/parameters/PageSize',
+    ],
+  );
+  for (const pageSchemaName of [
+    'MobileMatchLiveLinkHistoryPageResponse',
+    'MobileMatchModerationPageResponse',
+  ]) {
+    assert.deepEqual(
+      Object.keys(gateway.components.schemas[pageSchemaName].properties),
+      ['items', 'pageInfo'],
+    );
+  }
+  assert.equal(
+    gateway.components.schemas.MobileMatchLiveLinkHistoryItem.properties
+      .matchId,
+    undefined,
+  );
+  assert.deepEqual(
+    Object.keys(
+      gateway.components.schemas.MobileMatchLiveLinkHistoryItem.properties,
+    ),
+    [
+      'id',
+      'provider',
+      'url',
+      'status',
+      'reportCount',
+      'ownerAuth0Id',
+      'createdAt',
+      'lastUpdate',
+    ],
+  );
+  assert.deepEqual(
+    Object.keys(
+      gateway.components.schemas.MobileMatchModerationItem.properties,
+    ),
+    [
+      'id',
+      'matchDate',
+      'season',
+      'set',
+      'lastLiveLinkStatus',
+      'lastLiveLinkCreatedAt',
+      'teamA',
+      'teamB',
+      'pool',
+    ],
+  );
+  assert.match(moderation.description, /silently drop rows/);
+  assert.match(
+    gateway.components.schemas.MobileMatchModerationItem.description,
+    /different historical link/,
+  );
+
+  assert.deepEqual(
+    Object.keys(
+      gateway.components.schemas.UpsertMobileMatchLiveLinkRequest.properties,
+    ),
+    ['url'],
+  );
+  assert.deepEqual(
+    Object.keys(
+      gateway.components.schemas.MobileMatchLiveLinkResult.properties,
+    ),
+    ['matchId', 'provider', 'url', 'status'],
+  );
+  assert.equal(
+    gateway.components.schemas.ReportMobileMatchLiveLinkRequest.properties
+      .reason.minLength,
+    10,
+  );
+  assert.equal(
+    gateway.components.schemas.ReportMobileMatchLiveLinkRequest.properties
+      .reason.maxLength,
+    500,
+  );
+
+  const pdf = gateway.paths['/api/v2/mobile/public/ffvb/pdf/{token}'].get;
+  assert.equal(
+    pdf.responses['200'].content['application/pdf'].schema.format,
+    'binary',
+  );
+  assert.equal(
+    pdf.responses['200'].headers['Cache-Control'].schema.pattern,
+    '^no-store$',
+  );
+  assert.equal(
+    pdf.responses['502'].$ref,
+    '#/components/responses/MobileFederationBadGatewayProblem',
+  );
+
+  const workflowJson = JSON.stringify(workflowOperations);
+  for (const legacyName of ['pool_ids', 'team_ids', 'next_page']) {
+    assert.equal(workflowJson.includes(legacyName), false, legacyName);
+  }
 });
 
 test('workspace stable enums remain named top-level components', async () => {

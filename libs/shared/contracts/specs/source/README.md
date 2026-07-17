@@ -341,8 +341,8 @@ store models stay outside the bundle, and no BFF cache representation enters the
 
 This source defines target v2 behavior only. Isolated v1 adapters retain current raw arrays, `count` and `nextPage`,
 snake_case multipart/query fields, statuses, authentication, caching, null, fallback, and partial-failure semantics
-until the owning vertical migration. MRG-357 adds club/team/pool aggregation below, and MRG-358 later completes the
-remaining match-facing workflows.
+until the owning vertical migration. MRG-357 adds club/team/pool aggregation below, and MRG-358 completes the
+match-facing workflows.
 
 ## Mobile-Gateway Club, Team, And Pool Workflows
 
@@ -363,7 +363,34 @@ silently omit missing or inactive rows, expose no partial-result marker, and ret
 Teams by club retain downstream order without a new stability promise. Exact ranking ties and team-detail pool order
 remain unspecified, missing required detail inputs fail the entire request, inactive pool detail remains readable, and
 missing list divisions remain null. The v1 adapter retains raw arrays and every legacy transport shape until MRG-367
-proves parity. MRG-358 alone adds competition, match, live, moderation, and signed-link workflows.
+proves parity.
+
+## Mobile-Gateway Match, Live, And Moderation Workflows
+
+MRG-358 adds the final eleven audited facade operations: the public match-day list and match detail, eight secure live
+and moderation operations, and the signed federation PDF continuation. Together with MRG-327 and MRG-357, the bundle
+now owns all 50 MRG-301/MRG-304 mobile-gateway operations. Public operations remain anonymous; secure operations
+inherit bearer security and leave every live-link decision to matches-service.
+
+The list keeps its meaningful `dayMatches`, `hasNext`, and `nextPage` cursor while renaming the bounded date-count
+input to `pageSize`. Page size counts Paris-local dates, not match rows or fan-out. Day, pool, and match order remains
+status-dependent and retains its missing immutable-ID tie gap. Missing or inactive-division pools, empty pools, and
+empty days are silently removed; a missing team remains a nullable side on an otherwise retained match. No omission
+metadata is invented. The audited early-empty branch still forces a terminal cursor, while enrichment-only drops
+preserve the downstream continuation.
+
+Match detail is separate from list and moderation. It contains only the screen's match, team, pool, division, ranking,
+live, and signed-document inputs. Ranking rows omit server-only comparator fields and coordinates; exact five-key ties
+retain unspecified association order. Both signed document URLs are BFF-owned derived values, and missing match, pool,
+division, side, ranking team, claim, or signing input still fails the whole detail instead of returning a partial
+object. The token continuation returns binary PDF with `no-store`; vendor requests and parameters remain adapter-only.
+
+History and moderation are canonical `items + pageInfo` collections. Their v1 adapters aggregate pages to retain the
+legacy raw arrays. History drops route-duplicated `matchId`, preserves newest-first ordering without an ID tie, and
+continues to make an absent match indistinguishable from empty history. Moderation contains only rendered card fields,
+preserves the historical-filter versus representative-link distinction, silently drops rows with missing catalog
+dependencies, and reports no omitted count. Command request/result schemas remain distinct, use the mobile 10..500
+report rule, and preserve existing success statuses. MRG-368 must prove these semantics before runtime activation.
 
 ## Closed Boundaries
 

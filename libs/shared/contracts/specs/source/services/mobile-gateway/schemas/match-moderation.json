@@ -1,0 +1,101 @@
+{
+  "MobileMatchModerationPageResponse": {
+    "type": "object",
+    "description": "Canonical zero-based moderation page after silent BFF enrichment drops. pageInfo describes the downstream page and deliberately carries no omitted-item count.",
+    "required": ["items", "pageInfo"],
+    "properties": {
+      "items": {
+        "type": "array",
+        "description": "Rows retain downstream matchDate-descending relative order after drops, with no immutable-ID tie-breaker.",
+        "items": {
+          "$ref": "#/components/schemas/MobileMatchModerationItem"
+        }
+      },
+      "pageInfo": { "$ref": "#/components/schemas/PageInfo" }
+    },
+    "additionalProperties": false
+  },
+  "MobileMatchModerationItem": {
+    "type": "object",
+    "description": "Consumer-backed moderation card. The status filter may match a different historical link than the representative status shown here.",
+    "required": [
+      "id",
+      "matchDate",
+      "season",
+      "set",
+      "lastLiveLinkStatus",
+      "lastLiveLinkCreatedAt",
+      "teamA",
+      "teamB",
+      "pool"
+    ],
+    "properties": {
+      "id": { "$ref": "#/components/schemas/NumericIdentifier" },
+      "matchDate": {
+        "allOf": [{ "$ref": "#/components/schemas/UtcDateTime" }],
+        "nullable": true
+      },
+      "season": { "type": "string", "maxLength": 255, "nullable": true },
+      "set": { "type": "string", "nullable": true },
+      "lastLiveLinkStatus": {
+        "allOf": [{ "$ref": "#/components/schemas/LiveLinkStatusEnum" }],
+        "nullable": true
+      },
+      "lastLiveLinkCreatedAt": {
+        "allOf": [{ "$ref": "#/components/schemas/UtcDateTime" }],
+        "nullable": true
+      },
+      "teamA": {
+        "$ref": "#/components/schemas/MobileMatchModerationTeam"
+      },
+      "teamB": {
+        "$ref": "#/components/schemas/MobileMatchModerationTeam"
+      },
+      "pool": {
+        "$ref": "#/components/schemas/MobileMatchModerationPool"
+      }
+    },
+    "additionalProperties": false
+  },
+  "MobileMatchModerationTeam": {
+    "type": "object",
+    "description": "Team search, label, and logo values used by a moderation card.",
+    "required": ["name", "shortName", "logoUrl"],
+    "properties": {
+      "name": { "type": "string", "maxLength": 255 },
+      "shortName": { "type": "string", "maxLength": 255 },
+      "logoUrl": { "type": "string", "maxLength": 2048, "nullable": true }
+    },
+    "additionalProperties": false
+  },
+  "MobileMatchModerationPool": {
+    "type": "object",
+    "description": "Pool and division labels consumed by a moderation card.",
+    "required": ["shortName", "leagueName", "division"],
+    "properties": {
+      "shortName": { "type": "string", "maxLength": 255 },
+      "leagueName": { "type": "string", "maxLength": 255 },
+      "division": {
+        "$ref": "#/components/schemas/MobileMatchModerationDivision"
+      }
+    },
+    "additionalProperties": false
+  },
+  "MobileMatchModerationDivision": {
+    "type": "object",
+    "description": "Division label and gradient used by a moderation card.",
+    "required": [
+      "name",
+      "firstGradientColor",
+      "secondGradientColor",
+      "thirdGradientColor"
+    ],
+    "properties": {
+      "name": { "type": "string", "maxLength": 255 },
+      "firstGradientColor": { "type": "string", "maxLength": 255 },
+      "secondGradientColor": { "type": "string", "maxLength": 255 },
+      "thirdGradientColor": { "type": "string", "maxLength": 255 }
+    },
+    "additionalProperties": false
+  }
+}

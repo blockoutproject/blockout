@@ -510,8 +510,20 @@ state moves to GitHub and this file becomes a historical migration record.
     operation/security matrix, projection fields, privacy, nullability, list and ranking semantics, repeated IDs,
     multipart inputs, and separation from downstream DTOs; source lint passes across 132 fragments without runtime
     changes.
-- [ ] MRG-358 Define and bundle the `mobile-gateway` competition, match, and live BFF contracts, separating list,
+- [x] MRG-358 Define and bundle the `mobile-gateway` competition, match, and live BFF contracts, separating list,
       detail, history, moderation, ranking, pagination, signed-link, and partial-result projections.
+  - Evidence: the mobile-gateway source and generated bundle add the final eleven MRG-301/MRG-304 facade operations,
+    bringing the BFF contract to all 50 inventoried operations across public match days/detail, secure live commands,
+    paged history/moderation, and signed federation PDF continuation. Twenty-three new workflow-owned schemas separate
+    list rows, detail teams/pools/divisions, match-only ranking, signed documents, live commands/results, history, and
+    moderation cards without reusing downstream DTOs. The grouped day cursor preserves date-count pagination,
+    terminal-empty behavior, status-dependent order, silent pool/day drops, nullable missing team sides, and no partial
+    marker; detail remains all-or-error and exact ranking ties remain unspecified. History and moderation use canonical
+    pages with explicit v1 aggregation, existing order/tie gaps, filter/representative mismatch, silent catalog drops,
+    and no invented omission count. Binary PDF continuation is `no-store` and keeps vendor payloads adapter-local.
+    Thirty contract tests cover the exact 50-operation/security matrix, casing, fields, cursor/pages, partial behavior,
+    ranking, commands, report constraints, and signed response; source lint passes across 137 fragments without runtime
+    changes.
 - [ ] MRG-328 Pin Orval `8.22.0` and add the mobile `codegen` Nx target after BFF bundle generation. Generate committed,
       formatted, deterministic mobile-gateway models under `src/api/generated/mobile-gateway/models`, tag-split React
       Query operations/hooks with Axios under `endpoints`, and a second Zod output with `.zod.ts` suffix under
