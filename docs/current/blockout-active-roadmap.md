@@ -272,7 +272,12 @@ state moves to GitHub and this file becomes a historical migration record.
     and Expo-facing `mobile-gateway` layout, fragment roles, bundle ownership, closed boundaries, and later generation
     owners without introducing placeholder contracts; Prettier, documentation links, Maaatch comparison, the contracts
     Nx project/typecheck, the no-source-JSON guard, and diff checks pass.
-- [ ] MRG-306 Port Maaatch's deterministic OpenAPI bundle generator with Blockout service names and output paths.
+- [x] MRG-306 Port Maaatch's deterministic OpenAPI bundle generator with Blockout service names and output paths.
+  - Evidence: `libs/shared/contracts/specs/scripts/bundle-openapi.mjs` ports deterministic fragment discovery, reference
+    closure, tag filtering, and stable JSON output while enforcing the approved Blockout owner names and progressive
+    no-source state; `@blockout/contracts:generate-openapi-bundles` owns the Nx inputs and
+    `generated/specs/*.json` outputs. Node syntax, the uncached no-placeholder generation, contracts typecheck,
+    documentation links, Maaatch comparison, formatting, and diff checks pass.
 - [ ] MRG-307 Port and adapt Maaatch's bundle tests for missing references, transitive schemas, stable ordering, shared
       enums, and deterministic output.
 - [ ] MRG-308 Add source-contract lint that rejects snake_case property and Blockout-owned query names, duplicate

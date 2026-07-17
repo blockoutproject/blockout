@@ -12,5 +12,23 @@
       "import": "./src/index.ts",
       "default": "./src/index.ts"
     }
+  },
+  "nx": {
+    "targets": {
+      "generate-openapi-bundles": {
+        "executor": "nx:run-commands",
+        "cache": true,
+        "inputs": [
+          "{projectRoot}/specs/source/**/*.json",
+          "{projectRoot}/specs/scripts/bundle-openapi.mjs"
+        ],
+        "outputs": [
+          "{projectRoot}/generated/specs/*.json"
+        ],
+        "options": {
+          "command": "node libs/shared/contracts/specs/scripts/bundle-openapi.mjs"
+        }
+      }
+    }
   }
 }
