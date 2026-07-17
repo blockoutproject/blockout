@@ -1,5 +1,6 @@
 package com.blockout.matches.controllers.v1;
 
+import com.blockout.matches.match.application.MatchFinishedEventInput;
 import com.blockout.matches.models.entities.Match;
 import com.blockout.matches.models.events.MatchFinishedEvent;
 import com.blockout.matches.services.EventPublisher;
@@ -42,7 +43,8 @@ public class MatchTestController {
     public ResponseEntity<Void> emitFinishedById(@PathVariable Long id) {
         Match match = matchService.getMatchByIdInternal(id);
 
-        eventPublisher.publishMatchFinished(match);
+        eventPublisher.publishMatchFinished(new MatchFinishedEventInput(
+                match.getId(), match.getTeamIdA(), match.getTeamIdB(), match.getPoolId(), match.getSet()));
 
         logger.info("Test event match.finished emitted",
                 keyValue("action", "emit_test_match_finished"),
@@ -62,14 +64,8 @@ public class MatchTestController {
     @PostMapping("/emit-finished")
     public ResponseEntity<Void> emitFinishedCustom(@RequestBody MatchFinishedEvent event) {
 
-        eventPublisher.publishMatchFinished(
-                Match.builder()
-                        .id(event.getId())
-                        .teamIdA(event.getTeamIdA())
-                        .teamIdB(event.getTeamIdB())
-                        .poolId(event.getPoolId())
-                        .set(event.getSet())
-                        .build());
+        eventPublisher.publishMatchFinished(new MatchFinishedEventInput(
+                event.getId(), event.getTeamIdA(), event.getTeamIdB(), event.getPoolId(), event.getSet()));
 
         logger.info("Custom test event match.finished emitted",
                 keyValue("action", "emit_test_match_finished_custom"),

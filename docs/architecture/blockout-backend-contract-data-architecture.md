@@ -126,6 +126,12 @@ gates are fixed by the
 [MRG-304 coexistence matrix](../migration/mrg-304-contract-coexistence-cutover-matrix.md). Later generator and vertical
 migration tasks implement that matrix; they do not select a different compatibility topology.
 
+Version-qualified controller names and packages are coexistence scaffolding. While v1 and v2 both exist, suffixes such
+as `V2Controller` and packages such as `api/v2` make the transport choice explicit. After authorized v1 retirement,
+the surviving canonical transport becomes unqualified and that version-only naming is removed. Generated boundary
+interfaces and models, meaningful application records, strict mappers, application ports, and persistence separation
+remain. Flyway migration version names are immutable database history and are not part of this cleanup.
+
 Each boundary migrates independently:
 
 1. capture current requests, responses, errors, authentication, null behavior, ordering, pagination, multipart bytes,
@@ -348,6 +354,9 @@ The clubs-service owner boundaries, explicit logo intent, isolated v1 adapter, a
 are recorded in the [MRG-334 clubs runtime migration](../migration/mrg-334-clubs-runtime-migration.md).
 The teams-service owner boundaries, follower projection, isolated v1 adapter, and generated worker, notification, and
 users clients are recorded in the [MRG-335 teams runtime migration](../migration/mrg-335-teams-runtime-migration.md).
+The matches-service core and day-page boundaries, Paris-local grouping, stable pagination, isolated v1 adapter, and
+deferred BFF/scraper callers are recorded in the
+[MRG-338 matches migration](../migration/mrg-338-matches-core-day-runtime-migration.md).
 
 ## 12. Approved Roadmap Sequence
 

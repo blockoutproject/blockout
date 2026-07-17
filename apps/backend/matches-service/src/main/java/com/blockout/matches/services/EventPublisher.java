@@ -1,6 +1,8 @@
 package com.blockout.matches.services;
 
 import com.blockout.matches.config.RabbitMQConfig;
+import com.blockout.matches.match.application.MatchFinishedEventInput;
+import com.blockout.matches.match.application.MatchLifecycleEvents;
 import com.blockout.matches.models.entities.Match;
 import com.blockout.matches.models.events.MatchFinishedEvent;
 import com.blockout.matches.models.events.MatchLiveLinkCreatedEvent;
@@ -17,19 +19,20 @@ import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
 @Service
 @RequiredArgsConstructor
-public class EventPublisher {
+public class EventPublisher implements MatchLifecycleEvents {
 
     private static final Logger logger = LoggerFactory.getLogger(EventPublisher.class);
 
     private final RabbitTemplate rabbitTemplate;
 
-    public void publishMatchFinished(Match match) {
+    @Override
+    public void publishMatchFinished(MatchFinishedEventInput input) {
         MatchFinishedEvent event = MatchFinishedEvent.builder()
-                .id(match.getId())
-                .teamIdA(match.getTeamIdA())
-                .teamIdB(match.getTeamIdB())
-                .poolId(match.getPoolId())
-                .set(match.getSet())
+                .id(input.matchId())
+                .teamIdA(input.teamIdA())
+                .teamIdB(input.teamIdB())
+                .poolId(input.poolId())
+                .set(input.set())
                 .build();
 
         try {
@@ -41,15 +44,15 @@ public class EventPublisher {
 
             logger.info("Match finished event sent",
                     keyValue("action", "publish_match_finished"),
-                    keyValue("matchId", match.getId()),
-                    keyValue("homeTeamId", match.getTeamIdA()),
-                    keyValue("awayTeamId", match.getTeamIdB()),
-                    keyValue("poolId", match.getPoolId()),
-                    keyValue("set", match.getSet()));
+                    keyValue("matchId", input.matchId()),
+                    keyValue("homeTeamId", input.teamIdA()),
+                    keyValue("awayTeamId", input.teamIdB()),
+                    keyValue("poolId", input.poolId()),
+                    keyValue("set", input.set()));
 
         } catch (AmqpException ex) {
             logger.error("Failed to publish match.finished",
-                    keyValue("matchId", match.getId()), ex);
+                    keyValue("matchId", input.matchId()), ex);
             throw ex;
         }
     }

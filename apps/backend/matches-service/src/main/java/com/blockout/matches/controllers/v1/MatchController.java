@@ -1,141 +1,233 @@
 package com.blockout.matches.controllers.v1;
 
-import com.blockout.matches.models.dto.match.BulkMatchesDeactivateRequestDTO;
-import com.blockout.matches.models.dto.match.DayPageDTO;
-import com.blockout.matches.models.dto.match.MatchDTO;
+import com.blockout.matches.match.application.CreateMatchCommand;
+import com.blockout.matches.match.application.DeactivateMatchesCommand;
+import com.blockout.matches.match.application.MatchApplicationService;
+import com.blockout.matches.match.application.MatchDayPage;
+import com.blockout.matches.match.application.MatchDayPoolView;
+import com.blockout.matches.match.application.MatchDayView;
+import com.blockout.matches.match.application.MatchDetailView;
+import com.blockout.matches.match.application.MatchQuery;
+import com.blockout.matches.match.application.MatchSnapshot;
+import com.blockout.matches.match.application.UpdateMatchCommand;
 import com.blockout.matches.models.dto.match.MatchLiveSummaryDTO;
-import com.blockout.matches.models.entities.Match;
 import com.blockout.matches.models.enums.LiveLinkStatus;
+import com.blockout.matches.models.enums.LiveProvider;
 import com.blockout.matches.models.enums.MatchStatus;
 import com.blockout.matches.services.MatchService;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
-import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
-
+import com.blockout.matches.shared.api.v1.LegacyMatchesJson;
+import com.blockout.shared.model.MatchStatusEnum;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import java.net.URI;
+import java.time.Instant;
+import java.time.LocalDate;
 import java.util.Collections;
 import java.util.List;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/v1/matches")
+@RequestMapping(value = "/api/v1/matches", produces = MediaType.APPLICATION_JSON_VALUE)
 public class MatchController {
 
-    private final MatchService matchService;
+    private final MatchApplicationService matches;
+    private final MatchService liveModeration;
+    private final LegacyMatchesJson json;
 
-    @Operation(summary = "Lister les matchs", description = "Retourne les matchs avec filtres optionnels : poolId, teamIds, status, active.")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Liste des matchs")
-    })
     @GetMapping
-    public ResponseEntity<List<Match>> listMatches(
+    public ResponseEntity<String> listMatches(
             @RequestParam(required = false, name = "pool_id") Long poolId,
             @RequestParam(required = false, name = "team_ids") List<Long> teamIds,
             @RequestParam(required = false) MatchStatus status,
-            @RequestParam(required = false) Boolean active) {
-
-        List<Match> matches = matchService.findMatches(poolId, teamIds, status, active);
-        return ResponseEntity.ok(matches);
+            @RequestParam(required = false) Boolean active) throws JsonProcessingException {
+        List<LegacyMatchResponse> response = matches.findAll(
+                new MatchQuery(poolId, teamIds, applicationStatus(status), active)).stream()
+                .map(this::legacyResponse)
+                .toList();
+        return ResponseEntity.ok(json.write(response));
     }
 
-    @Operation(summary = "Groupes de matchs par jour", description = "Retourne les groupes de matchs par jour avec pagination.")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Groupes de jours retournés")
-    })
     @GetMapping("/day-groups")
-    public ResponseEntity<DayPageDTO> dayGroups(
+    public ResponseEntity<String> dayGroups(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "4") int size,
             @RequestParam(required = false, name = "pool_ids") List<Long> poolIds,
             @RequestParam(required = false, name = "team_ids") List<Long> teamIds,
             @RequestParam(required = false) MatchStatus status,
-            @RequestParam(required = false) Boolean active) {
-
-        DayPageDTO dto = matchService.getMatchesByDay(
+            @RequestParam(required = false) Boolean active) throws JsonProcessingException {
+        MatchDayPage result = matches.findDayPage(new com.blockout.matches.match.application.MatchDayQuery(
                 poolIds == null ? Collections.emptyList() : poolIds,
                 teamIds == null ? Collections.emptyList() : teamIds,
-                status,
-                page,
-                size,
-                active);
-        return ResponseEntity.ok(dto);
+                applicationStatus(status), page, size, active));
+        return ResponseEntity.ok(json.write(new LegacyDayPageResponse(
+                result.dayMatches().stream().map(this::legacyResponse).toList(),
+                result.hasNext(), result.nextPage())));
     }
 
-    @Operation(summary = "Récupérer un match par ID", description = "Renvoie un match par son identifiant.")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Match trouvé"),
-            @ApiResponse(responseCode = "404", description = "Match introuvable")
-    })
     @GetMapping("/{id}")
-    public ResponseEntity<MatchDTO> getMatchById(@PathVariable Long id) {
-        MatchDTO match = matchService.getMatchById(id);
-        return ResponseEntity.ok(match);
+    public ResponseEntity<String> getMatchById(@PathVariable Long id) throws JsonProcessingException {
+        return ResponseEntity.ok(json.write(legacyResponse(matches.findDetail(id))));
     }
 
-    @Operation(summary = "Créer un match", description = "Crée un nouveau match.")
-    @ApiResponses({
-            @ApiResponse(responseCode = "201", description = "Match créé"),
-            @ApiResponse(responseCode = "400", description = "Requête invalide")
-    })
+    @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize("hasAuthority('SCOPE_create:matches')")
-    @PostMapping
-    public ResponseEntity<Match> createMatch(@RequestBody Match match) {
-        Match created = matchService.createMatch(match);
+    public ResponseEntity<String> createMatch(@RequestBody String body) throws JsonProcessingException {
+        LegacyMatchRequest request = json.read(body, LegacyMatchRequest.class);
+        MatchSnapshot created = matches.createLegacy(request.createCommand(), request.active());
         URI location = ServletUriComponentsBuilder.fromCurrentRequest()
                 .path("/{id}")
-                .buildAndExpand(created.getId())
+                .buildAndExpand(created.id())
                 .toUri();
-        return ResponseEntity.created(location).body(created);
+        return ResponseEntity.created(location).body(json.write(legacyResponse(created)));
     }
 
-    @Operation(summary = "Mettre à jour un match", description = "Met à jour un match existant.")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Match mis à jour"),
-            @ApiResponse(responseCode = "404", description = "Match introuvable")
-    })
+    @PutMapping(value = "/{id}", consumes = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize("hasAuthority('SCOPE_update:matches')")
-    @PutMapping("/{id}")
-    public ResponseEntity<Match> updateMatch(
-            @PathVariable Long id,
-            @RequestBody Match updated) {
-
-        Match result = matchService.updateMatch(id, updated);
-        return ResponseEntity.ok(result);
+    public ResponseEntity<String> updateMatch(@PathVariable Long id, @RequestBody String body)
+            throws JsonProcessingException {
+        LegacyMatchRequest request = json.read(body, LegacyMatchRequest.class);
+        return ResponseEntity.ok(json.write(legacyResponse(matches.update(id, request.updateCommand()))));
     }
 
-    @Operation(summary = "Désactiver des matchs par pool", description = "Désactive les matchs d'une pool via leurs matchCodes.")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Matches désactivés")
-    })
+    @PutMapping(value = "/pools/{poolId}/bulk-deactivate", consumes = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize("hasAuthority('SCOPE_delete:matches')")
-    @PutMapping("/pools/{poolId}/bulk-deactivate")
-    public ResponseEntity<Void> bulkDeactivateMatches(
-            @PathVariable Long poolId,
-            @RequestBody BulkMatchesDeactivateRequestDTO request) {
-
-        matchService.bulkDeactivateMatches(poolId, request.getMissingMatchCodes());
+    public ResponseEntity<Void> bulkDeactivateMatches(@PathVariable Long poolId, @RequestBody String body)
+            throws JsonProcessingException {
+        LegacyBulkDeactivateRequest request = json.read(body, LegacyBulkDeactivateRequest.class);
+        matches.deactivate(DeactivateMatchesCommand.from(poolId, request.missingMatchCodes()));
         return ResponseEntity.ok().build();
     }
 
-    @Operation(summary = "Lister les matchs avec liens live pour modération", description = "Retourne les matchs ayant au moins un lien live. "
-            +
-            "Inclut le dernier lien (id, statut, provider, url, owner, date). " +
-            "La sélection suit les règles métier : liens PENDING ou ACTIVE sans limite de temps, " +
-            "et autres statuts seulement dans une fenêtre de quelques jours après le match.")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Liste des matchs avec leur dernier live link"),
-            @ApiResponse(responseCode = "403", description = "Non autorisé")
-    })
-    @PreAuthorize("hasAuthority('SCOPE_moderate:match_live_link')")
     @GetMapping("/live-moderation")
+    @PreAuthorize("hasAuthority('SCOPE_moderate:match_live_link')")
     public ResponseEntity<List<MatchLiveSummaryDTO>> listMatchesForLiveModeration(
             @RequestParam(value = "status", required = false) LiveLinkStatus statusFilter) {
-        List<MatchLiveSummaryDTO> summaries = matchService.listMatchesForLiveModeration(statusFilter);
-        return ResponseEntity.ok(summaries);
+        return ResponseEntity.ok(liveModeration.listMatchesForLiveModeration(statusFilter));
+    }
+
+    private LegacyMatchResponse legacyResponse(MatchSnapshot match) {
+        return new LegacyMatchResponse(match.id(), match.matchCode(), match.leagueCode(), match.poolId(),
+                match.liveCode(), match.teamIdA(), match.teamIdB(), match.matchDate(), match.season(), match.set(),
+                match.score(), match.status() == null ? null : MatchStatus.valueOf(match.status().getValue()),
+                match.venue(), match.firstReferee(), match.secondReferee(), match.active(), match.createdAt(),
+                match.lastUpdate());
+    }
+
+    private LegacyMatchDetailResponse legacyResponse(MatchDetailView match) {
+        return new LegacyMatchDetailResponse(match.id(), match.matchCode(), match.leagueCode(), match.poolId(),
+                match.liveCode(), match.teamIdA(), match.teamIdB(), match.matchDate(), match.season(), match.set(),
+                match.score(), MatchStatus.valueOf(match.status().getValue()), match.venue(), match.firstReferee(),
+                match.secondReferee(), match.liveUrl(),
+                match.liveProvider() == null ? null : LiveProvider.valueOf(match.liveProvider().getValue()),
+                match.liveOwnerAuth0Id());
+    }
+
+    private LegacyDayResponse legacyResponse(MatchDayView day) {
+        return new LegacyDayResponse(day.date(), day.pools().stream().map(this::legacyResponse).toList());
+    }
+
+    private LegacyPoolResponse legacyResponse(MatchDayPoolView pool) {
+        return new LegacyPoolResponse(pool.poolId(), pool.matches().stream().map(this::legacyResponse).toList());
+    }
+
+    private MatchStatusEnum applicationStatus(MatchStatus status) {
+        return status == null ? null : MatchStatusEnum.fromValue(status.name());
+    }
+
+    record LegacyBulkDeactivateRequest(List<String> missingMatchCodes) {
+    }
+
+    record LegacyDayPageResponse(List<LegacyDayResponse> dayMatches, boolean hasNext, Integer nextPage) {
+    }
+
+    record LegacyDayResponse(LocalDate date, List<LegacyPoolResponse> pools) {
+    }
+
+    record LegacyPoolResponse(Long poolId, List<LegacyMatchDetailResponse> matches) {
+    }
+
+    record LegacyMatchDetailResponse(
+            Long id,
+            String matchCode,
+            String leagueCode,
+            Long poolId,
+            Long liveCode,
+            Long teamIdA,
+            Long teamIdB,
+            Instant matchDate,
+            String season,
+            String set,
+            String score,
+            MatchStatus status,
+            String venue,
+            String firstReferee,
+            String secondReferee,
+            String liveUrl,
+            LiveProvider liveProvider,
+            String liveOwnerAuth0Id) {
+    }
+
+    record LegacyMatchResponse(
+            Long id,
+            String matchCode,
+            String leagueCode,
+            Long poolId,
+            Long liveCode,
+            Long teamIdA,
+            Long teamIdB,
+            Instant matchDate,
+            String season,
+            String set,
+            String score,
+            MatchStatus status,
+            String venue,
+            String firstReferee,
+            String secondReferee,
+            Boolean active,
+            Instant createdAt,
+            Instant lastUpdate) {
+    }
+
+    record LegacyMatchRequest(
+            Long id,
+            String matchCode,
+            String leagueCode,
+            Long poolId,
+            Long liveCode,
+            Long teamIdA,
+            Long teamIdB,
+            Instant matchDate,
+            String season,
+            String set,
+            String score,
+            MatchStatus status,
+            String venue,
+            String firstReferee,
+            String secondReferee,
+            Boolean active,
+            Instant createdAt,
+            Instant lastUpdate) {
+
+        CreateMatchCommand createCommand() {
+            return new CreateMatchCommand(matchCode, leagueCode, poolId, liveCode, teamIdA, teamIdB, matchDate,
+                    season, set, score, venue, firstReferee, secondReferee);
+        }
+
+        UpdateMatchCommand updateCommand() {
+            return new UpdateMatchCommand(matchCode, leagueCode, poolId, liveCode, teamIdA, teamIdB, matchDate,
+                    season, set, score, venue, firstReferee, secondReferee);
+        }
     }
 }

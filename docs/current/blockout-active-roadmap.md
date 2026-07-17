@@ -725,8 +725,18 @@ state moves to GitHub and this file becomes a historical migration record.
     contract/lint, full backend, documentation, Maaatch comparison, Prettier, and whitespace checks pass. Contracts,
     committed generated artifacts, databases, queues, listeners, BFF, Expo, scrapers, standalone repositories,
     production, Maaatch, Blockout Orval settings, and Python generator settings are unchanged.
-- [ ] MRG-338 Migrate `matches-service` match core and day-page generated boundaries and internal clients with date,
+- [x] MRG-338 Migrate `matches-service` match core and day-page generated boundaries and internal clients with date,
       pagination, ordering, status, null, and scraper parity.
+  - Evidence: `MATCH-01` through `MATCH-06` now implement the generated `MatchesApi` and `MatchDaysApi` through
+    role-owned commands, snapshots and grouped-day views, strict MapStruct mapping, one transactional application
+    service, stable owner pagination, Paris-local day assembly, progressive Problem Details, and compatibility
+    telemetry. The isolated v1 adapter retains snake_case, unpaged scraper reads, `size`, empty `200` lifecycle
+    responses, active/audit fields, null behavior, one-way finishing, event-before-save order, empty-day cursor
+    behavior, and newest-active-link enrichment. Five superseded core DTOs are removed. No in-scope backend Java
+    client exists; mobile-gateway and the competition scraper remain assigned to MRG-368 and MRG-349. Thirteen focused
+    tests plus contract/lint, full backend, documentation, Maaatch comparison, Prettier, and whitespace checks pass.
+    Contracts, committed generated artifacts, databases, event topology, BFF, Expo, scrapers, standalone repositories,
+    production, Maaatch, Blockout Orval settings, and Python generator settings are unchanged.
 - [ ] MRG-361 Migrate `matches-service` live command, response, and history boundaries while preserving ownership,
       quota, state-transition, provider, ordering, and compatibility behavior.
 - [ ] MRG-362 Migrate `matches-service` moderation and live-report boundaries with explicit commands, views, validation,
