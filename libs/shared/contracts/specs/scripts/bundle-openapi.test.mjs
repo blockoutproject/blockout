@@ -1191,6 +1191,147 @@ test('workspace matches contract reconciles the sixteen audited operations', asy
   );
 });
 
+test('workspace users contract reconciles the nine audited operations', async () => {
+  const users = await readJson(path.join(generatedSpecsDir, 'users.json'));
+  const operations = Object.entries(users.paths).flatMap(
+    ([operationPath, pathItem]) =>
+      Object.entries(pathItem)
+        .filter(([method]) => method !== 'parameters')
+        .map(([method, operation]) => ({
+          key: `${method.toUpperCase()} ${operationPath}`,
+          operation,
+        })),
+  );
+  assert.deepEqual(
+    Object.fromEntries(
+      operations
+        .map(({ key, operation }) => [key, operation.operationId])
+        .sort(([left], [right]) => left.localeCompare(right)),
+    ),
+    {
+      'DELETE /api/v2/users/favorites/follow': 'unfollowEntity',
+      'DELETE /api/v2/users/me': 'deleteCurrentUser',
+      'GET /api/v2/users/me': 'getCurrentUser',
+      'GET /api/v2/users/{auth0Id}': 'getUserByAuth0Id',
+      'GET /api/v2/users/{userId}/favorites': 'listUserFavorites',
+      'POST /api/v2/users/favorites/follow': 'followEntity',
+      'POST /api/v2/users/internal/{auth0Id}/assign-default-role':
+        'assignDefaultUserRole',
+      'PUT /api/v2/users/me': 'ensureCurrentUser',
+      'PUT /api/v2/users/{auth0Id}': 'updateUserByAuth0Id',
+    },
+  );
+  assert.equal(
+    new Set(operations.map(({ operation }) => operation.operationId)).size,
+    9,
+  );
+  assert.deepEqual(users.security, [{ bearerAuth: [] }]);
+  assert.deepEqual(
+    users.paths['/api/v2/users/internal/{auth0Id}/assign-default-role'].post
+      .security,
+    [{ internalApiKey: [] }],
+  );
+  assert.equal(
+    users.components.securitySchemes.internalApiKey.name,
+    'X-API-KEY',
+  );
+
+  const account = users.components.schemas.UserAccountInternalResponse;
+  assert.deepEqual(Object.keys(account.properties), [
+    'id',
+    'auth0Id',
+    'email',
+    'pseudo',
+    'pictureUrl',
+    'createdAt',
+    'favorites',
+  ]);
+  assert.equal(
+    account.properties.id.$ref,
+    '#/components/schemas/UuidIdentifier',
+  );
+  for (const removedField of [
+    'firstName',
+    'lastName',
+    'phoneNumber',
+    'active',
+    'lastUpdate',
+  ]) {
+    assert.equal(account.properties[removedField], undefined);
+  }
+
+  const profileRequest =
+    users.components.schemas.UpdateUserProfileInternalRequest;
+  assert.deepEqual(Object.keys(profileRequest.properties), [
+    'pseudo',
+    'removePicture',
+  ]);
+  assert.deepEqual(profileRequest.required, ['removePicture']);
+  assert.equal(profileRequest.properties.pictureUrl, undefined);
+  const updateMultipart =
+    users.paths['/api/v2/users/{auth0Id}'].put.requestBody.content[
+      'multipart/form-data'
+    ];
+  assert.deepEqual(Object.keys(updateMultipart.schema.properties), [
+    'data',
+    'image',
+  ]);
+  assert.equal(updateMultipart.encoding.data.contentType, 'application/json');
+
+  assert.deepEqual(
+    Object.keys(users.components.schemas.UserFavoriteSummary.properties),
+    ['entityType', 'entityId'],
+  );
+  assert.deepEqual(
+    Object.keys(users.components.schemas.UserFavoritePageResponse.properties),
+    ['items', 'pageInfo'],
+  );
+  assert.equal(
+    users.components.parameters.UserId.schema.$ref,
+    '#/components/schemas/UuidIdentifier',
+  );
+  assert.deepEqual(
+    users.paths['/api/v2/users/{userId}/favorites'].get.parameters.map(
+      (parameter) => parameter.$ref,
+    ),
+    [
+      '#/components/parameters/FavoriteEntityType',
+      '#/components/parameters/Page',
+      '#/components/parameters/PageSize',
+    ],
+  );
+  assert.deepEqual(
+    users.paths['/api/v2/users/favorites/follow'].post[
+      'x-required-scopes-by-entity-type'
+    ],
+    { TEAM: 'follow:teams', POOL: 'follow:pools' },
+  );
+  assert.deepEqual(
+    users.paths['/api/v2/users/favorites/follow'].delete[
+      'x-required-scopes-by-entity-type'
+    ],
+    { TEAM: 'follow:teams', POOL: 'follow:pools' },
+  );
+  assert.equal(
+    users.paths['/api/v2/users/favorites/follow'].post.responses['204']
+      .description,
+    'Favorite present or already present.',
+  );
+  assert.equal(
+    users.paths['/api/v2/users/favorites/follow'].delete.responses['204']
+      .description,
+    'Favorite absent or removed.',
+  );
+  assert.match(
+    users.paths['/api/v2/users/{auth0Id}'].put.description,
+    /without adding a path-subject comparison/,
+  );
+  assert.match(
+    users.paths['/api/v2/users/me'].delete.description,
+    /Auth0-first/,
+  );
+});
+
 test('workspace stable enums remain named top-level components', async () => {
   const sourceFiles = await listJsonFiles(sourceDir);
   const inlineEnumLocations = [];

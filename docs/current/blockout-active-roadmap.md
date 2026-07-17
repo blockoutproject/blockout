@@ -429,8 +429,20 @@ state moves to GitHub and this file becomes a historical migration record.
     report constraints, moderation semantics, lifecycle status, and event-source separation; source lint,
     deterministic generation, documentation and Maaatch structure checks, and the unchanged backend reactor package
     successfully without modifying runtime code.
-- [ ] MRG-323 Define and bundle the `users-service` contract from its approved audit using only required camelCase wire
+- [x] MRG-323 Define and bundle the `users-service` contract from its approved audit using only required camelCase wire
       fields and current authentication semantics.
+  - Evidence: the authoritative users source and generated bundle reconcile all nine MRG-301 operations under
+    `/api/v2/users/**` across account, identity-role, and favorite families. The canonical account view uses the local
+    Blockout UUID and retains only seven proven fields; Auth0 subjects remain limited to audited identity/profile
+    compatibility while names, phone, active/update state, numeric IDs, JPA relationships, and favorite persistence
+    fields stay out of v2. Profile multipart uses explicit `removePicture` intent instead of the legacy picture URL
+    echo/null protocol, and favorite reads use a stable shared page with reduced entries while v1 retains its current
+    unpaged adapter. Bearer scopes, type-dependent team/pool follow scopes, exact API-key override, the unbound Auth0
+    update path, idempotent follow outcomes, Auth0-first deletion, and distributed/storage behavior remain explicit and
+    unchanged. Twenty-four contract tests cover exact operation IDs, security schemes/scopes, UUID identity, minimal
+    fields, multipart image intent, favorite paging/query casing, no-op statuses, and preserved authorization/deletion
+    semantics; source lint, deterministic generation, documentation and Maaatch structure checks, and the unchanged
+    backend reactor package successfully without modifying runtime code.
 - [ ] MRG-324 Define and bundle the `reports-service` contract from its approved audit, separating required Blockout
       camelCase payloads from GitHub and Discord vendor adapters.
 - [ ] MRG-325 Define and bundle the `notification-service` REST contract from its approved audit, keeping RabbitMQ event

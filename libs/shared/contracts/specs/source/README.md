@@ -238,6 +238,27 @@ state policies. The upsert result keeps only the four fields consumed by Expo. R
 hardening, cascade decisions, policy corrections, scraper fixtures, outboxes, BFF projections, Expo forms, and runtime
 activation remain later tasks.
 
+## Users-Service Contract
+
+MRG-323 makes `services/users` authoritative for all nine users-service operations inventoried by MRG-301 and allocated
+by MRG-304. Account, identity-role, and favorite path families remain separate. Bearer authentication is the default;
+the role-assignment operation overrides it with a service-local `X-API-KEY` scheme. Existing method scopes, the
+type-dependent team/pool follow scopes, the unbound Auth0 update path, and current idempotent follow/unfollow outcomes
+remain explicit contract behavior rather than being silently corrected.
+
+The local Blockout UUID is the canonical v2 user identity. Auth0 subjects remain only on the two audited identity-facing
+paths and the account view needed by current profile/live-owner workflows. The account view contains the seven
+consumer-backed fields: local identity, Auth0 identity, email, pseudo, picture URL, creation time, and reduced favorites.
+Names, phone, active state, update timestamp, numeric persistence identity, favorite row IDs, owner relationships, and
+favorite timestamps stay isolated in v1 compatibility or persistence adapters.
+
+Profile update is a canonical multipart command with optional pseudo, required `removePicture`, and optional image. It
+eliminates the legacy requirement to echo `pictureUrl` to preserve an image while retaining explicit preserve, replace,
+and remove outcomes. Favorite listing pages by creation then storage identity and returns only entity type and entity
+ID; the v1 adapter preserves its unpaged repository response. Current Auth0 linking, Auth0-first deletion, S3 ordering,
+synchronous counters, follow publication, null favorites, authorization gaps, and retention behavior are preserved
+until their assigned runtime, storage, event, security, and privacy tasks.
+
 ## Closed Boundaries
 
 - `search-worker` has no REST controller and receives no source directory or generated server bundle.

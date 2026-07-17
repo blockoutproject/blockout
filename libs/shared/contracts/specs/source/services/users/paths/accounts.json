@@ -1,0 +1,150 @@
+{
+  "/api/v2/users/{auth0Id}": {
+    "parameters": [{ "$ref": "#/components/parameters/Auth0Id" }],
+    "get": {
+      "operationId": "getUserByAuth0Id",
+      "tags": ["UserAccounts"],
+      "summary": "Resolve a user account by Auth0 subject",
+      "description": "Identity-facing compatibility read. Auth0 remains vendor-owned; the response identifies the account by its canonical local UUID.",
+      "x-required-scope": "read:users",
+      "responses": {
+        "200": {
+          "description": "Resolved user account.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserAccountInternalResponse"
+              }
+            }
+          }
+        },
+        "401": { "$ref": "#/components/responses/UnauthorizedProblem" },
+        "403": { "$ref": "#/components/responses/ForbiddenProblem" },
+        "404": { "$ref": "#/components/responses/NotFoundProblem" },
+        "500": { "$ref": "#/components/responses/InternalServerErrorProblem" }
+      }
+    },
+    "put": {
+      "operationId": "updateUserByAuth0Id",
+      "tags": ["UserAccounts"],
+      "summary": "Update a user profile by Auth0 subject",
+      "description": "Preserves the current update:current_user scope without adding a path-subject comparison. The canonical command replaces the legacy pictureUrl echo/null protocol with explicit removePicture intent.",
+      "x-required-scope": "update:current_user",
+      "requestBody": {
+        "required": true,
+        "content": {
+          "multipart/form-data": {
+            "schema": {
+              "type": "object",
+              "required": ["data"],
+              "properties": {
+                "data": {
+                  "$ref": "#/components/schemas/UpdateUserProfileInternalRequest"
+                },
+                "image": { "type": "string", "format": "binary" }
+              },
+              "additionalProperties": false
+            },
+            "encoding": { "data": { "contentType": "application/json" } }
+          }
+        }
+      },
+      "responses": {
+        "200": {
+          "description": "Updated user account.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserAccountInternalResponse"
+              }
+            }
+          }
+        },
+        "400": { "$ref": "#/components/responses/BadRequestProblem" },
+        "401": { "$ref": "#/components/responses/UnauthorizedProblem" },
+        "403": { "$ref": "#/components/responses/ForbiddenProblem" },
+        "404": { "$ref": "#/components/responses/NotFoundProblem" },
+        "409": { "$ref": "#/components/responses/ConflictProblem" },
+        "413": { "$ref": "#/components/responses/PayloadTooLargeProblem" },
+        "500": { "$ref": "#/components/responses/InternalServerErrorProblem" }
+      }
+    }
+  },
+  "/api/v2/users/me": {
+    "get": {
+      "operationId": "getCurrentUser",
+      "tags": ["UserAccounts"],
+      "summary": "Get the current user account",
+      "description": "Resolves the bearer subject through the users-service identity boundary and returns the canonical local account view.",
+      "x-required-scope": "read:current_user",
+      "responses": {
+        "200": {
+          "description": "Current user account.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserAccountInternalResponse"
+              }
+            }
+          }
+        },
+        "401": { "$ref": "#/components/responses/UnauthorizedProblem" },
+        "403": { "$ref": "#/components/responses/ForbiddenProblem" },
+        "404": { "$ref": "#/components/responses/NotFoundProblem" },
+        "500": { "$ref": "#/components/responses/InternalServerErrorProblem" }
+      }
+    },
+    "put": {
+      "operationId": "ensureCurrentUser",
+      "tags": ["UserAccounts"],
+      "summary": "Ensure the current user account",
+      "description": "Creates or synchronizes the local account from the bearer subject through the existing Auth0 and account-linking behavior.",
+      "x-required-scope": "create:current_user",
+      "responses": {
+        "200": {
+          "description": "Ensured current user account.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserAccountInternalResponse"
+              }
+            }
+          }
+        },
+        "401": { "$ref": "#/components/responses/UnauthorizedProblem" },
+        "403": { "$ref": "#/components/responses/ForbiddenProblem" },
+        "409": { "$ref": "#/components/responses/ConflictProblem" },
+        "500": { "$ref": "#/components/responses/InternalServerErrorProblem" }
+      }
+    },
+    "delete": {
+      "operationId": "deleteCurrentUser",
+      "tags": ["UserAccounts"],
+      "summary": "Delete the current user account",
+      "description": "Preserves the existing Auth0-first, favorite-event, and local-delete ordering. Storage and cross-service retention corrections remain later explicit work.",
+      "x-required-scope": "delete:current_user",
+      "responses": {
+        "204": { "description": "Current user deletion completed." },
+        "401": { "$ref": "#/components/responses/UnauthorizedProblem" },
+        "403": { "$ref": "#/components/responses/ForbiddenProblem" },
+        "404": { "$ref": "#/components/responses/NotFoundProblem" },
+        "500": { "$ref": "#/components/responses/InternalServerErrorProblem" }
+      }
+    }
+  },
+  "/api/v2/users/internal/{auth0Id}/assign-default-role": {
+    "parameters": [{ "$ref": "#/components/parameters/Auth0Id" }],
+    "post": {
+      "operationId": "assignDefaultUserRole",
+      "tags": ["UserIdentity"],
+      "summary": "Assign the configured default Auth0 role",
+      "description": "Internal identity-adapter operation protected by the exact X-API-KEY value. It preserves the current direct Auth0 role-add behavior.",
+      "security": [{ "internalApiKey": [] }],
+      "responses": {
+        "204": { "description": "Default role assignment completed." },
+        "401": { "$ref": "#/components/responses/UnauthorizedProblem" },
+        "500": { "$ref": "#/components/responses/InternalServerErrorProblem" }
+      }
+    }
+  }
+}

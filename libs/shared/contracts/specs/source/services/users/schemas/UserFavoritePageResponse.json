@@ -1,0 +1,15 @@
+{
+  "UserFavoritePageResponse": {
+    "type": "object",
+    "description": "One stable page of canonical favorites ordered by creation ascending and then storage identity ascending.",
+    "required": ["items", "pageInfo"],
+    "properties": {
+      "items": {
+        "type": "array",
+        "items": { "$ref": "#/components/schemas/UserFavoriteSummary" }
+      },
+      "pageInfo": { "$ref": "#/components/schemas/PageInfo" }
+    },
+    "additionalProperties": false
+  }
+}

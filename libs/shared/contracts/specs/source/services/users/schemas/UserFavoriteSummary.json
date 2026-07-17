@@ -1,0 +1,12 @@
+{
+  "UserFavoriteSummary": {
+    "type": "object",
+    "description": "Favorite identity without persistence row ID, owner relationship, or audit timestamp.",
+    "required": ["entityType", "entityId"],
+    "properties": {
+      "entityType": { "$ref": "#/components/schemas/EntityTypeEnum" },
+      "entityId": { "$ref": "#/components/schemas/NumericIdentifier" }
+    },
+    "additionalProperties": false
+  }
+}
