@@ -143,6 +143,31 @@ cannot leave a permanent bypass.
 - Remove the bridge when real operations naturally reference the schemas.
 - Never present this bridge as API behavior.
 
+## Event Contracts
+
+RabbitMQ contracts do not belong in OpenAPI. Follow
+[MRG-315](../../../../docs/decisions/mrg-315-rabbitmq-event-contracts.md) for the approved AsyncAPI `3.0.0` JSON source,
+parser `3.6.0`, Modelina `5.10.1`, generated Java 21 records, envelope, AMQP metadata, versioning, and MRG-304 topology.
+
+- Edit `libs/shared/contracts/events/source/**` first, then validate/bundle, then generate records.
+- Use only local references. One root belongs to each active RabbitMQ deployable; the component catalog has no fake
+  operation, server, or endpoint.
+- Never hand-edit `libs/shared/contracts/generated/events/**` or
+  `apps/backend/event-contracts/src/generated/java/**`.
+- Keep every Blockout-owned envelope, payload, and header key canonical camelCase.
+- Keep generated records model-only and at messaging adapters. Do not reuse them as REST DTOs, persistence entities,
+  cache/index shapes, or application commands/views.
+- Require the fixed v2 envelope and event-specific payload. `EventType` remains event-contract-owned and is not a REST
+  shared enum.
+- Do not add a v2 channel, queue, or listener for an orphan/absent consumer. Contract generation does not declare
+  broker resources.
+- Never publish or consume Spring `__TypeId__` for v2. Use route-selected generated records and the approved AMQP
+  properties/headers.
+- Keep v1 dual-publish byte-compatible except for `x-blockout-event-id`; dual-publish only from a completed outbox.
+
+MRG-350, MRG-369, and MRG-370 own audited payload fields by family. They may not change the selected toolchain,
+envelope, record package, version policy, or coexistence topology.
+
 ## Endpoints And Errors
 
 Each operation defines:
@@ -191,7 +216,10 @@ mvn -f apps/backend/pom.xml -DskipTests generate-sources
 If generation fails, fix source fragments or generator config. Never patch generated files. In the final report, name
 the generations run and those intentionally skipped.
 
-Mobile client generation is intentionally not configured yet. The active roadmap must first inventory the existing
-mobile API layer, choose an Expo-compatible generator, define its output directory, and add the corresponding Nx
-target. Once configured, generated validation schemas remain contract artifacts rather than product or form-design
-sources; fix the OpenAPI source or generator configuration instead of editing generated output.
+Mobile client generation is selected by
+[MRG-313](../../../../docs/decisions/mrg-313-expo-contract-generation.md) but remains unconfigured until MRG-328.
+Once active, generated validation schemas remain contract artifacts rather than product or form-design sources; fix
+the OpenAPI source or generator configuration instead of editing generated output.
+
+Event generation is also activated only by MRG-350. Once active, run the event lint/bundle/model target before Maven,
+verify a second clean generation has no diff, and let Maven compile committed records without invoking Node.

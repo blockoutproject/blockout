@@ -12,3 +12,4 @@ Blockout by structural analogy.
 
 - [MRG-313 — Expo Contract Generation And Form Architecture](mrg-313-expo-contract-generation.md)
 - [MRG-314 — Generated Python Async Contract Clients](mrg-314-python-contract-clients.md)
+- [MRG-315 — AsyncAPI And Generated RabbitMQ Records](mrg-315-rabbitmq-event-contracts.md)

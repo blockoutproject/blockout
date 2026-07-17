@@ -166,7 +166,8 @@ The approved initial REST enum set is:
 
 MRG-301 through MRG-303 must confirm exact deployed values before generation. Provider labels and French display text
 remain application projections rather than enum metadata. `EventType` remains owned by the event-contract source
-selected in MRG-315. The unreferenced legacy `UserGender` remains a removal candidate under MRG-267 gates.
+selected in [MRG-315](../decisions/mrg-315-rabbitmq-event-contracts.md), never REST `shared-models`. The unreferenced
+legacy `UserGender` remains a removal candidate under MRG-267 gates.
 
 Approved technical primitives include Problem Details, page information, bounded-list wrappers, identifiers, dates,
 and security shapes only when several contracts share identical semantics.
@@ -196,10 +197,11 @@ separate approved task.
 
 ## 6. Event Architecture
 
-RabbitMQ contracts are independent from OpenAPI. MRG-315 selects the source format and generator, but the architecture
-is already fixed:
+RabbitMQ contracts are independent from OpenAPI. [MRG-315](../decisions/mrg-315-rabbitmq-event-contracts.md) selects
+AsyncAPI `3.0.0` JSON, parser `3.6.0`, Modelina `5.10.1`, and committed Java 21 records. The architecture is fixed:
 
-- every event has a stable type, event ID, schema version, occurrence time, producer identity, and typed payload;
+- every v2 event has the required event ID, event-contract-owned type, semantic schema version, UTC occurrence time,
+  stable producer, ordering key, optional correlation/aggregate version, and generated typed payload;
 - the owning service maps application facts to the event payload at the messaging adapter;
 - producers use a transactional outbox introduced progressively per service;
 - an outbox publisher retries idempotently and records publication state without changing the business transaction;
@@ -208,8 +210,9 @@ is already fixed:
 - event payloads do not double as REST DTOs, cache snapshots, index documents, or application views;
 - a missing current listener is not activated by contract migration alone.
 
-The rollout families are catalog lifecycle events, favorite/follow events, and match/live events. Each family migrates
-and rolls back independently.
+V2 reuses the current exchanges, appends `.v2` to approved routes, uses distinct queues/DLQs, and never relies on
+`__TypeId__`. The rollout families are catalog lifecycle events, favorite/follow events, and match/live events. Each
+family migrates and rolls back independently under MRG-304.
 
 ## 7. Cross-Service Sources Of Truth
 
@@ -353,12 +356,12 @@ This architecture fixes ownership while the three decision tasks select tools wi
 - [MRG-314](../decisions/mrg-314-python-contract-clients.md) selects OpenAPI Generator `7.23.0` through CLI `2.39.1`,
   six fully generated Python 3.12 `asyncio` clients in one local wheel, thin scraper-owned adapters, generated aliases,
   separate session ownership, scraper-owned Auth0, generated multipart signatures, and no Blockout retry;
-- MRG-315 selects the event source format and generator without changing the approved outbox, envelope, versioning,
-  idempotency, or adapter boundaries.
+- [MRG-315](../decisions/mrg-315-rabbitmq-event-contracts.md) selects AsyncAPI `3.0.0` JSON, parser `3.6.0`, Modelina
+  `5.10.1`, event-specific envelopes, Java 21 records in `com.blockout.events.v2.model`, hermetic Maven ownership, AMQP
+  metadata without `__TypeId__`, and the unchanged MRG-304 v2 topology.
 
-MRG-315 remains unresolved until its approved decision document is published. These tasks may choose tools only within
-the ownership and casing rules above. They may not reopen the architectural decisions approved by MRG-268 without a
-new Plan-mode decision.
+The generator decisions may be implemented only within the ownership and casing rules above. Later tasks may not
+reopen the architectural decisions approved by MRG-268 or MRG-313 through MRG-315 without a new Plan-mode decision.
 
 ## 14. Completion Evidence For Later Boundaries
 

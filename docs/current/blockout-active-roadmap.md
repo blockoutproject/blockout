@@ -342,9 +342,15 @@ state moves to GitHub and this file becomes a historical migration record.
     policy, documentation links, roadmap ownership, formatting, documentation validation, Maaatch comparison,
     unchanged backend packaging, and diff checks pass without changing requirements, Dockerfiles, generated code,
     Python source, network behavior, or runtime.
-- [ ] MRG-315 Select and document the authoritative event-contract format and generator strategy for RabbitMQ payloads;
+- [x] MRG-315 Select and document the authoritative event-contract format and generator strategy for RabbitMQ payloads;
       do not model asynchronous messaging as fake OpenAPI endpoints.
-  - Execution mode: PLAN_REQUIRED
+  - Evidence: the approved decision selects AsyncAPI `3.0.0` JSON, parser `3.6.0`, Modelina `5.10.1`, local-only
+    deployable roots and a component catalog, deterministic bundles, Java 21 records in
+    `com.blockout.events.v2.model`, a fixed v2 envelope and AMQP metadata without `__TypeId__`, hermetic Maven
+    compilation, and the unchanged MRG-304 topology/exclusions. Architecture, contract-first policy, MRG-302 routing,
+    documentation links, roadmap ownership, formatting, documentation validation, Maaatch comparison, unchanged
+    backend packaging, and diff checks pass without creating event source, generated records, broker topology,
+    publishers, listeners, outboxes, deployments, or runtime behavior.
 - [ ] MRG-316 Add shared REST primitives for Problem Details errors, security, pagination, bounded lists, identifiers,
       dates, and shared enums before service-specific schemas duplicate them.
 - [ ] MRG-317 Define and bundle the `config-service` contract from its approved audit using only required wire fields and
@@ -454,16 +460,23 @@ state moves to GitHub and this file becomes a historical migration record.
       generated async clients, preserving Python snake_case application identifiers, Auth0 refresh, `trust_env`,
       connector/timeouts, multipart files, errors, scheduling/concurrency, and provider behavior; remove only migrated
       handwritten wire conversion.
-- [ ] MRG-350 Establish the generated event foundation selected by MRG-315, then migrate club, team, and pool lifecycle
-      event contracts with canonical camelCase, versioning, compatibility, ordering, retry, and rollback evidence.
-- [ ] MRG-369 Migrate favorite and follow event contracts and projections with canonical user UUIDs, idempotency,
-      compatibility, reconciliation, and rollback evidence.
-- [ ] MRG-370 Migrate match-finished and live-link event contracts and consumers with versioning, compatibility,
-      acknowledgement, ordering, retry, and rollback evidence.
-- [ ] MRG-371 Introduce transactional outboxes for clubs, teams, pools, and competition with event IDs, schema versions,
-      idempotent publication, observation, cleanup, and per-service rollback.
+- [ ] MRG-350 Pin parser `3.6.0` and Modelina `5.10.1`; create local-reference AsyncAPI `3.0.0` source/bundles, the
+      component-only generation catalog, deterministic targets, and `apps/backend/event-contracts`; generate committed
+      Java 21 records with `modelType: "record"`, `collectionType: "List"`, and package
+      `com.blockout.events.v2.model`; then add audited club/team/pool lifecycle payloads and reconcile all 11 routes/19
+      queues, including no EV-TPD/Q-11–Q-13/Q-16–Q-17 v2 activation.
+- [ ] MRG-369 Add the audited favorite/follow `EventType` values, AsyncAPI payloads, generated records, publisher and
+      consumer adapter mappings, canonical user UUIDs, idempotent/rebuildable projections, compatibility,
+      reconciliation, golden JSON, and rollback without changing the MRG-315 envelope/tooling/topology.
+- [ ] MRG-370 Add the audited match-finished/live-link `EventType` values, AsyncAPI payloads, generated records,
+      publisher and consumer adapter mappings, acknowledgement/order/version parity, notification-owned Q-14/Q-15 v2
+      declarations, golden JSON, and rollback without changing the MRG-315 envelope/tooling/topology.
+- [ ] MRG-371 Introduce transactional outboxes for clubs, teams, pools, and competition with one event UUID, semantic
+      schema version, ordering metadata, idempotent per-v1/v2 publication, shared `x-blockout-event-id`, observation,
+      cleanup, and per-service rollback; prohibit direct dual-publish.
 - [ ] MRG-372 Introduce transactional outboxes for matches and users plus event-ID deduplication for migrated consumers,
-      preserving existing queue, retry, requeue, and DLQ behavior.
+      preserving current queue, acknowledgement, retry, requeue, and DLQ behavior; emit v2 AMQP properties/headers
+      without `__TypeId__` and run v1/v2 side-effect consumers only through the MRG-304 paused cutover sequence.
 - [ ] MRG-351 Remove global Jackson `SNAKE_CASE` and slice-owned Blockout annotations from config, clubs, teams, and
       pools canonical v2 paths only after every v2 caller uses camelCase; retain the isolated v1 transport adapters
       and their adapter-local snake_case mapper until the MRG-304 production-retirement gate.
@@ -626,8 +639,10 @@ state moves to GitHub and this file becomes a historical migration record.
       `local-compose` job from pull-request and push workflows, keep Compose config validation in the local verifier,
       and retain it in CI only as a step of a general repository/infrastructure job when current evidence justifies it.
 - [ ] MRG-802 Enforce the Phase MRG-300 generation and deterministic no-diff matrix in CI for contracts, backend, Expo,
-      the six pinned Python async clients/common wheel, and the approved event generator; include generated-source
-      guards, Python 3.12 imports/syntax, adapter isolation, wheel installation, and both root-context scraper images.
+      the six pinned Python async clients/common wheel, and AsyncAPI/Modelina event generation; include local-reference
+      validation, 11-route/19-queue reconciliation, deterministic bundles/Java records, golden event JSON, hermetic
+      event-contracts compilation, forbidden annotation/`__TypeId__` guards, Python 3.12 imports/syntax, adapter
+      isolation, wheel installation, and both root-context scraper images.
 - [ ] MRG-803 Upgrade backend CI from compile-only to verified tests after test infrastructure is reliable.
 - [ ] MRG-804 Add actual backend image builds for changed deployables rather than Dockerfile syntax checks only.
 - [ ] MRG-805 Remove the `setup-python@v5` deprecation warning.

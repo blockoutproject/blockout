@@ -40,6 +40,11 @@ REST operations remain owned by [MRG-301](mrg-301-deployed-rest-wire-inventory.m
 conversions remain MRG-303. MRG-315 must select the authoritative event-contract format without representing these
 messages as fake OpenAPI endpoints.
 
+The approved target is now documented by
+[MRG-315 — AsyncAPI And Generated RabbitMQ Records](../decisions/mrg-315-rabbitmq-event-contracts.md). This inventory
+remains the legacy evidence baseline; the decision owns only the future v2 source, generated-record, envelope,
+versioning, and topology rules.
+
 ## Exchange Inventory
 
 Every exchange is a `TopicExchange` created with the Spring constructor defaults: durable and non-auto-delete. No
