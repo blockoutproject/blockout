@@ -13,7 +13,6 @@ import com.blockout.workersearch.configuration.division.application.DivisionSnap
 import com.blockout.workersearch.models.events.ClubUpsertEvent;
 import com.blockout.workersearch.models.events.DivisionUpsertEvent;
 import com.blockout.workersearch.models.events.TeamUpsertEvent;
-import com.blockout.workersearch.services.clients.PoolClientService;
 import com.blockout.workersearch.team.application.TeamCatalog;
 import com.blockout.workersearch.team.application.TeamSnapshot;
 import com.blockout.workersearch.team.outbound.TeamSnapshotEventProjector;
@@ -26,7 +25,7 @@ import static net.logstash.logback.argument.StructuredArguments.keyValue;
 @Service
 @RequiredArgsConstructor
 public class CacheInitializerService {
-    private static final Logger logger = LoggerFactory.getLogger(PoolClientService.class);
+    private static final Logger logger = LoggerFactory.getLogger(CacheInitializerService.class);
 
     private final ClubCatalog clubCatalog;
     private final TeamCatalog teamCatalog;

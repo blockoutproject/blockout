@@ -674,7 +674,20 @@ state moves to GitHub and this file becomes a historical migration record.
     contract/lint, full backend, documentation, Maaatch comparison, Prettier, and whitespace checks pass.
     Mobile-gateway, Expo, Python scrapers, databases, event topology, standalone repositories, production, Maaatch,
     Blockout Orval settings, and Python generator settings remain unchanged.
-- [ ] MRG-336 Migrate `pools-service` generated server boundaries and internal generated clients with parity evidence.
+- [x] MRG-336 Migrate `pools-service` generated server boundaries and internal generated clients with parity evidence.
+  - Evidence: all seven pool operations now implement generated v2 Spring interfaces through feature-owned canonical
+    and legacy create commands, null-preserving updates, `PoolView`/paged projections, a dedicated JPA entity, strict
+    MapStruct mappings, follower commands, progressive Problem Details, and per-operation coexistence telemetry. The
+    isolated v1 adapter retains snake_case records, direct entity-shaped creation and defaults, audit fields, complete
+    list shape, filters, ordering, scopes, full follower responses, zero-floor decrements, soft/cascade deactivation,
+    errors, nullable legacy event enums, and the unversioned upsert event without entity exposure or handwritten
+    Jackson annotations. Search-worker, notification-service, and users-service now use official generated Java pool
+    clients with their existing Auth0 transports, normalized v2 URLs, immediate immutable projections, complete
+    worker page aggregation, canonical `userId`, and generated `204` follower calls; three handwritten clients and two
+    copied DTOs are removed. The 15 new targeted Java tests plus retained client tests, contract/lint, full backend,
+    documentation, Maaatch comparison, Prettier, and whitespace checks pass. Mobile-gateway, Expo, Python scrapers,
+    databases, event topology, standalone repositories, production, Maaatch, Blockout Orval settings, and Python
+    generator settings remain unchanged.
 - [ ] MRG-337 Migrate `competition-service` association and statistics generated server boundaries and internal clients,
       preserving full-snapshot, validation, persistence, and reactivation behavior.
 - [ ] MRG-359 Migrate `competition-service` ranking boundaries through one owner projection and ordering policy, with

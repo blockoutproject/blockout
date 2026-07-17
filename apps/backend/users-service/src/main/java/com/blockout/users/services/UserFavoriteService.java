@@ -1,6 +1,7 @@
 package com.blockout.users.services;
 
 import com.blockout.users.exceptions.CustomUserNotFoundException;
+import com.blockout.users.favorite.application.PoolFollowerProjection;
 import com.blockout.users.favorite.application.TeamFollowerProjection;
 import com.blockout.users.models.entities.CustomUser;
 import com.blockout.users.models.entities.UserFavorite;
@@ -8,7 +9,6 @@ import com.blockout.users.models.enums.EntityType;
 import com.blockout.users.models.enums.EventType;
 import com.blockout.users.repositories.UserFavoriteRepository;
 import com.blockout.users.repositories.UserRepository;
-import com.blockout.users.services.clients.PoolClientService;
 
 import lombok.RequiredArgsConstructor;
 
@@ -31,7 +31,7 @@ public class UserFavoriteService {
     private final UserRepository userRepository;
     private final EventPublisher eventPublisher;
     private final TeamFollowerProjection teamFollowerProjection;
-    private final PoolClientService poolClientService;
+    private final PoolFollowerProjection poolFollowerProjection;
 
     /**
      * Permet à un utilisateur de suivre une entité.
@@ -82,7 +82,7 @@ public class UserFavoriteService {
         }
 
         if (entityType == EntityType.POOL) {
-            poolClientService.incrementFollowers(entityId, user.getId());
+            poolFollowerProjection.increment(entityId, user.getId());
         }
 
         eventPublisher.publishFollowEvent(user.getId(), entityType, entityId, EventType.CREATED);
@@ -121,7 +121,7 @@ public class UserFavoriteService {
             }
 
             if (entityType == EntityType.POOL) {
-                poolClientService.decrementFollowers(entityId, user.getId());
+                poolFollowerProjection.decrement(entityId, user.getId());
             }
 
             eventPublisher.publishFollowEvent(user.getId(), entityType, entityId, EventType.DELETED);

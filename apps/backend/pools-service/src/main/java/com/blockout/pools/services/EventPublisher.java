@@ -1,8 +1,11 @@
 package com.blockout.pools.services;
 
 import com.blockout.pools.config.RabbitMQConfig;
-import com.blockout.pools.models.Pool;
+import com.blockout.pools.models.enums.Format;
+import com.blockout.pools.models.enums.Gender;
 import com.blockout.pools.models.events.PoolUpsertEvent;
+import com.blockout.pools.pool.application.PoolEventPublisher;
+import com.blockout.pools.pool.application.PoolView;
 
 import lombok.RequiredArgsConstructor;
 
@@ -15,23 +18,24 @@ import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
 @Service
 @RequiredArgsConstructor
-public class EventPublisher {
+public class EventPublisher implements PoolEventPublisher {
 
-    private static final Logger logger = LoggerFactory.getLogger(PoolService.class);
-    
+    private static final Logger logger = LoggerFactory.getLogger(EventPublisher.class);
+
     private final RabbitTemplate rabbitTemplate;
 
-    public void publishPoolUpsert(Pool pool) {
+    @Override
+    public void publishUpsert(PoolView pool) {
         PoolUpsertEvent event = PoolUpsertEvent.builder()
-                .id(pool.getId())
-                .name(pool.getName())
-                .shortName(pool.getShortName())
-                .divisionId(pool.getDivisionId())
-                .leagueCode(pool.getLeagueCode())
-                .leagueName(pool.getLeagueName())
-                .season(pool.getSeason())
-                .format(pool.getFormat())
-                .gender(pool.getGender())
+                .id(pool.id())
+                .name(pool.name())
+                .shortName(pool.shortName())
+                .divisionId(pool.divisionId())
+                .leagueCode(pool.leagueCode())
+                .leagueName(pool.leagueName())
+                .season(pool.season())
+                .format(pool.format() == null ? null : Format.valueOf(pool.format().name()))
+                .gender(pool.gender() == null ? null : Gender.valueOf(pool.gender().name()))
                 .build();
 
         try {
@@ -41,13 +45,13 @@ public class EventPublisher {
                     event);
             logger.info("Pool upsert event sent",
                     keyValue("action", "publish_pool_upsert"),
-                    keyValue("id", pool.getId()),
-                    keyValue("name", pool.getName()));
+                    keyValue("id", pool.id()),
+                    keyValue("name", pool.name()));
 
         } catch (AmqpException ex) {
             logger.error("Failed to publish pool event",
-                    keyValue("id", pool.getId()),
-                    keyValue("name", pool.getName()),
+                    keyValue("id", pool.id()),
+                    keyValue("name", pool.name()),
                     ex);
             throw ex; // ou retry / DLQ selon ta stratégie
         }

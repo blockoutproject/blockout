@@ -8,11 +8,11 @@ import org.springframework.stereotype.Service;
 import com.blockout.notifications.models.dto.ResolvePageDTO;
 import com.blockout.notifications.models.dto.expo.ExpoBatchResultDTO;
 import com.blockout.notifications.models.dto.expo.ExpoMessageDTO;
-import com.blockout.notifications.models.dto.pool.PoolDTO;
+import com.blockout.notifications.pool.application.PoolCatalog;
+import com.blockout.notifications.pool.application.PoolNameSnapshot;
 import com.blockout.notifications.models.entity.UserNotification;
 import com.blockout.notifications.models.enums.NotificationTargetType;
 import com.blockout.notifications.models.enums.NotificationType;
-import com.blockout.notifications.services.clients.PoolClientService;
 import com.blockout.notifications.team.application.TeamCatalog;
 import com.blockout.notifications.team.application.TeamNameSnapshot;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -36,7 +36,7 @@ public class NotificationOrchestratorService {
     private final UserNotificationService userNotificationService;
     private final PushTokenService pushTokenService;
 
-    private final PoolClientService poolClientService;
+    private final PoolCatalog poolCatalog;
     private final TeamCatalog teamCatalog;
 
     private final ObjectMapper objectMapper;
@@ -271,13 +271,13 @@ public class NotificationOrchestratorService {
         String teamBName = "Équipe B";
 
         try {
-            PoolDTO pool = poolClientService.getPoolById(poolId);
+            PoolNameSnapshot pool = poolCatalog.getById(poolId);
             if (pool != null) {
-                if (pool.getName() != null && !pool.getName().isBlank()) {
-                    poolName = pool.getName();
+                if (pool.name() != null && !pool.name().isBlank()) {
+                    poolName = pool.name();
                 }
-                if (pool.getDivisionId() != null) {
-                    divisionId = pool.getDivisionId();
+                if (pool.divisionId() != null) {
+                    divisionId = pool.divisionId();
                 }
             }
         } catch (Exception ex) {
@@ -325,13 +325,13 @@ public class NotificationOrchestratorService {
         String teamBName = "Équipe B";
 
         try {
-            PoolDTO pool = poolClientService.getPoolById(poolId);
+            PoolNameSnapshot pool = poolCatalog.getById(poolId);
             if (pool != null) {
-                if (pool.getName() != null && !pool.getName().isBlank()) {
-                    poolName = pool.getName();
+                if (pool.name() != null && !pool.name().isBlank()) {
+                    poolName = pool.name();
                 }
-                if (pool.getDivisionId() != null) {
-                    divisionId = pool.getDivisionId();
+                if (pool.divisionId() != null) {
+                    divisionId = pool.divisionId();
                 }
             }
         } catch (Exception ex) {

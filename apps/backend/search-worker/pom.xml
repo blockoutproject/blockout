@@ -176,6 +176,27 @@
 							</configOptions>
 						</configuration>
 					</execution>
+					<execution>
+						<id>generate-pools-client</id>
+						<phase>generate-sources</phase>
+						<goals>
+							<goal>generate</goal>
+						</goals>
+						<configuration>
+							<inputSpec>${project.basedir}/../../../libs/shared/contracts/generated/specs/pools.json</inputSpec>
+							<generatorName>java</generatorName>
+							<apiNameSuffix>Client</apiNameSuffix>
+							<output>${openapi.generated-sources.root}/pools-client</output>
+							<apiPackage>com.blockout.workersearch.poolsclient.api</apiPackage>
+							<modelPackage>com.blockout.workersearch.poolsclient.model</modelPackage>
+							<invokerPackage>com.blockout.workersearch.poolsclient.invoker</invokerPackage>
+							<configOptions>
+								<library>resttemplate</library>
+								<useJakartaEe>true</useJakartaEe>
+								<hideGenerationTimestamp>true</hideGenerationTimestamp>
+							</configOptions>
+						</configuration>
+					</execution>
 				</executions>
 			</plugin>
 			<plugin>
@@ -193,6 +214,7 @@
 								<source>${openapi.generated-sources.root}/config-client/src/main/java</source>
 								<source>${openapi.generated-sources.root}/clubs-client/src/main/java</source>
 								<source>${openapi.generated-sources.root}/teams-client/src/main/java</source>
+								<source>${openapi.generated-sources.root}/pools-client/src/main/java</source>
 							</sources>
 						</configuration>
 					</execution>

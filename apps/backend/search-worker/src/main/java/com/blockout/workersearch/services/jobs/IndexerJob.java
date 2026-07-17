@@ -7,13 +7,14 @@ import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import com.blockout.workersearch.models.dto.pool.PoolDTO;
 import com.blockout.workersearch.club.application.ClubCatalog;
 import com.blockout.workersearch.club.application.ClubSnapshot;
 import com.blockout.workersearch.models.events.ClubUpsertEvent;
 import com.blockout.workersearch.models.events.PoolUpsertEvent;
 import com.blockout.workersearch.models.events.TeamUpsertEvent;
-import com.blockout.workersearch.services.clients.PoolClientService;
+import com.blockout.workersearch.pool.application.PoolCatalog;
+import com.blockout.workersearch.pool.application.PoolSnapshot;
+import com.blockout.workersearch.pool.outbound.PoolSnapshotEventProjector;
 import com.blockout.workersearch.team.application.TeamCatalog;
 import com.blockout.workersearch.team.application.TeamSnapshot;
 import com.blockout.workersearch.team.outbound.TeamSnapshotEventProjector;
@@ -34,7 +35,8 @@ public class IndexerJob {
     private final ClubCatalog clubCatalog;
     private final TeamCatalog teamCatalog;
     private final TeamSnapshotEventProjector teamProjector;
-    private final PoolClientService poolClientService;
+    private final PoolCatalog poolCatalog;
+    private final PoolSnapshotEventProjector poolProjector;
     private final ClubIndexService clubIndexService;
     private final TeamIndexService teamIndexService;
     private final PoolIndexService poolIndexService;
@@ -79,19 +81,9 @@ public class IndexerJob {
 
     private void reindexPools() {
         poolIndexService.deleteAll();
-        List<PoolDTO> pools = poolClientService.listActivePools();
+        List<PoolSnapshot> pools = poolCatalog.findActivePools();
         List<PoolUpsertEvent> events = pools.stream()
-                .map(pool -> PoolUpsertEvent.builder()
-                        .id(pool.getId())
-                        .name(pool.getName())
-                        .shortName(pool.getShortName())
-                        .divisionId(pool.getDivisionId())
-                        .leagueCode(pool.getLeagueCode())
-                        .leagueName(pool.getLeagueName())
-                        .season(pool.getSeason())
-                        .format(pool.getFormat())
-                        .gender(pool.getGender())
-                        .build())
+                .map(poolProjector::project)
                 .toList();
 
         logger.info("Reindexing pools", keyValue("count", events.size()));
