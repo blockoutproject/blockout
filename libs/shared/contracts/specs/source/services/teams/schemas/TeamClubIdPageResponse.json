@@ -1,0 +1,20 @@
+{
+  "TeamClubIdPageResponse": {
+    "type": "object",
+    "description": "One page of distinct club identifiers referenced by any active or inactive team, ordered lexicographically. Consumers that require the legacy complete set aggregate every page.",
+    "required": ["items", "pageInfo"],
+    "properties": {
+      "items": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "maxLength": 255
+        }
+      },
+      "pageInfo": {
+        "$ref": "#/components/schemas/PageInfo"
+      }
+    },
+    "additionalProperties": false
+  }
+}

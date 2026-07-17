@@ -9,6 +9,111 @@
       "url": "http://localhost"
     }
   ],
-  "tags": [],
-  "components": {}
+  "tags": [
+    {
+      "name": "Teams"
+    },
+    {
+      "name": "TeamClubDiscovery"
+    },
+    {
+      "name": "TeamFollowers"
+    }
+  ],
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "components": {
+    "parameters": {
+      "TeamId": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "$ref": "#/components/schemas/NumericIdentifier"
+        }
+      },
+      "FollowerTeamId": {
+        "name": "teamId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "$ref": "#/components/schemas/NumericIdentifier"
+        }
+      },
+      "DivisionId": {
+        "name": "divisionId",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "$ref": "#/components/schemas/NumericIdentifier"
+        }
+      },
+      "TeamFormat": {
+        "name": "format",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "$ref": "#/components/schemas/FormatEnum"
+        }
+      },
+      "TeamGender": {
+        "name": "gender",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "$ref": "#/components/schemas/GenderEnum"
+        }
+      },
+      "TeamSeason": {
+        "name": "season",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "maxLength": 255
+        }
+      },
+      "TeamClubId": {
+        "name": "clubId",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "maxLength": 255
+        }
+      },
+      "TeamIds": {
+        "name": "ids",
+        "in": "query",
+        "required": false,
+        "style": "form",
+        "explode": true,
+        "schema": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/NumericIdentifier"
+          }
+        }
+      },
+      "TeamActive": {
+        "name": "active",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "boolean"
+        }
+      },
+      "FollowerUserId": {
+        "name": "userId",
+        "in": "query",
+        "required": true,
+        "schema": {
+          "$ref": "#/components/schemas/NumericIdentifier"
+        }
+      }
+    }
+  }
 }

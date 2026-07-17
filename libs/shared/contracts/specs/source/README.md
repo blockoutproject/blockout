@@ -139,6 +139,28 @@ Five operations retain their audited scopes. The logo read remains authenticated
 its `200` plain URL, `204` empty, and `404` missing-club outcomes. Public phone filtering remains BFF-owned; Mapbox,
 S3, RabbitMQ, v1 transport, and runtime activation remain outside this contract-definition task.
 
+## Teams-Service Contract
+
+MRG-319 makes `services/teams` authoritative for the eight canonical teams-service operations inventoried by MRG-301
+and allocated by MRG-304. The bundle covers filtered team reads, clean JSON creation, typed multipart update, soft
+deactivation, club-ID discovery, and the two follower-projection mutations under `/api/v2/teams/**`.
+
+`TeamInternalResponse` retains the thirteen owner, classification, follower, image, and lifecycle fields required by
+proven consumers while omitting persistence timestamps and BFF-derived club coordinates or fallback images. Team and
+club-ID collections use typed page responses and deterministic raw-name/identifier or club-identifier ordering.
+Compatibility scraper, BFF, and worker adapters aggregate all pages before exposing a legacy complete-list result.
+
+Creation contains only caller-owned team identity and classification fields; server identity, follower count, active
+state, logo storage, and timestamps cannot be supplied. Update preserves current partial-field and explicit active
+semantics while replacing the destructive `logoUrl` sentinel with required `removeLogo`, using the same keep, replace,
+delete, and conflict rules as the club contract. Shared `FormatEnum` and `GenderEnum` are the only REST enum sources.
+
+List, detail, and club-ID discovery remain authenticated without method scopes. Create, update, delete, and both
+follower mutations retain their audited scopes. Because the follower caller discards the legacy entity response, v2
+returns `204`; v1 keeps `200` and its full body inside the compatibility adapter. Canonical unique conflicts and
+oversized multipart updates use `409` and `413` Problem Details, while v1 error behavior remains unchanged. Favorite
+authority, idempotency, reconciliation, S3 compensation, RabbitMQ, and runtime activation remain later tasks.
+
 ## Closed Boundaries
 
 - `search-worker` has no REST controller and receives no source directory or generated server bundle.

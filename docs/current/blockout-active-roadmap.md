@@ -380,8 +380,17 @@ state moves to GitHub and this file becomes a historical migration record.
     tests cover exact operation IDs, scopes, fields, page parameters, multipart shapes, logo intent, and response
     statuses; source lint, deterministic generation, documentation and Maaatch structure checks, and the unchanged
     backend reactor package successfully without modifying runtime code.
-- [ ] MRG-319 Define and bundle the `teams-service` contract from its approved audit using only required camelCase wire
+- [x] MRG-319 Define and bundle the `teams-service` contract from its approved audit using only required camelCase wire
       fields, including multipart operations.
+  - Evidence: the authoritative teams source and generated bundle reconcile all eight MRG-301 operations under
+    `/api/v2/teams/**`. Five owner schemas retain thirteen proven owner fields, isolate nine caller-owned creation
+    fields, define partial update plus required `removeLogo`, and provide typed paged team and club-ID collections with
+    deterministic ordering and explicit legacy aggregation. Shared format/gender enums and numeric identifiers replace
+    local copies; follower mutations keep their scope and user identity but return canonical `204` instead of an unused
+    entity body, with v1 `200` compatibility retained for later adapters. Twenty contract tests cover exact operation
+    IDs, scopes, fields, pagination, repeated IDs, multipart parts, logo intent, and follower responses; source lint,
+    deterministic generation, documentation and Maaatch structure checks, and the unchanged backend reactor package
+    successfully without modifying runtime code.
 - [ ] MRG-320 Define and bundle the `pools-service` contract from its approved audit using only required camelCase wire
       fields.
 - [ ] MRG-321 Define and bundle the `competition-service` contract from its approved audit using only required

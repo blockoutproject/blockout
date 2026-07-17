@@ -1,0 +1,341 @@
+{
+  "/api/v2/teams": {
+    "get": {
+      "operationId": "listTeams",
+      "tags": ["Teams"],
+      "summary": "List teams",
+      "description": "Returns a page of teams ordered by raw name and then identifier. Empty or omitted ids preserve the all-teams filter; compatibility callers that require the legacy complete list aggregate every page.",
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/DivisionId"
+        },
+        {
+          "$ref": "#/components/parameters/TeamFormat"
+        },
+        {
+          "$ref": "#/components/parameters/TeamGender"
+        },
+        {
+          "$ref": "#/components/parameters/TeamSeason"
+        },
+        {
+          "$ref": "#/components/parameters/TeamClubId"
+        },
+        {
+          "$ref": "#/components/parameters/TeamIds"
+        },
+        {
+          "$ref": "#/components/parameters/TeamActive"
+        },
+        {
+          "$ref": "#/components/parameters/Page"
+        },
+        {
+          "$ref": "#/components/parameters/PageSize"
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "Requested team page.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TeamInternalPageResponse"
+              }
+            }
+          }
+        },
+        "400": {
+          "$ref": "#/components/responses/BadRequestProblem"
+        },
+        "401": {
+          "$ref": "#/components/responses/UnauthorizedProblem"
+        },
+        "500": {
+          "$ref": "#/components/responses/InternalServerErrorProblem"
+        }
+      }
+    },
+    "post": {
+      "operationId": "createTeam",
+      "tags": ["Teams"],
+      "summary": "Create a team",
+      "description": "Creates a team with server-owned identity, follower count, active state, logo storage, and audit timestamps.",
+      "x-required-scope": "create:teams",
+      "requestBody": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/CreateTeamInternalRequest"
+            }
+          }
+        }
+      },
+      "responses": {
+        "201": {
+          "description": "Team created.",
+          "headers": {
+            "Location": {
+              "description": "Canonical location of the created team.",
+              "schema": {
+                "type": "string"
+              }
+            }
+          },
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TeamInternalResponse"
+              }
+            }
+          }
+        },
+        "400": {
+          "$ref": "#/components/responses/BadRequestProblem"
+        },
+        "401": {
+          "$ref": "#/components/responses/UnauthorizedProblem"
+        },
+        "403": {
+          "$ref": "#/components/responses/ForbiddenProblem"
+        },
+        "409": {
+          "$ref": "#/components/responses/ConflictProblem"
+        },
+        "500": {
+          "$ref": "#/components/responses/InternalServerErrorProblem"
+        }
+      }
+    }
+  },
+  "/api/v2/teams/{id}": {
+    "parameters": [
+      {
+        "$ref": "#/components/parameters/TeamId"
+      }
+    ],
+    "get": {
+      "operationId": "getTeam",
+      "tags": ["Teams"],
+      "summary": "Get a team",
+      "description": "Returns one active or inactive team by its numeric identifier.",
+      "responses": {
+        "200": {
+          "description": "Requested team.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TeamInternalResponse"
+              }
+            }
+          }
+        },
+        "401": {
+          "$ref": "#/components/responses/UnauthorizedProblem"
+        },
+        "404": {
+          "$ref": "#/components/responses/NotFoundProblem"
+        },
+        "500": {
+          "$ref": "#/components/responses/InternalServerErrorProblem"
+        }
+      }
+    },
+    "put": {
+      "operationId": "updateTeam",
+      "tags": ["Teams"],
+      "summary": "Update a team",
+      "description": "Partially updates a team from a canonical camelCase JSON part and applies its explicit logo intent.",
+      "x-required-scope": "update:teams",
+      "requestBody": {
+        "required": true,
+        "content": {
+          "multipart/form-data": {
+            "schema": {
+              "type": "object",
+              "required": ["data"],
+              "properties": {
+                "data": {
+                  "$ref": "#/components/schemas/UpdateTeamInternalRequest"
+                },
+                "image": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "additionalProperties": false
+            },
+            "encoding": {
+              "data": {
+                "contentType": "application/json"
+              }
+            }
+          }
+        }
+      },
+      "responses": {
+        "200": {
+          "description": "Updated team.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TeamInternalResponse"
+              }
+            }
+          }
+        },
+        "400": {
+          "$ref": "#/components/responses/BadRequestProblem"
+        },
+        "401": {
+          "$ref": "#/components/responses/UnauthorizedProblem"
+        },
+        "403": {
+          "$ref": "#/components/responses/ForbiddenProblem"
+        },
+        "404": {
+          "$ref": "#/components/responses/NotFoundProblem"
+        },
+        "409": {
+          "$ref": "#/components/responses/ConflictProblem"
+        },
+        "413": {
+          "$ref": "#/components/responses/PayloadTooLargeProblem"
+        },
+        "500": {
+          "$ref": "#/components/responses/InternalServerErrorProblem"
+        }
+      }
+    },
+    "delete": {
+      "operationId": "deactivateTeam",
+      "tags": ["Teams"],
+      "summary": "Deactivate a team",
+      "description": "Soft-deactivates the team without changing the current direct-delete event behavior.",
+      "x-required-scope": "delete:teams",
+      "responses": {
+        "204": {
+          "description": "Team deactivated."
+        },
+        "401": {
+          "$ref": "#/components/responses/UnauthorizedProblem"
+        },
+        "403": {
+          "$ref": "#/components/responses/ForbiddenProblem"
+        },
+        "404": {
+          "$ref": "#/components/responses/NotFoundProblem"
+        },
+        "500": {
+          "$ref": "#/components/responses/InternalServerErrorProblem"
+        }
+      }
+    }
+  },
+  "/api/v2/teams/club-ids": {
+    "get": {
+      "operationId": "listTeamClubIds",
+      "tags": ["TeamClubDiscovery"],
+      "summary": "List distinct team club identifiers",
+      "description": "Returns distinct club identifiers referenced by active or inactive teams, ordered lexicographically. Compatibility callers aggregate every page.",
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/Page"
+        },
+        {
+          "$ref": "#/components/parameters/PageSize"
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "Requested club identifier page.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TeamClubIdPageResponse"
+              }
+            }
+          }
+        },
+        "400": {
+          "$ref": "#/components/responses/BadRequestProblem"
+        },
+        "401": {
+          "$ref": "#/components/responses/UnauthorizedProblem"
+        },
+        "500": {
+          "$ref": "#/components/responses/InternalServerErrorProblem"
+        }
+      }
+    }
+  },
+  "/api/v2/teams/{teamId}/followers/increment": {
+    "parameters": [
+      {
+        "$ref": "#/components/parameters/FollowerTeamId"
+      },
+      {
+        "$ref": "#/components/parameters/FollowerUserId"
+      }
+    ],
+    "post": {
+      "operationId": "incrementTeamFollowers",
+      "tags": ["TeamFollowers"],
+      "summary": "Increment the team follower projection",
+      "description": "Increments the derived follower count for the canonical favorite owner. The legacy v1 adapter retains its unused full-team response.",
+      "x-required-scope": "follow:teams",
+      "responses": {
+        "204": {
+          "description": "Follower projection incremented."
+        },
+        "401": {
+          "$ref": "#/components/responses/UnauthorizedProblem"
+        },
+        "403": {
+          "$ref": "#/components/responses/ForbiddenProblem"
+        },
+        "404": {
+          "$ref": "#/components/responses/NotFoundProblem"
+        },
+        "500": {
+          "$ref": "#/components/responses/InternalServerErrorProblem"
+        }
+      }
+    }
+  },
+  "/api/v2/teams/{teamId}/followers/decrement": {
+    "parameters": [
+      {
+        "$ref": "#/components/parameters/FollowerTeamId"
+      },
+      {
+        "$ref": "#/components/parameters/FollowerUserId"
+      }
+    ],
+    "post": {
+      "operationId": "decrementTeamFollowers",
+      "tags": ["TeamFollowers"],
+      "summary": "Decrement the team follower projection",
+      "description": "Decrements the derived follower count with the current zero floor. The legacy v1 adapter retains its unused full-team response.",
+      "x-required-scope": "follow:teams",
+      "responses": {
+        "204": {
+          "description": "Follower projection decremented."
+        },
+        "401": {
+          "$ref": "#/components/responses/UnauthorizedProblem"
+        },
+        "403": {
+          "$ref": "#/components/responses/ForbiddenProblem"
+        },
+        "404": {
+          "$ref": "#/components/responses/NotFoundProblem"
+        },
+        "500": {
+          "$ref": "#/components/responses/InternalServerErrorProblem"
+        }
+      }
+    }
+  }
+}

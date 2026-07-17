@@ -1,0 +1,73 @@
+{
+  "TeamInternalResponse": {
+    "type": "object",
+    "description": "Team owner projection without persistence audit timestamps or BFF-derived club coordinates and fallback images.",
+    "required": [
+      "id",
+      "clubId",
+      "rawName",
+      "name",
+      "shortName",
+      "leagueCode",
+      "divisionId",
+      "season",
+      "format",
+      "gender",
+      "followersCount",
+      "logoUrl",
+      "active"
+    ],
+    "properties": {
+      "id": {
+        "$ref": "#/components/schemas/NumericIdentifier"
+      },
+      "clubId": {
+        "type": "string",
+        "maxLength": 255
+      },
+      "rawName": {
+        "type": "string",
+        "maxLength": 255
+      },
+      "name": {
+        "type": "string",
+        "maxLength": 255
+      },
+      "shortName": {
+        "type": "string",
+        "maxLength": 255
+      },
+      "leagueCode": {
+        "type": "string",
+        "maxLength": 255
+      },
+      "divisionId": {
+        "$ref": "#/components/schemas/NumericIdentifier"
+      },
+      "season": {
+        "type": "string",
+        "maxLength": 255
+      },
+      "format": {
+        "$ref": "#/components/schemas/FormatEnum"
+      },
+      "gender": {
+        "$ref": "#/components/schemas/GenderEnum"
+      },
+      "followersCount": {
+        "type": "integer",
+        "format": "int64",
+        "minimum": 0
+      },
+      "logoUrl": {
+        "type": "string",
+        "maxLength": 255,
+        "nullable": true
+      },
+      "active": {
+        "type": "boolean"
+      }
+    },
+    "additionalProperties": false
+  }
+}

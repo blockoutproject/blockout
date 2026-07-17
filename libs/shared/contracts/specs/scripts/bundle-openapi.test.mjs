@@ -528,6 +528,187 @@ test('workspace clubs contract reconciles the six audited operations', async () 
   );
 });
 
+test('workspace teams contract reconciles the eight audited operations', async () => {
+  const teams = await readJson(path.join(generatedSpecsDir, 'teams.json'));
+  const operations = Object.entries(teams.paths).flatMap(
+    ([operationPath, pathItem]) =>
+      Object.entries(pathItem)
+        .filter(([method]) => method !== 'parameters')
+        .map(([method, operation]) => ({
+          key: `${method.toUpperCase()} ${operationPath}`,
+          operation,
+        })),
+  );
+  const expectedOperations = {
+    'DELETE /api/v2/teams/{id}': 'deactivateTeam',
+    'GET /api/v2/teams': 'listTeams',
+    'GET /api/v2/teams/club-ids': 'listTeamClubIds',
+    'GET /api/v2/teams/{id}': 'getTeam',
+    'POST /api/v2/teams': 'createTeam',
+    'POST /api/v2/teams/{teamId}/followers/decrement': 'decrementTeamFollowers',
+    'POST /api/v2/teams/{teamId}/followers/increment': 'incrementTeamFollowers',
+    'PUT /api/v2/teams/{id}': 'updateTeam',
+  };
+
+  assert.deepEqual(
+    Object.fromEntries(
+      operations
+        .map(({ key, operation }) => [key, operation.operationId])
+        .sort(([left], [right]) => left.localeCompare(right)),
+    ),
+    expectedOperations,
+  );
+  assert.equal(
+    new Set(operations.map(({ operation }) => operation.operationId)).size,
+    8,
+  );
+
+  const expectedScopes = {
+    createTeam: 'create:teams',
+    deactivateTeam: 'delete:teams',
+    decrementTeamFollowers: 'follow:teams',
+    incrementTeamFollowers: 'follow:teams',
+    updateTeam: 'update:teams',
+  };
+  assert.deepEqual(
+    Object.fromEntries(
+      operations
+        .filter(({ operation }) => operation['x-required-scope'])
+        .map(({ operation }) => [
+          operation.operationId,
+          operation['x-required-scope'],
+        ])
+        .sort(([left], [right]) => left.localeCompare(right)),
+    ),
+    expectedScopes,
+  );
+  assert.deepEqual(teams.security, [{ bearerAuth: [] }]);
+
+  assert.deepEqual(
+    Object.keys(teams.components.schemas.TeamInternalResponse.properties).sort(
+      (left, right) => left.localeCompare(right),
+    ),
+    [
+      'active',
+      'clubId',
+      'divisionId',
+      'followersCount',
+      'format',
+      'gender',
+      'id',
+      'leagueCode',
+      'logoUrl',
+      'name',
+      'rawName',
+      'season',
+      'shortName',
+    ],
+  );
+
+  const createSchema = teams.components.schemas.CreateTeamInternalRequest;
+  assert.deepEqual(
+    Object.keys(createSchema.properties).sort((left, right) =>
+      left.localeCompare(right),
+    ),
+    [
+      'clubId',
+      'divisionId',
+      'format',
+      'gender',
+      'leagueCode',
+      'name',
+      'rawName',
+      'season',
+      'shortName',
+    ],
+  );
+  assert.deepEqual(createSchema.required, [
+    'clubId',
+    'rawName',
+    'name',
+    'shortName',
+    'leagueCode',
+    'divisionId',
+    'season',
+    'format',
+    'gender',
+  ]);
+
+  const updateSchema = teams.components.schemas.UpdateTeamInternalRequest;
+  assert.deepEqual(
+    Object.keys(updateSchema.properties).sort((left, right) =>
+      left.localeCompare(right),
+    ),
+    [
+      'active',
+      'clubId',
+      'divisionId',
+      'format',
+      'gender',
+      'leagueCode',
+      'name',
+      'rawName',
+      'removeLogo',
+      'season',
+      'shortName',
+    ],
+  );
+  assert.deepEqual(updateSchema.required, ['removeLogo']);
+
+  for (const schemaName of [
+    'TeamInternalPageResponse',
+    'TeamClubIdPageResponse',
+  ]) {
+    assert.deepEqual(
+      Object.keys(teams.components.schemas[schemaName].properties),
+      ['items', 'pageInfo'],
+    );
+  }
+
+  assert.deepEqual(
+    teams.paths['/api/v2/teams'].get.parameters.map(
+      (parameter) => parameter.$ref,
+    ),
+    [
+      '#/components/parameters/DivisionId',
+      '#/components/parameters/TeamFormat',
+      '#/components/parameters/TeamGender',
+      '#/components/parameters/TeamSeason',
+      '#/components/parameters/TeamClubId',
+      '#/components/parameters/TeamIds',
+      '#/components/parameters/TeamActive',
+      '#/components/parameters/Page',
+      '#/components/parameters/PageSize',
+    ],
+  );
+  assert.equal(teams.components.parameters.TeamIds.explode, true);
+
+  const updateMultipart =
+    teams.paths['/api/v2/teams/{id}'].put.requestBody.content[
+      'multipart/form-data'
+    ];
+  assert.equal(
+    updateMultipart.schema.properties.data.$ref,
+    '#/components/schemas/UpdateTeamInternalRequest',
+  );
+  assert.equal(updateMultipart.encoding.data.contentType, 'application/json');
+  assert.equal(updateMultipart.schema.properties.image.format, 'binary');
+
+  for (const action of ['increment', 'decrement']) {
+    const followerOperation =
+      teams.paths[`/api/v2/teams/{teamId}/followers/${action}`].post;
+    assert.deepEqual(Object.keys(followerOperation.responses).sort(), [
+      '204',
+      '401',
+      '403',
+      '404',
+      '500',
+    ]);
+  }
+  assert.equal(teams.components.parameters.FollowerUserId.name, 'userId');
+  assert.equal(teams.components.parameters.FollowerUserId.required, true);
+});
+
 test('workspace stable enums remain named top-level components', async () => {
   const sourceFiles = await listJsonFiles(sourceDir);
   const inlineEnumLocations = [];

@@ -1,0 +1,19 @@
+{
+  "TeamInternalPageResponse": {
+    "type": "object",
+    "description": "One page of teams ordered by raw name ascending and then identifier ascending. Consumers that require the legacy complete list aggregate pages in this order.",
+    "required": ["items", "pageInfo"],
+    "properties": {
+      "items": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/TeamInternalResponse"
+        }
+      },
+      "pageInfo": {
+        "$ref": "#/components/schemas/PageInfo"
+      }
+    },
+    "additionalProperties": false
+  }
+}

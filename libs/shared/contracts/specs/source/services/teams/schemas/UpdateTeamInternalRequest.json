@@ -1,0 +1,71 @@
+{
+  "UpdateTeamInternalRequest": {
+    "type": "object",
+    "description": "Partial team update carried by the canonical multipart JSON part. Omitted and explicit-null ordinary fields preserve stored values. removeLogo is always explicit: false without an image keeps the logo, false with an image replaces it, and true without an image deletes it. removeLogo true with an image is invalid.",
+    "required": ["removeLogo"],
+    "properties": {
+      "clubId": {
+        "type": "string",
+        "maxLength": 255,
+        "nullable": true
+      },
+      "rawName": {
+        "type": "string",
+        "maxLength": 255,
+        "nullable": true
+      },
+      "name": {
+        "type": "string",
+        "maxLength": 255,
+        "nullable": true
+      },
+      "shortName": {
+        "type": "string",
+        "maxLength": 255,
+        "nullable": true
+      },
+      "leagueCode": {
+        "type": "string",
+        "maxLength": 255,
+        "nullable": true
+      },
+      "divisionId": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/NumericIdentifier"
+          }
+        ],
+        "nullable": true
+      },
+      "season": {
+        "type": "string",
+        "maxLength": 255,
+        "nullable": true
+      },
+      "format": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/FormatEnum"
+          }
+        ],
+        "nullable": true
+      },
+      "gender": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/GenderEnum"
+          }
+        ],
+        "nullable": true
+      },
+      "active": {
+        "type": "boolean",
+        "nullable": true
+      },
+      "removeLogo": {
+        "type": "boolean"
+      }
+    },
+    "additionalProperties": false
+  }
+}
