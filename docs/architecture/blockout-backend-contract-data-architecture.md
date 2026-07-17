@@ -393,6 +393,9 @@ recorded in the [MRG-343 BFF migration](../migration/mrg-343-mobile-gateway-rela
 The generated club, team, and pool BFF interfaces, multi-owner projections, cache namespace coexistence, privacy,
 ordering, fan-out, and missing-data policies are recorded in the
 [MRG-367 catalog BFF migration](../migration/mrg-367-mobile-gateway-catalog-runtime-migration.md).
+The generated match, live-link, history, moderation, and signed-document BFF interfaces, distinct workflow
+projections, partial-result policies, ranking order, downstream authentication, and v1 coexistence gates are recorded
+in the [MRG-368 match and live BFF migration](../migration/mrg-368-mobile-gateway-match-live-runtime-migration.md).
 
 ## 12. Approved Roadmap Sequence
 

@@ -340,6 +340,27 @@
                             </configOptions>
                         </configuration>
                     </execution>
+                    <execution>
+                        <id>generate-matches-client</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>generate</goal>
+                        </goals>
+                        <configuration>
+                            <inputSpec>${project.basedir}/../../../libs/shared/contracts/generated/specs/matches.json</inputSpec>
+                            <generatorName>java</generatorName>
+                            <apiNameSuffix>Client</apiNameSuffix>
+                            <output>${openapi.generated-sources.root}/matches-client</output>
+                            <apiPackage>com.blockout.mobilegateway.matchesclient.api</apiPackage>
+                            <modelPackage>com.blockout.mobilegateway.matchesclient.model</modelPackage>
+                            <invokerPackage>com.blockout.mobilegateway.matchesclient.invoker</invokerPackage>
+                            <configOptions>
+                                <library>resttemplate</library>
+                                <useJakartaEe>true</useJakartaEe>
+                                <hideGenerationTimestamp>true</hideGenerationTimestamp>
+                            </configOptions>
+                        </configuration>
+                    </execution>
                 </executions>
             </plugin>
             <plugin>
@@ -364,6 +385,7 @@
                                 <source>${openapi.generated-sources.root}/teams-client/src/main/java</source>
                                 <source>${openapi.generated-sources.root}/pools-client/src/main/java</source>
                                 <source>${openapi.generated-sources.root}/competition-client/src/main/java</source>
+                                <source>${openapi.generated-sources.root}/matches-client/src/main/java</source>
                             </sources>
                         </configuration>
                     </execution>

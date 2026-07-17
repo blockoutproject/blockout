@@ -2,6 +2,11 @@ package com.blockout.mobilegateway.shared.api;
 
 import com.blockout.mobilegateway.configuration.runtime.api.MobileConfigurationV2Controller;
 import com.blockout.mobilegateway.club.api.MobileClubsV2Controller;
+import com.blockout.mobilegateway.match.api.MobileFederationDocumentsV2Controller;
+import com.blockout.mobilegateway.match.api.MobileMatchLiveLinksV2Controller;
+import com.blockout.mobilegateway.match.api.MobileMatchModerationV2Controller;
+import com.blockout.mobilegateway.match.api.MobileMatchesV2Controller;
+import com.blockout.mobilegateway.match.application.MobileFederationDocumentException;
 import com.blockout.mobilegateway.notification.api.MobileNotificationV2Controller;
 import com.blockout.mobilegateway.pool.api.MobilePoolsV2Controller;
 import com.blockout.mobilegateway.report.api.MobileReportV2Controller;
@@ -34,6 +39,10 @@ import org.springframework.web.multipart.MultipartException;
 @RestControllerAdvice(assignableTypes = {
         MobileConfigurationV2Controller.class,
         MobileClubsV2Controller.class,
+        MobileFederationDocumentsV2Controller.class,
+        MobileMatchLiveLinksV2Controller.class,
+        MobileMatchModerationV2Controller.class,
+        MobileMatchesV2Controller.class,
         MobileNotificationV2Controller.class,
         MobilePoolsV2Controller.class,
         MobileReportV2Controller.class,
@@ -108,6 +117,14 @@ public class MobileGatewayV2ExceptionHandler {
                 "downstream_service_unavailable",
                 "A downstream service is unavailable.",
                 request);
+    }
+
+    @ExceptionHandler(MobileFederationDocumentException.class)
+    public ResponseEntity<ProblemDetail> federationDocument(
+            MobileFederationDocumentException exception,
+            HttpServletRequest request) {
+        return problems.response(
+                exception.getStatus(), exception.getCode(), exception.getMessage(), request);
     }
 
     @ExceptionHandler(Exception.class)

@@ -8,6 +8,12 @@ import com.blockout.mobilegateway.clubsclient.api.ClubsClient;
 import com.blockout.mobilegateway.competitionclient.api.CompetitionAssociationsClient;
 import com.blockout.mobilegateway.competitionclient.api.CompetitionRankingsClient;
 import com.blockout.mobilegateway.config.ApiClientProperties;
+import com.blockout.mobilegateway.matchesclient.api.MatchDaysClient;
+import com.blockout.mobilegateway.matchesclient.api.MatchLiveLinkHistoryClient;
+import com.blockout.mobilegateway.matchesclient.api.MatchLiveLinkReportsClient;
+import com.blockout.mobilegateway.matchesclient.api.MatchLiveLinksClient;
+import com.blockout.mobilegateway.matchesclient.api.MatchModerationClient;
+import com.blockout.mobilegateway.matchesclient.api.MatchesClient;
 import com.blockout.mobilegateway.notificationclient.api.NotificationInboxMutationsClient;
 import com.blockout.mobilegateway.notificationclient.api.NotificationInboxPagesClient;
 import com.blockout.mobilegateway.notificationclient.api.NotificationPushTokensClient;
@@ -176,6 +182,54 @@ public class GeneratedDownstreamClientConfiguration {
         return new CompetitionRankingsClient(competitionClient(transport, properties));
     }
 
+    @Bean("matchDaysUserClient")
+    MatchDaysClient matchDaysUserClient(
+            @Qualifier("internalAuthRestTemplate") RestTemplate transport, ApiClientProperties properties) {
+        return new MatchDaysClient(matchesClient(transport, properties));
+    }
+
+    @Bean("matchDaysM2mClient")
+    MatchDaysClient matchDaysM2mClient(
+            @Qualifier("internalM2MRestTemplate") RestTemplate transport, ApiClientProperties properties) {
+        return new MatchDaysClient(matchesClient(transport, properties));
+    }
+
+    @Bean("matchesUserClient")
+    MatchesClient matchesUserClient(
+            @Qualifier("internalAuthRestTemplate") RestTemplate transport, ApiClientProperties properties) {
+        return new MatchesClient(matchesClient(transport, properties));
+    }
+
+    @Bean("matchesM2mClient")
+    MatchesClient matchesM2mClient(
+            @Qualifier("internalM2MRestTemplate") RestTemplate transport, ApiClientProperties properties) {
+        return new MatchesClient(matchesClient(transport, properties));
+    }
+
+    @Bean
+    MatchLiveLinksClient matchLiveLinksUserClient(
+            @Qualifier("internalAuthRestTemplate") RestTemplate transport, ApiClientProperties properties) {
+        return new MatchLiveLinksClient(matchesClient(transport, properties));
+    }
+
+    @Bean
+    MatchLiveLinkReportsClient matchLiveLinkReportsUserClient(
+            @Qualifier("internalAuthRestTemplate") RestTemplate transport, ApiClientProperties properties) {
+        return new MatchLiveLinkReportsClient(matchesClient(transport, properties));
+    }
+
+    @Bean
+    MatchLiveLinkHistoryClient matchLiveLinkHistoryUserClient(
+            @Qualifier("internalAuthRestTemplate") RestTemplate transport, ApiClientProperties properties) {
+        return new MatchLiveLinkHistoryClient(matchesClient(transport, properties));
+    }
+
+    @Bean
+    MatchModerationClient matchModerationUserClient(
+            @Qualifier("internalAuthRestTemplate") RestTemplate transport, ApiClientProperties properties) {
+        return new MatchModerationClient(matchesClient(transport, properties));
+    }
+
     private com.blockout.config.client.invoker.ApiClient configClient(
             RestTemplate transport, ApiClientProperties properties) {
         return new com.blockout.config.client.invoker.ApiClient(transport)
@@ -228,5 +282,11 @@ public class GeneratedDownstreamClientConfiguration {
             RestTemplate transport, ApiClientProperties properties) {
         return new com.blockout.mobilegateway.competitionclient.invoker.ApiClient(transport)
                 .setBasePath(DownstreamClientSupport.canonicalRoot(properties.getCompetition().getUrl()));
+    }
+
+    private com.blockout.mobilegateway.matchesclient.invoker.ApiClient matchesClient(
+            RestTemplate transport, ApiClientProperties properties) {
+        return new com.blockout.mobilegateway.matchesclient.invoker.ApiClient(transport)
+                .setBasePath(DownstreamClientSupport.canonicalRoot(properties.getMatch().getUrl()));
     }
 }

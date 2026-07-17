@@ -922,8 +922,20 @@ state moves to GitHub and this file becomes a historical migration record.
     scrapers, events, databases, standalone repositories, production, and Maaatch are unchanged;
     `docs/migration/mrg-367-mobile-gateway-catalog-runtime-migration.md` records parity, rollback, cache coexistence,
     and eventual removal of `TeamGZone`, v1/legacy/`V2`/`isV2` Java scaffolding after the approved gates.
-- [ ] MRG-368 Migrate `mobile-gateway` competition, match, and live workflows to generated clients and BFF interfaces
+- [x] MRG-368 Migrate `mobile-gateway` competition, match, and live workflows to generated clients and BFF interfaces
       with separate list, detail, ranking, history, moderation, signed-link, and partial-result projections.
+  - Evidence: all eleven match, live, moderation, history, and signed-document BFF operations now implement generated
+    v2 server interfaces and call generated matches-, competition-, pools-, teams-, clubs-, and config-service clients
+    through separate immutable list, detail, ranking, history, moderation, and live-command projections. List and
+    moderation enrichment silently omit incomplete rows while retaining owner pagination; detail remains all-or-error,
+    missing list sides remain nullable, and the existing five-key stable ranking order is preserved. Live mutations
+    remain matches-service decisions, and signed federation PDF continuation retains the existing token, provider,
+    proxy, inline, no-store, and error policy on canonical v2 routes. Eighty-one focused mobile-gateway tests, thirty
+    contract tests, 136-fragment source lint, two deterministic contract generations, complete 14-module backend
+    packaging, documentation validation, Maaatch comparison, Prettier, source-confinement, and whitespace checks pass.
+    Expo, Orval output, owner-service runtime, scrapers, events, databases, standalone repositories, production, and
+    Maaatch are unchanged; `docs/migration/mrg-368-mobile-gateway-match-live-runtime-migration.md` records parity,
+    rollback, partial-result rules, signed-document behavior, and eventual coexistence-scaffolding removal gates.
 - [ ] MRG-344 Migrate Expo authentication and remaining configuration modules to generated BFF clients and wire
       schemas, preserving handwritten query/view-model policy; do not opportunistically migrate remaining forms, which
       are owned by MRG-510 and MRG-511.

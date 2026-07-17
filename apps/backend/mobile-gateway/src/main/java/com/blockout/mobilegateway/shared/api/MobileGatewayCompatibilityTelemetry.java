@@ -14,7 +14,7 @@ import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-/** Records payload-free v1/v2 evidence for the MRG-343 mobile workflows. */
+/** Records payload-free v1/v2 evidence for migrated mobile workflows. */
 @Component
 @Order(Ordered.HIGHEST_PRECEDENCE)
 public class MobileGatewayCompatibilityTelemetry extends OncePerRequestFilter {
@@ -60,6 +60,15 @@ public class MobileGatewayCompatibilityTelemetry extends OncePerRequestFilter {
         String method = request.getMethod();
         if ("GET".equals(method) && path.equals("public/config/app-status")) {
             return "BFF-P-02";
+        }
+        if ("GET".equals(method) && path.matches("public/ffvb/pdf/[^/]+")) {
+            return "BFF-P-06";
+        }
+        if ("GET".equals(method) && path.equals("public/matches")) {
+            return "BFF-P-08";
+        }
+        if ("GET".equals(method) && path.matches("public/matches/[^/]+")) {
+            return "BFF-P-07";
         }
         if ("GET".equals(method) && path.matches("public/clubs/[^/]+")) {
             return "BFF-P-01";
@@ -126,6 +135,27 @@ public class MobileGatewayCompatibilityTelemetry extends OncePerRequestFilter {
         }
         if ("GET".equals(method) && path.equals("secure/config/scrapers/status")) {
             return "BFF-S-12";
+        }
+        if (path.matches("secure/matches/[^/]+/live-link")) {
+            return "POST".equals(method) ? "BFF-S-13" : "DELETE".equals(method) ? "BFF-S-14" : null;
+        }
+        if ("POST".equals(method) && path.matches("secure/matches/[^/]+/live-link/report")) {
+            return "BFF-S-15";
+        }
+        if ("GET".equals(method) && path.matches("secure/matches/[^/]+/live-links")) {
+            return "BFF-S-16";
+        }
+        if ("GET".equals(method) && path.equals("secure/matches/live-moderation")) {
+            return "BFF-S-17";
+        }
+        if ("POST".equals(method) && path.matches("secure/matches/live-links/[^/]+/approve")) {
+            return "BFF-S-18";
+        }
+        if ("POST".equals(method) && path.matches("secure/matches/live-links/[^/]+/reject")) {
+            return "BFF-S-19";
+        }
+        if ("POST".equals(method) && path.matches("secure/matches/live-links/[^/]+/reactivate")) {
+            return "BFF-S-20";
         }
         if ("GET".equals(method) && path.equals("secure/notifications")) {
             return "BFF-S-21";
