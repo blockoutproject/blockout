@@ -3,17 +3,14 @@ package com.blockout.notifications.services;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.blockout.notifications.models.dto.notifications.UserNotificationPageDTO;
-import com.blockout.notifications.models.dto.users.CustomUserDTO;
 import com.blockout.notifications.models.entity.UserNotification;
 import com.blockout.notifications.models.enums.NotificationTargetType;
 import com.blockout.notifications.models.enums.NotificationType;
 import com.blockout.notifications.repositories.UserNotificationRepository;
-import com.blockout.notifications.services.clients.UsersClientService;
+import com.blockout.notifications.user.application.CurrentUserResolver;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -29,18 +26,8 @@ public class UserNotificationService {
     private static final Logger logger = LoggerFactory.getLogger(UserNotificationService.class);
 
     private final UserNotificationRepository repository;
-    private final UsersClientService usersClientService;
+    private final CurrentUserResolver currentUser;
     private final ObjectMapper objectMapper;
-
-    private Long resolveUserIdOrThrow() {
-        CustomUserDTO user = usersClientService.getCurrentUser();
-        if (user == null || user.getId() == null) {
-            logger.warn("User not found for auth0Id",
-                    keyValue("action", "resolve_user_id_failed"));
-            throw new IllegalArgumentException("Utilisateur introuvable");
-        }
-        return user.getId();
-    }
 
     @Transactional
     public void createNotificationsBatch(List<UserNotification> items) {
@@ -97,35 +84,14 @@ public class UserNotificationService {
         return saved;
     }
 
-    public UserNotificationPageDTO getNotificationsByAuth0Id(int page, int size) {
-        Long userId = resolveUserIdOrThrow();
-
-        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
-        Slice<UserNotification> slice = repository.findByUserIdOrderByCreatedAtDesc(userId, pageable);
-
-        boolean hasNext = slice.hasNext();
-        Integer nextPage = hasNext ? page + 1 : null;
-
-        logger.debug("Returning paginated notifications",
-                keyValue("action", "get_notifications"),
-                keyValue("userId", userId),
-                keyValue("page", page),
-                keyValue("size", size),
-                keyValue("items", slice.getNumberOfElements()),
-                keyValue("hasNext", hasNext),
-                keyValue("nextPage", nextPage));
-
-        return new UserNotificationPageDTO(slice.getContent(), hasNext, nextPage);
-    }
-
     public long unreadCount() {
-        Long userId = resolveUserIdOrThrow();
+        Long userId = currentUser.requireUserId();
         return repository.countByUserIdAndIsReadFalse(userId);
     }
 
     @Transactional
     public boolean markRead(Long notificationId) {
-        Long userId = resolveUserIdOrThrow();
+        Long userId = currentUser.requireUserId();
         int n = repository.markRead(userId, notificationId, Instant.now());
         if (n > 0) {
             logger.info("Notification marked read",
@@ -139,7 +105,7 @@ public class UserNotificationService {
 
     @Transactional
     public boolean markOpened(Long notificationId) {
-        Long userId = resolveUserIdOrThrow();
+        Long userId = currentUser.requireUserId();
         int n = repository.markOpened(userId, notificationId, Instant.now()); 
         if (n > 0) {
             logger.info("Notification marked opened",
@@ -153,7 +119,7 @@ public class UserNotificationService {
 
     @Transactional
     public boolean delete(Long notificationId) {
-        Long userId = resolveUserIdOrThrow();
+        Long userId = currentUser.requireUserId();
         int n = repository.deleteForUser(userId, notificationId);
         if (n > 0) {
             logger.info("Notification deleted",

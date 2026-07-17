@@ -2,7 +2,7 @@
   "/api/v2/notifications": {
     "get": {
       "operationId": "listCurrentUserNotifications",
-      "tags": ["NotificationInbox"],
+      "tags": ["NotificationInboxPages"],
       "summary": "List the current user's notifications",
       "description": "Returns a zero-based page ordered by createdAt descending and notification identity descending. The v1 adapter retains size, its legacy wrapper, and its existing unstable equal-timestamp ordering until the vertical migration proves parity.",
       "parameters": [
@@ -31,7 +31,7 @@
   "/api/v2/notifications/unread-count": {
     "get": {
       "operationId": "getCurrentUserUnreadNotificationCount",
-      "tags": ["NotificationInbox"],
+      "tags": ["NotificationInboxMutations"],
       "summary": "Get the current user's unread notification count",
       "description": "Returns the count computed from the current user's inbox. The v1 adapter retains its legacy unread field while BFF and Expo projections migrate independently.",
       "responses": {
@@ -56,7 +56,7 @@
     "parameters": [{ "$ref": "#/components/parameters/NotificationId" }],
     "post": {
       "operationId": "markCurrentUserNotificationRead",
-      "tags": ["NotificationInbox"],
+      "tags": ["NotificationInboxMutations"],
       "summary": "Mark a notification as read",
       "description": "Preserves the current state-sensitive result: an absent notification or one already marked read returns 404 rather than an idempotent 204.",
       "responses": {
@@ -72,7 +72,7 @@
     "parameters": [{ "$ref": "#/components/parameters/NotificationId" }],
     "post": {
       "operationId": "markCurrentUserNotificationOpened",
-      "tags": ["NotificationInbox"],
+      "tags": ["NotificationInboxMutations"],
       "summary": "Mark a notification as opened",
       "description": "Preserves the current state-sensitive result: an absent notification or one already marked opened returns 404 rather than an idempotent 204.",
       "responses": {
@@ -88,7 +88,7 @@
     "parameters": [{ "$ref": "#/components/parameters/NotificationId" }],
     "delete": {
       "operationId": "deleteCurrentUserNotification",
-      "tags": ["NotificationInbox"],
+      "tags": ["NotificationInboxMutations"],
       "summary": "Delete a notification",
       "description": "Deletes only an inbox item owned by the current user. An absent or already deleted item preserves the current 404 result.",
       "responses": {

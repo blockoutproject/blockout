@@ -1392,6 +1392,18 @@ test('workspace notification contract reconciles REST without event or provider 
     new Set(operations.map(({ operation }) => operation.operationId)).size,
     6,
   );
+  assert.deepEqual(
+    notification.paths['/api/v2/notifications'].get.tags,
+    ['NotificationInboxPages'],
+  );
+  for (const operation of [
+    notification.paths['/api/v2/notifications/unread-count'].get,
+    notification.paths['/api/v2/notifications/{id}/read'].post,
+    notification.paths['/api/v2/notifications/{id}/opened'].post,
+    notification.paths['/api/v2/notifications/{id}'].delete,
+  ]) {
+    assert.deepEqual(operation.tags, ['NotificationInboxMutations']);
+  }
   assert.deepEqual(notification.security, [{ bearerAuth: [] }]);
 
   const item = notification.components.schemas.NotificationInternalResponse;

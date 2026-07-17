@@ -1,5 +1,7 @@
 package com.blockout.notifications.config;
 
+import com.blockout.notifications.shared.api.v2.NotificationsSecurityProblemWriter;
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -12,7 +14,10 @@ import static org.springframework.security.config.Customizer.withDefaults;
 
 @Configuration
 @EnableMethodSecurity
+@RequiredArgsConstructor
 public class SecurityConfig {
+
+    private final NotificationsSecurityProblemWriter securityProblems;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -22,10 +27,15 @@ public class SecurityConfig {
             )
             .csrf(csrf -> csrf.disable())
             .cors(withDefaults())
+            .exceptionHandling(exceptions -> exceptions
+                .authenticationEntryPoint(securityProblems)
+                .accessDeniedHandler(securityProblems))
             .oauth2ResourceServer(oauth2 -> oauth2
                 .jwt(jwt -> jwt
                     .jwtAuthenticationConverter(jwtAuthenticationConverter())
                 )
+                .authenticationEntryPoint(securityProblems)
+                .accessDeniedHandler(securityProblems)
             );
 
         return http.build();

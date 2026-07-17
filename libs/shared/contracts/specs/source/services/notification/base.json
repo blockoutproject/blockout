@@ -10,7 +10,8 @@
     }
   ],
   "tags": [
-    { "name": "NotificationInbox" },
+    { "name": "NotificationInboxPages" },
+    { "name": "NotificationInboxMutations" },
     { "name": "NotificationPushTokens" }
   ],
   "security": [{ "bearerAuth": [] }],

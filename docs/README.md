@@ -47,6 +47,7 @@ GitHub Project task planning remains dormant until the final GitFlow activation 
 | Users favorite slice  | [MRG-363 users favorites][mrg-363]                                                                                           | Canonical favorites, generated boundary, and projections   |
 | Users identity slice  | [MRG-364 users identity and storage][mrg-364]                                                                                | Auth0/S3 adapters, deletion order, and generated identity  |
 | Reports runtime slice | [MRG-340 reports runtime][mrg-340]                                                                                           | Generated report boundary and provider adapter isolation   |
+| Notification inbox    | [MRG-341 notification inbox][mrg-341]                                                                                        | Generated page, stable ordering, and legacy continuation   |
 | Expo contracts/forms  | [`decisions/mrg-313-expo-contract-generation.md`](decisions/mrg-313-expo-contract-generation.md)                             | Orval, TanStack, Zod, React Hook Form, and form migration  |
 | Python clients        | [`decisions/mrg-314-python-contract-clients.md`](decisions/mrg-314-python-contract-clients.md)                               | Generated async clients, adapters, wheel, and scraper use  |
 | RabbitMQ contracts    | [`decisions/mrg-315-rabbitmq-event-contracts.md`](decisions/mrg-315-rabbitmq-event-contracts.md)                             | AsyncAPI source, Java records, envelope, and v2 topology   |
@@ -62,6 +63,7 @@ GitHub Project task planning remains dormant until the final GitFlow activation 
 [mrg-363]: migration/mrg-363-users-favorites-runtime-migration.md
 [mrg-364]: migration/mrg-364-users-identity-storage-runtime-migration.md
 [mrg-340]: migration/mrg-340-reports-runtime-migration.md
+[mrg-341]: migration/mrg-341-notification-inbox-runtime-migration.md
 
 ## Documentation Map
 

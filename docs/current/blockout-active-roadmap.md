@@ -824,8 +824,24 @@ state moves to GitHub and this file becomes a historical migration record.
     whitespace checks pass. Contracts, committed generated artifacts, databases, events, BFF, Expo, scrapers,
     standalone repositories, production, Maaatch, Blockout Orval settings, and Python generator settings are
     unchanged.
-- [ ] MRG-341 Migrate `notification-service` inbox and page read boundaries with generated clients, stable ordering,
+- [x] MRG-341 Migrate `notification-service` inbox and page read boundaries with generated clients, stable ordering,
       standard target pagination, legacy continuation compatibility, and BFF enrichment parity.
+  - Evidence: `NOTIF-01` now implements only the generated `NotificationInboxPagesApi` through an immutable inbox
+    snapshot/page, canonical page policy, strict persistence/API mapping, progressive Problem Details, and payload-free
+    compatibility telemetry. Canonical pages use bounded `pageSize`, stable `createdAt DESC, id DESC` ordering, and an
+    explicit nullable `divisionId` derived from defensively copied metadata for later BFF enrichment. The isolated v1
+    adapter retains the entity-shaped fourteen-field snake_case item, `notifications`/`has_next`/`next_page` wrapper,
+    unbounded size handling, and historical created-at-only ordering. A generated users-service client immediately
+    reduces `/api/v2/users/me` to the local user ID; the generic HTTP client and copied user/page DTOs are removed. The
+    global notification Jackson snake-case strategy is removed, while v1 list serialization and the still-deferred
+    push-token request use one local compatibility mapper. OpenAPI tags now separate page, mutation, and push-token
+    generated interfaces without changing paths, fields, statuses, security, or payloads, preventing MRG-341 from
+    activating MRG-365 defaults. Twenty notification tests, thirty contract tests, two deterministic generations,
+    source confinement, generated server/client compilation, full 14-module backend packaging, documentation,
+    Maaatch comparison, Prettier, and whitespace checks pass. Databases, events, BFF, Expo, scrapers, standalone
+    repositories, production, Maaatch, Blockout Orval settings, and Python generator settings are unchanged;
+    `docs/migration/mrg-341-notification-inbox-runtime-migration.md` records parity, rollback, deferred mutation
+    ownership, and the temporary `Legacy*`/`*V2*` source-name retirement gates.
 - [ ] MRG-365 Migrate `notification-service` push-token, unread, read, opened, and delete boundaries with current-user
       ownership, validation, device lifecycle, response, and compatibility evidence.
 - [ ] MRG-366 Separate and migrate `notification-service` delivery-state inputs from provider ticket/receipt models,

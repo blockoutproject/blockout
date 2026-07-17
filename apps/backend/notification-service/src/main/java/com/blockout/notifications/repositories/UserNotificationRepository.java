@@ -15,6 +15,8 @@ public interface UserNotificationRepository extends JpaRepository<UserNotificati
 
     Slice<UserNotification> findByUserIdOrderByCreatedAtDesc(Long userId, Pageable pageable);
 
+    Slice<UserNotification> findByUserIdOrderByCreatedAtDescIdDesc(Long userId, Pageable pageable);
+
     long countByUserIdAndIsReadFalse(Long userId);
 
     @Modifying(clearAutomatically = true, flushAutomatically = true)

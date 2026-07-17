@@ -375,6 +375,9 @@ adapter, retained security behavior, and deferred retention work are recorded in
 The generated report boundary, Blockout command/result and attachment roles, isolated legacy multipart adapter,
 provider ports, preserved partial failures, and absence of an in-scope internal Blockout client are recorded in the
 [MRG-340 reports migration](../migration/mrg-340-reports-runtime-migration.md).
+The generated notification inbox page, stable canonical ordering, explicit enrichment identity, isolated legacy
+continuation/casing adapter, and generated current-user client are recorded in the
+[MRG-341 notification migration](../migration/mrg-341-notification-inbox-runtime-migration.md).
 
 ## 12. Approved Roadmap Sequence
 
