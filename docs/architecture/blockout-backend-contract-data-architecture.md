@@ -390,6 +390,9 @@ mappers, and Elasticsearch document/query confinement are recorded in the
 The generated mobile-gateway configuration, report, search, notification, user, and favorite server/client boundaries,
 workflow-owned records, multipart bridge, compatibility telemetry, and explicit v1 source-retirement gates are
 recorded in the [MRG-343 BFF migration](../migration/mrg-343-mobile-gateway-relay-runtime-migration.md).
+The generated club, team, and pool BFF interfaces, multi-owner projections, cache namespace coexistence, privacy,
+ordering, fan-out, and missing-data policies are recorded in the
+[MRG-367 catalog BFF migration](../migration/mrg-367-mobile-gateway-catalog-runtime-migration.md).
 
 ## 12. Approved Roadmap Sequence
 

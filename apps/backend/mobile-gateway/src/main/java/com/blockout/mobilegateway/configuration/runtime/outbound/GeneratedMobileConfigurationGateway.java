@@ -67,16 +67,23 @@ public class GeneratedMobileConfigurationGateway implements MobileConfigurationG
     }
 
     @Override
-    @Cacheable("divisions")
+    @Cacheable("mobileV2Divisions")
     public List<MobileConfigurationWorkflow.DivisionView> listDivisions() {
         var response = divisionClient().listDivisions();
         return response.getItems().stream().map(this::division).toList();
     }
 
     @Override
-    @Cacheable(value = "divisionById", key = "#id")
+    @Cacheable(value = "mobileV2DivisionById", key = "#id")
     public MobileConfigurationWorkflow.DivisionView getDivision(Long id) {
         return division(divisionClient().getDivision(id));
+    }
+
+    @Override
+    @Cacheable(value = "mobileV2DivisionById", key = "#id")
+    public MobileConfigurationWorkflow.DivisionView findDivision(Long id) {
+        var value = DownstreamClientSupport.nullableWhenNotFound(() -> divisionClient().getDivision(id));
+        return value == null ? null : division(value);
     }
 
     @Override
@@ -86,7 +93,13 @@ public class GeneratedMobileConfigurationGateway implements MobileConfigurationG
     }
 
     @Override
-    @Caching(put = @CachePut(value = "divisionById", key = "#id"), evict = @CacheEvict("divisions"))
+    @Caching(
+            put = @CachePut(value = "mobileV2DivisionById", key = "#id"),
+            evict = {
+                    @CacheEvict("mobileV2Divisions"),
+                    @CacheEvict(value = "divisionById", key = "#id"),
+                    @CacheEvict("divisions")
+            })
     public MobileConfigurationWorkflow.DivisionView updateDivision(
             Long id, MobileConfigurationWorkflow.DivisionCommand command, BinaryPart image) {
         var request = new UpdateDivisionInternalRequest()
@@ -96,7 +109,12 @@ public class GeneratedMobileConfigurationGateway implements MobileConfigurationG
     }
 
     @Override
-    @Caching(evict = {@CacheEvict(value = "divisionById", key = "#id"), @CacheEvict("divisions")})
+    @Caching(evict = {
+            @CacheEvict(value = "mobileV2DivisionById", key = "#id"),
+            @CacheEvict("mobileV2Divisions"),
+            @CacheEvict(value = "divisionById", key = "#id"),
+            @CacheEvict("divisions")
+    })
     public void deactivateDivision(Long id) {
         divisionsUser.deactivateDivision(id);
     }

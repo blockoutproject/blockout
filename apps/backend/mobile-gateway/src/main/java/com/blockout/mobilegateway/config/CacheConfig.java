@@ -66,6 +66,47 @@ public class CacheConfig {
                         .maximumSize(1000)
                         .build());
 
+        CaffeineCache mobileV2DivisionsCache = new CaffeineCache(
+                "mobileV2Divisions",
+                Caffeine.newBuilder()
+                        .expireAfterWrite(Duration.ofDays(1))
+                        .build());
+
+        CaffeineCache mobileV2DivisionByIdCache = new CaffeineCache(
+                "mobileV2DivisionById",
+                Caffeine.newBuilder()
+                        .expireAfterWrite(Duration.ofDays(1))
+                        .maximumSize(1000)
+                        .build());
+
+        CaffeineCache mobileV2TeamByIdCache = new CaffeineCache(
+                "mobileV2TeamById",
+                Caffeine.newBuilder()
+                        .expireAfterWrite(Duration.ofHours(4))
+                        .maximumSize(1000)
+                        .build());
+
+        CaffeineCache mobileV2TeamsByClubIdCache = new CaffeineCache(
+                "mobileV2TeamsByClubId",
+                Caffeine.newBuilder()
+                        .expireAfterWrite(Duration.ofHours(4))
+                        .maximumSize(1000)
+                        .build());
+
+        CaffeineCache mobileV2PoolByIdCache = new CaffeineCache(
+                "mobileV2PoolById",
+                Caffeine.newBuilder()
+                        .expireAfterWrite(Duration.ofHours(4))
+                        .maximumSize(1000)
+                        .build());
+
+        CaffeineCache mobileV2ClubByIdCache = new CaffeineCache(
+                "mobileV2ClubById",
+                Caffeine.newBuilder()
+                        .expireAfterWrite(Duration.ofHours(4))
+                        .maximumSize(1000)
+                        .build());
+
         SimpleCacheManager manager = new SimpleCacheManager();
         manager.setCaches(java.util.Arrays.asList(
                 divisionsCache,
@@ -74,7 +115,13 @@ public class CacheConfig {
                 poolByIdCache,
                 teamsByClubIdCache,
                 clubByIdCache,
-                clubLogoByIdCache));
+                clubLogoByIdCache,
+                mobileV2DivisionsCache,
+                mobileV2DivisionByIdCache,
+                mobileV2TeamByIdCache,
+                mobileV2TeamsByClubIdCache,
+                mobileV2PoolByIdCache,
+                mobileV2ClubByIdCache));
 
         return manager;
     }

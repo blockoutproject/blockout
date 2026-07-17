@@ -14,6 +14,8 @@ public interface MobileConfigurationGateway {
 
     MobileConfigurationWorkflow.DivisionView getDivision(Long id);
 
+    MobileConfigurationWorkflow.DivisionView findDivision(Long id);
+
     MobileConfigurationWorkflow.DivisionView createDivision(
             MobileConfigurationWorkflow.DivisionCommand command, BinaryPart image);
 

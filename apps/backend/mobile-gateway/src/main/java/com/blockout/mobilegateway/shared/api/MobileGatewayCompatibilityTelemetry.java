@@ -61,6 +61,24 @@ public class MobileGatewayCompatibilityTelemetry extends OncePerRequestFilter {
         if ("GET".equals(method) && path.equals("public/config/app-status")) {
             return "BFF-P-02";
         }
+        if ("GET".equals(method) && path.matches("public/clubs/[^/]+")) {
+            return "BFF-P-01";
+        }
+        if ("GET".equals(method) && path.equals("public/pools/by-ids")) {
+            return "BFF-P-10";
+        }
+        if ("GET".equals(method) && path.matches("public/pools/[^/]+")) {
+            return "BFF-P-09";
+        }
+        if ("GET".equals(method) && path.equals("public/teams/by-ids")) {
+            return "BFF-P-17";
+        }
+        if ("GET".equals(method) && path.matches("public/teams/by-club/[^/]+")) {
+            return "BFF-P-16";
+        }
+        if ("GET".equals(method) && path.matches("public/teams/[^/]+")) {
+            return "BFF-P-15";
+        }
         if ("GET".equals(method) && path.equals("public/config/divisions")) {
             return "BFF-P-03";
         }
@@ -81,6 +99,15 @@ public class MobileGatewayCompatibilityTelemetry extends OncePerRequestFilter {
         }
         if ("PUT".equals(method) && path.equals("secure/config/app-status")) {
             return "BFF-S-02";
+        }
+        if ("PUT".equals(method) && path.matches("secure/clubs/[^/]+")) {
+            return "BFF-S-01";
+        }
+        if ("PUT".equals(method) && path.matches("secure/pools/[^/]+")) {
+            return "BFF-S-27";
+        }
+        if ("PUT".equals(method) && path.matches("secure/teams/[^/]+")) {
+            return "BFF-S-28";
         }
         if ("POST".equals(method) && path.equals("secure/config/divisions")) {
             return "BFF-S-03";

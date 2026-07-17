@@ -52,6 +52,7 @@ GitHub Project task planning remains dormant until the final GitFlow activation 
 | Notification delivery  | [MRG-366 notification delivery][mrg-366]                                                                                     | Provider-neutral delivery and Expo adapter boundary        |
 | Search runtime slice   | [MRG-342 search runtime][mrg-342]                                                                                            | Generated search boundary and Elasticsearch isolation      |
 | BFF relay runtime      | [MRG-343 mobile-gateway relays][mrg-343]                                                                                     | Generated facade boundaries for five workflow families     |
+| BFF catalog runtime    | [MRG-367 mobile catalog workflows][mrg-367]                                                                                  | Generated club, team, and pool workflow projections        |
 | Expo contracts/forms   | [`decisions/mrg-313-expo-contract-generation.md`](decisions/mrg-313-expo-contract-generation.md)                             | Orval, TanStack, Zod, React Hook Form, and form migration  |
 | Python clients         | [`decisions/mrg-314-python-contract-clients.md`](decisions/mrg-314-python-contract-clients.md)                               | Generated async clients, adapters, wheel, and scraper use  |
 | RabbitMQ contracts     | [`decisions/mrg-315-rabbitmq-event-contracts.md`](decisions/mrg-315-rabbitmq-event-contracts.md)                             | AsyncAPI source, Java records, envelope, and v2 topology   |
@@ -72,6 +73,7 @@ GitHub Project task planning remains dormant until the final GitFlow activation 
 [mrg-366]: migration/mrg-366-notification-delivery-provider-runtime-migration.md
 [mrg-342]: migration/mrg-342-search-runtime-migration.md
 [mrg-343]: migration/mrg-343-mobile-gateway-relay-runtime-migration.md
+[mrg-367]: migration/mrg-367-mobile-gateway-catalog-runtime-migration.md
 
 ## Documentation Map
 

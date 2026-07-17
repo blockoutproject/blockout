@@ -1,9 +1,12 @@
 package com.blockout.mobilegateway.shared.api;
 
 import com.blockout.mobilegateway.configuration.runtime.api.MobileConfigurationV2Controller;
+import com.blockout.mobilegateway.club.api.MobileClubsV2Controller;
 import com.blockout.mobilegateway.notification.api.MobileNotificationV2Controller;
+import com.blockout.mobilegateway.pool.api.MobilePoolsV2Controller;
 import com.blockout.mobilegateway.report.api.MobileReportV2Controller;
 import com.blockout.mobilegateway.search.api.MobileSearchV2Controller;
+import com.blockout.mobilegateway.team.api.MobileTeamsV2Controller;
 import com.blockout.mobilegateway.user.api.MobileUserV2Controller;
 import com.blockout.shared.model.ProblemDetail;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -30,9 +33,12 @@ import org.springframework.web.multipart.MultipartException;
 @Order(Ordered.HIGHEST_PRECEDENCE)
 @RestControllerAdvice(assignableTypes = {
         MobileConfigurationV2Controller.class,
+        MobileClubsV2Controller.class,
         MobileNotificationV2Controller.class,
+        MobilePoolsV2Controller.class,
         MobileReportV2Controller.class,
         MobileSearchV2Controller.class,
+        MobileTeamsV2Controller.class,
         MobileUserV2Controller.class
 })
 @RequiredArgsConstructor

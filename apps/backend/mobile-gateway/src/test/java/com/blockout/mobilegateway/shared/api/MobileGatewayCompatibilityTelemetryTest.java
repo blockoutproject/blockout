@@ -35,6 +35,7 @@ class MobileGatewayCompatibilityTelemetryTest {
 
     private static Stream<Arguments> routes() {
         return Stream.of(
+                route("GET", "public/clubs/club-1", "BFF-P-01"),
                 route("GET", "public/config/app-status", "BFF-P-02"),
                 route("GET", "public/config/divisions", "BFF-P-03"),
                 route("GET", "public/config/divisions/1", "BFF-P-04"),
@@ -42,6 +43,12 @@ class MobileGatewayCompatibilityTelemetryTest {
                 route("GET", "public/search/clubs", "BFF-P-12"),
                 route("GET", "public/search/teams", "BFF-P-13"),
                 route("GET", "public/search/pools", "BFF-P-14"),
+                route("GET", "public/pools/1", "BFF-P-09"),
+                route("GET", "public/pools/by-ids", "BFF-P-10"),
+                route("GET", "public/teams/1", "BFF-P-15"),
+                route("GET", "public/teams/by-club/club-1", "BFF-P-16"),
+                route("GET", "public/teams/by-ids", "BFF-P-17"),
+                route("PUT", "secure/clubs/club-1", "BFF-S-01"),
                 route("PUT", "secure/config/app-status", "BFF-S-02"),
                 route("POST", "secure/config/divisions", "BFF-S-03"),
                 route("PUT", "secure/config/divisions/1", "BFF-S-04"),
@@ -58,6 +65,8 @@ class MobileGatewayCompatibilityTelemetryTest {
                 route("POST", "secure/notifications/1/opened", "BFF-S-24"),
                 route("DELETE", "secure/notifications/1", "BFF-S-25"),
                 route("POST", "secure/notifications/users/1/push-tokens", "BFF-S-26"),
+                route("PUT", "secure/pools/1", "BFF-S-27"),
+                route("PUT", "secure/teams/1", "BFF-S-28"),
                 route("PUT", "secure/users/auth0|user", "BFF-S-29"),
                 route("PUT", "secure/users/me", "BFF-S-30"),
                 route("DELETE", "secure/users/me", "BFF-S-31"),

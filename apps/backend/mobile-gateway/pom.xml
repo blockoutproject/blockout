@@ -256,6 +256,90 @@
                             </configOptions>
                         </configuration>
                     </execution>
+                    <execution>
+                        <id>generate-clubs-client</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>generate</goal>
+                        </goals>
+                        <configuration>
+                            <inputSpec>${project.basedir}/../../../libs/shared/contracts/generated/specs/clubs.json</inputSpec>
+                            <generatorName>java</generatorName>
+                            <apiNameSuffix>Client</apiNameSuffix>
+                            <output>${openapi.generated-sources.root}/clubs-client</output>
+                            <apiPackage>com.blockout.mobilegateway.clubsclient.api</apiPackage>
+                            <modelPackage>com.blockout.mobilegateway.clubsclient.model</modelPackage>
+                            <invokerPackage>com.blockout.mobilegateway.clubsclient.invoker</invokerPackage>
+                            <configOptions>
+                                <library>resttemplate</library>
+                                <useJakartaEe>true</useJakartaEe>
+                                <hideGenerationTimestamp>true</hideGenerationTimestamp>
+                            </configOptions>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>generate-teams-client</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>generate</goal>
+                        </goals>
+                        <configuration>
+                            <inputSpec>${project.basedir}/../../../libs/shared/contracts/generated/specs/teams.json</inputSpec>
+                            <generatorName>java</generatorName>
+                            <apiNameSuffix>Client</apiNameSuffix>
+                            <output>${openapi.generated-sources.root}/teams-client</output>
+                            <apiPackage>com.blockout.mobilegateway.teamsclient.api</apiPackage>
+                            <modelPackage>com.blockout.mobilegateway.teamsclient.model</modelPackage>
+                            <invokerPackage>com.blockout.mobilegateway.teamsclient.invoker</invokerPackage>
+                            <configOptions>
+                                <library>resttemplate</library>
+                                <useJakartaEe>true</useJakartaEe>
+                                <hideGenerationTimestamp>true</hideGenerationTimestamp>
+                            </configOptions>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>generate-pools-client</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>generate</goal>
+                        </goals>
+                        <configuration>
+                            <inputSpec>${project.basedir}/../../../libs/shared/contracts/generated/specs/pools.json</inputSpec>
+                            <generatorName>java</generatorName>
+                            <apiNameSuffix>Client</apiNameSuffix>
+                            <output>${openapi.generated-sources.root}/pools-client</output>
+                            <apiPackage>com.blockout.mobilegateway.poolsclient.api</apiPackage>
+                            <modelPackage>com.blockout.mobilegateway.poolsclient.model</modelPackage>
+                            <invokerPackage>com.blockout.mobilegateway.poolsclient.invoker</invokerPackage>
+                            <configOptions>
+                                <library>resttemplate</library>
+                                <useJakartaEe>true</useJakartaEe>
+                                <hideGenerationTimestamp>true</hideGenerationTimestamp>
+                            </configOptions>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>generate-competition-client</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>generate</goal>
+                        </goals>
+                        <configuration>
+                            <inputSpec>${project.basedir}/../../../libs/shared/contracts/generated/specs/competition.json</inputSpec>
+                            <generatorName>java</generatorName>
+                            <apiNameSuffix>Client</apiNameSuffix>
+                            <output>${openapi.generated-sources.root}/competition-client</output>
+                            <apiPackage>com.blockout.mobilegateway.competitionclient.api</apiPackage>
+                            <modelPackage>com.blockout.mobilegateway.competitionclient.model</modelPackage>
+                            <invokerPackage>com.blockout.mobilegateway.competitionclient.invoker</invokerPackage>
+                            <configOptions>
+                                <library>resttemplate</library>
+                                <useJakartaEe>true</useJakartaEe>
+                                <hideGenerationTimestamp>true</hideGenerationTimestamp>
+                            </configOptions>
+                        </configuration>
+                    </execution>
                 </executions>
             </plugin>
             <plugin>
@@ -276,6 +360,10 @@
                                 <source>${openapi.generated-sources.root}/reports-client/src/main/java</source>
                                 <source>${openapi.generated-sources.root}/notification-client/src/main/java</source>
                                 <source>${openapi.generated-sources.root}/search-client/src/main/java</source>
+                                <source>${openapi.generated-sources.root}/clubs-client/src/main/java</source>
+                                <source>${openapi.generated-sources.root}/teams-client/src/main/java</source>
+                                <source>${openapi.generated-sources.root}/pools-client/src/main/java</source>
+                                <source>${openapi.generated-sources.root}/competition-client/src/main/java</source>
                             </sources>
                         </configuration>
                     </execution>

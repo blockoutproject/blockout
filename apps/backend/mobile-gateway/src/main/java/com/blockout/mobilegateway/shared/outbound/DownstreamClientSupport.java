@@ -1,9 +1,12 @@
 package com.blockout.mobilegateway.shared.outbound;
 
 import java.util.regex.Pattern;
+import java.util.function.Supplier;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
+import org.springframework.web.client.HttpStatusCodeException;
 
 /** Shared mechanics for generated downstream adapters without owning workflow policy. */
 public final class DownstreamClientSupport {
@@ -23,5 +26,16 @@ public final class DownstreamClientSupport {
     public static boolean hasUserJwt() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         return authentication instanceof JwtAuthenticationToken && authentication.isAuthenticated();
+    }
+
+    public static <T> T nullableWhenNotFound(Supplier<T> call) {
+        try {
+            return call.get();
+        } catch (HttpStatusCodeException exception) {
+            if (exception.getStatusCode().value() == HttpStatus.NOT_FOUND.value()) {
+                return null;
+            }
+            throw exception;
+        }
     }
 }

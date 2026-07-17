@@ -4,12 +4,17 @@ import com.blockout.config.client.api.AppStatusClient;
 import com.blockout.config.client.api.DivisionsClient;
 import com.blockout.config.client.api.RawDivisionMappingsClient;
 import com.blockout.config.client.api.ScraperStatusesClient;
+import com.blockout.mobilegateway.clubsclient.api.ClubsClient;
+import com.blockout.mobilegateway.competitionclient.api.CompetitionAssociationsClient;
+import com.blockout.mobilegateway.competitionclient.api.CompetitionRankingsClient;
 import com.blockout.mobilegateway.config.ApiClientProperties;
 import com.blockout.mobilegateway.notificationclient.api.NotificationInboxMutationsClient;
 import com.blockout.mobilegateway.notificationclient.api.NotificationInboxPagesClient;
 import com.blockout.mobilegateway.notificationclient.api.NotificationPushTokensClient;
+import com.blockout.mobilegateway.poolsclient.api.PoolsClient;
 import com.blockout.mobilegateway.reportsclient.api.ReportsClient;
 import com.blockout.mobilegateway.searchclient.api.SearchClient;
+import com.blockout.mobilegateway.teamsclient.api.TeamsClient;
 import com.blockout.mobilegateway.usersclient.api.UserAccountsClient;
 import com.blockout.mobilegateway.usersclient.api.UserFavoritesClient;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -111,6 +116,66 @@ public class GeneratedDownstreamClientConfiguration {
         return new NotificationPushTokensClient(notificationClient(transport, properties));
     }
 
+    @Bean("clubsUserClient")
+    ClubsClient clubsUserClient(
+            @Qualifier("internalAuthRestTemplate") RestTemplate transport, ApiClientProperties properties) {
+        return new ClubsClient(clubsClient(transport, properties));
+    }
+
+    @Bean("clubsM2mClient")
+    ClubsClient clubsM2mClient(
+            @Qualifier("internalM2MRestTemplate") RestTemplate transport, ApiClientProperties properties) {
+        return new ClubsClient(clubsClient(transport, properties));
+    }
+
+    @Bean("teamsUserClient")
+    TeamsClient teamsUserClient(
+            @Qualifier("internalAuthRestTemplate") RestTemplate transport, ApiClientProperties properties) {
+        return new TeamsClient(teamsClient(transport, properties));
+    }
+
+    @Bean("teamsM2mClient")
+    TeamsClient teamsM2mClient(
+            @Qualifier("internalM2MRestTemplate") RestTemplate transport, ApiClientProperties properties) {
+        return new TeamsClient(teamsClient(transport, properties));
+    }
+
+    @Bean("poolsUserClient")
+    PoolsClient poolsUserClient(
+            @Qualifier("internalAuthRestTemplate") RestTemplate transport, ApiClientProperties properties) {
+        return new PoolsClient(poolsClient(transport, properties));
+    }
+
+    @Bean("poolsM2mClient")
+    PoolsClient poolsM2mClient(
+            @Qualifier("internalM2MRestTemplate") RestTemplate transport, ApiClientProperties properties) {
+        return new PoolsClient(poolsClient(transport, properties));
+    }
+
+    @Bean("competitionAssociationsUserClient")
+    CompetitionAssociationsClient competitionAssociationsUserClient(
+            @Qualifier("internalAuthRestTemplate") RestTemplate transport, ApiClientProperties properties) {
+        return new CompetitionAssociationsClient(competitionClient(transport, properties));
+    }
+
+    @Bean("competitionAssociationsM2mClient")
+    CompetitionAssociationsClient competitionAssociationsM2mClient(
+            @Qualifier("internalM2MRestTemplate") RestTemplate transport, ApiClientProperties properties) {
+        return new CompetitionAssociationsClient(competitionClient(transport, properties));
+    }
+
+    @Bean("competitionRankingsUserClient")
+    CompetitionRankingsClient competitionRankingsUserClient(
+            @Qualifier("internalAuthRestTemplate") RestTemplate transport, ApiClientProperties properties) {
+        return new CompetitionRankingsClient(competitionClient(transport, properties));
+    }
+
+    @Bean("competitionRankingsM2mClient")
+    CompetitionRankingsClient competitionRankingsM2mClient(
+            @Qualifier("internalM2MRestTemplate") RestTemplate transport, ApiClientProperties properties) {
+        return new CompetitionRankingsClient(competitionClient(transport, properties));
+    }
+
     private com.blockout.config.client.invoker.ApiClient configClient(
             RestTemplate transport, ApiClientProperties properties) {
         return new com.blockout.config.client.invoker.ApiClient(transport)
@@ -139,5 +204,29 @@ public class GeneratedDownstreamClientConfiguration {
             RestTemplate transport, ApiClientProperties properties) {
         return new com.blockout.mobilegateway.notificationclient.invoker.ApiClient(transport)
                 .setBasePath(DownstreamClientSupport.canonicalRoot(properties.getNotification().getUrl()));
+    }
+
+    private com.blockout.mobilegateway.clubsclient.invoker.ApiClient clubsClient(
+            RestTemplate transport, ApiClientProperties properties) {
+        return new com.blockout.mobilegateway.clubsclient.invoker.ApiClient(transport)
+                .setBasePath(DownstreamClientSupport.canonicalRoot(properties.getClub().getUrl()));
+    }
+
+    private com.blockout.mobilegateway.teamsclient.invoker.ApiClient teamsClient(
+            RestTemplate transport, ApiClientProperties properties) {
+        return new com.blockout.mobilegateway.teamsclient.invoker.ApiClient(transport)
+                .setBasePath(DownstreamClientSupport.canonicalRoot(properties.getTeam().getUrl()));
+    }
+
+    private com.blockout.mobilegateway.poolsclient.invoker.ApiClient poolsClient(
+            RestTemplate transport, ApiClientProperties properties) {
+        return new com.blockout.mobilegateway.poolsclient.invoker.ApiClient(transport)
+                .setBasePath(DownstreamClientSupport.canonicalRoot(properties.getPool().getUrl()));
+    }
+
+    private com.blockout.mobilegateway.competitionclient.invoker.ApiClient competitionClient(
+            RestTemplate transport, ApiClientProperties properties) {
+        return new com.blockout.mobilegateway.competitionclient.invoker.ApiClient(transport)
+                .setBasePath(DownstreamClientSupport.canonicalRoot(properties.getCompetition().getUrl()));
     }
 }

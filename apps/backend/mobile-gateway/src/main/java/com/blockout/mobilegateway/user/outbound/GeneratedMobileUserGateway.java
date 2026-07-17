@@ -54,7 +54,9 @@ public class GeneratedMobileUserGateway implements MobileUserGateway {
     @Override
     @Caching(evict = {
             @CacheEvict(value = "teamById", key = "#entityId", condition = "#entityType.name() == 'TEAM'"),
-            @CacheEvict(value = "poolById", key = "#entityId", condition = "#entityType.name() == 'POOL'")
+            @CacheEvict(value = "poolById", key = "#entityId", condition = "#entityType.name() == 'POOL'"),
+            @CacheEvict(value = "mobileV2TeamById", key = "#entityId", condition = "#entityType.name() == 'TEAM'"),
+            @CacheEvict(value = "mobileV2PoolById", key = "#entityId", condition = "#entityType.name() == 'POOL'")
     })
     public void follow(EntityTypeEnum entityType, Long entityId) {
         favorites.followEntity(entityType, entityId);
@@ -63,7 +65,9 @@ public class GeneratedMobileUserGateway implements MobileUserGateway {
     @Override
     @Caching(evict = {
             @CacheEvict(value = "teamById", key = "#entityId", condition = "#entityType.name() == 'TEAM'"),
-            @CacheEvict(value = "poolById", key = "#entityId", condition = "#entityType.name() == 'POOL'")
+            @CacheEvict(value = "poolById", key = "#entityId", condition = "#entityType.name() == 'POOL'"),
+            @CacheEvict(value = "mobileV2TeamById", key = "#entityId", condition = "#entityType.name() == 'TEAM'"),
+            @CacheEvict(value = "mobileV2PoolById", key = "#entityId", condition = "#entityType.name() == 'POOL'")
     })
     public void unfollow(EntityTypeEnum entityType, Long entityId) {
         favorites.unfollowEntity(entityType, entityId);

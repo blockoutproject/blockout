@@ -906,8 +906,22 @@ state moves to GitHub and this file becomes a historical migration record.
     events, databases, standalone repositories, production, and Maaatch are unchanged;
     `docs/migration/mrg-343-mobile-gateway-relay-runtime-migration.md` records parity, rollback, and the explicit future
     removal of v1/legacy/`V2` source scaffolding while retaining canonical public `/api/v2/**` routes.
-- [ ] MRG-367 Migrate `mobile-gateway` club, team, and pool workflows to generated clients and BFF interfaces with
+- [x] MRG-367 Migrate `mobile-gateway` club, team, and pool workflows to generated clients and BFF interfaces with
       immutable projections, explicit privacy, ordering, cache, fan-out, and missing-data policy.
+  - Evidence: all nine club, team, and pool BFF operations now implement generated v2 server interfaces and call
+    generated clubs-, teams-, pools-, config-, and competition-service clients through immutable workflow-owned
+    commands, snapshots, and views. Club public projections exclude phone and other owner-only fields; detail workflows
+    enforce required object/division/ranking membership, while batch endpoints preserve set-derived order, omit
+    missing/inactive objects, and tolerate optional enrichment. The existing five-key stable ranking policy and
+    explicit distinct-ID fan-out are retained. Canonical immutable caches use separate `mobileV2*` namespaces from v1
+    mutable DTO caches, and mutations/favorite changes evict both generations. Multipart images cross the application
+    boundary as copied bytes and become bounded temporary files only in generated outbound adapters. Seventy focused
+    mobile-gateway tests, thirty contract tests, deterministic generation, full backend packaging, documentation
+    validation, Maaatch comparison, Prettier, source-confinement, and whitespace checks pass. Expo, Orval,
+    owner-service runtime,
+    scrapers, events, databases, standalone repositories, production, and Maaatch are unchanged;
+    `docs/migration/mrg-367-mobile-gateway-catalog-runtime-migration.md` records parity, rollback, cache coexistence,
+    and eventual removal of `TeamGZone`, v1/legacy/`V2`/`isV2` Java scaffolding after the approved gates.
 - [ ] MRG-368 Migrate `mobile-gateway` competition, match, and live workflows to generated clients and BFF interfaces
       with separate list, detail, ranking, history, moderation, signed-link, and partial-result projections.
 - [ ] MRG-344 Migrate Expo authentication and remaining configuration modules to generated BFF clients and wire
