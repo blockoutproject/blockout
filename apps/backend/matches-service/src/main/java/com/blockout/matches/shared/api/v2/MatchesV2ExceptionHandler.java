@@ -5,6 +5,8 @@ import com.blockout.matches.match.api.v2.MatchDaysV2Controller;
 import com.blockout.matches.match.api.v2.MatchesV2Controller;
 import com.blockout.matches.match.live.api.v2.MatchLiveLinkHistoryV2Controller;
 import com.blockout.matches.match.live.api.v2.MatchLiveLinksV2Controller;
+import com.blockout.matches.match.live.moderation.api.v2.MatchModerationV2Controller;
+import com.blockout.matches.match.live.report.api.v2.MatchLiveLinkReportsV2Controller;
 import com.blockout.shared.model.ProblemDetail;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
@@ -26,7 +28,9 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
         MatchesV2Controller.class,
         MatchDaysV2Controller.class,
         MatchLiveLinksV2Controller.class,
-        MatchLiveLinkHistoryV2Controller.class
+        MatchLiveLinkHistoryV2Controller.class,
+        MatchModerationV2Controller.class,
+        MatchLiveLinkReportsV2Controller.class
 })
 @RequiredArgsConstructor
 public class MatchesV2ExceptionHandler {

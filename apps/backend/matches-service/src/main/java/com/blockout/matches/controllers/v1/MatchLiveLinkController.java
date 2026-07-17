@@ -4,11 +4,13 @@ import com.blockout.matches.match.live.application.MatchLiveLinkApplicationServi
 import com.blockout.matches.match.live.application.MatchLiveLinkHistoryItemView;
 import com.blockout.matches.match.live.application.MatchLiveLinkResultView;
 import com.blockout.matches.match.live.application.UpsertMatchLiveLinkCommand;
-import com.blockout.matches.models.dto.match.MatchLiveLinkReportRequestDTO;
+import com.blockout.matches.match.live.moderation.application.MatchLiveLinkDecision;
+import com.blockout.matches.match.live.moderation.application.MatchLiveModerationApplicationService;
+import com.blockout.matches.match.live.moderation.application.ModerateMatchLiveLinkCommand;
+import com.blockout.matches.match.live.report.application.MatchLiveLinkReportApplicationService;
+import com.blockout.matches.match.live.report.application.ReportMatchLiveLinkCommand;
 import com.blockout.matches.models.enums.LiveLinkStatus;
 import com.blockout.matches.models.enums.LiveProvider;
-import com.blockout.matches.services.MatchLiveLinkReportService;
-import com.blockout.matches.services.MatchLiveLinkService;
 import com.blockout.matches.shared.api.v1.LegacyMatchesJson;
 import com.fasterxml.jackson.core.JsonProcessingException;
 
@@ -34,8 +36,8 @@ import java.util.List;
 public class MatchLiveLinkController {
 
     private final MatchLiveLinkApplicationService liveLinks;
-    private final MatchLiveLinkService moderation;
-    private final MatchLiveLinkReportService matchLiveLinkReportService;
+    private final MatchLiveModerationApplicationService moderation;
+    private final MatchLiveLinkReportApplicationService reports;
     private final LegacyMatchesJson json;
 
     @Operation(summary = "Lister l'historique complet des liens live d'un match")
@@ -95,11 +97,11 @@ public class MatchLiveLinkController {
     @PostMapping("/{matchId}/live-link/report")
     public ResponseEntity<Void> reportLiveLink(
             @PathVariable Long matchId,
-            @RequestBody MatchLiveLinkReportRequestDTO request,
-            @AuthenticationPrincipal Jwt jwt) {
+            @RequestBody String body,
+            @AuthenticationPrincipal Jwt jwt) throws JsonProcessingException {
 
-        String auth0Id = jwt.getSubject();
-        matchLiveLinkReportService.reportLiveLink(matchId, request, auth0Id);
+        LegacyLiveLinkReportRequest request = json.read(body, LegacyLiveLinkReportRequest.class);
+        reports.report(matchId, new ReportMatchLiveLinkCommand(request.reason(), jwt.getSubject()));
         return ResponseEntity.noContent().build();
     }
 
@@ -113,7 +115,7 @@ public class MatchLiveLinkController {
     @PreAuthorize("hasAuthority('SCOPE_moderate:match_live_link')")
     @PostMapping("/live-links/{liveLinkId}/approve")
     public ResponseEntity<Void> approvePendingLink(@PathVariable Long liveLinkId) {
-        moderation.approvePendingLink(liveLinkId);
+        moderation.moderate(new ModerateMatchLiveLinkCommand(liveLinkId, MatchLiveLinkDecision.APPROVE));
         return ResponseEntity.noContent().build();
     }
 
@@ -127,7 +129,7 @@ public class MatchLiveLinkController {
     @PreAuthorize("hasAuthority('SCOPE_moderate:match_live_link')")
     @PostMapping("/live-links/{liveLinkId}/reject")
     public ResponseEntity<Void> rejectPendingLink(@PathVariable Long liveLinkId) {
-        moderation.rejectPendingLink(liveLinkId);
+        moderation.moderate(new ModerateMatchLiveLinkCommand(liveLinkId, MatchLiveLinkDecision.REJECT));
         return ResponseEntity.noContent().build();
     }
 
@@ -141,7 +143,7 @@ public class MatchLiveLinkController {
     @PreAuthorize("hasAuthority('SCOPE_moderate:match_live_link')")
     @PostMapping("/live-links/{liveLinkId}/reactivate")
     public ResponseEntity<Void> reactivateLiveLink(@PathVariable Long liveLinkId) {
-        moderation.reactivateLiveLink(liveLinkId);
+        moderation.moderate(new ModerateMatchLiveLinkCommand(liveLinkId, MatchLiveLinkDecision.REACTIVATE));
         return ResponseEntity.noContent().build();
     }
 
@@ -158,6 +160,9 @@ public class MatchLiveLinkController {
     }
 
     record LegacyLiveLinkRequest(String url) {
+    }
+
+    record LegacyLiveLinkReportRequest(String reason) {
     }
 
     record LegacyLiveLinkResultResponse(

@@ -234,7 +234,8 @@ selection and does not promise the unimplemented time window.
 
 Live-link commands, history, reports, and moderation use separate operation tags so their generated interfaces follow
 the application roles and roadmap slices. This separation changes neither paths nor payloads: MRG-361 owns history,
-upsert, and delete, while MRG-362 owns reporting and moderation reads/actions.
+upsert, and delete, while MRG-362 implements reporting and moderation reads/actions through their separate generated
+server boundaries. Both slices retain isolated unpaged v1 adapters until their downstream callers migrate.
 
 Live-link commands retain existing ownership, provider, account-age, quota, timing, professional-league, report, and
 state policies. The upsert result keeps only the four fields consumed by Expo. Report reason uses the existing mobile

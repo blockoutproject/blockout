@@ -360,6 +360,9 @@ deferred BFF/scraper callers are recorded in the
 The live-link command/history boundary, generated users-service adapter, quota and transition parity, and isolated v1
 transport are recorded in the
 [MRG-361 matches live migration](../migration/mrg-361-matches-live-history-runtime-migration.md).
+The separate moderation projection/actions, live-link report command, generated v2 boundaries, legacy adapter parity,
+and retained concurrency behavior are recorded in the
+[MRG-362 matches moderation migration](../migration/mrg-362-matches-moderation-report-runtime-migration.md).
 
 ## 12. Approved Roadmap Sequence
 

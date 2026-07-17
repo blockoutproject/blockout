@@ -10,12 +10,13 @@ import com.blockout.matches.match.application.MatchDetailView;
 import com.blockout.matches.match.application.MatchQuery;
 import com.blockout.matches.match.application.MatchSnapshot;
 import com.blockout.matches.match.application.UpdateMatchCommand;
-import com.blockout.matches.models.dto.match.MatchLiveSummaryDTO;
+import com.blockout.matches.match.live.moderation.application.MatchLiveModerationApplicationService;
+import com.blockout.matches.match.live.moderation.application.MatchLiveModerationView;
 import com.blockout.matches.models.enums.LiveLinkStatus;
 import com.blockout.matches.models.enums.LiveProvider;
 import com.blockout.matches.models.enums.MatchStatus;
-import com.blockout.matches.services.MatchService;
 import com.blockout.matches.shared.api.v1.LegacyMatchesJson;
+import com.blockout.shared.model.LiveLinkStatusEnum;
 import com.blockout.shared.model.MatchStatusEnum;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import java.net.URI;
@@ -43,7 +44,7 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 public class MatchController {
 
     private final MatchApplicationService matches;
-    private final MatchService liveModeration;
+    private final MatchLiveModerationApplicationService liveModeration;
     private final LegacyMatchesJson json;
 
     @GetMapping
@@ -112,9 +113,15 @@ public class MatchController {
 
     @GetMapping("/live-moderation")
     @PreAuthorize("hasAuthority('SCOPE_moderate:match_live_link')")
-    public ResponseEntity<List<MatchLiveSummaryDTO>> listMatchesForLiveModeration(
-            @RequestParam(value = "status", required = false) LiveLinkStatus statusFilter) {
-        return ResponseEntity.ok(liveModeration.listMatchesForLiveModeration(statusFilter));
+    public ResponseEntity<String> listMatchesForLiveModeration(
+            @RequestParam(value = "status", required = false) LiveLinkStatus statusFilter)
+            throws JsonProcessingException {
+        LiveLinkStatusEnum status = statusFilter == null
+                ? null
+                : LiveLinkStatusEnum.fromValue(statusFilter.name());
+        return ResponseEntity.ok(json.write(liveModeration.findAll(status).stream()
+                .map(this::legacyResponse)
+                .toList()));
     }
 
     private LegacyMatchResponse legacyResponse(MatchSnapshot match) {
@@ -132,6 +139,21 @@ public class MatchController {
                 match.secondReferee(), match.liveUrl(),
                 match.liveProvider() == null ? null : LiveProvider.valueOf(match.liveProvider().getValue()),
                 match.liveOwnerAuth0Id());
+    }
+
+    private LegacyMatchLiveModerationResponse legacyResponse(MatchLiveModerationView match) {
+        return new LegacyMatchLiveModerationResponse(
+                match.id(), match.matchCode(), match.leagueCode(), match.poolId(), match.teamIdA(), match.teamIdB(),
+                match.matchDate(), match.season(), match.set(), match.score(),
+                match.status() == null ? null : MatchStatus.valueOf(match.status().getValue()), match.liveCode(),
+                match.lastLiveLinkId(),
+                match.lastLiveLinkStatus() == null
+                        ? null
+                        : LiveLinkStatus.valueOf(match.lastLiveLinkStatus().getValue()),
+                match.lastLiveLinkProvider() == null
+                        ? null
+                        : LiveProvider.valueOf(match.lastLiveLinkProvider().getValue()),
+                match.lastLiveLinkUrl(), match.lastLiveLinkOwnerAuth0Id(), match.lastLiveLinkCreatedAt());
     }
 
     private LegacyDayResponse legacyResponse(MatchDayView day) {
@@ -198,6 +220,27 @@ public class MatchController {
             Boolean active,
             Instant createdAt,
             Instant lastUpdate) {
+    }
+
+    record LegacyMatchLiveModerationResponse(
+            Long id,
+            String matchCode,
+            String leagueCode,
+            Long poolId,
+            Long teamIdA,
+            Long teamIdB,
+            Instant matchDate,
+            String season,
+            String set,
+            String score,
+            MatchStatus status,
+            Long liveCode,
+            Long lastLiveLinkId,
+            LiveLinkStatus lastLiveLinkStatus,
+            LiveProvider lastLiveLinkProvider,
+            String lastLiveLinkUrl,
+            String lastLiveLinkOwnerAuth0Id,
+            Instant lastLiveLinkCreatedAt) {
     }
 
     record LegacyMatchRequest(

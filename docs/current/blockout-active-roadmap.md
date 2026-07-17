@@ -754,8 +754,19 @@ state moves to GitHub and this file becomes a historical migration record.
     documentation, Maaatch comparison, Prettier, and whitespace checks pass. Databases, event topology, BFF, Expo,
     scraper runtime, standalone repositories, production, Maaatch, Blockout Orval settings, and Python generator
     settings are unchanged.
-- [ ] MRG-362 Migrate `matches-service` moderation and live-report boundaries with explicit commands, views, validation,
+- [x] MRG-362 Migrate `matches-service` moderation and live-report boundaries with explicit commands, views, validation,
       representative-selection, filter, error, and concurrency parity.
+  - Evidence: `MATCH-07` and `MATCH-11` through `MATCH-14` now implement the generated `MatchModerationApi` and
+    `MatchLiveLinkReportsApi` through role-owned query/page/view, decision and report commands, two transactional
+    application services, strict persistence/API mapping, and progressive Problem Details. The status filter still
+    tests all history while the displayed link keeps the audited status-priority selection; v2 pages only after that
+    selection, while the isolated v1 adapter remains an unpaged snake_case array with legacy-only fields. Approval,
+    rejection, reactivation, duplicate-report no-op, three/ten-report auto-hide thresholds, error outcomes, Auth0
+    ownership, and concurrent uniqueness-failure rollback remain intact. The two Lombok/Jackson DTOs and two former
+    transport-centric services are removed. Thirteen targeted tests plus the retained matches tests, contract/lint,
+    full backend, documentation, Maaatch comparison, Prettier, and whitespace checks pass. Contracts, committed
+    generated artifacts, databases, events, BFF, Expo, scrapers, standalone repositories, production, Maaatch,
+    Blockout Orval settings, and Python generator settings are unchanged.
 - [ ] MRG-339 Migrate `users-service` account and profile generated boundaries and clients, keeping local UUID identity,
       Auth0 resolution, image intent, authentication, and current behavior explicit; then activate matches-service's
       staged generated `UserAccountsClient` and remove its temporary `LegacyCurrentUserAdapter` after provider-first
