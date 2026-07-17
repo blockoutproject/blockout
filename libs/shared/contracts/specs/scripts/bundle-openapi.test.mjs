@@ -1716,6 +1716,16 @@ test('workspace mobile gateway contract owns the thirty relay workflow operation
           operation,
         })),
   );
+  const relayTags = new Set([
+    'MobileConfiguration',
+    'MobileUsers',
+    'MobileReports',
+    'MobileSearch',
+    'MobileNotifications',
+  ]);
+  const relayOperations = operations.filter(({ operation }) =>
+    operation.tags.some((tag) => relayTags.has(tag)),
+  );
   const expectedOperations = {
     'DELETE /api/v2/mobile/secure/config/divisions/{id}':
       'deactivateMobileDivision',
@@ -1763,27 +1773,27 @@ test('workspace mobile gateway contract owns the thirty relay workflow operation
   };
   assert.deepEqual(
     Object.fromEntries(
-      operations
+      relayOperations
         .map(({ key, operation }) => [key, operation.operationId])
         .sort(([left], [right]) => left.localeCompare(right)),
     ),
     expectedOperations,
   );
-  assert.equal(operations.length, 30);
+  assert.equal(relayOperations.length, 30);
   assert.equal(
-    new Set(operations.map(({ operation }) => operation.operationId)).size,
+    new Set(relayOperations.map(({ operation }) => operation.operationId)).size,
     30,
   );
 
   assert.deepEqual(gateway.security, [{ bearerAuth: [] }]);
-  const publicOperations = operations.filter(({ key }) =>
+  const publicOperations = relayOperations.filter(({ key }) =>
     key.includes('/api/v2/mobile/public/'),
   );
   assert.equal(publicOperations.length, 8);
   for (const { operation } of publicOperations) {
     assert.deepEqual(operation.security, []);
   }
-  for (const { key, operation } of operations.filter(({ key }) =>
+  for (const { key, operation } of relayOperations.filter(({ key }) =>
     key.includes('/api/v2/mobile/secure/'),
   )) {
     assert.equal(operation.security, undefined, key);
@@ -1918,6 +1928,234 @@ test('workspace mobile gateway contract owns the thirty relay workflow operation
       ),
     ),
     ['EntityTypeEnum'],
+  );
+});
+
+test('workspace mobile gateway contract separates the nine club team and pool workflows', async () => {
+  const gateway = await readJson(
+    path.join(generatedSpecsDir, 'mobile-gateway.json'),
+  );
+  const workflowTags = new Set(['MobileClubs', 'MobileTeams', 'MobilePools']);
+  const operations = Object.entries(gateway.paths).flatMap(
+    ([operationPath, pathItem]) =>
+      Object.entries(pathItem)
+        .filter(([method]) => method !== 'parameters')
+        .map(([method, operation]) => ({
+          key: `${method.toUpperCase()} ${operationPath}`,
+          operation,
+        })),
+  );
+  const workflowOperations = operations.filter(({ operation }) =>
+    operation.tags.some((tag) => workflowTags.has(tag)),
+  );
+  assert.deepEqual(
+    Object.fromEntries(
+      workflowOperations
+        .map(({ key, operation }) => [key, operation.operationId])
+        .sort(([left], [right]) => left.localeCompare(right)),
+    ),
+    {
+      'GET /api/v2/mobile/public/clubs/{id}': 'getMobileClub',
+      'GET /api/v2/mobile/public/pools/by-ids': 'listMobilePoolsByIds',
+      'GET /api/v2/mobile/public/pools/{id}': 'getMobilePool',
+      'GET /api/v2/mobile/public/teams/by-club/{clubId}':
+        'listMobileTeamsByClub',
+      'GET /api/v2/mobile/public/teams/by-ids': 'listMobileTeamsByIds',
+      'GET /api/v2/mobile/public/teams/{id}': 'getMobileTeam',
+      'PUT /api/v2/mobile/secure/clubs/{id}': 'updateMobileClub',
+      'PUT /api/v2/mobile/secure/pools/{id}': 'updateMobilePool',
+      'PUT /api/v2/mobile/secure/teams/{id}': 'updateMobileTeam',
+    },
+  );
+  assert.equal(workflowOperations.length, 9);
+  assert.equal(operations.length, 39);
+  for (const { key, operation } of workflowOperations) {
+    if (key.includes('/public/')) {
+      assert.deepEqual(operation.security, []);
+    } else {
+      assert.equal(operation.security, undefined);
+    }
+  }
+
+  assert.deepEqual(
+    Object.keys(gateway.components.schemas.MobileClubDetail.properties),
+    [
+      'id',
+      'rawName',
+      'name',
+      'address',
+      'city',
+      'email',
+      'website',
+      'logoUrl',
+      'latitude',
+      'longitude',
+    ],
+  );
+  assert.equal(
+    gateway.components.schemas.MobileClubDetail.properties.phoneNumber,
+    undefined,
+  );
+  for (const compatibilityField of [
+    'postalCode',
+    'active',
+    'createdAt',
+    'lastUpdate',
+  ]) {
+    assert.equal(
+      gateway.components.schemas.MobileClubDetail.properties[
+        compatibilityField
+      ],
+      undefined,
+    );
+  }
+  assert.deepEqual(
+    Object.keys(gateway.components.schemas.UpdateMobileClubRequest.properties),
+    ['name', 'removeLogo'],
+  );
+
+  assert.deepEqual(
+    Object.keys(gateway.components.schemas.MobileTeamDetail.properties),
+    [
+      'id',
+      'clubId',
+      'name',
+      'shortName',
+      'rawName',
+      'format',
+      'gender',
+      'season',
+      'followersCount',
+      'division',
+      'logoUrl',
+      'pools',
+    ],
+  );
+  assert.equal(
+    gateway.components.schemas.MobileTeamDetail.properties.club,
+    undefined,
+  );
+  assert.deepEqual(
+    Object.keys(gateway.components.schemas.MobileTeamPool.properties),
+    [
+      'id',
+      'leagueCode',
+      'leagueName',
+      'shortName',
+      'gender',
+      'ranking',
+      'division',
+    ],
+  );
+  assert.deepEqual(
+    Object.keys(gateway.components.schemas.MobilePoolDetail.properties),
+    [
+      'id',
+      'season',
+      'leagueCode',
+      'leagueName',
+      'name',
+      'shortName',
+      'rawName',
+      'gender',
+      'followersCount',
+      'ranking',
+      'division',
+    ],
+  );
+  assert.notDeepEqual(
+    gateway.components.schemas.MobileTeamPool,
+    gateway.components.schemas.MobilePoolDetail,
+  );
+
+  assert.deepEqual(
+    Object.keys(gateway.components.schemas.MobileRankingTeam.properties),
+    [
+      'id',
+      'shortName',
+      'logoUrl',
+      'points',
+      'played',
+      'wins',
+      'losses',
+      'latitude',
+      'longitude',
+    ],
+  );
+  for (const serverOnlyRankingField of [
+    'name',
+    'pointsPenalty',
+    'coefSets',
+    'coefPoints',
+  ]) {
+    assert.equal(
+      gateway.components.schemas.MobileRankingTeam.properties[
+        serverOnlyRankingField
+      ],
+      undefined,
+    );
+  }
+  assert.match(
+    gateway.components.schemas.MobileRankingTeam.description,
+    /exact ties retain unspecified source order/,
+  );
+
+  assert.equal(
+    gateway.components.schemas.MobileTeamSummary.properties.division.nullable,
+    true,
+  );
+  assert.equal(
+    gateway.components.schemas.MobilePoolSummary.properties.division.nullable,
+    true,
+  );
+  assert.deepEqual(
+    Object.keys(gateway.components.schemas.MobileTeamListResponse.properties),
+    ['items'],
+  );
+  assert.deepEqual(
+    Object.keys(gateway.components.schemas.MobilePoolListResponse.properties),
+    ['items'],
+  );
+  assert.equal(gateway.components.parameters.MobileIds.explode, true);
+  assert.equal(gateway.components.parameters.MobileIds.schema.minItems, 1);
+  assert.equal(
+    gateway.components.parameters.MobileIds.schema.items.$ref,
+    '#/components/schemas/NumericIdentifier',
+  );
+  assert.match(
+    gateway.paths['/api/v2/mobile/public/teams/by-ids'].get.description,
+    /silently omits missing or inactive teams/,
+  );
+  assert.match(
+    gateway.paths['/api/v2/mobile/public/pools/by-ids'].get.description,
+    /no partial-result marker/,
+  );
+
+  const clubMultipart =
+    gateway.paths['/api/v2/mobile/secure/clubs/{id}'].put.requestBody.content[
+      'multipart/form-data'
+    ];
+  const teamMultipart =
+    gateway.paths['/api/v2/mobile/secure/teams/{id}'].put.requestBody.content[
+      'multipart/form-data'
+    ];
+  assert.equal(
+    clubMultipart.schema.properties.data.$ref,
+    '#/components/schemas/UpdateMobileClubRequest',
+  );
+  assert.equal(
+    teamMultipart.schema.properties.data.$ref,
+    '#/components/schemas/UpdateMobileTeamRequest',
+  );
+  assert.equal(clubMultipart.encoding.data.contentType, 'application/json');
+  assert.equal(teamMultipart.encoding.data.contentType, 'application/json');
+  assert.deepEqual(
+    Object.keys(gateway.components.schemas.UpdateMobileTeamRequest.properties),
+    ['name', 'shortName', 'removeLogo'],
+  );
+  assert.deepEqual(
+    Object.keys(gateway.components.schemas.UpdateMobilePoolRequest.properties),
+    ['name', 'shortName'],
   );
 });
 

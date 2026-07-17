@@ -341,7 +341,29 @@ store models stay outside the bundle, and no BFF cache representation enters the
 
 This source defines target v2 behavior only. Isolated v1 adapters retain current raw arrays, `count` and `nextPage`,
 snake_case multipart/query fields, statuses, authentication, caching, null, fallback, and partial-failure semantics
-until the owning vertical migration. MRG-357 and MRG-358 add the remaining aggregation workflows later.
+until the owning vertical migration. MRG-357 adds club/team/pool aggregation below, and MRG-358 later completes the
+remaining match-facing workflows.
+
+## Mobile-Gateway Club, Team, And Pool Workflows
+
+MRG-357 adds the nine audited club, team, and pool facade operations. Each public detail, public list, and secure update
+uses a workflow-owned schema rather than a downstream service model. Direct club profiles restore the owner-backed
+nullable address needed by the current UI and exclude phone number under the BFF-owned public privacy rule. Postal
+code, lifecycle state, audit timestamps, embedded full clubs, server-only ranking inputs, and fields unused by the
+owning Expo workflow stay outside these views.
+
+Team detail, team list, pool detail, pool list, and team-nested pool projections remain distinct. Nested divisions
+contain only label and styling inputs; list divisions are nullable because current partial enrichment can omit them.
+Ranking rows contain only visible ranking and map inputs while array position carries the server decision. Update
+commands contain only current mobile edit fields, with explicit club/team logo intent, and their results are narrow
+edit-workflow projections.
+
+Compatibility behavior is explicit rather than repaired by inference. Team and pool by-ID reads deduplicate input,
+silently omit missing or inactive rows, expose no partial-result marker, and retain their current unspecified set order.
+Teams by club retain downstream order without a new stability promise. Exact ranking ties and team-detail pool order
+remain unspecified, missing required detail inputs fail the entire request, inactive pool detail remains readable, and
+missing list divisions remain null. The v1 adapter retains raw arrays and every legacy transport shape until MRG-367
+proves parity. MRG-358 alone adds competition, match, live, moderation, and signed-link workflows.
 
 ## Closed Boundaries
 

@@ -1,0 +1,105 @@
+{
+  "MobilePoolDetail": {
+    "type": "object",
+    "description": "Pool profile projection separated from downstream pool, division, competition, team, and club transports.",
+    "required": [
+      "id",
+      "season",
+      "leagueCode",
+      "leagueName",
+      "name",
+      "shortName",
+      "rawName",
+      "gender",
+      "followersCount",
+      "ranking",
+      "division"
+    ],
+    "properties": {
+      "id": { "$ref": "#/components/schemas/NumericIdentifier" },
+      "season": { "type": "string", "minLength": 1, "maxLength": 255 },
+      "leagueCode": { "type": "string", "maxLength": 255 },
+      "leagueName": { "type": "string", "maxLength": 255 },
+      "name": { "type": "string", "minLength": 1, "maxLength": 255 },
+      "shortName": { "type": "string", "minLength": 1, "maxLength": 255 },
+      "rawName": { "type": "string", "maxLength": 255 },
+      "gender": { "$ref": "#/components/schemas/GenderEnum" },
+      "followersCount": { "type": "integer", "format": "int64", "minimum": 0 },
+      "ranking": {
+        "type": "array",
+        "items": { "$ref": "#/components/schemas/MobileRankingTeam" }
+      },
+      "division": { "$ref": "#/components/schemas/MobileCatalogDivision" }
+    },
+    "additionalProperties": false
+  },
+  "MobilePoolSummary": {
+    "type": "object",
+    "description": "Followed-pool card projection. Missing division enrichment remains an explicit nullable result.",
+    "required": [
+      "id",
+      "name",
+      "leagueName",
+      "leagueCode",
+      "season",
+      "gender",
+      "format",
+      "division"
+    ],
+    "properties": {
+      "id": { "$ref": "#/components/schemas/NumericIdentifier" },
+      "name": { "type": "string", "minLength": 1, "maxLength": 255 },
+      "leagueName": { "type": "string", "maxLength": 255 },
+      "leagueCode": { "type": "string", "maxLength": 255 },
+      "season": { "type": "string", "minLength": 1, "maxLength": 255 },
+      "gender": { "$ref": "#/components/schemas/GenderEnum" },
+      "format": { "$ref": "#/components/schemas/FormatEnum" },
+      "division": {
+        "allOf": [{ "$ref": "#/components/schemas/MobileCatalogDivision" }],
+        "nullable": true
+      }
+    },
+    "additionalProperties": false
+  },
+  "MobilePoolListResponse": {
+    "type": "object",
+    "required": ["items"],
+    "properties": {
+      "items": {
+        "type": "array",
+        "items": { "$ref": "#/components/schemas/MobilePoolSummary" }
+      }
+    },
+    "additionalProperties": false
+  },
+  "UpdateMobilePoolRequest": {
+    "type": "object",
+    "description": "Mobile pool edit command. Omitted or null display fields preserve stored values.",
+    "properties": {
+      "name": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 255,
+        "nullable": true
+      },
+      "shortName": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 255,
+        "nullable": true
+      }
+    },
+    "additionalProperties": false
+  },
+  "MobilePoolUpdated": {
+    "type": "object",
+    "description": "Narrow result returned to the mobile edit workflow before its explicit refetch.",
+    "required": ["id", "name", "shortName"],
+    "properties": {
+      "id": { "$ref": "#/components/schemas/NumericIdentifier" },
+      "name": { "type": "string", "minLength": 1, "maxLength": 255 },
+      "shortName": { "type": "string", "minLength": 1, "maxLength": 255 }
+    },
+    "additionalProperties": false
+  }
+}

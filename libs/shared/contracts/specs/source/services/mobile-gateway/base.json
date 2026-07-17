@@ -10,7 +10,10 @@
     { "name": "MobileUsers" },
     { "name": "MobileReports" },
     { "name": "MobileSearch" },
-    { "name": "MobileNotifications" }
+    { "name": "MobileNotifications" },
+    { "name": "MobileClubs" },
+    { "name": "MobileTeams" },
+    { "name": "MobilePools" }
   ],
   "security": [{ "bearerAuth": [] }],
   "components": {
@@ -111,6 +114,42 @@
         "in": "path",
         "required": true,
         "schema": { "$ref": "#/components/schemas/UuidIdentifier" }
+      },
+      "MobileClubId": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "schema": { "type": "string", "minLength": 1, "maxLength": 255 }
+      },
+      "MobileClubIdForTeams": {
+        "name": "clubId",
+        "in": "path",
+        "required": true,
+        "schema": { "type": "string", "minLength": 1, "maxLength": 255 }
+      },
+      "MobileTeamId": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "schema": { "$ref": "#/components/schemas/NumericIdentifier" }
+      },
+      "MobilePoolId": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "schema": { "$ref": "#/components/schemas/NumericIdentifier" }
+      },
+      "MobileIds": {
+        "name": "ids",
+        "in": "query",
+        "required": true,
+        "style": "form",
+        "explode": true,
+        "schema": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/components/schemas/NumericIdentifier" }
+        }
       }
     }
   }

@@ -24,6 +24,15 @@
     },
     {
       "name": "MobileNotifications"
+    },
+    {
+      "name": "MobileClubs"
+    },
+    {
+      "name": "MobileTeams"
+    },
+    {
+      "name": "MobilePools"
     }
   ],
   "security": [
@@ -32,6 +41,387 @@
     }
   ],
   "paths": {
+    "/api/v2/mobile/public/clubs/{id}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/MobileClubId"
+        }
+      ],
+      "get": {
+        "operationId": "getMobileClub",
+        "tags": [
+          "MobileClubs"
+        ],
+        "summary": "Get a mobile club profile",
+        "description": "Returns the consumer-backed club profile. Address is restored from the owner projection, while phone number is intentionally excluded by the BFF privacy policy.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Requested mobile club profile.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileClubDetail"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorProblem"
+          }
+        }
+      }
+    },
+    "/api/v2/mobile/secure/clubs/{id}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/MobileClubId"
+        }
+      ],
+      "put": {
+        "operationId": "updateMobileClub",
+        "tags": [
+          "MobileClubs"
+        ],
+        "summary": "Update a mobile club profile",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "data"
+                ],
+                "properties": {
+                  "data": {
+                    "$ref": "#/components/schemas/UpdateMobileClubRequest"
+                  },
+                  "image": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "encoding": {
+                "data": {
+                  "contentType": "application/json"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated mobile club profile.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileClubDetail"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestProblem"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedProblem"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenProblem"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundProblem"
+          },
+          "413": {
+            "$ref": "#/components/responses/PayloadTooLargeProblem"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorProblem"
+          }
+        }
+      }
+    },
+    "/api/v2/mobile/public/teams/{id}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/MobileTeamId"
+        }
+      ],
+      "get": {
+        "operationId": "getMobileTeam",
+        "tags": [
+          "MobileTeams"
+        ],
+        "summary": "Get an enriched mobile team",
+        "description": "Builds the team screen projection. A missing required team, division, pool, or ranking team fails the whole request; no partial detail is returned.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Requested enriched mobile team.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileTeamDetail"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorProblem"
+          }
+        }
+      }
+    },
+    "/api/v2/mobile/public/teams/by-club/{clubId}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/MobileClubIdForTeams"
+        }
+      ],
+      "get": {
+        "operationId": "listMobileTeamsByClub",
+        "tags": [
+          "MobileTeams"
+        ],
+        "summary": "List active mobile teams for a club",
+        "description": "Preserves downstream active-team order, which has no stable guarantee. Missing divisions remain explicit nulls; a missing club is tolerated only when every team already has a logo.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Bounded mobile team list in current downstream order.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileTeamListResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorProblem"
+          }
+        }
+      }
+    },
+    "/api/v2/mobile/public/teams/by-ids": {
+      "get": {
+        "operationId": "listMobileTeamsByIds",
+        "tags": [
+          "MobileTeams"
+        ],
+        "summary": "List selected mobile teams",
+        "description": "Deduplicates identifiers, silently omits missing or inactive teams, and preserves the current unspecified set-derived order. Missing divisions and clubs remain nullable enrichment results; the response carries no partial-result marker.",
+        "security": [],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/MobileIds"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Selected active teams; an empty items array also represents all identifiers missing or inactive.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileTeamListResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorProblem"
+          }
+        }
+      }
+    },
+    "/api/v2/mobile/secure/teams/{id}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/MobileTeamId"
+        }
+      ],
+      "put": {
+        "operationId": "updateMobileTeam",
+        "tags": [
+          "MobileTeams"
+        ],
+        "summary": "Update a mobile team",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "data"
+                ],
+                "properties": {
+                  "data": {
+                    "$ref": "#/components/schemas/UpdateMobileTeamRequest"
+                  },
+                  "image": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "encoding": {
+                "data": {
+                  "contentType": "application/json"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated mobile team fields used by the edit workflow.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileTeamUpdated"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestProblem"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedProblem"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenProblem"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundProblem"
+          },
+          "413": {
+            "$ref": "#/components/responses/PayloadTooLargeProblem"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorProblem"
+          }
+        }
+      }
+    },
+    "/api/v2/mobile/public/pools/{id}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/MobilePoolId"
+        }
+      ],
+      "get": {
+        "operationId": "getMobilePool",
+        "tags": [
+          "MobilePools"
+        ],
+        "summary": "Get an enriched mobile pool",
+        "description": "Builds the pool screen and ranking projection. Inactive pools remain readable; a missing required pool, division, or ranking team fails the whole request.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Requested enriched mobile pool.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobilePoolDetail"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorProblem"
+          }
+        }
+      }
+    },
+    "/api/v2/mobile/public/pools/by-ids": {
+      "get": {
+        "operationId": "listMobilePoolsByIds",
+        "tags": [
+          "MobilePools"
+        ],
+        "summary": "List selected mobile pools",
+        "description": "Deduplicates identifiers, silently omits missing or inactive pools, and preserves the current unspecified set-derived order. Missing divisions remain explicit nulls and the response carries no partial-result marker.",
+        "security": [],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/MobileIds"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Selected active pools; an empty items array also represents all identifiers missing or inactive.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobilePoolListResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorProblem"
+          }
+        }
+      }
+    },
+    "/api/v2/mobile/secure/pools/{id}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/MobilePoolId"
+        }
+      ],
+      "put": {
+        "operationId": "updateMobilePool",
+        "tags": [
+          "MobilePools"
+        ],
+        "summary": "Update a mobile pool",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMobilePoolRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated mobile pool fields used by the edit workflow.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobilePoolUpdated"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestProblem"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedProblem"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenProblem"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundProblem"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorProblem"
+          }
+        }
+      }
+    },
     "/api/v2/mobile/public/config/app-status": {
       "get": {
         "operationId": "getMobileAppStatus",
@@ -1372,6 +1762,56 @@
         "schema": {
           "$ref": "#/components/schemas/UuidIdentifier"
         }
+      },
+      "MobileClubId": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255
+        }
+      },
+      "MobileClubIdForTeams": {
+        "name": "clubId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255
+        }
+      },
+      "MobileTeamId": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "$ref": "#/components/schemas/NumericIdentifier"
+        }
+      },
+      "MobilePoolId": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "$ref": "#/components/schemas/NumericIdentifier"
+        }
+      },
+      "MobileIds": {
+        "name": "ids",
+        "in": "query",
+        "required": true,
+        "style": "form",
+        "explode": true,
+        "schema": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/components/schemas/NumericIdentifier"
+          }
+        }
       }
     },
     "headers": {
@@ -1492,6 +1932,367 @@
       }
     },
     "schemas": {
+      "MobileClubDetail": {
+        "type": "object",
+        "description": "Consumer-backed mobile club profile. Phone number, persistence state, audit timestamps, and unused postal code are intentionally absent.",
+        "required": [
+          "id",
+          "rawName",
+          "name",
+          "address",
+          "city",
+          "email",
+          "website",
+          "logoUrl",
+          "latitude",
+          "longitude"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          },
+          "rawName": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "address": {
+            "type": "string",
+            "maxLength": 255,
+            "nullable": true
+          },
+          "city": {
+            "type": "string",
+            "maxLength": 255,
+            "nullable": true
+          },
+          "email": {
+            "type": "string",
+            "maxLength": 255,
+            "nullable": true
+          },
+          "website": {
+            "type": "string",
+            "maxLength": 255,
+            "nullable": true
+          },
+          "logoUrl": {
+            "type": "string",
+            "maxLength": 2048,
+            "nullable": true
+          },
+          "latitude": {
+            "type": "number",
+            "format": "double",
+            "minimum": -90,
+            "maximum": 90,
+            "nullable": true
+          },
+          "longitude": {
+            "type": "number",
+            "format": "double",
+            "minimum": -180,
+            "maximum": 180,
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "UpdateMobileClubRequest": {
+        "type": "object",
+        "description": "Mobile club edit command. Omitted or null name preserves the stored value. removeLogo false keeps or replaces the logo according to image presence; true removes it and forbids an image.",
+        "required": [
+          "removeLogo"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255,
+            "nullable": true
+          },
+          "removeLogo": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "MobileTeamDetail": {
+        "type": "object",
+        "description": "Team profile projection separated from downstream team, club, competition, and pool transports.",
+        "required": [
+          "id",
+          "clubId",
+          "name",
+          "shortName",
+          "rawName",
+          "format",
+          "gender",
+          "season",
+          "followersCount",
+          "division",
+          "logoUrl",
+          "pools"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/NumericIdentifier"
+          },
+          "clubId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          },
+          "shortName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          },
+          "rawName": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "format": {
+            "$ref": "#/components/schemas/FormatEnum"
+          },
+          "gender": {
+            "$ref": "#/components/schemas/GenderEnum"
+          },
+          "season": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          },
+          "followersCount": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "division": {
+            "$ref": "#/components/schemas/MobileCatalogDivision"
+          },
+          "logoUrl": {
+            "type": "string",
+            "maxLength": 2048,
+            "nullable": true
+          },
+          "pools": {
+            "type": "array",
+            "description": "Current competition projection order; no stable pool order is promised in this compatibility slice.",
+            "items": {
+              "$ref": "#/components/schemas/MobileTeamPool"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "MobileTeamListResponse": {
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MobileTeamSummary"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "UpdateMobileTeamRequest": {
+        "type": "object",
+        "description": "Mobile team edit command. Omitted or null display fields preserve stored values. removeLogo makes keep, replace, and remove intent explicit.",
+        "required": [
+          "removeLogo"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255,
+            "nullable": true
+          },
+          "shortName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255,
+            "nullable": true
+          },
+          "removeLogo": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "MobileTeamUpdated": {
+        "type": "object",
+        "description": "Narrow result returned to the mobile edit workflow before its explicit refetch.",
+        "required": [
+          "id",
+          "name",
+          "shortName",
+          "logoUrl"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/NumericIdentifier"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          },
+          "shortName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          },
+          "logoUrl": {
+            "type": "string",
+            "maxLength": 2048,
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "MobilePoolDetail": {
+        "type": "object",
+        "description": "Pool profile projection separated from downstream pool, division, competition, team, and club transports.",
+        "required": [
+          "id",
+          "season",
+          "leagueCode",
+          "leagueName",
+          "name",
+          "shortName",
+          "rawName",
+          "gender",
+          "followersCount",
+          "ranking",
+          "division"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/NumericIdentifier"
+          },
+          "season": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          },
+          "leagueCode": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "leagueName": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          },
+          "shortName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          },
+          "rawName": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "gender": {
+            "$ref": "#/components/schemas/GenderEnum"
+          },
+          "followersCount": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "ranking": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MobileRankingTeam"
+            }
+          },
+          "division": {
+            "$ref": "#/components/schemas/MobileCatalogDivision"
+          }
+        },
+        "additionalProperties": false
+      },
+      "MobilePoolListResponse": {
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MobilePoolSummary"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "UpdateMobilePoolRequest": {
+        "type": "object",
+        "description": "Mobile pool edit command. Omitted or null display fields preserve stored values.",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255,
+            "nullable": true
+          },
+          "shortName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255,
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "MobilePoolUpdated": {
+        "type": "object",
+        "description": "Narrow result returned to the mobile edit workflow before its explicit refetch.",
+        "required": [
+          "id",
+          "name",
+          "shortName"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/NumericIdentifier"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          },
+          "shortName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          }
+        },
+        "additionalProperties": false
+      },
       "MobileAppStatus": {
         "type": "object",
         "description": "Expo-facing application status without persistence identity.",
@@ -2314,6 +3115,262 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 255
+          }
+        },
+        "additionalProperties": false
+      },
+      "MobileCatalogDivision": {
+        "type": "object",
+        "description": "Division styling and label fields consumed inside mobile team, pool, card, ranking, and map workflows.",
+        "required": [
+          "name",
+          "mainColor",
+          "firstGradientColor",
+          "secondGradientColor",
+          "thirdGradientColor",
+          "logoUrl"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          },
+          "mainColor": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 32
+          },
+          "firstGradientColor": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 32
+          },
+          "secondGradientColor": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 32
+          },
+          "thirdGradientColor": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 32
+          },
+          "logoUrl": {
+            "type": "string",
+            "maxLength": 2048,
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "MobileTeamPool": {
+        "type": "object",
+        "description": "Pool ranking tab embedded only in the team workflow, without pool-detail-only or compatibility fields.",
+        "required": [
+          "id",
+          "leagueCode",
+          "leagueName",
+          "shortName",
+          "gender",
+          "ranking",
+          "division"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/NumericIdentifier"
+          },
+          "leagueCode": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "leagueName": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "shortName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          },
+          "gender": {
+            "$ref": "#/components/schemas/GenderEnum"
+          },
+          "ranking": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MobileRankingTeam"
+            }
+          },
+          "division": {
+            "$ref": "#/components/schemas/MobileCatalogDivision"
+          }
+        },
+        "additionalProperties": false
+      },
+      "MobileTeamSummary": {
+        "type": "object",
+        "description": "Mobile team card projection. A missing division remains explicit for compatibility with current partial enrichment.",
+        "required": [
+          "id",
+          "name",
+          "shortName",
+          "season",
+          "gender",
+          "format",
+          "logoUrl",
+          "division"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/NumericIdentifier"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          },
+          "shortName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          },
+          "season": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          },
+          "gender": {
+            "$ref": "#/components/schemas/GenderEnum"
+          },
+          "format": {
+            "$ref": "#/components/schemas/FormatEnum"
+          },
+          "logoUrl": {
+            "type": "string",
+            "maxLength": 2048,
+            "nullable": true
+          },
+          "division": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MobileCatalogDivision"
+              }
+            ],
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "MobileRankingTeam": {
+        "type": "object",
+        "description": "Mobile ranking and map row. Position in the containing array is authoritative. The current five-key ranking sort is preserved; exact ties retain unspecified source order because no identifier tie-breaker is introduced in this compatibility slice.",
+        "required": [
+          "id",
+          "shortName",
+          "logoUrl",
+          "points",
+          "played",
+          "wins",
+          "losses",
+          "latitude",
+          "longitude"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/NumericIdentifier"
+          },
+          "shortName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          },
+          "logoUrl": {
+            "type": "string",
+            "maxLength": 2048,
+            "nullable": true
+          },
+          "points": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "played": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "wins": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "losses": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "latitude": {
+            "type": "number",
+            "format": "double",
+            "minimum": -90,
+            "maximum": 90,
+            "nullable": true
+          },
+          "longitude": {
+            "type": "number",
+            "format": "double",
+            "minimum": -180,
+            "maximum": 180,
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "MobilePoolSummary": {
+        "type": "object",
+        "description": "Followed-pool card projection. Missing division enrichment remains an explicit nullable result.",
+        "required": [
+          "id",
+          "name",
+          "leagueName",
+          "leagueCode",
+          "season",
+          "gender",
+          "format",
+          "division"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/NumericIdentifier"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          },
+          "leagueName": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "leagueCode": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "season": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          },
+          "gender": {
+            "$ref": "#/components/schemas/GenderEnum"
+          },
+          "format": {
+            "$ref": "#/components/schemas/FormatEnum"
+          },
+          "division": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MobileCatalogDivision"
+              }
+            ],
+            "nullable": true
           }
         },
         "additionalProperties": false

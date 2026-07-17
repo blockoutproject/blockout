@@ -497,8 +497,19 @@ state moves to GitHub and this file becomes a historical migration record.
     Twenty-eight contract tests cover the exact operation set, security split, schemas, wrappers, multipart shapes,
     identity, casing, workflow fields, and leakage exclusions; source lint and deterministic generation pass without
     changing runtime code.
-- [ ] MRG-357 Define and bundle the `mobile-gateway` club, team, and pool BFF contracts, retaining only consumer-backed
+- [x] MRG-357 Define and bundle the `mobile-gateway` club, team, and pool BFF contracts, retaining only consumer-backed
       enriched fields and explicit ordering, missing-data, privacy, and partial-result semantics.
+  - Evidence: the mobile-gateway source and generated bundle add all nine MRG-301/MRG-304 club, team, and pool facade
+    operations as workflow-owned v2 projections, bringing the BFF bundle to 39 operations. Direct club profiles restore
+    owner-backed nullable address and enforce phone exclusion; detail, summary, nested-pool, division, ranking, and
+    update-result roles are distinct and omit embedded clubs, audit/lifecycle fields, unused compatibility fields, and
+    server-only ranking inputs. Typed list wrappers retain deduplication, silent missing/inactive omission, nullable
+    division enrichment, no partial marker, downstream/set-derived non-guaranteed order, full-detail failure, inactive
+    pool reads, and exact-tie behavior without inferring a correction. Club/team multipart commands use canonical JSON
+    plus explicit logo intent and pool updates use a narrow JSON command. Twenty-nine contract tests cover the exact
+    operation/security matrix, projection fields, privacy, nullability, list and ranking semantics, repeated IDs,
+    multipart inputs, and separation from downstream DTOs; source lint passes across 132 fragments without runtime
+    changes.
 - [ ] MRG-358 Define and bundle the `mobile-gateway` competition, match, and live BFF contracts, separating list,
       detail, history, moderation, ranking, pagination, signed-link, and partial-result projections.
 - [ ] MRG-328 Pin Orval `8.22.0` and add the mobile `codegen` Nx target after BFF bundle generation. Generate committed,
