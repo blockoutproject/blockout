@@ -23,9 +23,10 @@ from utils.team_utils import get_full_name
 
 
 class ProScraper(Scraper):
-    def __init__(self, session):
+    def __init__(self, session, blockout_clients):
         super().__init__(
             session,
+            blockout_clients,
             name="pro_scraper",
             priority_validation_enabled=True,
         )
@@ -81,7 +82,9 @@ class ProScraper(Scraper):
                 return await task_coro
 
         try:
-            existing_pools = await get_pools_by_league_and_season(self.session, self.league_code, self.raw_season)
+            existing_pools = await get_pools_by_league_and_season(
+                self.blockout_clients.pools, self.league_code, self.raw_season
+            )
             existing_pools = existing_pools or []
             existing_pools_dict = {
                 (pool.pool_code, pool.league_code, pool.season): pool
@@ -89,7 +92,7 @@ class ProScraper(Scraper):
             }
 
             raw_mappings = await get_raw_division_mappings_by_league_and_season(
-                self.session, self.league_code, self.raw_season
+                self.blockout_clients.config, self.league_code, self.raw_season
             )
             raw_mappings = raw_mappings or []
             mapping_dict = {m.raw_division_name: m for m in raw_mappings}
@@ -107,7 +110,7 @@ class ProScraper(Scraper):
                             league_code=self.league_code,
                             season=self.raw_season,
                         )
-                        created_mapping = await create_raw_division_mapping(self.session, new_mapping)
+                        created_mapping = await create_raw_division_mapping(self.blockout_clients.config, new_mapping)
                         mapping_dict[name] = created_mapping
                         continue
 
@@ -308,7 +311,7 @@ class ProScraper(Scraper):
                         continue
 
                     team = await find_team_by_name_in_division_format_gender_season(
-                        self.session,
+                        self.blockout_clients.teams,
                         pool.division_id,
                         pool.format,
                         pool.gender,
@@ -466,7 +469,7 @@ class ProScraper(Scraper):
             return
 
         team_a = await find_team_by_name_in_division_format_gender_season(
-            self.session,
+            self.blockout_clients.teams,
             pool.division_id,
             pool.format,
             pool.gender,
@@ -474,7 +477,7 @@ class ProScraper(Scraper):
             home_team_full,
         )
         team_b = await find_team_by_name_in_division_format_gender_season(
-            self.session,
+            self.blockout_clients.teams,
             pool.division_id,
             pool.format,
             pool.gender,

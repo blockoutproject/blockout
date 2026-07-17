@@ -1,6 +1,4 @@
-from dataclasses import asdict
 from datetime import datetime
-from enum import Enum
 import json
 import re
 from typing import Optional
@@ -108,20 +106,5 @@ def parse_date(date_str: str, time_str: str) -> Optional[datetime]:
     except ValueError:
         return None
     
-def to_dict(object) -> dict:
-    """
-    Convertit l'instance actuelle en un dictionnaire compatible JSON.
-    Gère les champs Enum et datetime.
-    """
-    result = {}
-    for key, value in asdict(object).items():
-        if isinstance(value, Enum):
-            result[key] = value.value  # Convertir Enum en sa valeur
-        elif isinstance(value, datetime):
-            result[key] = value.isoformat()  # Convertir datetime en format ISO 8601
-        else:
-            result[key] = value  # Conserver les autres types
-    return result
-
 def generate_correlation_id() -> str:
     return f"bulk-{uuid.uuid4()}"

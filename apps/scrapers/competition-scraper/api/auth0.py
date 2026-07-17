@@ -27,13 +27,6 @@ def get_token() -> str:
     return "" if not M2M_ENABLED else (_MIRROR_TOKEN or "")
 
 
-def _get_headers() -> dict:
-    if not M2M_ENABLED:
-        return {}
-    token = get_token()
-    return {"Authorization": f"Bearer {token}"} if token else {}
-
-
 async def fetch_auth0_token() -> tuple[str, int]:
     get_token_client = GetToken(AUTH0_DOMAIN, AUTH0_CLIENT_ID, AUTH0_CLIENT_SECRET)
     token = get_token_client.client_credentials(AUTH0_AUDIENCE)

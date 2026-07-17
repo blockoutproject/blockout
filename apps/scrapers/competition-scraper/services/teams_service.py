@@ -1,9 +1,9 @@
 from typing import Optional
-import aiohttp
+from api.blockout_client import BlockoutClientSession
 from api.teams_api import create_team, get_teams, update_team
 from models.team import Team
 
-async def add_or_update_team(session: aiohttp.ClientSession, team: Team, existing_team: Optional[Team]) -> Team:
+async def add_or_update_team(client: BlockoutClientSession, team: Team, existing_team: Optional[Team]) -> Team:
     """
     Vérifie l'existence d'une équipe et la met à jour ou la crée selon les besoins.
     """
@@ -24,14 +24,14 @@ async def add_or_update_team(session: aiohttp.ClientSession, team: Team, existin
             team.active = True
             changes_list.append("Équipe réactivée")
         if changes_list:
-            return await update_team(session, team, changes_list)
+            return await update_team(client, team, changes_list)
         return existing_team
     else:
-        new_team = await create_team(session, team)
+        new_team = await create_team(client, team)
         return new_team
     
 async def find_team_by_name_in_division_format_gender_season(
-    session,
+    client: BlockoutClientSession,
     division_id: str,
     format: str,
     gender: str,
@@ -43,7 +43,7 @@ async def find_team_by_name_in_division_format_gender_season(
     2) Filtre pour trouver celle dont raw_name correspond à 'searched_name' (insensible à la casse).
     3) Retourne la première correspondante ou None si introuvable.
     """
-    teams = await get_teams(session, division_id, format, gender, season)
+    teams = await get_teams(client, division_id, format, gender, season)
     if not teams:
         return None
     

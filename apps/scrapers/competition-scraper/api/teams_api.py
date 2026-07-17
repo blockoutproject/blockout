@@ -1,84 +1,118 @@
-import json
 from typing import List, Optional
-import aiohttp
-from config.env_config import TEAM_API_URL
+
+from blockout_contract_clients.teams_service.api.teams_api import TeamsApi
+from blockout_contract_clients.teams_service.models.create_team_internal_request import CreateTeamInternalRequest
+from blockout_contract_clients.teams_service.models.team_internal_response import TeamInternalResponse
+from blockout_contract_clients.teams_service.models.update_team_internal_request import UpdateTeamInternalRequest
+
+from api.blockout_client import BlockoutClientSession
 from config.logger_config import log_event
-from utils.handlers.api_handler import handle_api_response
 from models.team import Team
-from api.auth0 import _get_headers
-from utils.utils import to_dict
 
 
-@handle_api_response(response_type=Team)
-async def create_team(session: aiohttp.ClientSession, team: Team) -> Team:
-    """
-    Envoie une requête POST pour créer une nouvelle équipe.
-    """
-    headers = _get_headers()
-    team_dict = to_dict(team)
-    url = f"{TEAM_API_URL}"
-    response = await session.post(url, json=team_dict, headers=headers)
+PAGE_SIZE = 100
+
+
+async def create_team(client: BlockoutClientSession, team: Team) -> Team:
+    """Create a team through the canonical generated model."""
+    response = await client.invoke(
+        TeamsApi(client.api_client).create_team,
+        create_team_internal_request=CreateTeamInternalRequest(**_team_fields(team)),
+    )
     log_event(action="create_team", level="info", raw_name=team.raw_name, club_id=team.club_id)
-    return response
+    return _to_team(response)
 
 
-@handle_api_response(response_type=Team)
 async def update_team(
-    session: aiohttp.ClientSession,
+    client: BlockoutClientSession,
     team: Team,
-    changes_list: list[str] = []
+    changes_list: List[str] | None = None,
 ) -> Team:
-    """
-    Envoie une requête PUT pour mettre à jour une équipe existante.
-    """
-    headers = _get_headers()
-    data = aiohttp.FormData()
-
-    team_dict = to_dict(team)
-    data.add_field("data", json.dumps(team_dict), content_type="application/json")
-
-    url = f"{TEAM_API_URL}/{team.id}"
-    response = await session.put(url, data=data, headers=headers)
+    """Update a team through the canonical generated multipart operation."""
+    if team.id is None:
+        raise ValueError("A team ID is required for update.")
+    response = await client.invoke(
+        TeamsApi(client.api_client).update_team,
+        id=team.id,
+        data=UpdateTeamInternalRequest(
+            **_team_fields(team),
+            active=team.active,
+            remove_logo=False,
+        ),
+    )
     log_event(
         action="update_team",
         level="info",
         raw_name=team.raw_name,
-        changes_list=changes_list
+        changes_list=changes_list or [],
     )
-    return response
+    return _to_team(response)
 
 
-@handle_api_response(response_type=list[Team])
 async def get_teams(
-    session: aiohttp.ClientSession,
+    client: BlockoutClientSession,
     division_id: Optional[str] = None,
     format: Optional[str] = None,
     gender: Optional[str] = None,
     season: Optional[str] = None,
     club_id: Optional[str] = None,
     raw_name: Optional[str] = None,
-    ids: Optional[List[int]] = None
+    ids: Optional[List[int]] = None,
 ) -> List[Team]:
-    """
-    Récupère les équipes avec des filtres optionnels : division_id, format, gender, club_id, ids.
-    """
-    headers = _get_headers()
-    params = {}
+    """Load every canonical team page and preserve the legacy local raw-name filter."""
+    api = TeamsApi(client.api_client)
+    teams: List[Team] = []
+    page = 0
+    while True:
+        response = await client.invoke(
+            api.list_teams,
+            division_id=int(division_id) if division_id is not None else None,
+            format=format,
+            gender=gender,
+            season=season,
+            club_id=club_id,
+            ids=ids,
+            page=page,
+            page_size=PAGE_SIZE,
+        )
+        teams.extend(_to_team(item) for item in response.items)
+        if not response.page_info.has_next:
+            break
+        page += 1
+    if raw_name is None:
+        return teams
+    normalized = raw_name.strip().lower()
+    return [team for team in teams if team.raw_name.strip().lower() == normalized]
 
-    if raw_name:
-        params["raw_name"] = raw_name
-    if division_id:
-        params["division_id"] = division_id
-    if format:
-        params["format"] = format
-    if gender:
-        params["gender"] = gender
-    if season:
-        params["season"] = season
-    if club_id:
-        params["club_id"] = club_id
-    if ids:
-        params["ids"] = ",".join(map(str, ids))
 
-    url = f"{TEAM_API_URL}"
-    return await session.get(url, params=params, headers=headers)
+def _team_fields(team: Team) -> dict[str, object]:
+    if team.format is None or team.gender is None:
+        raise ValueError("Team format and gender are required by the canonical contract.")
+    return {
+        "club_id": team.club_id,
+        "raw_name": team.raw_name,
+        "name": team.name,
+        "short_name": team.short_name,
+        "league_code": team.league_code,
+        "division_id": int(team.division_id),
+        "season": team.season,
+        "format": team.format,
+        "gender": team.gender,
+    }
+
+
+def _to_team(response: TeamInternalResponse) -> Team:
+    return Team(
+        id=response.id,
+        club_id=response.club_id,
+        raw_name=response.raw_name,
+        name=response.name,
+        short_name=response.short_name,
+        league_code=response.league_code,
+        division_id=str(response.division_id),
+        season=response.season,
+        format=response.format.value,
+        gender=response.gender.value,
+        followers_count=response.followers_count,
+        active=response.active,
+    )

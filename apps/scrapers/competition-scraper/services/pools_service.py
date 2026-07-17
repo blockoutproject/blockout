@@ -1,10 +1,10 @@
 from typing import Optional
-import aiohttp
+from api.blockout_client import BlockoutClientSession
 from api.pools_api import create_pool, update_pool
 from models.pool import Pool
 
 async def add_or_update_pool(
-    session: aiohttp.ClientSession, 
+    client: BlockoutClientSession,
     pool: Pool, 
     existing_pool: Optional[Pool],
     allow_reactivation: bool = True
@@ -31,8 +31,8 @@ async def add_or_update_pool(
             changes_list.append("Pool réactivée.")
 
         if changes_list:
-            return await update_pool(session, pool, changes_list)
+            return await update_pool(client, pool, changes_list)
         return existing_pool
     else:
-        new_pool = await create_pool(session, pool)
+        new_pool = await create_pool(client, pool)
         return new_pool

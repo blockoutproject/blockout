@@ -7,7 +7,8 @@ from contextvars import ContextVar
 import aiohttp
 from prometheus_client import Gauge, start_http_server
 
-from api.auth0 import refresh_token_task
+from api.auth0 import get_token, refresh_token_task
+from api.blockout_client import CompetitionBlockoutClients, create_run_clients
 from api.config_api import get_scraper_status
 from config.env_config import SCRAPER_TYPES
 from config.logger_config import log_event
@@ -24,14 +25,19 @@ execution_duration_gauge = Gauge(
 )
 
 
-async def _run_one_scraper(session: aiohttp.ClientSession, scraper_type: str):
+async def _run_one_scraper(
+    session: aiohttp.ClientSession,
+    blockout_clients: CompetitionBlockoutClients,
+    scraper_type: str,
+):
     current_scraper.set(scraper_type)
-    scraper = ScraperFactory.create_scraper(scraper_type, session)
+    scraper = ScraperFactory.create_scraper(scraper_type, session, blockout_clients)
     await scraper.scrape()
 
 
 async def run_scrapers_with_max_concurrency(
     session: aiohttp.ClientSession,
+    blockout_clients: CompetitionBlockoutClients,
     scraper_types: list[str],
     max_concurrency: int = 2,
 ):
@@ -40,7 +46,7 @@ async def run_scrapers_with_max_concurrency(
 
     while pending_types and len(running) < max_concurrency:
         st = pending_types.pop(0)
-        running.add(asyncio.create_task(_run_one_scraper(session, st)))
+        running.add(asyncio.create_task(_run_one_scraper(session, blockout_clients, st)))
 
     while running:
         done, running = await asyncio.wait(running, return_when=asyncio.FIRST_COMPLETED)
@@ -49,7 +55,7 @@ async def run_scrapers_with_max_concurrency(
 
         while pending_types and len(running) < max_concurrency:
             st = pending_types.pop(0)
-            running.add(asyncio.create_task(_run_one_scraper(session, st)))
+            running.add(asyncio.create_task(_run_one_scraper(session, blockout_clients, st)))
 
 
 async def main() -> bool:
@@ -57,27 +63,23 @@ async def main() -> bool:
     skipped = False
 
     try:
-        async with aiohttp.ClientSession(
-            timeout=aiohttp.ClientTimeout(total=10),
-            trust_env=True,
-        ) as tmp_session:
-            try:
-                status = await get_scraper_status(tmp_session, "SCRAPER")
-                if not status.enabled:
-                    log_event(
-                        action="scraper_skipped",
-                        level="warning",
-                        message="Scraper 'SCRAPER' désactivé via API config.",
-                    )
-                    skipped = True
-            except Exception as e:
+        try:
+            status = await get_scraper_status("SCRAPER")
+            if not status.enabled:
                 log_event(
-                    action="scraper_status_fetch_failed",
-                    level="error",
-                    message="Impossible de récupérer le statut du scraper 'SCRAPER'.",
-                    error=str(e),
+                    action="scraper_skipped",
+                    level="warning",
+                    message="Scraper 'SCRAPER' désactivé via API config.",
                 )
                 skipped = True
+        except Exception as e:
+            log_event(
+                action="scraper_status_fetch_failed",
+                level="error",
+                message="Impossible de récupérer le statut du scraper 'SCRAPER'.",
+                error=str(e),
+            )
+            skipped = True
 
         if not skipped:
             async with lock:
@@ -89,11 +91,13 @@ async def main() -> bool:
                     trust_env=True,
                     connector=connector,
                 ) as session:
-                    scraper_types = SCRAPER_TYPES
-                    await run_scrapers_with_max_concurrency(
-                        session=session,
-                        scraper_types=scraper_types,
-                    )
+                    async with create_run_clients(get_token) as blockout_clients:
+                        scraper_types = SCRAPER_TYPES
+                        await run_scrapers_with_max_concurrency(
+                            session=session,
+                            blockout_clients=blockout_clients,
+                            scraper_types=scraper_types,
+                        )
 
     except Exception as e:
         log_event(

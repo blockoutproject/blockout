@@ -1064,10 +1064,27 @@ state moves to GitHub and this file becomes a historical migration record.
     competition-scraper, backend, Expo, event, database, contract, generated source, standalone repository,
     production, or Maaatch change; `docs/migration/mrg-348-club-scraper-generated-client-migration.md` records the
     mapping, lifecycle, removal, compatibility, and rollback boundaries.
-- [ ] MRG-349 After MRG-378, migrate the `competition-scraper`'s eighteen audited Blockout operations to thin adapters
+- [x] MRG-349 After MRG-378, migrate the `competition-scraper`'s eighteen audited Blockout operations to thin adapters
       over the fully generated `httpx` clients, preserving Python snake_case application identifiers, Auth0 refresh,
       `trust_env`, connection limits/timeouts, multipart files, errors, scheduling/concurrency, and provider aiohttp
       behavior; remove only migrated handwritten wire conversion.
+  - Evidence: all eighteen audited competition-scraper operations now invoke their canonical generated HTTPX owners
+    through five thin adapters. Association, match, pool, and team reads aggregate pages of 100; raw mappings retain
+    their canonical list wrapper and the former team raw-name behavior remains an adapter-local post-page filter.
+    Generated request models own camelCase JSON, numeric division IDs, sorted bulk commands, the full statistics
+    snapshot, and team multipart `data` with keep-logo intent. Responses project immediately into the existing
+    snake_case scraper dataclasses. Each ten-second status probe owns a short-lived config client; each enabled run owns
+    config, teams, pools, competition, and matches clients in an `AsyncExitStack`, with per-call Auth0 refresh,
+    `trust_env`, limit 20, no retry, safe errors, cancellation, and deterministic close inherited from MRG-378. The
+    separate aiohttp session now reaches only unchanged FFVB/LNV pages and CSV provider requests; SignalR utilities
+    remain untouched. Handwritten Blockout URLs/methods/headers/query dictionaries/FormData, generic response/dataclass
+    conversion, recursive `to_dict()`, and the manual Auth0 header builder are removed. Twenty-three Python tests cover
+    all eighteen operations, canonical aliases/models/commands, multipart, four paginators, projections, status/run
+    lifecycles, Auth0/error behavior, and generated-import confinement. Syntax, root-context image, installed-image
+    imports, environment, documentation, Nx, Maaatch, formatting, generated-output, and whitespace gates pass. No
+    provider/federation behavior, backend, Expo, event, database, contract, generated source, standalone repository,
+    production, Maaatch, MRG-350, MRG-9xx, or MRG-1000 change; the detailed record is
+    `docs/migration/mrg-349-competition-scraper-generated-client-migration.md`.
 - [ ] MRG-350 Pin parser `3.6.0` and Modelina `5.10.1`; create local-reference AsyncAPI `3.0.0` source/bundles, the
       component-only generation catalog, deterministic targets, and `apps/backend/event-contracts`; generate committed
       Java 21 records with `modelType: "record"`, `collectionType: "List"`, and package

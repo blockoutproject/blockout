@@ -281,6 +281,12 @@ class GeneratedClientTests(unittest.TestCase):
                 "apps/scrapers/club-scraper/api/competitions_api.py",
                 "apps/scrapers/club-scraper/api/config_api.py",
                 "apps/scrapers/club-scraper/api/teams_api.py",
+                "apps/scrapers/competition-scraper/api/blockout_client.py",
+                "apps/scrapers/competition-scraper/api/competitions_api.py",
+                "apps/scrapers/competition-scraper/api/config_api.py",
+                "apps/scrapers/competition-scraper/api/matches_api.py",
+                "apps/scrapers/competition-scraper/api/pools_api.py",
+                "apps/scrapers/competition-scraper/api/teams_api.py",
             },
             imports,
         )
@@ -291,6 +297,13 @@ class GeneratedClientTests(unittest.TestCase):
             self.assertNotIn("_get_headers", adapter_source)
         self.assertFalse((club_root / "utils/handlers/api_handler.py").exists())
         self.assertNotIn("def to_dict", (club_root / "utils/utils.py").read_text())
+        competition_root = WORKSPACE_ROOT / "apps/scrapers/competition-scraper"
+        for adapter_name in ("competitions_api.py", "config_api.py", "matches_api.py", "pools_api.py", "teams_api.py"):
+            adapter_source = (competition_root / "api" / adapter_name).read_text()
+            self.assertNotIn("aiohttp", adapter_source)
+            self.assertNotIn("_get_headers", adapter_source)
+        self.assertFalse((competition_root / "utils/handlers/api_handler.py").exists())
+        self.assertNotIn("def to_dict", (competition_root / "utils/utils.py").read_text())
 
     def test_match_live_operations_have_separate_generated_async_owners(self) -> None:
         owners = {

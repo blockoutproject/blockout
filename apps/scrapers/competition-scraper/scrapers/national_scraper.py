@@ -16,9 +16,10 @@ from utils.utils import extract_season_from_url
 
 
 class NationalScraper(Scraper):
-    def __init__(self, session):
+    def __init__(self, session, blockout_clients):
         super().__init__(
             session,
+            blockout_clients,
             name="national_scraper",
             url="http://www.ffvb.org/119-37-1-Championnats-Nationaux",
             priority_validation_enabled=False,
@@ -56,10 +57,10 @@ class NationalScraper(Scraper):
             if not raw_season:
                 raise ValueError("Saison non trouvée.")
 
-            existing_pools = await get_pools_by_league_and_season(self.session, self.league_code, raw_season)
+            existing_pools = await get_pools_by_league_and_season(self.blockout_clients.pools, self.league_code, raw_season)
             existing_pools_dict = {(p.pool_code, p.league_code, p.season): p for p in (existing_pools or [])}
 
-            raw_mappings = await get_raw_division_mappings_by_league_and_season(self.session, self.league_code, raw_season)
+            raw_mappings = await get_raw_division_mappings_by_league_and_season(self.blockout_clients.config, self.league_code, raw_season)
             mapping_dict = {m.raw_division_name: m for m in (raw_mappings or [])}
 
             scraped_pool_ids: set[int] = set()
@@ -153,7 +154,7 @@ class NationalScraper(Scraper):
                 if pool.active and pool.id not in scraped_pool_ids
             }
             if missing_pool_ids:
-                await bulk_deactivate_pools(self.session, missing_pool_ids)
+                await bulk_deactivate_pools(self.blockout_clients.competition, missing_pool_ids)
 
         except Exception as e:
             log_event(
@@ -171,7 +172,7 @@ class NationalScraper(Scraper):
                 league_code=self.league_code,
                 season=raw_season,
             )
-            created = await create_raw_division_mapping(self.session, new_mapping)
+            created = await create_raw_division_mapping(self.blockout_clients.config, new_mapping)
             mapping_dict[raw_division_name] = created
         except Exception as e:
             log_event(

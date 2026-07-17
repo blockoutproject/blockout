@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+from contextlib import AsyncExitStack, asynccontextmanager
 from dataclasses import dataclass
 import inspect
 import json
-from typing import Any, Awaitable, Callable
+from typing import Any, AsyncIterator, Awaitable, Callable
 
 
 TokenSupplier = Callable[[], str | Awaitable[str]]
@@ -80,6 +81,15 @@ class BlockoutClientSession:
         await self.api_client.close()
 
 
+@dataclass(frozen=True)
+class CompetitionBlockoutClients:
+    config: BlockoutClientSession
+    teams: BlockoutClientSession
+    pools: BlockoutClientSession
+    competition: BlockoutClientSession
+    matches: BlockoutClientSession
+
+
 def create_status_client(
     configuration_type: type[Any], api_client_type: type[Any], host: str, token_supplier: TokenSupplier
 ) -> BlockoutClientSession:
@@ -92,6 +102,46 @@ def create_run_client(
     configuration_type: type[Any], api_client_type: type[Any], host: str, token_supplier: TokenSupplier
 ) -> BlockoutClientSession:
     return BlockoutClientSession.create(configuration_type, api_client_type, host, token_supplier, RUN_TIMEOUT_SECONDS)
+
+
+@asynccontextmanager
+async def create_run_clients(token_supplier: TokenSupplier) -> AsyncIterator[CompetitionBlockoutClients]:
+    from blockout_contract_clients.competition_service.api_client import ApiClient as CompetitionApiClient
+    from blockout_contract_clients.competition_service.configuration import Configuration as CompetitionConfiguration
+    from blockout_contract_clients.config_service.api_client import ApiClient as ConfigApiClient
+    from blockout_contract_clients.config_service.configuration import Configuration as ConfigConfiguration
+    from blockout_contract_clients.matches_service.api_client import ApiClient as MatchesApiClient
+    from blockout_contract_clients.matches_service.configuration import Configuration as MatchesConfiguration
+    from blockout_contract_clients.pools_service.api_client import ApiClient as PoolsApiClient
+    from blockout_contract_clients.pools_service.configuration import Configuration as PoolsConfiguration
+    from blockout_contract_clients.teams_service.api_client import ApiClient as TeamsApiClient
+    from blockout_contract_clients.teams_service.configuration import Configuration as TeamsConfiguration
+    from config.env_config import COMPETITION_API_URL, CONFIG_API_URL, MATCH_API_URL, POOL_API_URL, TEAM_API_URL
+
+    async with AsyncExitStack() as stack:
+        clients = CompetitionBlockoutClients(
+            config=await stack.enter_async_context(
+                create_run_client(ConfigConfiguration, ConfigApiClient, CONFIG_API_URL, token_supplier)
+            ),
+            teams=await stack.enter_async_context(
+                create_run_client(TeamsConfiguration, TeamsApiClient, TEAM_API_URL, token_supplier)
+            ),
+            pools=await stack.enter_async_context(
+                create_run_client(PoolsConfiguration, PoolsApiClient, POOL_API_URL, token_supplier)
+            ),
+            competition=await stack.enter_async_context(
+                create_run_client(
+                    CompetitionConfiguration,
+                    CompetitionApiClient,
+                    COMPETITION_API_URL,
+                    token_supplier,
+                )
+            ),
+            matches=await stack.enter_async_context(
+                create_run_client(MatchesConfiguration, MatchesApiClient, MATCH_API_URL, token_supplier)
+            ),
+        )
+        yield clients
 
 
 def _safe_payload(body: Any) -> dict[str, Any] | str | None:

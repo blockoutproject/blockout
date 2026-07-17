@@ -63,12 +63,18 @@ async def handle_csv_download_and_parse(
             )
             return
 
-        new_pool = await add_or_update_pool(scraper.session, pool, existing_pool, False)
+        new_pool = await add_or_update_pool(scraper.blockout_clients.pools, pool, existing_pool, False)
         pool.id = new_pool.id # Update the pool ID after creation or update for upcoming Pro Scraper functions
         await scraper.init_matches_cache(new_pool.id)
         await scraper.init_associations_cache(new_pool.id)
 
-        existing_teams = await get_teams(scraper.session, new_pool.division_id, new_pool.format, new_pool.gender, new_pool.season) or []
+        existing_teams = await get_teams(
+            scraper.blockout_clients.teams,
+            new_pool.division_id,
+            new_pool.format,
+            new_pool.gender,
+            new_pool.season,
+        ) or []
         active_team_ids = {
             t_id for (p_id, t_id), (original, _) in scraper._associations_cache.items()
             if p_id == new_pool.id and original is not None
@@ -114,7 +120,7 @@ async def handle_csv_download_and_parse(
                 gender=new_pool.gender
             )
 
-            new_team_a = await add_or_update_team(scraper.session, team_a_obj, existing_team_a)
+            new_team_a = await add_or_update_team(scraper.blockout_clients.teams, team_a_obj, existing_team_a)
             existing_teams_dict[team_a_key] = new_team_a
             scraped_team_ids.add(new_team_a.id)
 
@@ -136,7 +142,7 @@ async def handle_csv_download_and_parse(
                 gender=new_pool.gender
             )
 
-            new_team_b = await add_or_update_team(scraper.session, team_b_obj, existing_team_b)
+            new_team_b = await add_or_update_team(scraper.blockout_clients.teams, team_b_obj, existing_team_b)
             existing_teams_dict[team_b_key] = new_team_b
             scraped_team_ids.add(new_team_b.id)
 
@@ -160,7 +166,12 @@ async def handle_csv_download_and_parse(
 
             for team_obj in [new_team_a, new_team_b]:
                 if team_obj.id not in active_team_ids:
-                    await add_team_to_pool(scraper.session, new_pool.id, team_obj.id, team_obj.club_id)
+                    await add_team_to_pool(
+                        scraper.blockout_clients.competition,
+                        new_pool.id,
+                        team_obj.id,
+                        team_obj.club_id,
+                    )
                     log_event(
                         "add_team_to_pool", 
                         "info", 
@@ -193,7 +204,10 @@ async def handle_csv_download_and_parse(
         # Fallback classement si anomalie
         if has_anomalous_match or is_nat_or_pro:
             stats_list = await extract_club_stats_list(scraper, raw_season, new_pool)
-            fallback_teams = await get_teams(scraper.session, ids=list(active_team_ids)) or []
+            fallback_teams = await get_teams(
+                scraper.blockout_clients.teams,
+                ids=list(active_team_ids),
+            ) or []
             team_lookup = {normalize(t.raw_name): t for t in fallback_teams}
 
             for team_name, stats in stats_list:
@@ -216,7 +230,11 @@ async def handle_csv_download_and_parse(
 
         if not new_pool.active:
             new_pool.active = True
-            await update_pool(scraper.session, new_pool, ["Pool réactivée après détection de matchs"])
+            await update_pool(
+                scraper.blockout_clients.pools,
+                new_pool,
+                ["Pool réactivée après détection de matchs"],
+            )
 
         if scraped_pool_ids is not None:
             scraped_pool_ids.add(new_pool.id)
@@ -224,7 +242,11 @@ async def handle_csv_download_and_parse(
         # Cleanup
         missing_teams = list(active_team_ids - scraped_team_ids)
         if missing_teams:
-            await bulk_deactivate_teams_by_pool(scraper.session, new_pool.id, missing_teams)
+            await bulk_deactivate_teams_by_pool(
+                scraper.blockout_clients.competition,
+                new_pool.id,
+                missing_teams,
+            )
 
         missing_matches = {
             match_code
@@ -233,7 +255,11 @@ async def handle_csv_download_and_parse(
             and match_code not in scraped_match_codes and existing_match.active
         }
         if missing_matches:
-            await bulk_deactivate_matches(scraper.session, new_pool.id, missing_matches)
+            await bulk_deactivate_matches(
+                scraper.blockout_clients.matches,
+                new_pool.id,
+                missing_matches,
+            )
 
     except Exception as e:
         log_event("parse_csv_error", "error", error=str(e), message="Erreur lors du parsing CSV")

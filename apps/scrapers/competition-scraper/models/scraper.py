@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from typing import Optional
 import aiohttp
 from prometheus_client import Gauge
+from api.blockout_client import CompetitionBlockoutClients
 from api.competitions_api import get_active_team_associations_by_pool, update_team_association_stats
 from api.matches_api import create_match, update_match, get_matches_by_pool
 from config.logger_config import log_event, current_scraper
@@ -20,12 +21,14 @@ class Scraper(ABC):
     def __init__(
         self, 
         session: aiohttp.ClientSession, 
+        blockout_clients: CompetitionBlockoutClients,
         name: str, 
         url: str = None, 
         priority_validation_enabled: bool = False,
         max_concurrency: int = 10
     ):
         self.session = session
+        self.blockout_clients = blockout_clients
         self.name = name
         self.url = url
         self.priority_validation_enabled = priority_validation_enabled
@@ -189,7 +192,7 @@ class Scraper(ABC):
         et les place dans le cache local (_matches_cache) avec priority=DB.
         """
         try:
-            existing_matches = await get_matches_by_pool(self.session, pool_id) or []
+            existing_matches = await get_matches_by_pool(self.blockout_clients.matches, pool_id) or []
             for m in existing_matches:
                 match_key = (m.league_code, m.match_code)
                 
@@ -219,7 +222,7 @@ class Scraper(ABC):
         - updated  : une copie mutable servant à accumuler les mises à jour issues du CSV.
         """
         try:
-            active_assocs = await get_active_team_associations_by_pool(self.session, pool_id) or []
+            active_assocs = await get_active_team_associations_by_pool(self.blockout_clients.competition, pool_id) or []
             for assoc in active_assocs:
                 key = (assoc.pool_id, assoc.team_id)
                 
@@ -428,7 +431,7 @@ class Scraper(ABC):
             if original is None or original != updated:
                 try:
                     update_tasks.append(
-                        update_team_association_stats(self.session, pool_id, team_id, updated)
+                        update_team_association_stats(self.blockout_clients.competition, pool_id, team_id, updated)
                     )
                 except Exception as e:
                     log_event(
@@ -451,10 +454,10 @@ class Scraper(ABC):
             try:
                 if existing_obj is None:
                     # Nouveau match
-                    await create_match(self.session, updated_obj)
+                    await create_match(self.blockout_clients.matches, updated_obj)
                 elif changes_list:
                     # Update
-                    await update_match(self.session, updated_obj, changes_list)
+                    await update_match(self.blockout_clients.matches, updated_obj, changes_list)
                 else:
                     continue
                 

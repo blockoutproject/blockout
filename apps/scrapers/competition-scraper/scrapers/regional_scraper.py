@@ -17,9 +17,10 @@ from utils.utils import capitalize_words
 
 
 class RegionalScraper(Scraper):
-    def __init__(self, session):
+    def __init__(self, session, blockout_clients):
         super().__init__(
             session,
+            blockout_clients,
             name="regional_scraper",
             url="http://www.ffvb.org/120-37-1-Championnats-Regionaux",
             priority_validation_enabled=False,
@@ -141,11 +142,11 @@ class RegionalScraper(Scraper):
             if not raw_season:
                 raise ValueError("Saison non trouvée")
 
-            existing_pools = await get_pools_by_league_and_season(self.session, league_code, raw_season)
+            existing_pools = await get_pools_by_league_and_season(self.blockout_clients.pools, league_code, raw_season)
             existing_pools = existing_pools or []
             existing_pools_dict = {(p.pool_code, p.league_code, p.season): p for p in existing_pools}
 
-            raw_mappings = await get_raw_division_mappings_by_league_and_season(self.session, league_code, raw_season)
+            raw_mappings = await get_raw_division_mappings_by_league_and_season(self.blockout_clients.config, league_code, raw_season)
             raw_mappings = raw_mappings or []
             mapping_dict = {m.raw_division_name: m for m in raw_mappings}
 
@@ -181,7 +182,7 @@ class RegionalScraper(Scraper):
                             league_code=league_code,
                             season=raw_season,
                         )
-                        created_mapping = await create_raw_division_mapping(self.session, new_mapping)
+                        created_mapping = await create_raw_division_mapping(self.blockout_clients.config, new_mapping)
                         mapping_dict[raw_division_name] = created_mapping
                         continue
 
@@ -221,7 +222,7 @@ class RegionalScraper(Scraper):
 
             missing_pool_ids = {pool.id for pool in existing_pools if pool.active and pool.id not in scraped_pool_ids}
             if missing_pool_ids:
-                await bulk_deactivate_pools(self.session, missing_pool_ids)
+                await bulk_deactivate_pools(self.blockout_clients.competition, missing_pool_ids)
 
         except Exception as e:
             log_event(action="critical_league_error", level="error", error=repr(e))
