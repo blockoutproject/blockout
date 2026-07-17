@@ -5,12 +5,16 @@ import com.blockout.competitions.association.application.CompetitionAssociationS
 import com.blockout.competitions.association.application.CompetitionAssociationView;
 import com.blockout.competitions.association.application.CompetitionStatisticsSnapshot;
 import com.blockout.competitions.lifecycle.application.CompetitionLifecycleService;
+import com.blockout.competitions.lifecycle.application.DeactivateCompetitionClubsCommand;
+import com.blockout.competitions.lifecycle.application.DeactivateCompetitionPoolsCommand;
+import com.blockout.competitions.lifecycle.application.DeactivateCompetitionTeamsCommand;
 import com.blockout.competitions.ranking.application.CompetitionRankingService;
 import com.blockout.competitions.ranking.application.PoolRankingView;
 import com.blockout.competitions.ranking.application.TeamRankingView;
 import com.blockout.competitions.shared.api.v1.LegacyCompetitionJson;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
@@ -62,21 +66,25 @@ public class LegacyCompetitionController {
     @PreAuthorize("hasAuthority('SCOPE_delete:competitions')")
     public ResponseEntity<Void> bulkDeactivateTeams(
             @PathVariable Long poolId, @RequestBody String body) throws JsonProcessingException {
-        lifecycle.bulkDeactivateTeamsByPool(poolId, json.read(body, MissingTeamIdsRequest.class).missingTeamIds());
+        var request = json.read(body, MissingTeamIdsRequest.class);
+        lifecycle.bulkDeactivateTeamsByPool(
+                new DeactivateCompetitionTeamsCommand(poolId, new HashSet<>(request.missingTeamIds())));
         return ResponseEntity.ok().build();
     }
 
     @PutMapping("/pools/bulk-deactivate")
     @PreAuthorize("hasAuthority('SCOPE_delete:competitions')")
     public ResponseEntity<Void> bulkDeactivatePools(@RequestBody String body) throws JsonProcessingException {
-        lifecycle.bulkDeactivatePools(json.read(body, MissingPoolIdsRequest.class).missingPoolIds());
+        var request = json.read(body, MissingPoolIdsRequest.class);
+        lifecycle.bulkDeactivatePools(new DeactivateCompetitionPoolsCommand(new HashSet<>(request.missingPoolIds())));
         return ResponseEntity.ok().build();
     }
 
     @PutMapping("/clubs/bulk-deactivate")
     @PreAuthorize("hasAuthority('SCOPE_delete:competitions')")
     public ResponseEntity<Void> bulkDeactivateClubs(@RequestBody String body) throws JsonProcessingException {
-        lifecycle.bulkDeactivateClubs(json.read(body, MissingClubIdsRequest.class).missingClubIds());
+        var request = json.read(body, MissingClubIdsRequest.class);
+        lifecycle.bulkDeactivateClubs(new DeactivateCompetitionClubsCommand(new HashSet<>(request.missingClubIds())));
         return ResponseEntity.ok().build();
     }
 

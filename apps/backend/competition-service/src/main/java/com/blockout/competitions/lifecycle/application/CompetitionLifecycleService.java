@@ -4,10 +4,6 @@ import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
 import com.blockout.competitions.association.persistence.CompetitionAssociationEntity;
 import com.blockout.competitions.association.persistence.CompetitionAssociationRepository;
-import com.blockout.competitions.services.EventPublisher;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -23,11 +19,13 @@ public class CompetitionLifecycleService {
     private static final Logger LOGGER = LoggerFactory.getLogger(CompetitionLifecycleService.class);
 
     private final CompetitionAssociationRepository repository;
-    private final EventPublisher eventPublisher;
+    private final CompetitionLifecycleEvents events;
+    private final CompetitionCascadeService cascade;
 
     @Transactional
-    public void bulkDeactivateTeamsByPool(Long poolId, List<Long> teamIdsToDeactivate) {
-        Set<Long> toDeactivate = new HashSet<>(teamIdsToDeactivate);
+    public void bulkDeactivateTeamsByPool(DeactivateCompetitionTeamsCommand command) {
+        Long poolId = command.poolId();
+        Set<Long> toDeactivate = command.teamIds();
         LOGGER.info("Starting bulk team deactivation for pool", keyValue("action", "bulk_deactivate_teams_by_pool"),
                 keyValue("poolId", poolId), keyValue("teamIdsToDeactivate", toDeactivate));
 
@@ -47,17 +45,17 @@ public class CompetitionLifecycleService {
         Set<Long> deactivatedTeams = associations.stream()
                 .map(CompetitionAssociationEntity::getTeamId).collect(Collectors.toSet());
         for (Long teamId : deactivatedTeams) {
-            eventPublisher.publishTeamDeactivationByPoolEvent(teamId, poolId);
+            events.publishTeamDeactivationByPool(teamId, poolId);
             LOGGER.info("Team-by-pool deactivation event published",
                     keyValue("action", "publish_team_deactivation_by_pool"),
                     keyValue("teamId", teamId), keyValue("poolId", poolId));
         }
-        cascadeDeactivation(Set.of(poolId), deactivatedTeams, Collections.emptySet());
+        cascade.execute(new CompetitionCascadePlan(Set.of(poolId), deactivatedTeams, Set.of()));
     }
 
     @Transactional
-    public void bulkDeactivatePools(List<Long> poolIdsToDeactivate) {
-        Set<Long> toDeactivate = new HashSet<>(poolIdsToDeactivate);
+    public void bulkDeactivatePools(DeactivateCompetitionPoolsCommand command) {
+        Set<Long> toDeactivate = command.poolIds();
         LOGGER.info("Starting bulk pool deactivation", keyValue("action", "bulk_deactivate_pools"),
                 keyValue("poolIdsToDeactivate", toDeactivate));
 
@@ -77,12 +75,12 @@ public class CompetitionLifecycleService {
 
         Set<Long> affectedTeams = associations.stream()
                 .map(CompetitionAssociationEntity::getTeamId).collect(Collectors.toSet());
-        cascadeDeactivation(toDeactivate, affectedTeams, Collections.emptySet());
+        cascade.execute(new CompetitionCascadePlan(toDeactivate, affectedTeams, Set.of()));
     }
 
     @Transactional
-    public void bulkDeactivateClubs(List<String> clubIdsToDeactivate) {
-        Set<String> toDeactivate = new HashSet<>(clubIdsToDeactivate);
+    public void bulkDeactivateClubs(DeactivateCompetitionClubsCommand command) {
+        Set<String> toDeactivate = command.clubIds();
         LOGGER.info("Starting bulk club deactivation", keyValue("action", "bulk_deactivate_clubs"),
                 keyValue("clubIdsToDeactivate", toDeactivate));
 
@@ -104,43 +102,6 @@ public class CompetitionLifecycleService {
                 .map(CompetitionAssociationEntity::getPoolId).collect(Collectors.toSet());
         Set<Long> teams = associations.stream()
                 .map(CompetitionAssociationEntity::getTeamId).collect(Collectors.toSet());
-        cascadeDeactivation(pools, teams, toDeactivate);
-    }
-
-    private void cascadeDeactivation(
-            Set<Long> candidatePoolIds, Set<Long> candidateTeamIds, Set<String> candidateClubIds) {
-        Set<Long> pools = new HashSet<>(candidatePoolIds);
-        Set<Long> teams = new HashSet<>(candidateTeamIds);
-        Set<String> clubs = new HashSet<>(candidateClubIds);
-
-        for (Long poolId : pools) {
-            if (!repository.existsByPoolIdAndActiveTrue(poolId)) {
-                eventPublisher.publishPoolDeactivationEvent(poolId);
-                LOGGER.info("Pool deactivation event published", keyValue("action", "publish_pool_deactivation"),
-                        keyValue("poolId", poolId));
-            }
-        }
-
-        if (teams.isEmpty() && !pools.isEmpty()) {
-            teams.addAll(repository.findDistinctTeamIdByActiveTrueAndPoolIdIn(pools));
-        }
-        for (Long teamId : teams) {
-            if (!repository.existsByTeamIdAndActiveTrue(teamId)) {
-                eventPublisher.publishTeamDeactivationEvent(teamId);
-                LOGGER.info("Team deactivation event published", keyValue("action", "publish_team_deactivation"),
-                        keyValue("teamId", teamId));
-            }
-        }
-
-        if (clubs.isEmpty() && !teams.isEmpty()) {
-            clubs.addAll(repository.findDistinctClubIdByActiveTrueAndTeamIdIn(teams));
-        }
-        for (String clubId : clubs) {
-            if (!repository.existsByClubIdAndActiveTrue(clubId)) {
-                eventPublisher.publishClubDeactivationEvent(clubId);
-                LOGGER.info("Club deactivation event published", keyValue("action", "publish_club_deactivation"),
-                        keyValue("clubId", clubId));
-            }
-        }
+        cascade.execute(new CompetitionCascadePlan(pools, teams, toDeactivate));
     }
 }

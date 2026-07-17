@@ -1,6 +1,7 @@
 package com.blockout.competitions.services;
 
 import com.blockout.competitions.config.RabbitMQConfig;
+import com.blockout.competitions.lifecycle.application.CompetitionLifecycleEvents;
 import com.blockout.competitions.models.events.ClubDeactivationEvent;
 import com.blockout.competitions.models.events.PoolDeactivationEvent;
 import com.blockout.competitions.models.events.TeamDeactivationByPoolEvent;
@@ -13,11 +14,12 @@ import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
-public class EventPublisher {
+public class EventPublisher implements CompetitionLifecycleEvents {
 
     private final RabbitTemplate rabbitTemplate;
 
-    public void publishTeamDeactivationEvent(Long teamId) {
+    @Override
+    public void publishTeamDeactivation(Long teamId) {
         TeamDeactivationEvent event = TeamDeactivationEvent.builder().teamId(teamId).build();
         rabbitTemplate.convertAndSend(
                 RabbitMQConfig.ENTITY_LIFECYCLE_EXCHANGE,
@@ -25,7 +27,8 @@ public class EventPublisher {
                 event);
     }
 
-    public void publishPoolDeactivationEvent(Long poolId) {
+    @Override
+    public void publishPoolDeactivation(Long poolId) {
         PoolDeactivationEvent event = PoolDeactivationEvent.builder().poolId(poolId).build();
         rabbitTemplate.convertAndSend(
                 RabbitMQConfig.ENTITY_LIFECYCLE_EXCHANGE,
@@ -33,7 +36,8 @@ public class EventPublisher {
                 event);
     }
 
-    public void publishTeamDeactivationByPoolEvent(Long teamId, Long poolId) {
+    @Override
+    public void publishTeamDeactivationByPool(Long teamId, Long poolId) {
         TeamDeactivationByPoolEvent event = TeamDeactivationByPoolEvent.builder().teamId(teamId).poolId(poolId).build();
         rabbitTemplate.convertAndSend(
                 RabbitMQConfig.ENTITY_LIFECYCLE_EXCHANGE,
@@ -41,7 +45,8 @@ public class EventPublisher {
                 event);
     }
 
-    public void publishClubDeactivationEvent(String clubId) {
+    @Override
+    public void publishClubDeactivation(String clubId) {
         ClubDeactivationEvent event = ClubDeactivationEvent.builder().clubId(clubId).build();
         rabbitTemplate.convertAndSend(
                 RabbitMQConfig.ENTITY_LIFECYCLE_EXCHANGE,

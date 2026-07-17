@@ -7,10 +7,16 @@ import com.blockout.competitions.association.api.v2.CompetitionAssociationsV2Con
 import com.blockout.competitions.association.api.v2.CompetitionStatisticsV2Controller;
 import com.blockout.competitions.association.application.CompetitionAssociationView;
 import com.blockout.competitions.generated.api.CompetitionAssociationsApi;
+import com.blockout.competitions.generated.api.CompetitionLifecycleApi;
 import com.blockout.competitions.generated.api.CompetitionRankingsApi;
 import com.blockout.competitions.generated.api.CompetitionStatisticsApi;
 import com.blockout.competitions.generated.model.CompetitionAssociationInternalResponse;
 import com.blockout.competitions.generated.model.CompetitionStatisticsSnapshotInternalRequest;
+import com.blockout.competitions.generated.model.MissingClubIdsInternalRequest;
+import com.blockout.competitions.generated.model.MissingPoolIdsInternalRequest;
+import com.blockout.competitions.generated.model.MissingTeamIdsInternalRequest;
+import com.blockout.competitions.lifecycle.api.v2.CompetitionLifecycleApiMapper;
+import com.blockout.competitions.lifecycle.api.v2.CompetitionLifecycleV2Controller;
 import com.blockout.competitions.ranking.api.v2.CompetitionRankingApiMapper;
 import com.blockout.competitions.ranking.api.v2.CompetitionRankingsV2Controller;
 import com.blockout.competitions.ranking.application.PoolRankingView;
@@ -30,6 +36,47 @@ class CompetitionV2BoundaryTest {
         assertThat(CompetitionAssociationsApi.class).isAssignableFrom(CompetitionAssociationsV2Controller.class);
         assertThat(CompetitionStatisticsApi.class).isAssignableFrom(CompetitionStatisticsV2Controller.class);
         assertThat(CompetitionRankingsApi.class).isAssignableFrom(CompetitionRankingsV2Controller.class);
+        assertThat(CompetitionLifecycleApi.class).isAssignableFrom(CompetitionLifecycleV2Controller.class);
+    }
+
+    @Test
+    void generatedLifecycleRequestsMapImmediatelyToDefensiveSetCommands() {
+        CompetitionLifecycleApiMapper mapper = Mappers.getMapper(CompetitionLifecycleApiMapper.class);
+
+        var teams = mapper.toCommand(10L, new MissingTeamIdsInternalRequest(List.of(20L, 20L)));
+        var pools = mapper.toCommand(new MissingPoolIdsInternalRequest(List.of(30L, 30L)));
+        var clubs = mapper.toCommand(new MissingClubIdsInternalRequest(List.of("club-1", "club-1")));
+
+        assertThat(teams.poolId()).isEqualTo(10L);
+        assertThat(teams.teamIds()).containsExactly(20L).isUnmodifiable();
+        assertThat(pools.poolIds()).containsExactly(30L).isUnmodifiable();
+        assertThat(clubs.clubIds()).containsExactly("club-1").isUnmodifiable();
+    }
+
+    @Test
+    void generatedLifecycleRequestsStayCamelCaseUnderTheTemporaryGlobalSnakeMapper() throws Exception {
+        ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules()
+                .setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE);
+
+        String teams = objectMapper.writeValueAsString(new MissingTeamIdsInternalRequest(List.of(20L)));
+        String pools = objectMapper.writeValueAsString(new MissingPoolIdsInternalRequest(List.of(30L)));
+        String clubs = objectMapper.writeValueAsString(new MissingClubIdsInternalRequest(List.of("club-1")));
+
+        assertThat(teams).contains("\"missingTeamIds\"").doesNotContain("missing_team_ids");
+        assertThat(pools).contains("\"missingPoolIds\"").doesNotContain("missing_pool_ids");
+        assertThat(clubs).contains("\"missingClubIds\"").doesNotContain("missing_club_ids");
+    }
+
+    @Test
+    void canonicalLifecycleValidationRejectsInvalidIdentifiersWithoutRejectingEmptySets() {
+        try (var factory = Validation.buildDefaultValidatorFactory()) {
+            var validator = factory.getValidator();
+
+            assertThat(validator.validate(new MissingTeamIdsInternalRequest(List.of(0L)))).hasSize(1);
+            assertThat(validator.validate(new MissingPoolIdsInternalRequest(List.of(0L)))).hasSize(1);
+            assertThat(validator.validate(new MissingClubIdsInternalRequest(List.of("x".repeat(256))))).hasSize(1);
+            assertThat(validator.validate(new MissingTeamIdsInternalRequest(List.of()))).isEmpty();
+        }
     }
 
     @Test

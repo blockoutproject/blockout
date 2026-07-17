@@ -713,8 +713,18 @@ state moves to GitHub and this file becomes a historical migration record.
     whitespace checks pass. Contracts, committed generated artifacts, databases, events, BFF, Expo, scrapers,
     standalone repositories, production, Maaatch, Blockout Orval settings, and Python generator settings are
     unchanged.
-- [ ] MRG-360 Migrate `competition-service` bulk lifecycle and cascade boundaries, preserving missing-ID, zero-item,
+- [x] MRG-360 Migrate `competition-service` bulk lifecycle and cascade boundaries, preserving missing-ID, zero-item,
       deactivation, transaction, and rollback behavior without activating absent consumers.
+  - Evidence: `COMP-04`, `COMP-05`, and `COMP-06` now implement the generated v2 lifecycle interface through strict
+    generated-request mapping, defensive set-owned commands, a transactional bulk service, an explicit cascade plan
+    and service, and an application event port. Canonical requests use camelCase, validate identifiers, preserve empty
+    no-ops and duplicate semantics, and return `204`; the isolated v1 adapter retains snake_case and empty `200`
+    responses. Existing unversioned Rabbit payloads, routing keys, cascade eligibility, mixed candidates, zero-row
+    early returns, publisher-failure rollback behavior, and listener gaps remain unchanged. Competition and club
+    scrapers stay on v1 for MRG-349 and MRG-348. Ten new targeted tests plus the sixteen retained competition tests,
+    contract/lint, full backend, documentation, Maaatch comparison, Prettier, and whitespace checks pass. Contracts,
+    committed generated artifacts, databases, queues, listeners, BFF, Expo, scrapers, standalone repositories,
+    production, Maaatch, Blockout Orval settings, and Python generator settings are unchanged.
 - [ ] MRG-338 Migrate `matches-service` match core and day-page generated boundaries and internal clients with date,
       pagination, ordering, status, null, and scraper parity.
 - [ ] MRG-361 Migrate `matches-service` live command, response, and history boundaries while preserving ownership,
