@@ -12,7 +12,6 @@ import com.blockout.clubs.generated.api.ClubsApi;
 import com.blockout.clubs.generated.model.ClubInternalResponse;
 import com.blockout.clubs.generated.model.UpdateClubInternalRequest;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import java.time.LocalDateTime;
 import org.junit.jupiter.api.Test;
 import org.mapstruct.factory.Mappers;
@@ -27,14 +26,12 @@ class ClubV2BoundaryTest {
     }
 
     @Test
-    void generatedResponseStaysCamelCaseUnderTheTemporaryGlobalSnakeMapper() throws Exception {
+    void generatedResponseUsesCanonicalCamelCaseWithTheDefaultMapper() throws Exception {
         ClubApiMapper mapper = Mappers.getMapper(ClubApiMapper.class);
         ClubInternalResponse response = mapper.toResponse(new ClubView(
                 "club-1", "Raw", "Club", null, "Paris", "75001", null, "0102", null, null, true,
                 48.8, 2.3, LocalDateTime.now(), LocalDateTime.now()));
-        ObjectMapper objectMapper = new ObjectMapper()
-                .findAndRegisterModules()
-                .setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE);
+        ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
 
         String body = objectMapper.writeValueAsString(response);
 

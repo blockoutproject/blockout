@@ -43,7 +43,7 @@ The publisher claims ready rows with `FOR UPDATE SKIP LOCKED`, sends only the wi
 is absent, and records v1 and v2 completion separately. If v1 succeeds and v2 fails, retry sends only v2 with the same
 event UUID. V1 retains its legacy payload type and snake_case converter behavior plus the single additive
 `x-blockout-event-id` header. Its event body remains camelCase exactly like the audited no-argument Rabbit converter,
-independently from each service's HTTP `SNAKE_CASE` mapper. V2 uses canonical camelCase JSON, standard AMQP properties,
+independently from any service HTTP naming strategy. V2 uses canonical camelCase JSON, standard AMQP properties,
 stable MRG-315 headers, the
 same `x-blockout-event-id`, and no `__TypeId__` header.
 

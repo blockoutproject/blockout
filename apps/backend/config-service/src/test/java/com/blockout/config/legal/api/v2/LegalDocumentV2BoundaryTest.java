@@ -11,7 +11,6 @@ import com.blockout.config.shared.api.v2.ConfigProblemFactory;
 import com.blockout.shared.model.ProblemDetail;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import java.time.LocalDateTime;
 import org.junit.jupiter.api.Test;
@@ -57,10 +56,8 @@ class LegalDocumentV2BoundaryTest {
                 "The legal document could not be found.",
                 request);
 
-        ObjectMapper snakeCaseWorkspaceMapper = JsonMapper.builder()
-                .propertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE)
-                .build();
-        JsonNode body = snakeCaseWorkspaceMapper.readTree(snakeCaseWorkspaceMapper.writeValueAsBytes(response.getBody()));
+        ObjectMapper canonicalMapper = JsonMapper.builder().build();
+        JsonNode body = canonicalMapper.readTree(canonicalMapper.writeValueAsBytes(response.getBody()));
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
         assertThat(response.getHeaders().getFirst(ConfigProblemFactory.REQUEST_ID_HEADER))

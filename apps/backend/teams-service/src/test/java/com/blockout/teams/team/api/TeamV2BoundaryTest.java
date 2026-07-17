@@ -16,7 +16,6 @@ import com.blockout.teams.team.api.v2.TeamFollowersV2Controller;
 import com.blockout.teams.team.api.v2.TeamV2Controller;
 import com.blockout.teams.team.application.TeamView;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import java.time.LocalDateTime;
 import org.junit.jupiter.api.Test;
 import org.mapstruct.factory.Mappers;
@@ -32,13 +31,12 @@ class TeamV2BoundaryTest {
     }
 
     @Test
-    void generatedResponseStaysCamelCaseUnderTheTemporaryGlobalSnakeMapper() throws Exception {
+    void generatedResponseUsesCanonicalCamelCaseWithTheDefaultMapper() throws Exception {
         TeamApiMapper mapper = Mappers.getMapper(TeamApiMapper.class);
         TeamInternalResponse response = mapper.toResponse(new TeamView(
                 1L, "club-1", "Raw", "Team", "TM", "L1", 2L, "2026", FormatEnum.SIX,
                 GenderEnum.M, 3L, "https://logo", true, LocalDateTime.now(), LocalDateTime.now()));
-        ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules()
-                .setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE);
+        ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
 
         String body = objectMapper.writeValueAsString(response);
 

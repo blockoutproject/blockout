@@ -12,7 +12,6 @@ import com.blockout.pools.pool.application.PoolView;
 import com.blockout.shared.model.FormatEnum;
 import com.blockout.shared.model.GenderEnum;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import java.time.LocalDateTime;
 import org.junit.jupiter.api.Test;
 import org.mapstruct.factory.Mappers;
@@ -26,13 +25,12 @@ class PoolV2BoundaryTest {
     }
 
     @Test
-    void generatedResponseStaysCamelCaseUnderTheTemporaryGlobalSnakeMapper() throws Exception {
+    void generatedResponseUsesCanonicalCamelCaseWithTheDefaultMapper() throws Exception {
         PoolApiMapper mapper = Mappers.getMapper(PoolApiMapper.class);
         PoolInternalResponse response = mapper.toResponse(new PoolView(
                 1L, "P1", "L1", "2026", "League", "Raw", "Pool", "PL", 2L,
                 FormatEnum.SIX, GenderEnum.M, 3L, true, LocalDateTime.now(), LocalDateTime.now()));
-        ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules()
-                .setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE);
+        ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
 
         String body = objectMapper.writeValueAsString(response);
 

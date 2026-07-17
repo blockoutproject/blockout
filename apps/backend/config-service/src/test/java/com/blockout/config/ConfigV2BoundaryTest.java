@@ -17,7 +17,6 @@ import com.blockout.config.generated.model.UpdateRawDivisionMappingInternalReque
 import com.blockout.config.rawmapping.api.v2.RawDivisionMappingV2Controller;
 import com.blockout.config.scraperstatus.api.v2.ScraperStatusV2Controller;
 import java.time.Instant;
-import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import jakarta.validation.Validation;
 import org.junit.jupiter.api.Test;
@@ -56,9 +55,7 @@ class ConfigV2BoundaryTest {
         DivisionApiMapper divisionMapper = Mappers.getMapper(DivisionApiMapper.class);
         var response = divisionMapper.toResponse(new DivisionView(
                 7L, "Elite", "#1", "#2", "#3", "#4", null, true, null, null));
-        var workspaceMapper = JsonMapper.builder()
-                .propertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE)
-                .build();
+        var workspaceMapper = JsonMapper.builder().build();
         var json = workspaceMapper.readTree(workspaceMapper.writeValueAsBytes(response));
 
         assertThat(json.has("mainColor")).isTrue();

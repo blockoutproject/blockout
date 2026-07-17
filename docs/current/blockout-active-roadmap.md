@@ -1158,9 +1158,19 @@ state moves to GitHub and this file becomes a historical migration record.
     reactor, repository gates, and complete CI pass. No runtime cutover, broker/deployment/production action, lifecycle
     consumer conversion, MRG-9xx, or MRG-1000 work is authorized; observation and the exact pause/drain/switch/resume
     rollback sequence are recorded in `docs/migration/mrg-372-matches-users-outbox-consumer-deduplication.md`.
-- [ ] MRG-351 Remove global Jackson `SNAKE_CASE` and slice-owned Blockout annotations from config, clubs, teams, and
+- [x] MRG-351 Remove global Jackson `SNAKE_CASE` and slice-owned Blockout annotations from config, clubs, teams, and
       pools canonical v2 paths only after every v2 caller uses camelCase; retain the isolated v1 transport adapters
       and their adapter-local snake_case mapper until the MRG-304 production-retirement gate.
+  - Evidence: config, clubs, teams, and pools no longer configure a global Jackson naming strategy; generated v2
+    boundaries serialize canonical camelCase with the default mapper after their owner, gateway, Expo, worker, and
+    Python caller migrations. Current main source contains no slice-owned `@JsonProperty`, `@JsonAlias`, or
+    `@JsonNaming`; annotations inventoried before the runtime migrations disappeared with their handwritten DTOs.
+    Exactly five isolated v1 JSON mappers retain local `SNAKE_CASE`, and their focused compatibility tests pass beside
+    the five default-mapper v2 boundary suites and targeted reactor. Event serialization remains independently owned
+    by the outbox support module. Complete backend compilation, repository gates, generated-file checks, and CI are
+    required before publication. No deployment, production observation, v1 retirement, MRG-9xx, or MRG-1000 action;
+    caller evidence, rollback, and the retained MRG-304 gate are recorded in
+    `docs/migration/mrg-351-config-catalog-casing-cleanup.md`.
 - [ ] MRG-373 Remove global Jackson `SNAKE_CASE` and slice-owned Blockout annotations from competition, matches, and
       users canonical v2 paths only after every v2 caller uses camelCase; retain the isolated v1 transport adapters
       required by MRG-304.

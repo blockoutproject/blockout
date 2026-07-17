@@ -16,9 +16,6 @@ spring:
         jwt:
           issuer-uri: ${AUTH0_ISSUER}
 
-  jackson:
-    property-naming-strategy: SNAKE_CASE
-
   config:
     import: optional:file:.env.local[.properties]
     on-missing-location: fail
@@ -42,7 +39,6 @@ spring:
 logging:
   level:
     root: ${LOGGING_LEVEL_ROOT:INFO}
-
 
 aws:
   credentials:
