@@ -118,6 +118,27 @@ audited scopes. The generated v2 contract is not a runtime cutover. Existing v1 
 ordering, multipart behavior, and fallback semantics remain governed by the MRG-304 compatibility boundary until
 their later vertical migration tasks.
 
+## Clubs-Service Contract
+
+MRG-318 makes `services/clubs` authoritative for the six canonical clubs-service operations inventoried by MRG-301
+and allocated by MRG-304. The bundle covers paged club reads, typed multipart creation and update, soft deactivation,
+and the compatibility plain-text logo read under `/api/v2/clubs/**`.
+
+`ClubInternalResponse` retains the owner, contact, location, lifecycle, logo, and derived coordinate fields used by
+proven consumers while omitting persistence audit timestamps. The growing collection uses `ClubInternalPageResponse`,
+shared zero-based page parameters, and stable name-then-identifier ordering. Scraper and worker adapters that need the
+legacy complete list must aggregate every page before exposing their unchanged application result.
+
+Creation accepts only fields the current create behavior actually retains; `address` remains absent because the
+deployed path drops it, and adding it requires a separately approved product correction. Update keeps current partial
+field and implicit reactivation behavior while replacing the ambiguous `logoUrl` sentinel with required
+`removeLogo`: an image replaces, `removeLogo: true` without an image deletes, and `false` without an image keeps the
+logo. Conflicting removal and replacement is a canonical `400`.
+
+Five operations retain their audited scopes. The logo read remains authenticated without a method scope and preserves
+its `200` plain URL, `204` empty, and `404` missing-club outcomes. Public phone filtering remains BFF-owned; Mapbox,
+S3, RabbitMQ, v1 transport, and runtime activation remain outside this contract-definition task.
+
 ## Closed Boundaries
 
 - `search-worker` has no REST controller and receives no source directory or generated server bundle.

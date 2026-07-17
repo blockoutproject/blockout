@@ -369,8 +369,17 @@ state moves to GitHub and this file becomes a historical migration record.
     absent. Eighteen contract tests cover the exact operation IDs, scopes, public legal read, response fields, lists,
     multipart parts, and legal error compatibility; source lint, deterministic generation, documentation and Maaatch
     structure checks, and the unchanged backend reactor package successfully without modifying runtime code.
-- [ ] MRG-318 Define and bundle the `clubs-service` contract from its approved audit using only required camelCase wire
+- [x] MRG-318 Define and bundle the `clubs-service` contract from its approved audit using only required camelCase wire
       fields, including multipart operations.
+  - Evidence: the authoritative clubs source and generated bundle reconcile all six MRG-301 operations under
+    `/api/v2/clubs/**`. Four owner schemas retain thirteen proven club, contact, location, lifecycle, image, and derived
+    coordinate fields while omitting persistence timestamps; creation excludes the currently dropped address, update
+    replaces the ambiguous logo URL sentinel with required `removeLogo`, and typed JSON/image multipart parts cover
+    both writes. The growing list uses shared paging and stable name/identifier ordering with explicit legacy
+    aggregation parity, while the logo read preserves authenticated plain-text and empty outcomes. Nineteen contract
+    tests cover exact operation IDs, scopes, fields, page parameters, multipart shapes, logo intent, and response
+    statuses; source lint, deterministic generation, documentation and Maaatch structure checks, and the unchanged
+    backend reactor package successfully without modifying runtime code.
 - [ ] MRG-319 Define and bundle the `teams-service` contract from its approved audit using only required camelCase wire
       fields, including multipart operations.
 - [ ] MRG-320 Define and bundle the `pools-service` contract from its approved audit using only required camelCase wire

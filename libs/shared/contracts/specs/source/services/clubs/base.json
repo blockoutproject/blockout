@@ -9,6 +9,52 @@
       "url": "http://localhost"
     }
   ],
-  "tags": [],
-  "components": {}
+  "tags": [
+    {
+      "name": "Clubs"
+    },
+    {
+      "name": "ClubLogos"
+    }
+  ],
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "components": {
+    "parameters": {
+      "ClubId": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "maxLength": 255
+        }
+      },
+      "ClubIds": {
+        "name": "ids",
+        "in": "query",
+        "required": false,
+        "style": "form",
+        "explode": true,
+        "schema": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 255
+          }
+        }
+      },
+      "ClubActive": {
+        "name": "active",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "boolean"
+        }
+      }
+    }
+  }
 }

@@ -369,6 +369,165 @@ test('workspace config contract reconciles the sixteen audited operations', asyn
   );
 });
 
+test('workspace clubs contract reconciles the six audited operations', async () => {
+  const clubs = await readJson(path.join(generatedSpecsDir, 'clubs.json'));
+  const operations = Object.entries(clubs.paths).flatMap(
+    ([operationPath, pathItem]) =>
+      Object.entries(pathItem)
+        .filter(([method]) => method !== 'parameters')
+        .map(([method, operation]) => ({
+          key: `${method.toUpperCase()} ${operationPath}`,
+          operation,
+        })),
+  );
+  const expectedOperations = {
+    'DELETE /api/v2/clubs/{id}': 'deactivateClub',
+    'GET /api/v2/clubs': 'listClubs',
+    'GET /api/v2/clubs/{id}': 'getClub',
+    'GET /api/v2/clubs/{id}/logo': 'getClubLogo',
+    'POST /api/v2/clubs': 'createClub',
+    'PUT /api/v2/clubs/{id}': 'updateClub',
+  };
+
+  assert.deepEqual(
+    Object.fromEntries(
+      operations
+        .map(({ key, operation }) => [key, operation.operationId])
+        .sort(([left], [right]) => left.localeCompare(right)),
+    ),
+    expectedOperations,
+  );
+  assert.equal(
+    new Set(operations.map(({ operation }) => operation.operationId)).size,
+    6,
+  );
+
+  const expectedScopes = {
+    createClub: 'create:clubs',
+    deactivateClub: 'delete:clubs',
+    getClub: 'read:clubs',
+    listClubs: 'read:clubs',
+    updateClub: 'update:clubs',
+  };
+  assert.deepEqual(
+    Object.fromEntries(
+      operations
+        .filter(({ operation }) => operation['x-required-scope'])
+        .map(({ operation }) => [
+          operation.operationId,
+          operation['x-required-scope'],
+        ])
+        .sort(([left], [right]) => left.localeCompare(right)),
+    ),
+    expectedScopes,
+  );
+  assert.deepEqual(clubs.security, [{ bearerAuth: [] }]);
+
+  assert.deepEqual(
+    Object.keys(clubs.components.schemas.ClubInternalResponse.properties).sort(
+      (left, right) => left.localeCompare(right),
+    ),
+    [
+      'active',
+      'address',
+      'city',
+      'email',
+      'id',
+      'latitude',
+      'logoUrl',
+      'longitude',
+      'name',
+      'phoneNumber',
+      'postalCode',
+      'rawName',
+      'website',
+    ],
+  );
+  assert.deepEqual(
+    Object.keys(clubs.components.schemas.ClubInternalPageResponse.properties),
+    ['items', 'pageInfo'],
+  );
+
+  const createFields = Object.keys(
+    clubs.components.schemas.CreateClubInternalRequest.properties,
+  ).sort((left, right) => left.localeCompare(right));
+  assert.deepEqual(createFields, [
+    'city',
+    'email',
+    'id',
+    'name',
+    'phoneNumber',
+    'postalCode',
+    'rawName',
+    'website',
+  ]);
+  assert.deepEqual(
+    clubs.components.schemas.CreateClubInternalRequest.required,
+    ['id', 'rawName', 'name'],
+  );
+
+  const updateSchema = clubs.components.schemas.UpdateClubInternalRequest;
+  assert.deepEqual(
+    Object.keys(updateSchema.properties).sort((left, right) =>
+      left.localeCompare(right),
+    ),
+    [
+      'address',
+      'city',
+      'email',
+      'name',
+      'phoneNumber',
+      'postalCode',
+      'rawName',
+      'removeLogo',
+      'website',
+    ],
+  );
+  assert.deepEqual(updateSchema.required, ['removeLogo']);
+
+  const listParameters = clubs.paths['/api/v2/clubs'].get.parameters.map(
+    (parameter) => parameter.$ref,
+  );
+  assert.deepEqual(listParameters, [
+    '#/components/parameters/ClubIds',
+    '#/components/parameters/ClubActive',
+    '#/components/parameters/Page',
+    '#/components/parameters/PageSize',
+  ]);
+  assert.equal(clubs.components.parameters.ClubIds.explode, true);
+
+  for (const [method, expectedSchema] of [
+    ['post', 'CreateClubInternalRequest'],
+    ['put', 'UpdateClubInternalRequest'],
+  ]) {
+    const operationPath =
+      method === 'post' ? '/api/v2/clubs' : '/api/v2/clubs/{id}';
+    const multipart =
+      clubs.paths[operationPath][method].requestBody.content[
+        'multipart/form-data'
+      ];
+    assert.equal(
+      multipart.schema.properties.data.$ref,
+      `#/components/schemas/${expectedSchema}`,
+    );
+    assert.equal(multipart.encoding.data.contentType, 'application/json');
+    assert.equal(multipart.schema.properties.image.format, 'binary');
+  }
+
+  const logoResponses = clubs.paths['/api/v2/clubs/{id}/logo'].get.responses;
+  assert.deepEqual(Object.keys(logoResponses).sort(), [
+    '200',
+    '204',
+    '401',
+    '404',
+    '500',
+  ]);
+  assert.equal(
+    logoResponses['200'].content['text/plain'].schema.type,
+    'string',
+  );
+});
+
 test('workspace stable enums remain named top-level components', async () => {
   const sourceFiles = await listJsonFiles(sourceDir);
   const inlineEnumLocations = [];
