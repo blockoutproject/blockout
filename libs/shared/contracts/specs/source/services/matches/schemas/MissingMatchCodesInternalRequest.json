@@ -1,0 +1,14 @@
+{
+  "MissingMatchCodesInternalRequest": {
+    "type": "object",
+    "description": "Match codes proven missing from one pool and therefore selected for soft deactivation. Empty is a valid no-op and duplicates retain set semantics.",
+    "required": ["missingMatchCodes"],
+    "properties": {
+      "missingMatchCodes": {
+        "type": "array",
+        "items": { "type": "string", "maxLength": 255 }
+      }
+    },
+    "additionalProperties": false
+  }
+}

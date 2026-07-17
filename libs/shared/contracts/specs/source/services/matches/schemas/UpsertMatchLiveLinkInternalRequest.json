@@ -1,0 +1,10 @@
+{
+  "UpsertMatchLiveLinkInternalRequest": {
+    "type": "object",
+    "required": ["url"],
+    "properties": {
+      "url": { "type": "string", "format": "uri", "maxLength": 1024 }
+    },
+    "additionalProperties": false
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "MatchLiveLinkResult": {
+    "type": "object",
+    "description": "Live-link command result containing only fields consumed by the mobile workflow.",
+    "required": ["matchId", "provider", "url", "status"],
+    "properties": {
+      "matchId": { "$ref": "#/components/schemas/NumericIdentifier" },
+      "provider": { "$ref": "#/components/schemas/LiveProviderEnum" },
+      "url": { "type": "string", "maxLength": 1024 },
+      "status": { "$ref": "#/components/schemas/LiveLinkStatusEnum" }
+    },
+    "additionalProperties": false
+  }
+}

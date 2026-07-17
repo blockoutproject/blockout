@@ -1,0 +1,41 @@
+{
+  "MatchDetailInternalResponse": {
+    "type": "object",
+    "description": "Match detail enriched only with the newest active live link and without persistence lifecycle or audit fields.",
+    "required": [
+      "id",
+      "matchCode",
+      "leagueCode",
+      "poolId",
+      "teamIdA",
+      "teamIdB",
+      "matchDate",
+      "season",
+      "status"
+    ],
+    "properties": {
+      "id": { "$ref": "#/components/schemas/NumericIdentifier" },
+      "matchCode": { "type": "string", "maxLength": 255 },
+      "leagueCode": { "type": "string", "maxLength": 255 },
+      "poolId": { "$ref": "#/components/schemas/NumericIdentifier" },
+      "liveCode": { "type": "integer", "format": "int64", "nullable": true },
+      "teamIdA": { "$ref": "#/components/schemas/NumericIdentifier" },
+      "teamIdB": { "$ref": "#/components/schemas/NumericIdentifier" },
+      "matchDate": { "$ref": "#/components/schemas/UtcDateTime" },
+      "season": { "type": "string", "maxLength": 255 },
+      "set": { "type": "string", "nullable": true },
+      "score": { "type": "string", "nullable": true },
+      "status": { "$ref": "#/components/schemas/MatchStatusEnum" },
+      "venue": { "type": "string", "nullable": true },
+      "firstReferee": { "type": "string", "nullable": true },
+      "secondReferee": { "type": "string", "nullable": true },
+      "liveUrl": { "type": "string", "maxLength": 1024, "nullable": true },
+      "liveProvider": {
+        "allOf": [{ "$ref": "#/components/schemas/LiveProviderEnum" }],
+        "nullable": true
+      },
+      "liveOwnerAuth0Id": { "type": "string", "nullable": true }
+    },
+    "additionalProperties": false
+  }
+}

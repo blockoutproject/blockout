@@ -1,0 +1,14 @@
+{
+  "MatchDayPoolGroup": {
+    "type": "object",
+    "required": ["poolId", "matches"],
+    "properties": {
+      "poolId": { "$ref": "#/components/schemas/NumericIdentifier" },
+      "matches": {
+        "type": "array",
+        "items": { "$ref": "#/components/schemas/MatchDetailInternalResponse" }
+      }
+    },
+    "additionalProperties": false
+  }
+}

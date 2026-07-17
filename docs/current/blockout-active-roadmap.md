@@ -415,8 +415,20 @@ state moves to GitHub and this file becomes a historical migration record.
     `200` compatibility retained. Twenty-two contract tests cover exact operation IDs, scopes, fields, full snapshot,
     pages, lifecycle requests/statuses, and ranking order; source lint, deterministic generation, documentation and
     Maaatch structure checks, and the unchanged backend reactor package successfully without modifying runtime code.
-- [ ] MRG-322 Define and bundle the `matches-service` contract from its approved audit using only required camelCase
+- [x] MRG-322 Define and bundle the `matches-service` contract from its approved audit using only required camelCase
       wire fields, including day pages, live links, and live summaries.
+  - Evidence: the authoritative matches source and generated bundle reconcile all sixteen MRG-301 operations under
+    `/api/v2/matches/**` across owner match/day, live/moderation, and internal-test families. Seventeen owner schemas
+    separate scraper commands, owner snapshots, detail/live projection, grouped day cursor, moderation/history pages,
+    live commands/results, missing-code lifecycle input, and REST-only test triggers while keeping AsyncAPI event
+    authority. Server identity/status/lifecycle/timestamps are absent from writes; detail omits persistence state,
+    history drops route-duplicated match ID, and moderation documents the actual filter/representative behavior without
+    promising an absent time window. Existing match/live policies and transitions remain unchanged, while growing
+    collections page with explicit legacy aggregation and bulk deactivation returns canonical `204` with v1 `200`
+    compatibility. Twenty-three contract tests cover exact operation IDs, fields, scopes, paging/grouping, live result,
+    report constraints, moderation semantics, lifecycle status, and event-source separation; source lint,
+    deterministic generation, documentation and Maaatch structure checks, and the unchanged backend reactor package
+    successfully without modifying runtime code.
 - [ ] MRG-323 Define and bundle the `users-service` contract from its approved audit using only required camelCase wire
       fields and current authentication semantics.
 - [ ] MRG-324 Define and bundle the `reports-service` contract from its approved audit, separating required Blockout

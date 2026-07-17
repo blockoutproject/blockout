@@ -1,0 +1,16 @@
+{
+  "MatchDayPageResponse": {
+    "type": "object",
+    "description": "Dedicated page of Paris-local match days. nextPage preserves the current infinite-query cursor and is null when no later page exists.",
+    "required": ["dayMatches", "hasNext", "nextPage"],
+    "properties": {
+      "dayMatches": {
+        "type": "array",
+        "items": { "$ref": "#/components/schemas/MatchDayGroup" }
+      },
+      "hasNext": { "type": "boolean" },
+      "nextPage": { "type": "integer", "minimum": 0, "nullable": true }
+    },
+    "additionalProperties": false
+  }
+}

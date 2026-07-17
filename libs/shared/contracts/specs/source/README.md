@@ -213,6 +213,31 @@ descending, then `teamId` ascending as a deterministic technical tie-breaker. Ar
 inventing an ordinal field. Cascade corrections, official rule validation, scraper calculation fixes, repository
 hardening, generated events, outboxes, BFF enrichment, and runtime activation remain later tasks.
 
+## Matches-Service Contract
+
+MRG-322 makes `services/matches` authoritative for all sixteen canonical matches-service operations inventoried by
+MRG-301 and allocated by MRG-304. Three path families separate owner match/day operations, live-link and moderation
+workflows, and the two existing internal test triggers under `/api/v2/matches/**`; AsyncAPI remains the sole event
+contract authority.
+
+The owner snapshot retains sixteen consumer-backed match fields while omitting persistence timestamps and ORM live-link
+relationships. Create and update accept the thirteen scraper-owned fields only; identity, status, active state, and
+timestamps are server-owned. The canonical contract preserves status derivation from `set`, update's implicit
+reactivation, the one-way finish transition, and nullable score/live/location fields without silently correcting
+scraper semantics. Raw bootstrap becomes a stable shared page whose compatibility adapter aggregates all pages.
+
+Match-day pagination remains a dedicated meaningful grouped projection with `dayMatches`, `hasNext`, and `nextPage`,
+preserving Paris-local dates and the current infinite-query cursor. Detail adds only newest-active live fields.
+Moderation and history use shared pages; history is newest first and drops route-duplicated `matchId`. The moderation
+contract explicitly preserves the current distinction between historical status filtering and representative-link
+selection and does not promise the unimplemented time window.
+
+Live-link commands retain existing ownership, provider, account-age, quota, timing, professional-league, report, and
+state policies. The upsert result keeps only the four fields consumed by Expo. Report reason uses the existing mobile
+10..500 submission rule. Bulk match deactivation returns canonical `204` while v1 retains empty `200`. Concurrency
+hardening, cascade decisions, policy corrections, scraper fixtures, outboxes, BFF projections, Expo forms, and runtime
+activation remain later tasks.
+
 ## Closed Boundaries
 
 - `search-worker` has no REST controller and receives no source directory or generated server bundle.

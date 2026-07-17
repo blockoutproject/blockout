@@ -1,0 +1,45 @@
+{
+  "/api/v2/matches/internal/test/{id}/emit-finished": {
+    "parameters": [{ "$ref": "#/components/parameters/MatchId" }],
+    "post": {
+      "operationId": "emitPersistedMatchFinishedTestEvent",
+      "tags": ["MatchInternalTests"],
+      "summary": "Emit a synthetic finish event for a persisted match",
+      "description": "Test-only REST trigger that does not modify match state. AsyncAPI remains event-contract authority.",
+      "x-required-scope": "publish:events",
+      "responses": {
+        "202": { "description": "Synthetic publication accepted." },
+        "401": { "$ref": "#/components/responses/UnauthorizedProblem" },
+        "403": { "$ref": "#/components/responses/ForbiddenProblem" },
+        "404": { "$ref": "#/components/responses/NotFoundProblem" },
+        "500": { "$ref": "#/components/responses/InternalServerErrorProblem" }
+      }
+    }
+  },
+  "/api/v2/matches/internal/test/emit-finished": {
+    "post": {
+      "operationId": "emitCustomMatchFinishedTestEvent",
+      "tags": ["MatchInternalTests"],
+      "summary": "Emit a synthetic custom finish event",
+      "description": "Test-only REST command; the emitted v2 envelope and payload remain generated from AsyncAPI.",
+      "x-required-scope": "publish:events",
+      "requestBody": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/EmitFinishedTestInternalRequest"
+            }
+          }
+        }
+      },
+      "responses": {
+        "202": { "description": "Synthetic publication accepted." },
+        "400": { "$ref": "#/components/responses/BadRequestProblem" },
+        "401": { "$ref": "#/components/responses/UnauthorizedProblem" },
+        "403": { "$ref": "#/components/responses/ForbiddenProblem" },
+        "500": { "$ref": "#/components/responses/InternalServerErrorProblem" }
+      }
+    }
+  }
+}

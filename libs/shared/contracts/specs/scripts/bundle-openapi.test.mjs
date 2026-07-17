@@ -1034,6 +1034,163 @@ test('workspace competition contract reconciles the eight audited operations', a
   );
 });
 
+test('workspace matches contract reconciles the sixteen audited operations', async () => {
+  const matches = await readJson(path.join(generatedSpecsDir, 'matches.json'));
+  const operations = Object.entries(matches.paths).flatMap(
+    ([operationPath, pathItem]) =>
+      Object.entries(pathItem)
+        .filter(([method]) => method !== 'parameters')
+        .map(([method, operation]) => ({
+          key: `${method.toUpperCase()} ${operationPath}`,
+          operation,
+        })),
+  );
+  assert.deepEqual(
+    Object.fromEntries(
+      operations
+        .map(({ key, operation }) => [key, operation.operationId])
+        .sort(([left], [right]) => left.localeCompare(right)),
+    ),
+    {
+      'DELETE /api/v2/matches/{matchId}/live-link': 'deleteMatchLiveLink',
+      'GET /api/v2/matches': 'listMatches',
+      'GET /api/v2/matches/day-groups': 'listMatchDayGroups',
+      'GET /api/v2/matches/live-moderation': 'listMatchesForLiveModeration',
+      'GET /api/v2/matches/{id}': 'getMatch',
+      'GET /api/v2/matches/{matchId}/live-links': 'listMatchLiveLinkHistory',
+      'POST /api/v2/matches': 'createMatch',
+      'POST /api/v2/matches/internal/test/emit-finished':
+        'emitCustomMatchFinishedTestEvent',
+      'POST /api/v2/matches/internal/test/{id}/emit-finished':
+        'emitPersistedMatchFinishedTestEvent',
+      'POST /api/v2/matches/live-links/{liveLinkId}/approve':
+        'approveMatchLiveLink',
+      'POST /api/v2/matches/live-links/{liveLinkId}/reactivate':
+        'reactivateMatchLiveLink',
+      'POST /api/v2/matches/live-links/{liveLinkId}/reject':
+        'rejectMatchLiveLink',
+      'POST /api/v2/matches/{matchId}/live-link': 'upsertMatchLiveLink',
+      'POST /api/v2/matches/{matchId}/live-link/report': 'reportMatchLiveLink',
+      'PUT /api/v2/matches/pools/{poolId}/bulk-deactivate':
+        'bulkDeactivateMatchesByPool',
+      'PUT /api/v2/matches/{id}': 'updateMatch',
+    },
+  );
+  assert.equal(
+    new Set(operations.map(({ operation }) => operation.operationId)).size,
+    16,
+  );
+  assert.deepEqual(matches.security, [{ bearerAuth: [] }]);
+
+  assert.deepEqual(
+    Object.keys(
+      matches.components.schemas.MatchInternalResponse.properties,
+    ).sort((left, right) => left.localeCompare(right)),
+    [
+      'active',
+      'firstReferee',
+      'id',
+      'leagueCode',
+      'liveCode',
+      'matchCode',
+      'matchDate',
+      'poolId',
+      'score',
+      'season',
+      'secondReferee',
+      'set',
+      'status',
+      'teamIdA',
+      'teamIdB',
+      'venue',
+    ],
+  );
+  for (const schemaName of [
+    'CreateMatchInternalRequest',
+    'UpdateMatchInternalRequest',
+  ]) {
+    const schema = matches.components.schemas[schemaName];
+    assert.equal(Object.keys(schema.properties).length, 13);
+    assert.deepEqual(schema.required, [
+      'matchCode',
+      'leagueCode',
+      'poolId',
+      'teamIdA',
+      'teamIdB',
+      'matchDate',
+      'season',
+    ]);
+    assert.equal(schema.properties.status, undefined);
+    assert.equal(schema.properties.active, undefined);
+  }
+  assert.equal(
+    Object.keys(
+      matches.components.schemas.MatchDetailInternalResponse.properties,
+    ).length,
+    18,
+  );
+
+  assert.deepEqual(
+    matches.paths['/api/v2/matches/day-groups'].get.parameters.map(
+      (parameter) => parameter.$ref,
+    ),
+    [
+      '#/components/parameters/Page',
+      '#/components/parameters/DayPageSize',
+      '#/components/parameters/MatchPoolIds',
+      '#/components/parameters/MatchTeamIds',
+      '#/components/parameters/MatchStatus',
+      '#/components/parameters/MatchActive',
+    ],
+  );
+  assert.deepEqual(
+    Object.keys(matches.components.schemas.MatchDayPageResponse.properties),
+    ['dayMatches', 'hasNext', 'nextPage'],
+  );
+  assert.equal(
+    matches.paths['/api/v2/matches/pools/{poolId}/bulk-deactivate'].put
+      .responses['204'].description,
+    'Lifecycle command completed.',
+  );
+
+  for (const schemaName of [
+    'MatchInternalPageResponse',
+    'MatchLiveModerationPageResponse',
+    'MatchLiveLinkHistoryPageResponse',
+  ]) {
+    assert.deepEqual(
+      Object.keys(matches.components.schemas[schemaName].properties),
+      ['items', 'pageInfo'],
+    );
+  }
+  assert.deepEqual(
+    Object.keys(matches.components.schemas.MatchLiveLinkResult.properties),
+    ['matchId', 'provider', 'url', 'status'],
+  );
+  assert.equal(
+    matches.components.schemas.MatchLiveLinkHistoryItem.properties.matchId,
+    undefined,
+  );
+  assert.equal(
+    matches.components.schemas.ReportMatchLiveLinkInternalRequest.properties
+      .reason.minLength,
+    10,
+  );
+  assert.equal(
+    matches.components.schemas.ReportMatchLiveLinkInternalRequest.properties
+      .reason.maxLength,
+    500,
+  );
+  assert.match(
+    matches.paths['/api/v2/matches/live-moderation'].get.description,
+    /no unimplemented time window/,
+  );
+  assert.match(
+    matches.components.schemas.EmitFinishedTestInternalRequest.description,
+    /AsyncAPI/,
+  );
+});
+
 test('workspace stable enums remain named top-level components', async () => {
   const sourceFiles = await listJsonFiles(sourceDir);
   const inlineEnumLocations = [];

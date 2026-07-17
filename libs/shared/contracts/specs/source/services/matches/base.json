@@ -9,6 +9,97 @@
       "url": "http://localhost"
     }
   ],
-  "tags": [],
-  "components": {}
+  "tags": [
+    { "name": "Matches" },
+    { "name": "MatchDays" },
+    { "name": "MatchLiveLinks" },
+    { "name": "MatchModeration" },
+    { "name": "MatchInternalTests" }
+  ],
+  "security": [{ "bearerAuth": [] }],
+  "components": {
+    "parameters": {
+      "MatchId": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "schema": { "$ref": "#/components/schemas/NumericIdentifier" }
+      },
+      "LiveMatchId": {
+        "name": "matchId",
+        "in": "path",
+        "required": true,
+        "schema": { "$ref": "#/components/schemas/NumericIdentifier" }
+      },
+      "LiveLinkId": {
+        "name": "liveLinkId",
+        "in": "path",
+        "required": true,
+        "schema": { "$ref": "#/components/schemas/NumericIdentifier" }
+      },
+      "PoolId": {
+        "name": "poolId",
+        "in": "path",
+        "required": true,
+        "schema": { "$ref": "#/components/schemas/NumericIdentifier" }
+      },
+      "MatchPoolId": {
+        "name": "poolId",
+        "in": "query",
+        "required": false,
+        "schema": { "$ref": "#/components/schemas/NumericIdentifier" }
+      },
+      "MatchPoolIds": {
+        "name": "poolIds",
+        "in": "query",
+        "required": false,
+        "style": "form",
+        "explode": true,
+        "schema": {
+          "type": "array",
+          "items": { "$ref": "#/components/schemas/NumericIdentifier" }
+        }
+      },
+      "MatchTeamIds": {
+        "name": "teamIds",
+        "in": "query",
+        "required": false,
+        "style": "form",
+        "explode": true,
+        "schema": {
+          "type": "array",
+          "items": { "$ref": "#/components/schemas/NumericIdentifier" }
+        }
+      },
+      "MatchStatus": {
+        "name": "status",
+        "in": "query",
+        "required": false,
+        "schema": { "$ref": "#/components/schemas/MatchStatusEnum" }
+      },
+      "MatchActive": {
+        "name": "active",
+        "in": "query",
+        "required": false,
+        "schema": { "type": "boolean" }
+      },
+      "DayPageSize": {
+        "name": "pageSize",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "default": 4
+        }
+      },
+      "LiveLinkStatus": {
+        "name": "status",
+        "in": "query",
+        "required": false,
+        "schema": { "$ref": "#/components/schemas/LiveLinkStatusEnum" }
+      }
+    }
+  }
 }

@@ -1,0 +1,50 @@
+{
+  "MatchLiveModerationSummary": {
+    "type": "object",
+    "description": "Moderation projection using the audited representative-link priority. A status filter proves that some history row matches; the representative fields may describe a different status.",
+    "required": [
+      "id",
+      "poolId",
+      "teamIdA",
+      "teamIdB",
+      "matchDate",
+      "season",
+      "status"
+    ],
+    "properties": {
+      "id": { "$ref": "#/components/schemas/NumericIdentifier" },
+      "poolId": { "$ref": "#/components/schemas/NumericIdentifier" },
+      "teamIdA": { "$ref": "#/components/schemas/NumericIdentifier" },
+      "teamIdB": { "$ref": "#/components/schemas/NumericIdentifier" },
+      "matchDate": { "$ref": "#/components/schemas/UtcDateTime" },
+      "season": { "type": "string", "maxLength": 255 },
+      "set": { "type": "string", "nullable": true },
+      "score": { "type": "string", "nullable": true },
+      "status": { "$ref": "#/components/schemas/MatchStatusEnum" },
+      "liveCode": { "type": "integer", "format": "int64", "nullable": true },
+      "lastLiveLinkId": {
+        "allOf": [{ "$ref": "#/components/schemas/NumericIdentifier" }],
+        "nullable": true
+      },
+      "lastLiveLinkStatus": {
+        "allOf": [{ "$ref": "#/components/schemas/LiveLinkStatusEnum" }],
+        "nullable": true
+      },
+      "lastLiveLinkProvider": {
+        "allOf": [{ "$ref": "#/components/schemas/LiveProviderEnum" }],
+        "nullable": true
+      },
+      "lastLiveLinkUrl": {
+        "type": "string",
+        "maxLength": 1024,
+        "nullable": true
+      },
+      "lastLiveLinkOwnerAuth0Id": { "type": "string", "nullable": true },
+      "lastLiveLinkCreatedAt": {
+        "allOf": [{ "$ref": "#/components/schemas/UtcDateTime" }],
+        "nullable": true
+      }
+    },
+    "additionalProperties": false
+  }
+}

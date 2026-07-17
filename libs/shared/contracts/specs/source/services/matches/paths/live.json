@@ -1,0 +1,191 @@
+{
+  "/api/v2/matches/live-moderation": {
+    "get": {
+      "operationId": "listMatchesForLiveModeration",
+      "tags": ["MatchModeration"],
+      "summary": "List matches with live-link history for moderation",
+      "description": "Status filters historical existence while representative fields retain the audited priority selection; no unimplemented time window is promised.",
+      "x-required-scope": "moderate:match_live_link",
+      "parameters": [
+        { "$ref": "#/components/parameters/LiveLinkStatus" },
+        { "$ref": "#/components/parameters/Page" },
+        { "$ref": "#/components/parameters/PageSize" }
+      ],
+      "responses": {
+        "200": {
+          "description": "Requested moderation page.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MatchLiveModerationPageResponse"
+              }
+            }
+          }
+        },
+        "400": { "$ref": "#/components/responses/BadRequestProblem" },
+        "401": { "$ref": "#/components/responses/UnauthorizedProblem" },
+        "403": { "$ref": "#/components/responses/ForbiddenProblem" },
+        "500": { "$ref": "#/components/responses/InternalServerErrorProblem" }
+      }
+    }
+  },
+  "/api/v2/matches/{matchId}/live-links": {
+    "parameters": [{ "$ref": "#/components/parameters/LiveMatchId" }],
+    "get": {
+      "operationId": "listMatchLiveLinkHistory",
+      "tags": ["MatchModeration"],
+      "summary": "List live-link history newest first",
+      "x-required-scope": "moderate:match_live_link",
+      "parameters": [
+        { "$ref": "#/components/parameters/Page" },
+        { "$ref": "#/components/parameters/PageSize" }
+      ],
+      "responses": {
+        "200": {
+          "description": "Requested live-link history page.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MatchLiveLinkHistoryPageResponse"
+              }
+            }
+          }
+        },
+        "400": { "$ref": "#/components/responses/BadRequestProblem" },
+        "401": { "$ref": "#/components/responses/UnauthorizedProblem" },
+        "403": { "$ref": "#/components/responses/ForbiddenProblem" },
+        "500": { "$ref": "#/components/responses/InternalServerErrorProblem" }
+      }
+    }
+  },
+  "/api/v2/matches/{matchId}/live-link": {
+    "parameters": [{ "$ref": "#/components/parameters/LiveMatchId" }],
+    "post": {
+      "operationId": "upsertMatchLiveLink",
+      "tags": ["MatchLiveLinks"],
+      "summary": "Create or update a match live link",
+      "description": "Applies the existing owner, account-age, provider, quota, timing, professional-league, and pending/active policies without changing their behavior.",
+      "x-required-scope": "create:match_live_link",
+      "requestBody": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/UpsertMatchLiveLinkInternalRequest"
+            }
+          }
+        }
+      },
+      "responses": {
+        "200": {
+          "description": "Current live-link command result.",
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/MatchLiveLinkResult" }
+            }
+          }
+        },
+        "400": { "$ref": "#/components/responses/BadRequestProblem" },
+        "401": { "$ref": "#/components/responses/UnauthorizedProblem" },
+        "403": { "$ref": "#/components/responses/ForbiddenProblem" },
+        "404": { "$ref": "#/components/responses/NotFoundProblem" },
+        "409": { "$ref": "#/components/responses/ConflictProblem" },
+        "500": { "$ref": "#/components/responses/InternalServerErrorProblem" }
+      }
+    },
+    "delete": {
+      "operationId": "deleteMatchLiveLink",
+      "tags": ["MatchLiveLinks"],
+      "summary": "Deactivate the active match live link",
+      "description": "Returns 204 even when no active link exists and retains current owner/moderator authorization.",
+      "x-required-scope": "delete:match_live_link",
+      "responses": {
+        "204": { "description": "Active link deactivated or already absent." },
+        "401": { "$ref": "#/components/responses/UnauthorizedProblem" },
+        "403": { "$ref": "#/components/responses/ForbiddenProblem" },
+        "500": { "$ref": "#/components/responses/InternalServerErrorProblem" }
+      }
+    }
+  },
+  "/api/v2/matches/{matchId}/live-link/report": {
+    "parameters": [{ "$ref": "#/components/parameters/LiveMatchId" }],
+    "post": {
+      "operationId": "reportMatchLiveLink",
+      "tags": ["MatchLiveLinks"],
+      "summary": "Report the active match live link",
+      "x-required-scope": "report:match_live_link",
+      "requestBody": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ReportMatchLiveLinkInternalRequest"
+            }
+          }
+        }
+      },
+      "responses": {
+        "204": {
+          "description": "Report accepted or already recorded for this reporter and version."
+        },
+        "400": { "$ref": "#/components/responses/BadRequestProblem" },
+        "401": { "$ref": "#/components/responses/UnauthorizedProblem" },
+        "403": { "$ref": "#/components/responses/ForbiddenProblem" },
+        "404": { "$ref": "#/components/responses/NotFoundProblem" },
+        "409": { "$ref": "#/components/responses/ConflictProblem" },
+        "500": { "$ref": "#/components/responses/InternalServerErrorProblem" }
+      }
+    }
+  },
+  "/api/v2/matches/live-links/{liveLinkId}/approve": {
+    "parameters": [{ "$ref": "#/components/parameters/LiveLinkId" }],
+    "post": {
+      "operationId": "approveMatchLiveLink",
+      "tags": ["MatchModeration"],
+      "summary": "Approve a pending live link",
+      "x-required-scope": "moderate:match_live_link",
+      "responses": {
+        "204": { "description": "Live link approved." },
+        "400": { "$ref": "#/components/responses/BadRequestProblem" },
+        "401": { "$ref": "#/components/responses/UnauthorizedProblem" },
+        "403": { "$ref": "#/components/responses/ForbiddenProblem" },
+        "404": { "$ref": "#/components/responses/NotFoundProblem" },
+        "500": { "$ref": "#/components/responses/InternalServerErrorProblem" }
+      }
+    }
+  },
+  "/api/v2/matches/live-links/{liveLinkId}/reject": {
+    "parameters": [{ "$ref": "#/components/parameters/LiveLinkId" }],
+    "post": {
+      "operationId": "rejectMatchLiveLink",
+      "tags": ["MatchModeration"],
+      "summary": "Reject a pending live link",
+      "x-required-scope": "moderate:match_live_link",
+      "responses": {
+        "204": { "description": "Live link rejected." },
+        "400": { "$ref": "#/components/responses/BadRequestProblem" },
+        "401": { "$ref": "#/components/responses/UnauthorizedProblem" },
+        "403": { "$ref": "#/components/responses/ForbiddenProblem" },
+        "404": { "$ref": "#/components/responses/NotFoundProblem" },
+        "500": { "$ref": "#/components/responses/InternalServerErrorProblem" }
+      }
+    }
+  },
+  "/api/v2/matches/live-links/{liveLinkId}/reactivate": {
+    "parameters": [{ "$ref": "#/components/parameters/LiveLinkId" }],
+    "post": {
+      "operationId": "reactivateMatchLiveLink",
+      "tags": ["MatchModeration"],
+      "summary": "Reactivate an eligible live link",
+      "x-required-scope": "moderate:match_live_link",
+      "responses": {
+        "204": { "description": "Live link reactivated." },
+        "400": { "$ref": "#/components/responses/BadRequestProblem" },
+        "401": { "$ref": "#/components/responses/UnauthorizedProblem" },
+        "403": { "$ref": "#/components/responses/ForbiddenProblem" },
+        "404": { "$ref": "#/components/responses/NotFoundProblem" },
+        "500": { "$ref": "#/components/responses/InternalServerErrorProblem" }
+      }
+    }
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "MatchInternalPageResponse": {
+    "type": "object",
+    "required": ["items", "pageInfo"],
+    "properties": {
+      "items": {
+        "type": "array",
+        "items": { "$ref": "#/components/schemas/MatchInternalResponse" }
+      },
+      "pageInfo": { "$ref": "#/components/schemas/PageInfo" }
+    },
+    "additionalProperties": false
+  }
+}

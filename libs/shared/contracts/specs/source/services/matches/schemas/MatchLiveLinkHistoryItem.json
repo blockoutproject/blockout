@@ -1,0 +1,30 @@
+{
+  "MatchLiveLinkHistoryItem": {
+    "type": "object",
+    "description": "One live-link version ordered newest first. matchId is omitted because the route already owns that context.",
+    "required": [
+      "id",
+      "provider",
+      "url",
+      "status",
+      "reportCount",
+      "ownerAuth0Id",
+      "createdAt",
+      "lastUpdate"
+    ],
+    "properties": {
+      "id": { "$ref": "#/components/schemas/NumericIdentifier" },
+      "provider": { "$ref": "#/components/schemas/LiveProviderEnum" },
+      "url": { "type": "string", "maxLength": 1024 },
+      "status": { "$ref": "#/components/schemas/LiveLinkStatusEnum" },
+      "reportCount": { "type": "integer", "format": "int32", "minimum": 0 },
+      "ownerAuth0Id": { "type": "string" },
+      "createdAt": { "$ref": "#/components/schemas/UtcDateTime" },
+      "lastUpdate": {
+        "allOf": [{ "$ref": "#/components/schemas/UtcDateTime" }],
+        "nullable": true
+      }
+    },
+    "additionalProperties": false
+  }
+}

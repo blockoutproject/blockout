@@ -1,0 +1,183 @@
+{
+  "/api/v2/matches": {
+    "get": {
+      "operationId": "listMatches",
+      "tags": ["Matches"],
+      "summary": "List match owner snapshots",
+      "description": "Returns a stable page for scraper bootstrap; compatibility adapters aggregate all pages.",
+      "parameters": [
+        { "$ref": "#/components/parameters/MatchPoolId" },
+        { "$ref": "#/components/parameters/MatchTeamIds" },
+        { "$ref": "#/components/parameters/MatchStatus" },
+        { "$ref": "#/components/parameters/MatchActive" },
+        { "$ref": "#/components/parameters/Page" },
+        { "$ref": "#/components/parameters/PageSize" }
+      ],
+      "responses": {
+        "200": {
+          "description": "Requested match page.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MatchInternalPageResponse"
+              }
+            }
+          }
+        },
+        "400": { "$ref": "#/components/responses/BadRequestProblem" },
+        "401": { "$ref": "#/components/responses/UnauthorizedProblem" },
+        "500": { "$ref": "#/components/responses/InternalServerErrorProblem" }
+      }
+    },
+    "post": {
+      "operationId": "createMatch",
+      "tags": ["Matches"],
+      "summary": "Create a match",
+      "description": "Creates a match and derives status from set nullness without accepting server identity, lifecycle, or timestamps.",
+      "x-required-scope": "create:matches",
+      "requestBody": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/CreateMatchInternalRequest"
+            }
+          }
+        }
+      },
+      "responses": {
+        "201": {
+          "description": "Match created.",
+          "headers": {
+            "Location": {
+              "description": "Canonical match location.",
+              "schema": { "type": "string" }
+            }
+          },
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/MatchInternalResponse" }
+            }
+          }
+        },
+        "400": { "$ref": "#/components/responses/BadRequestProblem" },
+        "401": { "$ref": "#/components/responses/UnauthorizedProblem" },
+        "403": { "$ref": "#/components/responses/ForbiddenProblem" },
+        "409": { "$ref": "#/components/responses/ConflictProblem" },
+        "500": { "$ref": "#/components/responses/InternalServerErrorProblem" }
+      }
+    }
+  },
+  "/api/v2/matches/day-groups": {
+    "get": {
+      "operationId": "listMatchDayGroups",
+      "tags": ["MatchDays"],
+      "summary": "List grouped match days",
+      "description": "Preserves Paris-local day grouping, current status-dependent direction, empty filtered days, and nextPage cursor semantics.",
+      "parameters": [
+        { "$ref": "#/components/parameters/Page" },
+        { "$ref": "#/components/parameters/DayPageSize" },
+        { "$ref": "#/components/parameters/MatchPoolIds" },
+        { "$ref": "#/components/parameters/MatchTeamIds" },
+        { "$ref": "#/components/parameters/MatchStatus" },
+        { "$ref": "#/components/parameters/MatchActive" }
+      ],
+      "responses": {
+        "200": {
+          "description": "Requested match-day page.",
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/MatchDayPageResponse" }
+            }
+          }
+        },
+        "400": { "$ref": "#/components/responses/BadRequestProblem" },
+        "401": { "$ref": "#/components/responses/UnauthorizedProblem" },
+        "500": { "$ref": "#/components/responses/InternalServerErrorProblem" }
+      }
+    }
+  },
+  "/api/v2/matches/{id}": {
+    "parameters": [{ "$ref": "#/components/parameters/MatchId" }],
+    "get": {
+      "operationId": "getMatch",
+      "tags": ["Matches"],
+      "summary": "Get match detail",
+      "responses": {
+        "200": {
+          "description": "Requested match detail.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MatchDetailInternalResponse"
+              }
+            }
+          }
+        },
+        "401": { "$ref": "#/components/responses/UnauthorizedProblem" },
+        "404": { "$ref": "#/components/responses/NotFoundProblem" },
+        "500": { "$ref": "#/components/responses/InternalServerErrorProblem" }
+      }
+    },
+    "put": {
+      "operationId": "updateMatch",
+      "tags": ["Matches"],
+      "summary": "Replace scraper-owned match fields",
+      "description": "Replaces the scraper-owned fields, forces active true, and preserves the audited one-way finish transition.",
+      "x-required-scope": "update:matches",
+      "requestBody": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/UpdateMatchInternalRequest"
+            }
+          }
+        }
+      },
+      "responses": {
+        "200": {
+          "description": "Updated match.",
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/MatchInternalResponse" }
+            }
+          }
+        },
+        "400": { "$ref": "#/components/responses/BadRequestProblem" },
+        "401": { "$ref": "#/components/responses/UnauthorizedProblem" },
+        "403": { "$ref": "#/components/responses/ForbiddenProblem" },
+        "404": { "$ref": "#/components/responses/NotFoundProblem" },
+        "409": { "$ref": "#/components/responses/ConflictProblem" },
+        "500": { "$ref": "#/components/responses/InternalServerErrorProblem" }
+      }
+    }
+  },
+  "/api/v2/matches/pools/{poolId}/bulk-deactivate": {
+    "parameters": [{ "$ref": "#/components/parameters/PoolId" }],
+    "put": {
+      "operationId": "bulkDeactivateMatchesByPool",
+      "tags": ["Matches"],
+      "summary": "Deactivate missing matches in a pool",
+      "description": "Soft-deactivates supplied missingMatchCodes. Empty is a no-op; duplicates retain set semantics. The v1 adapter keeps its empty 200 response.",
+      "x-required-scope": "delete:matches",
+      "requestBody": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/MissingMatchCodesInternalRequest"
+            }
+          }
+        }
+      },
+      "responses": {
+        "204": { "description": "Lifecycle command completed." },
+        "400": { "$ref": "#/components/responses/BadRequestProblem" },
+        "401": { "$ref": "#/components/responses/UnauthorizedProblem" },
+        "403": { "$ref": "#/components/responses/ForbiddenProblem" },
+        "500": { "$ref": "#/components/responses/InternalServerErrorProblem" }
+      }
+    }
+  }
+}

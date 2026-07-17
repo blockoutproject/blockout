@@ -1,0 +1,14 @@
+{
+  "MatchDayGroup": {
+    "type": "object",
+    "required": ["date", "pools"],
+    "properties": {
+      "date": { "$ref": "#/components/schemas/CalendarDate" },
+      "pools": {
+        "type": "array",
+        "items": { "$ref": "#/components/schemas/MatchDayPoolGroup" }
+      }
+    },
+    "additionalProperties": false
+  }
+}

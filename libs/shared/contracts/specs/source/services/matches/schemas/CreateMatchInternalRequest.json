@@ -1,0 +1,31 @@
+{
+  "CreateMatchInternalRequest": {
+    "type": "object",
+    "description": "Caller-owned match fields. Status derives from set nullness; identity, lifecycle state, and audit timestamps are server-owned.",
+    "required": [
+      "matchCode",
+      "leagueCode",
+      "poolId",
+      "teamIdA",
+      "teamIdB",
+      "matchDate",
+      "season"
+    ],
+    "properties": {
+      "matchCode": { "type": "string", "maxLength": 255 },
+      "leagueCode": { "type": "string", "maxLength": 255 },
+      "poolId": { "$ref": "#/components/schemas/NumericIdentifier" },
+      "liveCode": { "type": "integer", "format": "int64", "nullable": true },
+      "teamIdA": { "$ref": "#/components/schemas/NumericIdentifier" },
+      "teamIdB": { "$ref": "#/components/schemas/NumericIdentifier" },
+      "matchDate": { "$ref": "#/components/schemas/UtcDateTime" },
+      "season": { "type": "string", "maxLength": 255 },
+      "set": { "type": "string", "nullable": true },
+      "score": { "type": "string", "nullable": true },
+      "venue": { "type": "string", "nullable": true },
+      "firstReferee": { "type": "string", "nullable": true },
+      "secondReferee": { "type": "string", "nullable": true }
+    },
+    "additionalProperties": false
+  }
+}

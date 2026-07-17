@@ -9,8 +9,709 @@
       "url": "http://localhost"
     }
   ],
-  "tags": [],
-  "paths": {},
+  "tags": [
+    {
+      "name": "Matches"
+    },
+    {
+      "name": "MatchDays"
+    },
+    {
+      "name": "MatchLiveLinks"
+    },
+    {
+      "name": "MatchModeration"
+    },
+    {
+      "name": "MatchInternalTests"
+    }
+  ],
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "paths": {
+    "/api/v2/matches/internal/test/{id}/emit-finished": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/MatchId"
+        }
+      ],
+      "post": {
+        "operationId": "emitPersistedMatchFinishedTestEvent",
+        "tags": [
+          "MatchInternalTests"
+        ],
+        "summary": "Emit a synthetic finish event for a persisted match",
+        "description": "Test-only REST trigger that does not modify match state. AsyncAPI remains event-contract authority.",
+        "x-required-scope": "publish:events",
+        "responses": {
+          "202": {
+            "description": "Synthetic publication accepted."
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedProblem"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenProblem"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundProblem"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorProblem"
+          }
+        }
+      }
+    },
+    "/api/v2/matches/internal/test/emit-finished": {
+      "post": {
+        "operationId": "emitCustomMatchFinishedTestEvent",
+        "tags": [
+          "MatchInternalTests"
+        ],
+        "summary": "Emit a synthetic custom finish event",
+        "description": "Test-only REST command; the emitted v2 envelope and payload remain generated from AsyncAPI.",
+        "x-required-scope": "publish:events",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmitFinishedTestInternalRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Synthetic publication accepted."
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestProblem"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedProblem"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenProblem"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorProblem"
+          }
+        }
+      }
+    },
+    "/api/v2/matches/live-moderation": {
+      "get": {
+        "operationId": "listMatchesForLiveModeration",
+        "tags": [
+          "MatchModeration"
+        ],
+        "summary": "List matches with live-link history for moderation",
+        "description": "Status filters historical existence while representative fields retain the audited priority selection; no unimplemented time window is promised.",
+        "x-required-scope": "moderate:match_live_link",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/LiveLinkStatus"
+          },
+          {
+            "$ref": "#/components/parameters/Page"
+          },
+          {
+            "$ref": "#/components/parameters/PageSize"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Requested moderation page.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MatchLiveModerationPageResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestProblem"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedProblem"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenProblem"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorProblem"
+          }
+        }
+      }
+    },
+    "/api/v2/matches/{matchId}/live-links": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/LiveMatchId"
+        }
+      ],
+      "get": {
+        "operationId": "listMatchLiveLinkHistory",
+        "tags": [
+          "MatchModeration"
+        ],
+        "summary": "List live-link history newest first",
+        "x-required-scope": "moderate:match_live_link",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Page"
+          },
+          {
+            "$ref": "#/components/parameters/PageSize"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Requested live-link history page.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MatchLiveLinkHistoryPageResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestProblem"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedProblem"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenProblem"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorProblem"
+          }
+        }
+      }
+    },
+    "/api/v2/matches/{matchId}/live-link": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/LiveMatchId"
+        }
+      ],
+      "post": {
+        "operationId": "upsertMatchLiveLink",
+        "tags": [
+          "MatchLiveLinks"
+        ],
+        "summary": "Create or update a match live link",
+        "description": "Applies the existing owner, account-age, provider, quota, timing, professional-league, and pending/active policies without changing their behavior.",
+        "x-required-scope": "create:match_live_link",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpsertMatchLiveLinkInternalRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Current live-link command result.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MatchLiveLinkResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestProblem"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedProblem"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenProblem"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundProblem"
+          },
+          "409": {
+            "$ref": "#/components/responses/ConflictProblem"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorProblem"
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteMatchLiveLink",
+        "tags": [
+          "MatchLiveLinks"
+        ],
+        "summary": "Deactivate the active match live link",
+        "description": "Returns 204 even when no active link exists and retains current owner/moderator authorization.",
+        "x-required-scope": "delete:match_live_link",
+        "responses": {
+          "204": {
+            "description": "Active link deactivated or already absent."
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedProblem"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenProblem"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorProblem"
+          }
+        }
+      }
+    },
+    "/api/v2/matches/{matchId}/live-link/report": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/LiveMatchId"
+        }
+      ],
+      "post": {
+        "operationId": "reportMatchLiveLink",
+        "tags": [
+          "MatchLiveLinks"
+        ],
+        "summary": "Report the active match live link",
+        "x-required-scope": "report:match_live_link",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReportMatchLiveLinkInternalRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Report accepted or already recorded for this reporter and version."
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestProblem"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedProblem"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenProblem"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundProblem"
+          },
+          "409": {
+            "$ref": "#/components/responses/ConflictProblem"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorProblem"
+          }
+        }
+      }
+    },
+    "/api/v2/matches/live-links/{liveLinkId}/approve": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/LiveLinkId"
+        }
+      ],
+      "post": {
+        "operationId": "approveMatchLiveLink",
+        "tags": [
+          "MatchModeration"
+        ],
+        "summary": "Approve a pending live link",
+        "x-required-scope": "moderate:match_live_link",
+        "responses": {
+          "204": {
+            "description": "Live link approved."
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestProblem"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedProblem"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenProblem"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundProblem"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorProblem"
+          }
+        }
+      }
+    },
+    "/api/v2/matches/live-links/{liveLinkId}/reject": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/LiveLinkId"
+        }
+      ],
+      "post": {
+        "operationId": "rejectMatchLiveLink",
+        "tags": [
+          "MatchModeration"
+        ],
+        "summary": "Reject a pending live link",
+        "x-required-scope": "moderate:match_live_link",
+        "responses": {
+          "204": {
+            "description": "Live link rejected."
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestProblem"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedProblem"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenProblem"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundProblem"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorProblem"
+          }
+        }
+      }
+    },
+    "/api/v2/matches/live-links/{liveLinkId}/reactivate": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/LiveLinkId"
+        }
+      ],
+      "post": {
+        "operationId": "reactivateMatchLiveLink",
+        "tags": [
+          "MatchModeration"
+        ],
+        "summary": "Reactivate an eligible live link",
+        "x-required-scope": "moderate:match_live_link",
+        "responses": {
+          "204": {
+            "description": "Live link reactivated."
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestProblem"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedProblem"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenProblem"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundProblem"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorProblem"
+          }
+        }
+      }
+    },
+    "/api/v2/matches": {
+      "get": {
+        "operationId": "listMatches",
+        "tags": [
+          "Matches"
+        ],
+        "summary": "List match owner snapshots",
+        "description": "Returns a stable page for scraper bootstrap; compatibility adapters aggregate all pages.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/MatchPoolId"
+          },
+          {
+            "$ref": "#/components/parameters/MatchTeamIds"
+          },
+          {
+            "$ref": "#/components/parameters/MatchStatus"
+          },
+          {
+            "$ref": "#/components/parameters/MatchActive"
+          },
+          {
+            "$ref": "#/components/parameters/Page"
+          },
+          {
+            "$ref": "#/components/parameters/PageSize"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Requested match page.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MatchInternalPageResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestProblem"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedProblem"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorProblem"
+          }
+        }
+      },
+      "post": {
+        "operationId": "createMatch",
+        "tags": [
+          "Matches"
+        ],
+        "summary": "Create a match",
+        "description": "Creates a match and derives status from set nullness without accepting server identity, lifecycle, or timestamps.",
+        "x-required-scope": "create:matches",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateMatchInternalRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Match created.",
+            "headers": {
+              "Location": {
+                "description": "Canonical match location.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MatchInternalResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestProblem"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedProblem"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenProblem"
+          },
+          "409": {
+            "$ref": "#/components/responses/ConflictProblem"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorProblem"
+          }
+        }
+      }
+    },
+    "/api/v2/matches/day-groups": {
+      "get": {
+        "operationId": "listMatchDayGroups",
+        "tags": [
+          "MatchDays"
+        ],
+        "summary": "List grouped match days",
+        "description": "Preserves Paris-local day grouping, current status-dependent direction, empty filtered days, and nextPage cursor semantics.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Page"
+          },
+          {
+            "$ref": "#/components/parameters/DayPageSize"
+          },
+          {
+            "$ref": "#/components/parameters/MatchPoolIds"
+          },
+          {
+            "$ref": "#/components/parameters/MatchTeamIds"
+          },
+          {
+            "$ref": "#/components/parameters/MatchStatus"
+          },
+          {
+            "$ref": "#/components/parameters/MatchActive"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Requested match-day page.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MatchDayPageResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestProblem"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedProblem"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorProblem"
+          }
+        }
+      }
+    },
+    "/api/v2/matches/{id}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/MatchId"
+        }
+      ],
+      "get": {
+        "operationId": "getMatch",
+        "tags": [
+          "Matches"
+        ],
+        "summary": "Get match detail",
+        "responses": {
+          "200": {
+            "description": "Requested match detail.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MatchDetailInternalResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedProblem"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundProblem"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorProblem"
+          }
+        }
+      },
+      "put": {
+        "operationId": "updateMatch",
+        "tags": [
+          "Matches"
+        ],
+        "summary": "Replace scraper-owned match fields",
+        "description": "Replaces the scraper-owned fields, forces active true, and preserves the audited one-way finish transition.",
+        "x-required-scope": "update:matches",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMatchInternalRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated match.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MatchInternalResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestProblem"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedProblem"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenProblem"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundProblem"
+          },
+          "409": {
+            "$ref": "#/components/responses/ConflictProblem"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorProblem"
+          }
+        }
+      }
+    },
+    "/api/v2/matches/pools/{poolId}/bulk-deactivate": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/PoolId"
+        }
+      ],
+      "put": {
+        "operationId": "bulkDeactivateMatchesByPool",
+        "tags": [
+          "Matches"
+        ],
+        "summary": "Deactivate missing matches in a pool",
+        "description": "Soft-deactivates supplied missingMatchCodes. Empty is a no-op; duplicates retain set semantics. The v1 adapter keeps its empty 200 response.",
+        "x-required-scope": "delete:matches",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MissingMatchCodesInternalRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Lifecycle command completed."
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestProblem"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedProblem"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenProblem"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorProblem"
+          }
+        }
+      }
+    }
+  },
   "components": {
     "securitySchemes": {
       "bearerAuth": {
@@ -41,6 +742,107 @@
           "minimum": 1,
           "maximum": 100,
           "default": 25
+        }
+      },
+      "MatchId": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "$ref": "#/components/schemas/NumericIdentifier"
+        }
+      },
+      "LiveMatchId": {
+        "name": "matchId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "$ref": "#/components/schemas/NumericIdentifier"
+        }
+      },
+      "LiveLinkId": {
+        "name": "liveLinkId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "$ref": "#/components/schemas/NumericIdentifier"
+        }
+      },
+      "PoolId": {
+        "name": "poolId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "$ref": "#/components/schemas/NumericIdentifier"
+        }
+      },
+      "MatchPoolId": {
+        "name": "poolId",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "$ref": "#/components/schemas/NumericIdentifier"
+        }
+      },
+      "MatchPoolIds": {
+        "name": "poolIds",
+        "in": "query",
+        "required": false,
+        "style": "form",
+        "explode": true,
+        "schema": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/NumericIdentifier"
+          }
+        }
+      },
+      "MatchTeamIds": {
+        "name": "teamIds",
+        "in": "query",
+        "required": false,
+        "style": "form",
+        "explode": true,
+        "schema": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/NumericIdentifier"
+          }
+        }
+      },
+      "MatchStatus": {
+        "name": "status",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "$ref": "#/components/schemas/MatchStatusEnum"
+        }
+      },
+      "MatchActive": {
+        "name": "active",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "boolean"
+        }
+      },
+      "DayPageSize": {
+        "name": "pageSize",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "default": 4
+        }
+      },
+      "LiveLinkStatus": {
+        "name": "status",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "$ref": "#/components/schemas/LiveLinkStatusEnum"
         }
       }
     },
@@ -162,6 +964,514 @@
       }
     },
     "schemas": {
+      "EmitFinishedTestInternalRequest": {
+        "type": "object",
+        "description": "REST-only synthetic finish trigger input. Event envelope and payload authority remain in AsyncAPI.",
+        "required": [
+          "id",
+          "teamIdA",
+          "teamIdB",
+          "poolId"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/NumericIdentifier"
+          },
+          "teamIdA": {
+            "$ref": "#/components/schemas/NumericIdentifier"
+          },
+          "teamIdB": {
+            "$ref": "#/components/schemas/NumericIdentifier"
+          },
+          "poolId": {
+            "$ref": "#/components/schemas/NumericIdentifier"
+          },
+          "set": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "MatchLiveModerationPageResponse": {
+        "type": "object",
+        "required": [
+          "items",
+          "pageInfo"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MatchLiveModerationSummary"
+            }
+          },
+          "pageInfo": {
+            "$ref": "#/components/schemas/PageInfo"
+          }
+        },
+        "additionalProperties": false
+      },
+      "MatchLiveLinkHistoryPageResponse": {
+        "type": "object",
+        "required": [
+          "items",
+          "pageInfo"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MatchLiveLinkHistoryItem"
+            }
+          },
+          "pageInfo": {
+            "$ref": "#/components/schemas/PageInfo"
+          }
+        },
+        "additionalProperties": false
+      },
+      "UpsertMatchLiveLinkInternalRequest": {
+        "type": "object",
+        "required": [
+          "url"
+        ],
+        "properties": {
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "maxLength": 1024
+          }
+        },
+        "additionalProperties": false
+      },
+      "MatchLiveLinkResult": {
+        "type": "object",
+        "description": "Live-link command result containing only fields consumed by the mobile workflow.",
+        "required": [
+          "matchId",
+          "provider",
+          "url",
+          "status"
+        ],
+        "properties": {
+          "matchId": {
+            "$ref": "#/components/schemas/NumericIdentifier"
+          },
+          "provider": {
+            "$ref": "#/components/schemas/LiveProviderEnum"
+          },
+          "url": {
+            "type": "string",
+            "maxLength": 1024
+          },
+          "status": {
+            "$ref": "#/components/schemas/LiveLinkStatusEnum"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReportMatchLiveLinkInternalRequest": {
+        "type": "object",
+        "description": "User-visible report reason aligned with the existing Expo submission rule.",
+        "required": [
+          "reason"
+        ],
+        "properties": {
+          "reason": {
+            "type": "string",
+            "minLength": 10,
+            "maxLength": 500
+          }
+        },
+        "additionalProperties": false
+      },
+      "MatchInternalPageResponse": {
+        "type": "object",
+        "required": [
+          "items",
+          "pageInfo"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MatchInternalResponse"
+            }
+          },
+          "pageInfo": {
+            "$ref": "#/components/schemas/PageInfo"
+          }
+        },
+        "additionalProperties": false
+      },
+      "CreateMatchInternalRequest": {
+        "type": "object",
+        "description": "Caller-owned match fields. Status derives from set nullness; identity, lifecycle state, and audit timestamps are server-owned.",
+        "required": [
+          "matchCode",
+          "leagueCode",
+          "poolId",
+          "teamIdA",
+          "teamIdB",
+          "matchDate",
+          "season"
+        ],
+        "properties": {
+          "matchCode": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "leagueCode": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "poolId": {
+            "$ref": "#/components/schemas/NumericIdentifier"
+          },
+          "liveCode": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "teamIdA": {
+            "$ref": "#/components/schemas/NumericIdentifier"
+          },
+          "teamIdB": {
+            "$ref": "#/components/schemas/NumericIdentifier"
+          },
+          "matchDate": {
+            "$ref": "#/components/schemas/UtcDateTime"
+          },
+          "season": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "set": {
+            "type": "string",
+            "nullable": true
+          },
+          "score": {
+            "type": "string",
+            "nullable": true
+          },
+          "venue": {
+            "type": "string",
+            "nullable": true
+          },
+          "firstReferee": {
+            "type": "string",
+            "nullable": true
+          },
+          "secondReferee": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "MatchInternalResponse": {
+        "type": "object",
+        "description": "Match owner snapshot for scraper and internal consumers without persistence timestamps or live-link relationships.",
+        "required": [
+          "id",
+          "matchCode",
+          "leagueCode",
+          "poolId",
+          "teamIdA",
+          "teamIdB",
+          "matchDate",
+          "season",
+          "status",
+          "active"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/NumericIdentifier"
+          },
+          "matchCode": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "leagueCode": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "poolId": {
+            "$ref": "#/components/schemas/NumericIdentifier"
+          },
+          "liveCode": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "teamIdA": {
+            "$ref": "#/components/schemas/NumericIdentifier"
+          },
+          "teamIdB": {
+            "$ref": "#/components/schemas/NumericIdentifier"
+          },
+          "matchDate": {
+            "$ref": "#/components/schemas/UtcDateTime"
+          },
+          "season": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "set": {
+            "type": "string",
+            "nullable": true
+          },
+          "score": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "$ref": "#/components/schemas/MatchStatusEnum"
+          },
+          "venue": {
+            "type": "string",
+            "nullable": true
+          },
+          "firstReferee": {
+            "type": "string",
+            "nullable": true
+          },
+          "secondReferee": {
+            "type": "string",
+            "nullable": true
+          },
+          "active": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "MatchDayPageResponse": {
+        "type": "object",
+        "description": "Dedicated page of Paris-local match days. nextPage preserves the current infinite-query cursor and is null when no later page exists.",
+        "required": [
+          "dayMatches",
+          "hasNext",
+          "nextPage"
+        ],
+        "properties": {
+          "dayMatches": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MatchDayGroup"
+            }
+          },
+          "hasNext": {
+            "type": "boolean"
+          },
+          "nextPage": {
+            "type": "integer",
+            "minimum": 0,
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "MatchDetailInternalResponse": {
+        "type": "object",
+        "description": "Match detail enriched only with the newest active live link and without persistence lifecycle or audit fields.",
+        "required": [
+          "id",
+          "matchCode",
+          "leagueCode",
+          "poolId",
+          "teamIdA",
+          "teamIdB",
+          "matchDate",
+          "season",
+          "status"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/NumericIdentifier"
+          },
+          "matchCode": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "leagueCode": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "poolId": {
+            "$ref": "#/components/schemas/NumericIdentifier"
+          },
+          "liveCode": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "teamIdA": {
+            "$ref": "#/components/schemas/NumericIdentifier"
+          },
+          "teamIdB": {
+            "$ref": "#/components/schemas/NumericIdentifier"
+          },
+          "matchDate": {
+            "$ref": "#/components/schemas/UtcDateTime"
+          },
+          "season": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "set": {
+            "type": "string",
+            "nullable": true
+          },
+          "score": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "$ref": "#/components/schemas/MatchStatusEnum"
+          },
+          "venue": {
+            "type": "string",
+            "nullable": true
+          },
+          "firstReferee": {
+            "type": "string",
+            "nullable": true
+          },
+          "secondReferee": {
+            "type": "string",
+            "nullable": true
+          },
+          "liveUrl": {
+            "type": "string",
+            "maxLength": 1024,
+            "nullable": true
+          },
+          "liveProvider": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/LiveProviderEnum"
+              }
+            ],
+            "nullable": true
+          },
+          "liveOwnerAuth0Id": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "UpdateMatchInternalRequest": {
+        "type": "object",
+        "description": "Full scraper-owned match replacement. Omitted nullable fields become null, active is forced true, and only the audited UPCOMING to FINISHED transition is derived from a non-null set.",
+        "required": [
+          "matchCode",
+          "leagueCode",
+          "poolId",
+          "teamIdA",
+          "teamIdB",
+          "matchDate",
+          "season"
+        ],
+        "properties": {
+          "matchCode": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "leagueCode": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "poolId": {
+            "$ref": "#/components/schemas/NumericIdentifier"
+          },
+          "liveCode": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "teamIdA": {
+            "$ref": "#/components/schemas/NumericIdentifier"
+          },
+          "teamIdB": {
+            "$ref": "#/components/schemas/NumericIdentifier"
+          },
+          "matchDate": {
+            "$ref": "#/components/schemas/UtcDateTime"
+          },
+          "season": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "set": {
+            "type": "string",
+            "nullable": true
+          },
+          "score": {
+            "type": "string",
+            "nullable": true
+          },
+          "venue": {
+            "type": "string",
+            "nullable": true
+          },
+          "firstReferee": {
+            "type": "string",
+            "nullable": true
+          },
+          "secondReferee": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "MissingMatchCodesInternalRequest": {
+        "type": "object",
+        "description": "Match codes proven missing from one pool and therefore selected for soft deactivation. Empty is a valid no-op and duplicates retain set semantics.",
+        "required": [
+          "missingMatchCodes"
+        ],
+        "properties": {
+          "missingMatchCodes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 255
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "NumericIdentifier": {
+        "type": "integer",
+        "format": "int64",
+        "minimum": 1,
+        "description": "Canonical positive numeric identifier wire shape.",
+        "x-java-type": "java.lang.Long"
+      },
+      "MatchStatusEnum": {
+        "type": "string",
+        "description": "Observable Blockout match lifecycle states.",
+        "enum": [
+          "UPCOMING",
+          "FINISHED"
+        ]
+      },
+      "LiveLinkStatusEnum": {
+        "type": "string",
+        "description": "Moderation and lifecycle states for a match live link.",
+        "enum": [
+          "ACTIVE",
+          "DEACTIVATED",
+          "BANNED",
+          "EXPIRED",
+          "PENDING",
+          "REJECTED"
+        ]
+      },
       "ProblemDetail": {
         "type": "object",
         "description": "Canonical Blockout Problem Details body. Legacy v1 error bodies remain compatibility-adapter owned.",
@@ -197,6 +1507,235 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 255
+          }
+        },
+        "additionalProperties": false
+      },
+      "MatchLiveModerationSummary": {
+        "type": "object",
+        "description": "Moderation projection using the audited representative-link priority. A status filter proves that some history row matches; the representative fields may describe a different status.",
+        "required": [
+          "id",
+          "poolId",
+          "teamIdA",
+          "teamIdB",
+          "matchDate",
+          "season",
+          "status"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/NumericIdentifier"
+          },
+          "poolId": {
+            "$ref": "#/components/schemas/NumericIdentifier"
+          },
+          "teamIdA": {
+            "$ref": "#/components/schemas/NumericIdentifier"
+          },
+          "teamIdB": {
+            "$ref": "#/components/schemas/NumericIdentifier"
+          },
+          "matchDate": {
+            "$ref": "#/components/schemas/UtcDateTime"
+          },
+          "season": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "set": {
+            "type": "string",
+            "nullable": true
+          },
+          "score": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "$ref": "#/components/schemas/MatchStatusEnum"
+          },
+          "liveCode": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "lastLiveLinkId": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/NumericIdentifier"
+              }
+            ],
+            "nullable": true
+          },
+          "lastLiveLinkStatus": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/LiveLinkStatusEnum"
+              }
+            ],
+            "nullable": true
+          },
+          "lastLiveLinkProvider": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/LiveProviderEnum"
+              }
+            ],
+            "nullable": true
+          },
+          "lastLiveLinkUrl": {
+            "type": "string",
+            "maxLength": 1024,
+            "nullable": true
+          },
+          "lastLiveLinkOwnerAuth0Id": {
+            "type": "string",
+            "nullable": true
+          },
+          "lastLiveLinkCreatedAt": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UtcDateTime"
+              }
+            ],
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "PageInfo": {
+        "type": "object",
+        "description": "Pagination metadata for zero-based Blockout collection responses. hasNext is guaranteed; totalItems is optional unless an operation explicitly guarantees an exact count.",
+        "required": [
+          "page",
+          "pageSize",
+          "hasNext"
+        ],
+        "properties": {
+          "page": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "pageSize": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "totalItems": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "hasNext": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "MatchLiveLinkHistoryItem": {
+        "type": "object",
+        "description": "One live-link version ordered newest first. matchId is omitted because the route already owns that context.",
+        "required": [
+          "id",
+          "provider",
+          "url",
+          "status",
+          "reportCount",
+          "ownerAuth0Id",
+          "createdAt",
+          "lastUpdate"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/NumericIdentifier"
+          },
+          "provider": {
+            "$ref": "#/components/schemas/LiveProviderEnum"
+          },
+          "url": {
+            "type": "string",
+            "maxLength": 1024
+          },
+          "status": {
+            "$ref": "#/components/schemas/LiveLinkStatusEnum"
+          },
+          "reportCount": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          },
+          "ownerAuth0Id": {
+            "type": "string"
+          },
+          "createdAt": {
+            "$ref": "#/components/schemas/UtcDateTime"
+          },
+          "lastUpdate": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UtcDateTime"
+              }
+            ],
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "LiveProviderEnum": {
+        "type": "string",
+        "description": "Supported providers for a match live link.",
+        "enum": [
+          "YOUTUBE",
+          "TWITCH",
+          "FACEBOOK"
+        ]
+      },
+      "UtcDateTime": {
+        "type": "string",
+        "format": "date-time",
+        "description": "RFC 3339 timestamp normalized to UTC on Blockout-owned wires.",
+        "x-java-type": "java.time.Instant"
+      },
+      "MatchDayGroup": {
+        "type": "object",
+        "required": [
+          "date",
+          "pools"
+        ],
+        "properties": {
+          "date": {
+            "$ref": "#/components/schemas/CalendarDate"
+          },
+          "pools": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MatchDayPoolGroup"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "CalendarDate": {
+        "type": "string",
+        "format": "date",
+        "description": "Calendar date without a time zone.",
+        "x-java-type": "java.time.LocalDate"
+      },
+      "MatchDayPoolGroup": {
+        "type": "object",
+        "required": [
+          "poolId",
+          "matches"
+        ],
+        "properties": {
+          "poolId": {
+            "$ref": "#/components/schemas/NumericIdentifier"
+          },
+          "matches": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MatchDetailInternalResponse"
+            }
           }
         },
         "additionalProperties": false

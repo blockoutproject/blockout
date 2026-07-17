@@ -1,0 +1,14 @@
+{
+  "MatchLiveLinkHistoryPageResponse": {
+    "type": "object",
+    "required": ["items", "pageInfo"],
+    "properties": {
+      "items": {
+        "type": "array",
+        "items": { "$ref": "#/components/schemas/MatchLiveLinkHistoryItem" }
+      },
+      "pageInfo": { "$ref": "#/components/schemas/PageInfo" }
+    },
+    "additionalProperties": false
+  }
+}
