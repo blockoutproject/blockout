@@ -278,8 +278,13 @@ state moves to GitHub and this file becomes a historical migration record.
     no-source state; `@blockout/contracts:generate-openapi-bundles` owns the Nx inputs and
     `generated/specs/*.json` outputs. Node syntax, the uncached no-placeholder generation, contracts typecheck,
     documentation links, Maaatch comparison, formatting, and diff checks pass.
-- [ ] MRG-307 Port and adapt Maaatch's bundle tests for missing references, transitive schemas, stable ordering, shared
+- [x] MRG-307 Port and adapt Maaatch's bundle tests for missing references, transitive schemas, stable ordering, shared
       enums, and deterministic output.
+  - Evidence: `bundle-openapi.test.mjs` adds four passing workspace and temporary-fixture tests covering the progressive
+    no-source state, top-level stable enums, shared and service schema closure, unused-schema exclusion, lexical path
+    and component order, byte-identical repeated generation, and missing transitive references; the uncached
+    `@blockout/contracts:test` target is enforced by both shadow CI workflows. Formatting, Nx project discovery, and
+    diff checks pass.
 - [ ] MRG-308 Add source-contract lint that rejects snake_case property and Blockout-owned query names, duplicate
       operation IDs, inline stable enums, ambiguous DTO suffixes, and undocumented exceptions.
 - [ ] MRG-309 Introduce generated OpenAPI bundles under `libs/shared/contracts/generated/specs/**` and prove two clean

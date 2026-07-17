@@ -15,6 +15,11 @@ npm exec nx run @blockout/contracts:generate-openapi-bundles
 
 It discovers future service source directories lexicographically and writes bundles only to `generated/specs/*.json`.
 Until an owning roadmap task adds a real `base.json`, the command succeeds without manufacturing placeholder output.
+The bundler's fixture and workspace guarantees run through:
+
+```bash
+npm exec nx run @blockout/contracts:test
+```
 
 No deployed service is contract-authoritative from this directory yet. The active migration roadmap must first
 inventory current production APIs, add deterministic bundling and tests, configure backend and mobile generation, and

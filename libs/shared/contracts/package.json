@@ -15,6 +15,13 @@
   },
   "nx": {
     "targets": {
+      "test": {
+        "executor": "nx:run-commands",
+        "cache": false,
+        "options": {
+          "command": "node --test libs/shared/contracts/specs/scripts/bundle-openapi.test.mjs"
+        }
+      },
       "generate-openapi-bundles": {
         "executor": "nx:run-commands",
         "cache": true,

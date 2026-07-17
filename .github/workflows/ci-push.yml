@@ -53,6 +53,9 @@ jobs:
       - name: Validate Nx project graph
         run: npm exec nx show projects
 
+      - name: Test OpenAPI bundling
+        run: npm exec nx run @blockout/contracts:test
+
       - name: Typecheck reserved contract boundary
         run: npm exec nx run @blockout/contracts:typecheck
 
