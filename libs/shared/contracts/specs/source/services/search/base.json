@@ -9,6 +9,41 @@
       "url": "http://localhost"
     }
   ],
-  "tags": [],
-  "components": {}
+  "tags": [{ "name": "Search" }],
+  "security": [{ "bearerAuth": [] }],
+  "components": {
+    "parameters": {
+      "SearchQuery": {
+        "name": "query",
+        "in": "query",
+        "required": true,
+        "description": "Search text. An empty or whitespace-only value intentionally selects random examples instead of being rejected.",
+        "schema": { "type": "string" }
+      },
+      "SearchSeason": {
+        "name": "season",
+        "in": "query",
+        "required": false,
+        "schema": { "type": "string" }
+      },
+      "SearchDivisionId": {
+        "name": "divisionId",
+        "in": "query",
+        "required": false,
+        "schema": { "$ref": "#/components/schemas/NumericIdentifier" }
+      },
+      "SearchFormat": {
+        "name": "format",
+        "in": "query",
+        "required": false,
+        "schema": { "$ref": "#/components/schemas/FormatEnum" }
+      },
+      "SearchGender": {
+        "name": "gender",
+        "in": "query",
+        "required": false,
+        "schema": { "$ref": "#/components/schemas/GenderEnum" }
+      }
+    }
+  }
 }

@@ -1,0 +1,35 @@
+{
+  "PoolSearchInternalResult": {
+    "type": "object",
+    "description": "Pool autocomplete result containing only current card, label, image, and navigation inputs.",
+    "required": [
+      "id",
+      "name",
+      "divisionName",
+      "leagueCode",
+      "leagueName",
+      "season",
+      "format",
+      "gender",
+      "logoUrl"
+    ],
+    "properties": {
+      "id": { "$ref": "#/components/schemas/NumericIdentifier" },
+      "name": { "type": "string", "nullable": true },
+      "divisionName": { "type": "string", "nullable": true },
+      "leagueCode": { "type": "string", "nullable": true },
+      "leagueName": { "type": "string", "nullable": true },
+      "season": { "type": "string", "nullable": true },
+      "format": {
+        "allOf": [{ "$ref": "#/components/schemas/FormatEnum" }],
+        "nullable": true
+      },
+      "gender": {
+        "allOf": [{ "$ref": "#/components/schemas/GenderEnum" }],
+        "nullable": true
+      },
+      "logoUrl": { "type": "string", "maxLength": 2048, "nullable": true }
+    },
+    "additionalProperties": false
+  }
+}

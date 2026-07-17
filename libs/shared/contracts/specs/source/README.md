@@ -302,6 +302,31 @@ privacy, application, and persistence work.
 RabbitMQ schemas, envelopes, routes, headers, queues, publishers, and listeners remain solely governed by MRG-315 and
 its event-contract tasks. MRG-325 creates no AsyncAPI component and activates no REST or broker runtime behavior.
 
+## Search-Service Contract
+
+MRG-326 makes `services/search` authoritative for the three search-service reads inventoried by MRG-301 and allocated
+by MRG-304. Club, team, and pool autocomplete remain authenticated internal operations under `/api/v2/search/**`
+without method scopes. Team and pool filters use canonical camelCase query names and the approved shared format and
+gender enums.
+
+Each operation returns an owner-local bounded `ListResponse`, never a page or raw Elasticsearch document. Blank or
+whitespace-only queries still produce up to five unseeded random examples; nonblank queries retain the current analyzer,
+AND-prefix matching, score order, 150 ms timeout, early termination, and maximum of twenty results. Equal-score order,
+partial-shard behavior, and Elasticsearch failures hidden as empty successful results remain explicit parity behavior
+until separately approved corrections. The v1 service adapter keeps raw 200 arrays, and the BFF compatibility boundary
+keeps its current empty-to-204 behavior until their vertical cutovers.
+
+Result items contain only the current card, label, image, and navigation inputs. Elasticsearch-only `all`,
+`name_suggest`, filter IDs, worker cache values, and index mappings are excluded. Team short name and club details, pool
+short name, and phantom division-color fields remain outside v2 because no current search UI consumes them. Nullable
+stored strings stay nullable even where legacy TypeScript claimed otherwise; generated mobile projections must handle
+that proven storage behavior explicitly.
+
+`search-worker` remains an event and snapshot consumer plus Elasticsearch projection owner. It exposes no controller,
+receives no OpenAPI server contract, and must consume the already approved service bundles through generated outbound
+clients. Its RabbitMQ payloads remain governed by MRG-315, while caches, index documents, mappings, versioned indices,
+alias swaps, reconciliation, and rollback remain worker application/infrastructure concerns.
+
 ## Closed Boundaries
 
 - `search-worker` has no REST controller and receives no source directory or generated server bundle.

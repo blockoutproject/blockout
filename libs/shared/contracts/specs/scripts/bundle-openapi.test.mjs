@@ -1564,6 +1564,145 @@ test('workspace notification contract reconciles REST without event or provider 
   );
 });
 
+test('workspace search contract exposes bounded results without worker leakage', async () => {
+  const search = await readJson(path.join(generatedSpecsDir, 'search.json'));
+  const operations = Object.entries(search.paths).flatMap(
+    ([operationPath, pathItem]) =>
+      Object.entries(pathItem)
+        .filter(([method]) => method !== 'parameters')
+        .map(([method, operation]) => ({
+          key: `${method.toUpperCase()} ${operationPath}`,
+          operation,
+        })),
+  );
+  assert.deepEqual(
+    Object.fromEntries(
+      operations.map(({ key, operation }) => [key, operation.operationId]),
+    ),
+    {
+      'GET /api/v2/search/clubs': 'searchClubs',
+      'GET /api/v2/search/teams': 'searchTeams',
+      'GET /api/v2/search/pools': 'searchPools',
+    },
+  );
+  assert.deepEqual(search.security, [{ bearerAuth: [] }]);
+  assert.deepEqual(
+    operations.map(({ operation }) => operation['x-required-scope']),
+    [undefined, undefined, undefined],
+  );
+
+  assert.equal(search.components.parameters.SearchQuery.required, true);
+  assert.equal(
+    search.components.parameters.SearchQuery.schema.minLength,
+    undefined,
+  );
+  assert.equal(
+    search.components.parameters.SearchDivisionId.name,
+    'divisionId',
+  );
+  assert.equal(
+    search.components.parameters.SearchFormat.schema.$ref,
+    '#/components/schemas/FormatEnum',
+  );
+  assert.equal(
+    search.components.parameters.SearchGender.schema.$ref,
+    '#/components/schemas/GenderEnum',
+  );
+  assert.deepEqual(
+    search.paths['/api/v2/search/teams'].get.parameters.map(
+      (parameter) => parameter.$ref,
+    ),
+    [
+      '#/components/parameters/SearchQuery',
+      '#/components/parameters/SearchSeason',
+      '#/components/parameters/SearchDivisionId',
+      '#/components/parameters/SearchFormat',
+      '#/components/parameters/SearchGender',
+    ],
+  );
+
+  const expectedFields = {
+    ClubSearchInternalResult: ['id', 'name', 'logoUrl', 'city'],
+    TeamSearchInternalResult: [
+      'id',
+      'name',
+      'logoUrl',
+      'divisionName',
+      'format',
+      'gender',
+      'season',
+    ],
+    PoolSearchInternalResult: [
+      'id',
+      'name',
+      'divisionName',
+      'leagueCode',
+      'leagueName',
+      'season',
+      'format',
+      'gender',
+      'logoUrl',
+    ],
+  };
+  for (const [schemaName, fields] of Object.entries(expectedFields)) {
+    assert.deepEqual(
+      Object.keys(search.components.schemas[schemaName].properties),
+      fields,
+    );
+  }
+  for (const excludedField of [
+    'shortName',
+    'clubId',
+    'clubName',
+    'clubCity',
+    'divisionId',
+    'divisionMainColor',
+    'all',
+    'nameSuggest',
+  ]) {
+    assert.equal(
+      search.components.schemas.TeamSearchInternalResult.properties[
+        excludedField
+      ],
+      undefined,
+    );
+  }
+  assert.equal(
+    search.components.schemas.TeamSearchInternalResult.properties.name.nullable,
+    true,
+  );
+  assert.equal(
+    search.components.schemas.PoolSearchInternalResult.properties.format
+      .nullable,
+    true,
+  );
+
+  for (const listSchemaName of [
+    'ClubSearchInternalListResponse',
+    'TeamSearchInternalListResponse',
+    'PoolSearchInternalListResponse',
+  ]) {
+    const listSchema = search.components.schemas[listSchemaName];
+    assert.deepEqual(Object.keys(listSchema.properties), ['items']);
+    assert.equal(listSchema.properties.items.maxItems, 20);
+    assert.equal(listSchema.properties.pageInfo, undefined);
+  }
+  assert.deepEqual(
+    Object.keys(search.components.schemas).filter((name) =>
+      /Event|Cache|Document|Elasticsearch|Index|Worker/.test(name),
+    ),
+    [],
+  );
+  assert.deepEqual(
+    Object.keys(search.paths['/api/v2/search/clubs'].get.responses),
+    ['200', '400', '401', '500'],
+  );
+  assert.match(
+    search.paths['/api/v2/search/clubs'].get.description,
+    /Elasticsearch failures remain indistinguishable from an empty successful result/,
+  );
+});
+
 test('workspace stable enums remain named top-level components', async () => {
   const sourceFiles = await listJsonFiles(sourceDir);
   const inlineEnumLocations = [];

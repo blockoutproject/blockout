@@ -1,0 +1,31 @@
+{
+  "TeamSearchInternalResult": {
+    "type": "object",
+    "description": "Team autocomplete result containing only current card, label, image, and navigation inputs.",
+    "required": [
+      "id",
+      "name",
+      "logoUrl",
+      "divisionName",
+      "format",
+      "gender",
+      "season"
+    ],
+    "properties": {
+      "id": { "$ref": "#/components/schemas/NumericIdentifier" },
+      "name": { "type": "string", "nullable": true },
+      "logoUrl": { "type": "string", "maxLength": 2048, "nullable": true },
+      "divisionName": { "type": "string", "nullable": true },
+      "format": {
+        "allOf": [{ "$ref": "#/components/schemas/FormatEnum" }],
+        "nullable": true
+      },
+      "gender": {
+        "allOf": [{ "$ref": "#/components/schemas/GenderEnum" }],
+        "nullable": true
+      },
+      "season": { "type": "string", "nullable": true }
+    },
+    "additionalProperties": false
+  }
+}

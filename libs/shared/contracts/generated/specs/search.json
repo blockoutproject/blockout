@@ -9,8 +9,150 @@
       "url": "http://localhost"
     }
   ],
-  "tags": [],
-  "paths": {},
+  "tags": [
+    {
+      "name": "Search"
+    }
+  ],
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "paths": {
+    "/api/v2/search/clubs": {
+      "get": {
+        "operationId": "searchClubs",
+        "tags": [
+          "Search"
+        ],
+        "summary": "Search clubs",
+        "description": "Returns at most five unseeded random examples for a blank query or twenty relevance-ranked matches otherwise. Elasticsearch failures remain indistinguishable from an empty successful result until a separately approved behavior correction.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/SearchQuery"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Bounded club search result, including an empty items array when no result or a hidden store failure occurs.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClubSearchInternalListResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestProblem"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedProblem"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorProblem"
+          }
+        }
+      }
+    },
+    "/api/v2/search/teams": {
+      "get": {
+        "operationId": "searchTeams",
+        "tags": [
+          "Search"
+        ],
+        "summary": "Search teams",
+        "description": "Applies exact optional filters, then returns at most five unseeded random examples for a blank query or twenty relevance-ranked matches otherwise. Equal-score order, timeout termination, and hidden Elasticsearch failure behavior remain unchanged.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/SearchQuery"
+          },
+          {
+            "$ref": "#/components/parameters/SearchSeason"
+          },
+          {
+            "$ref": "#/components/parameters/SearchDivisionId"
+          },
+          {
+            "$ref": "#/components/parameters/SearchFormat"
+          },
+          {
+            "$ref": "#/components/parameters/SearchGender"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Bounded team search result, including an empty items array when no result or a hidden store failure occurs.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamSearchInternalListResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestProblem"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedProblem"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorProblem"
+          }
+        }
+      }
+    },
+    "/api/v2/search/pools": {
+      "get": {
+        "operationId": "searchPools",
+        "tags": [
+          "Search"
+        ],
+        "summary": "Search pools",
+        "description": "Applies exact optional filters, then returns at most five unseeded random examples for a blank query or twenty relevance-ranked matches otherwise. Equal-score order, timeout termination, and hidden Elasticsearch failure behavior remain unchanged.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/SearchQuery"
+          },
+          {
+            "$ref": "#/components/parameters/SearchSeason"
+          },
+          {
+            "$ref": "#/components/parameters/SearchDivisionId"
+          },
+          {
+            "$ref": "#/components/parameters/SearchFormat"
+          },
+          {
+            "$ref": "#/components/parameters/SearchGender"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Bounded pool search result, including an empty items array when no result or a hidden store failure occurs.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PoolSearchInternalListResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestProblem"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedProblem"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorProblem"
+          }
+        }
+      }
+    }
+  },
   "components": {
     "securitySchemes": {
       "bearerAuth": {
@@ -41,6 +183,47 @@
           "minimum": 1,
           "maximum": 100,
           "default": 25
+        }
+      },
+      "SearchQuery": {
+        "name": "query",
+        "in": "query",
+        "required": true,
+        "description": "Search text. An empty or whitespace-only value intentionally selects random examples instead of being rejected.",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "SearchSeason": {
+        "name": "season",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "SearchDivisionId": {
+        "name": "divisionId",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "$ref": "#/components/schemas/NumericIdentifier"
+        }
+      },
+      "SearchFormat": {
+        "name": "format",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "$ref": "#/components/schemas/FormatEnum"
+        }
+      },
+      "SearchGender": {
+        "name": "gender",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "$ref": "#/components/schemas/GenderEnum"
         }
       }
     },
@@ -162,6 +345,82 @@
       }
     },
     "schemas": {
+      "ClubSearchInternalListResponse": {
+        "type": "object",
+        "description": "Bounded club autocomplete results in current Elasticsearch random or relevance order.",
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "maxItems": 20,
+            "items": {
+              "$ref": "#/components/schemas/ClubSearchInternalResult"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "TeamSearchInternalListResponse": {
+        "type": "object",
+        "description": "Bounded team autocomplete results in current Elasticsearch random or relevance order.",
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "maxItems": 20,
+            "items": {
+              "$ref": "#/components/schemas/TeamSearchInternalResult"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "PoolSearchInternalListResponse": {
+        "type": "object",
+        "description": "Bounded pool autocomplete results in current Elasticsearch random or relevance order.",
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "maxItems": 20,
+            "items": {
+              "$ref": "#/components/schemas/PoolSearchInternalResult"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "NumericIdentifier": {
+        "type": "integer",
+        "format": "int64",
+        "minimum": 1,
+        "description": "Canonical positive numeric identifier wire shape.",
+        "x-java-type": "java.lang.Long"
+      },
+      "FormatEnum": {
+        "type": "string",
+        "description": "Supported Blockout team formats.",
+        "enum": [
+          "SIX",
+          "FOUR",
+          "TWO"
+        ]
+      },
+      "GenderEnum": {
+        "type": "string",
+        "description": "Gender category used by Blockout competition data.",
+        "enum": [
+          "M",
+          "F",
+          "O"
+        ]
+      },
       "ProblemDetail": {
         "type": "object",
         "description": "Canonical Blockout Problem Details body. Legacy v1 error bodies remain compatibility-adapter owned.",
@@ -197,6 +456,151 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 255
+          }
+        },
+        "additionalProperties": false
+      },
+      "ClubSearchInternalResult": {
+        "type": "object",
+        "description": "Club autocomplete result separated from the Elasticsearch document and its derived index-only fields.",
+        "required": [
+          "id",
+          "name",
+          "logoUrl",
+          "city"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "logoUrl": {
+            "type": "string",
+            "maxLength": 2048,
+            "nullable": true
+          },
+          "city": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "TeamSearchInternalResult": {
+        "type": "object",
+        "description": "Team autocomplete result containing only current card, label, image, and navigation inputs.",
+        "required": [
+          "id",
+          "name",
+          "logoUrl",
+          "divisionName",
+          "format",
+          "gender",
+          "season"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/NumericIdentifier"
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "logoUrl": {
+            "type": "string",
+            "maxLength": 2048,
+            "nullable": true
+          },
+          "divisionName": {
+            "type": "string",
+            "nullable": true
+          },
+          "format": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/FormatEnum"
+              }
+            ],
+            "nullable": true
+          },
+          "gender": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/GenderEnum"
+              }
+            ],
+            "nullable": true
+          },
+          "season": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "PoolSearchInternalResult": {
+        "type": "object",
+        "description": "Pool autocomplete result containing only current card, label, image, and navigation inputs.",
+        "required": [
+          "id",
+          "name",
+          "divisionName",
+          "leagueCode",
+          "leagueName",
+          "season",
+          "format",
+          "gender",
+          "logoUrl"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/NumericIdentifier"
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "divisionName": {
+            "type": "string",
+            "nullable": true
+          },
+          "leagueCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "leagueName": {
+            "type": "string",
+            "nullable": true
+          },
+          "season": {
+            "type": "string",
+            "nullable": true
+          },
+          "format": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/FormatEnum"
+              }
+            ],
+            "nullable": true
+          },
+          "gender": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/GenderEnum"
+              }
+            ],
+            "nullable": true
+          },
+          "logoUrl": {
+            "type": "string",
+            "maxLength": 2048,
+            "nullable": true
           }
         },
         "additionalProperties": false

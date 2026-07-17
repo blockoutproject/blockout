@@ -1,0 +1,15 @@
+{
+  "TeamSearchInternalListResponse": {
+    "type": "object",
+    "description": "Bounded team autocomplete results in current Elasticsearch random or relevance order.",
+    "required": ["items"],
+    "properties": {
+      "items": {
+        "type": "array",
+        "maxItems": 20,
+        "items": { "$ref": "#/components/schemas/TeamSearchInternalResult" }
+      }
+    },
+    "additionalProperties": false
+  }
+}

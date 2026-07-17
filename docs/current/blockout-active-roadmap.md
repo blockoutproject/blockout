@@ -471,8 +471,20 @@ state moves to GitHub and this file becomes a historical migration record.
     contract tests cover operation IDs, scopes, schemas, page semantics, mutation outcomes, token validation, UUID
     identity, provider/event exclusions, source lint, and deterministic generation; documentation and Maaatch structure
     checks and the unchanged backend reactor package successfully without modifying runtime code.
-- [ ] MRG-326 Define and bundle the `search-service` contract from its approved audit using only required camelCase wire
+- [x] MRG-326 Define and bundle the `search-service` contract from its approved audit using only required camelCase wire
       fields; classify `search-worker` as an event consumer rather than inventing REST behavior.
+  - Evidence: the authoritative search source and generated bundle reconcile the three MRG-301 club, team, and pool
+    reads under `/api/v2/search/**` with authenticated no-scope access, canonical `divisionId`, and shared format/gender
+    filter enums. Three owner-local bounded `ListResponse` shapes replace raw arrays and Elasticsearch documents while
+    retaining the five-item random blank-query branch, twenty-item relevance branch, current analyzer/filter/order,
+    hidden-store-failure empty result, and nullable source behavior. Result items keep only proven mobile card, label,
+    image, and navigation inputs; short names, team club copies, filter-only division IDs, phantom division colors,
+    `all`, `name_suggest`, mappings, credentials, and worker cache/event shapes remain outside REST. The documentation
+    explicitly keeps `search-worker` controller-free as a generated-client/event consumer and Elasticsearch projection
+    owner. Twenty-seven contract tests cover the exact operations, authentication, camelCase parameters, shared enums,
+    bounded wrappers, reduced nullable fields, empty/failure semantics, and absence of worker/store/event leakage;
+    source lint, deterministic generation, documentation and Maaatch structure checks, and the unchanged backend reactor
+    package successfully without modifying runtime code.
 - [ ] MRG-327 Define and bundle the `mobile-gateway` configuration, user, report, search, and notification BFF contracts
       from the approved aggregation audits, with workflow projections distinct from internal-service DTOs.
 - [ ] MRG-357 Define and bundle the `mobile-gateway` club, team, and pool BFF contracts, retaining only consumer-backed

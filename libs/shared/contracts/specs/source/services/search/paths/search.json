@@ -1,0 +1,86 @@
+{
+  "/api/v2/search/clubs": {
+    "get": {
+      "operationId": "searchClubs",
+      "tags": ["Search"],
+      "summary": "Search clubs",
+      "description": "Returns at most five unseeded random examples for a blank query or twenty relevance-ranked matches otherwise. Elasticsearch failures remain indistinguishable from an empty successful result until a separately approved behavior correction.",
+      "parameters": [{ "$ref": "#/components/parameters/SearchQuery" }],
+      "responses": {
+        "200": {
+          "description": "Bounded club search result, including an empty items array when no result or a hidden store failure occurs.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClubSearchInternalListResponse"
+              }
+            }
+          }
+        },
+        "400": { "$ref": "#/components/responses/BadRequestProblem" },
+        "401": { "$ref": "#/components/responses/UnauthorizedProblem" },
+        "500": { "$ref": "#/components/responses/InternalServerErrorProblem" }
+      }
+    }
+  },
+  "/api/v2/search/teams": {
+    "get": {
+      "operationId": "searchTeams",
+      "tags": ["Search"],
+      "summary": "Search teams",
+      "description": "Applies exact optional filters, then returns at most five unseeded random examples for a blank query or twenty relevance-ranked matches otherwise. Equal-score order, timeout termination, and hidden Elasticsearch failure behavior remain unchanged.",
+      "parameters": [
+        { "$ref": "#/components/parameters/SearchQuery" },
+        { "$ref": "#/components/parameters/SearchSeason" },
+        { "$ref": "#/components/parameters/SearchDivisionId" },
+        { "$ref": "#/components/parameters/SearchFormat" },
+        { "$ref": "#/components/parameters/SearchGender" }
+      ],
+      "responses": {
+        "200": {
+          "description": "Bounded team search result, including an empty items array when no result or a hidden store failure occurs.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TeamSearchInternalListResponse"
+              }
+            }
+          }
+        },
+        "400": { "$ref": "#/components/responses/BadRequestProblem" },
+        "401": { "$ref": "#/components/responses/UnauthorizedProblem" },
+        "500": { "$ref": "#/components/responses/InternalServerErrorProblem" }
+      }
+    }
+  },
+  "/api/v2/search/pools": {
+    "get": {
+      "operationId": "searchPools",
+      "tags": ["Search"],
+      "summary": "Search pools",
+      "description": "Applies exact optional filters, then returns at most five unseeded random examples for a blank query or twenty relevance-ranked matches otherwise. Equal-score order, timeout termination, and hidden Elasticsearch failure behavior remain unchanged.",
+      "parameters": [
+        { "$ref": "#/components/parameters/SearchQuery" },
+        { "$ref": "#/components/parameters/SearchSeason" },
+        { "$ref": "#/components/parameters/SearchDivisionId" },
+        { "$ref": "#/components/parameters/SearchFormat" },
+        { "$ref": "#/components/parameters/SearchGender" }
+      ],
+      "responses": {
+        "200": {
+          "description": "Bounded pool search result, including an empty items array when no result or a hidden store failure occurs.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PoolSearchInternalListResponse"
+              }
+            }
+          }
+        },
+        "400": { "$ref": "#/components/responses/BadRequestProblem" },
+        "401": { "$ref": "#/components/responses/UnauthorizedProblem" },
+        "500": { "$ref": "#/components/responses/InternalServerErrorProblem" }
+      }
+    }
+  }
+}
