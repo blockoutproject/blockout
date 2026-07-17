@@ -1,0 +1,14 @@
+{
+  "MissingClubIdsInternalRequest": {
+    "type": "object",
+    "description": "Club identifiers proven missing from the source and therefore selected for association deactivation. An empty list is a valid no-op.",
+    "required": ["missingClubIds"],
+    "properties": {
+      "missingClubIds": {
+        "type": "array",
+        "items": { "type": "string", "maxLength": 255 }
+      }
+    },
+    "additionalProperties": false
+  }
+}

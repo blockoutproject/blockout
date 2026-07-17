@@ -872,6 +872,168 @@ test('workspace pools contract reconciles the seven audited operations', async (
   assert.equal(pools.components.parameters.FollowerUserId.required, true);
 });
 
+test('workspace competition contract reconciles the eight audited operations', async () => {
+  const competition = await readJson(
+    path.join(generatedSpecsDir, 'competition.json'),
+  );
+  const operations = Object.entries(competition.paths).flatMap(
+    ([operationPath, pathItem]) =>
+      Object.entries(pathItem)
+        .filter(([method]) => method !== 'parameters')
+        .map(([method, operation]) => ({
+          key: `${method.toUpperCase()} ${operationPath}`,
+          operation,
+        })),
+  );
+  assert.deepEqual(
+    Object.fromEntries(
+      operations
+        .map(({ key, operation }) => [key, operation.operationId])
+        .sort(([left], [right]) => left.localeCompare(right)),
+    ),
+    {
+      'GET /api/v2/competitions/pools/{poolId}/teams':
+        'listCompetitionAssociationsByPool',
+      'GET /api/v2/competitions/teams/{teamId}/pools':
+        'listCompetitionAssociationsByTeam',
+      'GET /api/v2/competitions/teams/{teamId}/pools-with-ranking':
+        'listPoolRankingsByTeam',
+      'POST /api/v2/competitions/pools/{poolId}/teams/{teamId}':
+        'addOrReactivateCompetitionAssociation',
+      'PUT /api/v2/competitions/clubs/bulk-deactivate':
+        'bulkDeactivateCompetitionClubs',
+      'PUT /api/v2/competitions/pools/bulk-deactivate':
+        'bulkDeactivateCompetitionPools',
+      'PUT /api/v2/competitions/pools/{poolId}/teams/bulk-deactivate':
+        'bulkDeactivateCompetitionTeamsByPool',
+      'PUT /api/v2/competitions/pools/{poolId}/teams/{teamId}/stats':
+        'replaceCompetitionStatistics',
+    },
+  );
+  assert.equal(
+    new Set(operations.map(({ operation }) => operation.operationId)).size,
+    8,
+  );
+  assert.deepEqual(competition.security, [{ bearerAuth: [] }]);
+
+  const addOperation =
+    competition.paths['/api/v2/competitions/pools/{poolId}/teams/{teamId}']
+      .post;
+  assert.deepEqual(addOperation['x-required-scopes'], [
+    'create:competitions',
+    'update:competitions',
+  ]);
+  assert.equal(
+    addOperation.parameters[0].$ref,
+    '#/components/parameters/AssociationClubId',
+  );
+  assert.equal(
+    competition.components.parameters.AssociationClubId.name,
+    'clubId',
+  );
+
+  const associationFields = Object.keys(
+    competition.components.schemas.CompetitionAssociationInternalResponse
+      .properties,
+  ).sort((left, right) => left.localeCompare(right));
+  assert.deepEqual(associationFields, [
+    'active',
+    'clubId',
+    'coefPoints',
+    'coefSets',
+    'losses',
+    'lossesOneToThree',
+    'lossesTwoToThree',
+    'lossesZeroToThree',
+    'lostPoints',
+    'lostSets',
+    'played',
+    'points',
+    'pointsPenalty',
+    'poolId',
+    'teamId',
+    'wins',
+    'winsThreeToOne',
+    'winsThreeToTwo',
+    'winsThreeToZero',
+    'wonPoints',
+    'wonSets',
+  ]);
+
+  const statistics =
+    competition.components.schemas.CompetitionStatisticsSnapshotInternalRequest;
+  assert.equal(Object.keys(statistics.properties).length, 17);
+  assert.equal(statistics.required.length, 17);
+  assert.deepEqual(
+    [...statistics.required].sort((left, right) => left.localeCompare(right)),
+    Object.keys(statistics.properties).sort((left, right) =>
+      left.localeCompare(right),
+    ),
+  );
+
+  for (const [operationPath, schemaName] of [
+    [
+      '/api/v2/competitions/pools/{poolId}/teams/bulk-deactivate',
+      'MissingTeamIdsInternalRequest',
+    ],
+    [
+      '/api/v2/competitions/pools/bulk-deactivate',
+      'MissingPoolIdsInternalRequest',
+    ],
+    [
+      '/api/v2/competitions/clubs/bulk-deactivate',
+      'MissingClubIdsInternalRequest',
+    ],
+  ]) {
+    const operation = competition.paths[operationPath].put;
+    assert.equal(operation['x-required-scope'], 'delete:competitions');
+    assert.equal(
+      operation.requestBody.content['application/json'].schema.$ref,
+      `#/components/schemas/${schemaName}`,
+    );
+    assert.deepEqual(Object.keys(operation.responses).sort(), [
+      '204',
+      '400',
+      '401',
+      '403',
+      '500',
+    ]);
+  }
+
+  for (const operationPath of [
+    '/api/v2/competitions/pools/{poolId}/teams',
+    '/api/v2/competitions/teams/{teamId}/pools',
+    '/api/v2/competitions/teams/{teamId}/pools-with-ranking',
+  ]) {
+    assert.deepEqual(
+      competition.paths[operationPath].get.parameters.map(
+        (parameter) => parameter.$ref,
+      ),
+      ['#/components/parameters/Page', '#/components/parameters/PageSize'],
+    );
+  }
+
+  assert.deepEqual(
+    Object.keys(
+      competition.components.schemas.TeamRankingInternalResponse.properties,
+    ).sort((left, right) => left.localeCompare(right)),
+    [
+      'coefPoints',
+      'coefSets',
+      'losses',
+      'played',
+      'points',
+      'pointsPenalty',
+      'teamId',
+      'wins',
+    ],
+  );
+  assert.match(
+    competition.components.schemas.PoolRankingInternalResponse.description,
+    /points descending.*pointsPenalty ascending.*teamId ascending/,
+  );
+});
+
 test('workspace stable enums remain named top-level components', async () => {
   const sourceFiles = await listJsonFiles(sourceDir);
   const inlineEnumLocations = [];

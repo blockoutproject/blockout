@@ -9,6 +9,33 @@
       "url": "http://localhost"
     }
   ],
-  "tags": [],
-  "components": {}
+  "tags": [
+    { "name": "CompetitionAssociations" },
+    { "name": "CompetitionStatistics" },
+    { "name": "CompetitionLifecycle" },
+    { "name": "CompetitionRankings" }
+  ],
+  "security": [{ "bearerAuth": [] }],
+  "components": {
+    "parameters": {
+      "PoolId": {
+        "name": "poolId",
+        "in": "path",
+        "required": true,
+        "schema": { "$ref": "#/components/schemas/NumericIdentifier" }
+      },
+      "TeamId": {
+        "name": "teamId",
+        "in": "path",
+        "required": true,
+        "schema": { "$ref": "#/components/schemas/NumericIdentifier" }
+      },
+      "AssociationClubId": {
+        "name": "clubId",
+        "in": "query",
+        "required": true,
+        "schema": { "type": "string", "maxLength": 255 }
+      }
+    }
+  }
 }

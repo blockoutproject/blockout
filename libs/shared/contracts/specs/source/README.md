@@ -187,6 +187,32 @@ while v1 errors and nullable legacy data remain unchanged until their vertical m
 idempotency, counter reconciliation, explicit lifecycle events, RabbitMQ, BFF cache invalidation, search rebuilding,
 and runtime activation remain later tasks.
 
+## Competition-Service Contract
+
+MRG-321 makes `services/competition` authoritative for the eight canonical competition-service operations inventoried
+by MRG-301 and allocated by MRG-304. The bundle covers association creation/reactivation and reads, full statistics
+replacement, three explicit missing-ID lifecycle commands, and team-to-pool ranking projections under
+`/api/v2/competitions/**`.
+
+`CompetitionAssociationInternalResponse` keeps the twenty-one owner association and statistics fields required by the
+scraper and aggregation workflows while omitting persistence identity and audit timestamps. Both association reads use
+shared pages: pool reads order by team identifier, team reads by pool identifier, and compatibility adapters aggregate
+all pages before exposing the legacy complete arrays. Add/reactivate still requires both `create:competitions` and
+`update:competitions`, retains historical statistics and the stored club identity on reactivation, and does not invent
+cross-service existence validation.
+
+`CompetitionStatisticsSnapshotInternalRequest` makes all seventeen current statistics required because the operation
+is a full replacement, not a patch. It deliberately does not add nonnegative, arithmetic, overflow, ratio, source
+revision, or league-rule constraints without the missing product and production evidence. The three lifecycle request
+names now state their real missing-ID meaning; empty lists remain no-ops and duplicate IDs retain set semantics. Their
+canonical v2 success is `204`, while v1 adapters retain the current empty `200` response.
+
+Competition-service owns ranking order. Pool groups sort by `poolId` ascending, and each complete nested ranking sorts
+by points descending, points penalty ascending, wins descending, set coefficient descending, point coefficient
+descending, then `teamId` ascending as a deterministic technical tie-breaker. Array position expresses order without
+inventing an ordinal field. Cascade corrections, official rule validation, scraper calculation fixes, repository
+hardening, generated events, outboxes, BFF enrichment, and runtime activation remain later tasks.
+
 ## Closed Boundaries
 
 - `search-worker` has no REST controller and receives no source directory or generated server bundle.

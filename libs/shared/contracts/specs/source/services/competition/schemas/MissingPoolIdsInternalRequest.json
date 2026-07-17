@@ -1,0 +1,14 @@
+{
+  "MissingPoolIdsInternalRequest": {
+    "type": "object",
+    "description": "Pool identifiers proven missing from the source and therefore selected for association deactivation. An empty list is a valid no-op.",
+    "required": ["missingPoolIds"],
+    "properties": {
+      "missingPoolIds": {
+        "type": "array",
+        "items": { "$ref": "#/components/schemas/NumericIdentifier" }
+      }
+    },
+    "additionalProperties": false
+  }
+}

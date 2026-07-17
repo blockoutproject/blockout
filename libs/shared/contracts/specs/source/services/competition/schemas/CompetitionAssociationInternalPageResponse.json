@@ -1,0 +1,17 @@
+{
+  "CompetitionAssociationInternalPageResponse": {
+    "type": "object",
+    "description": "One stable page of active competition associations. Pool reads order by team identifier; team reads order by pool identifier.",
+    "required": ["items", "pageInfo"],
+    "properties": {
+      "items": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/CompetitionAssociationInternalResponse"
+        }
+      },
+      "pageInfo": { "$ref": "#/components/schemas/PageInfo" }
+    },
+    "additionalProperties": false
+  }
+}

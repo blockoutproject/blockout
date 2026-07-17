@@ -403,8 +403,18 @@ state moves to GitHub and this file becomes a historical migration record.
     scopes, fields, pagination, repeated IDs, lifecycle intent, and follower responses; source lint, deterministic
     generation, documentation and Maaatch structure checks, and the unchanged backend reactor package successfully
     without modifying runtime code.
-- [ ] MRG-321 Define and bundle the `competition-service` contract from its approved audit using only required
+- [x] MRG-321 Define and bundle the `competition-service` contract from its approved audit using only required
       camelCase wire fields and explicit ranking semantics.
+  - Evidence: the authoritative competition source and generated bundle reconcile all eight MRG-301 operations under
+    `/api/v2/competitions/**`. Nine owner schemas retain the twenty-one required association/statistics fields, require
+    all seventeen values for full snapshot replacement, name the three missing-ID lifecycle commands accurately, and
+    omit persistence-only identity and timestamps. Association and pool-ranking collections use shared pages and
+    stable identifiers; competition-service owns the ranking policy of points descending, penalty ascending, wins and
+    coefficients descending, then team ID ascending as a deterministic tie-breaker. Add/reactivate retains its two
+    required scopes and audited history/club behavior, while empty lifecycle commands return canonical `204` with v1
+    `200` compatibility retained. Twenty-two contract tests cover exact operation IDs, scopes, fields, full snapshot,
+    pages, lifecycle requests/statuses, and ranking order; source lint, deterministic generation, documentation and
+    Maaatch structure checks, and the unchanged backend reactor package successfully without modifying runtime code.
 - [ ] MRG-322 Define and bundle the `matches-service` contract from its approved audit using only required camelCase
       wire fields, including day pages, live links, and live summaries.
 - [ ] MRG-323 Define and bundle the `users-service` contract from its approved audit using only required camelCase wire
