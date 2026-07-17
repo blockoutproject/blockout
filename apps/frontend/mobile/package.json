@@ -104,6 +104,7 @@
     "@types/react": "~19.1.10",
     "@types/react-dom": "19.1.9",
     "jest": "^29.2.1",
+    "orval": "8.22.0",
     "typescript": "~5.9.2"
   },
   "private": true

@@ -64,6 +64,9 @@ jobs:
       - name: Verify contract artifacts are committed
         run: test -z "$(git status --porcelain -- libs/shared/contracts/generated/specs apps/backend/pom.xml)"
 
+      - name: Generate and verify mobile API clients
+        run: npm exec nx run @blockout/mobile:verify-codegen
+
       - name: Typecheck reserved contract boundary
         run: npm exec nx run @blockout/contracts:typecheck
 

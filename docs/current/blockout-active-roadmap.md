@@ -524,11 +524,22 @@ state moves to GitHub and this file becomes a historical migration record.
     Thirty contract tests cover the exact 50-operation/security matrix, casing, fields, cursor/pages, partial behavior,
     ranking, commands, report constraints, and signed response; source lint passes across 137 fragments without runtime
     changes.
-- [ ] MRG-328 Pin Orval `8.22.0` and add the mobile `codegen` Nx target after BFF bundle generation. Generate committed,
+- [x] MRG-328 Pin Orval `8.22.0` and add the mobile `codegen` Nx target after BFF bundle generation. Generate committed,
       formatted, deterministic mobile-gateway models under `src/api/generated/mobile-gateway/models`, tag-split React
       Query operations/hooks with Axios under `endpoints`, and a second Zod output with `.zod.ts` suffix under
       `schemas`, all with `clean: true`; keep `src/api/core/orvalAxios.ts` handwritten and preserve the singleton
       QueryClient and its current defaults.
+  - Evidence: the mobile workspace pins Orval `8.22.0`; `@blockout/mobile:codegen` depends on the canonical contract
+    bundle and emits 127 models plus 12 tag-split React Query/Axios endpoint files and 12 `.zod.ts` wire-schema files,
+    covering all 50 unique mobile-gateway operation IDs. Every one of the 151 committed artifacts carries the Orval
+    generated-file header, and two forced generations produced identical SHA-256 sets. The handwritten
+    `orvalAxios.ts` uses the existing gateway base URL, Auth0 supplier/one-`401` cleanup path, repeated parameters,
+    20-second timeout, cancellation, body extraction, `ApiError`, and Problem Details metadata without casing, retry,
+    invalidation, or a second QueryClient; existing callers remain on their current transport. CI regenerates and
+    rejects a diff. Per MRG-313, the generated wire schemas remain unimported and excluded from application typecheck
+    until MRG-329 installs Zod directly. Contract tests (30), source lint (137 fragments), mobile typecheck, combined
+    Android/iOS Expo export, documentation links, Maaatch structure comparison, and the unchanged 14-module backend
+    package baseline all pass.
 - [ ] MRG-329 Pin React Hook Form `7.72.0`, `@hookform/resolvers` `5.2.2`, and Zod `4.4.3`; create the allowlisted
       `src/forms/index.ts` mobile API; adapt proven common primitives to `fieldState.error`/`isTouched`; require
       `Controller` or `useController` for native fields; and prohibit new Formik/Yup forms while leaving unmigrated

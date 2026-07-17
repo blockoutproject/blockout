@@ -4,5 +4,37 @@
   "sourceRoot": "apps/frontend/mobile/src",
   "projectType": "application",
   "tags": ["scope:frontend", "type:application", "platform:mobile"],
-  "targets": {}
+  "targets": {
+    "codegen": {
+      "executor": "nx:run-commands",
+      "cache": true,
+      "inputs": [
+        "{workspaceRoot}/apps/frontend/mobile/orval.config.ts",
+        "{workspaceRoot}/apps/frontend/mobile/src/api/core/orvalAxios.ts",
+        "{workspaceRoot}/libs/shared/contracts/generated/specs/mobile-gateway.json"
+      ],
+      "outputs": [
+        "{projectRoot}/src/api/generated/mobile-gateway/models",
+        "{projectRoot}/src/api/generated/mobile-gateway/endpoints",
+        "{projectRoot}/src/api/generated/mobile-gateway/schemas"
+      ],
+      "dependsOn": [
+        {
+          "projects": ["@blockout/contracts"],
+          "target": "generate-contracts"
+        }
+      ],
+      "options": {
+        "command": "orval --config apps/frontend/mobile/orval.config.ts"
+      }
+    },
+    "verify-codegen": {
+      "executor": "nx:run-commands",
+      "cache": false,
+      "dependsOn": ["codegen"],
+      "options": {
+        "command": "git diff --exit-code -- apps/frontend/mobile/src/api/generated/mobile-gateway"
+      }
+    }
+  }
 }
