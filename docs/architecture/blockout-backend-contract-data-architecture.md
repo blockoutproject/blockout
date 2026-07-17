@@ -387,6 +387,9 @@ preserved incomplete-ticket behavior are recorded in the
 The generated search owner boundary, isolated raw-array legacy adapter, application result records, strict store
 mappers, and Elasticsearch document/query confinement are recorded in the
 [MRG-342 search migration](../migration/mrg-342-search-runtime-migration.md).
+The generated mobile-gateway configuration, report, search, notification, user, and favorite server/client boundaries,
+workflow-owned records, multipart bridge, compatibility telemetry, and explicit v1 source-retirement gates are
+recorded in the [MRG-343 BFF migration](../migration/mrg-343-mobile-gateway-relay-runtime-migration.md).
 
 ## 12. Approved Roadmap Sequence
 

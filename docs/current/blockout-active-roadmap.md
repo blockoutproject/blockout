@@ -890,8 +890,22 @@ state moves to GitHub and this file becomes a historical migration record.
     standalone repositories, production, Maaatch, Orval, and Python generation are unchanged;
     `docs/migration/mrg-342-search-runtime-migration.md` records parity, rollback, ownership, and temporary-name
     retirement gates.
-- [ ] MRG-343 Migrate remaining `mobile-gateway` configuration, user, report, search, and notification relay workflows
+- [x] MRG-343 Migrate remaining `mobile-gateway` configuration, user, report, search, and notification relay workflows
       to generated clients and BFF interfaces with workflow-owned commands, views, mappers, and compatibility.
+  - Evidence: the 28 remaining configuration, report, search, notification, user, and favorite BFF operations now
+    implement generated v2 server interfaces and call generated config, reports, search, notification, and users
+    clients through workflow-owned immutable commands/views and immediate adapter mapping. Multipart images cross the
+    application boundary as defensively copied bytes and become bounded temporary `File` values only inside generated
+    outbound adapters. Existing v1 controllers, generic services, copied DTOs, handwritten clients, snake_case JSON,
+    error maps, caches, auth, ordering, null, fallback, and partial-failure behavior remain isolated and unchanged for
+    released mobile clients. Payload-free telemetry assigns all 28 operation IDs, canonical security/downstream errors
+    use camelCase Problem Details, and source inspection confines generated types to API/outbound adapters. Fifty-six
+    focused mobile-gateway tests, thirty contract tests, 136-fragment source lint, two deterministic contract
+    generations, complete 14-module backend packaging, documentation validation, Maaatch comparison, Prettier, and
+    whitespace checks pass. Expo runtime/generated output, Orval configuration, owner-service runtime, scrapers,
+    events, databases, standalone repositories, production, and Maaatch are unchanged;
+    `docs/migration/mrg-343-mobile-gateway-relay-runtime-migration.md` records parity, rollback, and the explicit future
+    removal of v1/legacy/`V2` source scaffolding while retaining canonical public `/api/v2/**` routes.
 - [ ] MRG-367 Migrate `mobile-gateway` club, team, and pool workflows to generated clients and BFF interfaces with
       immutable projections, explicit privacy, ordering, cache, fan-out, and missing-data policy.
 - [ ] MRG-368 Migrate `mobile-gateway` competition, match, and live workflows to generated clients and BFF interfaces
