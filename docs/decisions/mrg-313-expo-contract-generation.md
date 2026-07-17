@@ -212,6 +212,9 @@ validation, or interaction changes.
 - MRG-501 through MRG-516 complete the form audit, architecture, migrations, retirement, skill audit, and final device
   evidence in the approved order.
 
+The implemented legal pilot and its parity/rollback evidence are recorded in the
+[MRG-333 Expo migration](../migration/mrg-333-expo-legal-document-client-form.md).
+
 ## References
 
 - [Orval v8 migration guide](https://orval.dev/docs/versions/v8/)

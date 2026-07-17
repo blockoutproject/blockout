@@ -46,6 +46,20 @@
       "options": {
         "command": "node apps/frontend/mobile/scripts/validate-form-boundary.mjs"
       }
+    },
+    "test-form-contracts": {
+      "executor": "nx:run-commands",
+      "cache": true,
+      "inputs": [
+        "{projectRoot}/jest.contract.config.cjs",
+        "{projectRoot}/src/**/*Contract.test.ts",
+        "{projectRoot}/src/components/user/legalDocumentFormContract.ts",
+        "{projectRoot}/src/hooks/config/legalDocument/legalDocumentView.ts",
+        "{projectRoot}/src/forms/index.ts"
+      ],
+      "options": {
+        "command": "node_modules/.bin/jest --config apps/frontend/mobile/jest.contract.config.cjs --runInBand --watchman=false"
+      }
     }
   }
 }

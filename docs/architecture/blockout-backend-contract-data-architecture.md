@@ -338,6 +338,8 @@ Its owner-side implementation and rollback evidence are recorded in the
 [MRG-331 runtime migration](../migration/mrg-331-legal-document-runtime-migration.md).
 The BFF generated-client boundary, retained v1 adapter, and consumer rollback are recorded in the
 [MRG-332 BFF migration](../migration/mrg-332-mobile-legal-document-generated-client.md).
+The generated Expo consumer, mobile view projection, and first React Hook Form/Zod migration are recorded in the
+[MRG-333 Expo migration](../migration/mrg-333-expo-legal-document-client-form.md).
 
 ## 12. Approved Roadmap Sequence
 

@@ -93,7 +93,9 @@ No rollback changes legal-document rows or database schema.
 
 ## Closed Scope
 
-- No Expo runtime call or form changes; MRG-333 owns both.
+- At MRG-332 publication, no Expo runtime call or form changed; the subsequent MRG-333 task owned both.
+- MRG-333 implementation and rollback evidence are now recorded in the
+  [Expo legal migration](mrg-333-expo-legal-document-client-form.md).
 - No config-service runtime, database, event, scraper, standalone repository, Maaatch, or production change.
 - No global Jackson strategy or legacy DTO is removed.
 - MRG-377 remains responsible for removing the non-standard OpenAPI scalar and authorization metadata.

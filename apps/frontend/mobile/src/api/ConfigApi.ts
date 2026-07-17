@@ -2,7 +2,6 @@ import { CONFIG } from "@/src/config/config";
 import { Division } from "../types/Division";
 import { RawDivisionMapping } from "../types/RawDivisionMapping";
 import { ScraperStatus } from "../types/ScraperStatus";
-import { LegalDocument } from "../types/LegalDocument";
 import { AppStatusDTO, AppStatusUpdateDTO } from "../types/AppStatus";
 import { CustomImage } from "../types/Common";
 import { appendJsonSnake } from "../utils/utils";
@@ -11,16 +10,6 @@ import { BaseApi } from "./core/BaseApi";
 export class ConfigApi extends BaseApi {
     constructor() {
         super({ baseURL: CONFIG.API_GATEWAY_BASE_URL });
-    }
-
-    public getLegalDocument(type: string) {
-        return this.httpPublic.get<LegalDocument>(
-            `/config/legal/${type}`,
-        );
-    }
-
-    public updateLegalDocument(type: string, data: Partial<LegalDocument>) {
-        return this.httpAuth.put<Partial<LegalDocument>>(`/config/legal/${type}`, data);
     }
 
     public getDivisions() {

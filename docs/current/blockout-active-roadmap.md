@@ -596,10 +596,21 @@ state moves to GitHub and this file becomes a historical migration record.
     retagged and remains unused until MRG-333. A user-requested Python generator re-evaluation also adds MRG-378:
     standard generated async `httpx` will replace MRG-330's interim `asyncio` output before scraper runtime migration;
     no scraper source, generated Python artifact, production, standalone repository, or Maaatch file changed.
-- [ ] MRG-333 Replace the legal-document Expo handwritten call with the generated BFF client and wire schema, then
+- [x] MRG-333 Replace the legal-document Expo handwritten call with the generated BFF client and wire schema, then
       migrate `LegalDocumentForm` as the first complete React Hook Form/Zod pilot. Preserve title, version, Markdown
       content, exact messages, external submit registration, footer state, reset behavior, view-model/query ownership,
       and a typed transform into the generated request.
+  - Evidence: the legal read hook now owns the existing one-hour cache policy while consuming the generated Orval v2
+    operation, query key, response model, and generated Zod wire schema. Its explicit projection removes obsolete v1
+    persistence/audit fields and provides controlled strings for nullable wire values. `LegalDocumentForm` uses
+    React Hook Form `Controller`, a handwritten Zod schema with the exact three French messages and no added trim, and
+    a named transform into `UpdateMobileLegalDocumentRequest` validated by the generated update schema before the
+    generated mutation. External submit registration, validity/loading footer state, resource reset, touched errors,
+    Markdown input, haptics, toast, refetch, and close-after-success remain owned by the existing mobile workflow. The
+    two handwritten legal methods are removed from `ConfigApi`; its other v1 operations are untouched. Seven focused
+    contract tests, the eight-file transition guard, mobile typecheck, Android/iOS exports, deterministic codegen,
+    documentation validation, Maaatch comparison, and whitespace checks pass. No server, production, standalone,
+    scraper, event, database, or Maaatch file changed.
 - [ ] MRG-377 Normalize the OpenAPI source syntax after the complete legal-document generator pilot and before any
       remaining service runtime migration. Inline positive numeric identifiers as standard `integer`/`int64` schemas
       with their constraint instead of exporting `NumericIdentifier`; remove `x-java-type`, `x-required-scope`,

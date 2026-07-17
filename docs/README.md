@@ -31,6 +31,7 @@ GitHub Project task planning remains dormant until the final GitFlow activation 
 | Contract coexistence | [`migration/mrg-304-contract-coexistence-cutover-matrix.md`](migration/mrg-304-contract-coexistence-cutover-matrix.md)       | REST v1/v2 and RabbitMQ coexistence, rollback, and removal |
 | Legal owner pilot    | [`migration/mrg-331-legal-document-runtime-migration.md`](migration/mrg-331-legal-document-runtime-migration.md)             | First generated v2 owner boundary, v1 parity, and rollback |
 | Legal BFF pilot      | [`migration/mrg-332-mobile-legal-document-generated-client.md`](migration/mrg-332-mobile-legal-document-generated-client.md) | Generated BFF/client boundary, v1 isolation, and rollback  |
+| Legal Expo pilot     | [`migration/mrg-333-expo-legal-document-client-form.md`](migration/mrg-333-expo-legal-document-client-form.md)               | Generated Expo client and React Hook Form/Zod pilot        |
 | Expo contracts/forms | [`decisions/mrg-313-expo-contract-generation.md`](decisions/mrg-313-expo-contract-generation.md)                             | Orval, TanStack, Zod, React Hook Form, and form migration  |
 | Python clients       | [`decisions/mrg-314-python-contract-clients.md`](decisions/mrg-314-python-contract-clients.md)                               | Generated async clients, adapters, wheel, and scraper use  |
 | RabbitMQ contracts   | [`decisions/mrg-315-rabbitmq-event-contracts.md`](decisions/mrg-315-rabbitmq-event-contracts.md)                             | AsyncAPI source, Java records, envelope, and v2 topology   |

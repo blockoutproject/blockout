@@ -13,7 +13,6 @@ const legacyFormikYupFiles = new Set([
   'src/components/pool/PoolForm.tsx',
   'src/components/report/ReportForm.tsx',
   'src/components/team/TeamForm.tsx',
-  'src/components/user/LegalDocumentForm.tsx',
   'src/components/user/ProfileForm.tsx',
 ]);
 

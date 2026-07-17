@@ -70,6 +70,9 @@ jobs:
       - name: Validate mobile form boundary
         run: npm exec nx run @blockout/mobile:validate-form-boundary
 
+      - name: Test mobile form contracts
+        run: npm exec nx run @blockout/mobile:test-form-contracts
+
       - name: Typecheck reserved contract boundary
         run: npm exec nx run @blockout/contracts:typecheck
 
