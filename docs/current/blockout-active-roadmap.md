@@ -1136,7 +1136,7 @@ state moves to GitHub and this file becomes a historical migration record.
       cleanup, and per-service rollback; prohibit direct dual-publish.
   - Evidence: clubs, teams, pools, and competition now record the business change plus one immutable service-local
     PostgreSQL outbox row in the existing transaction. The shared support module owns UUID/time creation, isolated
-    legacy snake_case and canonical camelCase bodies, v1/v2 publication timestamps, `FOR UPDATE SKIP LOCKED` claims,
+    audited v1 event camelCase and canonical v2 camelCase bodies, v1/v2 publication timestamps, `FOR UPDATE SKIP LOCKED` claims,
     bounded retry, pause, backlog logs, and completed-row retention. V1 keeps its exact payload type and adds only the
     shared event-ID header; v2 uses the same UUID, schema `2.0.0`, aggregate ordering metadata, standard AMQP
     properties/headers, and no `__TypeId__`. Six approved facts dual-publish while the orphan
@@ -1145,9 +1145,19 @@ state moves to GitHub and this file becomes a historical migration record.
     explicitly at-least-once, consumer deduplication and paused side-effect cutover remain MRG-372 scope, and no
     production, broker, topology, MRG-9xx, or MRG-1000 action is authorized. Observation, cleanup, and per-service
     rollback are detailed in `docs/migration/mrg-371-transactional-event-outbox-migration.md`.
-- [ ] MRG-372 Introduce transactional outboxes for matches and users plus event-ID deduplication for migrated consumers,
+- [x] MRG-372 Introduce transactional outboxes for matches and users plus event-ID deduplication for migrated consumers,
       preserving current queue, acknowledgement, retry, requeue, and DLQ behavior; emit v2 AMQP properties/headers
       without `__TypeId__` and run v1/v2 side-effect consumers only through the MRG-304 paused cutover sequence.
+  - Evidence: matches and users now record all six approved match/favorite facts in service-local transactional outboxes
+    and the shared MRG-371 job publishes retained v1 plus generated canonical v2 with one UUID and independent route
+    state. Notification adds a transactionally coupled `consumed_event` ledger, legacy no-ID drain compatibility,
+    complete body/AMQP metadata validation, and one generated-record decoder per mixed favorite queue without
+    `__TypeId__`. Q-14/Q-15/Q-18/Q-19 keep their existing topology, default acknowledgement/retry/requeue behavior, and
+    DLQs; v1 remains enabled and v2 disabled. Startup rejects simultaneous side-effect wire versions while allowing the
+    MRG-304 paused state. Focused producer, deduplication, decoder, topology, and configuration tests, the targeted
+    reactor, repository gates, and complete CI pass. No runtime cutover, broker/deployment/production action, lifecycle
+    consumer conversion, MRG-9xx, or MRG-1000 work is authorized; observation and the exact pause/drain/switch/resume
+    rollback sequence are recorded in `docs/migration/mrg-372-matches-users-outbox-consumer-deduplication.md`.
 - [ ] MRG-351 Remove global Jackson `SNAKE_CASE` and slice-owned Blockout annotations from config, clubs, teams, and
       pools canonical v2 paths only after every v2 caller uses camelCase; retain the isolated v1 transport adapters
       and their adapter-local snake_case mapper until the MRG-304 production-retirement gate.

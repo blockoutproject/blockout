@@ -26,6 +26,10 @@
             <artifactId>event-contracts</artifactId>
         </dependency>
         <dependency>
+            <groupId>com.blockout</groupId>
+            <artifactId>outbox-support</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.mapstruct</groupId>
             <artifactId>mapstruct</artifactId>
             <version>${mapstruct.version}</version>

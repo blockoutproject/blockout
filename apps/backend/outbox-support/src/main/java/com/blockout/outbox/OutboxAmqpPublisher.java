@@ -1,6 +1,7 @@
 package com.blockout.outbox;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import org.springframework.amqp.core.Message;
@@ -16,7 +17,8 @@ class OutboxAmqpPublisher {
 
     OutboxAmqpPublisher(RabbitTemplate rabbitTemplate, ObjectMapper legacyMapper) {
         this.rabbitTemplate = rabbitTemplate;
-        this.legacyMapper = legacyMapper;
+        this.legacyMapper = legacyMapper.copy()
+                .setPropertyNamingStrategy(PropertyNamingStrategies.LOWER_CAMEL_CASE);
     }
 
     void publishV1(OutboxRow row) throws ClassNotFoundException, com.fasterxml.jackson.core.JsonProcessingException {

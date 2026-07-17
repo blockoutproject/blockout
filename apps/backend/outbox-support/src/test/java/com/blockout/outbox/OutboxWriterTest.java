@@ -18,7 +18,7 @@ class OutboxWriterTest {
     private static final Instant NOW = Instant.parse("2026-07-17T20:00:00Z");
 
     @Test
-    void recordsLegacySnakeCaseAndCanonicalCamelCaseInOneRow() {
+    void isolatesLegacyEventCamelCaseFromTheHttpNamingStrategy() {
         RecordingStore store = new RecordingStore();
         ObjectMapper mapper = new ObjectMapper().setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE);
         OutboxWriter writer = new OutboxWriter(store, mapper, Clock.fixed(NOW, ZoneOffset.UTC));
@@ -30,7 +30,7 @@ class OutboxWriterTest {
         writer.record(event(metadata, new SamplePayload("Volley Club"), "club.upsert.v2",
                 new SamplePayload("Volley Club")));
 
-        assertThat(store.v1Json).isEqualTo("{\"display_name\":\"Volley Club\"}");
+        assertThat(store.v1Json).isEqualTo("{\"displayName\":\"Volley Club\"}");
         assertThat(store.v2Json).isEqualTo("{\"displayName\":\"Volley Club\"}");
         assertThat(store.event.metadata()).isSameAs(metadata);
     }

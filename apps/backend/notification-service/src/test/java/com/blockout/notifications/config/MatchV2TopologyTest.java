@@ -6,6 +6,9 @@ import com.blockout.notifications.listeners.MatchFinishedListener;
 import com.blockout.notifications.listeners.MatchLiveLinkCreatedListener;
 import com.blockout.notifications.models.events.MatchFinishedEvent;
 import com.blockout.notifications.models.events.MatchLiveLinkCreatedEvent;
+import com.blockout.events.v2.model.MatchFinishedV2Event;
+import com.blockout.events.v2.model.MatchLiveLinkCreatedV2Event;
+import org.springframework.amqp.core.Message;
 import org.junit.jupiter.api.Test;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 
@@ -36,17 +39,32 @@ class MatchV2TopologyTest {
     }
 
     @Test
-    void keepsDefaultAcknowledgementSideEffectsOnLegacyQueuesUntilMrg372() throws NoSuchMethodException {
+    void configuresExclusivePausedCutoverListenersWithoutChangingContainerSemantics() throws NoSuchMethodException {
         RabbitListener finished = MatchFinishedListener.class
-                .getDeclaredMethod("onMatchFinished", MatchFinishedEvent.class)
+                .getDeclaredMethod("onMatchFinished", MatchFinishedEvent.class, String.class)
                 .getAnnotation(RabbitListener.class);
         RabbitListener live = MatchLiveLinkCreatedListener.class
-                .getDeclaredMethod("onMatchLiveLinkCreated", MatchLiveLinkCreatedEvent.class)
+                .getDeclaredMethod("onMatchLiveLinkCreated", MatchLiveLinkCreatedEvent.class, String.class)
+                .getAnnotation(RabbitListener.class);
+        RabbitListener finishedV2 = MatchFinishedListener.class
+                .getDeclaredMethod("onMatchFinishedV2", MatchFinishedV2Event.class, Message.class, String.class)
+                .getAnnotation(RabbitListener.class);
+        RabbitListener liveV2 = MatchLiveLinkCreatedListener.class
+                .getDeclaredMethod(
+                        "onMatchLiveLinkCreatedV2", MatchLiveLinkCreatedV2Event.class, Message.class, String.class)
                 .getAnnotation(RabbitListener.class);
 
         assertThat(finished.queues()).containsExactly("match.finished.queue.notifications");
         assertThat(live.queues()).containsExactly("match.live-link-created.queue.notifications");
+        assertThat(finished.autoStartup()).isEqualTo("${blockout.events.consumers.matches-v1-enabled:true}");
+        assertThat(live.autoStartup()).isEqualTo("${blockout.events.consumers.matches-v1-enabled:true}");
+        assertThat(finishedV2.queues()).containsExactly("match.finished.queue.notifications.v2");
+        assertThat(liveV2.queues()).containsExactly("match.live-link-created.queue.notifications.v2");
+        assertThat(finishedV2.autoStartup()).isEqualTo("${blockout.events.consumers.matches-v2-enabled:false}");
+        assertThat(liveV2.autoStartup()).isEqualTo("${blockout.events.consumers.matches-v2-enabled:false}");
         assertThat(finished.containerFactory()).isEmpty();
         assertThat(live.containerFactory()).isEmpty();
+        assertThat(finishedV2.containerFactory()).isEmpty();
+        assertThat(liveV2.containerFactory()).isEmpty();
     }
 }

@@ -42,7 +42,9 @@ availability is no longer part of the business commit.
 The publisher claims ready rows with `FOR UPDATE SKIP LOCKED`, sends only the wire versions whose publication timestamp
 is absent, and records v1 and v2 completion separately. If v1 succeeds and v2 fails, retry sends only v2 with the same
 event UUID. V1 retains its legacy payload type and snake_case converter behavior plus the single additive
-`x-blockout-event-id` header. V2 uses canonical camelCase JSON, standard AMQP properties, stable MRG-315 headers, the
+`x-blockout-event-id` header. Its event body remains camelCase exactly like the audited no-argument Rabbit converter,
+independently from each service's HTTP `SNAKE_CASE` mapper. V2 uses canonical camelCase JSON, standard AMQP properties,
+stable MRG-315 headers, the
 same `x-blockout-event-id`, and no `__TypeId__` header.
 
 This is at-least-once publication, not exactly-once delivery. A process failure after a broker send and before the

@@ -49,6 +49,12 @@ logging:
   level:
     root: ${LOGGING_LEVEL_ROOT:INFO}
 
+blockout:
+  outbox:
+    publisher-enabled: ${OUTBOX_PUBLISHER_ENABLED:true}
+    batch-size: ${OUTBOX_BATCH_SIZE:50}
+    retention: ${OUTBOX_RETENTION:7d}
+
 api:
   user:
     url: ${USER_API_URL}

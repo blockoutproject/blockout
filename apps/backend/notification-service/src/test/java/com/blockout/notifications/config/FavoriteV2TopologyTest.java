@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.blockout.notifications.listeners.PoolFollowListener;
 import com.blockout.notifications.listeners.TeamFollowListener;
 import com.blockout.notifications.models.events.UserFollowEvent;
+import org.springframework.amqp.core.Message;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.junit.jupiter.api.Test;
 
@@ -43,15 +44,31 @@ class FavoriteV2TopologyTest {
     }
 
     @Test
-    void keepsSideEffectListenersOnTheLegacyQueuesUntilThePausedCutover() throws NoSuchMethodException {
+    void configuresExclusivePausedCutoverListenersWithoutChangingContainerSemantics() throws NoSuchMethodException {
         RabbitListener team = TeamFollowListener.class
-                .getDeclaredMethod("onTeamFollowChanged", UserFollowEvent.class)
+                .getDeclaredMethod("onTeamFollowChanged", UserFollowEvent.class, String.class)
                 .getAnnotation(RabbitListener.class);
         RabbitListener pool = PoolFollowListener.class
-                .getDeclaredMethod("onPoolFollowChanged", UserFollowEvent.class)
+                .getDeclaredMethod("onPoolFollowChanged", UserFollowEvent.class, String.class)
+                .getAnnotation(RabbitListener.class);
+        RabbitListener teamV2 = TeamFollowListener.class
+                .getDeclaredMethod("onTeamFavoriteV2", Message.class)
+                .getAnnotation(RabbitListener.class);
+        RabbitListener poolV2 = PoolFollowListener.class
+                .getDeclaredMethod("onPoolFavoriteV2", Message.class)
                 .getAnnotation(RabbitListener.class);
 
         assertThat(team.queues()).containsExactly("team.follow.queue.notifications");
         assertThat(pool.queues()).containsExactly("pool.follow.queue.notifications");
+        assertThat(team.autoStartup()).isEqualTo("${blockout.events.consumers.favorites-v1-enabled:true}");
+        assertThat(pool.autoStartup()).isEqualTo("${blockout.events.consumers.favorites-v1-enabled:true}");
+        assertThat(teamV2.queues()).containsExactly("team.follow.queue.notifications.v2");
+        assertThat(poolV2.queues()).containsExactly("pool.follow.queue.notifications.v2");
+        assertThat(teamV2.autoStartup()).isEqualTo("${blockout.events.consumers.favorites-v2-enabled:false}");
+        assertThat(poolV2.autoStartup()).isEqualTo("${blockout.events.consumers.favorites-v2-enabled:false}");
+        assertThat(team.containerFactory()).isEmpty();
+        assertThat(pool.containerFactory()).isEmpty();
+        assertThat(teamV2.containerFactory()).isEmpty();
+        assertThat(poolV2.containerFactory()).isEmpty();
     }
 }

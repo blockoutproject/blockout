@@ -2,6 +2,7 @@ package com.blockout.outbox;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import java.time.Instant;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -14,8 +15,10 @@ class OutboxAmqpPublisherTest {
     @Test
     void v1PreservesTheLegacyPayloadAndAddsOnlyTheSharedEventId() throws Exception {
         RecordingRabbitTemplate template = new RecordingRabbitTemplate();
-        OutboxAmqpPublisher publisher = new OutboxAmqpPublisher(template, new ObjectMapper());
-        OutboxRow row = row(null, true, null);
+        ObjectMapper httpMapper = new ObjectMapper()
+                .setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE);
+        OutboxAmqpPublisher publisher = new OutboxAmqpPublisher(template, httpMapper);
+        OutboxRow row = row(null, true, null, "{\"name\":\"Volley Club\"}");
 
         publisher.publishV1(row);
 
@@ -31,7 +34,7 @@ class OutboxAmqpPublisherTest {
     void v2UsesCanonicalBodyStandardPropertiesAndStableHeadersWithoutTypeId() {
         RecordingRabbitTemplate template = new RecordingRabbitTemplate();
         OutboxAmqpPublisher publisher = new OutboxAmqpPublisher(template, new ObjectMapper());
-        OutboxRow row = row(null, true, null);
+        OutboxRow row = row(null, true, null, "{\"name\":\"Volley Club\"}");
 
         publisher.publishV2(row);
 
@@ -52,12 +55,13 @@ class OutboxAmqpPublisherTest {
                 .doesNotContainKey("x-blockout-aggregate-version");
     }
 
-    private OutboxRow row(Instant v1PublishedAt, boolean v2Enabled, Instant v2PublishedAt) {
+    private OutboxRow row(
+            Instant v1PublishedAt, boolean v2Enabled, Instant v2PublishedAt, String v1Payload) {
         return new OutboxRow(
                 UUID.fromString("d8c91431-687c-4f30-ab3d-8f1cce8eef83"),
                 "CLUB_UPSERT", "2.0.0", "clubs-service", "club:1", null, "correlation-1",
                 Instant.parse("2026-07-17T20:00:00Z"), "entity.lifecycle.exchange", "club.upsert",
-                "{\"name\":\"Volley Club\"}", LegacyPayload.class.getName(), v1PublishedAt, v2Enabled,
+                v1Payload, LegacyPayload.class.getName(), v1PublishedAt, v2Enabled,
                 "club.upsert.v2", "{\"displayName\":\"Volley Club\"}", v2PublishedAt, 0);
     }
 

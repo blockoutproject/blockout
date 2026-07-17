@@ -1,47 +1,82 @@
 package com.blockout.users.services;
 
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
-import org.springframework.stereotype.Service;
-
+import com.blockout.outbox.OutboxEvent;
+import com.blockout.outbox.OutboxMetadata;
+import com.blockout.outbox.OutboxRecorder;
 import com.blockout.users.config.RabbitMQConfig;
+import com.blockout.users.favorite.application.FavoriteEventAction;
+import com.blockout.users.favorite.application.FavoriteEventFact;
+import com.blockout.users.favorite.application.FavoriteEventMetadata;
 import com.blockout.users.favorite.application.FavoriteEventPublisher;
+import com.blockout.users.favorite.outbound.FavoriteEventContractMapper;
 import com.blockout.users.models.enums.EntityType;
 import com.blockout.users.models.enums.EventType;
 import com.blockout.users.models.events.UserFollowEvent;
-
 import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
 
+/** Records favorite facts atomically; Rabbit publication is owned by the shared outbox job. */
 @Service
 @RequiredArgsConstructor
 public class EventPublisher implements FavoriteEventPublisher {
 
-    private final RabbitTemplate rabbitTemplate;
+    private static final String PRODUCER = "users-service";
+    private static final String VERSION = "2.0.0";
 
-    private void publishFollowEvent(Long userId, EntityType entityType, Long entityId, EventType type) {
-        UserFollowEvent event = UserFollowEvent.builder()
-                .userId(userId)
-                .entityType(entityType)
-                .entityId(entityId)
-                .eventType(type)
-                .build();
+    private final OutboxRecorder outbox;
+    private final FavoriteEventContractMapper contractMapper;
 
-        String routingKey = entityType.name().toLowerCase() + ".follow";
-
-        rabbitTemplate.convertAndSend(
-                RabbitMQConfig.USER_FOLLOW_EXCHANGE,
-                routingKey,
-                event);
-    }
-
-    /** {@inheritDoc} */
     @Override
     public void publishCreated(Long userId, EntityType entityType, Long entityId) {
-        publishFollowEvent(userId, entityType, entityId, EventType.CREATED);
+        record(userId, entityType, entityId, EventType.CREATED, FavoriteEventAction.FOLLOWED);
     }
 
-    /** {@inheritDoc} */
     @Override
     public void publishDeleted(Long userId, EntityType entityType, Long entityId) {
-        publishFollowEvent(userId, entityType, entityId, EventType.DELETED);
+        record(userId, entityType, entityId, EventType.DELETED, FavoriteEventAction.UNFOLLOWED);
+    }
+
+    private void record(
+            Long userId,
+            EntityType entityType,
+            Long entityId,
+            EventType legacyType,
+            FavoriteEventAction action) {
+        OutboxMetadata metadata = outbox.newMetadata();
+        FavoriteEventFact fact = new FavoriteEventFact(userId, entityType, entityId, action);
+        FavoriteEventMetadata contractMetadata = new FavoriteEventMetadata(
+                metadata.eventId(), metadata.occurredAt(), metadata.correlationId());
+        Object canonical = canonical(fact, contractMetadata);
+        String route = entityType.name().toLowerCase() + ".follow";
+        String eventType = canonicalEventType(entityType, action).getValue();
+        String orderingKey = "user:%d:%s:%d".formatted(userId, entityType.name().toLowerCase(), entityId);
+        var legacy = UserFollowEvent.builder()
+                .userId(userId).entityType(entityType).entityId(entityId).eventType(legacyType).build();
+        outbox.record(new OutboxEvent(
+                metadata, eventType, VERSION, PRODUCER, orderingKey, null,
+                RabbitMQConfig.USER_FOLLOW_EXCHANGE, route, legacy, route + ".v2", canonical));
+    }
+
+    private Object canonical(FavoriteEventFact fact, FavoriteEventMetadata metadata) {
+        return switch (fact.entityType()) {
+            case TEAM -> fact.action() == FavoriteEventAction.FOLLOWED
+                    ? contractMapper.toTeamFollowed(fact, metadata)
+                    : contractMapper.toTeamUnfollowed(fact, metadata);
+            case POOL -> fact.action() == FavoriteEventAction.FOLLOWED
+                    ? contractMapper.toPoolFollowed(fact, metadata)
+                    : contractMapper.toPoolUnfollowed(fact, metadata);
+        };
+    }
+
+    private com.blockout.events.v2.model.EventType canonicalEventType(
+            EntityType entityType, FavoriteEventAction action) {
+        return switch (entityType) {
+            case TEAM -> action == FavoriteEventAction.FOLLOWED
+                    ? com.blockout.events.v2.model.EventType.TEAM_FOLLOWED
+                    : com.blockout.events.v2.model.EventType.TEAM_UNFOLLOWED;
+            case POOL -> action == FavoriteEventAction.FOLLOWED
+                    ? com.blockout.events.v2.model.EventType.POOL_FOLLOWED
+                    : com.blockout.events.v2.model.EventType.POOL_UNFOLLOWED;
+        };
     }
 }

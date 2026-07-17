@@ -18,7 +18,8 @@ final class OutboxWriter implements OutboxRecorder {
 
     OutboxWriter(OutboxStore store, ObjectMapper objectMapper, Clock clock) {
         this.store = store;
-        this.legacyMapper = objectMapper;
+        this.legacyMapper = objectMapper.copy()
+                .setPropertyNamingStrategy(PropertyNamingStrategies.LOWER_CAMEL_CASE);
         this.canonicalMapper = objectMapper.copy()
                 .setPropertyNamingStrategy(PropertyNamingStrategies.LOWER_CAMEL_CASE);
         this.clock = clock;

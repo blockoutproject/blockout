@@ -3,6 +3,7 @@ package com.blockout.outbox;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Clock;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -13,6 +14,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 public class OutboxConfiguration {
 
     @Bean
+    @ConditionalOnMissingBean(Clock.class)
     Clock outboxClock() {
         return Clock.systemUTC();
     }
