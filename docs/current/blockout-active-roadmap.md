@@ -936,9 +936,25 @@ state moves to GitHub and this file becomes a historical migration record.
     Expo, Orval output, owner-service runtime, scrapers, events, databases, standalone repositories, production, and
     Maaatch are unchanged; `docs/migration/mrg-368-mobile-gateway-match-live-runtime-migration.md` records parity,
     rollback, partial-result rules, signed-document behavior, and eventual coexistence-scaffolding removal gates.
-- [ ] MRG-344 Migrate Expo authentication and remaining configuration modules to generated BFF clients and wire
+- [x] MRG-344 Migrate Expo authentication and remaining configuration modules to generated BFF clients and wire
       schemas, preserving handwritten query/view-model policy; do not opportunistically migrate remaining forms, which
       are owned by MRG-510 and MRG-511.
+  - Evidence: all ten active app-status, division, raw-mapping, and scraper configuration consumers now call canonical
+    v2 Orval operations, validate inputs and responses with generated wire schemas, and project list wrappers and
+    generated enums immediately into the existing handwritten mobile views. TanStack query keys now use generated
+    helpers while retaining zero/one-minute freshness, optional filters, cancellation, manual refresh, feedback,
+    haptics, and session policy. The existing Auth0 supplier and single `401` callback continue through the shared
+    Orval mutator; the obsolete configuration member and its twelve-method handwritten `ConfigApi` are removed without
+    recreating the two methods that had no caller. Division multipart preserves the React Native URI/name/MIME part
+    behind one named adapter. The Division and Raw Division Mapping forms remain unchanged on their transition-only
+    Formik/Yup or manual state until MRG-510/511. Mobile typecheck, the eight-form boundary guard, seven retained form
+    contract tests, thirty REST contract tests, 136-fragment source lint, two direct deterministic Orval generations,
+    two successful Expo exports containing Android and iOS bundles, Nx project inspection, documentation validation,
+    Maaatch comparison, targeted Prettier, generated/source-confinement, and whitespace checks pass. Contracts,
+    generated artifacts, dependencies, native configuration, backend, scrapers, events, databases, standalone
+    repositories, production, and Maaatch are unchanged;
+    `docs/migration/mrg-344-expo-configuration-client-migration.md` records parity, auth, multipart, rollback, and
+    deferred-form boundaries.
 - [ ] MRG-345 Migrate Expo club, team, and pool modules to generated BFF clients and wire schemas, preserving
       handwritten query/view-model and multipart policy; defer editable forms to MRG-507–509.
 - [ ] MRG-346 Migrate Expo competition and match modules to generated BFF clients and wire schemas, preserving

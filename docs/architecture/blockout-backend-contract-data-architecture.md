@@ -346,6 +346,9 @@ The BFF generated-client boundary, retained v1 adapter, and consumer rollback ar
 [MRG-332 BFF migration](../migration/mrg-332-mobile-legal-document-generated-client.md).
 The generated Expo consumer, mobile view projection, and first React Hook Form/Zod migration are recorded in the
 [MRG-333 Expo migration](../migration/mrg-333-expo-legal-document-client-form.md).
+The remaining configuration Expo clients, wire validation, handwritten projections, Auth0 mutator continuity, and
+deferred-form boundary are recorded in the
+[MRG-344 Expo configuration migration](../migration/mrg-344-expo-configuration-client-migration.md).
 The source-syntax cleanup and complete REST regeneration are recorded in the
 [MRG-377 OpenAPI normalization](../migration/mrg-377-openapi-standard-syntax-normalization.md).
 The remaining config-service owner boundaries and the first search-worker generated snapshot client are recorded in

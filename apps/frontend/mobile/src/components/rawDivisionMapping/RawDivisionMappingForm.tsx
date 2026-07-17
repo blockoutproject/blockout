@@ -12,7 +12,12 @@ import FormSelect from "@/src/components/common/form/FormSelect";
 import SelectSheet, { SelectOption, SelectSheetRef } from "@/src/components/common/form/SelectSheet";
 import ApiErrorToast from "@/src/components/common/feedback/ApiErrorToast";
 import FormCard from "@/src/components/common/form/FormCard";
-import { useApis } from "@/src/context/ApiProvider";
+import { updateMobileRawDivisionMapping } from "@/src/api/generated/mobile-gateway/endpoints/mobile-configuration/mobile-configuration";
+import {
+    UpdateMobileRawDivisionMappingBody,
+    UpdateMobileRawDivisionMappingParams,
+    UpdateMobileRawDivisionMappingResponse,
+} from "@/src/api/generated/mobile-gateway/schemas/mobile-configuration/mobile-configuration.zod";
 
 export type RawDivisionMappingFormExternalState = {
     loading: boolean;
@@ -34,7 +39,6 @@ const RawDivisionMappingForm: React.FC<RawDivisionMappingFormProps> = ({
 }) => {
     const theme = useAppTheme();
     const { data: divisions = [], isLoading: loadingDivisions } = useDivisions();
-    const { mobile } = useApis();
     const [divisionId, setDivisionId] = useState<number | "">(mapping.divisionId ?? "");
     const [format, setFormat] = useState<EnumFormat | "">(mapping.format ?? "");
     const [gender, setGender] = useState<EnumGender | "">(mapping.gender ?? "");
@@ -67,11 +71,18 @@ const RawDivisionMappingForm: React.FC<RawDivisionMappingFormProps> = ({
         setIsSubmitting(true);
         setApiError(null);
         try {
-            await mobile.config.updateRawDivisionMapping(mapping.id, {
-                divisionId: divisionId === "" ? null : divisionId,
-                format: format === "" ? null : format,
-                gender: gender === "" ? null : gender,
+            const path = UpdateMobileRawDivisionMappingParams.parse({
+                id: mapping.id,
             });
+            const response = await updateMobileRawDivisionMapping(
+                path.id,
+                UpdateMobileRawDivisionMappingBody.parse({
+                    divisionId: divisionId === "" ? null : divisionId,
+                    format: format === "" ? null : format,
+                    gender: gender === "" ? null : gender,
+                }),
+            );
+            UpdateMobileRawDivisionMappingResponse.parse(response);
             await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
             onSuccess();
         } catch {

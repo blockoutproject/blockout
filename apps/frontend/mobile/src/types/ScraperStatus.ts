@@ -1,8 +1,7 @@
-import { EnumScraperName } from "./enums/ScraperName";
+import { EnumScraperName } from './enums/ScraperName';
 
+/** Administration view of one scraper enablement switch. */
 export interface ScraperStatus {
-    id: number;
-    name: EnumScraperName;
-    enabled: boolean;
-    lastUpdate: string;
+  name: EnumScraperName;
+  enabled: boolean;
 }

@@ -7,7 +7,11 @@ import { Image } from "expo-image";
 
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import { Division } from "@/src/types/Division";
-import { useApis } from "@/src/context/ApiProvider";
+import { deactivateMobileDivision } from "@/src/api/generated/mobile-gateway/endpoints/mobile-configuration/mobile-configuration";
+import {
+    DeactivateMobileDivisionParams,
+    DeactivateMobileDivisionResponse,
+} from "@/src/api/generated/mobile-gateway/schemas/mobile-configuration/mobile-configuration.zod";
 
 type DivisionItemProps = {
     division: Division;
@@ -17,7 +21,6 @@ type DivisionItemProps = {
 
 const DivisionItem: React.FC<DivisionItemProps> = ({ division, onPress, onDeactivated }) => {
     const theme = useAppTheme();
-    const { mobile } = useApis();
     const handlePress = () => {
         Haptics.selectionAsync();
         onPress();
@@ -26,7 +29,11 @@ const DivisionItem: React.FC<DivisionItemProps> = ({ division, onPress, onDeacti
     const handleDeactivate = async () => {
         await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
         try {
-            await mobile.config.deactivateDivision(division.id);
+            const path = DeactivateMobileDivisionParams.parse({
+                id: division.id,
+            });
+            const response = await deactivateMobileDivision(path.id);
+            DeactivateMobileDivisionResponse.parse(response);
             onDeactivated();
         } catch (error) {
             console.error("Erreur lors de la désactivation :", error);

@@ -18,8 +18,19 @@ import ApiErrorToast from "@/src/components/common/feedback/ApiErrorToast";
 import FormCard from "@/src/components/common/form/FormCard";
 import Field from "@/src/components/common/form/Field";
 import SheetTextInput from "@/src/components/common/form/SheetTextInput";
-import { useApis } from "@/src/context/ApiProvider";
 import { CustomImage } from "@/src/types/Common";
+import {
+    createMobileDivision,
+    updateMobileDivision,
+} from "@/src/api/generated/mobile-gateway/endpoints/mobile-configuration/mobile-configuration";
+import {
+    CreateMobileDivisionBody,
+    CreateMobileDivisionResponse,
+    UpdateMobileDivisionBody,
+    UpdateMobileDivisionParams,
+    UpdateMobileDivisionResponse,
+} from "@/src/api/generated/mobile-gateway/schemas/mobile-configuration/mobile-configuration.zod";
+import { toOrvalMultipartFile } from "@/src/api/core/reactNativeMultipart";
 
 export type DivisionFormExternalState = {
     loading: boolean;
@@ -36,8 +47,6 @@ export type DivisionFormProps = {
 
 const DivisionForm: React.FC<DivisionFormProps> = ({ division, onSuccess, onRegisterSubmit, onStateChange }) => {
     const theme = useAppTheme();
-    const { mobile } = useApis();
-    const isEditMode = !!division;
 
     const [imageFile, setImageFile] = useState<CustomImage | null>(null);
     const [previewUri, setPreviewUri] = useState<string | null>(null);
@@ -88,10 +97,31 @@ const DivisionForm: React.FC<DivisionFormProps> = ({ division, onSuccess, onRegi
                 await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
                 setLoading(true);
                 setApiError(null);
-                if (isEditMode) {
-                    await mobile.config.updateDivision(division!.id, values, imageFile ?? undefined);
+                const data = {
+                    name: values.name,
+                    mainColor: values.mainColor,
+                    firstGradientColor: values.firstGradientColor,
+                    secondGradientColor: values.secondGradientColor,
+                    thirdGradientColor: values.thirdGradientColor,
+                };
+                const image = imageFile
+                    ? toOrvalMultipartFile(imageFile)
+                    : undefined;
+                if (division) {
+                    const path = UpdateMobileDivisionParams.parse({
+                        id: division.id,
+                    });
+                    const response = await updateMobileDivision(path.id, {
+                        data: UpdateMobileDivisionBody.shape.data.parse(data),
+                        image,
+                    });
+                    UpdateMobileDivisionResponse.parse(response);
                 } else {
-                    await mobile.config.createDivision(values, imageFile ?? undefined);
+                    const response = await createMobileDivision({
+                        data: CreateMobileDivisionBody.shape.data.parse(data),
+                        image,
+                    });
+                    CreateMobileDivisionResponse.parse(response);
                 }
                 await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
                 onSuccess();

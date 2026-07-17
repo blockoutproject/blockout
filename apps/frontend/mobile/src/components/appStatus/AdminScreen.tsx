@@ -12,8 +12,18 @@ import { BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import { useScraperStatuses } from "@/src/hooks/config/scraper/useScraperStatus";
 import { useAppStatus } from "@/src/hooks/config/app/useAppStatus";
-import { useApis } from "@/src/context/ApiProvider";
 import { ScraperStatus } from "@/src/types/ScraperStatus";
+import {
+    updateMobileAppStatus,
+    updateMobileScraperEnabled,
+} from "@/src/api/generated/mobile-gateway/endpoints/mobile-configuration/mobile-configuration";
+import {
+    UpdateMobileAppStatusBody,
+    UpdateMobileAppStatusResponse,
+    UpdateMobileScraperEnabledParams,
+    UpdateMobileScraperEnabledQueryParams,
+    UpdateMobileScraperEnabledResponse,
+} from "@/src/api/generated/mobile-gateway/schemas/mobile-configuration/mobile-configuration.zod";
 
 import MaintenanceControlCard from "./MaintenanceControlCard";
 import ScraperControlCard from "./ScraperControlCard";
@@ -23,7 +33,6 @@ import ApiErrorToast from "@/src/components/common/feedback/ApiErrorToast";
 const AdminScreen: React.FC = () => {
     const theme = useAppTheme();
     const insets = useSafeAreaInsets();
-    const { mobile } = useApis();
 
     const {
         data: scrapers,
@@ -75,10 +84,16 @@ const AdminScreen: React.FC = () => {
             try {
                 setApiError(null);
                 await Haptics.selectionAsync();
-                await mobile.config.updateScraperStatus(
-                    scraper.name,
-                    !scraper.enabled,
+                const path = UpdateMobileScraperEnabledParams.parse({
+                    name: scraper.name,
+                });
+                const response = await updateMobileScraperEnabled(
+                    path.name,
+                    UpdateMobileScraperEnabledQueryParams.parse({
+                        enabled: !scraper.enabled,
+                    }),
                 );
+                UpdateMobileScraperEnabledResponse.parse(response);
                 await refetchScrapers();
             } catch (error) {
                 console.error("Erreur lors du toggle scraper :", error);
@@ -88,7 +103,7 @@ const AdminScreen: React.FC = () => {
                 ).catch(() => {});
             }
         },
-        [mobile, refetchScrapers],
+        [refetchScrapers],
     );
 
     const initialMessage = appStatus?.message ?? "";
@@ -111,11 +126,14 @@ const AdminScreen: React.FC = () => {
             setSavingMaintenance(true);
             await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
-            await mobile.config.updateAppStatus({
-                maintenance: true,
-                message: trimmedMessage,
-                imageUrl: trimmedImageUrl.length ? trimmedImageUrl : null,
-            });
+            const response = await updateMobileAppStatus(
+                UpdateMobileAppStatusBody.parse({
+                    maintenance: true,
+                    message: trimmedMessage,
+                    imageUrl: trimmedImageUrl.length ? trimmedImageUrl : null,
+                }),
+            );
+            UpdateMobileAppStatusResponse.parse(response);
 
             await refetchStatus();
 
@@ -140,7 +158,6 @@ const AdminScreen: React.FC = () => {
         savingMaintenance,
         maintenanceMessage,
         maintenanceImageUrl,
-        mobile,
         refetchStatus,
     ]);
 
@@ -152,11 +169,14 @@ const AdminScreen: React.FC = () => {
             setSavingMaintenance(true);
             await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
-            await mobile.config.updateAppStatus({
-                maintenance: false,
-                message: undefined,
-                imageUrl: undefined,
-            });
+            const response = await updateMobileAppStatus(
+                UpdateMobileAppStatusBody.parse({
+                    maintenance: false,
+                    message: undefined,
+                    imageUrl: undefined,
+                }),
+            );
+            UpdateMobileAppStatusResponse.parse(response);
 
             await refetchStatus();
 
@@ -177,7 +197,7 @@ const AdminScreen: React.FC = () => {
         } finally {
             setSavingMaintenance(false);
         }
-    }, [mobile, refetchStatus, savingMaintenance]);
+    }, [refetchStatus, savingMaintenance]);
 
     const initialMinVersionIos = appStatus?.minVersionIos ?? "";
     const initialMinVersionAndroid = appStatus?.minVersionAndroid ?? "";
@@ -206,15 +226,20 @@ const AdminScreen: React.FC = () => {
             setSavingVersions(true);
             await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
-            await mobile.config.updateAppStatus({
-                minVersionIos: trimmedIos.length ? trimmedIos : null,
-                minVersionAndroid: trimmedAndroid.length ? trimmedAndroid : null,
-                forceUpdateMessage: trimmedMsg.length ? trimmedMsg : null,
-                storeUrlIos: trimmedStoreIos.length ? trimmedStoreIos : null,
-                storeUrlAndroid: trimmedStoreAndroid.length
-                    ? trimmedStoreAndroid
-                    : null,
-            });
+            const response = await updateMobileAppStatus(
+                UpdateMobileAppStatusBody.parse({
+                    minVersionIos: trimmedIos.length ? trimmedIos : null,
+                    minVersionAndroid: trimmedAndroid.length
+                        ? trimmedAndroid
+                        : null,
+                    forceUpdateMessage: trimmedMsg.length ? trimmedMsg : null,
+                    storeUrlIos: trimmedStoreIos.length ? trimmedStoreIos : null,
+                    storeUrlAndroid: trimmedStoreAndroid.length
+                        ? trimmedStoreAndroid
+                        : null,
+                }),
+            );
+            UpdateMobileAppStatusResponse.parse(response);
 
             await refetchStatus();
 
@@ -242,7 +267,6 @@ const AdminScreen: React.FC = () => {
         forceUpdateMessage,
         storeUrlIos,
         storeUrlAndroid,
-        mobile,
         refetchStatus,
     ]);
 
