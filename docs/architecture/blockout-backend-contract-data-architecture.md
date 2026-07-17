@@ -52,7 +52,7 @@ domain, persistence, projection, and infrastructure separation.
 | BFF outbound     | workflow infrastructure adapter                                 | generated downstream client and adapter mapper                              | generated client DTOs leaving the adapter                   |
 | Expo transport   | `apps/frontend/mobile`                                          | Orval output, generated contract schemas, auth/error mutator                | screen state, form semantics, shared TanStack package       |
 | Expo application | owning mobile domain                                            | TanStack policy, query composition, view/form models, navigation state      | handwritten transport DTO mirrors                           |
-| Python transport | scraper infrastructure adapter                                  | generated models/client or typed adapter selected by MRG-314                | provider-shaped or snake_case keys on Blockout wires        |
+| Python transport | scraper infrastructure adapter                                  | fully generated async clients selected by MRG-314                           | provider-shaped or snake_case keys on Blockout wires        |
 | Vendor           | owning infrastructure adapter                                   | Auth0, Mapbox, S3, GitHub, Discord, FFVB/LNV, Expo provider shapes          | vendor names leaking into Blockout contracts                |
 
 ### 1.1 Role-Owned Java Records
@@ -300,8 +300,11 @@ transform. The mobile-owned stack, output paths, mutator, form API, migration or
 activates them.
 
 Each Python scraper keeps parsing, scheduling, proxy, authentication, federation, and domain values separate from its
-Blockout adapter. Python identifiers may remain snake_case. The adapter selected by MRG-314 is the only owner allowed
-to translate those identifiers to canonical camelCase Blockout keys. Federation/provider payload casing is unchanged.
+Blockout adapter. Python identifiers may remain snake_case. The fully generated asynchronous clients selected by
+[MRG-314](../decisions/mrg-314-python-contract-clients.md) own the canonical camelCase wire aliases; thin scraper-owned
+adapters map immediately to and from application values. Generated types do not escape into parsing, caches,
+schedulers, or provider rules. Blockout and provider sessions remain separate, Auth0 remains scraper-owned, and
+federation/provider payload casing is unchanged.
 
 ## 11. Migration Slice Rule
 
@@ -347,14 +350,15 @@ This architecture fixes ownership while the three decision tasks select tools wi
 - [MRG-313](../decisions/mrg-313-expo-contract-generation.md) selects Orval `8.22.0`, Zod `4.4.3`, React Hook Form
   `7.72.0`, the React Query/Axios outputs, mobile-owned mutator, central form API, migration sequence, cache invariants,
   and generated-file policy;
-- MRG-314 selects a generated Python client, generated models with handwritten async transport, or a typed handwritten
-  adapter against explicit packaging, auth, multipart, retry, timeout, and proxy criteria;
+- [MRG-314](../decisions/mrg-314-python-contract-clients.md) selects OpenAPI Generator `7.23.0` through CLI `2.39.1`,
+  six fully generated Python 3.12 `asyncio` clients in one local wheel, thin scraper-owned adapters, generated aliases,
+  separate session ownership, scraper-owned Auth0, generated multipart signatures, and no Blockout retry;
 - MRG-315 selects the event source format and generator without changing the approved outbox, envelope, versioning,
   idempotency, or adapter boundaries.
 
-MRG-314 and MRG-315 remain unresolved until their own approved decision documents are published. These tasks may choose
-tools only within the ownership and casing rules above. They may not reopen the architectural decisions approved by
-MRG-268 without a new Plan-mode decision.
+MRG-315 remains unresolved until its approved decision document is published. These tasks may choose tools only within
+the ownership and casing rules above. They may not reopen the architectural decisions approved by MRG-268 without a
+new Plan-mode decision.
 
 ## 14. Completion Evidence For Later Boundaries
 

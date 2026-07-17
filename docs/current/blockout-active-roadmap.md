@@ -333,9 +333,15 @@ state moves to GitHub and this file becomes a historical migration record.
     gates. Architecture, mobile policy, skill routing, documentation links, roadmap ownership, formatting,
     documentation validation, Maaatch comparison, unchanged backend packaging, and diff checks pass without changing
     dependencies, generated artifacts, Expo source, or runtime behavior.
-- [ ] MRG-314 Decide whether the two Python scrapers use a generated Python client, generated models with handwritten
+- [x] MRG-314 Decide whether the two Python scrapers use a generated Python client, generated models with handwritten
       transport, or a typed handwritten adapter; define packaging, async support, auth, multipart, and retry criteria.
-  - Execution mode: PLAN_REQUIRED
+  - Evidence: the approved decision selects OpenAPI Generator `7.23.0` through CLI `2.39.1`, Python 3.12 `asyncio`
+    clients for six service bundles in one local generated-source wheel, thin scraper-owned adapters, generated
+    camelCase aliases, separate Blockout/provider sessions, scraper-owned Auth0, generated multipart, no Blockout
+    retry, safe error mapping, root-context image installation, and a 24-operation proof gate. Architecture, scraper
+    policy, documentation links, roadmap ownership, formatting, documentation validation, Maaatch comparison,
+    unchanged backend packaging, and diff checks pass without changing requirements, Dockerfiles, generated code,
+    Python source, network behavior, or runtime.
 - [ ] MRG-315 Select and document the authoritative event-contract format and generator strategy for RabbitMQ payloads;
       do not model asynchronous messaging as fake OpenAPI endpoints.
   - Execution mode: PLAN_REQUIRED
@@ -376,8 +382,11 @@ state moves to GitHub and this file becomes a historical migration record.
       `src/forms/index.ts` mobile API; adapt proven common primitives to `fieldState.error`/`isTouched`; require
       `Controller` or `useController` for native fields; and prohibit new Formik/Yup forms while leaving unmigrated
       forms operational until MRG-516.
-- [ ] MRG-330 Configure the approved scraper client/model generation path from the internal service bundles and keep
-      generated code isolated from scraper parsing, scheduling, and domain models.
+- [ ] MRG-330 Pin `@openapitools/openapi-generator-cli` `2.39.1` and OpenAPI Generator `7.23.0`; generate Python 3.12
+      `asyncio` clients for config, clubs, teams, pools, competition, and matches into committed
+      `blockout-contract-clients` `src/**`; expose `@blockout/contracts:generate-python-clients`; build one local wheel;
+      switch both scraper Docker targets to root context and install it; and prove two-run no-diff plus all 24
+      Blockout operations, JSON/list/query/path/`204`/multipart/Auth0/proxy/timeout/no-retry/error/lifecycle fixtures.
 - [ ] MRG-331 Configure generated Spring interfaces and models for `config-service`, then migrate legal-document read
       and update through generated DTOs, role-owned application records, entity mapping, canonical camelCase,
       Problem Details compatibility, and rollback evidence.
@@ -438,10 +447,13 @@ state moves to GitHub and this file becomes a historical migration record.
 - [ ] MRG-347 Migrate Expo user, search, notification, and report modules to generated BFF clients and wire schemas,
       preserving handwritten query/view-model, optimistic, image, and multipart policy; defer editable profile and
       report forms to MRG-514–515.
-- [ ] MRG-348 Migrate `club-scraper` Blockout API boundaries to canonical camelCase using the approved generated or typed
-      adapter while preserving Python snake_case identifiers and external federation payloads.
-- [ ] MRG-349 Migrate `competition-scraper` Blockout API boundaries to canonical camelCase using the approved generated
-      or typed adapter while preserving Python snake_case identifiers and external federation payloads.
+- [ ] MRG-348 Migrate the `club-scraper`'s six audited Blockout operations to thin adapters over the fully generated
+      async clients, preserving Python snake_case application identifiers, Auth0 refresh, `trust_env`, connector/timeouts,
+      multipart files, errors, scheduling, and provider behavior; remove only migrated handwritten wire conversion.
+- [ ] MRG-349 Migrate the `competition-scraper`'s eighteen audited Blockout operations to thin adapters over the fully
+      generated async clients, preserving Python snake_case application identifiers, Auth0 refresh, `trust_env`,
+      connector/timeouts, multipart files, errors, scheduling/concurrency, and provider behavior; remove only migrated
+      handwritten wire conversion.
 - [ ] MRG-350 Establish the generated event foundation selected by MRG-315, then migrate club, team, and pool lifecycle
       event contracts with canonical camelCase, versioning, compatibility, ordering, retry, and rollback evidence.
 - [ ] MRG-369 Migrate favorite and follow event contracts and projections with canonical user UUIDs, idempotency,
@@ -587,8 +599,9 @@ state moves to GitHub and this file becomes a historical migration record.
 
 ## Phase MRG-600 — Scraper Architecture
 
-- [ ] MRG-601 Audit both scrapers for shared boundaries, generated-client ownership, configuration, scheduling, proxy
-      behavior, Blockout camelCase wire contracts, and external federation adapters.
+- [ ] MRG-601 Audit both scrapers after generated-client migration for common adapter reuse, generated-type isolation,
+      wheel ownership, configuration, scheduling/concurrency, separate Blockout/provider sessions, proxy/timeouts,
+      camelCase wire aliases, Auth0, errors, and all eleven external federation/provider calls.
 - [ ] MRG-602 Keep explicit Nx projects unless an evidenced Python workspace decision replaces them.
 - [ ] MRG-603 Pin and validate Python dependencies and base images in a behavior-preserving change.
 - [ ] MRG-604 Add real behavioral tests and safe fixture-based scraper validation.
@@ -613,7 +626,8 @@ state moves to GitHub and this file becomes a historical migration record.
       `local-compose` job from pull-request and push workflows, keep Compose config validation in the local verifier,
       and retain it in CI only as a step of a general repository/infrastructure job when current evidence justifies it.
 - [ ] MRG-802 Enforce the Phase MRG-300 generation and deterministic no-diff matrix in CI for contracts, backend, Expo,
-      and the approved scraper/event generators.
+      the six pinned Python async clients/common wheel, and the approved event generator; include generated-source
+      guards, Python 3.12 imports/syntax, adapter isolation, wheel installation, and both root-context scraper images.
 - [ ] MRG-803 Upgrade backend CI from compile-only to verified tests after test infrastructure is reliable.
 - [ ] MRG-804 Add actual backend image builds for changed deployables rather than Dockerfile syntax checks only.
 - [ ] MRG-805 Remove the `setup-python@v5` deprecation warning.

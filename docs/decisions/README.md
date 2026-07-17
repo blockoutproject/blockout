@@ -11,3 +11,4 @@ Blockout by structural analogy.
 ## Architecture Decisions
 
 - [MRG-313 — Expo Contract Generation And Form Architecture](mrg-313-expo-contract-generation.md)
+- [MRG-314 — Generated Python Async Contract Clients](mrg-314-python-contract-clients.md)
