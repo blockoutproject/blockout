@@ -2,8 +2,8 @@ package com.blockout.competitions.ranking.application;
 
 import com.blockout.competitions.association.persistence.CompetitionAssociationEntity;
 import com.blockout.competitions.association.persistence.CompetitionAssociationRepository;
-import com.blockout.competitions.models.dto.PoolWithRankingDTO;
-import com.blockout.competitions.models.dto.TeamRankingDTO;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -17,30 +17,54 @@ import org.springframework.transaction.annotation.Transactional;
 public class CompetitionRankingService {
 
     private final CompetitionAssociationRepository repository;
+    private final CompetitionRankingPolicy policy;
 
     @Transactional(readOnly = true)
-    public List<PoolWithRankingDTO> getPoolsAndRankingsByTeam(Long teamId) {
+    public List<PoolRankingView> findLegacyByTeam(Long teamId) {
+        List<Long> poolIds = activePoolIds(teamId);
+        return project(poolIds);
+    }
+
+    @Transactional(readOnly = true)
+    public PoolRankingPage findPageByTeam(Long teamId, int page, int pageSize) {
+        List<Long> poolIds = activePoolIds(teamId);
+        long offset = (long) page * pageSize;
+        if (offset >= poolIds.size()) {
+            return new PoolRankingPage(List.of(), page, pageSize, poolIds.size(), false);
+        }
+        int from = (int) offset;
+        int to = Math.min(from + pageSize, poolIds.size());
+        return new PoolRankingPage(project(poolIds.subList(from, to)), page, pageSize, poolIds.size(),
+                to < poolIds.size());
+    }
+
+    private List<Long> activePoolIds(Long teamId) {
         List<CompetitionAssociationEntity> teamAssociations = repository.findByTeamIdAndActive(teamId, true);
-        Set<Long> poolIds = teamAssociations.stream()
-                .map(CompetitionAssociationEntity::getPoolId).collect(Collectors.toSet());
+        return teamAssociations.stream().map(CompetitionAssociationEntity::getPoolId).distinct().sorted().toList();
+    }
+
+    private List<PoolRankingView> project(List<Long> orderedPoolIds) {
+        Set<Long> poolIds = new LinkedHashSet<>(orderedPoolIds);
         if (poolIds.isEmpty()) {
             return List.of();
         }
 
         Map<Long, List<CompetitionAssociationEntity>> groupedByPool = repository.findByActiveTrueAndPoolIdIn(poolIds)
                 .stream().collect(Collectors.groupingBy(CompetitionAssociationEntity::getPoolId));
-        return groupedByPool.entrySet().stream().map(entry -> PoolWithRankingDTO.builder()
-                .poolId(entry.getKey())
-                .ranking(entry.getValue().stream().map(association -> TeamRankingDTO.builder()
-                        .teamId(association.getTeamId())
-                        .points(association.getPoints())
-                        .pointsPenalty(association.getPointsPenalty())
-                        .played(association.getPlayed())
-                        .wins(association.getWins())
-                        .losses(association.getLosses())
-                        .coefSets(association.getCoefSets())
-                        .coefPoints(association.getCoefPoints())
-                        .build()).toList())
-                .build()).toList();
+        List<PoolRankingView> result = new ArrayList<>(orderedPoolIds.size());
+        for (Long poolId : orderedPoolIds) {
+            List<TeamRankingView> ranking = groupedByPool.getOrDefault(poolId, List.of()).stream()
+                    .map(this::teamRanking)
+                    .sorted(policy.order())
+                    .toList();
+            result.add(new PoolRankingView(poolId, ranking));
+        }
+        return List.copyOf(result);
+    }
+
+    private TeamRankingView teamRanking(CompetitionAssociationEntity association) {
+        return new TeamRankingView(association.getTeamId(), association.getPoints(), association.getPointsPenalty(),
+                association.getPlayed(), association.getWins(), association.getLosses(), association.getCoefSets(),
+                association.getCoefPoints());
     }
 }

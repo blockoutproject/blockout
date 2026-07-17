@@ -7,22 +7,44 @@ import com.blockout.competitions.association.api.v2.CompetitionAssociationsV2Con
 import com.blockout.competitions.association.api.v2.CompetitionStatisticsV2Controller;
 import com.blockout.competitions.association.application.CompetitionAssociationView;
 import com.blockout.competitions.generated.api.CompetitionAssociationsApi;
+import com.blockout.competitions.generated.api.CompetitionRankingsApi;
 import com.blockout.competitions.generated.api.CompetitionStatisticsApi;
 import com.blockout.competitions.generated.model.CompetitionAssociationInternalResponse;
 import com.blockout.competitions.generated.model.CompetitionStatisticsSnapshotInternalRequest;
+import com.blockout.competitions.ranking.api.v2.CompetitionRankingApiMapper;
+import com.blockout.competitions.ranking.api.v2.CompetitionRankingsV2Controller;
+import com.blockout.competitions.ranking.application.PoolRankingView;
+import com.blockout.competitions.ranking.application.TeamRankingView;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import jakarta.validation.Validation;
 import java.time.LocalDateTime;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.mapstruct.factory.Mappers;
 
 class CompetitionV2BoundaryTest {
 
     @Test
-    void controllersImplementOnlyTheGeneratedAssociationAndStatisticsSlices() {
+    void controllersImplementOnlyTheGeneratedAssociationStatisticsAndRankingSlices() {
         assertThat(CompetitionAssociationsApi.class).isAssignableFrom(CompetitionAssociationsV2Controller.class);
         assertThat(CompetitionStatisticsApi.class).isAssignableFrom(CompetitionStatisticsV2Controller.class);
+        assertThat(CompetitionRankingsApi.class).isAssignableFrom(CompetitionRankingsV2Controller.class);
+    }
+
+    @Test
+    void generatedRankingStaysCamelCaseUnderTheTemporaryGlobalSnakeMapper() throws Exception {
+        CompetitionRankingApiMapper mapper = Mappers.getMapper(CompetitionRankingApiMapper.class);
+        var response = mapper.toResponse(new PoolRankingView(10L, List.of(
+                new TeamRankingView(20L, 3, 1, 4, 2, 2, 1.5, 1.25))));
+        ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules()
+                .setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE);
+
+        String body = objectMapper.writeValueAsString(response);
+
+        assertThat(body).contains("\"poolId\"", "\"teamId\"", "\"pointsPenalty\"", "\"coefSets\"",
+                "\"coefPoints\"");
+        assertThat(body).doesNotContain("pool_id", "team_id", "points_penalty", "coef_sets", "coef_points");
     }
 
     @Test

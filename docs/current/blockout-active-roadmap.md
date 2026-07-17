@@ -701,8 +701,18 @@ state moves to GitHub and this file becomes a historical migration record.
     MRG-368 and MRG-348/349. Eleven focused tests plus contract/lint, full backend, documentation, Maaatch comparison,
     Prettier, and whitespace checks pass. Contracts, generated artifacts, databases, events, BFF, Expo, scrapers,
     standalone repositories, production, Maaatch, Blockout Orval settings, and Python generator settings are unchanged.
-- [ ] MRG-359 Migrate `competition-service` ranking boundaries through one owner projection and ordering policy, with
+- [x] MRG-359 Migrate `competition-service` ranking boundaries through one owner projection and ordering policy, with
       exact BFF/Expo ordering and tie parity.
+  - Evidence: `COMP-08` now implements the generated v2 ranking interface through immutable application views, a
+    pool-group page, strict MapStruct mapping, and one service-owned ordering policy. Pool groups sort by `poolId`;
+    complete nested rankings preserve the current BFF keys—points, penalty, wins, set coefficient, and point
+    coefficient—then use `teamId` as the deterministic tie-breaker. The isolated unpaged v1 adapter invokes the same
+    projection and retains snake_case without the two former service transport DTOs or handwritten Jackson
+    annotations. Mobile-gateway and Expo remain on v1 for MRG-368 and MRG-346. Five new targeted tests plus the eleven
+    retained competition tests, contract/lint, full backend, documentation, Maaatch comparison, Prettier, and
+    whitespace checks pass. Contracts, committed generated artifacts, databases, events, BFF, Expo, scrapers,
+    standalone repositories, production, Maaatch, Blockout Orval settings, and Python generator settings are
+    unchanged.
 - [ ] MRG-360 Migrate `competition-service` bulk lifecycle and cascade boundaries, preserving missing-ID, zero-item,
       deactivation, transaction, and rollback behavior without activating absent consumers.
 - [ ] MRG-338 Migrate `matches-service` match core and day-page generated boundaries and internal clients with date,

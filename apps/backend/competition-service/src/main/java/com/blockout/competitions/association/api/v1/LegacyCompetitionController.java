@@ -5,8 +5,9 @@ import com.blockout.competitions.association.application.CompetitionAssociationS
 import com.blockout.competitions.association.application.CompetitionAssociationView;
 import com.blockout.competitions.association.application.CompetitionStatisticsSnapshot;
 import com.blockout.competitions.lifecycle.application.CompetitionLifecycleService;
-import com.blockout.competitions.models.dto.PoolWithRankingDTO;
 import com.blockout.competitions.ranking.application.CompetitionRankingService;
+import com.blockout.competitions.ranking.application.PoolRankingView;
+import com.blockout.competitions.ranking.application.TeamRankingView;
 import com.blockout.competitions.shared.api.v1.LegacyCompetitionJson;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import java.time.LocalDateTime;
@@ -91,8 +92,18 @@ public class LegacyCompetitionController {
 
     @GetMapping("/teams/{teamId}/pools-with-ranking")
     public ResponseEntity<String> getPoolsAndRankingsByTeam(@PathVariable Long teamId) throws JsonProcessingException {
-        List<PoolWithRankingDTO> result = rankings.getPoolsAndRankingsByTeam(teamId);
-        return ResponseEntity.ok(json.write(result));
+        return ResponseEntity.ok(json.write(rankings.findLegacyByTeam(teamId).stream()
+                .map(this::rankingResponse).toList()));
+    }
+
+    private LegacyPoolRankingResponse rankingResponse(PoolRankingView pool) {
+        return new LegacyPoolRankingResponse(pool.poolId(), pool.ranking().stream()
+                .map(this::rankingResponse).toList());
+    }
+
+    private LegacyTeamRankingResponse rankingResponse(TeamRankingView team) {
+        return new LegacyTeamRankingResponse(team.teamId(), team.points(), team.pointsPenalty(), team.played(),
+                team.wins(), team.losses(), team.coefSets(), team.coefPoints());
     }
 
     private LegacyCompetitionAssociationResponse response(CompetitionAssociationView view) {
@@ -111,6 +122,20 @@ public class LegacyCompetitionController {
     }
 
     record MissingClubIdsRequest(List<String> missingClubIds) {
+    }
+
+    record LegacyPoolRankingResponse(Long poolId, List<LegacyTeamRankingResponse> ranking) {
+    }
+
+    record LegacyTeamRankingResponse(
+            Long teamId,
+            Integer points,
+            Integer pointsPenalty,
+            Integer played,
+            Integer wins,
+            Integer losses,
+            Double coefSets,
+            Double coefPoints) {
     }
 
     record LegacyStatisticsRequest(
