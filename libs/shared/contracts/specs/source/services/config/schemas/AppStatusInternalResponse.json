@@ -1,0 +1,61 @@
+{
+  "AppStatusInternalResponse": {
+    "type": "object",
+    "description": "Current application maintenance and minimum-version configuration. Nullable display and store values are emitted as explicit nulls when absent.",
+    "required": [
+      "maintenance",
+      "message",
+      "imageUrl",
+      "minVersionIos",
+      "minVersionAndroid",
+      "storeUrlIos",
+      "storeUrlAndroid",
+      "forceUpdateMessage",
+      "lastUpdate"
+    ],
+    "properties": {
+      "maintenance": {
+        "type": "boolean"
+      },
+      "message": {
+        "type": "string",
+        "maxLength": 1024,
+        "nullable": true
+      },
+      "imageUrl": {
+        "type": "string",
+        "maxLength": 2048,
+        "nullable": true
+      },
+      "minVersionIos": {
+        "type": "string",
+        "maxLength": 32,
+        "nullable": true
+      },
+      "minVersionAndroid": {
+        "type": "string",
+        "maxLength": 32,
+        "nullable": true
+      },
+      "storeUrlIos": {
+        "type": "string",
+        "maxLength": 2048,
+        "nullable": true
+      },
+      "storeUrlAndroid": {
+        "type": "string",
+        "maxLength": 2048,
+        "nullable": true
+      },
+      "forceUpdateMessage": {
+        "type": "string",
+        "maxLength": 1024,
+        "nullable": true
+      },
+      "lastUpdate": {
+        "$ref": "#/components/schemas/UtcDateTime"
+      }
+    },
+    "additionalProperties": false
+  }
+}

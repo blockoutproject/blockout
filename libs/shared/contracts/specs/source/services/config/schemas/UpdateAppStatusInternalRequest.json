@@ -1,0 +1,48 @@
+{
+  "UpdateAppStatusInternalRequest": {
+    "type": "object",
+    "description": "Partial app-status update. Omitted and explicit-null fields both preserve the current stored value for compatibility.",
+    "properties": {
+      "maintenance": {
+        "type": "boolean",
+        "nullable": true
+      },
+      "message": {
+        "type": "string",
+        "maxLength": 1024,
+        "nullable": true
+      },
+      "imageUrl": {
+        "type": "string",
+        "maxLength": 2048,
+        "nullable": true
+      },
+      "minVersionIos": {
+        "type": "string",
+        "maxLength": 32,
+        "nullable": true
+      },
+      "minVersionAndroid": {
+        "type": "string",
+        "maxLength": 32,
+        "nullable": true
+      },
+      "storeUrlIos": {
+        "type": "string",
+        "maxLength": 2048,
+        "nullable": true
+      },
+      "storeUrlAndroid": {
+        "type": "string",
+        "maxLength": 2048,
+        "nullable": true
+      },
+      "forceUpdateMessage": {
+        "type": "string",
+        "maxLength": 1024,
+        "nullable": true
+      }
+    },
+    "additionalProperties": false
+  }
+}

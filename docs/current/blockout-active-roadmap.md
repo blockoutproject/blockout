@@ -360,8 +360,15 @@ state moves to GitHub and this file becomes a historical migration record.
     `*ListResponse` and `*PageResponse` rules avoid an unsafe generic item bag. Eighteen sorted backend mappings use
     generated shared models or validated native Java types, 17 contract tests and source lint pass, two generations are
     clean, documentation and Maaatch structure checks pass, and the unchanged backend reactor packages successfully.
-- [ ] MRG-317 Define and bundle the `config-service` contract from its approved audit using only required wire fields and
+- [x] MRG-317 Define and bundle the `config-service` contract from its approved audit using only required wire fields and
       canonical camelCase names, without changing runtime behavior.
+  - Evidence: the authoritative config source and generated bundle reconcile all sixteen MRG-301 operations across app
+    status, divisions, legal documents, raw division mappings, and scraper statuses under `/api/v2/config/**`. Fourteen
+    owner schemas retain only consumer-backed fields, typed bounded-list wrappers, operation-specific nullable update
+    semantics, scoped security, and canonical multipart JSON/image parts; persistence-only fields and legacy casing are
+    absent. Eighteen contract tests cover the exact operation IDs, scopes, public legal read, response fields, lists,
+    multipart parts, and legal error compatibility; source lint, deterministic generation, documentation and Maaatch
+    structure checks, and the unchanged backend reactor package successfully without modifying runtime code.
 - [ ] MRG-318 Define and bundle the `clubs-service` contract from its approved audit using only required camelCase wire
       fields, including multipart operations.
 - [ ] MRG-319 Define and bundle the `teams-service` contract from its approved audit using only required camelCase wire

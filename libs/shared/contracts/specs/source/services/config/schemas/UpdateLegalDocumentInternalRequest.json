@@ -1,0 +1,23 @@
+{
+  "UpdateLegalDocumentInternalRequest": {
+    "type": "object",
+    "description": "Partial legal-document update. Omitted and explicit-null fields both preserve the current stored value for compatibility.",
+    "properties": {
+      "title": {
+        "type": "string",
+        "maxLength": 255,
+        "nullable": true
+      },
+      "version": {
+        "type": "string",
+        "maxLength": 20,
+        "nullable": true
+      },
+      "content": {
+        "type": "string",
+        "nullable": true
+      }
+    },
+    "additionalProperties": false
+  }
+}

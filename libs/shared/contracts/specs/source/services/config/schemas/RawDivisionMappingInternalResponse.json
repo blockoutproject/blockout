@@ -1,0 +1,57 @@
+{
+  "RawDivisionMappingInternalResponse": {
+    "type": "object",
+    "description": "Raw federation division mapping without client-controlled persistence identity or audit metadata beyond its canonical identifier.",
+    "required": [
+      "id",
+      "rawDivisionName",
+      "divisionId",
+      "format",
+      "gender",
+      "leagueCode",
+      "season"
+    ],
+    "properties": {
+      "id": {
+        "$ref": "#/components/schemas/NumericIdentifier"
+      },
+      "rawDivisionName": {
+        "type": "string",
+        "maxLength": 255
+      },
+      "divisionId": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/NumericIdentifier"
+          }
+        ],
+        "nullable": true
+      },
+      "format": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/FormatEnum"
+          }
+        ],
+        "nullable": true
+      },
+      "gender": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/GenderEnum"
+          }
+        ],
+        "nullable": true
+      },
+      "leagueCode": {
+        "type": "string",
+        "maxLength": 255
+      },
+      "season": {
+        "type": "string",
+        "maxLength": 255
+      }
+    },
+    "additionalProperties": false
+  }
+}

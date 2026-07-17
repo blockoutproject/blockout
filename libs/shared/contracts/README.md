@@ -28,8 +28,9 @@ editing either artifact manually. CI regenerates both and requires a clean tree.
 
 The committed shared bundle contains the MRG-316 technical catalog. Deployable bundles inherit its security,
 pagination, request-correlation, and Problem Details components while resolving only the shared schemas their active
-operations or reusable components reference. Owner contract tasks add service operations and business schemas; bundle
-presence alone does not make a runtime boundary contract-authoritative.
+operations or reusable components reference. MRG-317 makes `config.json` the first authoritative owner bundle, with
+the sixteen audited `/api/v2/config/**` operations and required wire fields. Later owner tasks populate the remaining
+service bundles. Bundle authority defines the target contract; it does not activate routes or change runtime authority.
 The bundler's fixture and workspace guarantees run through:
 
 ```bash
@@ -45,7 +46,6 @@ npm exec nx run @blockout/contracts:lint-openapi-source
 Exact temporary exceptions live in `specs/lint-exceptions.json`. Every entry must identify one rule, file, JSON
 Pointer, compatibility reason, owning task, and removal task; malformed, duplicated, or unused entries fail the lint.
 
-No deployed service is contract-authoritative from this directory yet. The active migration roadmap must first
-inventory current production APIs, add deterministic bundling and tests, configure backend and mobile generation, and
-prove one end-to-end migration. Do not invent source fragments or claim generation is operational before those tasks
-are complete.
+Only owner contracts completed in the active roadmap are authoritative here. Generated server and client boundaries,
+runtime route activation, and end-to-end migration remain separate tasks; do not infer their completion from bundle
+presence.

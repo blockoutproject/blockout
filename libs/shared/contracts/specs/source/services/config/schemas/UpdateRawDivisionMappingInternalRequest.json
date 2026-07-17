@@ -1,0 +1,34 @@
+{
+  "UpdateRawDivisionMappingInternalRequest": {
+    "type": "object",
+    "description": "Replaces all three mapping fields. Each field is required and nullable so an explicit null preserves the current unmapping behavior without omission ambiguity.",
+    "required": ["divisionId", "format", "gender"],
+    "properties": {
+      "divisionId": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/NumericIdentifier"
+          }
+        ],
+        "nullable": true
+      },
+      "format": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/FormatEnum"
+          }
+        ],
+        "nullable": true
+      },
+      "gender": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/GenderEnum"
+          }
+        ],
+        "nullable": true
+      }
+    },
+    "additionalProperties": false
+  }
+}

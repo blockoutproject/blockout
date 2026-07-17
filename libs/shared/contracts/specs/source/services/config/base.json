@@ -9,6 +9,89 @@
       "url": "http://localhost"
     }
   ],
-  "tags": [],
-  "components": {}
+  "tags": [
+    {
+      "name": "AppStatus"
+    },
+    {
+      "name": "Divisions"
+    },
+    {
+      "name": "LegalDocuments"
+    },
+    {
+      "name": "RawDivisionMappings"
+    },
+    {
+      "name": "ScraperStatuses"
+    }
+  ],
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "components": {
+    "parameters": {
+      "DivisionId": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "$ref": "#/components/schemas/NumericIdentifier"
+        }
+      },
+      "LegalDocumentType": {
+        "name": "type",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "maxLength": 50
+        }
+      },
+      "RawDivisionMappingId": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "$ref": "#/components/schemas/NumericIdentifier"
+        }
+      },
+      "LeagueCode": {
+        "name": "leagueCode",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "maxLength": 255
+        }
+      },
+      "Season": {
+        "name": "season",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "maxLength": 255
+        }
+      },
+      "ScraperName": {
+        "name": "name",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "$ref": "#/components/schemas/ScraperNameEnum"
+        }
+      },
+      "ScraperEnabled": {
+        "name": "enabled",
+        "in": "query",
+        "required": true,
+        "schema": {
+          "type": "boolean"
+        }
+      }
+    }
+  }
 }

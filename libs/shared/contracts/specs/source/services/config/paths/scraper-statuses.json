@@ -1,0 +1,107 @@
+{
+  "/api/v2/config/scrapers/{name}/status": {
+    "parameters": [
+      {
+        "$ref": "#/components/parameters/ScraperName"
+      }
+    ],
+    "get": {
+      "operationId": "getScraperStatus",
+      "tags": ["ScraperStatuses"],
+      "summary": "Get scraper status",
+      "description": "Returns the enabled switch used by a scraper's fail-closed run gate. Authentication is required without a method-level scope.",
+      "responses": {
+        "200": {
+          "description": "Requested scraper status.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScraperStatusInternalResponse"
+              }
+            }
+          }
+        },
+        "401": {
+          "$ref": "#/components/responses/UnauthorizedProblem"
+        },
+        "404": {
+          "$ref": "#/components/responses/NotFoundProblem"
+        },
+        "500": {
+          "$ref": "#/components/responses/InternalServerErrorProblem"
+        }
+      }
+    }
+  },
+  "/api/v2/config/scrapers/{name}/enabled": {
+    "parameters": [
+      {
+        "$ref": "#/components/parameters/ScraperName"
+      },
+      {
+        "$ref": "#/components/parameters/ScraperEnabled"
+      }
+    ],
+    "put": {
+      "operationId": "updateScraperEnabled",
+      "tags": ["ScraperStatuses"],
+      "summary": "Update scraper enabled state",
+      "description": "Replaces the scraper enabled switch and preserves the current upsert behavior when the seeded status row is absent.",
+      "x-required-scope": "update:scrapers",
+      "responses": {
+        "200": {
+          "description": "Updated or created scraper status.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScraperStatusInternalResponse"
+              }
+            }
+          }
+        },
+        "400": {
+          "$ref": "#/components/responses/BadRequestProblem"
+        },
+        "401": {
+          "$ref": "#/components/responses/UnauthorizedProblem"
+        },
+        "403": {
+          "$ref": "#/components/responses/ForbiddenProblem"
+        },
+        "500": {
+          "$ref": "#/components/responses/InternalServerErrorProblem"
+        }
+      }
+    }
+  },
+  "/api/v2/config/scrapers/status": {
+    "get": {
+      "operationId": "listScraperStatuses",
+      "tags": ["ScraperStatuses"],
+      "summary": "List scraper statuses",
+      "description": "Returns the complete two-scraper catalog in the existing repository-defined compatibility order.",
+      "x-required-scope": "read:scrapers",
+      "responses": {
+        "200": {
+          "description": "Complete scraper status catalog.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScraperStatusInternalListResponse"
+              }
+            }
+          }
+        },
+        "401": {
+          "$ref": "#/components/responses/UnauthorizedProblem"
+        },
+        "403": {
+          "$ref": "#/components/responses/ForbiddenProblem"
+        },
+        "500": {
+          "$ref": "#/components/responses/InternalServerErrorProblem"
+        }
+      }
+    }
+  }
+}

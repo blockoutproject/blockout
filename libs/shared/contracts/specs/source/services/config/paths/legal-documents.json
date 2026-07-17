@@ -1,0 +1,72 @@
+{
+  "/api/v2/config/legal/{type}": {
+    "parameters": [
+      {
+        "$ref": "#/components/parameters/LegalDocumentType"
+      }
+    ],
+    "get": {
+      "operationId": "getLegalDocument",
+      "tags": ["LegalDocuments"],
+      "summary": "Get a legal document",
+      "description": "Returns a legal document using the exact path value. Missing documents retain the current generic server-error status until a separately approved correction.",
+      "security": [],
+      "responses": {
+        "200": {
+          "description": "Requested legal document.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LegalDocumentInternalResponse"
+              }
+            }
+          }
+        },
+        "500": {
+          "$ref": "#/components/responses/InternalServerErrorProblem"
+        }
+      }
+    },
+    "put": {
+      "operationId": "updateLegalDocument",
+      "tags": ["LegalDocuments"],
+      "summary": "Update a legal document",
+      "description": "Normalizes the path value by trimming and lowercasing it, then applies compatibility partial-update semantics. Missing documents retain the current generic server-error status.",
+      "x-required-scope": "update:legal",
+      "requestBody": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/UpdateLegalDocumentInternalRequest"
+            }
+          }
+        }
+      },
+      "responses": {
+        "200": {
+          "description": "Updated legal document.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LegalDocumentInternalResponse"
+              }
+            }
+          }
+        },
+        "400": {
+          "$ref": "#/components/responses/BadRequestProblem"
+        },
+        "401": {
+          "$ref": "#/components/responses/UnauthorizedProblem"
+        },
+        "403": {
+          "$ref": "#/components/responses/ForbiddenProblem"
+        },
+        "500": {
+          "$ref": "#/components/responses/InternalServerErrorProblem"
+        }
+      }
+    }
+  }
+}

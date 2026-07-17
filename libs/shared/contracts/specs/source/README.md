@@ -1,8 +1,8 @@
 # Blockout OpenAPI Source Layout
 
-This directory is the future source of truth for Blockout REST contracts. MRG-305 fixes the fragment layout and
-ownership rules only. Service base documents, paths, schemas, generated bundles, and generator targets are introduced
-by their later roadmap tasks.
+This directory is the source of truth for Blockout REST contracts as each owner contract is approved. MRG-305 fixed
+the fragment layout and ownership rules, MRG-316 established the shared catalog, and the service contract tasks add
+authoritative operations and schemas incrementally without changing runtime authority by themselves.
 
 ## Target Tree
 
@@ -101,6 +101,23 @@ Folder names are stable contract identifiers, not Java module names. Internal se
 suffix. The BFF contract is organized by Expo workflow even though its source fragments share one deployable-owned
 directory.
 
+## Config-Service Contract
+
+MRG-317 makes `services/config` authoritative for the sixteen canonical config-service operations inventoried by
+MRG-301 and allocated by MRG-304. The bundle covers app status, divisions, legal documents, raw division mappings,
+and scraper statuses under `/api/v2/config/**`.
+
+The contract deliberately omits persistence-only identifiers and timestamps that have no current consumer. It keeps
+the app-status `lastUpdate` value because the deployed BFF consumes it, preserves operation-specific null and omitted
+field semantics, and models division writes as typed multipart requests with a canonical JSON `data` part plus an
+optional image. Complete collections use owner-local typed list responses and retain the repository-defined
+compatibility order; this task does not invent sorting or pagination.
+
+Security remains operation-specific: legal-document reads are public, while the other operations retain their
+audited scopes. The generated v2 contract is not a runtime cutover. Existing v1 transports and their errors, nulls,
+ordering, multipart behavior, and fallback semantics remain governed by the MRG-304 compatibility boundary until
+their later vertical migration tasks.
+
 ## Closed Boundaries
 
 - `search-worker` has no REST controller and receives no source directory or generated server bundle.
@@ -116,5 +133,5 @@ MRG-306 through MRG-309 establish the deterministic Maaatch-shaped bundler, test
 and generated bundles. The bundler discovers service directories lexicographically, cleans its owned output, and
 writes only to `libs/shared/contracts/generated/specs/**`. Empty `paths` in deployable bundles state that no canonical
 operation exists yet. Shared Problem Details may already appear because inherited reusable responses reference it;
-owner contract tasks populate business paths and schemas. Generation availability does not by itself make a service
-contract-authoritative.
+owner contract tasks populate business paths and schemas. Generation availability does not by itself change runtime
+authority or activate a canonical route.

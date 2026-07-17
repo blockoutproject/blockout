@@ -211,6 +211,164 @@ test('workspace source state bundles without placeholder output', async () => {
   }
 });
 
+test('workspace config contract reconciles the sixteen audited operations', async () => {
+  const config = await readJson(path.join(generatedSpecsDir, 'config.json'));
+  const operations = Object.entries(config.paths).flatMap(
+    ([operationPath, pathItem]) =>
+      Object.entries(pathItem)
+        .filter(([method]) => method !== 'parameters')
+        .map(([method, operation]) => ({
+          key: `${method.toUpperCase()} ${operationPath}`,
+          operation,
+        })),
+  );
+  const expectedOperations = {
+    'DELETE /api/v2/config/divisions/{id}': 'deactivateDivision',
+    'GET /api/v2/config/app-status': 'getAppStatus',
+    'GET /api/v2/config/divisions': 'listDivisions',
+    'GET /api/v2/config/divisions/{id}': 'getDivision',
+    'GET /api/v2/config/legal/{type}': 'getLegalDocument',
+    'GET /api/v2/config/raw-divisions': 'listRawDivisionMappings',
+    'GET /api/v2/config/raw-divisions/{id}': 'getRawDivisionMapping',
+    'GET /api/v2/config/scrapers/status': 'listScraperStatuses',
+    'GET /api/v2/config/scrapers/{name}/status': 'getScraperStatus',
+    'POST /api/v2/config/divisions': 'createDivision',
+    'POST /api/v2/config/raw-divisions': 'createRawDivisionMapping',
+    'PUT /api/v2/config/app-status': 'updateAppStatus',
+    'PUT /api/v2/config/divisions/{id}': 'updateDivision',
+    'PUT /api/v2/config/legal/{type}': 'updateLegalDocument',
+    'PUT /api/v2/config/raw-divisions/{id}': 'updateRawDivisionMapping',
+    'PUT /api/v2/config/scrapers/{name}/enabled': 'updateScraperEnabled',
+  };
+
+  assert.deepEqual(
+    Object.fromEntries(
+      operations
+        .map(({ key, operation }) => [key, operation.operationId])
+        .sort(([left], [right]) => left.localeCompare(right)),
+    ),
+    expectedOperations,
+  );
+  assert.equal(
+    new Set(operations.map(({ operation }) => operation.operationId)).size,
+    16,
+  );
+
+  const expectedScopes = {
+    createDivision: 'create:divisions',
+    createRawDivisionMapping: 'create:raw_division_mapping',
+    deactivateDivision: 'delete:divisions',
+    getDivision: 'read:divisions',
+    getRawDivisionMapping: 'read:raw_division_mapping',
+    listDivisions: 'read:divisions',
+    listRawDivisionMappings: 'read:raw_division_mapping',
+    listScraperStatuses: 'read:scrapers',
+    updateAppStatus: 'update:maintenance',
+    updateDivision: 'update:divisions',
+    updateLegalDocument: 'update:legal',
+    updateRawDivisionMapping: 'update:raw_division_mapping',
+    updateScraperEnabled: 'update:scrapers',
+  };
+  assert.deepEqual(
+    Object.fromEntries(
+      operations
+        .filter(({ operation }) => operation['x-required-scope'])
+        .map(({ operation }) => [
+          operation.operationId,
+          operation['x-required-scope'],
+        ])
+        .sort(([left], [right]) => left.localeCompare(right)),
+    ),
+    expectedScopes,
+  );
+  assert.deepEqual(
+    config.paths['/api/v2/config/legal/{type}'].get.security,
+    [],
+  );
+  assert.deepEqual(config.security, [{ bearerAuth: [] }]);
+
+  const expectedResponseFields = {
+    AppStatusInternalResponse: [
+      'forceUpdateMessage',
+      'imageUrl',
+      'lastUpdate',
+      'maintenance',
+      'message',
+      'minVersionAndroid',
+      'minVersionIos',
+      'storeUrlAndroid',
+      'storeUrlIos',
+    ],
+    DivisionInternalResponse: [
+      'active',
+      'firstGradientColor',
+      'id',
+      'logoUrl',
+      'mainColor',
+      'name',
+      'secondGradientColor',
+      'thirdGradientColor',
+    ],
+    LegalDocumentInternalResponse: ['content', 'title', 'type', 'version'],
+    RawDivisionMappingInternalResponse: [
+      'divisionId',
+      'format',
+      'gender',
+      'id',
+      'leagueCode',
+      'rawDivisionName',
+      'season',
+    ],
+    ScraperStatusInternalResponse: ['enabled', 'name'],
+  };
+  for (const [schemaName, expectedFields] of Object.entries(
+    expectedResponseFields,
+  )) {
+    assert.deepEqual(
+      Object.keys(config.components.schemas[schemaName].properties).sort(
+        (left, right) => left.localeCompare(right),
+      ),
+      expectedFields,
+    );
+  }
+
+  for (const schemaName of [
+    'DivisionInternalListResponse',
+    'RawDivisionMappingInternalListResponse',
+    'ScraperStatusInternalListResponse',
+  ]) {
+    assert.deepEqual(
+      Object.keys(config.components.schemas[schemaName].properties),
+      ['items'],
+    );
+    assert.deepEqual(config.components.schemas[schemaName].required, ['items']);
+  }
+
+  const createDivisionMultipart =
+    config.paths['/api/v2/config/divisions'].post.requestBody.content[
+      'multipart/form-data'
+    ];
+  assert.equal(
+    createDivisionMultipart.schema.properties.data.$ref,
+    '#/components/schemas/CreateDivisionInternalRequest',
+  );
+  assert.equal(
+    createDivisionMultipart.encoding.data.contentType,
+    'application/json',
+  );
+  assert.equal(
+    createDivisionMultipart.schema.properties.image.format,
+    'binary',
+  );
+
+  assert.deepEqual(
+    Object.keys(
+      config.paths['/api/v2/config/legal/{type}'].get.responses,
+    ).sort(),
+    ['200', '500'],
+  );
+});
+
 test('workspace stable enums remain named top-level components', async () => {
   const sourceFiles = await listJsonFiles(sourceDir);
   const inlineEnumLocations = [];

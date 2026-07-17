@@ -1,0 +1,16 @@
+{
+  "ScraperStatusInternalResponse": {
+    "type": "object",
+    "description": "Current run switch for a Blockout scraper. Persistence identity and timestamp are not part of the consumer contract.",
+    "required": ["name", "enabled"],
+    "properties": {
+      "name": {
+        "$ref": "#/components/schemas/ScraperNameEnum"
+      },
+      "enabled": {
+        "type": "boolean"
+      }
+    },
+    "additionalProperties": false
+  }
+}

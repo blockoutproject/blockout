@@ -1,0 +1,171 @@
+{
+  "/api/v2/config/raw-divisions": {
+    "get": {
+      "operationId": "listRawDivisionMappings",
+      "tags": ["RawDivisionMappings"],
+      "summary": "List raw division mappings",
+      "description": "Returns the complete result for the optional exact league and season filters in the existing repository-defined compatibility order.",
+      "x-required-scope": "read:raw_division_mapping",
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/LeagueCode"
+        },
+        {
+          "$ref": "#/components/parameters/Season"
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "Complete filtered raw-division mapping result.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RawDivisionMappingInternalListResponse"
+              }
+            }
+          }
+        },
+        "401": {
+          "$ref": "#/components/responses/UnauthorizedProblem"
+        },
+        "403": {
+          "$ref": "#/components/responses/ForbiddenProblem"
+        },
+        "500": {
+          "$ref": "#/components/responses/InternalServerErrorProblem"
+        }
+      }
+    },
+    "post": {
+      "operationId": "createRawDivisionMapping",
+      "tags": ["RawDivisionMappings"],
+      "summary": "Create a raw division mapping",
+      "description": "Creates a raw federation division mapping without accepting persistence identity or audit fields.",
+      "x-required-scope": "create:raw_division_mapping",
+      "requestBody": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/CreateRawDivisionMappingInternalRequest"
+            }
+          }
+        }
+      },
+      "responses": {
+        "201": {
+          "description": "Raw division mapping created.",
+          "headers": {
+            "Location": {
+              "description": "Canonical location of the created raw division mapping.",
+              "schema": {
+                "type": "string"
+              }
+            }
+          },
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RawDivisionMappingInternalResponse"
+              }
+            }
+          }
+        },
+        "400": {
+          "$ref": "#/components/responses/BadRequestProblem"
+        },
+        "401": {
+          "$ref": "#/components/responses/UnauthorizedProblem"
+        },
+        "403": {
+          "$ref": "#/components/responses/ForbiddenProblem"
+        },
+        "500": {
+          "$ref": "#/components/responses/InternalServerErrorProblem"
+        }
+      }
+    }
+  },
+  "/api/v2/config/raw-divisions/{id}": {
+    "parameters": [
+      {
+        "$ref": "#/components/parameters/RawDivisionMappingId"
+      }
+    ],
+    "get": {
+      "operationId": "getRawDivisionMapping",
+      "tags": ["RawDivisionMappings"],
+      "summary": "Get a raw division mapping",
+      "description": "Returns one raw division mapping by its numeric identifier.",
+      "x-required-scope": "read:raw_division_mapping",
+      "responses": {
+        "200": {
+          "description": "Requested raw division mapping.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RawDivisionMappingInternalResponse"
+              }
+            }
+          }
+        },
+        "401": {
+          "$ref": "#/components/responses/UnauthorizedProblem"
+        },
+        "403": {
+          "$ref": "#/components/responses/ForbiddenProblem"
+        },
+        "404": {
+          "$ref": "#/components/responses/NotFoundProblem"
+        },
+        "500": {
+          "$ref": "#/components/responses/InternalServerErrorProblem"
+        }
+      }
+    },
+    "put": {
+      "operationId": "updateRawDivisionMapping",
+      "tags": ["RawDivisionMappings"],
+      "summary": "Update a raw division mapping",
+      "description": "Replaces the division, format, and gender mapping fields. Explicit null values unmap the corresponding field.",
+      "x-required-scope": "update:raw_division_mapping",
+      "requestBody": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/UpdateRawDivisionMappingInternalRequest"
+            }
+          }
+        }
+      },
+      "responses": {
+        "200": {
+          "description": "Updated raw division mapping.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RawDivisionMappingInternalResponse"
+              }
+            }
+          }
+        },
+        "400": {
+          "$ref": "#/components/responses/BadRequestProblem"
+        },
+        "401": {
+          "$ref": "#/components/responses/UnauthorizedProblem"
+        },
+        "403": {
+          "$ref": "#/components/responses/ForbiddenProblem"
+        },
+        "404": {
+          "$ref": "#/components/responses/NotFoundProblem"
+        },
+        "500": {
+          "$ref": "#/components/responses/InternalServerErrorProblem"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,50 @@
+{
+  "DivisionInternalResponse": {
+    "type": "object",
+    "description": "Config-service division projection without persistence audit fields.",
+    "required": [
+      "id",
+      "name",
+      "mainColor",
+      "firstGradientColor",
+      "secondGradientColor",
+      "thirdGradientColor",
+      "logoUrl",
+      "active"
+    ],
+    "properties": {
+      "id": {
+        "$ref": "#/components/schemas/NumericIdentifier"
+      },
+      "name": {
+        "type": "string",
+        "maxLength": 255
+      },
+      "mainColor": {
+        "type": "string",
+        "maxLength": 255
+      },
+      "firstGradientColor": {
+        "type": "string",
+        "maxLength": 255
+      },
+      "secondGradientColor": {
+        "type": "string",
+        "maxLength": 255
+      },
+      "thirdGradientColor": {
+        "type": "string",
+        "maxLength": 255
+      },
+      "logoUrl": {
+        "type": "string",
+        "maxLength": 255,
+        "nullable": true
+      },
+      "active": {
+        "type": "boolean"
+      }
+    },
+    "additionalProperties": false
+  }
+}
