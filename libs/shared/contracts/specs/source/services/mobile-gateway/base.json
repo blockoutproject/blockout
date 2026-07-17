@@ -4,11 +4,114 @@
     "title": "Blockout Mobile Gateway API",
     "version": "2.0.0"
   },
-  "servers": [
-    {
-      "url": "http://localhost"
-    }
+  "servers": [{ "url": "http://localhost" }],
+  "tags": [
+    { "name": "MobileConfiguration" },
+    { "name": "MobileUsers" },
+    { "name": "MobileReports" },
+    { "name": "MobileSearch" },
+    { "name": "MobileNotifications" }
   ],
-  "tags": [],
-  "components": {}
+  "security": [{ "bearerAuth": [] }],
+  "components": {
+    "parameters": {
+      "MobileDivisionId": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "schema": { "$ref": "#/components/schemas/NumericIdentifier" }
+      },
+      "MobileLegalDocumentType": {
+        "name": "type",
+        "in": "path",
+        "required": true,
+        "schema": { "type": "string", "maxLength": 50 }
+      },
+      "MobileRawDivisionMappingId": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "schema": { "$ref": "#/components/schemas/NumericIdentifier" }
+      },
+      "MobileLeagueCode": {
+        "name": "leagueCode",
+        "in": "query",
+        "required": false,
+        "schema": { "type": "string", "maxLength": 255 }
+      },
+      "MobileSeason": {
+        "name": "season",
+        "in": "query",
+        "required": false,
+        "schema": { "type": "string", "maxLength": 255 }
+      },
+      "MobileScraperName": {
+        "name": "name",
+        "in": "path",
+        "required": true,
+        "schema": { "$ref": "#/components/schemas/ScraperNameEnum" }
+      },
+      "MobileScraperEnabled": {
+        "name": "enabled",
+        "in": "query",
+        "required": true,
+        "schema": { "type": "boolean" }
+      },
+      "MobileAuth0Id": {
+        "name": "auth0Id",
+        "in": "path",
+        "required": true,
+        "schema": { "type": "string", "minLength": 1, "maxLength": 255 }
+      },
+      "MobileFavoriteEntityType": {
+        "name": "entityType",
+        "in": "query",
+        "required": true,
+        "schema": { "$ref": "#/components/schemas/EntityTypeEnum" }
+      },
+      "MobileFavoriteEntityId": {
+        "name": "entityId",
+        "in": "query",
+        "required": true,
+        "schema": { "$ref": "#/components/schemas/NumericIdentifier" }
+      },
+      "MobileSearchQuery": {
+        "name": "query",
+        "in": "query",
+        "required": true,
+        "description": "Search text. Blank input intentionally selects random examples.",
+        "schema": { "type": "string" }
+      },
+      "MobileSearchDivisionId": {
+        "name": "divisionId",
+        "in": "query",
+        "required": false,
+        "schema": { "$ref": "#/components/schemas/NumericIdentifier" }
+      },
+      "MobileSearchFormat": {
+        "name": "format",
+        "in": "query",
+        "required": false,
+        "schema": { "$ref": "#/components/schemas/FormatEnum" }
+      },
+      "MobileSearchGender": {
+        "name": "gender",
+        "in": "query",
+        "required": false,
+        "schema": { "$ref": "#/components/schemas/GenderEnum" }
+      },
+      "MobileNotificationId": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "schema": { "$ref": "#/components/schemas/NumericIdentifier" }
+      },
+      "MobileUserId": {
+        "name": "userId",
+        "in": "path",
+        "required": true,
+        "schema": { "$ref": "#/components/schemas/UuidIdentifier" }
+      }
+    }
+  }
 }

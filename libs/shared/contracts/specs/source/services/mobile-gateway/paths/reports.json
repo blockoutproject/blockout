@@ -1,0 +1,46 @@
+{
+  "/api/v2/mobile/public/reports": {
+    "post": {
+      "operationId": "createMobileReport",
+      "tags": ["MobileReports"],
+      "summary": "Submit a mobile report",
+      "description": "Public Blockout report workflow. GitHub, Discord, S3, and uploaded attachment URL models remain behind downstream adapters.",
+      "security": [],
+      "requestBody": {
+        "required": true,
+        "content": {
+          "multipart/form-data": {
+            "schema": {
+              "type": "object",
+              "required": ["data"],
+              "properties": {
+                "data": {
+                  "$ref": "#/components/schemas/CreateMobileReportRequest"
+                },
+                "images": {
+                  "type": "array",
+                  "items": { "type": "string", "format": "binary" }
+                }
+              },
+              "additionalProperties": false
+            },
+            "encoding": { "data": { "contentType": "application/json" } }
+          }
+        }
+      },
+      "responses": {
+        "201": {
+          "description": "Created Blockout report.",
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/MobileReportCreated" }
+            }
+          }
+        },
+        "400": { "$ref": "#/components/responses/BadRequestProblem" },
+        "413": { "$ref": "#/components/responses/PayloadTooLargeProblem" },
+        "500": { "$ref": "#/components/responses/InternalServerErrorProblem" }
+      }
+    }
+  }
+}

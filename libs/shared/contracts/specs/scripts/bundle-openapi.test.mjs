@@ -1703,6 +1703,224 @@ test('workspace search contract exposes bounded results without worker leakage',
   );
 });
 
+test('workspace mobile gateway contract owns the thirty relay workflow operations', async () => {
+  const gateway = await readJson(
+    path.join(generatedSpecsDir, 'mobile-gateway.json'),
+  );
+  const operations = Object.entries(gateway.paths).flatMap(
+    ([operationPath, pathItem]) =>
+      Object.entries(pathItem)
+        .filter(([method]) => method !== 'parameters')
+        .map(([method, operation]) => ({
+          key: `${method.toUpperCase()} ${operationPath}`,
+          operation,
+        })),
+  );
+  const expectedOperations = {
+    'DELETE /api/v2/mobile/secure/config/divisions/{id}':
+      'deactivateMobileDivision',
+    'DELETE /api/v2/mobile/secure/favorites/follow': 'unfollowMobileEntity',
+    'DELETE /api/v2/mobile/secure/notifications/{id}':
+      'deleteMobileNotification',
+    'DELETE /api/v2/mobile/secure/users/me': 'deleteCurrentMobileUser',
+    'GET /api/v2/mobile/public/config/app-status': 'getMobileAppStatus',
+    'GET /api/v2/mobile/public/config/divisions': 'listMobileDivisions',
+    'GET /api/v2/mobile/public/config/divisions/{id}': 'getMobileDivision',
+    'GET /api/v2/mobile/public/config/legal/{type}': 'getMobileLegalDocument',
+    'GET /api/v2/mobile/public/search/clubs': 'searchMobileClubs',
+    'GET /api/v2/mobile/public/search/pools': 'searchMobilePools',
+    'GET /api/v2/mobile/public/search/teams': 'searchMobileTeams',
+    'GET /api/v2/mobile/secure/config/raw-divisions':
+      'listMobileRawDivisionMappings',
+    'GET /api/v2/mobile/secure/config/raw-divisions/{id}':
+      'getMobileRawDivisionMapping',
+    'GET /api/v2/mobile/secure/config/scrapers/status':
+      'listMobileScraperStatuses',
+    'GET /api/v2/mobile/secure/notifications': 'listMobileNotifications',
+    'GET /api/v2/mobile/secure/notifications/unread-count':
+      'getMobileUnreadNotificationCount',
+    'POST /api/v2/mobile/public/reports': 'createMobileReport',
+    'POST /api/v2/mobile/secure/config/divisions': 'createMobileDivision',
+    'POST /api/v2/mobile/secure/config/raw-divisions':
+      'createMobileRawDivisionMapping',
+    'POST /api/v2/mobile/secure/favorites/follow': 'followMobileEntity',
+    'POST /api/v2/mobile/secure/notifications/{id}/opened':
+      'markMobileNotificationOpened',
+    'POST /api/v2/mobile/secure/notifications/{id}/read':
+      'markMobileNotificationRead',
+    'POST /api/v2/mobile/secure/notifications/users/{userId}/push-tokens':
+      'registerMobilePushToken',
+    'PUT /api/v2/mobile/secure/config/app-status': 'updateMobileAppStatus',
+    'PUT /api/v2/mobile/secure/config/divisions/{id}': 'updateMobileDivision',
+    'PUT /api/v2/mobile/secure/config/legal/{type}':
+      'updateMobileLegalDocument',
+    'PUT /api/v2/mobile/secure/config/raw-divisions/{id}':
+      'updateMobileRawDivisionMapping',
+    'PUT /api/v2/mobile/secure/config/scrapers/{name}/enabled':
+      'updateMobileScraperEnabled',
+    'PUT /api/v2/mobile/secure/users/me': 'ensureCurrentMobileUser',
+    'PUT /api/v2/mobile/secure/users/{auth0Id}': 'updateMobileUser',
+  };
+  assert.deepEqual(
+    Object.fromEntries(
+      operations
+        .map(({ key, operation }) => [key, operation.operationId])
+        .sort(([left], [right]) => left.localeCompare(right)),
+    ),
+    expectedOperations,
+  );
+  assert.equal(operations.length, 30);
+  assert.equal(
+    new Set(operations.map(({ operation }) => operation.operationId)).size,
+    30,
+  );
+
+  assert.deepEqual(gateway.security, [{ bearerAuth: [] }]);
+  const publicOperations = operations.filter(({ key }) =>
+    key.includes('/api/v2/mobile/public/'),
+  );
+  assert.equal(publicOperations.length, 8);
+  for (const { operation } of publicOperations) {
+    assert.deepEqual(operation.security, []);
+  }
+  for (const { key, operation } of operations.filter(({ key }) =>
+    key.includes('/api/v2/mobile/secure/'),
+  )) {
+    assert.equal(operation.security, undefined, key);
+  }
+
+  assert.deepEqual(
+    Object.keys(gateway.components.schemas).filter((name) =>
+      name.endsWith('InternalResponse'),
+    ),
+    [],
+  );
+  assert.deepEqual(
+    Object.keys(gateway.components.schemas.MobileUser.properties),
+    ['id', 'auth0Id', 'email', 'pseudo', 'pictureUrl', 'favorites'],
+  );
+  assert.equal(
+    gateway.components.schemas.MobileUser.properties.id.$ref,
+    '#/components/schemas/UuidIdentifier',
+  );
+  assert.deepEqual(
+    Object.keys(gateway.components.schemas.MobileUserFavorite.properties),
+    ['entityType', 'entityId'],
+  );
+  assert.equal(
+    gateway.components.parameters.MobileFavoriteEntityType.name,
+    'entityType',
+  );
+  assert.equal(
+    gateway.components.parameters.MobileFavoriteEntityId.name,
+    'entityId',
+  );
+
+  const userMultipart =
+    gateway.paths['/api/v2/mobile/secure/users/{auth0Id}'].put.requestBody
+      .content['multipart/form-data'];
+  assert.equal(
+    userMultipart.schema.properties.data.$ref,
+    '#/components/schemas/UpdateMobileUserRequest',
+  );
+  assert.equal(userMultipart.encoding.data.contentType, 'application/json');
+  assert.deepEqual(
+    Object.keys(gateway.components.schemas.UpdateMobileUserRequest.properties),
+    ['pseudo', 'removePicture'],
+  );
+
+  const reportMultipart =
+    gateway.paths['/api/v2/mobile/public/reports'].post.requestBody.content[
+      'multipart/form-data'
+    ];
+  assert.equal(
+    reportMultipart.schema.properties.data.$ref,
+    '#/components/schemas/CreateMobileReportRequest',
+  );
+  assert.equal(reportMultipart.schema.properties.images.type, 'array');
+  assert.deepEqual(
+    Object.keys(gateway.components.schemas.MobileReportCreated.properties),
+    ['number', 'htmlUrl', 'title'],
+  );
+
+  for (const listSchemaName of [
+    'MobileDivisionListResponse',
+    'MobileRawDivisionMappingListResponse',
+    'MobileScraperStatusListResponse',
+    'MobileClubSearchListResponse',
+    'MobileTeamSearchListResponse',
+    'MobilePoolSearchListResponse',
+  ]) {
+    assert.deepEqual(
+      Object.keys(gateway.components.schemas[listSchemaName].properties),
+      ['items'],
+    );
+  }
+  assert.deepEqual(
+    Object.keys(
+      gateway.components.schemas.MobileNotificationPageResponse.properties,
+    ),
+    ['items', 'pageInfo'],
+  );
+  assert.deepEqual(
+    Object.keys(gateway.components.schemas.MobileNotification.properties),
+    ['id', 'title', 'body', 'deepLink', 'createdAt', 'divisionLogoUrl'],
+  );
+  assert.deepEqual(
+    Object.keys(
+      gateway.components.schemas.MobileUnreadNotificationCount.properties,
+    ),
+    ['unreadCount'],
+  );
+  assert.equal(
+    gateway.components.parameters.MobileUserId.schema.$ref,
+    '#/components/schemas/UuidIdentifier',
+  );
+  assert.deepEqual(
+    Object.keys(
+      gateway.components.schemas.RegisterMobilePushTokenRequest.properties,
+    ),
+    ['expoPushToken', 'platform', 'deviceId'],
+  );
+  assert.deepEqual(
+    Object.keys(
+      gateway.paths[
+        '/api/v2/mobile/secure/notifications/users/{userId}/push-tokens'
+      ].post.responses,
+    ),
+    ['202', '400', '401', '404', '500'],
+  );
+
+  const teamSearch = gateway.paths['/api/v2/mobile/public/search/teams'].get;
+  assert.deepEqual(
+    teamSearch.parameters.map((parameter) => parameter.$ref),
+    [
+      '#/components/parameters/MobileSearchQuery',
+      '#/components/parameters/MobileSeason',
+      '#/components/parameters/MobileSearchDivisionId',
+      '#/components/parameters/MobileSearchFormat',
+      '#/components/parameters/MobileSearchGender',
+    ],
+  );
+  assert.equal(
+    gateway.components.parameters.MobileSearchDivisionId.name,
+    'divisionId',
+  );
+  assert.match(
+    gateway.paths['/api/v2/mobile/public/search/clubs'].get.description,
+    /v1 adapter preserves its current empty-to-204 behavior/,
+  );
+
+  assert.deepEqual(
+    Object.keys(gateway.components.schemas).filter((name) =>
+      /GitHub|Discord|S3|Elasticsearch|IndexDocument|Cache|ExpoMessage|Ticket|Delivery|Entity/.test(
+        name,
+      ),
+    ),
+    ['EntityTypeEnum'],
+  );
+});
+
 test('workspace stable enums remain named top-level components', async () => {
   const sourceFiles = await listJsonFiles(sourceDir);
   const inlineEnumLocations = [];

@@ -485,8 +485,18 @@ state moves to GitHub and this file becomes a historical migration record.
     bounded wrappers, reduced nullable fields, empty/failure semantics, and absence of worker/store/event leakage;
     source lint, deterministic generation, documentation and Maaatch structure checks, and the unchanged backend reactor
     package successfully without modifying runtime code.
-- [ ] MRG-327 Define and bundle the `mobile-gateway` configuration, user, report, search, and notification BFF contracts
+- [x] MRG-327 Define and bundle the `mobile-gateway` configuration, user, report, search, and notification BFF contracts
       from the approved aggregation audits, with workflow projections distinct from internal-service DTOs.
+  - Evidence: the authoritative mobile-gateway source and generated bundle reconcile all 30 MRG-301 relay operations
+    allocated by MRG-304 across fifteen configuration, five account/favorite, one report, three search, and six
+    notification workflows. Exact public/secure v2 paths and bearer behavior, camelCase query and multipart fields,
+    typed bounded lists, notification `items + pageInfo`, explicit `unreadCount`, canonical local user UUID, explicit
+    picture intent, and reduced Expo projections replace copied internal DTOs without exposing persistence, vendor,
+    Elasticsearch, cache, delivery, or event models. The documentation preserves v1 raw arrays, snake_case, `count`,
+    `nextPage`, status, auth, cache, null, fallback, and partial-failure behavior for later compatibility adapters.
+    Twenty-eight contract tests cover the exact operation set, security split, schemas, wrappers, multipart shapes,
+    identity, casing, workflow fields, and leakage exclusions; source lint and deterministic generation pass without
+    changing runtime code.
 - [ ] MRG-357 Define and bundle the `mobile-gateway` club, team, and pool BFF contracts, retaining only consumer-backed
       enriched fields and explicit ordering, missing-data, privacy, and partial-result semantics.
 - [ ] MRG-358 Define and bundle the `mobile-gateway` competition, match, and live BFF contracts, separating list,

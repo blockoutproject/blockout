@@ -9,8 +9,1204 @@
       "url": "http://localhost"
     }
   ],
-  "tags": [],
-  "paths": {},
+  "tags": [
+    {
+      "name": "MobileConfiguration"
+    },
+    {
+      "name": "MobileUsers"
+    },
+    {
+      "name": "MobileReports"
+    },
+    {
+      "name": "MobileSearch"
+    },
+    {
+      "name": "MobileNotifications"
+    }
+  ],
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "paths": {
+    "/api/v2/mobile/public/config/app-status": {
+      "get": {
+        "operationId": "getMobileAppStatus",
+        "tags": [
+          "MobileConfiguration"
+        ],
+        "summary": "Get the mobile application status",
+        "description": "Public relay of the current app-status projection. A missing downstream row and its nullable compatibility behavior remain isolated in the v1 adapter until the runtime migration proves parity.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Current mobile application status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAppStatus"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorProblem"
+          }
+        }
+      }
+    },
+    "/api/v2/mobile/secure/config/app-status": {
+      "put": {
+        "operationId": "updateMobileAppStatus",
+        "tags": [
+          "MobileConfiguration"
+        ],
+        "summary": "Update the mobile application status",
+        "description": "Authenticated mobile administration relay. Omitted or null properties preserve their stored values.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMobileAppStatusRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated mobile application status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAppStatus"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestProblem"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedProblem"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenProblem"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorProblem"
+          }
+        }
+      }
+    },
+    "/api/v2/mobile/public/config/divisions": {
+      "get": {
+        "operationId": "listMobileDivisions",
+        "tags": [
+          "MobileConfiguration"
+        ],
+        "summary": "List active mobile divisions",
+        "description": "Public bounded division catalog in downstream order. The v1 adapter preserves its raw-array wire.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Active mobile division list.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileDivisionListResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorProblem"
+          }
+        }
+      }
+    },
+    "/api/v2/mobile/public/config/divisions/{id}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/MobileDivisionId"
+        }
+      ],
+      "get": {
+        "operationId": "getMobileDivision",
+        "tags": [
+          "MobileConfiguration"
+        ],
+        "summary": "Get a mobile division",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Requested mobile division.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileDivision"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundProblem"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorProblem"
+          }
+        }
+      }
+    },
+    "/api/v2/mobile/secure/config/divisions": {
+      "post": {
+        "operationId": "createMobileDivision",
+        "tags": [
+          "MobileConfiguration"
+        ],
+        "summary": "Create a mobile division",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "data"
+                ],
+                "properties": {
+                  "data": {
+                    "$ref": "#/components/schemas/CreateMobileDivisionRequest"
+                  },
+                  "image": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "encoding": {
+                "data": {
+                  "contentType": "application/json"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created mobile division.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileDivision"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestProblem"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedProblem"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenProblem"
+          },
+          "413": {
+            "$ref": "#/components/responses/PayloadTooLargeProblem"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorProblem"
+          }
+        }
+      }
+    },
+    "/api/v2/mobile/secure/config/divisions/{id}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/MobileDivisionId"
+        }
+      ],
+      "put": {
+        "operationId": "updateMobileDivision",
+        "tags": [
+          "MobileConfiguration"
+        ],
+        "summary": "Update a mobile division",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "data"
+                ],
+                "properties": {
+                  "data": {
+                    "$ref": "#/components/schemas/UpdateMobileDivisionRequest"
+                  },
+                  "image": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "encoding": {
+                "data": {
+                  "contentType": "application/json"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated mobile division.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileDivision"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestProblem"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedProblem"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenProblem"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundProblem"
+          },
+          "413": {
+            "$ref": "#/components/responses/PayloadTooLargeProblem"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorProblem"
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deactivateMobileDivision",
+        "tags": [
+          "MobileConfiguration"
+        ],
+        "summary": "Deactivate a mobile division",
+        "responses": {
+          "204": {
+            "description": "Mobile division deactivated."
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedProblem"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenProblem"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundProblem"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorProblem"
+          }
+        }
+      }
+    },
+    "/api/v2/mobile/public/config/legal/{type}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/MobileLegalDocumentType"
+        }
+      ],
+      "get": {
+        "operationId": "getMobileLegalDocument",
+        "tags": [
+          "MobileConfiguration"
+        ],
+        "summary": "Get a mobile legal document",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Requested legal document.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileLegalDocument"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorProblem"
+          }
+        }
+      }
+    },
+    "/api/v2/mobile/secure/config/legal/{type}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/MobileLegalDocumentType"
+        }
+      ],
+      "put": {
+        "operationId": "updateMobileLegalDocument",
+        "tags": [
+          "MobileConfiguration"
+        ],
+        "summary": "Update a mobile legal document",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMobileLegalDocumentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated legal document.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileLegalDocument"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestProblem"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedProblem"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenProblem"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorProblem"
+          }
+        }
+      }
+    },
+    "/api/v2/mobile/secure/config/raw-divisions": {
+      "post": {
+        "operationId": "createMobileRawDivisionMapping",
+        "tags": [
+          "MobileConfiguration"
+        ],
+        "summary": "Create a mobile raw-division mapping",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateMobileRawDivisionMappingRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created raw-division mapping.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileRawDivisionMapping"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestProblem"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedProblem"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenProblem"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorProblem"
+          }
+        }
+      },
+      "get": {
+        "operationId": "listMobileRawDivisionMappings",
+        "tags": [
+          "MobileConfiguration"
+        ],
+        "summary": "List mobile raw-division mappings",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/MobileLeagueCode"
+          },
+          {
+            "$ref": "#/components/parameters/MobileSeason"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Filtered raw-division mappings in current downstream order.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileRawDivisionMappingListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedProblem"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorProblem"
+          }
+        }
+      }
+    },
+    "/api/v2/mobile/secure/config/raw-divisions/{id}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/MobileRawDivisionMappingId"
+        }
+      ],
+      "get": {
+        "operationId": "getMobileRawDivisionMapping",
+        "tags": [
+          "MobileConfiguration"
+        ],
+        "summary": "Get a mobile raw-division mapping",
+        "responses": {
+          "200": {
+            "description": "Requested raw-division mapping.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileRawDivisionMapping"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedProblem"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundProblem"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorProblem"
+          }
+        }
+      },
+      "put": {
+        "operationId": "updateMobileRawDivisionMapping",
+        "tags": [
+          "MobileConfiguration"
+        ],
+        "summary": "Update a mobile raw-division mapping",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMobileRawDivisionMappingRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated raw-division mapping.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileRawDivisionMapping"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestProblem"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedProblem"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenProblem"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundProblem"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorProblem"
+          }
+        }
+      }
+    },
+    "/api/v2/mobile/secure/config/scrapers/{name}/enabled": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/MobileScraperName"
+        }
+      ],
+      "put": {
+        "operationId": "updateMobileScraperEnabled",
+        "tags": [
+          "MobileConfiguration"
+        ],
+        "summary": "Update a scraper switch",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/MobileScraperEnabled"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Updated scraper status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileScraperStatus"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestProblem"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedProblem"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenProblem"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundProblem"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorProblem"
+          }
+        }
+      }
+    },
+    "/api/v2/mobile/secure/config/scrapers/status": {
+      "get": {
+        "operationId": "listMobileScraperStatuses",
+        "tags": [
+          "MobileConfiguration"
+        ],
+        "summary": "List scraper switches",
+        "responses": {
+          "200": {
+            "description": "Scraper status list.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileScraperStatusListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedProblem"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorProblem"
+          }
+        }
+      }
+    },
+    "/api/v2/mobile/secure/notifications": {
+      "get": {
+        "operationId": "listMobileNotifications",
+        "tags": [
+          "MobileNotifications"
+        ],
+        "summary": "List current-user mobile notifications",
+        "description": "Enriches downstream notification snapshots with division logos. A missing division logo remains nullable and must not invalidate the whole canonical page.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Page"
+          },
+          {
+            "$ref": "#/components/parameters/PageSize"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current-user mobile notification page.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileNotificationPageResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestProblem"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedProblem"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorProblem"
+          }
+        }
+      }
+    },
+    "/api/v2/mobile/secure/notifications/unread-count": {
+      "get": {
+        "operationId": "getMobileUnreadNotificationCount",
+        "tags": [
+          "MobileNotifications"
+        ],
+        "summary": "Get the current user's unread notification count",
+        "responses": {
+          "200": {
+            "description": "Unread notification count.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileUnreadNotificationCount"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedProblem"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorProblem"
+          }
+        }
+      }
+    },
+    "/api/v2/mobile/secure/notifications/{id}/read": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/MobileNotificationId"
+        }
+      ],
+      "post": {
+        "operationId": "markMobileNotificationRead",
+        "tags": [
+          "MobileNotifications"
+        ],
+        "summary": "Mark a mobile notification as read",
+        "responses": {
+          "204": {
+            "description": "Notification marked read."
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedProblem"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundProblem"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorProblem"
+          }
+        }
+      }
+    },
+    "/api/v2/mobile/secure/notifications/{id}/opened": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/MobileNotificationId"
+        }
+      ],
+      "post": {
+        "operationId": "markMobileNotificationOpened",
+        "tags": [
+          "MobileNotifications"
+        ],
+        "summary": "Mark a mobile notification as opened",
+        "responses": {
+          "204": {
+            "description": "Notification marked opened."
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedProblem"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundProblem"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorProblem"
+          }
+        }
+      }
+    },
+    "/api/v2/mobile/secure/notifications/{id}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/MobileNotificationId"
+        }
+      ],
+      "delete": {
+        "operationId": "deleteMobileNotification",
+        "tags": [
+          "MobileNotifications"
+        ],
+        "summary": "Delete a mobile notification",
+        "responses": {
+          "204": {
+            "description": "Notification deleted."
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedProblem"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundProblem"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorProblem"
+          }
+        }
+      }
+    },
+    "/api/v2/mobile/secure/notifications/users/{userId}/push-tokens": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/MobileUserId"
+        }
+      ],
+      "post": {
+        "operationId": "registerMobilePushToken",
+        "tags": [
+          "MobileNotifications"
+        ],
+        "summary": "Register a current-user mobile push token",
+        "description": "Preserves the audited userId path until subject-binding security work is approved. Provider messages and delivery state remain outside this boundary.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterMobilePushTokenRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Push-token registration accepted."
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestProblem"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedProblem"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundProblem"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorProblem"
+          }
+        }
+      }
+    },
+    "/api/v2/mobile/public/reports": {
+      "post": {
+        "operationId": "createMobileReport",
+        "tags": [
+          "MobileReports"
+        ],
+        "summary": "Submit a mobile report",
+        "description": "Public Blockout report workflow. GitHub, Discord, S3, and uploaded attachment URL models remain behind downstream adapters.",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "data"
+                ],
+                "properties": {
+                  "data": {
+                    "$ref": "#/components/schemas/CreateMobileReportRequest"
+                  },
+                  "images": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "binary"
+                    }
+                  }
+                },
+                "additionalProperties": false
+              },
+              "encoding": {
+                "data": {
+                  "contentType": "application/json"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created Blockout report.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileReportCreated"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestProblem"
+          },
+          "413": {
+            "$ref": "#/components/responses/PayloadTooLargeProblem"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorProblem"
+          }
+        }
+      }
+    },
+    "/api/v2/mobile/public/search/clubs": {
+      "get": {
+        "operationId": "searchMobileClubs",
+        "tags": [
+          "MobileSearch"
+        ],
+        "summary": "Search mobile clubs",
+        "description": "Returns a bounded product projection. Empty results use an items wrapper; the v1 adapter preserves its current empty-to-204 behavior.",
+        "security": [],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/MobileSearchQuery"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Bounded mobile club results.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileClubSearchListResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestProblem"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorProblem"
+          }
+        }
+      }
+    },
+    "/api/v2/mobile/public/search/teams": {
+      "get": {
+        "operationId": "searchMobileTeams",
+        "tags": [
+          "MobileSearch"
+        ],
+        "summary": "Search mobile teams",
+        "security": [],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/MobileSearchQuery"
+          },
+          {
+            "$ref": "#/components/parameters/MobileSeason"
+          },
+          {
+            "$ref": "#/components/parameters/MobileSearchDivisionId"
+          },
+          {
+            "$ref": "#/components/parameters/MobileSearchFormat"
+          },
+          {
+            "$ref": "#/components/parameters/MobileSearchGender"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Bounded mobile team results.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileTeamSearchListResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestProblem"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorProblem"
+          }
+        }
+      }
+    },
+    "/api/v2/mobile/public/search/pools": {
+      "get": {
+        "operationId": "searchMobilePools",
+        "tags": [
+          "MobileSearch"
+        ],
+        "summary": "Search mobile pools",
+        "security": [],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/MobileSearchQuery"
+          },
+          {
+            "$ref": "#/components/parameters/MobileSeason"
+          },
+          {
+            "$ref": "#/components/parameters/MobileSearchDivisionId"
+          },
+          {
+            "$ref": "#/components/parameters/MobileSearchFormat"
+          },
+          {
+            "$ref": "#/components/parameters/MobileSearchGender"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Bounded mobile pool results.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobilePoolSearchListResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestProblem"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorProblem"
+          }
+        }
+      }
+    },
+    "/api/v2/mobile/secure/users/{auth0Id}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/MobileAuth0Id"
+        }
+      ],
+      "put": {
+        "operationId": "updateMobileUser",
+        "tags": [
+          "MobileUsers"
+        ],
+        "summary": "Update the mobile user profile",
+        "description": "Preserves the existing path-subject workflow without claiming an authorization correction. The multipart command uses explicit picture-removal intent.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "data"
+                ],
+                "properties": {
+                  "data": {
+                    "$ref": "#/components/schemas/UpdateMobileUserRequest"
+                  },
+                  "image": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "encoding": {
+                "data": {
+                  "contentType": "application/json"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated mobile user.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileUser"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestProblem"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedProblem"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenProblem"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundProblem"
+          },
+          "409": {
+            "$ref": "#/components/responses/ConflictProblem"
+          },
+          "413": {
+            "$ref": "#/components/responses/PayloadTooLargeProblem"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorProblem"
+          }
+        }
+      }
+    },
+    "/api/v2/mobile/secure/users/me": {
+      "put": {
+        "operationId": "ensureCurrentMobileUser",
+        "tags": [
+          "MobileUsers"
+        ],
+        "summary": "Ensure the current mobile user",
+        "responses": {
+          "200": {
+            "description": "Current mobile user.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileUser"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedProblem"
+          },
+          "409": {
+            "$ref": "#/components/responses/ConflictProblem"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorProblem"
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteCurrentMobileUser",
+        "tags": [
+          "MobileUsers"
+        ],
+        "summary": "Delete the current mobile user",
+        "description": "Preserves the current downstream deletion orchestration. Client sign-out and cross-service cleanup corrections remain later work.",
+        "responses": {
+          "204": {
+            "description": "Current mobile user deleted."
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedProblem"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundProblem"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorProblem"
+          }
+        }
+      }
+    },
+    "/api/v2/mobile/secure/favorites/follow": {
+      "post": {
+        "operationId": "followMobileEntity",
+        "tags": [
+          "MobileUsers"
+        ],
+        "summary": "Follow a mobile team or pool",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/MobileFavoriteEntityType"
+          },
+          {
+            "$ref": "#/components/parameters/MobileFavoriteEntityId"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Favorite present or already present."
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestProblem"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedProblem"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenProblem"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundProblem"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorProblem"
+          }
+        }
+      },
+      "delete": {
+        "operationId": "unfollowMobileEntity",
+        "tags": [
+          "MobileUsers"
+        ],
+        "summary": "Unfollow a mobile team or pool",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/MobileFavoriteEntityType"
+          },
+          {
+            "$ref": "#/components/parameters/MobileFavoriteEntityId"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Favorite absent or removed."
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestProblem"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedProblem"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenProblem"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundProblem"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorProblem"
+          }
+        }
+      }
+    }
+  },
   "components": {
     "securitySchemes": {
       "bearerAuth": {
@@ -41,6 +1237,140 @@
           "minimum": 1,
           "maximum": 100,
           "default": 25
+        }
+      },
+      "MobileDivisionId": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "$ref": "#/components/schemas/NumericIdentifier"
+        }
+      },
+      "MobileLegalDocumentType": {
+        "name": "type",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "maxLength": 50
+        }
+      },
+      "MobileRawDivisionMappingId": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "$ref": "#/components/schemas/NumericIdentifier"
+        }
+      },
+      "MobileLeagueCode": {
+        "name": "leagueCode",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "maxLength": 255
+        }
+      },
+      "MobileSeason": {
+        "name": "season",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "maxLength": 255
+        }
+      },
+      "MobileScraperName": {
+        "name": "name",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "$ref": "#/components/schemas/ScraperNameEnum"
+        }
+      },
+      "MobileScraperEnabled": {
+        "name": "enabled",
+        "in": "query",
+        "required": true,
+        "schema": {
+          "type": "boolean"
+        }
+      },
+      "MobileAuth0Id": {
+        "name": "auth0Id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255
+        }
+      },
+      "MobileFavoriteEntityType": {
+        "name": "entityType",
+        "in": "query",
+        "required": true,
+        "schema": {
+          "$ref": "#/components/schemas/EntityTypeEnum"
+        }
+      },
+      "MobileFavoriteEntityId": {
+        "name": "entityId",
+        "in": "query",
+        "required": true,
+        "schema": {
+          "$ref": "#/components/schemas/NumericIdentifier"
+        }
+      },
+      "MobileSearchQuery": {
+        "name": "query",
+        "in": "query",
+        "required": true,
+        "description": "Search text. Blank input intentionally selects random examples.",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "MobileSearchDivisionId": {
+        "name": "divisionId",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "$ref": "#/components/schemas/NumericIdentifier"
+        }
+      },
+      "MobileSearchFormat": {
+        "name": "format",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "$ref": "#/components/schemas/FormatEnum"
+        }
+      },
+      "MobileSearchGender": {
+        "name": "gender",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "$ref": "#/components/schemas/GenderEnum"
+        }
+      },
+      "MobileNotificationId": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "$ref": "#/components/schemas/NumericIdentifier"
+        }
+      },
+      "MobileUserId": {
+        "name": "userId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "$ref": "#/components/schemas/UuidIdentifier"
         }
       }
     },
@@ -162,6 +1492,793 @@
       }
     },
     "schemas": {
+      "MobileAppStatus": {
+        "type": "object",
+        "description": "Expo-facing application status without persistence identity.",
+        "required": [
+          "maintenance",
+          "message",
+          "imageUrl",
+          "minVersionIos",
+          "minVersionAndroid",
+          "storeUrlIos",
+          "storeUrlAndroid",
+          "forceUpdateMessage",
+          "lastUpdate"
+        ],
+        "properties": {
+          "maintenance": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string",
+            "nullable": true
+          },
+          "imageUrl": {
+            "type": "string",
+            "maxLength": 2048,
+            "nullable": true
+          },
+          "minVersionIos": {
+            "type": "string",
+            "maxLength": 255,
+            "nullable": true
+          },
+          "minVersionAndroid": {
+            "type": "string",
+            "maxLength": 255,
+            "nullable": true
+          },
+          "storeUrlIos": {
+            "type": "string",
+            "maxLength": 2048,
+            "nullable": true
+          },
+          "storeUrlAndroid": {
+            "type": "string",
+            "maxLength": 2048,
+            "nullable": true
+          },
+          "forceUpdateMessage": {
+            "type": "string",
+            "nullable": true
+          },
+          "lastUpdate": {
+            "$ref": "#/components/schemas/UtcDateTime"
+          }
+        },
+        "additionalProperties": false
+      },
+      "UpdateMobileAppStatusRequest": {
+        "type": "object",
+        "description": "Partial mobile administration command. Omitted and null properties both preserve the stored value.",
+        "properties": {
+          "maintenance": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "message": {
+            "type": "string",
+            "nullable": true
+          },
+          "imageUrl": {
+            "type": "string",
+            "maxLength": 2048,
+            "nullable": true
+          },
+          "minVersionIos": {
+            "type": "string",
+            "maxLength": 255,
+            "nullable": true
+          },
+          "minVersionAndroid": {
+            "type": "string",
+            "maxLength": 255,
+            "nullable": true
+          },
+          "storeUrlIos": {
+            "type": "string",
+            "maxLength": 2048,
+            "nullable": true
+          },
+          "storeUrlAndroid": {
+            "type": "string",
+            "maxLength": 2048,
+            "nullable": true
+          },
+          "forceUpdateMessage": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "MobileDivisionListResponse": {
+        "type": "object",
+        "description": "Bounded active division catalog in current downstream order.",
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MobileDivision"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "MobileDivision": {
+        "type": "object",
+        "description": "Expo-facing division catalog item.",
+        "required": [
+          "id",
+          "name",
+          "mainColor",
+          "firstGradientColor",
+          "secondGradientColor",
+          "thirdGradientColor",
+          "logoUrl",
+          "active"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/NumericIdentifier"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          },
+          "mainColor": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 32
+          },
+          "firstGradientColor": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 32
+          },
+          "secondGradientColor": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 32
+          },
+          "thirdGradientColor": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 32
+          },
+          "logoUrl": {
+            "type": "string",
+            "maxLength": 2048,
+            "nullable": true
+          },
+          "active": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "CreateMobileDivisionRequest": {
+        "type": "object",
+        "required": [
+          "name",
+          "mainColor",
+          "firstGradientColor",
+          "secondGradientColor",
+          "thirdGradientColor"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          },
+          "mainColor": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 32
+          },
+          "firstGradientColor": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 32
+          },
+          "secondGradientColor": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 32
+          },
+          "thirdGradientColor": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 32
+          }
+        },
+        "additionalProperties": false
+      },
+      "UpdateMobileDivisionRequest": {
+        "type": "object",
+        "description": "Partial division update. Omitted and null values preserve downstream state.",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255,
+            "nullable": true
+          },
+          "mainColor": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 32,
+            "nullable": true
+          },
+          "firstGradientColor": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 32,
+            "nullable": true
+          },
+          "secondGradientColor": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 32,
+            "nullable": true
+          },
+          "thirdGradientColor": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 32,
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "MobileLegalDocument": {
+        "type": "object",
+        "required": [
+          "type",
+          "title",
+          "version",
+          "content"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 50
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "version": {
+            "type": "string",
+            "nullable": true
+          },
+          "content": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "UpdateMobileLegalDocumentRequest": {
+        "type": "object",
+        "description": "Partial legal-document update. Omitted and null values preserve stored content.",
+        "properties": {
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "version": {
+            "type": "string",
+            "nullable": true
+          },
+          "content": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "CreateMobileRawDivisionMappingRequest": {
+        "type": "object",
+        "required": [
+          "rawDivisionName",
+          "leagueCode",
+          "season"
+        ],
+        "properties": {
+          "rawDivisionName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          },
+          "divisionId": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/NumericIdentifier"
+              }
+            ],
+            "nullable": true
+          },
+          "format": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/FormatEnum"
+              }
+            ],
+            "nullable": true
+          },
+          "gender": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/GenderEnum"
+              }
+            ],
+            "nullable": true
+          },
+          "leagueCode": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          },
+          "season": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          }
+        },
+        "additionalProperties": false
+      },
+      "MobileRawDivisionMapping": {
+        "type": "object",
+        "required": [
+          "id",
+          "rawDivisionName",
+          "divisionId",
+          "format",
+          "gender",
+          "leagueCode",
+          "season"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/NumericIdentifier"
+          },
+          "rawDivisionName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          },
+          "divisionId": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/NumericIdentifier"
+              }
+            ],
+            "nullable": true
+          },
+          "format": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/FormatEnum"
+              }
+            ],
+            "nullable": true
+          },
+          "gender": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/GenderEnum"
+              }
+            ],
+            "nullable": true
+          },
+          "leagueCode": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          },
+          "season": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          }
+        },
+        "additionalProperties": false
+      },
+      "MobileRawDivisionMappingListResponse": {
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MobileRawDivisionMapping"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "UpdateMobileRawDivisionMappingRequest": {
+        "type": "object",
+        "required": [
+          "divisionId",
+          "format",
+          "gender"
+        ],
+        "properties": {
+          "divisionId": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/NumericIdentifier"
+              }
+            ],
+            "nullable": true
+          },
+          "format": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/FormatEnum"
+              }
+            ],
+            "nullable": true
+          },
+          "gender": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/GenderEnum"
+              }
+            ],
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "MobileScraperStatus": {
+        "type": "object",
+        "required": [
+          "name",
+          "enabled"
+        ],
+        "properties": {
+          "name": {
+            "$ref": "#/components/schemas/ScraperNameEnum"
+          },
+          "enabled": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "MobileScraperStatusListResponse": {
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MobileScraperStatus"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "MobileNotificationPageResponse": {
+        "type": "object",
+        "description": "Stable zero-based Expo inbox page. Handwritten hooks may derive legacy next-page state from pageInfo.",
+        "required": [
+          "items",
+          "pageInfo"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MobileNotification"
+            }
+          },
+          "pageInfo": {
+            "$ref": "#/components/schemas/PageInfo"
+          }
+        },
+        "additionalProperties": false
+      },
+      "MobileUnreadNotificationCount": {
+        "type": "object",
+        "required": [
+          "unreadCount"
+        ],
+        "properties": {
+          "unreadCount": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          }
+        },
+        "additionalProperties": false
+      },
+      "RegisterMobilePushTokenRequest": {
+        "type": "object",
+        "description": "Mobile push-registration command without Expo provider delivery models.",
+        "required": [
+          "expoPushToken",
+          "platform",
+          "deviceId"
+        ],
+        "properties": {
+          "expoPushToken": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2048
+          },
+          "platform": {
+            "$ref": "#/components/schemas/DevicePlatformEnum"
+          },
+          "deviceId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          }
+        },
+        "additionalProperties": false
+      },
+      "CreateMobileReportRequest": {
+        "type": "object",
+        "description": "Blockout-owned mobile report and diagnostic context.",
+        "required": [
+          "type",
+          "title",
+          "description",
+          "userName",
+          "screen",
+          "os"
+        ],
+        "properties": {
+          "type": {
+            "$ref": "#/components/schemas/ReportTypeEnum"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1
+          },
+          "appVersion": {
+            "type": "string",
+            "maxLength": 255,
+            "nullable": true
+          },
+          "userId": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UuidIdentifier"
+              }
+            ],
+            "nullable": true
+          },
+          "userName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          },
+          "screen": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          },
+          "deviceModel": {
+            "type": "string",
+            "maxLength": 255,
+            "nullable": true
+          },
+          "os": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          }
+        },
+        "additionalProperties": false
+      },
+      "MobileReportCreated": {
+        "type": "object",
+        "description": "Provider-independent report-submission result.",
+        "required": [
+          "number",
+          "htmlUrl",
+          "title"
+        ],
+        "properties": {
+          "number": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 1
+          },
+          "htmlUrl": {
+            "type": "string",
+            "format": "uri",
+            "maxLength": 2048
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          }
+        },
+        "additionalProperties": false
+      },
+      "MobileClubSearchListResponse": {
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "maxItems": 20,
+            "items": {
+              "$ref": "#/components/schemas/MobileClubSearchResult"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "MobileTeamSearchListResponse": {
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "maxItems": 20,
+            "items": {
+              "$ref": "#/components/schemas/MobileTeamSearchResult"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "MobilePoolSearchListResponse": {
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "maxItems": 20,
+            "items": {
+              "$ref": "#/components/schemas/MobilePoolSearchResult"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "UpdateMobileUserRequest": {
+        "type": "object",
+        "description": "Profile mutation carried by the multipart data part. removePicture makes image intent explicit.",
+        "required": [
+          "removePicture"
+        ],
+        "properties": {
+          "pseudo": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255,
+            "nullable": true
+          },
+          "removePicture": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "MobileUser": {
+        "type": "object",
+        "description": "Expo session and profile projection. The local UUID is canonical; Auth0 remains a compatibility identity input.",
+        "required": [
+          "id",
+          "auth0Id",
+          "email",
+          "pseudo",
+          "pictureUrl",
+          "favorites"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/UuidIdentifier"
+          },
+          "auth0Id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 255
+          },
+          "pseudo": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          },
+          "pictureUrl": {
+            "type": "string",
+            "format": "uri",
+            "maxLength": 2048,
+            "nullable": true
+          },
+          "favorites": {
+            "type": "array",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/MobileUserFavorite"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "NumericIdentifier": {
+        "type": "integer",
+        "format": "int64",
+        "minimum": 1,
+        "description": "Canonical positive numeric identifier wire shape.",
+        "x-java-type": "java.lang.Long"
+      },
+      "ScraperNameEnum": {
+        "type": "string",
+        "description": "Blockout-owned scraper process identifiers.",
+        "enum": [
+          "SCRAPER",
+          "SCRAPER_CLUBS"
+        ]
+      },
+      "EntityTypeEnum": {
+        "type": "string",
+        "description": "Entity kinds that can be followed by a Blockout user.",
+        "enum": [
+          "TEAM",
+          "POOL"
+        ]
+      },
+      "FormatEnum": {
+        "type": "string",
+        "description": "Supported Blockout team formats.",
+        "enum": [
+          "SIX",
+          "FOUR",
+          "TWO"
+        ]
+      },
+      "GenderEnum": {
+        "type": "string",
+        "description": "Gender category used by Blockout competition data.",
+        "enum": [
+          "M",
+          "F",
+          "O"
+        ]
+      },
+      "UuidIdentifier": {
+        "type": "string",
+        "format": "uuid",
+        "description": "Canonical UUID identifier wire shape.",
+        "x-java-type": "java.util.UUID"
+      },
       "ProblemDetail": {
         "type": "object",
         "description": "Canonical Blockout Problem Details body. Legacy v1 error bodies remain compatibility-adapter owned.",
@@ -197,6 +2314,262 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 255
+          }
+        },
+        "additionalProperties": false
+      },
+      "UtcDateTime": {
+        "type": "string",
+        "format": "date-time",
+        "description": "RFC 3339 timestamp normalized to UTC on Blockout-owned wires.",
+        "x-java-type": "java.time.Instant"
+      },
+      "MobileNotification": {
+        "type": "object",
+        "description": "Minimal Expo inbox projection enriched with an optional division logo.",
+        "required": [
+          "id",
+          "title",
+          "body",
+          "deepLink",
+          "createdAt",
+          "divisionLogoUrl"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/NumericIdentifier"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1
+          },
+          "body": {
+            "type": "string",
+            "minLength": 1
+          },
+          "deepLink": {
+            "type": "string",
+            "maxLength": 2048,
+            "nullable": true
+          },
+          "createdAt": {
+            "$ref": "#/components/schemas/UtcDateTime"
+          },
+          "divisionLogoUrl": {
+            "type": "string",
+            "maxLength": 2048,
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "PageInfo": {
+        "type": "object",
+        "description": "Pagination metadata for zero-based Blockout collection responses. hasNext is guaranteed; totalItems is optional unless an operation explicitly guarantees an exact count.",
+        "required": [
+          "page",
+          "pageSize",
+          "hasNext"
+        ],
+        "properties": {
+          "page": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "pageSize": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "totalItems": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "hasNext": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "DevicePlatformEnum": {
+        "type": "string",
+        "description": "Platforms accepted by Blockout notification token contracts.",
+        "enum": [
+          "IOS",
+          "ANDROID",
+          "WEB",
+          "UNKNOWN"
+        ]
+      },
+      "ReportTypeEnum": {
+        "type": "string",
+        "description": "User-facing Blockout report categories.",
+        "enum": [
+          "DISPLAY_BUG",
+          "DATA_ERROR",
+          "LOGO",
+          "LIVE",
+          "OTHER"
+        ]
+      },
+      "MobileClubSearchResult": {
+        "type": "object",
+        "description": "Club card and navigation projection consumed by Expo search.",
+        "required": [
+          "id",
+          "name",
+          "logoUrl",
+          "city"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "logoUrl": {
+            "type": "string",
+            "maxLength": 2048,
+            "nullable": true
+          },
+          "city": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "MobileTeamSearchResult": {
+        "type": "object",
+        "description": "Team card, label, image, and navigation projection consumed by Expo search.",
+        "required": [
+          "id",
+          "name",
+          "logoUrl",
+          "divisionName",
+          "format",
+          "gender",
+          "season"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/NumericIdentifier"
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "logoUrl": {
+            "type": "string",
+            "maxLength": 2048,
+            "nullable": true
+          },
+          "divisionName": {
+            "type": "string",
+            "nullable": true
+          },
+          "format": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/FormatEnum"
+              }
+            ],
+            "nullable": true
+          },
+          "gender": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/GenderEnum"
+              }
+            ],
+            "nullable": true
+          },
+          "season": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "MobilePoolSearchResult": {
+        "type": "object",
+        "description": "Pool card, label, image, and navigation projection consumed by Expo search.",
+        "required": [
+          "id",
+          "name",
+          "divisionName",
+          "leagueCode",
+          "leagueName",
+          "season",
+          "format",
+          "gender",
+          "logoUrl"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/NumericIdentifier"
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "divisionName": {
+            "type": "string",
+            "nullable": true
+          },
+          "leagueCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "leagueName": {
+            "type": "string",
+            "nullable": true
+          },
+          "season": {
+            "type": "string",
+            "nullable": true
+          },
+          "format": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/FormatEnum"
+              }
+            ],
+            "nullable": true
+          },
+          "gender": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/GenderEnum"
+              }
+            ],
+            "nullable": true
+          },
+          "logoUrl": {
+            "type": "string",
+            "maxLength": 2048,
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "MobileUserFavorite": {
+        "type": "object",
+        "required": [
+          "entityType",
+          "entityId"
+        ],
+        "properties": {
+          "entityType": {
+            "$ref": "#/components/schemas/EntityTypeEnum"
+          },
+          "entityId": {
+            "$ref": "#/components/schemas/NumericIdentifier"
           }
         },
         "additionalProperties": false

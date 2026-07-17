@@ -1,0 +1,49 @@
+{
+  "MobileUser": {
+    "type": "object",
+    "description": "Expo session and profile projection. The local UUID is canonical; Auth0 remains a compatibility identity input.",
+    "required": ["id", "auth0Id", "email", "pseudo", "pictureUrl", "favorites"],
+    "properties": {
+      "id": { "$ref": "#/components/schemas/UuidIdentifier" },
+      "auth0Id": { "type": "string", "minLength": 1, "maxLength": 255 },
+      "email": { "type": "string", "format": "email", "maxLength": 255 },
+      "pseudo": { "type": "string", "minLength": 1, "maxLength": 255 },
+      "pictureUrl": {
+        "type": "string",
+        "format": "uri",
+        "maxLength": 2048,
+        "nullable": true
+      },
+      "favorites": {
+        "type": "array",
+        "nullable": true,
+        "items": { "$ref": "#/components/schemas/MobileUserFavorite" }
+      }
+    },
+    "additionalProperties": false
+  },
+  "MobileUserFavorite": {
+    "type": "object",
+    "required": ["entityType", "entityId"],
+    "properties": {
+      "entityType": { "$ref": "#/components/schemas/EntityTypeEnum" },
+      "entityId": { "$ref": "#/components/schemas/NumericIdentifier" }
+    },
+    "additionalProperties": false
+  },
+  "UpdateMobileUserRequest": {
+    "type": "object",
+    "description": "Profile mutation carried by the multipart data part. removePicture makes image intent explicit.",
+    "required": ["removePicture"],
+    "properties": {
+      "pseudo": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 255,
+        "nullable": true
+      },
+      "removePicture": { "type": "boolean" }
+    },
+    "additionalProperties": false
+  }
+}

@@ -1,0 +1,59 @@
+{
+  "MobileNotification": {
+    "type": "object",
+    "description": "Minimal Expo inbox projection enriched with an optional division logo.",
+    "required": [
+      "id",
+      "title",
+      "body",
+      "deepLink",
+      "createdAt",
+      "divisionLogoUrl"
+    ],
+    "properties": {
+      "id": { "$ref": "#/components/schemas/NumericIdentifier" },
+      "title": { "type": "string", "minLength": 1 },
+      "body": { "type": "string", "minLength": 1 },
+      "deepLink": { "type": "string", "maxLength": 2048, "nullable": true },
+      "createdAt": { "$ref": "#/components/schemas/UtcDateTime" },
+      "divisionLogoUrl": {
+        "type": "string",
+        "maxLength": 2048,
+        "nullable": true
+      }
+    },
+    "additionalProperties": false
+  },
+  "MobileNotificationPageResponse": {
+    "type": "object",
+    "description": "Stable zero-based Expo inbox page. Handwritten hooks may derive legacy next-page state from pageInfo.",
+    "required": ["items", "pageInfo"],
+    "properties": {
+      "items": {
+        "type": "array",
+        "items": { "$ref": "#/components/schemas/MobileNotification" }
+      },
+      "pageInfo": { "$ref": "#/components/schemas/PageInfo" }
+    },
+    "additionalProperties": false
+  },
+  "MobileUnreadNotificationCount": {
+    "type": "object",
+    "required": ["unreadCount"],
+    "properties": {
+      "unreadCount": { "type": "integer", "format": "int64", "minimum": 0 }
+    },
+    "additionalProperties": false
+  },
+  "RegisterMobilePushTokenRequest": {
+    "type": "object",
+    "description": "Mobile push-registration command without Expo provider delivery models.",
+    "required": ["expoPushToken", "platform", "deviceId"],
+    "properties": {
+      "expoPushToken": { "type": "string", "minLength": 1, "maxLength": 2048 },
+      "platform": { "$ref": "#/components/schemas/DevicePlatformEnum" },
+      "deviceId": { "type": "string", "minLength": 1, "maxLength": 255 }
+    },
+    "additionalProperties": false
+  }
+}

@@ -327,6 +327,22 @@ receives no OpenAPI server contract, and must consume the already approved servi
 clients. Its RabbitMQ payloads remain governed by MRG-315, while caches, index documents, mappings, versioned indices,
 alias swaps, reconciliation, and rollback remain worker application/infrastructure concerns.
 
+## Mobile-Gateway Relay Workflows
+
+MRG-327 makes 30 Expo-facing relay operations authoritative in the `mobile-gateway` bundle: configuration, account and
+favorites, reports, search, and notifications. These operations use the exact public/secure `/api/v2/mobile/**` split
+approved by MRG-304. Public operations declare empty security locally; secure operations inherit bearer security.
+
+Every schema is BFF-owned and named for the mobile workflow. No downstream `Internal` DTO is reused across the boundary.
+Complete configuration and search collections use typed `items` wrappers, notifications use `items + pageInfo`, and
+multipart JSON parts are typed camelCase requests. The notification view contains only the six fields consumed by the
+mobile inbox, including the BFF-enriched nullable division logo. The local user UUID is canonical, vendor/report/search
+store models stay outside the bundle, and no BFF cache representation enters the wire contract.
+
+This source defines target v2 behavior only. Isolated v1 adapters retain current raw arrays, `count` and `nextPage`,
+snake_case multipart/query fields, statuses, authentication, caching, null, fallback, and partial-failure semantics
+until the owning vertical migration. MRG-357 and MRG-358 add the remaining aggregation workflows later.
+
 ## Closed Boundaries
 
 - `search-worker` has no REST controller and receives no source directory or generated server bundle.

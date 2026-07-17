@@ -1,0 +1,33 @@
+{
+  "CreateMobileReportRequest": {
+    "type": "object",
+    "description": "Blockout-owned mobile report and diagnostic context.",
+    "required": ["type", "title", "description", "userName", "screen", "os"],
+    "properties": {
+      "type": { "$ref": "#/components/schemas/ReportTypeEnum" },
+      "title": { "type": "string", "minLength": 1, "maxLength": 255 },
+      "description": { "type": "string", "minLength": 1 },
+      "appVersion": { "type": "string", "maxLength": 255, "nullable": true },
+      "userId": {
+        "allOf": [{ "$ref": "#/components/schemas/UuidIdentifier" }],
+        "nullable": true
+      },
+      "userName": { "type": "string", "minLength": 1, "maxLength": 255 },
+      "screen": { "type": "string", "minLength": 1, "maxLength": 255 },
+      "deviceModel": { "type": "string", "maxLength": 255, "nullable": true },
+      "os": { "type": "string", "minLength": 1, "maxLength": 255 }
+    },
+    "additionalProperties": false
+  },
+  "MobileReportCreated": {
+    "type": "object",
+    "description": "Provider-independent report-submission result.",
+    "required": ["number", "htmlUrl", "title"],
+    "properties": {
+      "number": { "type": "integer", "format": "int32", "minimum": 1 },
+      "htmlUrl": { "type": "string", "format": "uri", "maxLength": 2048 },
+      "title": { "type": "string", "minLength": 1, "maxLength": 255 }
+    },
+    "additionalProperties": false
+  }
+}

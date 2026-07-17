@@ -1,0 +1,118 @@
+{
+  "/api/v2/mobile/secure/notifications": {
+    "get": {
+      "operationId": "listMobileNotifications",
+      "tags": ["MobileNotifications"],
+      "summary": "List current-user mobile notifications",
+      "description": "Enriches downstream notification snapshots with division logos. A missing division logo remains nullable and must not invalidate the whole canonical page.",
+      "parameters": [
+        { "$ref": "#/components/parameters/Page" },
+        { "$ref": "#/components/parameters/PageSize" }
+      ],
+      "responses": {
+        "200": {
+          "description": "Current-user mobile notification page.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MobileNotificationPageResponse"
+              }
+            }
+          }
+        },
+        "400": { "$ref": "#/components/responses/BadRequestProblem" },
+        "401": { "$ref": "#/components/responses/UnauthorizedProblem" },
+        "500": { "$ref": "#/components/responses/InternalServerErrorProblem" }
+      }
+    }
+  },
+  "/api/v2/mobile/secure/notifications/unread-count": {
+    "get": {
+      "operationId": "getMobileUnreadNotificationCount",
+      "tags": ["MobileNotifications"],
+      "summary": "Get the current user's unread notification count",
+      "responses": {
+        "200": {
+          "description": "Unread notification count.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MobileUnreadNotificationCount"
+              }
+            }
+          }
+        },
+        "401": { "$ref": "#/components/responses/UnauthorizedProblem" },
+        "500": { "$ref": "#/components/responses/InternalServerErrorProblem" }
+      }
+    }
+  },
+  "/api/v2/mobile/secure/notifications/{id}/read": {
+    "parameters": [{ "$ref": "#/components/parameters/MobileNotificationId" }],
+    "post": {
+      "operationId": "markMobileNotificationRead",
+      "tags": ["MobileNotifications"],
+      "summary": "Mark a mobile notification as read",
+      "responses": {
+        "204": { "description": "Notification marked read." },
+        "401": { "$ref": "#/components/responses/UnauthorizedProblem" },
+        "404": { "$ref": "#/components/responses/NotFoundProblem" },
+        "500": { "$ref": "#/components/responses/InternalServerErrorProblem" }
+      }
+    }
+  },
+  "/api/v2/mobile/secure/notifications/{id}/opened": {
+    "parameters": [{ "$ref": "#/components/parameters/MobileNotificationId" }],
+    "post": {
+      "operationId": "markMobileNotificationOpened",
+      "tags": ["MobileNotifications"],
+      "summary": "Mark a mobile notification as opened",
+      "responses": {
+        "204": { "description": "Notification marked opened." },
+        "401": { "$ref": "#/components/responses/UnauthorizedProblem" },
+        "404": { "$ref": "#/components/responses/NotFoundProblem" },
+        "500": { "$ref": "#/components/responses/InternalServerErrorProblem" }
+      }
+    }
+  },
+  "/api/v2/mobile/secure/notifications/{id}": {
+    "parameters": [{ "$ref": "#/components/parameters/MobileNotificationId" }],
+    "delete": {
+      "operationId": "deleteMobileNotification",
+      "tags": ["MobileNotifications"],
+      "summary": "Delete a mobile notification",
+      "responses": {
+        "204": { "description": "Notification deleted." },
+        "401": { "$ref": "#/components/responses/UnauthorizedProblem" },
+        "404": { "$ref": "#/components/responses/NotFoundProblem" },
+        "500": { "$ref": "#/components/responses/InternalServerErrorProblem" }
+      }
+    }
+  },
+  "/api/v2/mobile/secure/notifications/users/{userId}/push-tokens": {
+    "parameters": [{ "$ref": "#/components/parameters/MobileUserId" }],
+    "post": {
+      "operationId": "registerMobilePushToken",
+      "tags": ["MobileNotifications"],
+      "summary": "Register a current-user mobile push token",
+      "description": "Preserves the audited userId path until subject-binding security work is approved. Provider messages and delivery state remain outside this boundary.",
+      "requestBody": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/RegisterMobilePushTokenRequest"
+            }
+          }
+        }
+      },
+      "responses": {
+        "202": { "description": "Push-token registration accepted." },
+        "400": { "$ref": "#/components/responses/BadRequestProblem" },
+        "401": { "$ref": "#/components/responses/UnauthorizedProblem" },
+        "404": { "$ref": "#/components/responses/NotFoundProblem" },
+        "500": { "$ref": "#/components/responses/InternalServerErrorProblem" }
+      }
+    }
+  }
+}
