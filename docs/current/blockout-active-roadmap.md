@@ -324,9 +324,15 @@ state moves to GitHub and this file becomes a historical migration record.
     adding it to any service prematurely; the current empty shared catalog generates no invented types. Two clean
     contract generations, targeted shared-model generation, the 14-module Maven package, formatting, documentation
     links, Maaatch comparison, Nx discovery, generated-source/status inspection, and diff checks pass.
-- [ ] MRG-313 Select the Expo-compatible TypeScript client and contract-schema generator, including React Query
-      integration, auth/error mutator, output ownership, caching, formatting, and generated-file policy.
-  - Execution mode: PLAN_REQUIRED
+- [x] MRG-313 Select the Expo-compatible TypeScript client and contract-schema generator, including React Query
+      integration, auth/error mutator, output ownership, caching, formatting, generated-file policy, and the mobile
+      form target.
+  - Evidence: the approved decision pins Orval `8.22.0`, Zod `4.4.3`, React Hook Form `7.72.0`, and resolvers `5.2.2`;
+    fixes mobile-owned Axios/TanStack generation, mutator and cache boundaries; separates wire, form, and request
+    shapes; replaces Formik/Yup progressively through the legal pilot and MRG-507–516; and records per-form parity
+    gates. Architecture, mobile policy, skill routing, documentation links, roadmap ownership, formatting,
+    documentation validation, Maaatch comparison, unchanged backend packaging, and diff checks pass without changing
+    dependencies, generated artifacts, Expo source, or runtime behavior.
 - [ ] MRG-314 Decide whether the two Python scrapers use a generated Python client, generated models with handwritten
       transport, or a typed handwritten adapter; define packaging, async support, auth, multipart, and retry criteria.
   - Execution mode: PLAN_REQUIRED
@@ -361,10 +367,15 @@ state moves to GitHub and this file becomes a historical migration record.
       enriched fields and explicit ordering, missing-data, privacy, and partial-result semantics.
 - [ ] MRG-358 Define and bundle the `mobile-gateway` competition, match, and live BFF contracts, separating list,
       detail, history, moderation, ranking, pagination, signed-link, and partial-result projections.
-- [ ] MRG-328 Configure the approved Expo generator and Nx target to produce transport clients, DTOs, and Zod contract
-      schemas from the mobile-gateway bundle without importing React Native UI or form concerns into generated code.
-- [ ] MRG-329 Adapt and activate Maaatch's Zod guidance for generated Expo contract validation while retaining the
-      existing Formik/Yup form stack until a separately planned form migration is justified.
+- [ ] MRG-328 Pin Orval `8.22.0` and add the mobile `codegen` Nx target after BFF bundle generation. Generate committed,
+      formatted, deterministic mobile-gateway models under `src/api/generated/mobile-gateway/models`, tag-split React
+      Query operations/hooks with Axios under `endpoints`, and a second Zod output with `.zod.ts` suffix under
+      `schemas`, all with `clean: true`; keep `src/api/core/orvalAxios.ts` handwritten and preserve the singleton
+      QueryClient and its current defaults.
+- [ ] MRG-329 Pin React Hook Form `7.72.0`, `@hookform/resolvers` `5.2.2`, and Zod `4.4.3`; create the allowlisted
+      `src/forms/index.ts` mobile API; adapt proven common primitives to `fieldState.error`/`isTouched`; require
+      `Controller` or `useController` for native fields; and prohibit new Formik/Yup forms while leaving unmigrated
+      forms operational until MRG-516.
 - [ ] MRG-330 Configure the approved scraper client/model generation path from the internal service bundles and keep
       generated code isolated from scraper parsing, scheduling, and domain models.
 - [ ] MRG-331 Configure generated Spring interfaces and models for `config-service`, then migrate legal-document read
@@ -372,8 +383,10 @@ state moves to GitHub and this file becomes a historical migration record.
       Problem Details compatibility, and rollback evidence.
 - [ ] MRG-332 Replace handwritten `mobile-gateway` access to the MRG-331 slice with its generated internal client and
       prove request, response, error, auth, and casing parity.
-- [ ] MRG-333 Replace the matching Expo handwritten call with the generated BFF client and generated contract schema,
-      retaining module view-model and query ownership.
+- [ ] MRG-333 Replace the legal-document Expo handwritten call with the generated BFF client and wire schema, then
+      migrate `LegalDocumentForm` as the first complete React Hook Form/Zod pilot. Preserve title, version, Markdown
+      content, exact messages, external submit registration, footer state, reset behavior, view-model/query ownership,
+      and a typed transform into the generated request.
 - [ ] MRG-376 Migrate the remaining `config-service` app-status, division, raw-mapping, and scraper-status generated
       server boundaries with application records, entity mappings, compatibility, and the search-worker generated
       snapshot client; leave BFF, Expo, and scraper caller cutovers to MRG-343, MRG-344, MRG-348, and MRG-349.
@@ -415,10 +428,16 @@ state moves to GitHub and this file becomes a historical migration record.
       immutable projections, explicit privacy, ordering, cache, fan-out, and missing-data policy.
 - [ ] MRG-368 Migrate `mobile-gateway` competition, match, and live workflows to generated clients and BFF interfaces
       with separate list, detail, ranking, history, moderation, signed-link, and partial-result projections.
-- [ ] MRG-344 Migrate Expo authentication and configuration modules to generated BFF clients and contract schemas.
-- [ ] MRG-345 Migrate Expo club, team, and pool modules to generated BFF clients and contract schemas.
-- [ ] MRG-346 Migrate Expo competition and match modules to generated BFF clients and contract schemas.
-- [ ] MRG-347 Migrate Expo user, search, notification, and report modules to generated BFF clients and contract schemas.
+- [ ] MRG-344 Migrate Expo authentication and remaining configuration modules to generated BFF clients and wire
+      schemas, preserving handwritten query/view-model policy; do not opportunistically migrate remaining forms, which
+      are owned by MRG-510 and MRG-511.
+- [ ] MRG-345 Migrate Expo club, team, and pool modules to generated BFF clients and wire schemas, preserving
+      handwritten query/view-model and multipart policy; defer editable forms to MRG-507–509.
+- [ ] MRG-346 Migrate Expo competition and match modules to generated BFF clients and wire schemas, preserving
+      handwritten pagination, projection, cache, and mutation policy; defer editable live forms to MRG-512–513.
+- [ ] MRG-347 Migrate Expo user, search, notification, and report modules to generated BFF clients and wire schemas,
+      preserving handwritten query/view-model, optimistic, image, and multipart policy; defer editable profile and
+      report forms to MRG-514–515.
 - [ ] MRG-348 Migrate `club-scraper` Blockout API boundaries to canonical camelCase using the approved generated or typed
       adapter while preserving Python snake_case identifiers and external federation payloads.
 - [ ] MRG-349 Migrate `competition-scraper` Blockout API boundaries to canonical camelCase using the approved generated
@@ -450,13 +469,14 @@ state moves to GitHub and this file becomes a historical migration record.
       the explicit MRG-304 v1 transport adapters.
 - [ ] MRG-353 Remove Expo request/response case transformation, `transformCase`, and obsolete case-conversion packages
       after every generated BFF v2 client is active; legacy mobile releases continue through the server-side v1 BFF
-      adapter rather than a converter in the current Expo release.
+      adapter rather than a converter in the current Expo release. Do not combine this casing cleanup with any form
+      migration.
 - [ ] MRG-354 Add a repository-wide allowlisted guard proving Blockout-owned REST, event, Expo, and scraper wire keys are
       camelCase while explicitly allowlisting only isolated v1 adapters, database columns, Python identifiers, and
       external vendor payloads.
-- [ ] MRG-355 Add complete contract generation, backend generation, Expo generation, scraper generation when selected,
-      event generation, formatting, compilation, deterministic no-diff checks, and v1-adapter isolation checks to local
-      verification.
+- [ ] MRG-355 Add complete contract generation, backend generation, committed Orval operation/model/Zod generation,
+      scraper generation when selected, event generation, formatting, compilation, two-run deterministic no-diff and
+      generated-file-edit guards, plus v1-adapter isolation checks to local verification.
 - [ ] MRG-356 Mark each REST and event boundary contract-authoritative only after source, generated artifacts, mappers,
       all canonical consumers, runtime parity, rollback evidence, and canonical-conversion cleanup are complete; the
       separately isolated v1 adapter may remain until the MRG-304 30-day production-retirement gate.
@@ -527,14 +547,43 @@ state moves to GitHub and this file becomes a historical migration record.
 
 ## Phase MRG-500 — Mobile Architecture
 
-- [ ] MRG-501 Audit the Expo application against Maaatch frontend boundaries adapted for React Native.
-- [ ] MRG-502 Separate generated API clients, application modules, view models, forms, navigation, and infrastructure.
+- [ ] MRG-501 Audit the Expo application against Maaatch frontend boundaries adapted for React Native, including an
+      editable-form inventory with current defaults, reset, validation, touched/submitted, external-submit, image,
+      multipart, selector, color, haptic, server-error, and `canSubmit` behavior.
+- [ ] MRG-502 Separate generated API clients, application modules, view models, handwritten form schemas/transforms,
+      generated request types, navigation, and infrastructure without performing an intermediate Formik migration or
+      using wire DTOs as form state.
 - [ ] MRG-503 Keep TanStack and Orval integration mobile-owned while moving only proven framework-neutral React
-      primitives to `libs/react`; do not create a shared library for a single consumer.
-- [ ] MRG-504 Define the Blockout mobile architecture and design-system source documents.
+      primitives to `libs/react`; keep the QueryClient, Axios mutator, generated outputs, React Hook Form/Zod API, and
+      mobile form primitives in the sole mobile application.
+- [ ] MRG-504 Define the Blockout mobile architecture, design-system, generated-client, and React Native form source
+      documents, including controlled-field and bottom-sheet contracts.
+- [ ] MRG-507 Migrate `ClubForm` to React Hook Form/Zod, preserving name trimming, logo selection/manipulation, image
+      preview, multipart bytes, haptics, create/update defaults, reset, errors, and submission behavior.
+- [ ] MRG-508 Migrate `TeamForm` to React Hook Form/Zod, preserving name, short name, logo, preview, multipart,
+      create/update defaults, reset, errors, and submission behavior.
+- [ ] MRG-509 Migrate `PoolForm` to React Hook Form/Zod, preserving name, short name, trimming, footer state,
+      create/update defaults, reset, errors, and submission behavior.
+- [ ] MRG-510 Migrate `DivisionForm` to React Hook Form/Zod, preserving create/update semantics, logo, four colors,
+      color pickers, preview, `accentColor`, footer state, reset, errors, and submission behavior.
+- [ ] MRG-511 Migrate `RawDivisionMappingForm` from manual state to React Hook Form/Zod, preserving nullable values,
+      three selectors, division loading, defaults, reset, errors, and current submission behavior.
+- [ ] MRG-512 Migrate `MatchLiveLinkForm` to React Hook Form/Zod, preserving URL, time window, create/update mode, copy,
+      exact errors, haptics, reset, and submission gating.
+- [ ] MRG-513 Migrate `MatchLiveLinkReportForm` to React Hook Form/Zod, preserving reason constraints/messages, touched
+      errors, external submission, reset, loading, and disabled behavior. Keep `MatchLiveLinkDeleteForm` as a
+      handwritten fieldless confirmation flow.
+- [ ] MRG-514 Migrate `ProfileForm` to React Hook Form/Zod, preserving username trimming/constraints, image selection,
+      preview, multipart, defaults/reset, and profile conflict `409` placement through `setError`.
+- [ ] MRG-515 Migrate `ReportForm` to React Hook Form/Zod, preserving context-derived type, title, description, multiple
+      images, multipart, guest/user identity, filter synchronization, defaults/reset, errors, and submission behavior.
+- [ ] MRG-516 Remove Formik, Yup, remaining imports and obsolete helpers after all editable forms migrate; add a
+      repository guard that rejects their reintroduction without changing product behavior.
 - [ ] MRG-505 Re-audit and adapt Maaatch React, effect, Zod, logging, and documentation skills after the generated-client
-      architecture is active; keep Next.js, shadcn, and web-only guidance explicitly non-applicable.
-- [ ] MRG-506 Prove Android and iOS exports, online EAS builds, credentials, updates, and installed-device smoke flows.
+      and form architecture is active and Formik/Yup are gone; keep Next.js, shadcn, DOM, and web-only guidance
+      explicitly non-applicable.
+- [ ] MRG-506 Prove final Android and iOS typecheck/exports, online EAS builds, credentials, updates, installed-device
+      smoke flows, form parity, and absence of Formik/Yup after MRG-501–504 and MRG-507–516 complete.
 
 ## Phase MRG-600 — Scraper Architecture
 

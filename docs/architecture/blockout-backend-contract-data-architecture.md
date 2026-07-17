@@ -288,11 +288,16 @@ infrastructure concern and enter views only as derived values.
 
 Expo owns Orval-generated DTOs, transport operations, validation schemas, query keys, TanStack hooks, query client, and
 the auth/error mutator. Simple generated hooks may be consumed directly. A handwritten domain hook is introduced only
-when it owns real cache, invalidation, pagination, orchestration, or view-model policy. Forms remain Formik/Yup models;
-generated wire validation does not replace user-facing form semantics.
+when it owns real cache, invalidation, pagination, orchestration, or view-model policy. The approved form target is
+React Hook Form with handwritten Zod schemas; Formik and Yup remain transition-only for unmigrated forms. Generated
+wire validation does not replace user-facing form semantics.
 
 No generated transport type becomes route state, form state, persisted state, or a broad screen model. Deterministic
-view/form transforms remain mobile-owned when the UI needs a different shape.
+view/form transforms remain mobile-owned when the UI needs a different shape. Every migrated form separates its
+generated wire schema, handwritten form schema, and generated request type, with an explicit typed submission
+transform. The mobile-owned stack, output paths, mutator, form API, migration order, and parity gates are fixed by
+[MRG-313](../decisions/mrg-313-expo-contract-generation.md). React Hook Form and Zod remain planned until MRG-329
+activates them.
 
 Each Python scraper keeps parsing, scheduling, proxy, authentication, federation, and domain values separate from its
 Blockout adapter. Python identifiers may remain snake_case. The adapter selected by MRG-314 is the only owner allowed
@@ -335,19 +340,21 @@ Problem Details compatibility, canonical camelCase, and rollback without involvi
 8. Repository guards, generation/no-diff verification, and boundary-authority evidence close Phase MRG-300.
 9. Phase MRG-400 completes deep service restructuring in a second controlled pass.
 
-## 13. Deferred Tool Decisions
+## 13. Generator Decisions
 
-This architecture fixes ownership but deliberately leaves three tool selections to their existing Plan gates:
+This architecture fixes ownership while the three decision tasks select tools within those boundaries:
 
-- MRG-313 selects exact Orval client mode, React Query options, validation output, directories, mutator, cache defaults,
-  and generated-file policy within the mobile-owned boundary;
+- [MRG-313](../decisions/mrg-313-expo-contract-generation.md) selects Orval `8.22.0`, Zod `4.4.3`, React Hook Form
+  `7.72.0`, the React Query/Axios outputs, mobile-owned mutator, central form API, migration sequence, cache invariants,
+  and generated-file policy;
 - MRG-314 selects a generated Python client, generated models with handwritten async transport, or a typed handwritten
   adapter against explicit packaging, auth, multipart, retry, timeout, and proxy criteria;
 - MRG-315 selects the event source format and generator without changing the approved outbox, envelope, versioning,
   idempotency, or adapter boundaries.
 
-These tasks may choose tools only within the ownership and casing rules above. They may not reopen the architectural
-decisions approved by MRG-268 without a new Plan-mode decision.
+MRG-314 and MRG-315 remain unresolved until their own approved decision documents are published. These tasks may choose
+tools only within the ownership and casing rules above. They may not reopen the architectural decisions approved by
+MRG-268 without a new Plan-mode decision.
 
 ## 14. Completion Evidence For Later Boundaries
 

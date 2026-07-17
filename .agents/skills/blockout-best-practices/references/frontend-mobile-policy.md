@@ -33,6 +33,8 @@ references required by the work:
   and other handwritten TypeScript boundaries.
 - [`nx-workspace-policy.md`](nx-workspace-policy.md) when changing the Expo project, Nx targets, dependencies, or shared
   library ownership.
+- [`../../../../docs/decisions/mrg-313-expo-contract-generation.md`](../../../../docs/decisions/mrg-313-expo-contract-generation.md)
+  for the approved Orval, TanStack Query, Axios mutator, Zod, React Hook Form, and form-migration target.
 
 MRG-106 owns the authoritative mapping of Maaatch's generic React and TypeScript skills to Blockout. Until that task is
 complete, do not import Next.js, browser-only, Tailwind, shadcn, or Server Component guidance into the Expo application
@@ -45,20 +47,20 @@ Root npm workspaces and the root lockfile own its JavaScript dependencies.
 
 Use the existing folders according to their current roles:
 
-| Path | Role |
-| --- | --- |
-| `src/app/**` | Expo Router route files, layouts, protected-route gates, and route coordination |
-| `src/components/<domain>/**` | Domain screen content and interaction components |
-| `src/components/common/**` | Proven cross-domain mobile UI primitives and feedback states |
-| `src/hooks/<domain>/**` | Domain queries, mutations, subscriptions, and derived interaction behavior |
-| `src/api/**` | Current handwritten HTTP and mobile-gateway boundary |
-| `src/context/**` | App-wide providers for APIs, authentication/session, purchases, and theme |
-| `src/types/**` | Current handwritten boundary and screen types pending contract migration |
-| `src/utils/**` | Named pure operations, platform bridges, and deliberately persisted local stores |
-| `src/theme/**` | Mobile theme values and reusable visual constants |
-| `src/config/**` | Public runtime configuration and platform-specific integration configuration |
-| `assets/**` | Bundled fonts, images, and current legal content |
-| `plugins/**` | Expo config plugins that change native projects during prebuild |
+| Path                         | Role                                                                             |
+| ---------------------------- | -------------------------------------------------------------------------------- |
+| `src/app/**`                 | Expo Router route files, layouts, protected-route gates, and route coordination  |
+| `src/components/<domain>/**` | Domain screen content and interaction components                                 |
+| `src/components/common/**`   | Proven cross-domain mobile UI primitives and feedback states                     |
+| `src/hooks/<domain>/**`      | Domain queries, mutations, subscriptions, and derived interaction behavior       |
+| `src/api/**`                 | Current handwritten HTTP and mobile-gateway boundary                             |
+| `src/context/**`             | App-wide providers for APIs, authentication/session, purchases, and theme        |
+| `src/types/**`               | Current handwritten boundary and screen types pending contract migration         |
+| `src/utils/**`               | Named pure operations, platform bridges, and deliberately persisted local stores |
+| `src/theme/**`               | Mobile theme values and reusable visual constants                                |
+| `src/config/**`              | Public runtime configuration and platform-specific integration configuration     |
+| `assets/**`                  | Bundled fonts, images, and current legal content                                 |
+| `plugins/**`                 | Expo config plugins that change native projects during prebuild                  |
 
 Do not introduce a parallel `modules`, `features`, `services`, `lib`, design-system, state, or API hierarchy without the
 roadmap task that defines its ownership and migration path. When touching current code, improve role-bearing names and
@@ -98,15 +100,15 @@ gesture handling, and navigation depend on one another.
 
 Preserve these role boundaries even while the current directory structure remains incremental:
 
-| Boundary | Owns | Must not own |
-| --- | --- | --- |
-| Route | navigation entry, route params, screen composition | HTTP details, broad DTO mapping, reusable UI |
-| Domain hook | query/mutation policy, subscriptions, derived workflow state | rendered layout, unrelated domains |
-| API client | transport, auth attachment, case conversion, endpoint call | screen state, product copy, navigation |
-| View model or named transform | deterministic API-to-screen or form-to-request mapping | network calls, hooks, native effects |
-| Domain component | domain rendering and user interaction | global session bootstrapping, raw transport setup |
-| Common component | proven cross-domain native UI behavior | domain rules or one-screen convenience wrappers |
-| Provider or store | deliberate shared lifecycle or state ownership | arbitrary values that can stay local or derived |
+| Boundary                      | Owns                                                         | Must not own                                      |
+| ----------------------------- | ------------------------------------------------------------ | ------------------------------------------------- |
+| Route                         | navigation entry, route params, screen composition           | HTTP details, broad DTO mapping, reusable UI      |
+| Domain hook                   | query/mutation policy, subscriptions, derived workflow state | rendered layout, unrelated domains                |
+| API client                    | transport, auth attachment, case conversion, endpoint call   | screen state, product copy, navigation            |
+| View model or named transform | deterministic API-to-screen or form-to-request mapping       | network calls, hooks, native effects              |
+| Domain component              | domain rendering and user interaction                        | global session bootstrapping, raw transport setup |
+| Common component              | proven cross-domain native UI behavior                       | domain rules or one-screen convenience wrappers   |
+| Provider or store             | deliberate shared lifecycle or state ownership               | arbitrary values that can stay local or derived   |
 
 Move a primitive into `components/common/**` only when it is domain-neutral and has at least two active consumers, or
 when it encodes one documented cross-cutting mobile invariant. Keep one-screen components with their owning domain.
@@ -184,6 +186,12 @@ The current clients and handwritten DTOs remain authoritative until the contract
 service. Once mobile generation is active, generated files are boundary artifacts: never hand-edit them, never treat
 them as product decisions, and map them to screen-specific view models only when the UI needs a different shape.
 
+MRG-313 fixes Orval `8.22.0` with React Query/Axios outputs and Zod wire schemas as the mobile-owned generation target.
+MRG-328 owns activation. Keep the handwritten Axios mutator, generated outputs, QueryClient, and TanStack policies in
+the mobile application; do not create a shared TanStack or Orval package. The mutator owns transport/auth/error
+behavior only and never owns case conversion, retry, invalidation, navigation, or form feedback. Generation must not
+change global QueryClient defaults.
+
 ## Local, Shared, And Persisted State
 
 Choose the smallest owner that matches the state:
@@ -205,28 +213,44 @@ representations, name the authoritative owner and derive the others.
 
 ## Forms And Validation
 
-The current application uses Formik and Yup with shared React Native form primitives. Preserve that choice during
-structural tasks; do not introduce a parallel form or schema library without an authorized migration.
+The approved target is React Hook Form `7.72.0`, `@hookform/resolvers` `5.2.2`, and Zod `4.4.3`. This stack remains
+planned until MRG-329 installs it and creates the mobile-owned central API at `src/forms/index.ts`. Before activation,
+do not add runtime imports. After activation, every new form and every extension of a migrated form uses the approved
+stack. Formik and Yup remain transition-only for forms not yet migrated and are removed by MRG-516.
 
-- Keep form initial values, validation schemas, and reusable field configuration outside large render blocks when they
-  are stable or shared.
-- Separate user-edited form values from API request DTOs. Put non-trivial form-to-request mapping in a named pure
-  transform close to the domain.
+- Import `useForm`, `useFormContext`, `useController`, `useWatch`, `Controller`, `FormProvider`, required types,
+  `zodResolver`, and Zod only through `src/forms/index.ts` after MRG-329. Expand its allowlist only for a proven mobile
+  form need.
+- Use `Controller` or `useController` for React Native inputs. Do not copy Maaatch DOM wrappers or use `register` as if
+  a native input were an HTML input.
+- Keep three distinct shapes: the generated Zod wire schema, the handwritten Zod form schema, and the generated request
+  type. Infer form values with `z.infer`, then use a named typed transform to construct the generated request. Never
+  cast form values to a request or use a generated DTO directly as form state.
+- Keep form initial values, handwritten schemas, and reusable field configuration outside large render blocks when
+  they are stable or shared.
+- Separate user-edited values from API requests. Put the form-to-request mapping in a named pure transform close to
+  the domain.
 - Keep API-to-form defaults distinct from submission transforms when create and update semantics differ.
-- Reuse current `components/common/form/**` primitives for labels, inputs, validation feedback, selectors, sheets, and
-  submission layout when their contract fits.
+- Adapt current `components/common/form/**` primitives incrementally to `fieldState.error` and
+  `fieldState.isTouched`. Create a controlled wrapper only after real reuse is proven; selectors, colors, images, and
+  bottom sheets remain owned by the form that orchestrates them.
 - Keep only user-edited and submission-lifecycle state. Derive labels, enabled state, projections, and defaults during
   render where possible.
 - Use effects for a real bridge to an external owner, such as registering a sheet submit callback. Do not synchronize
-  values that Formik or render logic can derive directly.
+  values that form state or render logic can derive directly.
+- Choose `mode`, defaults, resource-change reset, dirty/touched semantics, and `canSubmit` per form from current
+  behavior. Do not introduce a global form policy that changes UX.
 - Preserve keyboard, focus, bottom-sheet, safe-area, disabled, loading, and error behavior across both platforms.
+- Preserve `onRegisterSubmit`, `onStateChange`, accent color, external submit, close-after-success, selectors, images,
+  multipart ownership, and server-field-error behavior where the current form exposes them.
 - Keep validation messages user-facing and actionable. Do not display raw backend detail, validation payloads, stack
   traces, or internal field names.
 - Trigger haptics only for an established user interaction outcome. Haptics must not become the only success or error
   feedback and must degrade safely when unavailable.
 
-Future generated contract schemas validate wire shapes; they do not replace mobile form semantics, coercion, defaults,
-cross-field rules, or user-facing messages.
+Generated contract schemas validate wire shapes; they do not replace mobile form semantics, coercion, defaults,
+cross-field rules, touched/submitted behavior, or user-facing messages. Follow the per-form parity gates and migration
+sequence in MRG-313.
 
 ## View Models And DTO Mapping
 
@@ -267,7 +291,7 @@ source and keep an explicit fallback for unknown or missing codes.
 - Do not use hooks to hide product decisions, arbitrary API orchestration, or navigation that belongs to the route.
 - Use `useEffect` only to synchronize with an external system or lifecycle: native listeners, timers, authentication,
   notifications, purchases, persisted-store hydration, navigation events, animations, or imperative third-party APIs.
-- Prefer event handlers, query callbacks, computed render state, Formik state, and navigator guards when no external
+- Prefer event handlers, query callbacks, computed render state, owning form state, and navigator guards when no external
   synchronization exists.
 - Every subscription effect returns cleanup. Async effects protect against stale completion or unmounted ownership when
   the result can race.
