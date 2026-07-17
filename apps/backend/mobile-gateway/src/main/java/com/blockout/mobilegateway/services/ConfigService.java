@@ -1,6 +1,7 @@
 package com.blockout.mobilegateway.services;
 
 import com.blockout.mobilegateway.models.dto.config.*;
+import com.blockout.mobilegateway.configuration.legal.legacy.LegacyConfigLegalDocumentClient;
 import com.blockout.mobilegateway.services.clients.ConfigClientService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -18,6 +19,7 @@ public class ConfigService {
 
     private static final Logger logger = LoggerFactory.getLogger(ConfigService.class);
     private final ConfigClientService configClientService;
+    private final LegacyConfigLegalDocumentClient legacyLegalDocumentClient;
 
     public AppStatusDTO getAppStatus() {
         logger.info("Fetching app status", keyValue("action", "get_app_status"));
@@ -68,14 +70,14 @@ public class ConfigService {
 
     public LegalDocumentDTO getLegalDocument(String type) {
         logger.info("Fetching legal document", keyValue("action", "get_legal_document"), keyValue("type", type));
-        return configClientService.getLegalDocument(type);
+        return legacyLegalDocumentClient.getByType(type);
     }
 
     public LegalDocumentDTO updateLegalDocument(String type, LegalDocumentUpdateDTO dto) {
         logger.info("Updating legal document",
                 keyValue("action", "update_legal_document"),
                 keyValue("type", type));
-        return configClientService.updateLegalDocument(type, dto);
+        return legacyLegalDocumentClient.update(type, dto);
     }
 
     public RawDivisionMappingDTO createRawDivisionMapping(RawDivisionMappingDTO dto) {

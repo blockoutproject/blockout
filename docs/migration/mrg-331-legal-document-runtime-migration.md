@@ -93,7 +93,8 @@ database or legal-document rows.
 - No production or standalone repository was read or changed.
 - No Flyway file or database schema changed.
 - No BFF, Expo, Python, RabbitMQ, Elasticsearch, or vendor boundary changed.
-- MRG-332 owns the first generated backend consumer and route switch.
+- MRG-332 owns the first generated backend consumer and route switch; its implementation and rollback evidence are
+  recorded in the [MRG-332 BFF migration](mrg-332-mobile-legal-document-generated-client.md).
 - MRG-333 owns the first generated Expo consumer and React Hook Form/Zod pilot.
 - MRG-377 owns the cross-contract removal of custom scalar and authorization metadata after the complete pilot.
 - The active goal still stops before Phase MRG-900.

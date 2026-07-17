@@ -1718,6 +1718,7 @@ test('workspace mobile gateway contract owns the thirty relay workflow operation
   );
   const relayTags = new Set([
     'MobileConfiguration',
+    'MobileLegalDocuments',
     'MobileUsers',
     'MobileReports',
     'MobileSearch',

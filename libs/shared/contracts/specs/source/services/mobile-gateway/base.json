@@ -7,6 +7,7 @@
   "servers": [{ "url": "http://localhost" }],
   "tags": [
     { "name": "MobileConfiguration" },
+    { "name": "MobileLegalDocuments" },
     { "name": "MobileUsers" },
     { "name": "MobileReports" },
     { "name": "MobileSearch" },

@@ -425,52 +425,6 @@ export const DeactivateMobileDivisionParams = zod.object({
 export const DeactivateMobileDivisionResponse = zod.void();
 
 /**
- * @summary Get a mobile legal document
- */
-export const getMobileLegalDocumentPathTypeMax = 50;
-
-export const GetMobileLegalDocumentParams = zod.object({
-  type: zod.string().max(getMobileLegalDocumentPathTypeMax),
-});
-
-export const getMobileLegalDocumentResponseTypeMax = 50;
-
-export const GetMobileLegalDocumentResponse = zod.object({
-  type: zod.string().min(1).max(getMobileLegalDocumentResponseTypeMax),
-  title: zod.string().nullable(),
-  version: zod.string().nullable(),
-  content: zod.string().nullable(),
-});
-
-/**
- * @summary Update a mobile legal document
- */
-export const updateMobileLegalDocumentPathTypeMax = 50;
-
-export const UpdateMobileLegalDocumentParams = zod.object({
-  type: zod.string().max(updateMobileLegalDocumentPathTypeMax),
-});
-
-export const UpdateMobileLegalDocumentBody = zod
-  .object({
-    title: zod.string().nullish(),
-    version: zod.string().nullish(),
-    content: zod.string().nullish(),
-  })
-  .describe(
-    'Partial legal-document update. Omitted and null values preserve stored content.',
-  );
-
-export const updateMobileLegalDocumentResponseTypeMax = 50;
-
-export const UpdateMobileLegalDocumentResponse = zod.object({
-  type: zod.string().min(1).max(updateMobileLegalDocumentResponseTypeMax),
-  title: zod.string().nullable(),
-  version: zod.string().nullable(),
-  content: zod.string().nullable(),
-});
-
-/**
  * @summary Create a mobile raw-division mapping
  */
 export const createMobileRawDivisionMappingBodyRawDivisionNameMax = 255;

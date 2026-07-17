@@ -2,6 +2,8 @@
 
 - Status: approved
 - Decision date: 2026-07-17
+- Transport amendment: 2026-07-17; generated `httpx` supersedes the interim generated `asyncio` transport before
+  scraper call migration
 - Runtime effect: none; MRG-314 changes documentation and future task structure only
 - Applies to: `apps/scrapers/club-scraper`, `apps/scrapers/competition-scraper`, and their Blockout REST adapters
 
@@ -18,12 +20,25 @@ The selected toolchain is exact:
 | `@openapitools/openapi-generator-cli` | `2.39.1`                    | pinned workspace generation entry point |
 | OpenAPI Generator                     | `7.23.0`                    | pinned generator binary                 |
 | generator                             | `python`                    | typed Python operations and models      |
-| library                               | `asyncio`                   | asynchronous Blockout transport         |
+| library                               | `httpx`                     | asynchronous Blockout transport         |
 | generated Python target               | `3.12`                      | common scraper runtime floor            |
 | distribution                          | `blockout-contract-clients` | one internal wheel for six clients      |
 
 No Mustache template is owned by Blockout. The standard generator output is adapted only through supported generator
 configuration and handwritten scraper adapters outside generated source.
+
+The generated `httpx` library is selected over the generated `asyncio`/aiohttp library and over
+`openapi-python-client`. A generation proof against the Clubs contract shows that OpenAPI Generator's standard
+`httpx` output provides async operations, `httpx.AsyncClient`, `trust_env=True`, connection limits, proxy support,
+per-call timeouts, explicit async close, Bearer authentication, and multipart files. It also avoids coupling the
+Blockout transport to `aiohttp-retry`. Provider and federation traffic remains on the scrapers' existing aiohttp
+sessions, making the required ownership split explicit.
+
+`openapi-python-client` is not selected because its own project still documents incomplete OpenAPI feature coverage.
+Introducing a second generator would also discard the already-proven operation and multipart coverage without a
+Blockout requirement it solves better. The small workspace Node entry point is orchestration only: it invokes the
+official pinned generator for six configs and may normalize formatting, but it may not synthesize models, operations,
+transport, authentication, or serialization.
 
 ## 1. Ownership And Package Layout
 
@@ -74,7 +89,7 @@ scraper call graph does not consume them. Provider/federation clients are never 
 Every service configuration fixes:
 
 - `generatorName: "python"`;
-- `library: "asyncio"`;
+- `library: "httpx"`;
 - `packageName: "blockout_contract_clients.<service_package>"`;
 - `packageVersion` equal across all six outputs and owned by the internal distribution;
 - `pythonVersion: "3.12"`;
@@ -126,9 +141,10 @@ The scraper-owned Blockout client factory preserves:
 - deterministic asynchronous close in normal completion, error, cancellation, and scheduler shutdown paths;
 - no global singleton session and no session construction inside generated operation calls owned by application code.
 
-MRG-330 must prove how the standard `asyncio` library exposes session, connector, proxy, timeout, and close controls
-before either scraper migrates. The proof may use the generator's supported configuration and client lifecycle only;
-it may not replace the generated transport with a generic handwritten HTTP client.
+MRG-378 must prove how the standard generated `httpx` library exposes client lifecycle, connection limits, proxy,
+timeout, multipart, and close controls before either scraper migrates. The proof may use the generator's supported
+configuration and client lifecycle only; it may not replace the generated transport with a generic handwritten HTTP
+client.
 
 No automatic retry is configured for Blockout calls. Current provider page/CSV retry loops remain provider-owned and
 unchanged. A later operation may add an explicit idempotent Blockout retry only through a separate behavior decision.
@@ -187,17 +203,20 @@ configuration, or scraper requirements change. Standalone scraper repositories r
 | Task    | Responsibility                                                                                                                                                                     |
 | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | MRG-330 | activate pinned six-client generation, common wheel, root-context image installation, lifecycle factory, deterministic checks, and fixtures for all 24 audited Blockout operations |
-| MRG-348 | replace the club scraper's six Blockout operations with thin generated-client adapters; delete only their legacy request/response conversion paths                                 |
-| MRG-349 | replace the competition scraper's eighteen Blockout operations with thin generated-client adapters; delete only their legacy request/response conversion paths                     |
+| MRG-378 | replace the interim generated `asyncio` output and factories with standard generated `httpx` clients, then re-prove the complete MRG-330 transport gate                            |
+| MRG-348 | replace the club scraper's six Blockout operations with thin generated `httpx` client adapters; delete only their legacy request/response conversion paths                         |
+| MRG-349 | replace the competition scraper's eighteen Blockout operations with thin generated `httpx` client adapters; delete only their legacy request/response conversion paths             |
 | MRG-601 | audit post-migration boundaries, shared adapter reuse, session ownership, scheduler/proxy behavior, and separation of the eleven provider/federation calls                         |
 | MRG-802 | enforce pinned generation, wheel build, committed-output/no-diff, syntax, adapter isolation, and both root-context scraper image builds in CI                                      |
 
 The 24-operation total is the MRG-303 baseline: six club-scraper Blockout operations and eighteen competition-scraper
 Blockout operations. The eleven provider/federation calls stay outside generation.
 
-## 10. MRG-330 Proof Gate
+## 10. MRG-330 And MRG-378 Proof Gate
 
-Before a scraper call migrates, MRG-330 proves with Python 3.12 fixtures and generated code:
+MRG-330 established the first generated-client baseline with the standard `asyncio` library. Before a scraper call
+migrates, MRG-378 replaces that interim transport with the standard `httpx` library and re-proves with Python 3.12
+fixtures and generated code:
 
 - all six packages import from the one installed wheel;
 - two clean generations produce no diff and generated-source guards pass;
@@ -219,3 +238,5 @@ or runtime behavior.
 
 - [OpenAPI Generator Python generator](https://openapi-generator.tech/docs/generators/python/)
 - [OpenAPI Generator CLI package](https://github.com/OpenAPITools/openapi-generator-cli)
+- [OpenAPI Generator release adding async httpx support](https://github.com/OpenAPITools/openapi-generator/releases/tag/v7.16.0)
+- [openapi-python-client feature and coverage statement](https://github.com/openapi-generators/openapi-python-client)

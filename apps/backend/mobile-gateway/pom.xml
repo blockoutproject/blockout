@@ -22,6 +22,15 @@
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
         <dependency>
+            <groupId>com.blockout</groupId>
+            <artifactId>shared-models</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.mapstruct</groupId>
+            <artifactId>mapstruct</artifactId>
+            <version>${mapstruct.version}</version>
+        </dependency>
+        <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
             <version>${lombok.version}</version>
@@ -110,8 +119,79 @@
                             <artifactId>lombok</artifactId>
                             <version>${lombok.version}</version>
                         </path>
+                        <path>
+                            <groupId>org.mapstruct</groupId>
+                            <artifactId>mapstruct-processor</artifactId>
+                            <version>${mapstruct.version}</version>
+                        </path>
                     </annotationProcessorPaths>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.openapitools</groupId>
+                <artifactId>openapi-generator-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>generate-mobile-gateway-server</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>generate</goal>
+                        </goals>
+                        <configuration>
+                            <inputSpec>${project.basedir}/../../../libs/shared/contracts/generated/specs/mobile-gateway.json</inputSpec>
+                            <generatorName>spring</generatorName>
+                            <output>${openapi.generated-sources.root}/mobile-gateway-server</output>
+                            <apiPackage>com.blockout.mobilegateway.generated.api</apiPackage>
+                            <modelPackage>com.blockout.mobilegateway.generated.model</modelPackage>
+                            <invokerPackage>com.blockout.mobilegateway.generated.invoker</invokerPackage>
+                            <configOptions>
+                                <useSpringBoot3>true</useSpringBoot3>
+                                <interfaceOnly>true</interfaceOnly>
+                                <hideGenerationTimestamp>true</hideGenerationTimestamp>
+                            </configOptions>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>generate-config-client</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>generate</goal>
+                        </goals>
+                        <configuration>
+                            <inputSpec>${project.basedir}/../../../libs/shared/contracts/generated/specs/config.json</inputSpec>
+                            <generatorName>java</generatorName>
+                            <apiNameSuffix>Client</apiNameSuffix>
+                            <output>${openapi.generated-sources.root}/config-client</output>
+                            <apiPackage>com.blockout.config.client.api</apiPackage>
+                            <modelPackage>com.blockout.config.client.model</modelPackage>
+                            <invokerPackage>com.blockout.config.client.invoker</invokerPackage>
+                            <configOptions>
+                                <library>resttemplate</library>
+                                <useJakartaEe>true</useJakartaEe>
+                                <hideGenerationTimestamp>true</hideGenerationTimestamp>
+                            </configOptions>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>build-helper-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>add-generated-sources</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>add-source</goal>
+                        </goals>
+                        <configuration>
+                            <sources>
+                                <source>${openapi.generated-sources.root}/mobile-gateway-server/src/main/java</source>
+                                <source>${openapi.generated-sources.root}/config-client/src/main/java</source>
+                            </sources>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
 		</plugins>
     </build>

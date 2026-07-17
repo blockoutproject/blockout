@@ -335,13 +335,14 @@ state moves to GitHub and this file becomes a historical migration record.
     dependencies, generated artifacts, Expo source, or runtime behavior.
 - [x] MRG-314 Decide whether the two Python scrapers use a generated Python client, generated models with handwritten
       transport, or a typed handwritten adapter; define packaging, async support, auth, multipart, and retry criteria.
-  - Evidence: the approved decision selects OpenAPI Generator `7.23.0` through CLI `2.39.1`, Python 3.12 `asyncio`
-    clients for six service bundles in one local generated-source wheel, thin scraper-owned adapters, generated
-    camelCase aliases, separate Blockout/provider sessions, scraper-owned Auth0, generated multipart, no Blockout
-    retry, safe error mapping, root-context image installation, and a 24-operation proof gate. Architecture, scraper
-    policy, documentation links, roadmap ownership, formatting, documentation validation, Maaatch comparison,
-    unchanged backend packaging, and diff checks pass without changing requirements, Dockerfiles, generated code,
-    Python source, network behavior, or runtime.
+  - Evidence: the approved decision selects OpenAPI Generator `7.23.0` through CLI `2.39.1`, six service bundles in one
+    local generated-source wheel, thin scraper-owned adapters, generated camelCase aliases, separate
+    Blockout/provider transports, scraper-owned Auth0, generated multipart, no Blockout retry, safe error mapping,
+    root-context image installation, and a 24-operation proof gate. A same-day transport amendment selects the
+    generator's asynchronous `httpx` library after a real Clubs-contract proof; it supersedes MRG-330's interim
+    `asyncio` output through MRG-378 before MRG-348/349. Architecture, scraper policy, documentation links, roadmap
+    ownership, formatting, documentation validation, Maaatch comparison, unchanged backend packaging, and diff checks
+    passed without changing runtime during the original decision task.
 - [x] MRG-315 Select and document the authoritative event-contract format and generator strategy for RabbitMQ payloads;
       do not model asynchronous messaging as fake OpenAPI endpoints.
   - Evidence: the approved decision selects AsyncAPI `3.0.0` JSON, parser `3.6.0`, Modelina `5.10.1`, local-only
@@ -583,8 +584,18 @@ state moves to GitHub and this file becomes a historical migration record.
     all 30 contract tests, documentation validation, Maaatch structural comparison, whitespace checks, and the full
     14-module Maven package pass. `docs/migration/mrg-331-legal-document-runtime-migration.md` owns provider-first
     deployment and rollback evidence; no consumer, database, event, production, or standalone repository changed.
-- [ ] MRG-332 Replace handwritten `mobile-gateway` access to the MRG-331 slice with its generated internal client and
+- [x] MRG-332 Replace handwritten `mobile-gateway` access to the MRG-331 slice with its generated internal client and
       prove request, response, error, auth, and casing parity.
+  - Evidence: `mobile-gateway` now generates its Spring v2 server boundary and config-service Java client from the
+    committed bundles. `BFF-P-05` and `BFF-S-07` map generated transports immediately through strict MapStruct adapters
+    to workflow-owned records; preserve forwarded-user versus M2M auth, timeouts, null partial updates, camelCase
+    success bodies, scoped Problem Details, request IDs, and compatibility telemetry; and isolate the complete
+    entity-shaped v1 snake_case response in an explicitly named legacy client. Eleven focused tests, all 30 contract
+    tests, source lint, deterministic Orval regeneration, mobile typecheck, documentation validation, Maaatch
+    comparison, whitespace checks, and the full 14-module Maven package pass. The generated legal Expo output is only
+    retagged and remains unused until MRG-333. A user-requested Python generator re-evaluation also adds MRG-378:
+    standard generated async `httpx` will replace MRG-330's interim `asyncio` output before scraper runtime migration;
+    no scraper source, generated Python artifact, production, standalone repository, or Maaatch file changed.
 - [ ] MRG-333 Replace the legal-document Expo handwritten call with the generated BFF client and wire schema, then
       migrate `LegalDocumentForm` as the first complete React Hook Form/Zod pilot. Preserve title, version, Markdown
       content, exact messages, external submit registration, footer state, reset behavior, view-model/query ownership,
@@ -648,13 +659,22 @@ state moves to GitHub and this file becomes a historical migration record.
 - [ ] MRG-347 Migrate Expo user, search, notification, and report modules to generated BFF clients and wire schemas,
       preserving handwritten query/view-model, optimistic, image, and multipart policy; defer editable profile and
       report forms to MRG-514–515.
-- [ ] MRG-348 Migrate the `club-scraper`'s six audited Blockout operations to thin adapters over the fully generated
-      async clients, preserving Python snake_case application identifiers, Auth0 refresh, `trust_env`, connector/timeouts,
-      multipart files, errors, scheduling, and provider behavior; remove only migrated handwritten wire conversion.
-- [ ] MRG-349 Migrate the `competition-scraper`'s eighteen audited Blockout operations to thin adapters over the fully
-      generated async clients, preserving Python snake_case application identifiers, Auth0 refresh, `trust_env`,
-      connector/timeouts, multipart files, errors, scheduling/concurrency, and provider behavior; remove only migrated
-      handwritten wire conversion.
+- [ ] MRG-378 Replace MRG-330's interim generated `asyncio`/aiohttp clients with OpenAPI Generator's standard
+      asynchronous `httpx` library before any scraper call migration. Regenerate all six committed packages; replace
+      the generated wheel's aiohttp/aiohttp-retry transport dependencies with the supported httpx dependency; adapt
+      both scraper-owned Blockout factories without changing provider aiohttp sessions; and re-prove all 24 operation
+      methods, canonical aliases, multipart JSON/files, per-call Auth0 Bearer refresh, `trust_env`, proxy, connection
+      limits, operation-family timeouts, cancellation, explicit close, safe errors, zero automatic retry, wheel/image
+      builds, generated-file guards, and two-run determinism. Do not write models, endpoints, serialization, auth, or
+      transport by hand and do not use custom generator templates.
+- [ ] MRG-348 After MRG-378, migrate the `club-scraper`'s six audited Blockout operations to thin adapters over the
+      fully generated `httpx` clients, preserving Python snake_case application identifiers, Auth0 refresh,
+      `trust_env`, connection limits/timeouts, multipart files, errors, scheduling, and provider aiohttp behavior;
+      remove only migrated handwritten wire conversion.
+- [ ] MRG-349 After MRG-378, migrate the `competition-scraper`'s eighteen audited Blockout operations to thin adapters
+      over the fully generated `httpx` clients, preserving Python snake_case application identifiers, Auth0 refresh,
+      `trust_env`, connection limits/timeouts, multipart files, errors, scheduling/concurrency, and provider aiohttp
+      behavior; remove only migrated handwritten wire conversion.
 - [ ] MRG-350 Pin parser `3.6.0` and Modelina `5.10.1`; create local-reference AsyncAPI `3.0.0` source/bundles, the
       component-only generation catalog, deterministic targets, and `apps/backend/event-contracts`; generate committed
       Java 21 records with `modelType: "record"`, `collectionType: "List"`, and package
@@ -834,8 +854,8 @@ state moves to GitHub and this file becomes a historical migration record.
       `local-compose` job from pull-request and push workflows, keep Compose config validation in the local verifier,
       and retain it in CI only as a step of a general repository/infrastructure job when current evidence justifies it.
 - [ ] MRG-802 Enforce the Phase MRG-300 generation and deterministic no-diff matrix in CI for contracts, backend, Expo,
-      the six pinned Python async clients/common wheel, and AsyncAPI/Modelina event generation; include local-reference
-      validation, 11-route/19-queue reconciliation, deterministic bundles/Java records, golden event JSON, hermetic
+      the six pinned Python async `httpx` clients/common wheel, and AsyncAPI/Modelina event generation; include local
+      reference validation, 11-route/19-queue reconciliation, deterministic bundles/Java records, golden event JSON, hermetic
       event-contracts compilation, forbidden annotation/`__TypeId__` guards, Python 3.12 imports/syntax, adapter
       isolation, wheel installation, and both root-context scraper images.
 - [ ] MRG-803 Upgrade backend CI from compile-only to verified tests after test infrastructure is reliable.

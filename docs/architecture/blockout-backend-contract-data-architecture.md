@@ -336,6 +336,8 @@ models, application command/view records, entity mapping, BFF generated client/p
 Problem Details compatibility, canonical camelCase, and rollback without involving multipart, events, or scrapers.
 Its owner-side implementation and rollback evidence are recorded in the
 [MRG-331 runtime migration](../migration/mrg-331-legal-document-runtime-migration.md).
+The BFF generated-client boundary, retained v1 adapter, and consumer rollback are recorded in the
+[MRG-332 BFF migration](../migration/mrg-332-mobile-legal-document-generated-client.md).
 
 ## 12. Approved Roadmap Sequence
 
@@ -363,8 +365,10 @@ This architecture fixes ownership while the three decision tasks select tools wi
   `7.72.0`, the React Query/Axios outputs, mobile-owned mutator, central form API, migration sequence, cache invariants,
   and generated-file policy;
 - [MRG-314](../decisions/mrg-314-python-contract-clients.md) selects OpenAPI Generator `7.23.0` through CLI `2.39.1`,
-  six fully generated Python 3.12 `asyncio` clients in one local wheel, thin scraper-owned adapters, generated aliases,
-  separate session ownership, scraper-owned Auth0, generated multipart signatures, and no Blockout retry;
+  six fully generated Python 3.12 asynchronous `httpx` clients in one local wheel, thin scraper-owned adapters,
+  generated aliases, separate Blockout `httpx` and provider aiohttp ownership, scraper-owned Auth0, generated
+  multipart signatures, and no Blockout retry; MRG-330's `asyncio` output is an interim baseline replaced by MRG-378
+  before scraper call migration;
 - [MRG-315](../decisions/mrg-315-rabbitmq-event-contracts.md) selects AsyncAPI `3.0.0` JSON, parser `3.6.0`, Modelina
   `5.10.1`, event-specific envelopes, Java 21 records in `com.blockout.events.v2.model`, hermetic Maven ownership, AMQP
   metadata without `__TypeId__`, and the unchanged MRG-304 v2 topology.

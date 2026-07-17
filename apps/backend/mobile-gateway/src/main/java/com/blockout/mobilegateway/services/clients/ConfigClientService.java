@@ -5,8 +5,6 @@ import com.blockout.mobilegateway.models.dto.config.AppStatusDTO;
 import com.blockout.mobilegateway.models.dto.config.AppStatusUpdateDTO;
 import com.blockout.mobilegateway.models.dto.config.DivisionDTO;
 import com.blockout.mobilegateway.models.dto.config.DivisionUpdateDTO;
-import com.blockout.mobilegateway.models.dto.config.LegalDocumentDTO;
-import com.blockout.mobilegateway.models.dto.config.LegalDocumentUpdateDTO;
 import com.blockout.mobilegateway.models.dto.config.RawDivisionMappingDTO;
 import com.blockout.mobilegateway.models.dto.config.RawDivisionMappingUpdateDTO;
 import com.blockout.mobilegateway.models.dto.config.ScraperStatusDTO;
@@ -122,26 +120,6 @@ public class ConfigClientService {
                 .toUriString();
 
         apiClientService.delete(url, Void.class);
-    }
-
-    public LegalDocumentDTO getLegalDocument(String type) {
-        String url = UriComponentsBuilder.fromUriString(baseUrl())
-                .pathSegment("legal", type)
-                .build()
-                .toUriString();
-
-        ResponseEntity<LegalDocumentDTO> res = apiClientService.get(url, LegalDocumentDTO.class);
-        return res.getBody();
-    }
-
-    public LegalDocumentDTO updateLegalDocument(String type, LegalDocumentUpdateDTO dto) {
-        String url = UriComponentsBuilder.fromUriString(baseUrl())
-                .pathSegment("legal", type)
-                .build()
-                .toUriString();
-
-        ResponseEntity<LegalDocumentDTO> res = apiClientService.put(url, dto, LegalDocumentDTO.class);
-        return res.getBody();
     }
 
     public RawDivisionMappingDTO createRawDivisionMapping(RawDivisionMappingDTO dto) {
