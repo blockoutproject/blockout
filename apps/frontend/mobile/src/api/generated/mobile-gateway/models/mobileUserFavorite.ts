@@ -5,9 +5,9 @@
  * OpenAPI spec version: 2.0.0
  */
 import type { EntityTypeEnum } from './entityTypeEnum';
-import type { NumericIdentifier } from './numericIdentifier';
 
 export interface MobileUserFavorite {
   entityType: EntityTypeEnum;
-  entityId: NumericIdentifier;
+  /** @minimum 1 */
+  entityId: number;
 }

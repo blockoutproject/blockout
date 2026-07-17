@@ -14,7 +14,9 @@
     ],
     "properties": {
       "id": {
-        "$ref": "#/components/schemas/NumericIdentifier"
+        "type": "integer",
+        "format": "int64",
+        "minimum": 1
       },
       "name": {
         "type": "string",

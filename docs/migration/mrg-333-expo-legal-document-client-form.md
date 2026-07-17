@@ -73,5 +73,5 @@ production traffic switch.
 - No BFF, backend service, database, RabbitMQ, scraper, standalone repository, Maaatch, or production change.
 - No global cache, retry, authentication, timeout, navigation, layout, or copy change.
 - No Formik/Yup removal outside the legal form; MRG-507 through MRG-516 own the remaining migrations and retirement.
-- MRG-377 remains the next roadmap task and owns OpenAPI source-syntax normalization.
+- MRG-377 records the subsequent OpenAPI source-syntax normalization and complete generated-output refresh.
 - The active goal still stops before Phase MRG-900.

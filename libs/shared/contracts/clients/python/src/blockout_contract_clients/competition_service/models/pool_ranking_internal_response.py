@@ -29,7 +29,7 @@ class PoolRankingInternalResponse(BaseModel):
     """
     One pool and its complete active-team ranking ordered by points descending, pointsPenalty ascending, wins descending, coefSets descending, coefPoints descending, then teamId ascending as the deterministic technical tie-breaker.
     """ # noqa: E501
-    pool_id: Annotated[int, Field(strict=True, ge=1)] = Field(description="Canonical positive numeric identifier wire shape.", alias="poolId")
+    pool_id: Annotated[int, Field(strict=True, ge=1)] = Field(alias="poolId")
     ranking: List[TeamRankingInternalResponse]
     __properties: ClassVar[List[str]] = ["poolId", "ranking"]
 

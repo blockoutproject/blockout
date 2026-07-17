@@ -16,8 +16,9 @@ npm exec nx run @blockout/contracts:generate-contracts
 It discovers service directories lexicographically, regenerates bundles under `generated/specs/*.json`, and
 synchronizes the backend parent `schemaMappings` block from
 `specs/source/shared/schemas/*.json`. The synchronizer maps generated shared models to
-`com.blockout.shared.model.<SchemaName>` and maps primitive aliases through their validated `x-java-type` in lexical
-order. The backend parent supplies shared generator defaults, but `pluginManagement` does not activate them. The
+`com.blockout.shared.model.<SchemaName>` and derives native scalar mappings only from standard OpenAPI type/format
+pairs in lexical order. Positive numeric identifiers remain inline and generate as native `Long`/`number`/`int`
+values instead of a wrapper model. The backend parent supplies shared generator defaults, but `pluginManagement` does not activate them. The
 `shared-models` module generates the shared objects and enums; later owning modules must declare their own executions
 and keep all generated Java beneath their module-local
 `target/generated-sources/openapi/<boundary>` directory.

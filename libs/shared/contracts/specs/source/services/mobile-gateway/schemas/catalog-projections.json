@@ -47,7 +47,11 @@
       "longitude"
     ],
     "properties": {
-      "id": { "$ref": "#/components/schemas/NumericIdentifier" },
+      "id": {
+        "type": "integer",
+        "format": "int64",
+        "minimum": 1
+      },
       "shortName": { "type": "string", "minLength": 1, "maxLength": 255 },
       "logoUrl": { "type": "string", "maxLength": 2048, "nullable": true },
       "points": { "type": "integer", "format": "int32" },

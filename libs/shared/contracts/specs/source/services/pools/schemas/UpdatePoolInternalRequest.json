@@ -11,7 +11,9 @@
       "name": { "type": "string", "maxLength": 255, "nullable": true },
       "shortName": { "type": "string", "maxLength": 255, "nullable": true },
       "divisionId": {
-        "allOf": [{ "$ref": "#/components/schemas/NumericIdentifier" }],
+        "type": "integer",
+        "format": "int64",
+        "minimum": 1,
         "nullable": true
       },
       "format": {

@@ -5,7 +5,6 @@
       "tags": ["Divisions"],
       "summary": "List divisions",
       "description": "Returns the complete active and inactive division catalog in the existing repository-defined compatibility order.",
-      "x-required-scope": "read:divisions",
       "responses": {
         "200": {
           "description": "Complete division catalog.",
@@ -33,7 +32,6 @@
       "tags": ["Divisions"],
       "summary": "Create a division",
       "description": "Creates a division from a canonical camelCase JSON part and an optional PNG or JPEG image. The current five-megabyte image and request limits remain adapter-owned compatibility behavior.",
-      "x-required-scope": "create:divisions",
       "requestBody": {
         "required": true,
         "content": {
@@ -108,7 +106,6 @@
       "tags": ["Divisions"],
       "summary": "Get a division",
       "description": "Returns one active or inactive division by its numeric identifier.",
-      "x-required-scope": "read:divisions",
       "responses": {
         "200": {
           "description": "Requested division.",
@@ -139,7 +136,6 @@
       "tags": ["Divisions"],
       "summary": "Update a division",
       "description": "Partially updates a division from a canonical camelCase JSON part, optionally replaces its logo, and preserves the existing implicit reactivation behavior.",
-      "x-required-scope": "update:divisions",
       "requestBody": {
         "required": true,
         "content": {
@@ -202,7 +198,6 @@
       "tags": ["Divisions"],
       "summary": "Deactivate a division",
       "description": "Soft-deactivates the division and retains its persisted data and logo.",
-      "x-required-scope": "delete:divisions",
       "responses": {
         "204": {
           "description": "Division deactivated."

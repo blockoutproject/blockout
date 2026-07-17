@@ -53,10 +53,7 @@ export const getMobilePoolResponseDivisionLogoUrlMax = 2048;
 
 export const GetMobilePoolResponse = zod
   .object({
-    id: zod
-      .number()
-      .min(1)
-      .describe('Canonical positive numeric identifier wire shape.'),
+    id: zod.number().min(1),
     season: zod.string().min(1).max(getMobilePoolResponseSeasonMax),
     leagueCode: zod.string().max(getMobilePoolResponseLeagueCodeMax),
     leagueName: zod.string().max(getMobilePoolResponseLeagueNameMax),
@@ -70,10 +67,7 @@ export const GetMobilePoolResponse = zod
     ranking: zod.array(
       zod
         .object({
-          id: zod
-            .number()
-            .min(1)
-            .describe('Canonical positive numeric identifier wire shape.'),
+          id: zod.number().min(1),
           shortName: zod
             .string()
             .min(1)
@@ -139,14 +133,7 @@ export const GetMobilePoolResponse = zod
  */
 
 export const ListMobilePoolsByIdsQueryParams = zod.object({
-  ids: zod
-    .array(
-      zod
-        .number()
-        .min(1)
-        .describe('Canonical positive numeric identifier wire shape.'),
-    )
-    .min(1),
+  ids: zod.array(zod.number().min(1)).min(1),
 });
 
 export const listMobilePoolsByIdsResponseItemsItemNameMax = 255;
@@ -173,10 +160,7 @@ export const ListMobilePoolsByIdsResponse = zod.object({
   items: zod.array(
     zod
       .object({
-        id: zod
-          .number()
-          .min(1)
-          .describe('Canonical positive numeric identifier wire shape.'),
+        id: zod.number().min(1),
         name: zod
           .string()
           .min(1)
@@ -274,10 +258,7 @@ export const updateMobilePoolResponseShortNameMax = 255;
 
 export const UpdateMobilePoolResponse = zod
   .object({
-    id: zod
-      .number()
-      .min(1)
-      .describe('Canonical positive numeric identifier wire shape.'),
+    id: zod.number().min(1),
     name: zod.string().min(1).max(updateMobilePoolResponseNameMax),
     shortName: zod.string().min(1).max(updateMobilePoolResponseShortNameMax),
   })

@@ -7,13 +7,13 @@
 import type { GenderEnum } from './genderEnum';
 import type { MobileCatalogDivision } from './mobileCatalogDivision';
 import type { MobileRankingTeam } from './mobileRankingTeam';
-import type { NumericIdentifier } from './numericIdentifier';
 
 /**
  * Pool ranking tab embedded only in the team workflow, without pool-detail-only or compatibility fields.
  */
 export interface MobileTeamPool {
-  id: NumericIdentifier;
+  /** @minimum 1 */
+  id: number;
   /** @maxLength 255 */
   leagueCode: string;
   /** @maxLength 255 */

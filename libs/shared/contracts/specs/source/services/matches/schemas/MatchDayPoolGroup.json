@@ -3,7 +3,11 @@
     "type": "object",
     "required": ["poolId", "matches"],
     "properties": {
-      "poolId": { "$ref": "#/components/schemas/NumericIdentifier" },
+      "poolId": {
+        "type": "integer",
+        "format": "int64",
+        "minimum": 1
+      },
       "matches": {
         "type": "array",
         "items": { "$ref": "#/components/schemas/MatchDetailInternalResponse" }

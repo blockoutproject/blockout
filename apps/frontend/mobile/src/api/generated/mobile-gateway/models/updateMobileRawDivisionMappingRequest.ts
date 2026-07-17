@@ -6,10 +6,13 @@
  */
 import type { FormatEnum } from './formatEnum';
 import type { GenderEnum } from './genderEnum';
-import type { NumericIdentifier } from './numericIdentifier';
 
 export interface UpdateMobileRawDivisionMappingRequest {
-  divisionId: NumericIdentifier | null;
+  /**
+   * @minimum 1
+   * @nullable
+   */
+  divisionId: number | null;
   format: FormatEnum | null;
   gender: GenderEnum | null;
 }

@@ -4,7 +4,11 @@
     "description": "Live-link command result containing only fields consumed by the mobile workflow.",
     "required": ["matchId", "provider", "url", "status"],
     "properties": {
-      "matchId": { "$ref": "#/components/schemas/NumericIdentifier" },
+      "matchId": {
+        "type": "integer",
+        "format": "int64",
+        "minimum": 1
+      },
       "provider": { "$ref": "#/components/schemas/LiveProviderEnum" },
       "url": { "type": "string", "maxLength": 1024 },
       "status": { "$ref": "#/components/schemas/LiveLinkStatusEnum" }

@@ -2,7 +2,6 @@
   "UuidIdentifier": {
     "type": "string",
     "format": "uuid",
-    "description": "Canonical UUID identifier wire shape.",
-    "x-java-type": "java.util.UUID"
+    "description": "Canonical UUID identifier wire shape."
   }
 }

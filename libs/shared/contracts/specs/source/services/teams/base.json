@@ -32,7 +32,9 @@
         "in": "path",
         "required": true,
         "schema": {
-          "$ref": "#/components/schemas/NumericIdentifier"
+          "type": "integer",
+          "format": "int64",
+          "minimum": 1
         }
       },
       "FollowerTeamId": {
@@ -40,7 +42,9 @@
         "in": "path",
         "required": true,
         "schema": {
-          "$ref": "#/components/schemas/NumericIdentifier"
+          "type": "integer",
+          "format": "int64",
+          "minimum": 1
         }
       },
       "DivisionId": {
@@ -48,7 +52,9 @@
         "in": "query",
         "required": false,
         "schema": {
-          "$ref": "#/components/schemas/NumericIdentifier"
+          "type": "integer",
+          "format": "int64",
+          "minimum": 1
         }
       },
       "TeamFormat": {
@@ -94,7 +100,9 @@
         "schema": {
           "type": "array",
           "items": {
-            "$ref": "#/components/schemas/NumericIdentifier"
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
           }
         }
       },
@@ -111,7 +119,9 @@
         "in": "query",
         "required": true,
         "schema": {
-          "$ref": "#/components/schemas/NumericIdentifier"
+          "type": "integer",
+          "format": "int64",
+          "minimum": 1
         }
       }
     }

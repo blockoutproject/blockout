@@ -71,10 +71,7 @@ export const getMobileTeamResponsePoolsItemDivisionLogoUrlMax = 2048;
 
 export const GetMobileTeamResponse = zod
   .object({
-    id: zod
-      .number()
-      .min(1)
-      .describe('Canonical positive numeric identifier wire shape.'),
+    id: zod.number().min(1),
     clubId: zod.string().min(1).max(getMobileTeamResponseClubIdMax),
     name: zod.string().min(1).max(getMobileTeamResponseNameMax),
     shortName: zod.string().min(1).max(getMobileTeamResponseShortNameMax),
@@ -119,10 +116,7 @@ export const GetMobileTeamResponse = zod
       .array(
         zod
           .object({
-            id: zod
-              .number()
-              .min(1)
-              .describe('Canonical positive numeric identifier wire shape.'),
+            id: zod.number().min(1),
             leagueCode: zod
               .string()
               .max(getMobileTeamResponsePoolsItemLeagueCodeMax),
@@ -139,12 +133,7 @@ export const GetMobileTeamResponse = zod
             ranking: zod.array(
               zod
                 .object({
-                  id: zod
-                    .number()
-                    .min(1)
-                    .describe(
-                      'Canonical positive numeric identifier wire shape.',
-                    ),
+                  id: zod.number().min(1),
                   shortName: zod
                     .string()
                     .min(1)
@@ -255,10 +244,7 @@ export const ListMobileTeamsByClubResponse = zod.object({
   items: zod.array(
     zod
       .object({
-        id: zod
-          .number()
-          .min(1)
-          .describe('Canonical positive numeric identifier wire shape.'),
+        id: zod.number().min(1),
         name: zod
           .string()
           .min(1)
@@ -333,14 +319,7 @@ export const ListMobileTeamsByClubResponse = zod.object({
  */
 
 export const ListMobileTeamsByIdsQueryParams = zod.object({
-  ids: zod
-    .array(
-      zod
-        .number()
-        .min(1)
-        .describe('Canonical positive numeric identifier wire shape.'),
-    )
-    .min(1),
+  ids: zod.array(zod.number().min(1)).min(1),
 });
 
 export const listMobileTeamsByIdsResponseItemsItemNameMax = 255;
@@ -367,10 +346,7 @@ export const ListMobileTeamsByIdsResponse = zod.object({
   items: zod.array(
     zod
       .object({
-        id: zod
-          .number()
-          .min(1)
-          .describe('Canonical positive numeric identifier wire shape.'),
+        id: zod.number().min(1),
         name: zod
           .string()
           .min(1)
@@ -476,10 +452,7 @@ export const updateMobileTeamResponseLogoUrlMax = 2048;
 
 export const UpdateMobileTeamResponse = zod
   .object({
-    id: zod
-      .number()
-      .min(1)
-      .describe('Canonical positive numeric identifier wire shape.'),
+    id: zod.number().min(1),
     name: zod.string().min(1).max(updateMobileTeamResponseNameMax),
     shortName: zod.string().min(1).max(updateMobileTeamResponseShortNameMax),
     logoUrl: zod.string().max(updateMobileTeamResponseLogoUrlMax).nullable(),

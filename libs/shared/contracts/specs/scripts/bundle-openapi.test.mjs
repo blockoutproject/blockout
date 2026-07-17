@@ -125,6 +125,35 @@ function findInlineEnums(value, pointer = '') {
     : nestedInlineEnums;
 }
 
+function findForbiddenContractSyntax(value, pointer = '') {
+  if (!value || typeof value !== 'object') {
+    return [];
+  }
+
+  if (Array.isArray(value)) {
+    return value.flatMap((item, index) =>
+      findForbiddenContractSyntax(item, `${pointer}/${index}`),
+    );
+  }
+
+  const forbiddenKeys = new Set([
+    'x-java-type',
+    'x-required-scope',
+    'x-required-scopes',
+    'x-required-scopes-by-entity-type',
+  ]);
+
+  return Object.entries(value).flatMap(([key, child]) => {
+    const childPointer = `${pointer}/${key}`;
+    const current =
+      forbiddenKeys.has(key) ||
+      (key === '$ref' && child === '#/components/schemas/NumericIdentifier')
+        ? [childPointer]
+        : [];
+    return [...current, ...findForbiddenContractSyntax(child, childPointer)];
+  });
+}
+
 function isTopLevelEnumComponent(document, pointer) {
   const [componentName] = Object.keys(document);
 
@@ -191,6 +220,11 @@ test('workspace source state bundles without placeholder output', async () => {
     assert.equal(typeof bundle.info?.title, 'string');
     assert.equal(typeof bundle.paths, 'object');
     assert.equal(typeof bundle.components?.schemas, 'object');
+    assert.equal(
+      Object.hasOwn(bundle.components.schemas, 'NumericIdentifier'),
+      false,
+    );
+    assert.deepEqual(findForbiddenContractSyntax(bundle), []);
 
     if (bundleFile !== 'shared.json') {
       assert.deepEqual(bundle.components.securitySchemes?.bearerAuth, {
@@ -254,33 +288,6 @@ test('workspace config contract reconciles the sixteen audited operations', asyn
     16,
   );
 
-  const expectedScopes = {
-    createDivision: 'create:divisions',
-    createRawDivisionMapping: 'create:raw_division_mapping',
-    deactivateDivision: 'delete:divisions',
-    getDivision: 'read:divisions',
-    getRawDivisionMapping: 'read:raw_division_mapping',
-    listDivisions: 'read:divisions',
-    listRawDivisionMappings: 'read:raw_division_mapping',
-    listScraperStatuses: 'read:scrapers',
-    updateAppStatus: 'update:maintenance',
-    updateDivision: 'update:divisions',
-    updateLegalDocument: 'update:legal',
-    updateRawDivisionMapping: 'update:raw_division_mapping',
-    updateScraperEnabled: 'update:scrapers',
-  };
-  assert.deepEqual(
-    Object.fromEntries(
-      operations
-        .filter(({ operation }) => operation['x-required-scope'])
-        .map(({ operation }) => [
-          operation.operationId,
-          operation['x-required-scope'],
-        ])
-        .sort(([left], [right]) => left.localeCompare(right)),
-    ),
-    expectedScopes,
-  );
   assert.deepEqual(
     config.paths['/api/v2/config/legal/{type}'].get.security,
     [],
@@ -402,25 +409,6 @@ test('workspace clubs contract reconciles the six audited operations', async () 
     6,
   );
 
-  const expectedScopes = {
-    createClub: 'create:clubs',
-    deactivateClub: 'delete:clubs',
-    getClub: 'read:clubs',
-    listClubs: 'read:clubs',
-    updateClub: 'update:clubs',
-  };
-  assert.deepEqual(
-    Object.fromEntries(
-      operations
-        .filter(({ operation }) => operation['x-required-scope'])
-        .map(({ operation }) => [
-          operation.operationId,
-          operation['x-required-scope'],
-        ])
-        .sort(([left], [right]) => left.localeCompare(right)),
-    ),
-    expectedScopes,
-  );
   assert.deepEqual(clubs.security, [{ bearerAuth: [] }]);
 
   assert.deepEqual(
@@ -563,25 +551,6 @@ test('workspace teams contract reconciles the eight audited operations', async (
     8,
   );
 
-  const expectedScopes = {
-    createTeam: 'create:teams',
-    deactivateTeam: 'delete:teams',
-    decrementTeamFollowers: 'follow:teams',
-    incrementTeamFollowers: 'follow:teams',
-    updateTeam: 'update:teams',
-  };
-  assert.deepEqual(
-    Object.fromEntries(
-      operations
-        .filter(({ operation }) => operation['x-required-scope'])
-        .map(({ operation }) => [
-          operation.operationId,
-          operation['x-required-scope'],
-        ])
-        .sort(([left], [right]) => left.localeCompare(right)),
-    ),
-    expectedScopes,
-  );
   assert.deepEqual(teams.security, [{ bearerAuth: [] }]);
 
   assert.deepEqual(
@@ -743,25 +712,6 @@ test('workspace pools contract reconciles the seven audited operations', async (
     7,
   );
 
-  const expectedScopes = {
-    createPool: 'create:pools',
-    deactivatePool: 'delete:pools',
-    decrementPoolFollowers: 'follow:pools',
-    incrementPoolFollowers: 'follow:pools',
-    updatePool: 'update:pools',
-  };
-  assert.deepEqual(
-    Object.fromEntries(
-      operations
-        .filter(({ operation }) => operation['x-required-scope'])
-        .map(({ operation }) => [
-          operation.operationId,
-          operation['x-required-scope'],
-        ])
-        .sort(([left], [right]) => left.localeCompare(right)),
-    ),
-    expectedScopes,
-  );
   assert.deepEqual(pools.security, [{ bearerAuth: [] }]);
 
   assert.deepEqual(
@@ -919,10 +869,6 @@ test('workspace competition contract reconciles the eight audited operations', a
   const addOperation =
     competition.paths['/api/v2/competitions/pools/{poolId}/teams/{teamId}']
       .post;
-  assert.deepEqual(addOperation['x-required-scopes'], [
-    'create:competitions',
-    'update:competitions',
-  ]);
   assert.equal(
     addOperation.parameters[0].$ref,
     '#/components/parameters/AssociationClubId',
@@ -986,7 +932,6 @@ test('workspace competition contract reconciles the eight audited operations', a
     ],
   ]) {
     const operation = competition.paths[operationPath].put;
-    assert.equal(operation['x-required-scope'], 'delete:competitions');
     assert.equal(
       operation.requestBody.content['application/json'].schema.$ref,
       `#/components/schemas/${schemaName}`,
@@ -1300,18 +1245,6 @@ test('workspace users contract reconciles the nine audited operations', async ()
       '#/components/parameters/PageSize',
     ],
   );
-  assert.deepEqual(
-    users.paths['/api/v2/users/favorites/follow'].post[
-      'x-required-scopes-by-entity-type'
-    ],
-    { TEAM: 'follow:teams', POOL: 'follow:pools' },
-  );
-  assert.deepEqual(
-    users.paths['/api/v2/users/favorites/follow'].delete[
-      'x-required-scopes-by-entity-type'
-    ],
-    { TEAM: 'follow:teams', POOL: 'follow:pools' },
-  );
   assert.equal(
     users.paths['/api/v2/users/favorites/follow'].post.responses['204']
       .description,
@@ -1350,10 +1283,6 @@ test('workspace reports contract separates Blockout and vendor roles', async () 
     { 'POST /api/v2/reports': 'createReport' },
   );
   assert.deepEqual(reports.security, [{ bearerAuth: [] }]);
-  assert.equal(
-    reports.paths['/api/v2/reports'].post['x-required-scope'],
-    'create:reports',
-  );
 
   const command = reports.components.schemas.CreateReportInternalRequest;
   assert.deepEqual(Object.keys(command.properties), [
@@ -1460,24 +1389,6 @@ test('workspace notification contract reconciles REST without event or provider 
     6,
   );
   assert.deepEqual(notification.security, [{ bearerAuth: [] }]);
-  assert.deepEqual(
-    Object.fromEntries(
-      operations
-        .map(({ operation }) => [
-          operation.operationId,
-          operation['x-required-scope'],
-        ])
-        .sort(([left], [right]) => left.localeCompare(right)),
-    ),
-    {
-      deleteCurrentUserNotification: 'read:current_user',
-      getCurrentUserUnreadNotificationCount: 'read:current_user',
-      listCurrentUserNotifications: 'read:current_user',
-      markCurrentUserNotificationOpened: 'read:current_user',
-      markCurrentUserNotificationRead: 'read:current_user',
-      registerUserPushToken: 'update:current_user',
-    },
-  );
 
   const item = notification.components.schemas.NotificationInternalResponse;
   assert.deepEqual(Object.keys(item.properties), [
@@ -1586,10 +1497,6 @@ test('workspace search contract exposes bounded results without worker leakage',
     },
   );
   assert.deepEqual(search.security, [{ bearerAuth: [] }]);
-  assert.deepEqual(
-    operations.map(({ operation }) => operation['x-required-scope']),
-    [undefined, undefined, undefined],
-  );
 
   assert.equal(search.components.parameters.SearchQuery.required, true);
   assert.equal(
@@ -2118,10 +2025,11 @@ test('workspace mobile gateway contract separates the nine club team and pool wo
   );
   assert.equal(gateway.components.parameters.MobileIds.explode, true);
   assert.equal(gateway.components.parameters.MobileIds.schema.minItems, 1);
-  assert.equal(
-    gateway.components.parameters.MobileIds.schema.items.$ref,
-    '#/components/schemas/NumericIdentifier',
-  );
+  assert.deepEqual(gateway.components.parameters.MobileIds.schema.items, {
+    type: 'integer',
+    format: 'int64',
+    minimum: 1,
+  });
   assert.match(
     gateway.paths['/api/v2/mobile/public/teams/by-ids'].get.description,
     /silently omits missing or inactive teams/,
@@ -2488,7 +2396,6 @@ test('workspace stable enums remain named top-level components', async () => {
 test('workspace shared catalog keeps the approved schemas and enum wires', async () => {
   const expectedTechnicalSchemas = [
     'CalendarDate',
-    'NumericIdentifier',
     'PageInfo',
     'ProblemDetail',
     'UtcDateTime',

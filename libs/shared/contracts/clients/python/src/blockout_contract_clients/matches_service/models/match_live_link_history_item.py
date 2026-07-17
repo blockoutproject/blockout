@@ -31,7 +31,7 @@ class MatchLiveLinkHistoryItem(BaseModel):
     """
     One live-link version ordered newest first. matchId is omitted because the route already owns that context.
     """ # noqa: E501
-    id: Annotated[int, Field(strict=True, ge=1)] = Field(description="Canonical positive numeric identifier wire shape.")
+    id: Annotated[int, Field(strict=True, ge=1)]
     provider: LiveProviderEnum
     url: Annotated[str, Field(strict=True, max_length=1024)]
     status: LiveLinkStatusEnum

@@ -5,7 +5,11 @@
     "required": ["entityType", "entityId"],
     "properties": {
       "entityType": { "$ref": "#/components/schemas/EntityTypeEnum" },
-      "entityId": { "$ref": "#/components/schemas/NumericIdentifier" }
+      "entityId": {
+        "type": "integer",
+        "format": "int64",
+        "minimum": 1
+      }
     },
     "additionalProperties": false
   }

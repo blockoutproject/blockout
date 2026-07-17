@@ -11,7 +11,6 @@ import type { MobileSearchFormatParameter } from './mobileSearchFormatParameter'
 import type { MobileSearchGenderParameter } from './mobileSearchGenderParameter';
 import type { MobileSearchQueryParameter } from './mobileSearchQueryParameter';
 import type { MobileSeasonParameter } from './mobileSeasonParameter';
-import type { NumericIdentifier } from './numericIdentifier';
 
 export type SearchMobileTeamsParams = {
   /**
@@ -23,7 +22,6 @@ export type SearchMobileTeamsParams = {
    */
   season?: MobileSeasonParameter;
   /**
-   * Canonical positive numeric identifier wire shape.
    * @minimum 1
    */
   divisionId?: MobileSearchDivisionIdParameter;

@@ -55,10 +55,7 @@ export const UpdateMobileUserResponse = zod
           entityType: zod
             .enum(['TEAM', 'POOL'])
             .describe('Entity kinds that can be followed by a Blockout user.'),
-          entityId: zod
-            .number()
-            .min(1)
-            .describe('Canonical positive numeric identifier wire shape.'),
+          entityId: zod.number().min(1),
         }),
       )
       .nullable(),
@@ -94,10 +91,7 @@ export const EnsureCurrentMobileUserResponse = zod
           entityType: zod
             .enum(['TEAM', 'POOL'])
             .describe('Entity kinds that can be followed by a Blockout user.'),
-          entityId: zod
-            .number()
-            .min(1)
-            .describe('Canonical positive numeric identifier wire shape.'),
+          entityId: zod.number().min(1),
         }),
       )
       .nullable(),

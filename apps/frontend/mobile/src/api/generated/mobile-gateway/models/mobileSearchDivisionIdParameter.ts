@@ -4,6 +4,5 @@
  * Blockout Mobile Gateway API
  * OpenAPI spec version: 2.0.0
  */
-import type { NumericIdentifier } from './numericIdentifier';
 
-export type MobileSearchDivisionIdParameter = NumericIdentifier;
+export type MobileSearchDivisionIdParameter = number;

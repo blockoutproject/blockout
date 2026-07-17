@@ -32,7 +32,6 @@
       "tags": ["AppStatus"],
       "summary": "Update application status",
       "description": "Applies the compatibility partial-update semantics: omission and explicit null both preserve the stored field.",
-      "x-required-scope": "update:maintenance",
       "requestBody": {
         "required": true,
         "content": {

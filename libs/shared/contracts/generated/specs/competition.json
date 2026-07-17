@@ -45,10 +45,6 @@
         ],
         "summary": "Add or reactivate a team in a pool",
         "description": "Creates a zero-stat association or reactivates the existing association while preserving its statistics and stored club identity. The caller must hold both listed scopes.",
-        "x-required-scopes": [
-          "create:competitions",
-          "update:competitions"
-        ],
         "parameters": [
           {
             "$ref": "#/components/parameters/AssociationClubId"
@@ -184,7 +180,6 @@
         ],
         "summary": "Deactivate missing teams in a pool",
         "description": "Deactivates active associations for the supplied missingTeamIds. Duplicate identifiers have set semantics; an empty list is a no-op. The v1 adapter retains its empty 200 response.",
-        "x-required-scope": "delete:competitions",
         "requestBody": {
           "required": true,
           "content": {
@@ -222,7 +217,6 @@
         ],
         "summary": "Deactivate missing pools",
         "description": "Deactivates active associations for the supplied missingPoolIds. Duplicate identifiers have set semantics; an empty list is a no-op. The v1 adapter retains its empty 200 response.",
-        "x-required-scope": "delete:competitions",
         "requestBody": {
           "required": true,
           "content": {
@@ -260,7 +254,6 @@
         ],
         "summary": "Deactivate missing clubs",
         "description": "Deactivates active associations for the supplied missingClubIds. Duplicate identifiers have set semantics; an empty list is a no-op. The v1 adapter retains its empty 200 response.",
-        "x-required-scope": "delete:competitions",
         "requestBody": {
           "required": true,
           "content": {
@@ -306,7 +299,6 @@
         ],
         "summary": "Replace association statistics",
         "description": "Atomically replaces all seventeen statistics for the identified association. Partial snapshots and null statistics are invalid.",
-        "x-required-scope": "update:competitions",
         "requestBody": {
           "required": true,
           "content": {
@@ -428,7 +420,9 @@
         "in": "path",
         "required": true,
         "schema": {
-          "$ref": "#/components/schemas/NumericIdentifier"
+          "type": "integer",
+          "format": "int64",
+          "minimum": 1
         }
       },
       "TeamId": {
@@ -436,7 +430,9 @@
         "in": "path",
         "required": true,
         "schema": {
-          "$ref": "#/components/schemas/NumericIdentifier"
+          "type": "integer",
+          "format": "int64",
+          "minimum": 1
         }
       },
       "AssociationClubId": {
@@ -595,10 +591,14 @@
         ],
         "properties": {
           "poolId": {
-            "$ref": "#/components/schemas/NumericIdentifier"
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
           },
           "teamId": {
-            "$ref": "#/components/schemas/NumericIdentifier"
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
           },
           "clubId": {
             "type": "string",
@@ -708,7 +708,9 @@
           "missingTeamIds": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/NumericIdentifier"
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1
             }
           }
         },
@@ -724,7 +726,9 @@
           "missingPoolIds": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/NumericIdentifier"
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1
             }
           }
         },
@@ -861,13 +865,6 @@
         },
         "additionalProperties": false
       },
-      "NumericIdentifier": {
-        "type": "integer",
-        "format": "int64",
-        "minimum": 1,
-        "description": "Canonical positive numeric identifier wire shape.",
-        "x-java-type": "java.lang.Long"
-      },
       "ProblemDetail": {
         "type": "object",
         "description": "Canonical Blockout Problem Details body. Legacy v1 error bodies remain compatibility-adapter owned.",
@@ -945,7 +942,9 @@
         ],
         "properties": {
           "poolId": {
-            "$ref": "#/components/schemas/NumericIdentifier"
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
           },
           "ranking": {
             "type": "array",
@@ -971,7 +970,9 @@
         ],
         "properties": {
           "teamId": {
-            "$ref": "#/components/schemas/NumericIdentifier"
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
           },
           "points": {
             "type": "integer",

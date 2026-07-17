@@ -4,13 +4,13 @@
  * Blockout Mobile Gateway API
  * OpenAPI spec version: 2.0.0
  */
-import type { NumericIdentifier } from './numericIdentifier';
 
 /**
  * Match-screen ranking row. Comparator inputs not rendered by Expo remain internal to the projector.
  */
 export interface MobileMatchRankingTeam {
-  id: NumericIdentifier;
+  /** @minimum 1 */
+  id: number;
   /** @maxLength 255 */
   shortName: string;
   /**

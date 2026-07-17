@@ -61,7 +61,6 @@
       "tags": ["Teams"],
       "summary": "Create a team",
       "description": "Creates a team with server-owned identity, follower count, active state, logo storage, and audit timestamps.",
-      "x-required-scope": "create:teams",
       "requestBody": {
         "required": true,
         "content": {
@@ -147,7 +146,6 @@
       "tags": ["Teams"],
       "summary": "Update a team",
       "description": "Partially updates a team from a canonical camelCase JSON part and applies its explicit logo intent.",
-      "x-required-scope": "update:teams",
       "requestBody": {
         "required": true,
         "content": {
@@ -213,7 +211,6 @@
       "tags": ["Teams"],
       "summary": "Deactivate a team",
       "description": "Soft-deactivates the team without changing the current direct-delete event behavior.",
-      "x-required-scope": "delete:teams",
       "responses": {
         "204": {
           "description": "Team deactivated."
@@ -284,7 +281,6 @@
       "tags": ["TeamFollowers"],
       "summary": "Increment the team follower projection",
       "description": "Increments the derived follower count for the canonical favorite owner. The legacy v1 adapter retains its unused full-team response.",
-      "x-required-scope": "follow:teams",
       "responses": {
         "204": {
           "description": "Follower projection incremented."
@@ -318,7 +314,6 @@
       "tags": ["TeamFollowers"],
       "summary": "Decrement the team follower projection",
       "description": "Decrements the derived follower count with the current zero floor. The legacy v1 adapter retains its unused full-team response.",
-      "x-required-scope": "follow:teams",
       "responses": {
         "204": {
           "description": "Follower projection decremented."

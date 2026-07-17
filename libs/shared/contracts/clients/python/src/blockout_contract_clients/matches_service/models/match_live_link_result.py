@@ -30,7 +30,7 @@ class MatchLiveLinkResult(BaseModel):
     """
     Live-link command result containing only fields consumed by the mobile workflow.
     """ # noqa: E501
-    match_id: Annotated[int, Field(strict=True, ge=1)] = Field(description="Canonical positive numeric identifier wire shape.", alias="matchId")
+    match_id: Annotated[int, Field(strict=True, ge=1)] = Field(alias="matchId")
     provider: LiveProviderEnum
     url: Annotated[str, Field(strict=True, max_length=1024)]
     status: LiveLinkStatusEnum

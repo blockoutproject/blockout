@@ -38,7 +38,9 @@
         "in": "path",
         "required": true,
         "schema": {
-          "$ref": "#/components/schemas/NumericIdentifier"
+          "type": "integer",
+          "format": "int64",
+          "minimum": 1
         }
       },
       "LegalDocumentType": {
@@ -55,7 +57,9 @@
         "in": "path",
         "required": true,
         "schema": {
-          "$ref": "#/components/schemas/NumericIdentifier"
+          "type": "integer",
+          "format": "int64",
+          "minimum": 1
         }
       },
       "LeagueCode": {

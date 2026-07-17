@@ -6,7 +6,6 @@
       "tags": ["UserAccounts"],
       "summary": "Resolve a user account by Auth0 subject",
       "description": "Identity-facing compatibility read. Auth0 remains vendor-owned; the response identifies the account by its canonical local UUID.",
-      "x-required-scope": "read:users",
       "responses": {
         "200": {
           "description": "Resolved user account.",
@@ -29,7 +28,6 @@
       "tags": ["UserAccounts"],
       "summary": "Update a user profile by Auth0 subject",
       "description": "Preserves the current update:current_user scope without adding a path-subject comparison. The canonical command replaces the legacy pictureUrl echo/null protocol with explicit removePicture intent.",
-      "x-required-scope": "update:current_user",
       "requestBody": {
         "required": true,
         "content": {
@@ -76,7 +74,6 @@
       "tags": ["UserAccounts"],
       "summary": "Get the current user account",
       "description": "Resolves the bearer subject through the users-service identity boundary and returns the canonical local account view.",
-      "x-required-scope": "read:current_user",
       "responses": {
         "200": {
           "description": "Current user account.",
@@ -99,7 +96,6 @@
       "tags": ["UserAccounts"],
       "summary": "Ensure the current user account",
       "description": "Creates or synchronizes the local account from the bearer subject through the existing Auth0 and account-linking behavior.",
-      "x-required-scope": "create:current_user",
       "responses": {
         "200": {
           "description": "Ensured current user account.",
@@ -122,7 +118,6 @@
       "tags": ["UserAccounts"],
       "summary": "Delete the current user account",
       "description": "Preserves the existing Auth0-first, favorite-event, and local-delete ordering. Storage and cross-service retention corrections remain later explicit work.",
-      "x-required-scope": "delete:current_user",
       "responses": {
         "204": { "description": "Current user deletion completed." },
         "401": { "$ref": "#/components/responses/UnauthorizedProblem" },

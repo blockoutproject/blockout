@@ -49,10 +49,7 @@ export const ListMobileNotificationsResponse = zod
     items: zod.array(
       zod
         .object({
-          id: zod
-            .number()
-            .min(1)
-            .describe('Canonical positive numeric identifier wire shape.'),
+          id: zod.number().min(1),
           title: zod.string().min(1),
           body: zod.string().min(1),
           deepLink: zod

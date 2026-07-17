@@ -23,31 +23,51 @@
         "name": "id",
         "in": "path",
         "required": true,
-        "schema": { "$ref": "#/components/schemas/NumericIdentifier" }
+        "schema": {
+          "type": "integer",
+          "format": "int64",
+          "minimum": 1
+        }
       },
       "LiveMatchId": {
         "name": "matchId",
         "in": "path",
         "required": true,
-        "schema": { "$ref": "#/components/schemas/NumericIdentifier" }
+        "schema": {
+          "type": "integer",
+          "format": "int64",
+          "minimum": 1
+        }
       },
       "LiveLinkId": {
         "name": "liveLinkId",
         "in": "path",
         "required": true,
-        "schema": { "$ref": "#/components/schemas/NumericIdentifier" }
+        "schema": {
+          "type": "integer",
+          "format": "int64",
+          "minimum": 1
+        }
       },
       "PoolId": {
         "name": "poolId",
         "in": "path",
         "required": true,
-        "schema": { "$ref": "#/components/schemas/NumericIdentifier" }
+        "schema": {
+          "type": "integer",
+          "format": "int64",
+          "minimum": 1
+        }
       },
       "MatchPoolId": {
         "name": "poolId",
         "in": "query",
         "required": false,
-        "schema": { "$ref": "#/components/schemas/NumericIdentifier" }
+        "schema": {
+          "type": "integer",
+          "format": "int64",
+          "minimum": 1
+        }
       },
       "MatchPoolIds": {
         "name": "poolIds",
@@ -57,7 +77,11 @@
         "explode": true,
         "schema": {
           "type": "array",
-          "items": { "$ref": "#/components/schemas/NumericIdentifier" }
+          "items": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          }
         }
       },
       "MatchTeamIds": {
@@ -68,7 +92,11 @@
         "explode": true,
         "schema": {
           "type": "array",
-          "items": { "$ref": "#/components/schemas/NumericIdentifier" }
+          "items": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          }
         }
       },
       "MatchStatus": {

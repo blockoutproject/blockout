@@ -9,11 +9,9 @@
         "maxLength": 255
       },
       "divisionId": {
-        "allOf": [
-          {
-            "$ref": "#/components/schemas/NumericIdentifier"
-          }
-        ],
+        "type": "integer",
+        "format": "int64",
+        "minimum": 1,
         "nullable": true
       },
       "format": {

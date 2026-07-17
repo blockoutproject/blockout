@@ -31,7 +31,6 @@
         ],
         "summary": "List the current user's notifications",
         "description": "Returns a zero-based page ordered by createdAt descending and notification identity descending. The v1 adapter retains size, its legacy wrapper, and its existing unstable equal-timestamp ordering until the vertical migration proves parity.",
-        "x-required-scope": "read:current_user",
         "parameters": [
           {
             "$ref": "#/components/parameters/Page"
@@ -77,7 +76,6 @@
         ],
         "summary": "Get the current user's unread notification count",
         "description": "Returns the count computed from the current user's inbox. The v1 adapter retains its legacy unread field while BFF and Expo projections migrate independently.",
-        "x-required-scope": "read:current_user",
         "responses": {
           "200": {
             "description": "Current unread notification count.",
@@ -117,7 +115,6 @@
         ],
         "summary": "Mark a notification as read",
         "description": "Preserves the current state-sensitive result: an absent notification or one already marked read returns 404 rather than an idempotent 204.",
-        "x-required-scope": "read:current_user",
         "responses": {
           "204": {
             "description": "Notification marked read."
@@ -150,7 +147,6 @@
         ],
         "summary": "Mark a notification as opened",
         "description": "Preserves the current state-sensitive result: an absent notification or one already marked opened returns 404 rather than an idempotent 204.",
-        "x-required-scope": "read:current_user",
         "responses": {
           "204": {
             "description": "Notification marked opened."
@@ -183,7 +179,6 @@
         ],
         "summary": "Delete a notification",
         "description": "Deletes only an inbox item owned by the current user. An absent or already deleted item preserves the current 404 result.",
-        "x-required-scope": "read:current_user",
         "responses": {
           "204": {
             "description": "Notification deleted."
@@ -216,7 +211,6 @@
         ],
         "summary": "Register or rotate a user's Expo push token",
         "description": "Retains the approved coexistence path and current token reattachment/rotation behavior. The current implementation does not compare userId with the authenticated subject; correcting that authorization gap, installation identity, unregister behavior, and account-deletion cleanup requires their assigned runtime and privacy tasks.",
-        "x-required-scope": "update:current_user",
         "requestBody": {
           "required": true,
           "content": {
@@ -285,7 +279,9 @@
         "required": true,
         "description": "Notification inbox identity scoped to the current authenticated user.",
         "schema": {
-          "$ref": "#/components/schemas/NumericIdentifier"
+          "type": "integer",
+          "format": "int64",
+          "minimum": 1
         }
       },
       "NotificationPageSize": {
@@ -487,18 +483,10 @@
         },
         "additionalProperties": false
       },
-      "NumericIdentifier": {
-        "type": "integer",
-        "format": "int64",
-        "minimum": 1,
-        "description": "Canonical positive numeric identifier wire shape.",
-        "x-java-type": "java.lang.Long"
-      },
       "UuidIdentifier": {
         "type": "string",
         "format": "uuid",
-        "description": "Canonical UUID identifier wire shape.",
-        "x-java-type": "java.util.UUID"
+        "description": "Canonical UUID identifier wire shape."
       },
       "ProblemDetail": {
         "type": "object",
@@ -555,7 +543,9 @@
         ],
         "properties": {
           "id": {
-            "$ref": "#/components/schemas/NumericIdentifier"
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
           },
           "type": {
             "$ref": "#/components/schemas/NotificationTypeEnum"
@@ -574,11 +564,9 @@
             "nullable": true
           },
           "divisionId": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/NumericIdentifier"
-              }
-            ],
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1,
             "description": "Explicit enrichment input derived from the persisted metadata tree.",
             "nullable": true
           },
@@ -645,8 +633,7 @@
       "UtcDateTime": {
         "type": "string",
         "format": "date-time",
-        "description": "RFC 3339 timestamp normalized to UTC on Blockout-owned wires.",
-        "x-java-type": "java.time.Instant"
+        "description": "RFC 3339 timestamp normalized to UTC on Blockout-owned wires."
       }
     }
   }

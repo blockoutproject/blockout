@@ -165,8 +165,7 @@
       "CalendarDate": {
         "type": "string",
         "format": "date",
-        "description": "Calendar date without a time zone.",
-        "x-java-type": "java.time.LocalDate"
+        "description": "Calendar date without a time zone."
       },
       "DevicePlatformEnum": {
         "type": "string",
@@ -261,13 +260,6 @@
           "GENERIC"
         ]
       },
-      "NumericIdentifier": {
-        "type": "integer",
-        "format": "int64",
-        "minimum": 1,
-        "description": "Canonical positive numeric identifier wire shape.",
-        "x-java-type": "java.lang.Long"
-      },
       "PageInfo": {
         "type": "object",
         "description": "Pagination metadata for zero-based Blockout collection responses. hasNext is guaranteed; totalItems is optional unless an operation explicitly guarantees an exact count.",
@@ -358,14 +350,12 @@
       "UtcDateTime": {
         "type": "string",
         "format": "date-time",
-        "description": "RFC 3339 timestamp normalized to UTC on Blockout-owned wires.",
-        "x-java-type": "java.time.Instant"
+        "description": "RFC 3339 timestamp normalized to UTC on Blockout-owned wires."
       },
       "UuidIdentifier": {
         "type": "string",
         "format": "uuid",
-        "description": "Canonical UUID identifier wire shape.",
-        "x-java-type": "java.util.UUID"
+        "description": "Canonical UUID identifier wire shape."
       }
     }
   }

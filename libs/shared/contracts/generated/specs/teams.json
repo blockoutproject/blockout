@@ -92,7 +92,6 @@
         ],
         "summary": "Create a team",
         "description": "Creates a team with server-owned identity, follower count, active state, logo storage, and audit timestamps.",
-        "x-required-scope": "create:teams",
         "requestBody": {
           "required": true,
           "content": {
@@ -182,7 +181,6 @@
         ],
         "summary": "Update a team",
         "description": "Partially updates a team from a canonical camelCase JSON part and applies its explicit logo intent.",
-        "x-required-scope": "update:teams",
         "requestBody": {
           "required": true,
           "content": {
@@ -252,7 +250,6 @@
         ],
         "summary": "Deactivate a team",
         "description": "Soft-deactivates the team without changing the current direct-delete event behavior.",
-        "x-required-scope": "delete:teams",
         "responses": {
           "204": {
             "description": "Team deactivated."
@@ -327,7 +324,6 @@
         ],
         "summary": "Increment the team follower projection",
         "description": "Increments the derived follower count for the canonical favorite owner. The legacy v1 adapter retains its unused full-team response.",
-        "x-required-scope": "follow:teams",
         "responses": {
           "204": {
             "description": "Follower projection incremented."
@@ -363,7 +359,6 @@
         ],
         "summary": "Decrement the team follower projection",
         "description": "Decrements the derived follower count with the current zero floor. The legacy v1 adapter retains its unused full-team response.",
-        "x-required-scope": "follow:teams",
         "responses": {
           "204": {
             "description": "Follower projection decremented."
@@ -421,7 +416,9 @@
         "in": "path",
         "required": true,
         "schema": {
-          "$ref": "#/components/schemas/NumericIdentifier"
+          "type": "integer",
+          "format": "int64",
+          "minimum": 1
         }
       },
       "FollowerTeamId": {
@@ -429,7 +426,9 @@
         "in": "path",
         "required": true,
         "schema": {
-          "$ref": "#/components/schemas/NumericIdentifier"
+          "type": "integer",
+          "format": "int64",
+          "minimum": 1
         }
       },
       "DivisionId": {
@@ -437,7 +436,9 @@
         "in": "query",
         "required": false,
         "schema": {
-          "$ref": "#/components/schemas/NumericIdentifier"
+          "type": "integer",
+          "format": "int64",
+          "minimum": 1
         }
       },
       "TeamFormat": {
@@ -483,7 +484,9 @@
         "schema": {
           "type": "array",
           "items": {
-            "$ref": "#/components/schemas/NumericIdentifier"
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
           }
         }
       },
@@ -500,7 +503,9 @@
         "in": "query",
         "required": true,
         "schema": {
-          "$ref": "#/components/schemas/NumericIdentifier"
+          "type": "integer",
+          "format": "int64",
+          "minimum": 1
         }
       }
     },
@@ -678,7 +683,9 @@
             "maxLength": 255
           },
           "divisionId": {
-            "$ref": "#/components/schemas/NumericIdentifier"
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
           },
           "season": {
             "type": "string",
@@ -713,7 +720,9 @@
         ],
         "properties": {
           "id": {
-            "$ref": "#/components/schemas/NumericIdentifier"
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
           },
           "clubId": {
             "type": "string",
@@ -736,7 +745,9 @@
             "maxLength": 255
           },
           "divisionId": {
-            "$ref": "#/components/schemas/NumericIdentifier"
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
           },
           "season": {
             "type": "string",
@@ -797,11 +808,9 @@
             "nullable": true
           },
           "divisionId": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/NumericIdentifier"
-              }
-            ],
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1,
             "nullable": true
           },
           "season": {
@@ -855,13 +864,6 @@
           }
         },
         "additionalProperties": false
-      },
-      "NumericIdentifier": {
-        "type": "integer",
-        "format": "int64",
-        "minimum": 1,
-        "description": "Canonical positive numeric identifier wire shape.",
-        "x-java-type": "java.lang.Long"
       },
       "FormatEnum": {
         "type": "string",

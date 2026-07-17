@@ -30,7 +30,11 @@
       "pool"
     ],
     "properties": {
-      "id": { "$ref": "#/components/schemas/NumericIdentifier" },
+      "id": {
+        "type": "integer",
+        "format": "int64",
+        "minimum": 1
+      },
       "matchDate": {
         "allOf": [{ "$ref": "#/components/schemas/UtcDateTime" }],
         "nullable": true

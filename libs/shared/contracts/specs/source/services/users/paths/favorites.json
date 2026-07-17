@@ -35,10 +35,6 @@
       "tags": ["UserFavorites"],
       "summary": "Follow a team or pool",
       "description": "Resolves the bearer subject to the canonical local user and preserves idempotent no-op behavior for an existing favorite. TEAM requires follow:teams and POOL requires follow:pools.",
-      "x-required-scopes-by-entity-type": {
-        "TEAM": "follow:teams",
-        "POOL": "follow:pools"
-      },
       "parameters": [
         { "$ref": "#/components/parameters/RequiredFavoriteEntityType" },
         { "$ref": "#/components/parameters/FavoriteEntityId" }
@@ -57,10 +53,6 @@
       "tags": ["UserFavorites"],
       "summary": "Unfollow a team or pool",
       "description": "Resolves the bearer subject to the canonical local user and preserves idempotent no-op behavior when the favorite is absent. TEAM requires follow:teams and POOL requires follow:pools.",
-      "x-required-scopes-by-entity-type": {
-        "TEAM": "follow:teams",
-        "POOL": "follow:pools"
-      },
       "parameters": [
         { "$ref": "#/components/parameters/RequiredFavoriteEntityType" },
         { "$ref": "#/components/parameters/FavoriteEntityId" }

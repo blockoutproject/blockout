@@ -6,14 +6,14 @@
  */
 import type { LiveLinkStatusEnum } from './liveLinkStatusEnum';
 import type { LiveProviderEnum } from './liveProviderEnum';
-import type { NumericIdentifier } from './numericIdentifier';
 import type { UtcDateTime } from './utcDateTime';
 
 /**
  * One live-link version in current createdAt-descending order with no immutable-ID tie-breaker. matchId is route context and is not repeated.
  */
 export interface MobileMatchLiveLinkHistoryItem {
-  id: NumericIdentifier;
+  /** @minimum 1 */
+  id: number;
   provider: LiveProviderEnum;
   /** @maxLength 1024 */
   url: string;

@@ -13,7 +13,11 @@
     "description": "Narrow command result retained for generated-client compatibility even though the current Expo mutation ignores its body.",
     "required": ["matchId", "provider", "url", "status"],
     "properties": {
-      "matchId": { "$ref": "#/components/schemas/NumericIdentifier" },
+      "matchId": {
+        "type": "integer",
+        "format": "int64",
+        "minimum": 1
+      },
       "provider": { "$ref": "#/components/schemas/LiveProviderEnum" },
       "url": { "type": "string", "maxLength": 1024 },
       "status": { "$ref": "#/components/schemas/LiveLinkStatusEnum" }
@@ -58,7 +62,11 @@
       "lastUpdate"
     ],
     "properties": {
-      "id": { "$ref": "#/components/schemas/NumericIdentifier" },
+      "id": {
+        "type": "integer",
+        "format": "int64",
+        "minimum": 1
+      },
       "provider": { "$ref": "#/components/schemas/LiveProviderEnum" },
       "url": { "type": "string", "maxLength": 1024 },
       "status": { "$ref": "#/components/schemas/LiveLinkStatusEnum" },

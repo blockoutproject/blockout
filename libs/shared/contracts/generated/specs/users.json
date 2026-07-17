@@ -39,7 +39,6 @@
         ],
         "summary": "Resolve a user account by Auth0 subject",
         "description": "Identity-facing compatibility read. Auth0 remains vendor-owned; the response identifies the account by its canonical local UUID.",
-        "x-required-scope": "read:users",
         "responses": {
           "200": {
             "description": "Resolved user account.",
@@ -72,7 +71,6 @@
         ],
         "summary": "Update a user profile by Auth0 subject",
         "description": "Preserves the current update:current_user scope without adding a path-subject comparison. The canonical command replaces the legacy pictureUrl echo/null protocol with explicit removePicture intent.",
-        "x-required-scope": "update:current_user",
         "requestBody": {
           "required": true,
           "content": {
@@ -144,7 +142,6 @@
         ],
         "summary": "Get the current user account",
         "description": "Resolves the bearer subject through the users-service identity boundary and returns the canonical local account view.",
-        "x-required-scope": "read:current_user",
         "responses": {
           "200": {
             "description": "Current user account.",
@@ -177,7 +174,6 @@
         ],
         "summary": "Ensure the current user account",
         "description": "Creates or synchronizes the local account from the bearer subject through the existing Auth0 and account-linking behavior.",
-        "x-required-scope": "create:current_user",
         "responses": {
           "200": {
             "description": "Ensured current user account.",
@@ -210,7 +206,6 @@
         ],
         "summary": "Delete the current user account",
         "description": "Preserves the existing Auth0-first, favorite-event, and local-delete ordering. Storage and cross-service retention corrections remain later explicit work.",
-        "x-required-scope": "delete:current_user",
         "responses": {
           "204": {
             "description": "Current user deletion completed."
@@ -319,10 +314,6 @@
         ],
         "summary": "Follow a team or pool",
         "description": "Resolves the bearer subject to the canonical local user and preserves idempotent no-op behavior for an existing favorite. TEAM requires follow:teams and POOL requires follow:pools.",
-        "x-required-scopes-by-entity-type": {
-          "TEAM": "follow:teams",
-          "POOL": "follow:pools"
-        },
         "parameters": [
           {
             "$ref": "#/components/parameters/RequiredFavoriteEntityType"
@@ -359,10 +350,6 @@
         ],
         "summary": "Unfollow a team or pool",
         "description": "Resolves the bearer subject to the canonical local user and preserves idempotent no-op behavior when the favorite is absent. TEAM requires follow:teams and POOL requires follow:pools.",
-        "x-required-scopes-by-entity-type": {
-          "TEAM": "follow:teams",
-          "POOL": "follow:pools"
-        },
         "parameters": [
           {
             "$ref": "#/components/parameters/RequiredFavoriteEntityType"
@@ -473,7 +460,9 @@
         "in": "query",
         "required": true,
         "schema": {
-          "$ref": "#/components/schemas/NumericIdentifier"
+          "type": "integer",
+          "format": "int64",
+          "minimum": 1
         }
       }
     },
@@ -687,8 +676,7 @@
       "UuidIdentifier": {
         "type": "string",
         "format": "uuid",
-        "description": "Canonical UUID identifier wire shape.",
-        "x-java-type": "java.util.UUID"
+        "description": "Canonical UUID identifier wire shape."
       },
       "EntityTypeEnum": {
         "type": "string",
@@ -697,13 +685,6 @@
           "TEAM",
           "POOL"
         ]
-      },
-      "NumericIdentifier": {
-        "type": "integer",
-        "format": "int64",
-        "minimum": 1,
-        "description": "Canonical positive numeric identifier wire shape.",
-        "x-java-type": "java.lang.Long"
       },
       "ProblemDetail": {
         "type": "object",
@@ -747,8 +728,7 @@
       "UtcDateTime": {
         "type": "string",
         "format": "date-time",
-        "description": "RFC 3339 timestamp normalized to UTC on Blockout-owned wires.",
-        "x-java-type": "java.time.Instant"
+        "description": "RFC 3339 timestamp normalized to UTC on Blockout-owned wires."
       },
       "UserFavoriteSummary": {
         "type": "object",
@@ -762,7 +742,9 @@
             "$ref": "#/components/schemas/EntityTypeEnum"
           },
           "entityId": {
-            "$ref": "#/components/schemas/NumericIdentifier"
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
           }
         },
         "additionalProperties": false

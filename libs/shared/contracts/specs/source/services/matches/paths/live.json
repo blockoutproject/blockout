@@ -5,7 +5,6 @@
       "tags": ["MatchModeration"],
       "summary": "List matches with live-link history for moderation",
       "description": "Status filters historical existence while representative fields retain the audited priority selection; no unimplemented time window is promised.",
-      "x-required-scope": "moderate:match_live_link",
       "parameters": [
         { "$ref": "#/components/parameters/LiveLinkStatus" },
         { "$ref": "#/components/parameters/Page" },
@@ -35,7 +34,6 @@
       "operationId": "listMatchLiveLinkHistory",
       "tags": ["MatchModeration"],
       "summary": "List live-link history newest first",
-      "x-required-scope": "moderate:match_live_link",
       "parameters": [
         { "$ref": "#/components/parameters/Page" },
         { "$ref": "#/components/parameters/PageSize" }
@@ -65,7 +63,6 @@
       "tags": ["MatchLiveLinks"],
       "summary": "Create or update a match live link",
       "description": "Applies the existing owner, account-age, provider, quota, timing, professional-league, and pending/active policies without changing their behavior.",
-      "x-required-scope": "create:match_live_link",
       "requestBody": {
         "required": true,
         "content": {
@@ -98,7 +95,6 @@
       "tags": ["MatchLiveLinks"],
       "summary": "Deactivate the active match live link",
       "description": "Returns 204 even when no active link exists and retains current owner/moderator authorization.",
-      "x-required-scope": "delete:match_live_link",
       "responses": {
         "204": { "description": "Active link deactivated or already absent." },
         "401": { "$ref": "#/components/responses/UnauthorizedProblem" },
@@ -113,7 +109,6 @@
       "operationId": "reportMatchLiveLink",
       "tags": ["MatchLiveLinks"],
       "summary": "Report the active match live link",
-      "x-required-scope": "report:match_live_link",
       "requestBody": {
         "required": true,
         "content": {
@@ -143,7 +138,6 @@
       "operationId": "approveMatchLiveLink",
       "tags": ["MatchModeration"],
       "summary": "Approve a pending live link",
-      "x-required-scope": "moderate:match_live_link",
       "responses": {
         "204": { "description": "Live link approved." },
         "400": { "$ref": "#/components/responses/BadRequestProblem" },
@@ -160,7 +154,6 @@
       "operationId": "rejectMatchLiveLink",
       "tags": ["MatchModeration"],
       "summary": "Reject a pending live link",
-      "x-required-scope": "moderate:match_live_link",
       "responses": {
         "204": { "description": "Live link rejected." },
         "400": { "$ref": "#/components/responses/BadRequestProblem" },
@@ -177,7 +170,6 @@
       "operationId": "reactivateMatchLiveLink",
       "tags": ["MatchModeration"],
       "summary": "Reactivate an eligible live link",
-      "x-required-scope": "moderate:match_live_link",
       "responses": {
         "204": { "description": "Live link reactivated." },
         "400": { "$ref": "#/components/responses/BadRequestProblem" },

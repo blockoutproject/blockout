@@ -2094,7 +2094,9 @@
         "in": "path",
         "required": true,
         "schema": {
-          "$ref": "#/components/schemas/NumericIdentifier"
+          "type": "integer",
+          "format": "int64",
+          "minimum": 1
         }
       },
       "MobileLegalDocumentType": {
@@ -2111,7 +2113,9 @@
         "in": "path",
         "required": true,
         "schema": {
-          "$ref": "#/components/schemas/NumericIdentifier"
+          "type": "integer",
+          "format": "int64",
+          "minimum": 1
         }
       },
       "MobileLeagueCode": {
@@ -2171,7 +2175,9 @@
         "in": "query",
         "required": true,
         "schema": {
-          "$ref": "#/components/schemas/NumericIdentifier"
+          "type": "integer",
+          "format": "int64",
+          "minimum": 1
         }
       },
       "MobileSearchQuery": {
@@ -2188,7 +2194,9 @@
         "in": "query",
         "required": false,
         "schema": {
-          "$ref": "#/components/schemas/NumericIdentifier"
+          "type": "integer",
+          "format": "int64",
+          "minimum": 1
         }
       },
       "MobileSearchFormat": {
@@ -2212,7 +2220,9 @@
         "in": "path",
         "required": true,
         "schema": {
-          "$ref": "#/components/schemas/NumericIdentifier"
+          "type": "integer",
+          "format": "int64",
+          "minimum": 1
         }
       },
       "MobileUserId": {
@@ -2248,7 +2258,9 @@
         "in": "path",
         "required": true,
         "schema": {
-          "$ref": "#/components/schemas/NumericIdentifier"
+          "type": "integer",
+          "format": "int64",
+          "minimum": 1
         }
       },
       "MobilePoolId": {
@@ -2256,7 +2268,9 @@
         "in": "path",
         "required": true,
         "schema": {
-          "$ref": "#/components/schemas/NumericIdentifier"
+          "type": "integer",
+          "format": "int64",
+          "minimum": 1
         }
       },
       "MobileIds": {
@@ -2269,7 +2283,9 @@
           "type": "array",
           "minItems": 1,
           "items": {
-            "$ref": "#/components/schemas/NumericIdentifier"
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
           }
         }
       },
@@ -2278,7 +2294,9 @@
         "in": "path",
         "required": true,
         "schema": {
-          "$ref": "#/components/schemas/NumericIdentifier"
+          "type": "integer",
+          "format": "int64",
+          "minimum": 1
         }
       },
       "MobileLiveMatchId": {
@@ -2286,7 +2304,9 @@
         "in": "path",
         "required": true,
         "schema": {
-          "$ref": "#/components/schemas/NumericIdentifier"
+          "type": "integer",
+          "format": "int64",
+          "minimum": 1
         }
       },
       "MobileLiveLinkId": {
@@ -2294,7 +2314,9 @@
         "in": "path",
         "required": true,
         "schema": {
-          "$ref": "#/components/schemas/NumericIdentifier"
+          "type": "integer",
+          "format": "int64",
+          "minimum": 1
         }
       },
       "MobileMatchPoolIds": {
@@ -2307,7 +2329,9 @@
         "schema": {
           "type": "array",
           "items": {
-            "$ref": "#/components/schemas/NumericIdentifier"
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
           }
         }
       },
@@ -2321,7 +2345,9 @@
         "schema": {
           "type": "array",
           "items": {
-            "$ref": "#/components/schemas/NumericIdentifier"
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
           }
         }
       },
@@ -2607,7 +2633,9 @@
         ],
         "properties": {
           "id": {
-            "$ref": "#/components/schemas/NumericIdentifier"
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
           },
           "clubId": {
             "type": "string",
@@ -2713,7 +2741,9 @@
         ],
         "properties": {
           "id": {
-            "$ref": "#/components/schemas/NumericIdentifier"
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
           },
           "name": {
             "type": "string",
@@ -2751,7 +2781,9 @@
         ],
         "properties": {
           "id": {
-            "$ref": "#/components/schemas/NumericIdentifier"
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
           },
           "season": {
             "type": "string",
@@ -2844,7 +2876,9 @@
         ],
         "properties": {
           "id": {
-            "$ref": "#/components/schemas/NumericIdentifier"
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
           },
           "name": {
             "type": "string",
@@ -2991,7 +3025,9 @@
         ],
         "properties": {
           "id": {
-            "$ref": "#/components/schemas/NumericIdentifier"
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
           },
           "name": {
             "type": "string",
@@ -3166,11 +3202,9 @@
             "maxLength": 255
           },
           "divisionId": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/NumericIdentifier"
-              }
-            ],
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1,
             "nullable": true
           },
           "format": {
@@ -3215,7 +3249,9 @@
         ],
         "properties": {
           "id": {
-            "$ref": "#/components/schemas/NumericIdentifier"
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
           },
           "rawDivisionName": {
             "type": "string",
@@ -3223,11 +3259,9 @@
             "maxLength": 255
           },
           "divisionId": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/NumericIdentifier"
-              }
-            ],
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1,
             "nullable": true
           },
           "format": {
@@ -3283,11 +3317,9 @@
         ],
         "properties": {
           "divisionId": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/NumericIdentifier"
-              }
-            ],
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1,
             "nullable": true
           },
           "format": {
@@ -3389,7 +3421,9 @@
         ],
         "properties": {
           "id": {
-            "$ref": "#/components/schemas/NumericIdentifier"
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
           },
           "matchDate": {
             "$ref": "#/components/schemas/UtcDateTime"
@@ -3475,7 +3509,9 @@
         ],
         "properties": {
           "matchId": {
-            "$ref": "#/components/schemas/NumericIdentifier"
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
           },
           "provider": {
             "$ref": "#/components/schemas/LiveProviderEnum"
@@ -3805,13 +3841,6 @@
         },
         "additionalProperties": false
       },
-      "NumericIdentifier": {
-        "type": "integer",
-        "format": "int64",
-        "minimum": 1,
-        "description": "Canonical positive numeric identifier wire shape.",
-        "x-java-type": "java.lang.Long"
-      },
       "ScraperNameEnum": {
         "type": "string",
         "description": "Blockout-owned scraper process identifiers.",
@@ -3849,8 +3878,7 @@
       "UuidIdentifier": {
         "type": "string",
         "format": "uuid",
-        "description": "Canonical UUID identifier wire shape.",
-        "x-java-type": "java.util.UUID"
+        "description": "Canonical UUID identifier wire shape."
       },
       "MatchStatusEnum": {
         "type": "string",
@@ -3970,7 +3998,9 @@
         ],
         "properties": {
           "id": {
-            "$ref": "#/components/schemas/NumericIdentifier"
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
           },
           "leagueCode": {
             "type": "string",
@@ -4015,7 +4045,9 @@
         ],
         "properties": {
           "id": {
-            "$ref": "#/components/schemas/NumericIdentifier"
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
           },
           "name": {
             "type": "string",
@@ -4070,7 +4102,9 @@
         ],
         "properties": {
           "id": {
-            "$ref": "#/components/schemas/NumericIdentifier"
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
           },
           "shortName": {
             "type": "string",
@@ -4130,7 +4164,9 @@
         ],
         "properties": {
           "id": {
-            "$ref": "#/components/schemas/NumericIdentifier"
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
           },
           "name": {
             "type": "string",
@@ -4170,8 +4206,7 @@
       "UtcDateTime": {
         "type": "string",
         "format": "date-time",
-        "description": "RFC 3339 timestamp normalized to UTC on Blockout-owned wires.",
-        "x-java-type": "java.time.Instant"
+        "description": "RFC 3339 timestamp normalized to UTC on Blockout-owned wires."
       },
       "MobileMatchDayGroup": {
         "type": "object",
@@ -4214,7 +4249,9 @@
         ],
         "properties": {
           "id": {
-            "$ref": "#/components/schemas/NumericIdentifier"
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
           },
           "name": {
             "type": "string",
@@ -4249,7 +4286,9 @@
         ],
         "properties": {
           "id": {
-            "$ref": "#/components/schemas/NumericIdentifier"
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
           },
           "season": {
             "type": "string",
@@ -4325,7 +4364,9 @@
         ],
         "properties": {
           "id": {
-            "$ref": "#/components/schemas/NumericIdentifier"
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
           },
           "provider": {
             "$ref": "#/components/schemas/LiveProviderEnum"
@@ -4404,7 +4445,9 @@
         ],
         "properties": {
           "id": {
-            "$ref": "#/components/schemas/NumericIdentifier"
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
           },
           "matchDate": {
             "allOf": [
@@ -4464,7 +4507,9 @@
         ],
         "properties": {
           "id": {
-            "$ref": "#/components/schemas/NumericIdentifier"
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
           },
           "title": {
             "type": "string",
@@ -4556,7 +4601,9 @@
         ],
         "properties": {
           "id": {
-            "$ref": "#/components/schemas/NumericIdentifier"
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
           },
           "name": {
             "type": "string",
@@ -4610,7 +4657,9 @@
         ],
         "properties": {
           "id": {
-            "$ref": "#/components/schemas/NumericIdentifier"
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
           },
           "name": {
             "type": "string",
@@ -4667,7 +4716,9 @@
             "$ref": "#/components/schemas/EntityTypeEnum"
           },
           "entityId": {
-            "$ref": "#/components/schemas/NumericIdentifier"
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
           }
         },
         "additionalProperties": false
@@ -4675,8 +4726,7 @@
       "CalendarDate": {
         "type": "string",
         "format": "date",
-        "description": "Calendar date without a time zone.",
-        "x-java-type": "java.time.LocalDate"
+        "description": "Calendar date without a time zone."
       },
       "MobileMatchPoolGroup": {
         "type": "object",
@@ -4713,7 +4763,9 @@
         ],
         "properties": {
           "id": {
-            "$ref": "#/components/schemas/NumericIdentifier"
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
           },
           "shortName": {
             "type": "string",
@@ -4844,7 +4896,9 @@
         ],
         "properties": {
           "id": {
-            "$ref": "#/components/schemas/NumericIdentifier"
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
           },
           "leagueCode": {
             "type": "string",
@@ -4881,7 +4935,9 @@
         ],
         "properties": {
           "id": {
-            "$ref": "#/components/schemas/NumericIdentifier"
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
           },
           "matchDate": {
             "$ref": "#/components/schemas/UtcDateTime"

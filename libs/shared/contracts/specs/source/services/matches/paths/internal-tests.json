@@ -6,7 +6,6 @@
       "tags": ["MatchInternalTests"],
       "summary": "Emit a synthetic finish event for a persisted match",
       "description": "Test-only REST trigger that does not modify match state. AsyncAPI remains event-contract authority.",
-      "x-required-scope": "publish:events",
       "responses": {
         "202": { "description": "Synthetic publication accepted." },
         "401": { "$ref": "#/components/responses/UnauthorizedProblem" },
@@ -22,7 +21,6 @@
       "tags": ["MatchInternalTests"],
       "summary": "Emit a synthetic custom finish event",
       "description": "Test-only REST command; the emitted v2 envelope and payload remain generated from AsyncAPI.",
-      "x-required-scope": "publish:events",
       "requestBody": {
         "required": true,
         "content": {

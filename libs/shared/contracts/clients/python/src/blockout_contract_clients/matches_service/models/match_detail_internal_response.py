@@ -31,13 +31,13 @@ class MatchDetailInternalResponse(BaseModel):
     """
     Match detail enriched only with the newest active live link and without persistence lifecycle or audit fields.
     """ # noqa: E501
-    id: Annotated[int, Field(strict=True, ge=1)] = Field(description="Canonical positive numeric identifier wire shape.")
+    id: Annotated[int, Field(strict=True, ge=1)]
     match_code: Annotated[str, Field(strict=True, max_length=255)] = Field(alias="matchCode")
     league_code: Annotated[str, Field(strict=True, max_length=255)] = Field(alias="leagueCode")
-    pool_id: Annotated[int, Field(strict=True, ge=1)] = Field(description="Canonical positive numeric identifier wire shape.", alias="poolId")
+    pool_id: Annotated[int, Field(strict=True, ge=1)] = Field(alias="poolId")
     live_code: Optional[StrictInt] = Field(default=None, alias="liveCode")
-    team_id_a: Annotated[int, Field(strict=True, ge=1)] = Field(description="Canonical positive numeric identifier wire shape.", alias="teamIdA")
-    team_id_b: Annotated[int, Field(strict=True, ge=1)] = Field(description="Canonical positive numeric identifier wire shape.", alias="teamIdB")
+    team_id_a: Annotated[int, Field(strict=True, ge=1)] = Field(alias="teamIdA")
+    team_id_b: Annotated[int, Field(strict=True, ge=1)] = Field(alias="teamIdB")
     match_date: datetime = Field(description="RFC 3339 timestamp normalized to UTC on Blockout-owned wires.", alias="matchDate")
     season: Annotated[str, Field(strict=True, max_length=255)]
     set: Optional[StrictStr] = None

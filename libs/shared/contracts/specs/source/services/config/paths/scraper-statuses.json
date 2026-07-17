@@ -47,7 +47,6 @@
       "tags": ["ScraperStatuses"],
       "summary": "Update scraper enabled state",
       "description": "Replaces the scraper enabled switch and preserves the current upsert behavior when the seeded status row is absent.",
-      "x-required-scope": "update:scrapers",
       "responses": {
         "200": {
           "description": "Updated or created scraper status.",
@@ -80,7 +79,6 @@
       "tags": ["ScraperStatuses"],
       "summary": "List scraper statuses",
       "description": "Returns the complete two-scraper catalog in the existing repository-defined compatibility order.",
-      "x-required-scope": "read:scrapers",
       "responses": {
         "200": {
           "description": "Complete scraper status catalog.",

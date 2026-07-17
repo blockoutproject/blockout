@@ -7,13 +7,13 @@
 import type { GenderEnum } from './genderEnum';
 import type { MobileMatchDetailDivision } from './mobileMatchDetailDivision';
 import type { MobileMatchRankingTeam } from './mobileMatchRankingTeam';
-import type { NumericIdentifier } from './numericIdentifier';
 
 /**
  * Match-detail pool metadata, styling, and ranking projection without pool-profile-only fields.
  */
 export interface MobileMatchDetailPool {
-  id: NumericIdentifier;
+  /** @minimum 1 */
+  id: number;
   /** @maxLength 255 */
   season: string;
   /** @maxLength 255 */

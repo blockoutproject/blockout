@@ -14,7 +14,11 @@
       "createdAt"
     ],
     "properties": {
-      "id": { "$ref": "#/components/schemas/NumericIdentifier" },
+      "id": {
+        "type": "integer",
+        "format": "int64",
+        "minimum": 1
+      },
       "type": { "$ref": "#/components/schemas/NotificationTypeEnum" },
       "title": { "type": "string", "minLength": 1 },
       "body": { "type": "string", "minLength": 1 },
@@ -24,7 +28,9 @@
         "nullable": true
       },
       "divisionId": {
-        "allOf": [{ "$ref": "#/components/schemas/NumericIdentifier" }],
+        "type": "integer",
+        "format": "int64",
+        "minimum": 1,
         "description": "Explicit enrichment input derived from the persisted metadata tree.",
         "nullable": true
       },

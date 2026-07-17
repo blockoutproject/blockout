@@ -30,7 +30,7 @@ class UpdateRawDivisionMappingInternalRequest(BaseModel):
     """
     Replaces all three mapping fields. Each field is required and nullable so an explicit null preserves the current unmapping behavior without omission ambiguity.
     """ # noqa: E501
-    division_id: Optional[Annotated[int, Field(strict=True, ge=1)]] = Field(description="Canonical positive numeric identifier wire shape.", alias="divisionId")
+    division_id: Optional[Annotated[int, Field(strict=True, ge=1)]] = Field(alias="divisionId")
     format: Optional[FormatEnum]
     gender: Optional[GenderEnum]
     __properties: ClassVar[List[str]] = ["divisionId", "format", "gender"]

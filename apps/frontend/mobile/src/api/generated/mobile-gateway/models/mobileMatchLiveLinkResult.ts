@@ -6,13 +6,13 @@
  */
 import type { LiveLinkStatusEnum } from './liveLinkStatusEnum';
 import type { LiveProviderEnum } from './liveProviderEnum';
-import type { NumericIdentifier } from './numericIdentifier';
 
 /**
  * Narrow command result retained for generated-client compatibility even though the current Expo mutation ignores its body.
  */
 export interface MobileMatchLiveLinkResult {
-  matchId: NumericIdentifier;
+  /** @minimum 1 */
+  matchId: number;
   provider: LiveProviderEnum;
   /** @maxLength 1024 */
   url: string;

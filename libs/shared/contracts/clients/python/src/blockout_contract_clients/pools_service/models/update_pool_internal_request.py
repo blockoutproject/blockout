@@ -37,7 +37,7 @@ class UpdatePoolInternalRequest(BaseModel):
     raw_name: Optional[Annotated[str, Field(strict=True, max_length=255)]] = Field(default=None, alias="rawName")
     name: Optional[Annotated[str, Field(strict=True, max_length=255)]] = None
     short_name: Optional[Annotated[str, Field(strict=True, max_length=255)]] = Field(default=None, alias="shortName")
-    division_id: Optional[Annotated[int, Field(strict=True, ge=1)]] = Field(default=None, description="Canonical positive numeric identifier wire shape.", alias="divisionId")
+    division_id: Optional[Annotated[int, Field(strict=True, ge=1)]] = Field(default=None, alias="divisionId")
     format: Optional[FormatEnum] = None
     gender: Optional[GenderEnum] = None
     active: Optional[StrictBool] = None

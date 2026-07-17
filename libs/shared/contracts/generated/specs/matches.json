@@ -45,7 +45,6 @@
         ],
         "summary": "Emit a synthetic finish event for a persisted match",
         "description": "Test-only REST trigger that does not modify match state. AsyncAPI remains event-contract authority.",
-        "x-required-scope": "publish:events",
         "responses": {
           "202": {
             "description": "Synthetic publication accepted."
@@ -73,7 +72,6 @@
         ],
         "summary": "Emit a synthetic custom finish event",
         "description": "Test-only REST command; the emitted v2 envelope and payload remain generated from AsyncAPI.",
-        "x-required-scope": "publish:events",
         "requestBody": {
           "required": true,
           "content": {
@@ -111,7 +109,6 @@
         ],
         "summary": "List matches with live-link history for moderation",
         "description": "Status filters historical existence while representative fields retain the audited priority selection; no unimplemented time window is promised.",
-        "x-required-scope": "moderate:match_live_link",
         "parameters": [
           {
             "$ref": "#/components/parameters/LiveLinkStatus"
@@ -161,7 +158,6 @@
           "MatchModeration"
         ],
         "summary": "List live-link history newest first",
-        "x-required-scope": "moderate:match_live_link",
         "parameters": [
           {
             "$ref": "#/components/parameters/Page"
@@ -209,7 +205,6 @@
         ],
         "summary": "Create or update a match live link",
         "description": "Applies the existing owner, account-age, provider, quota, timing, professional-league, and pending/active policies without changing their behavior.",
-        "x-required-scope": "create:match_live_link",
         "requestBody": {
           "required": true,
           "content": {
@@ -258,7 +253,6 @@
         ],
         "summary": "Deactivate the active match live link",
         "description": "Returns 204 even when no active link exists and retains current owner/moderator authorization.",
-        "x-required-scope": "delete:match_live_link",
         "responses": {
           "204": {
             "description": "Active link deactivated or already absent."
@@ -287,7 +281,6 @@
           "MatchLiveLinks"
         ],
         "summary": "Report the active match live link",
-        "x-required-scope": "report:match_live_link",
         "requestBody": {
           "required": true,
           "content": {
@@ -335,7 +328,6 @@
           "MatchModeration"
         ],
         "summary": "Approve a pending live link",
-        "x-required-scope": "moderate:match_live_link",
         "responses": {
           "204": {
             "description": "Live link approved."
@@ -370,7 +362,6 @@
           "MatchModeration"
         ],
         "summary": "Reject a pending live link",
-        "x-required-scope": "moderate:match_live_link",
         "responses": {
           "204": {
             "description": "Live link rejected."
@@ -405,7 +396,6 @@
           "MatchModeration"
         ],
         "summary": "Reactivate an eligible live link",
-        "x-required-scope": "moderate:match_live_link",
         "responses": {
           "204": {
             "description": "Live link reactivated."
@@ -485,7 +475,6 @@
         ],
         "summary": "Create a match",
         "description": "Creates a match and derives status from set nullness without accepting server identity, lifecycle, or timestamps.",
-        "x-required-scope": "create:matches",
         "requestBody": {
           "required": true,
           "content": {
@@ -625,7 +614,6 @@
         ],
         "summary": "Replace scraper-owned match fields",
         "description": "Replaces the scraper-owned fields, forces active true, and preserves the audited one-way finish transition.",
-        "x-required-scope": "update:matches",
         "requestBody": {
           "required": true,
           "content": {
@@ -681,7 +669,6 @@
         ],
         "summary": "Deactivate missing matches in a pool",
         "description": "Soft-deactivates supplied missingMatchCodes. Empty is a no-op; duplicates retain set semantics. The v1 adapter keeps its empty 200 response.",
-        "x-required-scope": "delete:matches",
         "requestBody": {
           "required": true,
           "content": {
@@ -749,7 +736,9 @@
         "in": "path",
         "required": true,
         "schema": {
-          "$ref": "#/components/schemas/NumericIdentifier"
+          "type": "integer",
+          "format": "int64",
+          "minimum": 1
         }
       },
       "LiveMatchId": {
@@ -757,7 +746,9 @@
         "in": "path",
         "required": true,
         "schema": {
-          "$ref": "#/components/schemas/NumericIdentifier"
+          "type": "integer",
+          "format": "int64",
+          "minimum": 1
         }
       },
       "LiveLinkId": {
@@ -765,7 +756,9 @@
         "in": "path",
         "required": true,
         "schema": {
-          "$ref": "#/components/schemas/NumericIdentifier"
+          "type": "integer",
+          "format": "int64",
+          "minimum": 1
         }
       },
       "PoolId": {
@@ -773,7 +766,9 @@
         "in": "path",
         "required": true,
         "schema": {
-          "$ref": "#/components/schemas/NumericIdentifier"
+          "type": "integer",
+          "format": "int64",
+          "minimum": 1
         }
       },
       "MatchPoolId": {
@@ -781,7 +776,9 @@
         "in": "query",
         "required": false,
         "schema": {
-          "$ref": "#/components/schemas/NumericIdentifier"
+          "type": "integer",
+          "format": "int64",
+          "minimum": 1
         }
       },
       "MatchPoolIds": {
@@ -793,7 +790,9 @@
         "schema": {
           "type": "array",
           "items": {
-            "$ref": "#/components/schemas/NumericIdentifier"
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
           }
         }
       },
@@ -806,7 +805,9 @@
         "schema": {
           "type": "array",
           "items": {
-            "$ref": "#/components/schemas/NumericIdentifier"
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
           }
         }
       },
@@ -975,16 +976,24 @@
         ],
         "properties": {
           "id": {
-            "$ref": "#/components/schemas/NumericIdentifier"
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
           },
           "teamIdA": {
-            "$ref": "#/components/schemas/NumericIdentifier"
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
           },
           "teamIdB": {
-            "$ref": "#/components/schemas/NumericIdentifier"
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
           },
           "poolId": {
-            "$ref": "#/components/schemas/NumericIdentifier"
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
           },
           "set": {
             "type": "string",
@@ -1056,7 +1065,9 @@
         ],
         "properties": {
           "matchId": {
-            "$ref": "#/components/schemas/NumericIdentifier"
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
           },
           "provider": {
             "$ref": "#/components/schemas/LiveProviderEnum"
@@ -1127,7 +1138,9 @@
             "maxLength": 255
           },
           "poolId": {
-            "$ref": "#/components/schemas/NumericIdentifier"
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
           },
           "liveCode": {
             "type": "integer",
@@ -1135,10 +1148,14 @@
             "nullable": true
           },
           "teamIdA": {
-            "$ref": "#/components/schemas/NumericIdentifier"
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
           },
           "teamIdB": {
-            "$ref": "#/components/schemas/NumericIdentifier"
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
           },
           "matchDate": {
             "$ref": "#/components/schemas/UtcDateTime"
@@ -1187,7 +1204,9 @@
         ],
         "properties": {
           "id": {
-            "$ref": "#/components/schemas/NumericIdentifier"
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
           },
           "matchCode": {
             "type": "string",
@@ -1198,7 +1217,9 @@
             "maxLength": 255
           },
           "poolId": {
-            "$ref": "#/components/schemas/NumericIdentifier"
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
           },
           "liveCode": {
             "type": "integer",
@@ -1206,10 +1227,14 @@
             "nullable": true
           },
           "teamIdA": {
-            "$ref": "#/components/schemas/NumericIdentifier"
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
           },
           "teamIdB": {
-            "$ref": "#/components/schemas/NumericIdentifier"
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
           },
           "matchDate": {
             "$ref": "#/components/schemas/UtcDateTime"
@@ -1289,7 +1314,9 @@
         ],
         "properties": {
           "id": {
-            "$ref": "#/components/schemas/NumericIdentifier"
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
           },
           "matchCode": {
             "type": "string",
@@ -1300,7 +1327,9 @@
             "maxLength": 255
           },
           "poolId": {
-            "$ref": "#/components/schemas/NumericIdentifier"
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
           },
           "liveCode": {
             "type": "integer",
@@ -1308,10 +1337,14 @@
             "nullable": true
           },
           "teamIdA": {
-            "$ref": "#/components/schemas/NumericIdentifier"
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
           },
           "teamIdB": {
-            "$ref": "#/components/schemas/NumericIdentifier"
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
           },
           "matchDate": {
             "$ref": "#/components/schemas/UtcDateTime"
@@ -1385,7 +1418,9 @@
             "maxLength": 255
           },
           "poolId": {
-            "$ref": "#/components/schemas/NumericIdentifier"
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
           },
           "liveCode": {
             "type": "integer",
@@ -1393,10 +1428,14 @@
             "nullable": true
           },
           "teamIdA": {
-            "$ref": "#/components/schemas/NumericIdentifier"
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
           },
           "teamIdB": {
-            "$ref": "#/components/schemas/NumericIdentifier"
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
           },
           "matchDate": {
             "$ref": "#/components/schemas/UtcDateTime"
@@ -1444,13 +1483,6 @@
           }
         },
         "additionalProperties": false
-      },
-      "NumericIdentifier": {
-        "type": "integer",
-        "format": "int64",
-        "minimum": 1,
-        "description": "Canonical positive numeric identifier wire shape.",
-        "x-java-type": "java.lang.Long"
       },
       "MatchStatusEnum": {
         "type": "string",
@@ -1525,16 +1557,24 @@
         ],
         "properties": {
           "id": {
-            "$ref": "#/components/schemas/NumericIdentifier"
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
           },
           "poolId": {
-            "$ref": "#/components/schemas/NumericIdentifier"
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
           },
           "teamIdA": {
-            "$ref": "#/components/schemas/NumericIdentifier"
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
           },
           "teamIdB": {
-            "$ref": "#/components/schemas/NumericIdentifier"
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
           },
           "matchDate": {
             "$ref": "#/components/schemas/UtcDateTime"
@@ -1560,11 +1600,9 @@
             "nullable": true
           },
           "lastLiveLinkId": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/NumericIdentifier"
-              }
-            ],
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1,
             "nullable": true
           },
           "lastLiveLinkStatus": {
@@ -1647,7 +1685,9 @@
         ],
         "properties": {
           "id": {
-            "$ref": "#/components/schemas/NumericIdentifier"
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
           },
           "provider": {
             "$ref": "#/components/schemas/LiveProviderEnum"
@@ -1693,8 +1733,7 @@
       "UtcDateTime": {
         "type": "string",
         "format": "date-time",
-        "description": "RFC 3339 timestamp normalized to UTC on Blockout-owned wires.",
-        "x-java-type": "java.time.Instant"
+        "description": "RFC 3339 timestamp normalized to UTC on Blockout-owned wires."
       },
       "MatchDayGroup": {
         "type": "object",
@@ -1718,8 +1757,7 @@
       "CalendarDate": {
         "type": "string",
         "format": "date",
-        "description": "Calendar date without a time zone.",
-        "x-java-type": "java.time.LocalDate"
+        "description": "Calendar date without a time zone."
       },
       "MatchDayPoolGroup": {
         "type": "object",
@@ -1729,7 +1767,9 @@
         ],
         "properties": {
           "poolId": {
-            "$ref": "#/components/schemas/NumericIdentifier"
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
           },
           "matches": {
             "type": "array",

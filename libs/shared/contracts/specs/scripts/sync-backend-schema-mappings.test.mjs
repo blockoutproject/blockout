@@ -51,15 +51,20 @@ test('writes sorted Blockout shared-model mappings and is idempotent', async () 
         UuidIdentifier: {
           type: 'string',
           format: 'uuid',
-          'x-java-type': 'java.util.UUID',
         },
+        CalendarDate: { type: 'string', format: 'date' },
+        UtcDateTime: { type: 'string', format: 'date-time' },
+        LongAlias: { type: 'integer', format: 'int64', minimum: 1 },
       }),
       'utf8',
     );
 
     assert.deepEqual(await syncBackendSchemaMappings(schemas, pom), [
       'AlphaEnum',
+      'CalendarDate',
+      'LongAlias',
       'MiddleEnum',
+      'UtcDateTime',
       'UuidIdentifier',
       'ZetaEnum',
     ]);
@@ -70,6 +75,9 @@ test('writes sorted Blockout shared-model mappings and is idempotent', async () 
       /AlphaEnum=com\.blockout\.shared\.model\.AlphaEnum[\s\S]*MiddleEnum=com\.blockout\.shared\.model\.MiddleEnum[\s\S]*ZetaEnum=com\.blockout\.shared\.model\.ZetaEnum/,
     );
     assert.match(first, /UuidIdentifier=java\.util\.UUID/);
+    assert.match(first, /CalendarDate=java\.time\.LocalDate/);
+    assert.match(first, /UtcDateTime=java\.time\.Instant/);
+    assert.match(first, /LongAlias=java\.lang\.Long/);
 
     await syncBackendSchemaMappings(schemas, pom);
     assert.equal(await readFile(pom, 'utf8'), first);
@@ -107,14 +115,14 @@ test('rejects duplicate shared schema ownership', async () => {
   });
 });
 
-test('rejects an invalid explicit Java type mapping', async () => {
+test('rejects non-standard explicit Java type metadata', async () => {
   await withFixture(async ({ schemas, pom }) => {
     await writeFile(
       path.join(schemas, 'invalid.json'),
       JSON.stringify({
         InvalidIdentifier: {
           type: 'string',
-          'x-java-type': 'java.util.UUID</schemaMapping>',
+          'x-java-type': 'java.util.UUID',
         },
       }),
       'utf8',
@@ -122,7 +130,7 @@ test('rejects an invalid explicit Java type mapping', async () => {
 
     await assert.rejects(
       syncBackendSchemaMappings(schemas, pom),
-      /Invalid x-java-type for shared schema InvalidIdentifier/,
+      /Non-standard x-java-type metadata is forbidden/,
     );
   });
 });

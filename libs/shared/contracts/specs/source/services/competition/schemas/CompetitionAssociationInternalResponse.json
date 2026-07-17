@@ -26,8 +26,16 @@
       "coefPoints"
     ],
     "properties": {
-      "poolId": { "$ref": "#/components/schemas/NumericIdentifier" },
-      "teamId": { "$ref": "#/components/schemas/NumericIdentifier" },
+      "poolId": {
+        "type": "integer",
+        "format": "int64",
+        "minimum": 1
+      },
+      "teamId": {
+        "type": "integer",
+        "format": "int64",
+        "minimum": 1
+      },
       "clubId": { "type": "string", "maxLength": 255 },
       "active": { "type": "boolean" },
       "points": { "type": "integer", "format": "int32" },

@@ -35,7 +35,7 @@ class UpdateTeamInternalRequest(BaseModel):
     name: Optional[Annotated[str, Field(strict=True, max_length=255)]] = None
     short_name: Optional[Annotated[str, Field(strict=True, max_length=255)]] = Field(default=None, alias="shortName")
     league_code: Optional[Annotated[str, Field(strict=True, max_length=255)]] = Field(default=None, alias="leagueCode")
-    division_id: Optional[Annotated[int, Field(strict=True, ge=1)]] = Field(default=None, description="Canonical positive numeric identifier wire shape.", alias="divisionId")
+    division_id: Optional[Annotated[int, Field(strict=True, ge=1)]] = Field(default=None, alias="divisionId")
     season: Optional[Annotated[str, Field(strict=True, max_length=255)]] = None
     format: Optional[FormatEnum] = None
     gender: Optional[GenderEnum] = None

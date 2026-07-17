@@ -100,7 +100,6 @@ export * from './mobileUnreadNotificationCount';
 export * from './mobileUser';
 export * from './mobileUserFavorite';
 export * from './notFoundProblemResponse';
-export * from './numericIdentifier';
 export * from './pageInfo';
 export * from './pageParameter';
 export * from './pageSizeParameter';

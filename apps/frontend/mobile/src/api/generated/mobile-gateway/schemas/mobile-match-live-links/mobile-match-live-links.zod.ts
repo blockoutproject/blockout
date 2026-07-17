@@ -29,10 +29,7 @@ export const upsertMobileMatchLiveLinkResponseUrlMax = 1024;
 
 export const UpsertMobileMatchLiveLinkResponse = zod
   .object({
-    matchId: zod
-      .number()
-      .min(1)
-      .describe('Canonical positive numeric identifier wire shape.'),
+    matchId: zod.number().min(1),
     provider: zod
       .enum(['YOUTUBE', 'TWITCH', 'FACEBOOK'])
       .describe('Supported providers for a match live link.'),

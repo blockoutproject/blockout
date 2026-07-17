@@ -4,13 +4,13 @@
  * Blockout Mobile Gateway API
  * OpenAPI spec version: 2.0.0
  */
-import type { NumericIdentifier } from './numericIdentifier';
 
 /**
  * Expo-facing division catalog item.
  */
 export interface MobileDivision {
-  id: NumericIdentifier;
+  /** @minimum 1 */
+  id: number;
   /**
    * @minLength 1
    * @maxLength 255

@@ -7,13 +7,13 @@
 import type { FormatEnum } from './formatEnum';
 import type { GenderEnum } from './genderEnum';
 import type { MobileCatalogDivision } from './mobileCatalogDivision';
-import type { NumericIdentifier } from './numericIdentifier';
 
 /**
  * Mobile team card projection. A missing division remains explicit for compatibility with current partial enrichment.
  */
 export interface MobileTeamSummary {
-  id: NumericIdentifier;
+  /** @minimum 1 */
+  id: number;
   /**
    * @minLength 1
    * @maxLength 255

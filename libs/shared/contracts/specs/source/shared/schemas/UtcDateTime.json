@@ -2,7 +2,6 @@
   "UtcDateTime": {
     "type": "string",
     "format": "date-time",
-    "description": "RFC 3339 timestamp normalized to UTC on Blockout-owned wires.",
-    "x-java-type": "java.time.Instant"
+    "description": "RFC 3339 timestamp normalized to UTC on Blockout-owned wires."
   }
 }

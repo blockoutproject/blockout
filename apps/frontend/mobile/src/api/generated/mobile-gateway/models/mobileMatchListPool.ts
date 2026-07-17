@@ -6,13 +6,13 @@
  */
 import type { GenderEnum } from './genderEnum';
 import type { MobileMatchListDivision } from './mobileMatchListDivision';
-import type { NumericIdentifier } from './numericIdentifier';
 
 /**
  * Match-list pool header projection without detail, ranking, follower, lifecycle, or audit fields.
  */
 export interface MobileMatchListPool {
-  id: NumericIdentifier;
+  /** @minimum 1 */
+  id: number;
   /** @maxLength 255 */
   leagueCode: string;
   /** @maxLength 255 */

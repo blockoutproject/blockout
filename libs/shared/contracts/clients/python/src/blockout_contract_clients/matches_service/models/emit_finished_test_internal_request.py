@@ -28,10 +28,10 @@ class EmitFinishedTestInternalRequest(BaseModel):
     """
     REST-only synthetic finish trigger input. Event envelope and payload authority remain in AsyncAPI.
     """ # noqa: E501
-    id: Annotated[int, Field(strict=True, ge=1)] = Field(description="Canonical positive numeric identifier wire shape.")
-    team_id_a: Annotated[int, Field(strict=True, ge=1)] = Field(description="Canonical positive numeric identifier wire shape.", alias="teamIdA")
-    team_id_b: Annotated[int, Field(strict=True, ge=1)] = Field(description="Canonical positive numeric identifier wire shape.", alias="teamIdB")
-    pool_id: Annotated[int, Field(strict=True, ge=1)] = Field(description="Canonical positive numeric identifier wire shape.", alias="poolId")
+    id: Annotated[int, Field(strict=True, ge=1)]
+    team_id_a: Annotated[int, Field(strict=True, ge=1)] = Field(alias="teamIdA")
+    team_id_b: Annotated[int, Field(strict=True, ge=1)] = Field(alias="teamIdB")
+    pool_id: Annotated[int, Field(strict=True, ge=1)] = Field(alias="poolId")
     set: Optional[StrictStr] = None
     __properties: ClassVar[List[str]] = ["id", "teamIdA", "teamIdB", "poolId", "set"]
 

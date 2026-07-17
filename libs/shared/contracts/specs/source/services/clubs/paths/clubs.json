@@ -5,7 +5,6 @@
       "tags": ["Clubs"],
       "summary": "List clubs",
       "description": "Returns a page of clubs ordered by name and then identifier. Empty or omitted ids preserve the all-clubs filter; compatibility callers that require the legacy complete list aggregate every page.",
-      "x-required-scope": "read:clubs",
       "parameters": [
         {
           "$ref": "#/components/parameters/ClubIds"
@@ -50,7 +49,6 @@
       "tags": ["Clubs"],
       "summary": "Create a club",
       "description": "Creates a club from a canonical camelCase JSON part and an optional PNG or JPEG image. The current five-megabyte image and request limits remain adapter-owned compatibility behavior.",
-      "x-required-scope": "create:clubs",
       "requestBody": {
         "required": true,
         "content": {
@@ -125,7 +123,6 @@
       "tags": ["Clubs"],
       "summary": "Get a club",
       "description": "Returns one active or inactive club by its owner identifier.",
-      "x-required-scope": "read:clubs",
       "responses": {
         "200": {
           "description": "Requested club.",
@@ -156,7 +153,6 @@
       "tags": ["Clubs"],
       "summary": "Update a club",
       "description": "Partially updates a club from a canonical camelCase JSON part, applies its explicit logo intent, and preserves the current implicit reactivation behavior.",
-      "x-required-scope": "update:clubs",
       "requestBody": {
         "required": true,
         "content": {
@@ -219,7 +215,6 @@
       "tags": ["Clubs"],
       "summary": "Deactivate a club",
       "description": "Soft-deactivates the club without changing the current direct-delete event behavior.",
-      "x-required-scope": "delete:clubs",
       "responses": {
         "204": {
           "description": "Club deactivated."

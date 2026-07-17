@@ -6,7 +6,11 @@
     "properties": {
       "missingTeamIds": {
         "type": "array",
-        "items": { "$ref": "#/components/schemas/NumericIdentifier" }
+        "items": {
+          "type": "integer",
+          "format": "int64",
+          "minimum": 1
+        }
       }
     },
     "additionalProperties": false

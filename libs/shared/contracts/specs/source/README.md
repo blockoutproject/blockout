@@ -62,8 +62,8 @@ MRG-316 establishes the only components inherited automatically by every deploya
 - `ProblemDetail` requires `title`, HTTP `status`, and stable machine-readable `code`; `requestId` remains optional
   when a runtime cannot safely supply it;
 - `PageInfo` requires `page`, `pageSize`, and `hasNext`; `totalItems` remains optional;
-- `UuidIdentifier`, `NumericIdentifier`, `CalendarDate`, and `UtcDateTime` are wire aliases mapped to native Java
-  types through validated `x-java-type` values;
+- `UuidIdentifier`, `CalendarDate`, and `UtcDateTime` are rare shared wire aliases whose standard OpenAPI formats map
+  to native generator types; positive numeric identifiers stay inline as `integer`/`int64` with `minimum: 1`;
 - the twelve approved REST enums retain their exact deployed wire values and contain no UI labels or provider
   metadata.
 
@@ -113,8 +113,8 @@ field semantics, and models division writes as typed multipart requests with a c
 optional image. Complete collections use owner-local typed list responses and retain the repository-defined
 compatibility order; this task does not invent sorting or pagination.
 
-Security remains operation-specific: legal-document reads are public, while the other operations retain their
-audited scopes. The generated v2 contract is not a runtime cutover. Existing v1 transports and their errors, nulls,
+Security remains operation-specific: legal-document reads are public, while runtime authorization retains the other
+operations' audited scopes outside non-standard OpenAPI metadata. The generated v2 contract is not a runtime cutover. Existing v1 transports and their errors, nulls,
 ordering, multipart behavior, and fallback semantics remain governed by the MRG-304 compatibility boundary until
 their later vertical migration tasks.
 

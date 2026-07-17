@@ -36,7 +36,24 @@ async function listSchemaFiles(dir) {
   }
 }
 
-const javaTypePattern = /^(?:[A-Za-z_$][\w$]*\.)+[A-Za-z_$][\w$]*$/;
+const standardJavaScalarTypes = new Map([
+  ['integer:int32', 'java.lang.Integer'],
+  ['integer:int64', 'java.lang.Long'],
+  ['number:float', 'java.lang.Float'],
+  ['number:double', 'java.lang.Double'],
+  ['string:date', 'java.time.LocalDate'],
+  ['string:date-time', 'java.time.Instant'],
+  ['string:uuid', 'java.util.UUID'],
+]);
+
+function standardJavaType(schema) {
+  if (Object.hasOwn(schema ?? {}, 'x-java-type')) {
+    throw new Error('Non-standard x-java-type metadata is forbidden');
+  }
+
+  const key = `${schema?.type ?? ''}:${schema?.format ?? ''}`;
+  return standardJavaScalarTypes.get(key);
+}
 
 async function loadSchemaMappings(dir) {
   const schemaOwners = new Map();
@@ -63,19 +80,9 @@ async function loadSchemaMappings(dir) {
       }
 
       schemaOwners.set(schemaName, filename);
-      const javaType = schema?.['x-java-type'];
-      if (
-        javaType !== undefined &&
-        (typeof javaType !== 'string' || !javaTypePattern.test(javaType))
-      ) {
-        throw new Error(
-          `Invalid x-java-type for shared schema ${schemaName} in ${filename}`,
-        );
-      }
-
       schemaMappings.set(
         schemaName,
-        javaType ?? `${sharedModelPackage}.${schemaName}`,
+        standardJavaType(schema) ?? `${sharedModelPackage}.${schemaName}`,
       );
     }
   }

@@ -25,10 +25,12 @@ export type ListMobileMatchDaysParams = {
   pageSize?: MobileMatchDayPageSizeParameter;
   /**
    * Optional set-like pool filter. Pool and team filters retain the current downstream OR semantics.
+   * @items.minimum 1
    */
   poolIds?: MobileMatchPoolIdsParameter;
   /**
    * Optional set-like team filter. Pool and team filters retain the current downstream OR semantics.
+   * @items.minimum 1
    */
   teamIds?: MobileMatchTeamIdsParameter;
   /**

@@ -7,14 +7,14 @@
 import type { LiveLinkStatusEnum } from './liveLinkStatusEnum';
 import type { MobileMatchModerationPool } from './mobileMatchModerationPool';
 import type { MobileMatchModerationTeam } from './mobileMatchModerationTeam';
-import type { NumericIdentifier } from './numericIdentifier';
 import type { UtcDateTime } from './utcDateTime';
 
 /**
  * Consumer-backed moderation card. The status filter may match a different historical link than the representative status shown here.
  */
 export interface MobileMatchModerationItem {
-  id: NumericIdentifier;
+  /** @minimum 1 */
+  id: number;
   matchDate: UtcDateTime | null;
   /**
    * @maxLength 255

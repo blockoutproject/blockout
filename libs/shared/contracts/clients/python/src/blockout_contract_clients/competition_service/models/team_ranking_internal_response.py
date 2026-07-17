@@ -28,7 +28,7 @@ class TeamRankingInternalResponse(BaseModel):
     """
     Competition-owned ranking projection. Array position is authoritative after applying the documented ranking policy; no separate ordinal field is invented.
     """ # noqa: E501
-    team_id: Annotated[int, Field(strict=True, ge=1)] = Field(description="Canonical positive numeric identifier wire shape.", alias="teamId")
+    team_id: Annotated[int, Field(strict=True, ge=1)] = Field(alias="teamId")
     points: StrictInt
     points_penalty: StrictInt = Field(alias="pointsPenalty")
     played: StrictInt

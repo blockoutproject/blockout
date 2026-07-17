@@ -130,7 +130,6 @@
               <schemaMapping>NotificationStatusEnum=com.blockout.shared.model.NotificationStatusEnum</schemaMapping>
               <schemaMapping>NotificationTargetTypeEnum=com.blockout.shared.model.NotificationTargetTypeEnum</schemaMapping>
               <schemaMapping>NotificationTypeEnum=com.blockout.shared.model.NotificationTypeEnum</schemaMapping>
-              <schemaMapping>NumericIdentifier=java.lang.Long</schemaMapping>
               <schemaMapping>PageInfo=com.blockout.shared.model.PageInfo</schemaMapping>
               <schemaMapping>ProblemDetail=com.blockout.shared.model.ProblemDetail</schemaMapping>
               <schemaMapping>ReportTypeEnum=com.blockout.shared.model.ReportTypeEnum</schemaMapping>

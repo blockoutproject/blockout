@@ -30,13 +30,13 @@ class TeamInternalResponse(BaseModel):
     """
     Team owner projection without persistence audit timestamps or BFF-derived club coordinates and fallback images.
     """ # noqa: E501
-    id: Annotated[int, Field(strict=True, ge=1)] = Field(description="Canonical positive numeric identifier wire shape.")
+    id: Annotated[int, Field(strict=True, ge=1)]
     club_id: Annotated[str, Field(strict=True, max_length=255)] = Field(alias="clubId")
     raw_name: Annotated[str, Field(strict=True, max_length=255)] = Field(alias="rawName")
     name: Annotated[str, Field(strict=True, max_length=255)]
     short_name: Annotated[str, Field(strict=True, max_length=255)] = Field(alias="shortName")
     league_code: Annotated[str, Field(strict=True, max_length=255)] = Field(alias="leagueCode")
-    division_id: Annotated[int, Field(strict=True, ge=1)] = Field(description="Canonical positive numeric identifier wire shape.", alias="divisionId")
+    division_id: Annotated[int, Field(strict=True, ge=1)] = Field(alias="divisionId")
     season: Annotated[str, Field(strict=True, max_length=255)]
     format: FormatEnum
     gender: GenderEnum

@@ -21,7 +21,11 @@
         "in": "path",
         "required": true,
         "description": "Notification inbox identity scoped to the current authenticated user.",
-        "schema": { "$ref": "#/components/schemas/NumericIdentifier" }
+        "schema": {
+          "type": "integer",
+          "format": "int64",
+          "minimum": 1
+        }
       },
       "NotificationPageSize": {
         "name": "pageSize",

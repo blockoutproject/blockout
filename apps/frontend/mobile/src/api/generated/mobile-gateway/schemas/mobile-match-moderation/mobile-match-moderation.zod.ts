@@ -54,10 +54,7 @@ export const ListMobileMatchLiveLinkHistoryResponse = zod
     items: zod.array(
       zod
         .object({
-          id: zod
-            .number()
-            .min(1)
-            .describe('Canonical positive numeric identifier wire shape.'),
+          id: zod.number().min(1),
           provider: zod
             .enum(['YOUTUBE', 'TWITCH', 'FACEBOOK'])
             .describe('Supported providers for a match live link.'),
@@ -186,10 +183,7 @@ export const ListMobileMatchesForLiveModerationResponse = zod
       .array(
         zod
           .object({
-            id: zod
-              .number()
-              .min(1)
-              .describe('Canonical positive numeric identifier wire shape.'),
+            id: zod.number().min(1),
             matchDate: zod.iso
               .datetime({ offset: true })
               .describe(

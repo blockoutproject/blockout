@@ -6,7 +6,6 @@
  */
 import type { FormatEnum } from './formatEnum';
 import type { GenderEnum } from './genderEnum';
-import type { NumericIdentifier } from './numericIdentifier';
 
 export interface CreateMobileRawDivisionMappingRequest {
   /**
@@ -14,7 +13,11 @@ export interface CreateMobileRawDivisionMappingRequest {
    * @maxLength 255
    */
   rawDivisionName: string;
-  divisionId?: NumericIdentifier | null;
+  /**
+   * @minimum 1
+   * @nullable
+   */
+  divisionId?: number | null;
   format?: FormatEnum | null;
   gender?: GenderEnum | null;
   /**

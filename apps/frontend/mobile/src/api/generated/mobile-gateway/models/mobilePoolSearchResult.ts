@@ -6,13 +6,13 @@
  */
 import type { FormatEnum } from './formatEnum';
 import type { GenderEnum } from './genderEnum';
-import type { NumericIdentifier } from './numericIdentifier';
 
 /**
  * Pool card, label, image, and navigation projection consumed by Expo search.
  */
 export interface MobilePoolSearchResult {
-  id: NumericIdentifier;
+  /** @minimum 1 */
+  id: number;
   /** @nullable */
   name: string | null;
   /** @nullable */

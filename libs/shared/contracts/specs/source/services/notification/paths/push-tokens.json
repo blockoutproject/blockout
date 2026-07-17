@@ -6,7 +6,6 @@
       "tags": ["NotificationPushTokens"],
       "summary": "Register or rotate a user's Expo push token",
       "description": "Retains the approved coexistence path and current token reattachment/rotation behavior. The current implementation does not compare userId with the authenticated subject; correcting that authorization gap, installation identity, unregister behavior, and account-deletion cleanup requires their assigned runtime and privacy tasks.",
-      "x-required-scope": "update:current_user",
       "requestBody": {
         "required": true,
         "content": {

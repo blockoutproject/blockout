@@ -16,7 +16,11 @@
       "division"
     ],
     "properties": {
-      "id": { "$ref": "#/components/schemas/NumericIdentifier" },
+      "id": {
+        "type": "integer",
+        "format": "int64",
+        "minimum": 1
+      },
       "season": { "type": "string", "minLength": 1, "maxLength": 255 },
       "leagueCode": { "type": "string", "maxLength": 255 },
       "leagueName": { "type": "string", "maxLength": 255 },
@@ -47,7 +51,11 @@
       "division"
     ],
     "properties": {
-      "id": { "$ref": "#/components/schemas/NumericIdentifier" },
+      "id": {
+        "type": "integer",
+        "format": "int64",
+        "minimum": 1
+      },
       "name": { "type": "string", "minLength": 1, "maxLength": 255 },
       "leagueName": { "type": "string", "maxLength": 255 },
       "leagueCode": { "type": "string", "maxLength": 255 },
@@ -96,7 +104,11 @@
     "description": "Narrow result returned to the mobile edit workflow before its explicit refetch.",
     "required": ["id", "name", "shortName"],
     "properties": {
-      "id": { "$ref": "#/components/schemas/NumericIdentifier" },
+      "id": {
+        "type": "integer",
+        "format": "int64",
+        "minimum": 1
+      },
       "name": { "type": "string", "minLength": 1, "maxLength": 255 },
       "shortName": { "type": "string", "minLength": 1, "maxLength": 255 }
     },

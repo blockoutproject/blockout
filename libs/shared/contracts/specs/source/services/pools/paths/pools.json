@@ -36,7 +36,6 @@
       "tags": ["Pools"],
       "summary": "Create a pool",
       "description": "Creates a pool with server-owned identity, follower count, active state, and audit timestamps.",
-      "x-required-scope": "create:pools",
       "requestBody": {
         "required": true,
         "content": {
@@ -104,7 +103,6 @@
       "tags": ["Pools"],
       "summary": "Update a pool",
       "description": "Partially updates pool identity, display, classification, or explicit lifecycle state. Omitted and explicit-null fields preserve their current values; active true is explicit reactivation and active false is explicit deactivation.",
-      "x-required-scope": "update:pools",
       "requestBody": {
         "required": true,
         "content": {
@@ -141,7 +139,6 @@
       "tags": ["Pools"],
       "summary": "Deactivate a pool",
       "description": "Soft-deactivates the pool without changing the current direct-delete event behavior.",
-      "x-required-scope": "delete:pools",
       "responses": {
         "204": { "description": "Pool deactivated." },
         "401": { "$ref": "#/components/responses/UnauthorizedProblem" },
@@ -163,7 +160,6 @@
       "tags": ["PoolFollowers"],
       "summary": "Increment the pool follower projection",
       "description": "Increments the derived follower count for the canonical favorite owner. The legacy v1 adapter retains its unused full-pool response.",
-      "x-required-scope": "follow:pools",
       "responses": {
         "204": { "description": "Follower projection incremented." },
         "401": { "$ref": "#/components/responses/UnauthorizedProblem" },
@@ -185,7 +181,6 @@
       "tags": ["PoolFollowers"],
       "summary": "Decrement the pool follower projection",
       "description": "Decrements the derived follower count with the current zero floor. The legacy v1 adapter retains its unused full-pool response.",
-      "x-required-scope": "follow:pools",
       "responses": {
         "204": { "description": "Follower projection decremented." },
         "401": { "$ref": "#/components/responses/UnauthorizedProblem" },

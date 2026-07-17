@@ -2,7 +2,6 @@
   "CalendarDate": {
     "type": "string",
     "format": "date",
-    "description": "Calendar date without a time zone.",
-    "x-java-type": "java.time.LocalDate"
+    "description": "Calendar date without a time zone."
   }
 }

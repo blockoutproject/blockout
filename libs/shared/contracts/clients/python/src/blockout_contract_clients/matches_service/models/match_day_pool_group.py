@@ -29,7 +29,7 @@ class MatchDayPoolGroup(BaseModel):
     """
     MatchDayPoolGroup
     """ # noqa: E501
-    pool_id: Annotated[int, Field(strict=True, ge=1)] = Field(description="Canonical positive numeric identifier wire shape.", alias="poolId")
+    pool_id: Annotated[int, Field(strict=True, ge=1)] = Field(alias="poolId")
     matches: List[MatchDetailInternalResponse]
     __properties: ClassVar[List[str]] = ["poolId", "matches"]
 

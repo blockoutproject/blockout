@@ -71,7 +71,11 @@
       "active"
     ],
     "properties": {
-      "id": { "$ref": "#/components/schemas/NumericIdentifier" },
+      "id": {
+        "type": "integer",
+        "format": "int64",
+        "minimum": 1
+      },
       "name": { "type": "string", "minLength": 1, "maxLength": 255 },
       "mainColor": { "type": "string", "minLength": 1, "maxLength": 32 },
       "firstGradientColor": {
@@ -206,10 +210,16 @@
       "season"
     ],
     "properties": {
-      "id": { "$ref": "#/components/schemas/NumericIdentifier" },
+      "id": {
+        "type": "integer",
+        "format": "int64",
+        "minimum": 1
+      },
       "rawDivisionName": { "type": "string", "minLength": 1, "maxLength": 255 },
       "divisionId": {
-        "allOf": [{ "$ref": "#/components/schemas/NumericIdentifier" }],
+        "type": "integer",
+        "format": "int64",
+        "minimum": 1,
         "nullable": true
       },
       "format": {
@@ -242,7 +252,9 @@
     "properties": {
       "rawDivisionName": { "type": "string", "minLength": 1, "maxLength": 255 },
       "divisionId": {
-        "allOf": [{ "$ref": "#/components/schemas/NumericIdentifier" }],
+        "type": "integer",
+        "format": "int64",
+        "minimum": 1,
         "nullable": true
       },
       "format": {
@@ -263,7 +275,9 @@
     "required": ["divisionId", "format", "gender"],
     "properties": {
       "divisionId": {
-        "allOf": [{ "$ref": "#/components/schemas/NumericIdentifier" }],
+        "type": "integer",
+        "format": "int64",
+        "minimum": 1,
         "nullable": true
       },
       "format": {

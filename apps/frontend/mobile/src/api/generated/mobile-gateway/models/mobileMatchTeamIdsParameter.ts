@@ -4,9 +4,8 @@
  * Blockout Mobile Gateway API
  * OpenAPI spec version: 2.0.0
  */
-import type { NumericIdentifier } from './numericIdentifier';
 
 /**
  * Optional set-like team filter. Pool and team filters retain the current downstream OR semantics.
  */
-export type MobileMatchTeamIdsParameter = NumericIdentifier[];
+export type MobileMatchTeamIdsParameter = number[];

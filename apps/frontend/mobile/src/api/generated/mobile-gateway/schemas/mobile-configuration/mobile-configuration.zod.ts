@@ -159,10 +159,7 @@ export const ListMobileDivisionsResponse = zod
     items: zod.array(
       zod
         .object({
-          id: zod
-            .number()
-            .min(1)
-            .describe('Canonical positive numeric identifier wire shape.'),
+          id: zod.number().min(1),
           name: zod
             .string()
             .min(1)
@@ -216,10 +213,7 @@ export const getMobileDivisionResponseLogoUrlMax = 2048;
 
 export const GetMobileDivisionResponse = zod
   .object({
-    id: zod
-      .number()
-      .min(1)
-      .describe('Canonical positive numeric identifier wire shape.'),
+    id: zod.number().min(1),
     name: zod.string().min(1).max(getMobileDivisionResponseNameMax),
     mainColor: zod.string().min(1).max(getMobileDivisionResponseMainColorMax),
     firstGradientColor: zod
@@ -289,10 +283,7 @@ export const createMobileDivisionResponseLogoUrlMax = 2048;
 
 export const CreateMobileDivisionResponse = zod
   .object({
-    id: zod
-      .number()
-      .min(1)
-      .describe('Canonical positive numeric identifier wire shape.'),
+    id: zod.number().min(1),
     name: zod.string().min(1).max(createMobileDivisionResponseNameMax),
     mainColor: zod
       .string()
@@ -385,10 +376,7 @@ export const updateMobileDivisionResponseLogoUrlMax = 2048;
 
 export const UpdateMobileDivisionResponse = zod
   .object({
-    id: zod
-      .number()
-      .min(1)
-      .describe('Canonical positive numeric identifier wire shape.'),
+    id: zod.number().min(1),
     name: zod.string().min(1).max(updateMobileDivisionResponseNameMax),
     mainColor: zod
       .string()
@@ -438,11 +426,7 @@ export const CreateMobileRawDivisionMappingBody = zod.object({
     .string()
     .min(1)
     .max(createMobileRawDivisionMappingBodyRawDivisionNameMax),
-  divisionId: zod
-    .number()
-    .min(1)
-    .describe('Canonical positive numeric identifier wire shape.')
-    .nullish(),
+  divisionId: zod.number().min(1).nullish(),
   format: zod
     .enum(['SIX', 'FOUR', 'TWO'])
     .describe('Supported Blockout team formats.')
@@ -465,19 +449,12 @@ export const createMobileRawDivisionMappingResponseLeagueCodeMax = 255;
 export const createMobileRawDivisionMappingResponseSeasonMax = 255;
 
 export const CreateMobileRawDivisionMappingResponse = zod.object({
-  id: zod
-    .number()
-    .min(1)
-    .describe('Canonical positive numeric identifier wire shape.'),
+  id: zod.number().min(1),
   rawDivisionName: zod
     .string()
     .min(1)
     .max(createMobileRawDivisionMappingResponseRawDivisionNameMax),
-  divisionId: zod
-    .number()
-    .min(1)
-    .describe('Canonical positive numeric identifier wire shape.')
-    .nullable(),
+  divisionId: zod.number().min(1).nullable(),
   format: zod
     .enum(['SIX', 'FOUR', 'TWO'])
     .describe('Supported Blockout team formats.')
@@ -523,19 +500,12 @@ export const listMobileRawDivisionMappingsResponseItemsItemSeasonMax = 255;
 export const ListMobileRawDivisionMappingsResponse = zod.object({
   items: zod.array(
     zod.object({
-      id: zod
-        .number()
-        .min(1)
-        .describe('Canonical positive numeric identifier wire shape.'),
+      id: zod.number().min(1),
       rawDivisionName: zod
         .string()
         .min(1)
         .max(listMobileRawDivisionMappingsResponseItemsItemRawDivisionNameMax),
-      divisionId: zod
-        .number()
-        .min(1)
-        .describe('Canonical positive numeric identifier wire shape.')
-        .nullable(),
+      divisionId: zod.number().min(1).nullable(),
       format: zod
         .enum(['SIX', 'FOUR', 'TWO'])
         .describe('Supported Blockout team formats.')
@@ -571,19 +541,12 @@ export const getMobileRawDivisionMappingResponseLeagueCodeMax = 255;
 export const getMobileRawDivisionMappingResponseSeasonMax = 255;
 
 export const GetMobileRawDivisionMappingResponse = zod.object({
-  id: zod
-    .number()
-    .min(1)
-    .describe('Canonical positive numeric identifier wire shape.'),
+  id: zod.number().min(1),
   rawDivisionName: zod
     .string()
     .min(1)
     .max(getMobileRawDivisionMappingResponseRawDivisionNameMax),
-  divisionId: zod
-    .number()
-    .min(1)
-    .describe('Canonical positive numeric identifier wire shape.')
-    .nullable(),
+  divisionId: zod.number().min(1).nullable(),
   format: zod
     .enum(['SIX', 'FOUR', 'TWO'])
     .describe('Supported Blockout team formats.')
@@ -608,11 +571,7 @@ export const UpdateMobileRawDivisionMappingParams = zod.object({
 });
 
 export const UpdateMobileRawDivisionMappingBody = zod.object({
-  divisionId: zod
-    .number()
-    .min(1)
-    .describe('Canonical positive numeric identifier wire shape.')
-    .nullable(),
+  divisionId: zod.number().min(1).nullable(),
   format: zod
     .enum(['SIX', 'FOUR', 'TWO'])
     .describe('Supported Blockout team formats.')
@@ -630,19 +589,12 @@ export const updateMobileRawDivisionMappingResponseLeagueCodeMax = 255;
 export const updateMobileRawDivisionMappingResponseSeasonMax = 255;
 
 export const UpdateMobileRawDivisionMappingResponse = zod.object({
-  id: zod
-    .number()
-    .min(1)
-    .describe('Canonical positive numeric identifier wire shape.'),
+  id: zod.number().min(1),
   rawDivisionName: zod
     .string()
     .min(1)
     .max(updateMobileRawDivisionMappingResponseRawDivisionNameMax),
-  divisionId: zod
-    .number()
-    .min(1)
-    .describe('Canonical positive numeric identifier wire shape.')
-    .nullable(),
+  divisionId: zod.number().min(1).nullable(),
   format: zod
     .enum(['SIX', 'FOUR', 'TWO'])
     .describe('Supported Blockout team formats.')

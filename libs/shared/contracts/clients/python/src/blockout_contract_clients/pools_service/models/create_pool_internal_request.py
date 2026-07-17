@@ -37,7 +37,7 @@ class CreatePoolInternalRequest(BaseModel):
     raw_name: Annotated[str, Field(strict=True, max_length=255)] = Field(alias="rawName")
     name: Annotated[str, Field(strict=True, max_length=255)]
     short_name: Annotated[str, Field(strict=True, max_length=255)] = Field(alias="shortName")
-    division_id: Annotated[int, Field(strict=True, ge=1)] = Field(description="Canonical positive numeric identifier wire shape.", alias="divisionId")
+    division_id: Annotated[int, Field(strict=True, ge=1)] = Field(alias="divisionId")
     format: FormatEnum
     gender: GenderEnum
     __properties: ClassVar[List[str]] = ["poolCode", "leagueCode", "season", "leagueName", "rawName", "name", "shortName", "divisionId", "format", "gender"]

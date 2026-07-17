@@ -9,14 +9,14 @@ import type { MatchStatusEnum } from './matchStatusEnum';
 import type { MobileMatchDetailPool } from './mobileMatchDetailPool';
 import type { MobileMatchDetailTeam } from './mobileMatchDetailTeam';
 import type { MobileMatchSignedDocuments } from './mobileMatchSignedDocuments';
-import type { NumericIdentifier } from './numericIdentifier';
 import type { UtcDateTime } from './utcDateTime';
 
 /**
  * Screen-ready match detail separated from list, moderation, downstream owner, persistence, and vendor transports. Every required dependency and both signed continuations are all-or-error.
  */
 export interface MobileMatchDetail {
-  id: NumericIdentifier;
+  /** @minimum 1 */
+  id: number;
   matchDate: UtcDateTime;
   /** @nullable */
   set: string | null;

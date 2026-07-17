@@ -7,13 +7,13 @@
 import type { FormatEnum } from './formatEnum';
 import type { GenderEnum } from './genderEnum';
 import type { MobileCatalogDivision } from './mobileCatalogDivision';
-import type { NumericIdentifier } from './numericIdentifier';
 
 /**
  * Followed-pool card projection. Missing division enrichment remains an explicit nullable result.
  */
 export interface MobilePoolSummary {
-  id: NumericIdentifier;
+  /** @minimum 1 */
+  id: number;
   /**
    * @minLength 1
    * @maxLength 255

@@ -30,7 +30,11 @@
         "name": "divisionId",
         "in": "query",
         "required": false,
-        "schema": { "$ref": "#/components/schemas/NumericIdentifier" }
+        "schema": {
+          "type": "integer",
+          "format": "int64",
+          "minimum": 1
+        }
       },
       "SearchFormat": {
         "name": "format",

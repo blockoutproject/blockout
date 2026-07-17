@@ -70,10 +70,7 @@ export const SearchMobileTeamsResponse = zod.object({
     .array(
       zod
         .object({
-          id: zod
-            .number()
-            .min(1)
-            .describe('Canonical positive numeric identifier wire shape.'),
+          id: zod.number().min(1),
           name: zod.string().nullable(),
           logoUrl: zod
             .string()
@@ -123,10 +120,7 @@ export const SearchMobilePoolsResponse = zod.object({
     .array(
       zod
         .object({
-          id: zod
-            .number()
-            .min(1)
-            .describe('Canonical positive numeric identifier wire shape.'),
+          id: zod.number().min(1),
           name: zod.string().nullable(),
           divisionName: zod.string().nullable(),
           leagueCode: zod.string().nullable(),

@@ -28,7 +28,7 @@ class DivisionInternalResponse(BaseModel):
     """
     Config-service division projection without persistence audit fields.
     """ # noqa: E501
-    id: Annotated[int, Field(strict=True, ge=1)] = Field(description="Canonical positive numeric identifier wire shape.")
+    id: Annotated[int, Field(strict=True, ge=1)]
     name: Annotated[str, Field(strict=True, max_length=255)]
     main_color: Annotated[str, Field(strict=True, max_length=255)] = Field(alias="mainColor")
     first_gradient_color: Annotated[str, Field(strict=True, max_length=255)] = Field(alias="firstGradientColor")

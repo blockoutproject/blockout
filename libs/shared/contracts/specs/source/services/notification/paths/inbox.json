@@ -5,7 +5,6 @@
       "tags": ["NotificationInbox"],
       "summary": "List the current user's notifications",
       "description": "Returns a zero-based page ordered by createdAt descending and notification identity descending. The v1 adapter retains size, its legacy wrapper, and its existing unstable equal-timestamp ordering until the vertical migration proves parity.",
-      "x-required-scope": "read:current_user",
       "parameters": [
         { "$ref": "#/components/parameters/Page" },
         { "$ref": "#/components/parameters/NotificationPageSize" }
@@ -35,7 +34,6 @@
       "tags": ["NotificationInbox"],
       "summary": "Get the current user's unread notification count",
       "description": "Returns the count computed from the current user's inbox. The v1 adapter retains its legacy unread field while BFF and Expo projections migrate independently.",
-      "x-required-scope": "read:current_user",
       "responses": {
         "200": {
           "description": "Current unread notification count.",
@@ -61,7 +59,6 @@
       "tags": ["NotificationInbox"],
       "summary": "Mark a notification as read",
       "description": "Preserves the current state-sensitive result: an absent notification or one already marked read returns 404 rather than an idempotent 204.",
-      "x-required-scope": "read:current_user",
       "responses": {
         "204": { "description": "Notification marked read." },
         "401": { "$ref": "#/components/responses/UnauthorizedProblem" },
@@ -78,7 +75,6 @@
       "tags": ["NotificationInbox"],
       "summary": "Mark a notification as opened",
       "description": "Preserves the current state-sensitive result: an absent notification or one already marked opened returns 404 rather than an idempotent 204.",
-      "x-required-scope": "read:current_user",
       "responses": {
         "204": { "description": "Notification marked opened." },
         "401": { "$ref": "#/components/responses/UnauthorizedProblem" },
@@ -95,7 +91,6 @@
       "tags": ["NotificationInbox"],
       "summary": "Delete a notification",
       "description": "Deletes only an inbox item owned by the current user. An absent or already deleted item preserves the current 404 result.",
-      "x-required-scope": "read:current_user",
       "responses": {
         "204": { "description": "Notification deleted." },
         "401": { "$ref": "#/components/responses/UnauthorizedProblem" },

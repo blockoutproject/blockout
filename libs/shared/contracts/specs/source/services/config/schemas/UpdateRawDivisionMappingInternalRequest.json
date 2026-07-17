@@ -5,11 +5,9 @@
     "required": ["divisionId", "format", "gender"],
     "properties": {
       "divisionId": {
-        "allOf": [
-          {
-            "$ref": "#/components/schemas/NumericIdentifier"
-          }
-        ],
+        "type": "integer",
+        "format": "int64",
+        "minimum": 1,
         "nullable": true
       },
       "format": {

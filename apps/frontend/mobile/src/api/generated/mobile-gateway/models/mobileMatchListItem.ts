@@ -6,14 +6,14 @@
  */
 import type { MatchStatusEnum } from './matchStatusEnum';
 import type { MobileMatchListTeam } from './mobileMatchListTeam';
-import type { NumericIdentifier } from './numericIdentifier';
 import type { UtcDateTime } from './utcDateTime';
 
 /**
  * Narrow match-list row. Missing team lookups remain nullable partial sides and do not drop the match; the response exposes no partial-result marker.
  */
 export interface MobileMatchListItem {
-  id: NumericIdentifier;
+  /** @minimum 1 */
+  id: number;
   matchDate: UtcDateTime;
   /** @nullable */
   set: string | null;

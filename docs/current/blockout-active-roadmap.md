@@ -611,7 +611,7 @@ state moves to GitHub and this file becomes a historical migration record.
     contract tests, the eight-file transition guard, mobile typecheck, Android/iOS exports, deterministic codegen,
     documentation validation, Maaatch comparison, and whitespace checks pass. No server, production, standalone,
     scraper, event, database, or Maaatch file changed.
-- [ ] MRG-377 Normalize the OpenAPI source syntax after the complete legal-document generator pilot and before any
+- [x] MRG-377 Normalize the OpenAPI source syntax after the complete legal-document generator pilot and before any
       remaining service runtime migration. Inline positive numeric identifiers as standard `integer`/`int64` schemas
       with their constraint instead of exporting `NumericIdentifier`; remove `x-java-type`, `x-required-scope`,
       `x-required-scopes`, and `x-required-scopes-by-entity-type`; derive Java scalar mappings only from standard
@@ -619,6 +619,15 @@ state moves to GitHub and this file becomes a historical migration record.
       authorization rules; regenerate every REST bundle and committed JavaScript/Python client output; and prove
       deterministic generation, unchanged wire/auth behavior, no scalar wrapper model, and Maaatch-style source
       syntax. This normalization may not reopen any approved payload, route, scope, or coexistence decision.
+  - Evidence: all positive numeric identifiers are now inline standard `integer`/`int64` scalars with `minimum: 1`;
+    the shared wrapper and every `x-java-type`/custom scope extension are removed from source and generated bundles.
+    Backend scalar mappings derive from standard formats, and regenerated Java, Orval/Zod, and official OpenAPI
+    Generator Python outputs use native `Long`, `number`, and `int` shapes without handwritten client code. The 130
+    operation contract suite, standard Bearer/error guards, two-run artifact hashes, Python 3.12 tests and wheel,
+    mobile typecheck and Android/iOS export, complete 14-module Maven package, documentation validation, Maaatch
+    comparison, and whitespace checks pass. Runtime authorization, v1/v2 coexistence, scrapers, events, databases,
+    production, standalone repositories, and Maaatch remain unchanged; MRG-378 still owns the generated async `httpx`
+    transport switch before scraper migration.
 - [ ] MRG-376 Migrate the remaining `config-service` app-status, division, raw-mapping, and scraper-status generated
       server boundaries with application records, entity mappings, compatibility, and the search-worker generated
       snapshot client; leave BFF, Expo, and scraper caller cutovers to MRG-343, MRG-344, MRG-348, and MRG-349.

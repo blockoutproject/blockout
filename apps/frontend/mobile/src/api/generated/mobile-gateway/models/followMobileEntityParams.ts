@@ -7,7 +7,6 @@
 import type { EntityTypeEnum } from './entityTypeEnum';
 import type { MobileFavoriteEntityIdParameter } from './mobileFavoriteEntityIdParameter';
 import type { MobileFavoriteEntityTypeParameter } from './mobileFavoriteEntityTypeParameter';
-import type { NumericIdentifier } from './numericIdentifier';
 
 export type FollowMobileEntityParams = {
   /**
@@ -15,7 +14,6 @@ export type FollowMobileEntityParams = {
    */
   entityType: MobileFavoriteEntityTypeParameter;
   /**
-   * Canonical positive numeric identifier wire shape.
    * @minimum 1
    */
   entityId: MobileFavoriteEntityIdParameter;

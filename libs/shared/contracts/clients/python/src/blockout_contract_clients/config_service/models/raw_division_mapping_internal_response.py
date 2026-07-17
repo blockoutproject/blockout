@@ -30,9 +30,9 @@ class RawDivisionMappingInternalResponse(BaseModel):
     """
     Raw federation division mapping without client-controlled persistence identity or audit metadata beyond its canonical identifier.
     """ # noqa: E501
-    id: Annotated[int, Field(strict=True, ge=1)] = Field(description="Canonical positive numeric identifier wire shape.")
+    id: Annotated[int, Field(strict=True, ge=1)]
     raw_division_name: Annotated[str, Field(strict=True, max_length=255)] = Field(alias="rawDivisionName")
-    division_id: Optional[Annotated[int, Field(strict=True, ge=1)]] = Field(description="Canonical positive numeric identifier wire shape.", alias="divisionId")
+    division_id: Optional[Annotated[int, Field(strict=True, ge=1)]] = Field(alias="divisionId")
     format: Optional[FormatEnum]
     gender: Optional[GenderEnum]
     league_code: Annotated[str, Field(strict=True, max_length=255)] = Field(alias="leagueCode")

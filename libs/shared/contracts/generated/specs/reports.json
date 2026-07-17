@@ -28,7 +28,6 @@
         ],
         "summary": "Submit a Blockout report",
         "description": "Accepts canonical Blockout report context and optional PNG/JPEG attachments. The current sequential S3 upload, GitHub create/update, best-effort Discord notification, partial-success, and five-megabyte file/request behavior remain application and adapter policy.",
-        "x-required-scope": "create:reports",
         "requestBody": {
           "required": true,
           "content": {
@@ -382,8 +381,7 @@
       "UuidIdentifier": {
         "type": "string",
         "format": "uuid",
-        "description": "Canonical UUID identifier wire shape.",
-        "x-java-type": "java.util.UUID"
+        "description": "Canonical UUID identifier wire shape."
       }
     }
   }

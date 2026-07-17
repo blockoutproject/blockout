@@ -15,13 +15,29 @@
       "active"
     ],
     "properties": {
-      "id": { "$ref": "#/components/schemas/NumericIdentifier" },
+      "id": {
+        "type": "integer",
+        "format": "int64",
+        "minimum": 1
+      },
       "matchCode": { "type": "string", "maxLength": 255 },
       "leagueCode": { "type": "string", "maxLength": 255 },
-      "poolId": { "$ref": "#/components/schemas/NumericIdentifier" },
+      "poolId": {
+        "type": "integer",
+        "format": "int64",
+        "minimum": 1
+      },
       "liveCode": { "type": "integer", "format": "int64", "nullable": true },
-      "teamIdA": { "$ref": "#/components/schemas/NumericIdentifier" },
-      "teamIdB": { "$ref": "#/components/schemas/NumericIdentifier" },
+      "teamIdA": {
+        "type": "integer",
+        "format": "int64",
+        "minimum": 1
+      },
+      "teamIdB": {
+        "type": "integer",
+        "format": "int64",
+        "minimum": 1
+      },
       "matchDate": { "$ref": "#/components/schemas/UtcDateTime" },
       "season": { "type": "string", "maxLength": 255 },
       "set": { "type": "string", "nullable": true },

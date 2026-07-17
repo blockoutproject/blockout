@@ -207,7 +207,9 @@
         "in": "query",
         "required": false,
         "schema": {
-          "$ref": "#/components/schemas/NumericIdentifier"
+          "type": "integer",
+          "format": "int64",
+          "minimum": 1
         }
       },
       "SearchFormat": {
@@ -396,13 +398,6 @@
         },
         "additionalProperties": false
       },
-      "NumericIdentifier": {
-        "type": "integer",
-        "format": "int64",
-        "minimum": 1,
-        "description": "Canonical positive numeric identifier wire shape.",
-        "x-java-type": "java.lang.Long"
-      },
       "FormatEnum": {
         "type": "string",
         "description": "Supported Blockout team formats.",
@@ -505,7 +500,9 @@
         ],
         "properties": {
           "id": {
-            "$ref": "#/components/schemas/NumericIdentifier"
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
           },
           "name": {
             "type": "string",
@@ -559,7 +556,9 @@
         ],
         "properties": {
           "id": {
-            "$ref": "#/components/schemas/NumericIdentifier"
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
           },
           "name": {
             "type": "string",

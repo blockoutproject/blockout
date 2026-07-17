@@ -31,7 +31,7 @@ class CreateRawDivisionMappingInternalRequest(BaseModel):
     Creates a raw federation division mapping. Persistence identity and audit fields are service-owned; mapping fields may be absent or null until an administrator resolves them.
     """ # noqa: E501
     raw_division_name: Annotated[str, Field(strict=True, max_length=255)] = Field(alias="rawDivisionName")
-    division_id: Optional[Annotated[int, Field(strict=True, ge=1)]] = Field(default=None, description="Canonical positive numeric identifier wire shape.", alias="divisionId")
+    division_id: Optional[Annotated[int, Field(strict=True, ge=1)]] = Field(default=None, alias="divisionId")
     format: Optional[FormatEnum] = None
     gender: Optional[GenderEnum] = None
     league_code: Annotated[str, Field(strict=True, max_length=255)] = Field(alias="leagueCode")

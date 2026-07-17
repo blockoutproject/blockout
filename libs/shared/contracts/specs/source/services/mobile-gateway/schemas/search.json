@@ -36,7 +36,11 @@
       "season"
     ],
     "properties": {
-      "id": { "$ref": "#/components/schemas/NumericIdentifier" },
+      "id": {
+        "type": "integer",
+        "format": "int64",
+        "minimum": 1
+      },
       "name": { "type": "string", "nullable": true },
       "logoUrl": { "type": "string", "maxLength": 2048, "nullable": true },
       "divisionName": { "type": "string", "nullable": true },
@@ -79,7 +83,11 @@
       "logoUrl"
     ],
     "properties": {
-      "id": { "$ref": "#/components/schemas/NumericIdentifier" },
+      "id": {
+        "type": "integer",
+        "format": "int64",
+        "minimum": 1
+      },
       "name": { "type": "string", "nullable": true },
       "divisionName": { "type": "string", "nullable": true },
       "leagueCode": { "type": "string", "nullable": true },

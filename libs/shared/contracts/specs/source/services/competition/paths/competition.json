@@ -9,7 +9,6 @@
       "tags": ["CompetitionAssociations"],
       "summary": "Add or reactivate a team in a pool",
       "description": "Creates a zero-stat association or reactivates the existing association while preserving its statistics and stored club identity. The caller must hold both listed scopes.",
-      "x-required-scopes": ["create:competitions", "update:competitions"],
       "parameters": [{ "$ref": "#/components/parameters/AssociationClubId" }],
       "responses": {
         "200": {
@@ -93,7 +92,6 @@
       "tags": ["CompetitionLifecycle"],
       "summary": "Deactivate missing teams in a pool",
       "description": "Deactivates active associations for the supplied missingTeamIds. Duplicate identifiers have set semantics; an empty list is a no-op. The v1 adapter retains its empty 200 response.",
-      "x-required-scope": "delete:competitions",
       "requestBody": {
         "required": true,
         "content": {
@@ -119,7 +117,6 @@
       "tags": ["CompetitionLifecycle"],
       "summary": "Deactivate missing pools",
       "description": "Deactivates active associations for the supplied missingPoolIds. Duplicate identifiers have set semantics; an empty list is a no-op. The v1 adapter retains its empty 200 response.",
-      "x-required-scope": "delete:competitions",
       "requestBody": {
         "required": true,
         "content": {
@@ -145,7 +142,6 @@
       "tags": ["CompetitionLifecycle"],
       "summary": "Deactivate missing clubs",
       "description": "Deactivates active associations for the supplied missingClubIds. Duplicate identifiers have set semantics; an empty list is a no-op. The v1 adapter retains its empty 200 response.",
-      "x-required-scope": "delete:competitions",
       "requestBody": {
         "required": true,
         "content": {
@@ -175,7 +171,6 @@
       "tags": ["CompetitionStatistics"],
       "summary": "Replace association statistics",
       "description": "Atomically replaces all seventeen statistics for the identified association. Partial snapshots and null statistics are invalid.",
-      "x-required-scope": "update:competitions",
       "requestBody": {
         "required": true,
         "content": {

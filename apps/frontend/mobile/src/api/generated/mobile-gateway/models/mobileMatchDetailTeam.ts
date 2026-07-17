@@ -4,13 +4,13 @@
  * Blockout Mobile Gateway API
  * OpenAPI spec version: 2.0.0
  */
-import type { NumericIdentifier } from './numericIdentifier';
 
 /**
  * Match-detail team identity and display projection.
  */
 export interface MobileMatchDetailTeam {
-  id: NumericIdentifier;
+  /** @minimum 1 */
+  id: number;
   /** @maxLength 255 */
   name: string;
   /** @maxLength 255 */

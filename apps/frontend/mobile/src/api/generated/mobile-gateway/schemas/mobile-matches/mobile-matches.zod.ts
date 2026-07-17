@@ -33,23 +33,13 @@ export const ListMobileMatchDaysQueryParams = zod.object({
       'Number of distinct Paris-local match dates requested, not a bound on match rows or enrichment fan-out.',
     ),
   poolIds: zod
-    .array(
-      zod
-        .number()
-        .min(1)
-        .describe('Canonical positive numeric identifier wire shape.'),
-    )
+    .array(zod.number().min(1))
     .optional()
     .describe(
       'Optional set-like pool filter. Pool and team filters retain the current downstream OR semantics.',
     ),
   teamIds: zod
-    .array(
-      zod
-        .number()
-        .min(1)
-        .describe('Canonical positive numeric identifier wire shape.'),
-    )
+    .array(zod.number().min(1))
     .optional()
     .describe(
       'Optional set-like team filter. Pool and team filters retain the current downstream OR semantics.',
@@ -96,12 +86,7 @@ export const ListMobileMatchDaysResponse = zod
               zod.object({
                 pool: zod
                   .object({
-                    id: zod
-                      .number()
-                      .min(1)
-                      .describe(
-                        'Canonical positive numeric identifier wire shape.',
-                      ),
+                    id: zod.number().min(1),
                     leagueCode: zod
                       .string()
                       .max(
@@ -162,12 +147,7 @@ export const ListMobileMatchDaysResponse = zod
                   .array(
                     zod
                       .object({
-                        id: zod
-                          .number()
-                          .min(1)
-                          .describe(
-                            'Canonical positive numeric identifier wire shape.',
-                          ),
+                        id: zod.number().min(1),
                         matchDate: zod.iso
                           .datetime({ offset: true })
                           .describe(
@@ -304,10 +284,7 @@ export const getMobileMatchResponsePoolDivisionLogoUrlMax = 2048;
 
 export const GetMobileMatchResponse = zod
   .object({
-    id: zod
-      .number()
-      .min(1)
-      .describe('Canonical positive numeric identifier wire shape.'),
+    id: zod.number().min(1),
     matchDate: zod.iso
       .datetime({ offset: true })
       .describe(
@@ -329,10 +306,7 @@ export const GetMobileMatchResponse = zod
     liveOwnerAuth0Id: zod.string().nullable(),
     teamA: zod
       .object({
-        id: zod
-          .number()
-          .min(1)
-          .describe('Canonical positive numeric identifier wire shape.'),
+        id: zod.number().min(1),
         name: zod.string().max(getMobileMatchResponseTeamANameMax),
         shortName: zod.string().max(getMobileMatchResponseTeamAShortNameMax),
         logoUrl: zod
@@ -343,10 +317,7 @@ export const GetMobileMatchResponse = zod
       .describe('Match-detail team identity and display projection.'),
     teamB: zod
       .object({
-        id: zod
-          .number()
-          .min(1)
-          .describe('Canonical positive numeric identifier wire shape.'),
+        id: zod.number().min(1),
         name: zod.string().max(getMobileMatchResponseTeamBNameMax),
         shortName: zod.string().max(getMobileMatchResponseTeamBShortNameMax),
         logoUrl: zod
@@ -357,10 +328,7 @@ export const GetMobileMatchResponse = zod
       .describe('Match-detail team identity and display projection.'),
     pool: zod
       .object({
-        id: zod
-          .number()
-          .min(1)
-          .describe('Canonical positive numeric identifier wire shape.'),
+        id: zod.number().min(1),
         season: zod.string().max(getMobileMatchResponsePoolSeasonMax),
         poolCode: zod.string().max(getMobileMatchResponsePoolPoolCodeMax),
         leagueCode: zod.string().max(getMobileMatchResponsePoolLeagueCodeMax),
@@ -374,12 +342,7 @@ export const GetMobileMatchResponse = zod
           .array(
             zod
               .object({
-                id: zod
-                  .number()
-                  .min(1)
-                  .describe(
-                    'Canonical positive numeric identifier wire shape.',
-                  ),
+                id: zod.number().min(1),
                 shortName: zod
                   .string()
                   .max(getMobileMatchResponsePoolRankingItemShortNameMax),

@@ -28,8 +28,8 @@ class CompetitionAssociationInternalResponse(BaseModel):
     """
     Competition-owned association and full statistics snapshot without persistence identity or audit timestamps.
     """ # noqa: E501
-    pool_id: Annotated[int, Field(strict=True, ge=1)] = Field(description="Canonical positive numeric identifier wire shape.", alias="poolId")
-    team_id: Annotated[int, Field(strict=True, ge=1)] = Field(description="Canonical positive numeric identifier wire shape.", alias="teamId")
+    pool_id: Annotated[int, Field(strict=True, ge=1)] = Field(alias="poolId")
+    team_id: Annotated[int, Field(strict=True, ge=1)] = Field(alias="teamId")
     club_id: Annotated[str, Field(strict=True, max_length=255)] = Field(alias="clubId")
     active: StrictBool
     points: StrictInt

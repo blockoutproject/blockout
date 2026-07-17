@@ -7,13 +7,13 @@
 import type { GenderEnum } from './genderEnum';
 import type { MobileCatalogDivision } from './mobileCatalogDivision';
 import type { MobileRankingTeam } from './mobileRankingTeam';
-import type { NumericIdentifier } from './numericIdentifier';
 
 /**
  * Pool profile projection separated from downstream pool, division, competition, team, and club transports.
  */
 export interface MobilePoolDetail {
-  id: NumericIdentifier;
+  /** @minimum 1 */
+  id: number;
   /**
    * @minLength 1
    * @maxLength 255

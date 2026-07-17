@@ -18,7 +18,11 @@
       "active"
     ],
     "properties": {
-      "id": { "$ref": "#/components/schemas/NumericIdentifier" },
+      "id": {
+        "type": "integer",
+        "format": "int64",
+        "minimum": 1
+      },
       "poolCode": { "type": "string", "maxLength": 255 },
       "leagueCode": { "type": "string", "maxLength": 255 },
       "season": { "type": "string", "maxLength": 255 },
@@ -26,7 +30,11 @@
       "rawName": { "type": "string", "maxLength": 255 },
       "name": { "type": "string", "maxLength": 255 },
       "shortName": { "type": "string", "maxLength": 255 },
-      "divisionId": { "$ref": "#/components/schemas/NumericIdentifier" },
+      "divisionId": {
+        "type": "integer",
+        "format": "int64",
+        "minimum": 1
+      },
       "format": { "$ref": "#/components/schemas/FormatEnum" },
       "gender": { "$ref": "#/components/schemas/GenderEnum" },
       "followersCount": {

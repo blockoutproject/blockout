@@ -69,7 +69,6 @@
         ],
         "summary": "Update application status",
         "description": "Applies the compatibility partial-update semantics: omission and explicit null both preserve the stored field.",
-        "x-required-scope": "update:maintenance",
         "requestBody": {
           "required": true,
           "content": {
@@ -117,7 +116,6 @@
         ],
         "summary": "List divisions",
         "description": "Returns the complete active and inactive division catalog in the existing repository-defined compatibility order.",
-        "x-required-scope": "read:divisions",
         "responses": {
           "200": {
             "description": "Complete division catalog.",
@@ -147,7 +145,6 @@
         ],
         "summary": "Create a division",
         "description": "Creates a division from a canonical camelCase JSON part and an optional PNG or JPEG image. The current five-megabyte image and request limits remain adapter-owned compatibility behavior.",
-        "x-required-scope": "create:divisions",
         "requestBody": {
           "required": true,
           "content": {
@@ -226,7 +223,6 @@
         ],
         "summary": "Get a division",
         "description": "Returns one active or inactive division by its numeric identifier.",
-        "x-required-scope": "read:divisions",
         "responses": {
           "200": {
             "description": "Requested division.",
@@ -259,7 +255,6 @@
         ],
         "summary": "Update a division",
         "description": "Partially updates a division from a canonical camelCase JSON part, optionally replaces its logo, and preserves the existing implicit reactivation behavior.",
-        "x-required-scope": "update:divisions",
         "requestBody": {
           "required": true,
           "content": {
@@ -326,7 +321,6 @@
         ],
         "summary": "Deactivate a division",
         "description": "Soft-deactivates the division and retains its persisted data and logo.",
-        "x-required-scope": "delete:divisions",
         "responses": {
           "204": {
             "description": "Division deactivated."
@@ -383,7 +377,6 @@
         ],
         "summary": "Update a legal document",
         "description": "Normalizes the path value by trimming and lowercasing it, then applies compatibility partial-update semantics. Missing documents retain the current generic server-error status.",
-        "x-required-scope": "update:legal",
         "requestBody": {
           "required": true,
           "content": {
@@ -428,7 +421,6 @@
         ],
         "summary": "List raw division mappings",
         "description": "Returns the complete result for the optional exact league and season filters in the existing repository-defined compatibility order.",
-        "x-required-scope": "read:raw_division_mapping",
         "parameters": [
           {
             "$ref": "#/components/parameters/LeagueCode"
@@ -466,7 +458,6 @@
         ],
         "summary": "Create a raw division mapping",
         "description": "Creates a raw federation division mapping without accepting persistence identity or audit fields.",
-        "x-required-scope": "create:raw_division_mapping",
         "requestBody": {
           "required": true,
           "content": {
@@ -524,7 +515,6 @@
         ],
         "summary": "Get a raw division mapping",
         "description": "Returns one raw division mapping by its numeric identifier.",
-        "x-required-scope": "read:raw_division_mapping",
         "responses": {
           "200": {
             "description": "Requested raw division mapping.",
@@ -557,7 +547,6 @@
         ],
         "summary": "Update a raw division mapping",
         "description": "Replaces the division, format, and gender mapping fields. Explicit null values unmap the corresponding field.",
-        "x-required-scope": "update:raw_division_mapping",
         "requestBody": {
           "required": true,
           "content": {
@@ -649,7 +638,6 @@
         ],
         "summary": "Update scraper enabled state",
         "description": "Replaces the scraper enabled switch and preserves the current upsert behavior when the seeded status row is absent.",
-        "x-required-scope": "update:scrapers",
         "responses": {
           "200": {
             "description": "Updated or created scraper status.",
@@ -684,7 +672,6 @@
         ],
         "summary": "List scraper statuses",
         "description": "Returns the complete two-scraper catalog in the existing repository-defined compatibility order.",
-        "x-required-scope": "read:scrapers",
         "responses": {
           "200": {
             "description": "Complete scraper status catalog.",
@@ -746,7 +733,9 @@
         "in": "path",
         "required": true,
         "schema": {
-          "$ref": "#/components/schemas/NumericIdentifier"
+          "type": "integer",
+          "format": "int64",
+          "minimum": 1
         }
       },
       "LegalDocumentType": {
@@ -763,7 +752,9 @@
         "in": "path",
         "required": true,
         "schema": {
-          "$ref": "#/components/schemas/NumericIdentifier"
+          "type": "integer",
+          "format": "int64",
+          "minimum": 1
         }
       },
       "LeagueCode": {
@@ -1089,7 +1080,9 @@
         ],
         "properties": {
           "id": {
-            "$ref": "#/components/schemas/NumericIdentifier"
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
           },
           "name": {
             "type": "string",
@@ -1233,11 +1226,9 @@
             "maxLength": 255
           },
           "divisionId": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/NumericIdentifier"
-              }
-            ],
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1,
             "nullable": true
           },
           "format": {
@@ -1281,18 +1272,18 @@
         ],
         "properties": {
           "id": {
-            "$ref": "#/components/schemas/NumericIdentifier"
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
           },
           "rawDivisionName": {
             "type": "string",
             "maxLength": 255
           },
           "divisionId": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/NumericIdentifier"
-              }
-            ],
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1,
             "nullable": true
           },
           "format": {
@@ -1332,11 +1323,9 @@
         ],
         "properties": {
           "divisionId": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/NumericIdentifier"
-              }
-            ],
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1,
             "nullable": true
           },
           "format": {
@@ -1392,13 +1381,6 @@
         },
         "additionalProperties": false
       },
-      "NumericIdentifier": {
-        "type": "integer",
-        "format": "int64",
-        "minimum": 1,
-        "description": "Canonical positive numeric identifier wire shape.",
-        "x-java-type": "java.lang.Long"
-      },
       "ScraperNameEnum": {
         "type": "string",
         "description": "Blockout-owned scraper process identifiers.",
@@ -1449,8 +1431,7 @@
       "UtcDateTime": {
         "type": "string",
         "format": "date-time",
-        "description": "RFC 3339 timestamp normalized to UTC on Blockout-owned wires.",
-        "x-java-type": "java.time.Instant"
+        "description": "RFC 3339 timestamp normalized to UTC on Blockout-owned wires."
       },
       "FormatEnum": {
         "type": "string",

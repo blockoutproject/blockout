@@ -4,14 +4,14 @@
  * Blockout Mobile Gateway API
  * OpenAPI spec version: 2.0.0
  */
-import type { NumericIdentifier } from './numericIdentifier';
 import type { UtcDateTime } from './utcDateTime';
 
 /**
  * Minimal Expo inbox projection enriched with an optional division logo.
  */
 export interface MobileNotification {
-  id: NumericIdentifier;
+  /** @minimum 1 */
+  id: number;
   /** @minLength 1 */
   title: string;
   /** @minLength 1 */

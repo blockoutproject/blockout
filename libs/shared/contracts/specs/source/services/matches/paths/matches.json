@@ -34,7 +34,6 @@
       "tags": ["Matches"],
       "summary": "Create a match",
       "description": "Creates a match and derives status from set nullness without accepting server identity, lifecycle, or timestamps.",
-      "x-required-scope": "create:matches",
       "requestBody": {
         "required": true,
         "content": {
@@ -124,7 +123,6 @@
       "tags": ["Matches"],
       "summary": "Replace scraper-owned match fields",
       "description": "Replaces the scraper-owned fields, forces active true, and preserves the audited one-way finish transition.",
-      "x-required-scope": "update:matches",
       "requestBody": {
         "required": true,
         "content": {
@@ -160,7 +158,6 @@
       "tags": ["Matches"],
       "summary": "Deactivate missing matches in a pool",
       "description": "Soft-deactivates supplied missingMatchCodes. Empty is a no-op; duplicates retain set semantics. The v1 adapter keeps its empty 200 response.",
-      "x-required-scope": "delete:matches",
       "requestBody": {
         "required": true,
         "content": {

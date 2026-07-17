@@ -13,7 +13,11 @@
       "coefPoints"
     ],
     "properties": {
-      "teamId": { "$ref": "#/components/schemas/NumericIdentifier" },
+      "teamId": {
+        "type": "integer",
+        "format": "int64",
+        "minimum": 1
+      },
       "points": { "type": "integer", "format": "int32" },
       "pointsPenalty": { "type": "integer", "format": "int32" },
       "played": { "type": "integer", "format": "int32" },

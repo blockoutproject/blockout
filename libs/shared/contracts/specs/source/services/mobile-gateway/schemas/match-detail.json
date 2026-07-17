@@ -20,7 +20,11 @@
       "signedDocuments"
     ],
     "properties": {
-      "id": { "$ref": "#/components/schemas/NumericIdentifier" },
+      "id": {
+        "type": "integer",
+        "format": "int64",
+        "minimum": 1
+      },
       "matchDate": { "$ref": "#/components/schemas/UtcDateTime" },
       "set": { "type": "string", "nullable": true },
       "score": { "type": "string", "nullable": true },
@@ -52,7 +56,11 @@
     "description": "Match-detail team identity and display projection.",
     "required": ["id", "name", "shortName", "logoUrl"],
     "properties": {
-      "id": { "$ref": "#/components/schemas/NumericIdentifier" },
+      "id": {
+        "type": "integer",
+        "format": "int64",
+        "minimum": 1
+      },
       "name": { "type": "string", "maxLength": 255 },
       "shortName": { "type": "string", "maxLength": 255 },
       "logoUrl": { "type": "string", "maxLength": 2048, "nullable": true }
@@ -75,7 +83,11 @@
       "division"
     ],
     "properties": {
-      "id": { "$ref": "#/components/schemas/NumericIdentifier" },
+      "id": {
+        "type": "integer",
+        "format": "int64",
+        "minimum": 1
+      },
       "season": { "type": "string", "maxLength": 255 },
       "poolCode": { "type": "string", "maxLength": 255 },
       "leagueCode": { "type": "string", "maxLength": 255 },
@@ -128,7 +140,11 @@
       "losses"
     ],
     "properties": {
-      "id": { "$ref": "#/components/schemas/NumericIdentifier" },
+      "id": {
+        "type": "integer",
+        "format": "int64",
+        "minimum": 1
+      },
       "shortName": { "type": "string", "maxLength": 255 },
       "logoUrl": { "type": "string", "maxLength": 2048, "nullable": true },
       "points": { "type": "integer", "format": "int32" },

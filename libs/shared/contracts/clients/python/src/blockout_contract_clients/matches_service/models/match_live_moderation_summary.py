@@ -32,17 +32,17 @@ class MatchLiveModerationSummary(BaseModel):
     """
     Moderation projection using the audited representative-link priority. A status filter proves that some history row matches; the representative fields may describe a different status.
     """ # noqa: E501
-    id: Annotated[int, Field(strict=True, ge=1)] = Field(description="Canonical positive numeric identifier wire shape.")
-    pool_id: Annotated[int, Field(strict=True, ge=1)] = Field(description="Canonical positive numeric identifier wire shape.", alias="poolId")
-    team_id_a: Annotated[int, Field(strict=True, ge=1)] = Field(description="Canonical positive numeric identifier wire shape.", alias="teamIdA")
-    team_id_b: Annotated[int, Field(strict=True, ge=1)] = Field(description="Canonical positive numeric identifier wire shape.", alias="teamIdB")
+    id: Annotated[int, Field(strict=True, ge=1)]
+    pool_id: Annotated[int, Field(strict=True, ge=1)] = Field(alias="poolId")
+    team_id_a: Annotated[int, Field(strict=True, ge=1)] = Field(alias="teamIdA")
+    team_id_b: Annotated[int, Field(strict=True, ge=1)] = Field(alias="teamIdB")
     match_date: datetime = Field(description="RFC 3339 timestamp normalized to UTC on Blockout-owned wires.", alias="matchDate")
     season: Annotated[str, Field(strict=True, max_length=255)]
     set: Optional[StrictStr] = None
     score: Optional[StrictStr] = None
     status: MatchStatusEnum
     live_code: Optional[StrictInt] = Field(default=None, alias="liveCode")
-    last_live_link_id: Optional[Annotated[int, Field(strict=True, ge=1)]] = Field(default=None, description="Canonical positive numeric identifier wire shape.", alias="lastLiveLinkId")
+    last_live_link_id: Optional[Annotated[int, Field(strict=True, ge=1)]] = Field(default=None, alias="lastLiveLinkId")
     last_live_link_status: Optional[LiveLinkStatusEnum] = Field(default=None, alias="lastLiveLinkStatus")
     last_live_link_provider: Optional[LiveProviderEnum] = Field(default=None, alias="lastLiveLinkProvider")
     last_live_link_url: Optional[Annotated[str, Field(strict=True, max_length=1024)]] = Field(default=None, alias="lastLiveLinkUrl")

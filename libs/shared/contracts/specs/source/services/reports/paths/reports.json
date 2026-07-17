@@ -5,7 +5,6 @@
       "tags": ["Reports"],
       "summary": "Submit a Blockout report",
       "description": "Accepts canonical Blockout report context and optional PNG/JPEG attachments. The current sequential S3 upload, GitHub create/update, best-effort Discord notification, partial-success, and five-megabyte file/request behavior remain application and adapter policy.",
-      "x-required-scope": "create:reports",
       "requestBody": {
         "required": true,
         "content": {

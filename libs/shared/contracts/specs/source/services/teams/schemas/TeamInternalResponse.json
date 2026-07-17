@@ -19,7 +19,9 @@
     ],
     "properties": {
       "id": {
-        "$ref": "#/components/schemas/NumericIdentifier"
+        "type": "integer",
+        "format": "int64",
+        "minimum": 1
       },
       "clubId": {
         "type": "string",
@@ -42,7 +44,9 @@
         "maxLength": 255
       },
       "divisionId": {
-        "$ref": "#/components/schemas/NumericIdentifier"
+        "type": "integer",
+        "format": "int64",
+        "minimum": 1
       },
       "season": {
         "type": "string",

@@ -32,7 +32,6 @@
       "tags": ["LegalDocuments"],
       "summary": "Update a legal document",
       "description": "Normalizes the path value by trimming and lowercasing it, then applies compatibility partial-update semantics. Missing documents retain the current generic server-error status.",
-      "x-required-scope": "update:legal",
       "requestBody": {
         "required": true,
         "content": {

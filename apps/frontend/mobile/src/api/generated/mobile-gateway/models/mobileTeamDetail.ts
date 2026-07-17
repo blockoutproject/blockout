@@ -8,13 +8,13 @@ import type { FormatEnum } from './formatEnum';
 import type { GenderEnum } from './genderEnum';
 import type { MobileCatalogDivision } from './mobileCatalogDivision';
 import type { MobileTeamPool } from './mobileTeamPool';
-import type { NumericIdentifier } from './numericIdentifier';
 
 /**
  * Team profile projection separated from downstream team, club, competition, and pool transports.
  */
 export interface MobileTeamDetail {
-  id: NumericIdentifier;
+  /** @minimum 1 */
+  id: number;
   /**
    * @minLength 1
    * @maxLength 255

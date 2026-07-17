@@ -22,13 +22,21 @@
         "name": "poolId",
         "in": "path",
         "required": true,
-        "schema": { "$ref": "#/components/schemas/NumericIdentifier" }
+        "schema": {
+          "type": "integer",
+          "format": "int64",
+          "minimum": 1
+        }
       },
       "TeamId": {
         "name": "teamId",
         "in": "path",
         "required": true,
-        "schema": { "$ref": "#/components/schemas/NumericIdentifier" }
+        "schema": {
+          "type": "integer",
+          "format": "int64",
+          "minimum": 1
+        }
       },
       "AssociationClubId": {
         "name": "clubId",

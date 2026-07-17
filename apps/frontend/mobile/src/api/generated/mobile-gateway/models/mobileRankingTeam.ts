@@ -4,13 +4,13 @@
  * Blockout Mobile Gateway API
  * OpenAPI spec version: 2.0.0
  */
-import type { NumericIdentifier } from './numericIdentifier';
 
 /**
  * Mobile ranking and map row. Position in the containing array is authoritative. The current five-key ranking sort is preserved; exact ties retain unspecified source order because no identifier tie-breaker is introduced in this compatibility slice.
  */
 export interface MobileRankingTeam {
-  id: NumericIdentifier;
+  /** @minimum 1 */
+  id: number;
   /**
    * @minLength 1
    * @maxLength 255

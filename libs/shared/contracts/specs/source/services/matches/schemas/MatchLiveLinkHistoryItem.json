@@ -13,7 +13,11 @@
       "lastUpdate"
     ],
     "properties": {
-      "id": { "$ref": "#/components/schemas/NumericIdentifier" },
+      "id": {
+        "type": "integer",
+        "format": "int64",
+        "minimum": 1
+      },
       "provider": { "$ref": "#/components/schemas/LiveProviderEnum" },
       "url": { "type": "string", "maxLength": 1024 },
       "status": { "$ref": "#/components/schemas/LiveLinkStatusEnum" },

@@ -22,7 +22,11 @@
       "rawName": { "type": "string", "maxLength": 255 },
       "name": { "type": "string", "maxLength": 255 },
       "shortName": { "type": "string", "maxLength": 255 },
-      "divisionId": { "$ref": "#/components/schemas/NumericIdentifier" },
+      "divisionId": {
+        "type": "integer",
+        "format": "int64",
+        "minimum": 1
+      },
       "format": { "$ref": "#/components/schemas/FormatEnum" },
       "gender": { "$ref": "#/components/schemas/GenderEnum" }
     },

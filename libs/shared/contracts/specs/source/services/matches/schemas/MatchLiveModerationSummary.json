@@ -12,10 +12,26 @@
       "status"
     ],
     "properties": {
-      "id": { "$ref": "#/components/schemas/NumericIdentifier" },
-      "poolId": { "$ref": "#/components/schemas/NumericIdentifier" },
-      "teamIdA": { "$ref": "#/components/schemas/NumericIdentifier" },
-      "teamIdB": { "$ref": "#/components/schemas/NumericIdentifier" },
+      "id": {
+        "type": "integer",
+        "format": "int64",
+        "minimum": 1
+      },
+      "poolId": {
+        "type": "integer",
+        "format": "int64",
+        "minimum": 1
+      },
+      "teamIdA": {
+        "type": "integer",
+        "format": "int64",
+        "minimum": 1
+      },
+      "teamIdB": {
+        "type": "integer",
+        "format": "int64",
+        "minimum": 1
+      },
       "matchDate": { "$ref": "#/components/schemas/UtcDateTime" },
       "season": { "type": "string", "maxLength": 255 },
       "set": { "type": "string", "nullable": true },
@@ -23,7 +39,9 @@
       "status": { "$ref": "#/components/schemas/MatchStatusEnum" },
       "liveCode": { "type": "integer", "format": "int64", "nullable": true },
       "lastLiveLinkId": {
-        "allOf": [{ "$ref": "#/components/schemas/NumericIdentifier" }],
+        "type": "integer",
+        "format": "int64",
+        "minimum": 1,
         "nullable": true
       },
       "lastLiveLinkStatus": {

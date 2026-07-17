@@ -5,7 +5,6 @@
       "tags": ["RawDivisionMappings"],
       "summary": "List raw division mappings",
       "description": "Returns the complete result for the optional exact league and season filters in the existing repository-defined compatibility order.",
-      "x-required-scope": "read:raw_division_mapping",
       "parameters": [
         {
           "$ref": "#/components/parameters/LeagueCode"
@@ -41,7 +40,6 @@
       "tags": ["RawDivisionMappings"],
       "summary": "Create a raw division mapping",
       "description": "Creates a raw federation division mapping without accepting persistence identity or audit fields.",
-      "x-required-scope": "create:raw_division_mapping",
       "requestBody": {
         "required": true,
         "content": {
@@ -97,7 +95,6 @@
       "tags": ["RawDivisionMappings"],
       "summary": "Get a raw division mapping",
       "description": "Returns one raw division mapping by its numeric identifier.",
-      "x-required-scope": "read:raw_division_mapping",
       "responses": {
         "200": {
           "description": "Requested raw division mapping.",
@@ -128,7 +125,6 @@
       "tags": ["RawDivisionMappings"],
       "summary": "Update a raw division mapping",
       "description": "Replaces the division, format, and gender mapping fields. Explicit null values unmap the corresponding field.",
-      "x-required-scope": "update:raw_division_mapping",
       "requestBody": {
         "required": true,
         "content": {

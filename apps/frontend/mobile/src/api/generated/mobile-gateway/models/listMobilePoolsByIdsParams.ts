@@ -9,6 +9,7 @@ import type { MobileIdsParameter } from './mobileIdsParameter';
 export type ListMobilePoolsByIdsParams = {
   /**
    * @minItems 1
+   * @items.minimum 1
    */
   ids: MobileIdsParameter;
 };
