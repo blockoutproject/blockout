@@ -334,6 +334,8 @@ Every vertical migration task follows this exact lifecycle:
 The first complete slice is `config-service` legal-document read and update. It proves generated server interfaces and
 models, application command/view records, entity mapping, BFF generated client/projection, Expo generated client/hooks,
 Problem Details compatibility, canonical camelCase, and rollback without involving multipart, events, or scrapers.
+Its owner-side implementation and rollback evidence are recorded in the
+[MRG-331 runtime migration](../migration/mrg-331-legal-document-runtime-migration.md).
 
 ## 12. Approved Roadmap Sequence
 
@@ -343,13 +345,15 @@ Problem Details compatibility, canonical camelCase, and rollback without involvi
 3. MRG-317 through MRG-330 define owner REST contracts, the BFF workflow contracts, Expo generation, and scraper
    generation.
 4. MRG-331 through MRG-333 deliver the legal-document pilot across service, BFF, and Expo.
-5. The remaining service, BFF, Expo, and scraper boundaries migrate in dependency order with the detailed roadmap
+5. MRG-377 removes non-standard scalar and authorization metadata after the generator pilot, regenerates all outputs,
+   and aligns the remaining OpenAPI sources with Maaatch-style standard syntax without changing approved behavior.
+6. The remaining service, BFF, Expo, and scraper boundaries migrate in dependency order with the detailed roadmap
    splits approved by MRG-268.
-6. Event families and service outboxes migrate independently after the event source is approved.
-7. Jackson naming, legacy annotations, Expo transforms, and case-conversion packages retire in service waves only after
+7. Event families and service outboxes migrate independently after the event source is approved.
+8. Jackson naming, legacy annotations, Expo transforms, and case-conversion packages retire in service waves only after
    all callers are canonical.
-8. Repository guards, generation/no-diff verification, and boundary-authority evidence close Phase MRG-300.
-9. Phase MRG-400 completes deep service restructuring in a second controlled pass.
+9. Repository guards, generation/no-diff verification, and boundary-authority evidence close Phase MRG-300.
+10. Phase MRG-400 completes deep service restructuring in a second controlled pass.
 
 ## 13. Generator Decisions
 

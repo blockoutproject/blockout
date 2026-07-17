@@ -570,15 +570,33 @@ state moves to GitHub and this file becomes a historical migration record.
     shadow-CI image builds now use the monorepo root, build/install the local wheel on Python 3.12, and retain the
     existing entry points. Generated imports, Python syntax, wheel construction, contract docs, and baseline checks
     pass without changing any current scraper call or provider retry.
-- [ ] MRG-331 Configure generated Spring interfaces and models for `config-service`, then migrate legal-document read
+- [x] MRG-331 Configure generated Spring interfaces and models for `config-service`, then migrate legal-document read
       and update through generated DTOs, role-owned application records, entity mapping, canonical camelCase,
       Problem Details compatibility, and rollback evidence.
+  - Evidence: `config-service` now generates its Spring v2 boundary from the authoritative config bundle and implements
+    `CFG-08`/`CFG-09` through adapter-owned generated DTOs, strict API/persistence MapStruct mappers, one application
+    command/snapshot use case, and a persistence-only entity. The isolated v1 adapter preserves the complete snake_case
+    entity-shaped body, exact GET lookup, normalized PUT lookup, null-preserving partial updates, legacy error/security
+    handling, and all current BFF callers; the v2 route emits the generated canonical body and Problem Details with
+    stable codes and request IDs. Structured compatibility telemetry records route version, operation, status class,
+    latency, safe request ID, Problem Details code, and legacy parse failures without payloads. Eight focused tests,
+    all 30 contract tests, documentation validation, Maaatch structural comparison, whitespace checks, and the full
+    14-module Maven package pass. `docs/migration/mrg-331-legal-document-runtime-migration.md` owns provider-first
+    deployment and rollback evidence; no consumer, database, event, production, or standalone repository changed.
 - [ ] MRG-332 Replace handwritten `mobile-gateway` access to the MRG-331 slice with its generated internal client and
       prove request, response, error, auth, and casing parity.
 - [ ] MRG-333 Replace the legal-document Expo handwritten call with the generated BFF client and wire schema, then
       migrate `LegalDocumentForm` as the first complete React Hook Form/Zod pilot. Preserve title, version, Markdown
       content, exact messages, external submit registration, footer state, reset behavior, view-model/query ownership,
       and a typed transform into the generated request.
+- [ ] MRG-377 Normalize the OpenAPI source syntax after the complete legal-document generator pilot and before any
+      remaining service runtime migration. Inline positive numeric identifiers as standard `integer`/`int64` schemas
+      with their constraint instead of exporting `NumericIdentifier`; remove `x-java-type`, `x-required-scope`,
+      `x-required-scopes`, and `x-required-scopes-by-entity-type`; derive Java scalar mappings only from standard
+      OpenAPI type/format pairs; retain standard bearer security, explicit auth/error responses, and runtime-owned
+      authorization rules; regenerate every REST bundle and committed JavaScript/Python client output; and prove
+      deterministic generation, unchanged wire/auth behavior, no scalar wrapper model, and Maaatch-style source
+      syntax. This normalization may not reopen any approved payload, route, scope, or coexistence decision.
 - [ ] MRG-376 Migrate the remaining `config-service` app-status, division, raw-mapping, and scraper-status generated
       server boundaries with application records, entity mappings, compatibility, and the search-worker generated
       snapshot client; leave BFF, Expo, and scraper caller cutovers to MRG-343, MRG-344, MRG-348, and MRG-349.

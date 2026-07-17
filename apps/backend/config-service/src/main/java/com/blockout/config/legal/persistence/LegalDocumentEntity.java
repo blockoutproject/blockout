@@ -1,4 +1,4 @@
-package com.blockout.config.models.entities;
+package com.blockout.config.legal.persistence;
 
 import java.time.LocalDateTime;
 
@@ -21,7 +21,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Entity
 @Table(name = "legal_documents")
-public class LegalDocument {
+public class LegalDocumentEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

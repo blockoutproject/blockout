@@ -1,5 +1,7 @@
 package com.blockout.config.config;
 
+import com.blockout.config.legal.api.v2.LegalDocumentSecurityProblemWriter;
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -13,16 +15,24 @@ import static org.springframework.security.config.Customizer.withDefaults;
 
 @Configuration
 @EnableMethodSecurity
+@RequiredArgsConstructor
 public class SecurityConfig {
+
+    private final LegalDocumentSecurityProblemWriter legalDocumentSecurityProblemWriter;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
                 .authorizeHttpRequests(authz -> authz
+                        .requestMatchers(HttpMethod.GET, "/api/v2/config/legal/**").permitAll()
+                        .requestMatchers(HttpMethod.PUT, "/api/v2/config/legal/**").hasAuthority("SCOPE_update:legal")
                         .requestMatchers(HttpMethod.GET, "/api/v1/config/legal/**").permitAll()
                         .requestMatchers(HttpMethod.PUT, "/api/v1/config/legal/**").hasAuthority("SCOPE_update:legal")
                         .anyRequest().authenticated()
                 )
+                .exceptionHandling(exceptions -> exceptions
+                        .authenticationEntryPoint(legalDocumentSecurityProblemWriter)
+                        .accessDeniedHandler(legalDocumentSecurityProblemWriter))
                 .csrf(csrf -> csrf.disable())
                 .cors(withDefaults())
                 .oauth2ResourceServer(oauth2 -> oauth2
