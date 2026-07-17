@@ -384,6 +384,9 @@ device lifecycle, and explicit caller-selected identity debt are recorded in the
 The provider-neutral delivery records and ports, isolated Expo SDK adapter, token and ledger persistence adapters, and
 preserved incomplete-ticket behavior are recorded in the
 [MRG-366 notification delivery migration](../migration/mrg-366-notification-delivery-provider-runtime-migration.md).
+The generated search owner boundary, isolated raw-array legacy adapter, application result records, strict store
+mappers, and Elasticsearch document/query confinement are recorded in the
+[MRG-342 search migration](../migration/mrg-342-search-runtime-migration.md).
 
 ## 12. Approved Roadmap Sequence
 

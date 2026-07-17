@@ -1,14 +1,16 @@
-package com.blockout.search.models.dto;
+package com.blockout.search.club.outbound;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
+/** Mutable Elasticsearch source document confined to the club store adapter. */
 @Data
-@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class ClubSearchDocDTO {
+class ClubSearchDocument {
     private String id;
     private String name;
     private String logoUrl;

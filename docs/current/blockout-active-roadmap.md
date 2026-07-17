@@ -875,7 +875,21 @@ state moves to GitHub and this file becomes a historical migration record.
     generated artifacts, databases, RabbitMQ, BFF, Expo mobile code, scrapers, standalone repositories, production,
     Maaatch, Orval, and Python generation are unchanged;
     `docs/migration/mrg-366-notification-delivery-provider-runtime-migration.md` records the exact parity and debt.
-- [ ] MRG-342 Migrate `search-service` generated server boundaries and internal generated clients with parity evidence.
+- [x] MRG-342 Migrate `search-service` generated server boundaries and internal generated clients with parity evidence.
+  - Evidence: `search-service` now implements the generated `SearchApi` boundary for `SEARCH-01` through `SEARCH-03`
+    and maps generated response models immediately into feature-owned application results. Club, team, and pool
+    Elasticsearch requests, mutable source documents, and strict MapStruct document mappers are confined to outbound
+    adapters; application services retain the all-exception empty-list fallback. The exact random blank-query limits,
+    boosted nonblank fields, term filters, timeout, source projections, raw-array v1 JSON, snake_case keys, permissive
+    legacy filters, extra legacy fields, auth, null, and ordering behavior remain unchanged. The isolated v1 writer is
+    the only snake-case mechanism; the global Jackson strategy and former mixed DTO/services are removed. No generated
+    internal client is added because this service has no downstream Blockout REST dependency; MRG-343 owns the real BFF
+    search client. Twelve search tests, thirty contract tests, two deterministic contract generations, generated
+    compilation, source-confinement checks, full 14-module backend packaging, documentation validation, Maaatch
+    comparison, Prettier, and whitespace checks pass. Elasticsearch indices/data, BFF, Expo, scrapers, events,
+    standalone repositories, production, Maaatch, Orval, and Python generation are unchanged;
+    `docs/migration/mrg-342-search-runtime-migration.md` records parity, rollback, ownership, and temporary-name
+    retirement gates.
 - [ ] MRG-343 Migrate remaining `mobile-gateway` configuration, user, report, search, and notification relay workflows
       to generated clients and BFF interfaces with workflow-owned commands, views, mappers, and compatibility.
 - [ ] MRG-367 Migrate `mobile-gateway` club, team, and pool workflows to generated clients and BFF interfaces with

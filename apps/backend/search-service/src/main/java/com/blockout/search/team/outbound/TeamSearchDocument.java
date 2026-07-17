@@ -1,26 +1,26 @@
-package com.blockout.search.models.dto;
+package com.blockout.search.team.outbound;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+/** Mutable Elasticsearch source document confined to the team store adapter. */
 @Data
-@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class PoolSearchDocDTO {
+class TeamSearchDocument {
     private Long id;
     private String name;
     private String shortName;
+    private String clubId;
+    private String clubName;
+    private String clubCity;
+    private String logoUrl;
+    private Long divisionId;
     private String divisionName;
-    private String leagueCode;
-    private String leagueName;
-    private String season;
     private String format;
     private String gender;
-    private String logoUrl;
+    private String season;
 }
