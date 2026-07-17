@@ -1,4 +1,3 @@
-import { MatchApi } from './MatchApi';
 import { UserApi } from './UserApi';
 import { SearchApi } from './SearchApi';
 import { NotificationApi } from './NotificationApi';
@@ -8,7 +7,6 @@ import { ApiError } from '@/src/api/core/ApiError';
 
 /** Retains the handwritten resource clients whose generated caller tasks are still pending. */
 export class MobileGatewayApi {
-  public matches: MatchApi;
   public users: UserApi;
   public search: SearchApi;
   public notifications: NotificationApi;
@@ -16,7 +14,6 @@ export class MobileGatewayApi {
 
   /** Creates the remaining handwritten resource clients once for the application provider. */
   constructor() {
-    this.matches = new MatchApi();
     this.users = new UserApi();
     this.search = new SearchApi();
     this.notifications = new NotificationApi();
@@ -33,7 +30,6 @@ export class MobileGatewayApi {
     tokenSupplier?: TokenSupplier,
     onUnauthorized?: (e: ApiError) => void | Promise<void>,
   ) {
-    this.matches.setAuthContext(tokenSupplier, onUnauthorized);
     this.users.setAuthContext(tokenSupplier, onUnauthorized);
     this.search.setAuthContext(tokenSupplier, onUnauthorized);
     this.notifications.setAuthContext(tokenSupplier, onUnauthorized);

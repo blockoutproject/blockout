@@ -352,6 +352,9 @@ deferred-form boundary are recorded in the
 The club, team, and pool Expo clients, catalog projections, cache continuity, privacy boundary, multipart policy, and
 deferred-form ownership are recorded in the
 [MRG-345 Expo catalog migration](../migration/mrg-345-expo-catalog-client-migration.md).
+The match, live-link, and moderation Expo clients, page aggregation, cache and mutation continuity, signed-document
+boundary, and deferred-form ownership are recorded in the
+[MRG-346 Expo match migration](../migration/mrg-346-expo-match-client-migration.md).
 The source-syntax cleanup and complete REST regeneration are recorded in the
 [MRG-377 OpenAPI normalization](../migration/mrg-377-openapi-standard-syntax-normalization.md).
 The remaining config-service owner boundaries and the first search-worker generated snapshot client are recorded in

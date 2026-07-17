@@ -1,5 +1,5 @@
-import { EnrichedPoolDTO } from './Pool';
-import { Team } from './Team';
+import type { PoolHeaderView, RankingPoolView } from './Pool';
+import type { RankingTeamView } from './Team';
 
 export enum MatchStatus {
   UPCOMING = 'UPCOMING',
@@ -22,71 +22,87 @@ export type LiveLinkStatus =
   | 'PENDING'
   | 'REJECTED';
 
-export interface Match {
+export interface MatchGradientDivisionView {
+  name: string;
+  firstGradientColor: string;
+  secondGradientColor: string;
+  thirdGradientColor: string;
+}
+
+export interface MatchListDivisionView extends MatchGradientDivisionView {
+  logoUrl: string | null;
+}
+
+export interface MatchDetailDivisionView extends MatchListDivisionView {
+  mainColor: string;
+}
+
+export interface MatchListTeamView {
+  shortName: string;
+  logoUrl: string | null;
+}
+
+export interface MatchDetailTeamView extends MatchListTeamView {
   id: number;
-  matchCode: string;
-  leagueCode: string;
-  poolId: number;
-  teamIdA: number;
-  teamIdB: number;
-  matchDate: string;
+  name: string;
+}
+
+export interface MatchModerationTeamView {
+  name: string;
+  shortName: string;
+  logoUrl: string | null;
+}
+
+export interface MatchListPoolView extends PoolHeaderView {
+  division: MatchListDivisionView;
+}
+
+export interface MatchDetailPoolView extends RankingPoolView {
   season: string;
-  status: MatchStatus;
-  set: string | null;
-  score: string | null;
-  venue: string | null;
-  firstReferee: string | null;
-  secondReferee: string | null;
-  liveCode: number | null;
-  liveUrl: string | null;
-  liveProvider: string | null;
-}
-
-export interface PoolMatchesDTO {
-  poolId: number;
-  matches: Match[];
-}
-
-export interface DayMatchesDTO {
-  date: string;
-  pools: PoolMatchesDTO[];
-}
-
-export interface DayPageDTO {
-  dayMatches: DayMatchesDTO[];
-  hasNext: boolean;
-  nextPage: number | null;
-}
-
-export interface MatchPoolDTO extends EnrichedPoolDTO {
   poolCode: string;
+  name: string;
+  division: MatchDetailDivisionView;
+  ranking: RankingTeamView[];
+}
+
+export interface MatchModerationPoolView {
+  shortName: string;
+  leagueName: string;
+  division: MatchGradientDivisionView;
+}
+
+export interface MatchListItemView {
+  id: number;
+  matchDate: string;
+  set: string | null;
+  status: MatchStatus;
+  liveUrl: string | null;
+  teamA: MatchListTeamView | null;
+  teamB: MatchListTeamView | null;
 }
 
 export interface EnrichedMatchDTO {
   id: number;
   matchDate: string;
-  season: string;
   status: MatchStatus;
   set: string | null;
   score: string | null;
   venue: string | null;
   firstReferee: string | null;
   secondReferee: string | null;
-  liveCode: number | null;
-  teamA: Team;
-  teamB: Team;
-  pool: MatchPoolDTO;
+  teamA: MatchDetailTeamView;
+  teamB: MatchDetailTeamView;
+  pool: MatchDetailPoolView;
   liveUrl: string | null;
-  liveProvider: string | null;
+  liveProvider: LiveProvider | null;
   matchAddressPdfUrl: string | null;
   matchSheetPdfUrl: string | null;
   liveOwnerAuth0Id: string | null;
-  liveOwnerUsername: string | null;
 }
 
 export interface EnrichedPoolMatchesDTO {
-  pool: MatchPoolDTO;
-  matches: EnrichedMatchDTO[];
+  pool: MatchListPoolView;
+  matches: MatchListItemView[];
 }
 
 export interface EnrichedDayMatchesDTO {
@@ -100,31 +116,15 @@ export interface EnrichedDayPageDTO {
   nextPage: number | null;
 }
 
-export interface MatchLiveLinkRequestDTO {
-  url: string;
-}
-
-export interface MatchLiveLinkResponseDTO {
-  matchId: number;
-  provider: LiveProvider;
-  url: string;
-  status: LiveLinkStatus;
-}
-
-export interface MatchLiveLinkReportRequestDTO {
-  reason: string;
-}
-
 export interface MatchLiveLinkDTO {
   id: number;
-  matchId: number;
   provider: LiveProvider;
   url: string;
   status: LiveLinkStatus;
   reportCount: number;
   ownerAuth0Id: string;
   createdAt: string;
-  lastUpdate: string;
+  lastUpdate: string | null;
 }
 
 export interface EnrichedMatchLiveSummaryDTO {
@@ -132,16 +132,9 @@ export interface EnrichedMatchLiveSummaryDTO {
   matchDate: string | null; // Instant -> string ISO
   season: string | null;
   set: string | null;
-  score: string | null;
-  status: MatchStatus;
-  liveCode: number | null;
-  lastLiveLinkId: number | null;
   lastLiveLinkStatus: LiveLinkStatus | null;
-  lastLiveLinkProvider: LiveProvider | null;
-  lastLiveLinkUrl: string | null;
-  lastLiveLinkOwnerAuth0Id: string | null;
   lastLiveLinkCreatedAt: string | null;
-  teamA: Team;
-  teamB: Team;
-  pool: MatchPoolDTO;
+  teamA: MatchModerationTeamView;
+  teamB: MatchModerationTeamView;
+  pool: MatchModerationPoolView;
 }

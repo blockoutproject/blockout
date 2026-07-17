@@ -1,7 +1,7 @@
 import type { CatalogDivision } from './Division';
 import { EnumFormat } from './enums/Format';
 import { EnumGender } from './enums/Gender';
-import { TeamWithStats } from './Team';
+import type { RankingTeamView, TeamWithStats } from './Team';
 
 export interface Pool {
   id: number;
@@ -21,14 +21,27 @@ export interface Pool {
   lastUpdate: string;
 }
 
-export interface RankedPoolView {
+export interface PoolHeaderDivisionView {
+  name: string;
+  logoUrl: string | null;
+}
+
+export interface PoolHeaderView {
   id: number;
   leagueCode: string;
   leagueName: string;
   shortName: string;
   gender: EnumGender;
-  ranking: TeamWithStats[];
+  division: PoolHeaderDivisionView;
+}
+
+export interface RankingPoolView extends PoolHeaderView {
+  ranking: RankingTeamView[];
   division: CatalogDivision;
+}
+
+export interface RankedPoolView extends RankingPoolView {
+  ranking: TeamWithStats[];
 }
 
 export interface EnrichedPoolDTO extends RankedPoolView {

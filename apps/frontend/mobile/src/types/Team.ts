@@ -21,7 +21,7 @@ export interface Team {
   lastUpdate: string;
 }
 
-export interface TeamWithStats {
+export interface RankingTeamView {
   id: number;
   shortName: string;
   logoUrl: string | null;
@@ -29,6 +29,9 @@ export interface TeamWithStats {
   played: number;
   wins: number;
   losses: number;
+}
+
+export interface TeamWithStats extends RankingTeamView {
   longitude: number | null;
   latitude: number | null;
 }
