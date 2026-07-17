@@ -372,6 +372,9 @@ sequence, isolated legacy adapter, and deferred consistency work are recorded in
 The Auth0 identity port, provider-first deletion orchestration, generated internal identity boundary, S3 profile-image
 adapter, retained security behavior, and deferred retention work are recorded in the
 [MRG-364 identity and storage migration](../migration/mrg-364-users-identity-storage-runtime-migration.md).
+The generated report boundary, Blockout command/result and attachment roles, isolated legacy multipart adapter,
+provider ports, preserved partial failures, and absence of an in-scope internal Blockout client are recorded in the
+[MRG-340 reports migration](../migration/mrg-340-reports-runtime-migration.md).
 
 ## 12. Approved Roadmap Sequence
 

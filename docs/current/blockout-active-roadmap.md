@@ -810,8 +810,20 @@ state moves to GitHub and this file becomes a historical migration record.
     generated compilation, full 14-module backend packaging, documentation, Maaatch comparison, Prettier, and
     whitespace checks pass; `docs/migration/mrg-364-users-identity-storage-runtime-migration.md` records the parity,
     rollback, retention, and temporary coexistence-name gates.
-- [ ] MRG-340 Migrate `reports-service` generated server boundaries and internal generated clients while preserving
+- [x] MRG-340 Migrate `reports-service` generated server boundaries and internal generated clients while preserving
       explicit GitHub and Discord vendor adapters.
+  - Evidence: `REPORT-01` now implements generated `ReportsApi` through an application-owned command, attachment and
+    result, explicit submission/storage/issue/notifier ports, strict MapStruct mapping, progressive Problem Details,
+    and payload-free compatibility telemetry. The isolated v1 controller retains its exact multipart string part,
+    arbitrary string user identity, provider-shaped snake_case response, status, scope, attachment URLs, and error
+    behavior through an adapter-local mapper. S3, GitHub SDK, and Discord webhook models are confined to explicit
+    provider adapters; upload, issue creation, image append, and best-effort notification ordering remains unchanged.
+    Reports-service has no downstream Blockout REST dependency, so no internal client was invented; the generated BFF
+    reports client remains assigned to MRG-343. Seventeen reports tests, thirty contract tests, generated compilation,
+    source-confinement checks, full 14-module backend packaging, documentation, Maaatch comparison, Prettier, and
+    whitespace checks pass. Contracts, committed generated artifacts, databases, events, BFF, Expo, scrapers,
+    standalone repositories, production, Maaatch, Blockout Orval settings, and Python generator settings are
+    unchanged.
 - [ ] MRG-341 Migrate `notification-service` inbox and page read boundaries with generated clients, stable ordering,
       standard target pagination, legacy continuation compatibility, and BFF enrichment parity.
 - [ ] MRG-365 Migrate `notification-service` push-token, unread, read, opened, and delete boundaries with current-user
