@@ -13,6 +13,8 @@
     { "name": "Matches" },
     { "name": "MatchDays" },
     { "name": "MatchLiveLinks" },
+    { "name": "MatchLiveLinkHistory" },
+    { "name": "MatchLiveLinkReports" },
     { "name": "MatchModeration" },
     { "name": "MatchInternalTests" }
   ],

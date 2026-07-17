@@ -737,12 +737,29 @@ state moves to GitHub and this file becomes a historical migration record.
     tests plus contract/lint, full backend, documentation, Maaatch comparison, Prettier, and whitespace checks pass.
     Contracts, committed generated artifacts, databases, event topology, BFF, Expo, scrapers, standalone repositories,
     production, Maaatch, Blockout Orval settings, and Python generator settings are unchanged.
-- [ ] MRG-361 Migrate `matches-service` live command, response, and history boundaries while preserving ownership,
+- [x] MRG-361 Migrate `matches-service` live command, response, and history boundaries while preserving ownership,
       quota, state-transition, provider, ordering, and compatibility behavior.
+  - Evidence: `MATCH-08` through `MATCH-10` now implement separate generated `MatchLiveLinkHistoryApi` and
+    `MatchLiveLinksApi` boundaries through an explicit command, result/history views, one transactional application
+    service, strict persistence/API mappers, stable newest-first history pagination, progressive Problem Details, and
+    compatibility telemetry. Ownership, seven-day account age, exact provider hosts, AALNV exclusion, publication
+    window, per-match and daily quotas, active/pending/expired/deactivated transitions, no-ops, event timing, and v1
+    response fields remain intact. The v1 adapter retains unpaged snake_case history. Matches-service now generates
+    `UserAccountsClient`, normalizes versioned user URLs, and immediately reduces the canonical response to a minimal
+    snapshot. The provider-first gate keeps an isolated JsonNode-based v1 adapter primary until MRG-339 activates the
+    generated caller and deletes that adapter; no fallback or dual call is added. Reporting and moderation are
+    isolated under their own generated tags for MRG-362. Three live DTOs, two copied user DTOs, and the two generic
+    handwritten client classes are removed. Thirteen new targeted Java tests plus thirteen retained matches tests,
+    ten Python generated-client tests, thirty contract tests, contract/lint, full backend,
+    documentation, Maaatch comparison, Prettier, and whitespace checks pass. Databases, event topology, BFF, Expo,
+    scraper runtime, standalone repositories, production, Maaatch, Blockout Orval settings, and Python generator
+    settings are unchanged.
 - [ ] MRG-362 Migrate `matches-service` moderation and live-report boundaries with explicit commands, views, validation,
       representative-selection, filter, error, and concurrency parity.
 - [ ] MRG-339 Migrate `users-service` account and profile generated boundaries and clients, keeping local UUID identity,
-      Auth0 resolution, image intent, authentication, and current behavior explicit.
+      Auth0 resolution, image intent, authentication, and current behavior explicit; then activate matches-service's
+      staged generated `UserAccountsClient` and remove its temporary `LegacyCurrentUserAdapter` after provider-first
+      parity and rollback proof.
 - [ ] MRG-363 Migrate `users-service` favorite commands and projections, making favorites the canonical source while
       retaining counter, optimistic UI, and event compatibility.
 - [ ] MRG-364 Migrate `users-service` identity-link, account-deletion, and storage boundaries behind explicit Auth0 and

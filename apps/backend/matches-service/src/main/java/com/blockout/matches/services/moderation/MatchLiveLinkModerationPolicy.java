@@ -1,6 +1,6 @@
 package com.blockout.matches.services.moderation;
 
-import com.blockout.matches.models.dto.users.CustomUserDTO;
+import com.blockout.matches.match.live.application.CurrentUserSnapshot;
 import com.blockout.matches.models.entities.Match;
 import com.blockout.matches.models.entities.MatchLiveLink;
 import com.blockout.matches.models.enums.MatchStatus;
@@ -61,21 +61,21 @@ public class MatchLiveLinkModerationPolicy {
      * Vérifie l'ancienneté du compte avant d'autoriser la publication d'un lien.
      * (admin/modo : passe au travers).
      */
-    public void validateUserAccountAge(CustomUserDTO currentUser, Long matchId, Instant now) {
+    public void validateUserAccountAge(CurrentUserSnapshot currentUser, Long matchId, Instant now) {
         if (isModerator()) {
             return;
         }
 
-        if (currentUser == null || currentUser.getCreatedAt() == null) {
+        if (currentUser == null || currentUser.createdAt() == null) {
             logger.warn("Current user not found or has no createdAt while setting live link",
                     keyValue("action", "set_live_link"),
                     keyValue("match_id", matchId),
-                    keyValue("auth0_id", currentUser.getAuth0Id()));
+                    keyValue("auth0_id", currentUser == null ? null : currentUser.auth0Id()));
             throw new IllegalStateException("Impossible de vérifier l’ancienneté de ton compte.");
         }
 
         Instant threshold = now.minus(MIN_ACCOUNT_AGE_DAYS, ChronoUnit.DAYS);
-        Instant userCreatedAt = currentUser.getCreatedAt()
+        Instant userCreatedAt = currentUser.createdAt()
                 .atZone(PARIS)
                 .toInstant();
 
@@ -83,9 +83,8 @@ public class MatchLiveLinkModerationPolicy {
             logger.info("User too recent to set live link",
                     keyValue("action", "set_live_link_rejected_young_account"),
                     keyValue("match_id", matchId),
-                    keyValue("auth0_id", currentUser.getAuth0Id()),
-                    keyValue("user_id", currentUser.getId()),
-                    keyValue("user_created_at", currentUser.getCreatedAt()),
+                    keyValue("auth0_id", currentUser.auth0Id()),
+                    keyValue("user_created_at", currentUser.createdAt()),
                     keyValue("threshold", threshold));
             throw new IllegalStateException(
                     "Ton compte doit avoir au moins " + MIN_ACCOUNT_AGE_DAYS + " jours pour publier un lien de live.");

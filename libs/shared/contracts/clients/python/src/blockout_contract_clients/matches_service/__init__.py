@@ -20,6 +20,8 @@ __version__ = "0.1.0"
 __all__ = [
     "MatchDaysApi",
     "MatchInternalTestsApi",
+    "MatchLiveLinkHistoryApi",
+    "MatchLiveLinkReportsApi",
     "MatchLiveLinksApi",
     "MatchModerationApi",
     "MatchesApi",
@@ -59,6 +61,8 @@ __all__ = [
 # import apis into sdk package
 from blockout_contract_clients.matches_service.api.match_days_api import MatchDaysApi as MatchDaysApi
 from blockout_contract_clients.matches_service.api.match_internal_tests_api import MatchInternalTestsApi as MatchInternalTestsApi
+from blockout_contract_clients.matches_service.api.match_live_link_history_api import MatchLiveLinkHistoryApi as MatchLiveLinkHistoryApi
+from blockout_contract_clients.matches_service.api.match_live_link_reports_api import MatchLiveLinkReportsApi as MatchLiveLinkReportsApi
 from blockout_contract_clients.matches_service.api.match_live_links_api import MatchLiveLinksApi as MatchLiveLinksApi
 from blockout_contract_clients.matches_service.api.match_moderation_api import MatchModerationApi as MatchModerationApi
 from blockout_contract_clients.matches_service.api.matches_api import MatchesApi as MatchesApi

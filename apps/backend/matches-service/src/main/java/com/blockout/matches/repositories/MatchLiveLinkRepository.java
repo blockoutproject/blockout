@@ -2,6 +2,8 @@ package com.blockout.matches.repositories;
 
 import com.blockout.matches.models.entities.MatchLiveLink;
 import com.blockout.matches.models.enums.LiveLinkStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -16,7 +18,9 @@ public interface MatchLiveLinkRepository extends JpaRepository<MatchLiveLink, Lo
             Long matchId,
             LiveLinkStatus status);
 
-    List<MatchLiveLink> findByMatch_Id(Long matchId);
+    List<MatchLiveLink> findByMatch_IdOrderByCreatedAtDescIdDesc(Long matchId);
+
+    Page<MatchLiveLink> findByMatch_IdOrderByCreatedAtDescIdDesc(Long matchId, Pageable pageable);
 
     long countByMatch_IdAndOwnerAuth0Id(Long matchId, String ownerAuth0Id);
 

@@ -41,6 +41,7 @@ GitHub Project task planning remains dormant until the final GitFlow activation 
 | Ranking slice         | [MRG-359 competition ranking][mrg-359]                                                                                       | Canonical ranking projection and ordering policy           |
 | Lifecycle slice       | [MRG-360 competition lifecycle][mrg-360]                                                                                     | Bulk deactivation and cascade owner boundaries             |
 | Matches core slice    | [MRG-338 matches core and day page][mrg-338]                                                                                 | Generated match owner and grouped-day boundaries           |
+| Matches live slice    | [MRG-361 matches live and history][mrg-361]                                                                                  | Live commands, history, policy parity, and users client    |
 | Expo contracts/forms  | [`decisions/mrg-313-expo-contract-generation.md`](decisions/mrg-313-expo-contract-generation.md)                             | Orval, TanStack, Zod, React Hook Form, and form migration  |
 | Python clients        | [`decisions/mrg-314-python-contract-clients.md`](decisions/mrg-314-python-contract-clients.md)                               | Generated async clients, adapters, wheel, and scraper use  |
 | RabbitMQ contracts    | [`decisions/mrg-315-rabbitmq-event-contracts.md`](decisions/mrg-315-rabbitmq-event-contracts.md)                             | AsyncAPI source, Java records, envelope, and v2 topology   |
@@ -50,6 +51,7 @@ GitHub Project task planning remains dormant until the final GitFlow activation 
 [mrg-359]: migration/mrg-359-competition-ranking-runtime-migration.md
 [mrg-360]: migration/mrg-360-competition-lifecycle-cascade-runtime-migration.md
 [mrg-338]: migration/mrg-338-matches-core-day-runtime-migration.md
+[mrg-361]: migration/mrg-361-matches-live-history-runtime-migration.md
 
 ## Documentation Map
 

@@ -168,6 +168,36 @@ class GeneratedClientTests(unittest.TestCase):
                     imports.append(source)
         self.assertEqual([], imports)
 
+    def test_match_live_operations_have_separate_generated_async_owners(self) -> None:
+        owners = {
+            "match_live_link_history_api": {"list_match_live_link_history"},
+            "match_live_link_reports_api": {"report_match_live_link"},
+            "match_live_links_api": {"delete_match_live_link", "upsert_match_live_link"},
+            "match_moderation_api": {
+                "approve_match_live_link",
+                "list_matches_for_live_moderation",
+                "reactivate_match_live_link",
+                "reject_match_live_link",
+            },
+        }
+        all_operations = set().union(*owners.values())
+
+        for module_name, expected_operations in owners.items():
+            module = importlib.import_module(
+                f"blockout_contract_clients.matches_service.api.{module_name}"
+            )
+            generated_api = next(
+                owner
+                for _, owner in inspect.getmembers(module, inspect.isclass)
+                if owner.__module__ == module.__name__
+            )
+            for operation in expected_operations:
+                self.assertTrue(inspect.iscoroutinefunction(getattr(generated_api, operation)))
+            self.assertEqual(
+                set(),
+                (all_operations - expected_operations).intersection(dir(generated_api)),
+            )
+
 
 class BlockoutClientFactoryTests(unittest.IsolatedAsyncioTestCase):
     async def test_factories_refresh_bearer_before_each_call_and_close(self) -> None:

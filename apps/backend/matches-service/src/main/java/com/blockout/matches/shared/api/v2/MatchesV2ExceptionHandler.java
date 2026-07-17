@@ -3,6 +3,8 @@ package com.blockout.matches.shared.api.v2;
 import com.blockout.matches.exceptions.MatchNotFoundException;
 import com.blockout.matches.match.api.v2.MatchDaysV2Controller;
 import com.blockout.matches.match.api.v2.MatchesV2Controller;
+import com.blockout.matches.match.live.api.v2.MatchLiveLinkHistoryV2Controller;
+import com.blockout.matches.match.live.api.v2.MatchLiveLinksV2Controller;
 import com.blockout.shared.model.ProblemDetail;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
@@ -20,7 +22,12 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @Order(Ordered.HIGHEST_PRECEDENCE)
-@RestControllerAdvice(assignableTypes = {MatchesV2Controller.class, MatchDaysV2Controller.class})
+@RestControllerAdvice(assignableTypes = {
+        MatchesV2Controller.class,
+        MatchDaysV2Controller.class,
+        MatchLiveLinksV2Controller.class,
+        MatchLiveLinkHistoryV2Controller.class
+})
 @RequiredArgsConstructor
 public class MatchesV2ExceptionHandler {
 

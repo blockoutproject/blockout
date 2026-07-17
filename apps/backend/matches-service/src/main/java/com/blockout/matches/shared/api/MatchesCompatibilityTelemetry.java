@@ -70,6 +70,15 @@ public class MatchesCompatibilityTelemetry extends OncePerRequestFilter {
         if (path.matches("/pools/[^/]+/bulk-deactivate") && method.equals("PUT")) {
             return "MATCH-06";
         }
+        if (path.matches("/\\d+/live-links") && method.equals("GET")) {
+            return "MATCH-08";
+        }
+        if (path.matches("/\\d+/live-link") && method.equals("POST")) {
+            return "MATCH-09";
+        }
+        if (path.matches("/\\d+/live-link") && method.equals("DELETE")) {
+            return "MATCH-10";
+        }
         return "MATCH-DEFERRED";
     }
 }

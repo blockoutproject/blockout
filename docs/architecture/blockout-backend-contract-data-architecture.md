@@ -357,6 +357,9 @@ users clients are recorded in the [MRG-335 teams runtime migration](../migration
 The matches-service core and day-page boundaries, Paris-local grouping, stable pagination, isolated v1 adapter, and
 deferred BFF/scraper callers are recorded in the
 [MRG-338 matches migration](../migration/mrg-338-matches-core-day-runtime-migration.md).
+The live-link command/history boundary, generated users-service adapter, quota and transition parity, and isolated v1
+transport are recorded in the
+[MRG-361 matches live migration](../migration/mrg-361-matches-live-history-runtime-migration.md).
 
 ## 12. Approved Roadmap Sequence
 

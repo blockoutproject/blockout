@@ -20,6 +20,12 @@
       "name": "MatchLiveLinks"
     },
     {
+      "name": "MatchLiveLinkHistory"
+    },
+    {
+      "name": "MatchLiveLinkReports"
+    },
+    {
       "name": "MatchModeration"
     },
     {
@@ -155,7 +161,7 @@
       "get": {
         "operationId": "listMatchLiveLinkHistory",
         "tags": [
-          "MatchModeration"
+          "MatchLiveLinkHistory"
         ],
         "summary": "List live-link history newest first",
         "parameters": [
@@ -278,7 +284,7 @@
       "post": {
         "operationId": "reportMatchLiveLink",
         "tags": [
-          "MatchLiveLinks"
+          "MatchLiveLinkReports"
         ],
         "summary": "Report the active match live link",
         "requestBody": {

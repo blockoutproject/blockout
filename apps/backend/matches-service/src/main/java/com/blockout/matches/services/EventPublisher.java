@@ -3,7 +3,8 @@ package com.blockout.matches.services;
 import com.blockout.matches.config.RabbitMQConfig;
 import com.blockout.matches.match.application.MatchFinishedEventInput;
 import com.blockout.matches.match.application.MatchLifecycleEvents;
-import com.blockout.matches.models.entities.Match;
+import com.blockout.matches.match.live.application.MatchLiveLinkCreatedEventInput;
+import com.blockout.matches.match.live.application.MatchLiveLinkEvents;
 import com.blockout.matches.models.events.MatchFinishedEvent;
 import com.blockout.matches.models.events.MatchLiveLinkCreatedEvent;
 
@@ -19,7 +20,7 @@ import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
 @Service
 @RequiredArgsConstructor
-public class EventPublisher implements MatchLifecycleEvents {
+public class EventPublisher implements MatchLifecycleEvents, MatchLiveLinkEvents {
 
     private static final Logger logger = LoggerFactory.getLogger(EventPublisher.class);
 
@@ -57,12 +58,13 @@ public class EventPublisher implements MatchLifecycleEvents {
         }
     }
 
-    public void publishMatchLiveLinkCreated(Match match) {
+    @Override
+    public void publishMatchLiveLinkCreated(MatchLiveLinkCreatedEventInput input) {
         MatchLiveLinkCreatedEvent event = MatchLiveLinkCreatedEvent.builder()
-                .id(match.getId())
-                .teamIdA(match.getTeamIdA())
-                .teamIdB(match.getTeamIdB())
-                .poolId(match.getPoolId())
+                .id(input.matchId())
+                .teamIdA(input.teamIdA())
+                .teamIdB(input.teamIdB())
+                .poolId(input.poolId())
                 .build();
 
         try {
@@ -74,14 +76,14 @@ public class EventPublisher implements MatchLifecycleEvents {
 
             logger.info("Match live-link-created event sent",
                     keyValue("action", "publish_match_live_link_created"),
-                    keyValue("matchId", match.getId()),
-                    keyValue("teamIdA", match.getTeamIdA()),
-                    keyValue("teamIdB", match.getTeamIdB()),
-                    keyValue("poolId", match.getPoolId()));
+                    keyValue("matchId", input.matchId()),
+                    keyValue("teamIdA", input.teamIdA()),
+                    keyValue("teamIdB", input.teamIdB()),
+                    keyValue("poolId", input.poolId()));
 
         } catch (AmqpException ex) {
             logger.error("Failed to publish match.live-link-created",
-                    keyValue("matchId", match.getId()), ex);
+                    keyValue("matchId", input.matchId()), ex);
             throw ex;
         }
     }

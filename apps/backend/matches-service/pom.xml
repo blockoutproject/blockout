@@ -138,6 +138,27 @@
                             </configOptions>
                         </configuration>
                     </execution>
+                    <execution>
+                        <id>generate-users-client</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>generate</goal>
+                        </goals>
+                        <configuration>
+                            <inputSpec>${project.basedir}/../../../libs/shared/contracts/generated/specs/users.json</inputSpec>
+                            <generatorName>java</generatorName>
+                            <apiNameSuffix>Client</apiNameSuffix>
+                            <output>${openapi.generated-sources.root}/users-client</output>
+                            <apiPackage>com.blockout.matches.usersclient.api</apiPackage>
+                            <modelPackage>com.blockout.matches.usersclient.model</modelPackage>
+                            <invokerPackage>com.blockout.matches.usersclient.invoker</invokerPackage>
+                            <configOptions>
+                                <library>resttemplate</library>
+                                <useJakartaEe>true</useJakartaEe>
+                                <hideGenerationTimestamp>true</hideGenerationTimestamp>
+                            </configOptions>
+                        </configuration>
+                    </execution>
                 </executions>
             </plugin>
             <plugin>
@@ -153,6 +174,7 @@
                         <configuration>
                             <sources>
                                 <source>${openapi.generated-sources.root}/matches-server/src/main/java</source>
+                                <source>${openapi.generated-sources.root}/users-client/src/main/java</source>
                             </sources>
                         </configuration>
                     </execution>

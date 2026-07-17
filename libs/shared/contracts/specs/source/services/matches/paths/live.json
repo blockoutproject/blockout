@@ -32,7 +32,7 @@
     "parameters": [{ "$ref": "#/components/parameters/LiveMatchId" }],
     "get": {
       "operationId": "listMatchLiveLinkHistory",
-      "tags": ["MatchModeration"],
+      "tags": ["MatchLiveLinkHistory"],
       "summary": "List live-link history newest first",
       "parameters": [
         { "$ref": "#/components/parameters/Page" },
@@ -107,7 +107,7 @@
     "parameters": [{ "$ref": "#/components/parameters/LiveMatchId" }],
     "post": {
       "operationId": "reportMatchLiveLink",
-      "tags": ["MatchLiveLinks"],
+      "tags": ["MatchLiveLinkReports"],
       "summary": "Report the active match live link",
       "requestBody": {
         "required": true,
