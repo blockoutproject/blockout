@@ -5,6 +5,7 @@ import org.springframework.stereotype.Repository;
 
 import com.blockout.notifications.models.entity.FollowersProjection;
 import com.blockout.notifications.models.enums.EntityType;
+import java.util.List;
 
 @Repository
 public interface FollowersProjectionRepository extends JpaRepository<FollowersProjection, Long> {
@@ -12,4 +13,6 @@ public interface FollowersProjectionRepository extends JpaRepository<FollowersPr
     boolean existsByEntityTypeAndEntityIdAndUserId(EntityType entityType, Long entityId, Long userId);
 
     int deleteByEntityTypeAndEntityIdAndUserId(EntityType entityType, Long entityId, Long userId);
+
+    List<FollowersProjection> findByUserId(Long userId);
 }

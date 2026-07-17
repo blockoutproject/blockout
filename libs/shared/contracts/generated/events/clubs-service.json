@@ -83,7 +83,11 @@
                   "POOL_UPSERT",
                   "CLUB_DEACTIVATED",
                   "TEAM_DEACTIVATED",
-                  "POOL_DEACTIVATED"
+                  "POOL_DEACTIVATED",
+                  "TEAM_FOLLOWED",
+                  "TEAM_UNFOLLOWED",
+                  "POOL_FOLLOWED",
+                  "POOL_UNFOLLOWED"
                 ],
                 "type": "string"
               },
@@ -220,7 +224,11 @@
                   "POOL_UPSERT",
                   "CLUB_DEACTIVATED",
                   "TEAM_DEACTIVATED",
-                  "POOL_DEACTIVATED"
+                  "POOL_DEACTIVATED",
+                  "TEAM_FOLLOWED",
+                  "TEAM_UNFOLLOWED",
+                  "POOL_FOLLOWED",
+                  "POOL_UNFOLLOWED"
                 ],
                 "type": "string"
               },
@@ -386,7 +394,11 @@
                     "POOL_UPSERT",
                     "CLUB_DEACTIVATED",
                     "TEAM_DEACTIVATED",
-                    "POOL_DEACTIVATED"
+                    "POOL_DEACTIVATED",
+                    "TEAM_FOLLOWED",
+                    "TEAM_UNFOLLOWED",
+                    "POOL_FOLLOWED",
+                    "POOL_UNFOLLOWED"
                   ],
                   "type": "string"
                 },
@@ -526,7 +538,11 @@
                     "POOL_UPSERT",
                     "CLUB_DEACTIVATED",
                     "TEAM_DEACTIVATED",
-                    "POOL_DEACTIVATED"
+                    "POOL_DEACTIVATED",
+                    "TEAM_FOLLOWED",
+                    "TEAM_UNFOLLOWED",
+                    "POOL_FOLLOWED",
+                    "POOL_UNFOLLOWED"
                   ],
                   "type": "string"
                 },

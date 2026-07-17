@@ -16,15 +16,23 @@ public class RabbitMQConfig {
 
     public static final String TEAM_FOLLOW_QUEUE_NOTIFICATIONS = "team.follow.queue.notifications";
     public static final String POOL_FOLLOW_QUEUE_NOTIFICATIONS = "pool.follow.queue.notifications";
+    public static final String TEAM_FOLLOW_QUEUE_NOTIFICATIONS_V2 = "team.follow.queue.notifications.v2";
+    public static final String POOL_FOLLOW_QUEUE_NOTIFICATIONS_V2 = "pool.follow.queue.notifications.v2";
 
     public static final String TEAM_FOLLOW_DLQ_NOTIFICATIONS = "team.follow.queue.notifications.dlq";
     public static final String POOL_FOLLOW_DLQ_NOTIFICATIONS = "pool.follow.queue.notifications.dlq";
+    public static final String TEAM_FOLLOW_DLQ_NOTIFICATIONS_V2 = "team.follow.queue.notifications.dlq.v2";
+    public static final String POOL_FOLLOW_DLQ_NOTIFICATIONS_V2 = "pool.follow.queue.notifications.dlq.v2";
 
     public static final String RK_TEAM_FOLLOW = "team.follow";
     public static final String RK_POOL_FOLLOW = "pool.follow";
+    public static final String RK_TEAM_FOLLOW_V2 = "team.follow.v2";
+    public static final String RK_POOL_FOLLOW_V2 = "pool.follow.v2";
 
     public static final String RK_TEAM_FOLLOW_DLQ = "team.follow.dlq";
     public static final String RK_POOL_FOLLOW_DLQ = "pool.follow.dlq";
+    public static final String RK_TEAM_FOLLOW_DLQ_V2 = "team.follow.dlq.v2";
+    public static final String RK_POOL_FOLLOW_DLQ_V2 = "pool.follow.dlq.v2";
 
     public static final String ENTITY_LIFECYCLE_EXCHANGE = "entity.lifecycle.exchange";
     public static final String ENTITY_LIFECYCLE_DLQ_EXCHANGE = "entity.lifecycle.dlq.exchange";
@@ -78,6 +86,22 @@ public class RabbitMQConfig {
     }
 
     @Bean
+    public Queue userFollowQueueTeamsV2() {
+        return QueueBuilder.durable(TEAM_FOLLOW_QUEUE_NOTIFICATIONS_V2)
+                .withArgument("x-dead-letter-exchange", USER_FOLLOW_DLQ_EXCHANGE)
+                .withArgument("x-dead-letter-routing-key", RK_TEAM_FOLLOW_DLQ_V2)
+                .build();
+    }
+
+    @Bean
+    public Queue userFollowQueuePoolsV2() {
+        return QueueBuilder.durable(POOL_FOLLOW_QUEUE_NOTIFICATIONS_V2)
+                .withArgument("x-dead-letter-exchange", USER_FOLLOW_DLQ_EXCHANGE)
+                .withArgument("x-dead-letter-routing-key", RK_POOL_FOLLOW_DLQ_V2)
+                .build();
+    }
+
+    @Bean
     public Queue teamFollowDlq() {
         return QueueBuilder.durable(TEAM_FOLLOW_DLQ_NOTIFICATIONS).build();
     }
@@ -85,6 +109,16 @@ public class RabbitMQConfig {
     @Bean
     public Queue poolFollowDlq() {
         return QueueBuilder.durable(POOL_FOLLOW_DLQ_NOTIFICATIONS).build();
+    }
+
+    @Bean
+    public Queue teamFollowDlqV2() {
+        return QueueBuilder.durable(TEAM_FOLLOW_DLQ_NOTIFICATIONS_V2).build();
+    }
+
+    @Bean
+    public Queue poolFollowDlqV2() {
+        return QueueBuilder.durable(POOL_FOLLOW_DLQ_NOTIFICATIONS_V2).build();
     }
 
     @Bean
@@ -128,6 +162,20 @@ public class RabbitMQConfig {
     }
 
     @Bean
+    public Binding bindUserFollowQueueTeamsV2(Queue userFollowQueueTeamsV2, TopicExchange userFollowExchange) {
+        return BindingBuilder.bind(userFollowQueueTeamsV2)
+                .to(userFollowExchange)
+                .with(RK_TEAM_FOLLOW_V2);
+    }
+
+    @Bean
+    public Binding bindUserFollowQueuePoolsV2(Queue userFollowQueuePoolsV2, TopicExchange userFollowExchange) {
+        return BindingBuilder.bind(userFollowQueuePoolsV2)
+                .to(userFollowExchange)
+                .with(RK_POOL_FOLLOW_V2);
+    }
+
+    @Bean
     public Binding bindTeamFollowDlq(Queue teamFollowDlq, TopicExchange userFollowDlqExchange) {
         return BindingBuilder.bind(teamFollowDlq)
                 .to(userFollowDlqExchange)
@@ -139,6 +187,20 @@ public class RabbitMQConfig {
         return BindingBuilder.bind(poolFollowDlq)
                 .to(userFollowDlqExchange)
                 .with(RK_POOL_FOLLOW_DLQ);
+    }
+
+    @Bean
+    public Binding bindTeamFollowDlqV2(Queue teamFollowDlqV2, TopicExchange userFollowDlqExchange) {
+        return BindingBuilder.bind(teamFollowDlqV2)
+                .to(userFollowDlqExchange)
+                .with(RK_TEAM_FOLLOW_DLQ_V2);
+    }
+
+    @Bean
+    public Binding bindPoolFollowDlqV2(Queue poolFollowDlqV2, TopicExchange userFollowDlqExchange) {
+        return BindingBuilder.bind(poolFollowDlqV2)
+                .to(userFollowDlqExchange)
+                .with(RK_POOL_FOLLOW_DLQ_V2);
     }
 
     @Bean

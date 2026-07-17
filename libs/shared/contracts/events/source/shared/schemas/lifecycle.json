@@ -109,9 +109,78 @@
         "POOL_UPSERT",
         "CLUB_DEACTIVATED",
         "TEAM_DEACTIVATED",
-        "POOL_DEACTIVATED"
+        "POOL_DEACTIVATED",
+        "TEAM_FOLLOWED",
+        "TEAM_UNFOLLOWED",
+        "POOL_FOLLOWED",
+        "POOL_UNFOLLOWED"
       ],
       "type": "string"
+    },
+    "PoolFollowV2Payload": {
+      "additionalProperties": false,
+      "properties": {
+        "poolId": { "format": "int64", "minimum": 1, "type": "integer" },
+        "userId": { "format": "int64", "minimum": 1, "type": "integer" }
+      },
+      "required": ["userId", "poolId"],
+      "type": "object"
+    },
+    "PoolFollowedV2Event": {
+      "additionalProperties": false,
+      "properties": {
+        "aggregateVersion": {
+          "format": "int64",
+          "minimum": 0,
+          "type": ["integer", "null"]
+        },
+        "correlationId": { "minLength": 1, "type": ["string", "null"] },
+        "eventId": { "format": "uuid", "type": "string" },
+        "eventType": { "$ref": "#/$defs/EventType" },
+        "occurredAt": { "format": "date-time", "type": "string" },
+        "orderingKey": { "minLength": 1, "type": "string" },
+        "payload": { "$ref": "#/$defs/PoolFollowV2Payload" },
+        "producer": { "const": "users-service", "type": "string" },
+        "schemaVersion": { "const": "2.0.0", "type": "string" }
+      },
+      "required": [
+        "eventId",
+        "eventType",
+        "schemaVersion",
+        "occurredAt",
+        "producer",
+        "orderingKey",
+        "payload"
+      ],
+      "type": "object"
+    },
+    "PoolUnfollowedV2Event": {
+      "additionalProperties": false,
+      "properties": {
+        "aggregateVersion": {
+          "format": "int64",
+          "minimum": 0,
+          "type": ["integer", "null"]
+        },
+        "correlationId": { "minLength": 1, "type": ["string", "null"] },
+        "eventId": { "format": "uuid", "type": "string" },
+        "eventType": { "$ref": "#/$defs/EventType" },
+        "occurredAt": { "format": "date-time", "type": "string" },
+        "orderingKey": { "minLength": 1, "type": "string" },
+        "payload": { "$ref": "#/$defs/PoolFollowV2Payload" },
+        "producer": { "const": "users-service", "type": "string" },
+        "schemaVersion": { "const": "2.0.0", "type": "string" }
+      },
+      "required": [
+        "eventId",
+        "eventType",
+        "schemaVersion",
+        "occurredAt",
+        "producer",
+        "orderingKey",
+        "payload"
+      ],
+      "type": "object"
     },
     "PoolDeactivationV2Event": {
       "additionalProperties": false,
@@ -237,6 +306,71 @@
         "teamId": { "format": "int64", "minimum": 1, "type": "integer" }
       },
       "required": ["teamId"],
+      "type": "object"
+    },
+    "TeamFollowV2Payload": {
+      "additionalProperties": false,
+      "properties": {
+        "teamId": { "format": "int64", "minimum": 1, "type": "integer" },
+        "userId": { "format": "int64", "minimum": 1, "type": "integer" }
+      },
+      "required": ["userId", "teamId"],
+      "type": "object"
+    },
+    "TeamFollowedV2Event": {
+      "additionalProperties": false,
+      "properties": {
+        "aggregateVersion": {
+          "format": "int64",
+          "minimum": 0,
+          "type": ["integer", "null"]
+        },
+        "correlationId": { "minLength": 1, "type": ["string", "null"] },
+        "eventId": { "format": "uuid", "type": "string" },
+        "eventType": { "$ref": "#/$defs/EventType" },
+        "occurredAt": { "format": "date-time", "type": "string" },
+        "orderingKey": { "minLength": 1, "type": "string" },
+        "payload": { "$ref": "#/$defs/TeamFollowV2Payload" },
+        "producer": { "const": "users-service", "type": "string" },
+        "schemaVersion": { "const": "2.0.0", "type": "string" }
+      },
+      "required": [
+        "eventId",
+        "eventType",
+        "schemaVersion",
+        "occurredAt",
+        "producer",
+        "orderingKey",
+        "payload"
+      ],
+      "type": "object"
+    },
+    "TeamUnfollowedV2Event": {
+      "additionalProperties": false,
+      "properties": {
+        "aggregateVersion": {
+          "format": "int64",
+          "minimum": 0,
+          "type": ["integer", "null"]
+        },
+        "correlationId": { "minLength": 1, "type": ["string", "null"] },
+        "eventId": { "format": "uuid", "type": "string" },
+        "eventType": { "$ref": "#/$defs/EventType" },
+        "occurredAt": { "format": "date-time", "type": "string" },
+        "orderingKey": { "minLength": 1, "type": "string" },
+        "payload": { "$ref": "#/$defs/TeamFollowV2Payload" },
+        "producer": { "const": "users-service", "type": "string" },
+        "schemaVersion": { "const": "2.0.0", "type": "string" }
+      },
+      "required": [
+        "eventId",
+        "eventType",
+        "schemaVersion",
+        "occurredAt",
+        "producer",
+        "orderingKey",
+        "payload"
+      ],
       "type": "object"
     },
     "TeamUpsertV2Event": {

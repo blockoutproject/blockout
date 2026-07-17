@@ -1102,9 +1102,21 @@ state moves to GitHub and this file becomes a historical migration record.
     targeted Maven, and the complete 15-module backend compile pass. No runtime publisher, listener, broker, outbox,
     database, REST, BFF, Expo, scraper, production, standalone repository, Maaatch, MRG-9xx, or MRG-1000 change; the
     detailed boundary and rollback record is `docs/migration/mrg-350-asyncapi-event-contract-foundation.md`.
-- [ ] MRG-369 Add the audited favorite/follow `EventType` values, AsyncAPI payloads, generated records, publisher and
+- [x] MRG-369 Add the audited favorite/follow `EventType` values, AsyncAPI payloads, generated records, publisher and
       consumer adapter mappings, canonical positive numeric user IDs, idempotent/rebuildable projections, compatibility,
       reconciliation, golden JSON, and rollback without changing the MRG-315 envelope/tooling/topology.
+  - Evidence: `team.follow.v2` and `pool.follow.v2` now own explicit followed/unfollowed event types, positive `int64`
+    user and route-specific target payloads, fixed pair ordering keys, four golden fixtures, four generated envelopes,
+    two generated payload records, and isolated users publisher/notification consumer mappings. Notification declares
+    only the approved Q-18/Q-19 v2 queue/DLQ bindings; Q-16/Q-17 remain excluded and match routes remain deferred.
+    Existing v1 publication/listeners stay active, while v2 publication/listeners stay inactive until MRG-372. The
+    notification projection retains idempotent insert/delete behavior and adds a transactional per-user rebuild from a
+    canonical favorite snapshot. Seven contract tests, eleven focused Java tests, deterministic generation, nineteen-file
+    event-model compilation, all 89 retained users/notification tests, the complete 15-module backend compile,
+    formatting, documentation, environment, Maaatch, and whitespace checks pass. No outbox, dual-publish, v2 side
+    effect, deduplication, cutover, deployment, broker action,
+    Q-16/Q-17 successor, match event, production, MRG-9xx, or MRG-1000 work; detailed compatibility and rollback are in
+    `docs/migration/mrg-369-favorite-follow-event-contract-migration.md`.
 - [ ] MRG-370 Add the audited match-finished/live-link `EventType` values, AsyncAPI payloads, generated records,
       publisher and consumer adapter mappings, acknowledgement/order/version parity, notification-owned Q-14/Q-15 v2
       declarations, golden JSON, and rollback without changing the MRG-315 envelope/tooling/topology.

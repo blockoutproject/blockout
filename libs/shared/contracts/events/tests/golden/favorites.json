@@ -1,0 +1,102 @@
+{
+  "PoolFollowed": {
+    "amqpProperties": {
+      "correlationId": "migration-369",
+      "messageId": "00000000-0000-4000-8000-000000000369",
+      "timestamp": "2026-07-17T13:00:02Z",
+      "type": "POOL_FOLLOWED"
+    },
+    "body": {
+      "aggregateVersion": null,
+      "correlationId": "migration-369",
+      "eventId": "00000000-0000-4000-8000-000000000369",
+      "eventType": "POOL_FOLLOWED",
+      "occurredAt": "2026-07-17T13:00:02Z",
+      "orderingKey": "user:7:pool:4",
+      "payload": { "poolId": 4, "userId": 7 },
+      "producer": "users-service",
+      "schemaVersion": "2.0.0"
+    },
+    "headers": {
+      "x-blockout-ordering-key": "user:7:pool:4",
+      "x-blockout-producer": "users-service",
+      "x-blockout-schema-version": "2.0.0"
+    },
+    "schema": "PoolFollowedV2Event"
+  },
+  "PoolUnfollowed": {
+    "amqpProperties": {
+      "correlationId": "migration-369",
+      "messageId": "00000000-0000-4000-8000-000000000370",
+      "timestamp": "2026-07-17T13:00:03Z",
+      "type": "POOL_UNFOLLOWED"
+    },
+    "body": {
+      "aggregateVersion": null,
+      "correlationId": "migration-369",
+      "eventId": "00000000-0000-4000-8000-000000000370",
+      "eventType": "POOL_UNFOLLOWED",
+      "occurredAt": "2026-07-17T13:00:03Z",
+      "orderingKey": "user:7:pool:4",
+      "payload": { "poolId": 4, "userId": 7 },
+      "producer": "users-service",
+      "schemaVersion": "2.0.0"
+    },
+    "headers": {
+      "x-blockout-ordering-key": "user:7:pool:4",
+      "x-blockout-producer": "users-service",
+      "x-blockout-schema-version": "2.0.0"
+    },
+    "schema": "PoolUnfollowedV2Event"
+  },
+  "TeamFollowed": {
+    "amqpProperties": {
+      "correlationId": "migration-369",
+      "messageId": "00000000-0000-4000-8000-000000000371",
+      "timestamp": "2026-07-17T13:00:00Z",
+      "type": "TEAM_FOLLOWED"
+    },
+    "body": {
+      "aggregateVersion": null,
+      "correlationId": "migration-369",
+      "eventId": "00000000-0000-4000-8000-000000000371",
+      "eventType": "TEAM_FOLLOWED",
+      "occurredAt": "2026-07-17T13:00:00Z",
+      "orderingKey": "user:7:team:2",
+      "payload": { "teamId": 2, "userId": 7 },
+      "producer": "users-service",
+      "schemaVersion": "2.0.0"
+    },
+    "headers": {
+      "x-blockout-ordering-key": "user:7:team:2",
+      "x-blockout-producer": "users-service",
+      "x-blockout-schema-version": "2.0.0"
+    },
+    "schema": "TeamFollowedV2Event"
+  },
+  "TeamUnfollowed": {
+    "amqpProperties": {
+      "correlationId": "migration-369",
+      "messageId": "00000000-0000-4000-8000-000000000372",
+      "timestamp": "2026-07-17T13:00:01Z",
+      "type": "TEAM_UNFOLLOWED"
+    },
+    "body": {
+      "aggregateVersion": null,
+      "correlationId": "migration-369",
+      "eventId": "00000000-0000-4000-8000-000000000372",
+      "eventType": "TEAM_UNFOLLOWED",
+      "occurredAt": "2026-07-17T13:00:01Z",
+      "orderingKey": "user:7:team:2",
+      "payload": { "teamId": 2, "userId": 7 },
+      "producer": "users-service",
+      "schemaVersion": "2.0.0"
+    },
+    "headers": {
+      "x-blockout-ordering-key": "user:7:team:2",
+      "x-blockout-producer": "users-service",
+      "x-blockout-schema-version": "2.0.0"
+    },
+    "schema": "TeamUnfollowedV2Event"
+  }
+}

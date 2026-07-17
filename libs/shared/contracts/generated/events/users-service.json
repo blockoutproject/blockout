@@ -1,16 +1,1136 @@
 {
   "asyncapi": "3.0.0",
-  "channels": {},
+  "channels": {
+    "PoolFollow": {
+      "address": "pool.follow.v2",
+      "bindings": {
+        "amqp": {
+          "bindingVersion": "0.3.0",
+          "exchange": {
+            "autoDelete": false,
+            "durable": true,
+            "name": "user.follow.exchange",
+            "type": "topic"
+          },
+          "is": "routingKey"
+        }
+      },
+      "messages": {
+        "PoolFollowedV2Message": {
+          "bindings": {
+            "amqp": {
+              "bindingVersion": "0.3.0",
+              "contentEncoding": "UTF-8",
+              "messageType": "POOL_FOLLOWED"
+            }
+          },
+          "contentType": "application/json",
+          "headers": {
+            "additionalProperties": false,
+            "properties": {
+              "x-blockout-aggregate-version": {
+                "format": "int64",
+                "minimum": 0,
+                "type": "integer"
+              },
+              "x-blockout-ordering-key": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "x-blockout-producer": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "x-blockout-schema-version": {
+                "const": "2.0.0",
+                "type": "string"
+              }
+            },
+            "required": [
+              "x-blockout-schema-version",
+              "x-blockout-producer",
+              "x-blockout-ordering-key"
+            ],
+            "type": "object"
+          },
+          "name": "PoolFollowedV2Message",
+          "payload": {
+            "additionalProperties": false,
+            "properties": {
+              "aggregateVersion": {
+                "format": "int64",
+                "minimum": 0,
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "correlationId": {
+                "minLength": 1,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "eventId": {
+                "format": "uuid",
+                "type": "string"
+              },
+              "eventType": {
+                "enum": [
+                  "CLUB_UPSERT",
+                  "TEAM_UPSERT",
+                  "POOL_UPSERT",
+                  "CLUB_DEACTIVATED",
+                  "TEAM_DEACTIVATED",
+                  "POOL_DEACTIVATED",
+                  "TEAM_FOLLOWED",
+                  "TEAM_UNFOLLOWED",
+                  "POOL_FOLLOWED",
+                  "POOL_UNFOLLOWED"
+                ],
+                "type": "string"
+              },
+              "occurredAt": {
+                "format": "date-time",
+                "type": "string"
+              },
+              "orderingKey": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "payload": {
+                "additionalProperties": false,
+                "properties": {
+                  "poolId": {
+                    "format": "int64",
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  "userId": {
+                    "format": "int64",
+                    "minimum": 1,
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "userId",
+                  "poolId"
+                ],
+                "type": "object"
+              },
+              "producer": {
+                "const": "users-service",
+                "type": "string"
+              },
+              "schemaVersion": {
+                "const": "2.0.0",
+                "type": "string"
+              }
+            },
+            "required": [
+              "eventId",
+              "eventType",
+              "schemaVersion",
+              "occurredAt",
+              "producer",
+              "orderingKey",
+              "payload"
+            ],
+            "type": "object"
+          },
+          "title": "Pool followed v2",
+          "x-blockout-amqp-properties": [
+            "messageId",
+            "type",
+            "timestamp",
+            "correlationId"
+          ]
+        },
+        "PoolUnfollowedV2Message": {
+          "bindings": {
+            "amqp": {
+              "bindingVersion": "0.3.0",
+              "contentEncoding": "UTF-8",
+              "messageType": "POOL_UNFOLLOWED"
+            }
+          },
+          "contentType": "application/json",
+          "headers": {
+            "additionalProperties": false,
+            "properties": {
+              "x-blockout-aggregate-version": {
+                "format": "int64",
+                "minimum": 0,
+                "type": "integer"
+              },
+              "x-blockout-ordering-key": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "x-blockout-producer": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "x-blockout-schema-version": {
+                "const": "2.0.0",
+                "type": "string"
+              }
+            },
+            "required": [
+              "x-blockout-schema-version",
+              "x-blockout-producer",
+              "x-blockout-ordering-key"
+            ],
+            "type": "object"
+          },
+          "name": "PoolUnfollowedV2Message",
+          "payload": {
+            "additionalProperties": false,
+            "properties": {
+              "aggregateVersion": {
+                "format": "int64",
+                "minimum": 0,
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "correlationId": {
+                "minLength": 1,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "eventId": {
+                "format": "uuid",
+                "type": "string"
+              },
+              "eventType": {
+                "enum": [
+                  "CLUB_UPSERT",
+                  "TEAM_UPSERT",
+                  "POOL_UPSERT",
+                  "CLUB_DEACTIVATED",
+                  "TEAM_DEACTIVATED",
+                  "POOL_DEACTIVATED",
+                  "TEAM_FOLLOWED",
+                  "TEAM_UNFOLLOWED",
+                  "POOL_FOLLOWED",
+                  "POOL_UNFOLLOWED"
+                ],
+                "type": "string"
+              },
+              "occurredAt": {
+                "format": "date-time",
+                "type": "string"
+              },
+              "orderingKey": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "payload": {
+                "additionalProperties": false,
+                "properties": {
+                  "poolId": {
+                    "format": "int64",
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  "userId": {
+                    "format": "int64",
+                    "minimum": 1,
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "userId",
+                  "poolId"
+                ],
+                "type": "object"
+              },
+              "producer": {
+                "const": "users-service",
+                "type": "string"
+              },
+              "schemaVersion": {
+                "const": "2.0.0",
+                "type": "string"
+              }
+            },
+            "required": [
+              "eventId",
+              "eventType",
+              "schemaVersion",
+              "occurredAt",
+              "producer",
+              "orderingKey",
+              "payload"
+            ],
+            "type": "object"
+          },
+          "title": "Pool unfollowed v2",
+          "x-blockout-amqp-properties": [
+            "messageId",
+            "type",
+            "timestamp",
+            "correlationId"
+          ]
+        }
+      }
+    },
+    "TeamFollow": {
+      "address": "team.follow.v2",
+      "bindings": {
+        "amqp": {
+          "bindingVersion": "0.3.0",
+          "exchange": {
+            "autoDelete": false,
+            "durable": true,
+            "name": "user.follow.exchange",
+            "type": "topic"
+          },
+          "is": "routingKey"
+        }
+      },
+      "messages": {
+        "TeamFollowedV2Message": {
+          "bindings": {
+            "amqp": {
+              "bindingVersion": "0.3.0",
+              "contentEncoding": "UTF-8",
+              "messageType": "TEAM_FOLLOWED"
+            }
+          },
+          "contentType": "application/json",
+          "headers": {
+            "additionalProperties": false,
+            "properties": {
+              "x-blockout-aggregate-version": {
+                "format": "int64",
+                "minimum": 0,
+                "type": "integer"
+              },
+              "x-blockout-ordering-key": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "x-blockout-producer": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "x-blockout-schema-version": {
+                "const": "2.0.0",
+                "type": "string"
+              }
+            },
+            "required": [
+              "x-blockout-schema-version",
+              "x-blockout-producer",
+              "x-blockout-ordering-key"
+            ],
+            "type": "object"
+          },
+          "name": "TeamFollowedV2Message",
+          "payload": {
+            "additionalProperties": false,
+            "properties": {
+              "aggregateVersion": {
+                "format": "int64",
+                "minimum": 0,
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "correlationId": {
+                "minLength": 1,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "eventId": {
+                "format": "uuid",
+                "type": "string"
+              },
+              "eventType": {
+                "enum": [
+                  "CLUB_UPSERT",
+                  "TEAM_UPSERT",
+                  "POOL_UPSERT",
+                  "CLUB_DEACTIVATED",
+                  "TEAM_DEACTIVATED",
+                  "POOL_DEACTIVATED",
+                  "TEAM_FOLLOWED",
+                  "TEAM_UNFOLLOWED",
+                  "POOL_FOLLOWED",
+                  "POOL_UNFOLLOWED"
+                ],
+                "type": "string"
+              },
+              "occurredAt": {
+                "format": "date-time",
+                "type": "string"
+              },
+              "orderingKey": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "payload": {
+                "additionalProperties": false,
+                "properties": {
+                  "teamId": {
+                    "format": "int64",
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  "userId": {
+                    "format": "int64",
+                    "minimum": 1,
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "userId",
+                  "teamId"
+                ],
+                "type": "object"
+              },
+              "producer": {
+                "const": "users-service",
+                "type": "string"
+              },
+              "schemaVersion": {
+                "const": "2.0.0",
+                "type": "string"
+              }
+            },
+            "required": [
+              "eventId",
+              "eventType",
+              "schemaVersion",
+              "occurredAt",
+              "producer",
+              "orderingKey",
+              "payload"
+            ],
+            "type": "object"
+          },
+          "title": "Team followed v2",
+          "x-blockout-amqp-properties": [
+            "messageId",
+            "type",
+            "timestamp",
+            "correlationId"
+          ]
+        },
+        "TeamUnfollowedV2Message": {
+          "bindings": {
+            "amqp": {
+              "bindingVersion": "0.3.0",
+              "contentEncoding": "UTF-8",
+              "messageType": "TEAM_UNFOLLOWED"
+            }
+          },
+          "contentType": "application/json",
+          "headers": {
+            "additionalProperties": false,
+            "properties": {
+              "x-blockout-aggregate-version": {
+                "format": "int64",
+                "minimum": 0,
+                "type": "integer"
+              },
+              "x-blockout-ordering-key": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "x-blockout-producer": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "x-blockout-schema-version": {
+                "const": "2.0.0",
+                "type": "string"
+              }
+            },
+            "required": [
+              "x-blockout-schema-version",
+              "x-blockout-producer",
+              "x-blockout-ordering-key"
+            ],
+            "type": "object"
+          },
+          "name": "TeamUnfollowedV2Message",
+          "payload": {
+            "additionalProperties": false,
+            "properties": {
+              "aggregateVersion": {
+                "format": "int64",
+                "minimum": 0,
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "correlationId": {
+                "minLength": 1,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "eventId": {
+                "format": "uuid",
+                "type": "string"
+              },
+              "eventType": {
+                "enum": [
+                  "CLUB_UPSERT",
+                  "TEAM_UPSERT",
+                  "POOL_UPSERT",
+                  "CLUB_DEACTIVATED",
+                  "TEAM_DEACTIVATED",
+                  "POOL_DEACTIVATED",
+                  "TEAM_FOLLOWED",
+                  "TEAM_UNFOLLOWED",
+                  "POOL_FOLLOWED",
+                  "POOL_UNFOLLOWED"
+                ],
+                "type": "string"
+              },
+              "occurredAt": {
+                "format": "date-time",
+                "type": "string"
+              },
+              "orderingKey": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "payload": {
+                "additionalProperties": false,
+                "properties": {
+                  "teamId": {
+                    "format": "int64",
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  "userId": {
+                    "format": "int64",
+                    "minimum": 1,
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "userId",
+                  "teamId"
+                ],
+                "type": "object"
+              },
+              "producer": {
+                "const": "users-service",
+                "type": "string"
+              },
+              "schemaVersion": {
+                "const": "2.0.0",
+                "type": "string"
+              }
+            },
+            "required": [
+              "eventId",
+              "eventType",
+              "schemaVersion",
+              "occurredAt",
+              "producer",
+              "orderingKey",
+              "payload"
+            ],
+            "type": "object"
+          },
+          "title": "Team unfollowed v2",
+          "x-blockout-amqp-properties": [
+            "messageId",
+            "type",
+            "timestamp",
+            "correlationId"
+          ]
+        }
+      }
+    }
+  },
   "defaultContentType": "application/json",
   "info": {
     "title": "users-service event contract",
     "version": "2.0.0"
   },
-  "operations": {},
-  "x-blockout-deferred-routes": [
-    "team.follow.v2",
-    "pool.follow.v2"
-  ],
+  "operations": {
+    "publishPoolFollow": {
+      "action": "send",
+      "channel": {
+        "address": "pool.follow.v2",
+        "bindings": {
+          "amqp": {
+            "bindingVersion": "0.3.0",
+            "exchange": {
+              "autoDelete": false,
+              "durable": true,
+              "name": "user.follow.exchange",
+              "type": "topic"
+            },
+            "is": "routingKey"
+          }
+        },
+        "messages": {
+          "PoolFollowedV2Message": {
+            "bindings": {
+              "amqp": {
+                "bindingVersion": "0.3.0",
+                "contentEncoding": "UTF-8",
+                "messageType": "POOL_FOLLOWED"
+              }
+            },
+            "contentType": "application/json",
+            "headers": {
+              "additionalProperties": false,
+              "properties": {
+                "x-blockout-aggregate-version": {
+                  "format": "int64",
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "x-blockout-ordering-key": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "x-blockout-producer": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "x-blockout-schema-version": {
+                  "const": "2.0.0",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "x-blockout-schema-version",
+                "x-blockout-producer",
+                "x-blockout-ordering-key"
+              ],
+              "type": "object"
+            },
+            "name": "PoolFollowedV2Message",
+            "payload": {
+              "additionalProperties": false,
+              "properties": {
+                "aggregateVersion": {
+                  "format": "int64",
+                  "minimum": 0,
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                },
+                "correlationId": {
+                  "minLength": 1,
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "eventId": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "eventType": {
+                  "enum": [
+                    "CLUB_UPSERT",
+                    "TEAM_UPSERT",
+                    "POOL_UPSERT",
+                    "CLUB_DEACTIVATED",
+                    "TEAM_DEACTIVATED",
+                    "POOL_DEACTIVATED",
+                    "TEAM_FOLLOWED",
+                    "TEAM_UNFOLLOWED",
+                    "POOL_FOLLOWED",
+                    "POOL_UNFOLLOWED"
+                  ],
+                  "type": "string"
+                },
+                "occurredAt": {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                "orderingKey": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "payload": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "poolId": {
+                      "format": "int64",
+                      "minimum": 1,
+                      "type": "integer"
+                    },
+                    "userId": {
+                      "format": "int64",
+                      "minimum": 1,
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "userId",
+                    "poolId"
+                  ],
+                  "type": "object"
+                },
+                "producer": {
+                  "const": "users-service",
+                  "type": "string"
+                },
+                "schemaVersion": {
+                  "const": "2.0.0",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "eventId",
+                "eventType",
+                "schemaVersion",
+                "occurredAt",
+                "producer",
+                "orderingKey",
+                "payload"
+              ],
+              "type": "object"
+            },
+            "title": "Pool followed v2",
+            "x-blockout-amqp-properties": [
+              "messageId",
+              "type",
+              "timestamp",
+              "correlationId"
+            ]
+          },
+          "PoolUnfollowedV2Message": {
+            "bindings": {
+              "amqp": {
+                "bindingVersion": "0.3.0",
+                "contentEncoding": "UTF-8",
+                "messageType": "POOL_UNFOLLOWED"
+              }
+            },
+            "contentType": "application/json",
+            "headers": {
+              "additionalProperties": false,
+              "properties": {
+                "x-blockout-aggregate-version": {
+                  "format": "int64",
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "x-blockout-ordering-key": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "x-blockout-producer": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "x-blockout-schema-version": {
+                  "const": "2.0.0",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "x-blockout-schema-version",
+                "x-blockout-producer",
+                "x-blockout-ordering-key"
+              ],
+              "type": "object"
+            },
+            "name": "PoolUnfollowedV2Message",
+            "payload": {
+              "additionalProperties": false,
+              "properties": {
+                "aggregateVersion": {
+                  "format": "int64",
+                  "minimum": 0,
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                },
+                "correlationId": {
+                  "minLength": 1,
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "eventId": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "eventType": {
+                  "enum": [
+                    "CLUB_UPSERT",
+                    "TEAM_UPSERT",
+                    "POOL_UPSERT",
+                    "CLUB_DEACTIVATED",
+                    "TEAM_DEACTIVATED",
+                    "POOL_DEACTIVATED",
+                    "TEAM_FOLLOWED",
+                    "TEAM_UNFOLLOWED",
+                    "POOL_FOLLOWED",
+                    "POOL_UNFOLLOWED"
+                  ],
+                  "type": "string"
+                },
+                "occurredAt": {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                "orderingKey": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "payload": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "poolId": {
+                      "format": "int64",
+                      "minimum": 1,
+                      "type": "integer"
+                    },
+                    "userId": {
+                      "format": "int64",
+                      "minimum": 1,
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "userId",
+                    "poolId"
+                  ],
+                  "type": "object"
+                },
+                "producer": {
+                  "const": "users-service",
+                  "type": "string"
+                },
+                "schemaVersion": {
+                  "const": "2.0.0",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "eventId",
+                "eventType",
+                "schemaVersion",
+                "occurredAt",
+                "producer",
+                "orderingKey",
+                "payload"
+              ],
+              "type": "object"
+            },
+            "title": "Pool unfollowed v2",
+            "x-blockout-amqp-properties": [
+              "messageId",
+              "type",
+              "timestamp",
+              "correlationId"
+            ]
+          }
+        }
+      }
+    },
+    "publishTeamFollow": {
+      "action": "send",
+      "channel": {
+        "address": "team.follow.v2",
+        "bindings": {
+          "amqp": {
+            "bindingVersion": "0.3.0",
+            "exchange": {
+              "autoDelete": false,
+              "durable": true,
+              "name": "user.follow.exchange",
+              "type": "topic"
+            },
+            "is": "routingKey"
+          }
+        },
+        "messages": {
+          "TeamFollowedV2Message": {
+            "bindings": {
+              "amqp": {
+                "bindingVersion": "0.3.0",
+                "contentEncoding": "UTF-8",
+                "messageType": "TEAM_FOLLOWED"
+              }
+            },
+            "contentType": "application/json",
+            "headers": {
+              "additionalProperties": false,
+              "properties": {
+                "x-blockout-aggregate-version": {
+                  "format": "int64",
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "x-blockout-ordering-key": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "x-blockout-producer": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "x-blockout-schema-version": {
+                  "const": "2.0.0",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "x-blockout-schema-version",
+                "x-blockout-producer",
+                "x-blockout-ordering-key"
+              ],
+              "type": "object"
+            },
+            "name": "TeamFollowedV2Message",
+            "payload": {
+              "additionalProperties": false,
+              "properties": {
+                "aggregateVersion": {
+                  "format": "int64",
+                  "minimum": 0,
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                },
+                "correlationId": {
+                  "minLength": 1,
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "eventId": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "eventType": {
+                  "enum": [
+                    "CLUB_UPSERT",
+                    "TEAM_UPSERT",
+                    "POOL_UPSERT",
+                    "CLUB_DEACTIVATED",
+                    "TEAM_DEACTIVATED",
+                    "POOL_DEACTIVATED",
+                    "TEAM_FOLLOWED",
+                    "TEAM_UNFOLLOWED",
+                    "POOL_FOLLOWED",
+                    "POOL_UNFOLLOWED"
+                  ],
+                  "type": "string"
+                },
+                "occurredAt": {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                "orderingKey": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "payload": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "teamId": {
+                      "format": "int64",
+                      "minimum": 1,
+                      "type": "integer"
+                    },
+                    "userId": {
+                      "format": "int64",
+                      "minimum": 1,
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "userId",
+                    "teamId"
+                  ],
+                  "type": "object"
+                },
+                "producer": {
+                  "const": "users-service",
+                  "type": "string"
+                },
+                "schemaVersion": {
+                  "const": "2.0.0",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "eventId",
+                "eventType",
+                "schemaVersion",
+                "occurredAt",
+                "producer",
+                "orderingKey",
+                "payload"
+              ],
+              "type": "object"
+            },
+            "title": "Team followed v2",
+            "x-blockout-amqp-properties": [
+              "messageId",
+              "type",
+              "timestamp",
+              "correlationId"
+            ]
+          },
+          "TeamUnfollowedV2Message": {
+            "bindings": {
+              "amqp": {
+                "bindingVersion": "0.3.0",
+                "contentEncoding": "UTF-8",
+                "messageType": "TEAM_UNFOLLOWED"
+              }
+            },
+            "contentType": "application/json",
+            "headers": {
+              "additionalProperties": false,
+              "properties": {
+                "x-blockout-aggregate-version": {
+                  "format": "int64",
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "x-blockout-ordering-key": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "x-blockout-producer": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "x-blockout-schema-version": {
+                  "const": "2.0.0",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "x-blockout-schema-version",
+                "x-blockout-producer",
+                "x-blockout-ordering-key"
+              ],
+              "type": "object"
+            },
+            "name": "TeamUnfollowedV2Message",
+            "payload": {
+              "additionalProperties": false,
+              "properties": {
+                "aggregateVersion": {
+                  "format": "int64",
+                  "minimum": 0,
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                },
+                "correlationId": {
+                  "minLength": 1,
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "eventId": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "eventType": {
+                  "enum": [
+                    "CLUB_UPSERT",
+                    "TEAM_UPSERT",
+                    "POOL_UPSERT",
+                    "CLUB_DEACTIVATED",
+                    "TEAM_DEACTIVATED",
+                    "POOL_DEACTIVATED",
+                    "TEAM_FOLLOWED",
+                    "TEAM_UNFOLLOWED",
+                    "POOL_FOLLOWED",
+                    "POOL_UNFOLLOWED"
+                  ],
+                  "type": "string"
+                },
+                "occurredAt": {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                "orderingKey": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "payload": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "teamId": {
+                      "format": "int64",
+                      "minimum": 1,
+                      "type": "integer"
+                    },
+                    "userId": {
+                      "format": "int64",
+                      "minimum": 1,
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "userId",
+                    "teamId"
+                  ],
+                  "type": "object"
+                },
+                "producer": {
+                  "const": "users-service",
+                  "type": "string"
+                },
+                "schemaVersion": {
+                  "const": "2.0.0",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "eventId",
+                "eventType",
+                "schemaVersion",
+                "occurredAt",
+                "producer",
+                "orderingKey",
+                "payload"
+              ],
+              "type": "object"
+            },
+            "title": "Team unfollowed v2",
+            "x-blockout-amqp-properties": [
+              "messageId",
+              "type",
+              "timestamp",
+              "correlationId"
+            ]
+          }
+        }
+      }
+    }
+  },
   "x-blockout-excluded-v2-queues": [
     "team.follow.queue.teams.v2",
     "pool.follow.queue.pools.v2"

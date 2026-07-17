@@ -17,6 +17,7 @@ import {
 
 const require = createRequire(import.meta.url);
 const lifecycleFile = path.join(SOURCE_ROOT, 'shared/schemas/lifecycle.json');
+const favoritesFile = lifecycleFile;
 const catalogFile = path.join(SOURCE_ROOT, 'catalog.json');
 const generatedPackage = path.join(
   JAVA_OUTPUT_ROOT,
@@ -49,21 +50,21 @@ test('validates local-only AsyncAPI 3 sources and committed resolved bundles', a
   }
 });
 
-test('keeps the catalog component-only and the six lifecycle envelopes exact', async () => {
+test('keeps the catalog component-only and all owned envelopes exact', async () => {
   const catalog = await readJson(catalogFile);
   assert.equal(catalog.asyncapi, '3.0.0');
   assert.equal(catalog.channels, undefined);
   assert.equal(catalog.operations, undefined);
   assert.equal(catalog.servers, undefined);
-  assert.equal(Object.keys(catalog.components.messages).length, 6);
-  assert.equal(Object.keys(catalog.components.schemas).length, 14);
+  assert.equal(Object.keys(catalog.components.messages).length, 10);
+  assert.equal(Object.keys(catalog.components.schemas).length, 20);
 
   const definitions = (await readJson(lifecycleFile)).$defs;
   const common = definitions.EventEnvelope;
   const eventNames = Object.keys(definitions).filter((name) =>
     /V2Event$/.test(name),
   );
-  assert.equal(eventNames.length, 6);
+  assert.equal(eventNames.length, 10);
   for (const name of eventNames) {
     assert.deepEqual(
       Object.keys(definitions[name].properties).sort(),
@@ -81,7 +82,53 @@ test('keeps the catalog component-only and the six lifecycle envelopes exact', a
     'CLUB_DEACTIVATED',
     'TEAM_DEACTIVATED',
     'POOL_DEACTIVATED',
+    'TEAM_FOLLOWED',
+    'TEAM_UNFOLLOWED',
+    'POOL_FOLLOWED',
+    'POOL_UNFOLLOWED',
   ]);
+
+  const favoriteDefinitions = (await readJson(favoritesFile)).$defs;
+  for (const name of [
+    'PoolFollowedV2Event',
+    'PoolUnfollowedV2Event',
+    'TeamFollowedV2Event',
+    'TeamUnfollowedV2Event',
+  ]) {
+    assert.deepEqual(
+      Object.keys(favoriteDefinitions[name].properties).sort(),
+      Object.keys(common.properties).sort(),
+      name,
+    );
+    assert.deepEqual(favoriteDefinitions[name].required, common.required, name);
+    assert.equal(
+      favoriteDefinitions[name].properties.schemaVersion.const,
+      '2.0.0',
+    );
+    assert.equal(
+      favoriteDefinitions[name].properties.producer.const,
+      'users-service',
+    );
+    assert.equal(favoriteDefinitions[name].additionalProperties, false);
+  }
+  assert.deepEqual(favoriteDefinitions.TeamFollowV2Payload.required, [
+    'userId',
+    'teamId',
+  ]);
+  assert.deepEqual(favoriteDefinitions.PoolFollowV2Payload.required, [
+    'userId',
+    'poolId',
+  ]);
+  for (const payload of [
+    favoriteDefinitions.TeamFollowV2Payload,
+    favoriteDefinitions.PoolFollowV2Payload,
+  ]) {
+    for (const property of Object.values(payload.properties)) {
+      assert.equal(property.type, 'integer');
+      assert.equal(property.format, 'int64');
+      assert.equal(property.minimum, 1);
+    }
+  }
 });
 
 test('reconciles all eleven routes and nineteen primary queues without orphan activation', async () => {
@@ -113,7 +160,7 @@ test('reconciles all eleven routes and nineteen primary queues without orphan ac
       .filter(([, value]) => value.disposition === 'active')
       .map(([id]) => id)
       .sort(),
-    ['EV-CD', 'EV-CU', 'EV-PD', 'EV-PU', 'EV-TD', 'EV-TU'],
+    ['EV-CD', 'EV-CU', 'EV-PD', 'EV-PF', 'EV-PU', 'EV-TD', 'EV-TF', 'EV-TU'],
   );
   assert.deepEqual(
     ['Q-11', 'Q-12', 'Q-13', 'Q-16', 'Q-17'].map(
@@ -150,15 +197,17 @@ test('reconciles all eleven routes and nineteen primary queues without orphan ac
     'club.deactivation.v2',
     'club.upsert.v2',
     'pool.deactivation.v2',
+    'pool.follow.v2',
     'pool.upsert.v2',
     'team.deactivation.v2',
+    'team.follow.v2',
     'team.upsert.v2',
   ]);
   const declaredQueues = roots.flatMap(
     (root) => root['x-blockout-primary-queues'] ?? [],
   );
-  assert.equal(declaredQueues.length, 10);
-  assert.equal(new Set(declaredQueues).size, 10);
+  assert.equal(declaredQueues.length, 12);
+  assert.equal(new Set(declaredQueues).size, 12);
   assert.ok(!JSON.stringify(roots).includes('teambypool.deactivation.v2'));
 });
 
@@ -166,7 +215,7 @@ test('commits generated Java 21 records with no runtime framework leakage', asyn
   const files = (await readdir(generatedPackage))
     .filter((name) => name.endsWith('.java'))
     .sort();
-  assert.equal(files.length, 13);
+  assert.equal(files.length, 19);
   assert.deepEqual(files, [
     'ClubDeactivationV2Event.java',
     'ClubDeactivationV2Payload.java',
@@ -175,10 +224,16 @@ test('commits generated Java 21 records with no runtime framework leakage', asyn
     'EventType.java',
     'PoolDeactivationV2Event.java',
     'PoolDeactivationV2Payload.java',
+    'PoolFollowV2Payload.java',
+    'PoolFollowedV2Event.java',
+    'PoolUnfollowedV2Event.java',
     'PoolUpsertV2Event.java',
     'PoolUpsertV2Payload.java',
     'TeamDeactivationV2Event.java',
     'TeamDeactivationV2Payload.java',
+    'TeamFollowV2Payload.java',
+    'TeamFollowedV2Event.java',
+    'TeamUnfollowedV2Event.java',
     'TeamUpsertV2Event.java',
     'TeamUpsertV2Payload.java',
   ]);
@@ -248,6 +303,44 @@ test('locks golden camelCase bodies, AMQP properties, and stable headers', async
     );
     assert.ok(!JSON.stringify(fixture).includes('__TypeId__'));
     assert.deepEqual(findUnderscoredKeys(fixture.body), []);
+  }
+});
+
+test('locks favorite golden bodies and omits absent aggregate headers', async () => {
+  const fixtures = await readJson(
+    path.join(SOURCE_ROOT, '../tests/golden/favorites.json'),
+  );
+  const definitions = (await readJson(favoritesFile)).$defs;
+  assert.equal(Object.keys(fixtures).length, 4);
+  for (const [name, fixture] of Object.entries(fixtures)) {
+    const schema = definitions[fixture.schema];
+    assert.ok(schema, name);
+    assert.deepEqual(
+      Object.keys(fixture.body).sort(),
+      Object.keys(schema.properties).sort(),
+      name,
+    );
+    const payloadName = fixture.schema.replace(
+      /(?:Followed|Unfollowed)V2Event$/,
+      'FollowV2Payload',
+    );
+    assert.deepEqual(
+      Object.keys(fixture.body.payload).sort(),
+      Object.keys(definitions[payloadName].properties).sort(),
+      name,
+    );
+    assert.ok(fixture.body.payload.userId > 0);
+    assert.equal(fixture.amqpProperties.messageId, fixture.body.eventId);
+    assert.equal(fixture.amqpProperties.type, fixture.body.eventType);
+    assert.equal(fixture.amqpProperties.timestamp, fixture.body.occurredAt);
+    assert.equal(
+      fixture.amqpProperties.correlationId,
+      fixture.body.correlationId,
+    );
+    assert.equal(fixture.body.aggregateVersion, null);
+    assert.ok(!('x-blockout-aggregate-version' in fixture.headers));
+    assert.deepEqual(findUnderscoredKeys(fixture.body), []);
+    assert.ok(!JSON.stringify(fixture).includes('__TypeId__'));
   }
 });
 

@@ -1,0 +1,50 @@
+{
+  "$defs": {
+    "PoolFollow": {
+      "address": "pool.follow.v2",
+      "bindings": {
+        "amqp": {
+          "bindingVersion": "0.3.0",
+          "exchange": {
+            "autoDelete": false,
+            "durable": true,
+            "name": "user.follow.exchange",
+            "type": "topic"
+          },
+          "is": "routingKey"
+        }
+      },
+      "messages": {
+        "PoolFollowedV2Message": {
+          "$ref": "../messages/favorites.json#/$defs/PoolFollowedV2Message"
+        },
+        "PoolUnfollowedV2Message": {
+          "$ref": "../messages/favorites.json#/$defs/PoolUnfollowedV2Message"
+        }
+      }
+    },
+    "TeamFollow": {
+      "address": "team.follow.v2",
+      "bindings": {
+        "amqp": {
+          "bindingVersion": "0.3.0",
+          "exchange": {
+            "autoDelete": false,
+            "durable": true,
+            "name": "user.follow.exchange",
+            "type": "topic"
+          },
+          "is": "routingKey"
+        }
+      },
+      "messages": {
+        "TeamFollowedV2Message": {
+          "$ref": "../messages/favorites.json#/$defs/TeamFollowedV2Message"
+        },
+        "TeamUnfollowedV2Message": {
+          "$ref": "../messages/favorites.json#/$defs/TeamUnfollowedV2Message"
+        }
+      }
+    }
+  }
+}

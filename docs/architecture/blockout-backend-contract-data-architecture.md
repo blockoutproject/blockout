@@ -442,6 +442,9 @@ This architecture fixes ownership while the three decision tasks select tools wi
 - [MRG-315](../decisions/mrg-315-rabbitmq-event-contracts.md) selects AsyncAPI `3.0.0` JSON, parser `3.6.0`, Modelina
   `5.10.1`, event-specific envelopes, Java 21 records in `com.blockout.events.v2.model`, hermetic Maven ownership, AMQP
   metadata without `__TypeId__`, and the unchanged MRG-304 v2 topology.
+- [MRG-369](../migration/mrg-369-favorite-follow-event-contract-migration.md) adds the team/pool followed and
+  unfollowed contracts, positive numeric identity, isolated publisher/consumer mappings, notification-owned Q-18/Q-19
+  v2 declarations, and an idempotent rebuild boundary without activating dual publication or v2 side effects.
 
 The generator decisions may be implemented only within the ownership and casing rules above. Later tasks may not
 reopen the architectural decisions approved by MRG-268 or MRG-313 through MRG-315 without a new Plan-mode decision.

@@ -8,6 +8,12 @@
       "ClubUpsertV2Message": {
         "$ref": "./shared/messages/lifecycle.json#/$defs/ClubUpsertV2Message"
       },
+      "PoolFollowedV2Message": {
+        "$ref": "./shared/messages/favorites.json#/$defs/PoolFollowedV2Message"
+      },
+      "PoolUnfollowedV2Message": {
+        "$ref": "./shared/messages/favorites.json#/$defs/PoolUnfollowedV2Message"
+      },
       "PoolDeactivationV2Message": {
         "$ref": "./shared/messages/lifecycle.json#/$defs/PoolDeactivationV2Message"
       },
@@ -16,6 +22,12 @@
       },
       "TeamDeactivationV2Message": {
         "$ref": "./shared/messages/lifecycle.json#/$defs/TeamDeactivationV2Message"
+      },
+      "TeamFollowedV2Message": {
+        "$ref": "./shared/messages/favorites.json#/$defs/TeamFollowedV2Message"
+      },
+      "TeamUnfollowedV2Message": {
+        "$ref": "./shared/messages/favorites.json#/$defs/TeamUnfollowedV2Message"
       },
       "TeamUpsertV2Message": {
         "$ref": "./shared/messages/lifecycle.json#/$defs/TeamUpsertV2Message"
@@ -46,6 +58,15 @@
       "PoolDeactivationV2Payload": {
         "$ref": "./shared/schemas/lifecycle.json#/$defs/PoolDeactivationV2Payload"
       },
+      "PoolFollowedV2Event": {
+        "$ref": "./shared/schemas/lifecycle.json#/$defs/PoolFollowedV2Event"
+      },
+      "PoolFollowV2Payload": {
+        "$ref": "./shared/schemas/lifecycle.json#/$defs/PoolFollowV2Payload"
+      },
+      "PoolUnfollowedV2Event": {
+        "$ref": "./shared/schemas/lifecycle.json#/$defs/PoolUnfollowedV2Event"
+      },
       "PoolUpsertV2Event": {
         "$ref": "./shared/schemas/lifecycle.json#/$defs/PoolUpsertV2Event"
       },
@@ -57,6 +78,15 @@
       },
       "TeamDeactivationV2Payload": {
         "$ref": "./shared/schemas/lifecycle.json#/$defs/TeamDeactivationV2Payload"
+      },
+      "TeamFollowedV2Event": {
+        "$ref": "./shared/schemas/lifecycle.json#/$defs/TeamFollowedV2Event"
+      },
+      "TeamFollowV2Payload": {
+        "$ref": "./shared/schemas/lifecycle.json#/$defs/TeamFollowV2Payload"
+      },
+      "TeamUnfollowedV2Event": {
+        "$ref": "./shared/schemas/lifecycle.json#/$defs/TeamUnfollowedV2Event"
       },
       "TeamUpsertV2Event": {
         "$ref": "./shared/schemas/lifecycle.json#/$defs/TeamUpsertV2Event"
@@ -171,13 +201,13 @@
       "owner": null
     },
     "Q-18": {
-      "disposition": "deferred-mrg-369",
+      "disposition": "active",
       "queue": "team.follow.queue.notifications.v2",
       "dlq": "team.follow.queue.notifications.dlq.v2",
       "owner": "notification-service"
     },
     "Q-19": {
-      "disposition": "deferred-mrg-369",
+      "disposition": "active",
       "queue": "pool.follow.queue.notifications.v2",
       "dlq": "pool.follow.queue.notifications.dlq.v2",
       "owner": "notification-service"
@@ -210,7 +240,7 @@
       "task": "MRG-350"
     },
     "EV-PF": {
-      "disposition": "deferred",
+      "disposition": "active",
       "route": "pool.follow.v2",
       "task": "MRG-369"
     },
@@ -225,7 +255,7 @@
       "task": "MRG-350"
     },
     "EV-TF": {
-      "disposition": "deferred",
+      "disposition": "active",
       "route": "team.follow.v2",
       "task": "MRG-369"
     },

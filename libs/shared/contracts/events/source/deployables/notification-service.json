@@ -1,16 +1,34 @@
 {
   "asyncapi": "3.0.0",
-  "channels": {},
+  "channels": {
+    "PoolFollow": {
+      "$ref": "../shared/channels/favorites.json#/$defs/PoolFollow"
+    },
+    "TeamFollow": {
+      "$ref": "../shared/channels/favorites.json#/$defs/TeamFollow"
+    }
+  },
   "defaultContentType": "application/json",
   "info": {
     "title": "notification-service event contract",
     "version": "2.0.0"
   },
-  "operations": {},
+  "operations": {
+    "consumePoolFollow": {
+      "action": "receive",
+      "channel": { "$ref": "#/channels/PoolFollow" }
+    },
+    "consumeTeamFollow": {
+      "action": "receive",
+      "channel": { "$ref": "#/channels/TeamFollow" }
+    }
+  },
   "x-blockout-deferred-routes": [
     "match.finished.v2",
-    "match.live-link-created.v2",
-    "team.follow.v2",
-    "pool.follow.v2"
+    "match.live-link-created.v2"
+  ],
+  "x-blockout-primary-queues": [
+    "team.follow.queue.notifications.v2",
+    "pool.follow.queue.notifications.v2"
   ]
 }
