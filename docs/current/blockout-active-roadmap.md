@@ -391,8 +391,18 @@ state moves to GitHub and this file becomes a historical migration record.
     IDs, scopes, fields, pagination, repeated IDs, multipart parts, logo intent, and follower responses; source lint,
     deterministic generation, documentation and Maaatch structure checks, and the unchanged backend reactor package
     successfully without modifying runtime code.
-- [ ] MRG-320 Define and bundle the `pools-service` contract from its approved audit using only required camelCase wire
+- [x] MRG-320 Define and bundle the `pools-service` contract from its approved audit using only required camelCase wire
       fields.
+  - Evidence: the authoritative pools source and generated bundle reconcile all seven MRG-301 operations under
+    `/api/v2/pools/**`. Four owner schemas retain thirteen proven owner fields, isolate ten caller-owned creation
+    fields, and define an eleven-field partial update whose explicit `active` intent separates reactivation and
+    deactivation from ordinary changes. Shared format/gender enums and numeric identifiers replace local copies; the
+    growing list uses shared paging plus stable season/name/identifier ordering and explicit legacy aggregation.
+    Follower mutations keep their scope and user identity but return canonical `204` instead of an unused entity body,
+    with v1 `200` compatibility retained for later adapters. Twenty-one contract tests cover exact operation IDs,
+    scopes, fields, pagination, repeated IDs, lifecycle intent, and follower responses; source lint, deterministic
+    generation, documentation and Maaatch structure checks, and the unchanged backend reactor package successfully
+    without modifying runtime code.
 - [ ] MRG-321 Define and bundle the `competition-service` contract from its approved audit using only required
       camelCase wire fields and explicit ranking semantics.
 - [ ] MRG-322 Define and bundle the `matches-service` contract from its approved audit using only required camelCase

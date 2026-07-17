@@ -1,0 +1,41 @@
+{
+  "PoolInternalResponse": {
+    "type": "object",
+    "description": "Pool owner projection without persistence audit timestamps or BFF-derived division, ranking, match, and team data.",
+    "required": [
+      "id",
+      "poolCode",
+      "leagueCode",
+      "season",
+      "leagueName",
+      "rawName",
+      "name",
+      "shortName",
+      "divisionId",
+      "format",
+      "gender",
+      "followersCount",
+      "active"
+    ],
+    "properties": {
+      "id": { "$ref": "#/components/schemas/NumericIdentifier" },
+      "poolCode": { "type": "string", "maxLength": 255 },
+      "leagueCode": { "type": "string", "maxLength": 255 },
+      "season": { "type": "string", "maxLength": 255 },
+      "leagueName": { "type": "string", "maxLength": 255 },
+      "rawName": { "type": "string", "maxLength": 255 },
+      "name": { "type": "string", "maxLength": 255 },
+      "shortName": { "type": "string", "maxLength": 255 },
+      "divisionId": { "$ref": "#/components/schemas/NumericIdentifier" },
+      "format": { "$ref": "#/components/schemas/FormatEnum" },
+      "gender": { "$ref": "#/components/schemas/GenderEnum" },
+      "followersCount": {
+        "type": "integer",
+        "format": "int64",
+        "minimum": 0
+      },
+      "active": { "type": "boolean" }
+    },
+    "additionalProperties": false
+  }
+}

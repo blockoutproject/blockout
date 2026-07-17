@@ -9,6 +9,84 @@
       "url": "http://localhost"
     }
   ],
-  "tags": [],
-  "components": {}
+  "tags": [
+    {
+      "name": "Pools"
+    },
+    {
+      "name": "PoolFollowers"
+    }
+  ],
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "components": {
+    "parameters": {
+      "PoolId": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "$ref": "#/components/schemas/NumericIdentifier"
+        }
+      },
+      "FollowerPoolId": {
+        "name": "poolId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "$ref": "#/components/schemas/NumericIdentifier"
+        }
+      },
+      "PoolLeagueCode": {
+        "name": "leagueCode",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "maxLength": 255
+        }
+      },
+      "PoolSeason": {
+        "name": "season",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "maxLength": 255
+        }
+      },
+      "PoolActive": {
+        "name": "active",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "boolean"
+        }
+      },
+      "PoolIds": {
+        "name": "ids",
+        "in": "query",
+        "required": false,
+        "style": "form",
+        "explode": true,
+        "schema": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/NumericIdentifier"
+          }
+        }
+      },
+      "FollowerUserId": {
+        "name": "userId",
+        "in": "query",
+        "required": true,
+        "schema": {
+          "$ref": "#/components/schemas/NumericIdentifier"
+        }
+      }
+    }
+  }
 }

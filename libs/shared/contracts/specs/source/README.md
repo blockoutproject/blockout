@@ -161,6 +161,32 @@ returns `204`; v1 keeps `200` and its full body inside the compatibility adapter
 oversized multipart updates use `409` and `413` Problem Details, while v1 error behavior remains unchanged. Favorite
 authority, idempotency, reconciliation, S3 compensation, RabbitMQ, and runtime activation remain later tasks.
 
+## Pools-Service Contract
+
+MRG-320 makes `services/pools` authoritative for the seven canonical pools-service operations inventoried by MRG-301
+and allocated by MRG-304. The bundle covers filtered pool reads, clean JSON creation and partial update, soft
+deactivation, and the two follower-projection mutations under `/api/v2/pools/**`.
+
+`PoolInternalResponse` retains the thirteen owner identity, display, classification, follower, and lifecycle fields
+required by proven consumers while omitting persistence timestamps and every BFF-derived division, ranking, match,
+and team projection. The growing collection uses `PoolInternalPageResponse`, shared zero-based page parameters, and
+stable season-descending, name-ascending, identifier-ascending ordering. Compatibility scraper, BFF, notification,
+and worker adapters aggregate all pages before exposing a legacy complete-list result.
+
+Creation contains only caller-owned pool identity, display, and classification fields; server identity, follower
+count, active state, and timestamps cannot be supplied. Update preserves the current null-skipping eleven-field
+semantics. Its `active` value is explicit lifecycle intent: `true` requests reactivation, `false` requests
+deactivation, and omission or null preserves the stored state. The application boundary must map that intent
+separately from identity, display, and classification changes. Shared `FormatEnum` and `GenderEnum` are the only REST
+enum sources.
+
+List and detail remain authenticated without method scopes. Create, update, delete, and both follower mutations retain
+their audited scopes. Because the follower caller discards the legacy entity response, v2 returns `204`; v1 keeps
+`200` and its full body inside the compatibility adapter. Canonical uniqueness conflicts use `409` Problem Details,
+while v1 errors and nullable legacy data remain unchanged until their vertical migration. Favorite authority,
+idempotency, counter reconciliation, explicit lifecycle events, RabbitMQ, BFF cache invalidation, search rebuilding,
+and runtime activation remain later tasks.
+
 ## Closed Boundaries
 
 - `search-worker` has no REST controller and receives no source directory or generated server bundle.

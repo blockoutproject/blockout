@@ -709,6 +709,169 @@ test('workspace teams contract reconciles the eight audited operations', async (
   assert.equal(teams.components.parameters.FollowerUserId.required, true);
 });
 
+test('workspace pools contract reconciles the seven audited operations', async () => {
+  const pools = await readJson(path.join(generatedSpecsDir, 'pools.json'));
+  const operations = Object.entries(pools.paths).flatMap(
+    ([operationPath, pathItem]) =>
+      Object.entries(pathItem)
+        .filter(([method]) => method !== 'parameters')
+        .map(([method, operation]) => ({
+          key: `${method.toUpperCase()} ${operationPath}`,
+          operation,
+        })),
+  );
+  const expectedOperations = {
+    'DELETE /api/v2/pools/{id}': 'deactivatePool',
+    'GET /api/v2/pools': 'listPools',
+    'GET /api/v2/pools/{id}': 'getPool',
+    'POST /api/v2/pools': 'createPool',
+    'POST /api/v2/pools/{poolId}/followers/decrement': 'decrementPoolFollowers',
+    'POST /api/v2/pools/{poolId}/followers/increment': 'incrementPoolFollowers',
+    'PUT /api/v2/pools/{id}': 'updatePool',
+  };
+
+  assert.deepEqual(
+    Object.fromEntries(
+      operations
+        .map(({ key, operation }) => [key, operation.operationId])
+        .sort(([left], [right]) => left.localeCompare(right)),
+    ),
+    expectedOperations,
+  );
+  assert.equal(
+    new Set(operations.map(({ operation }) => operation.operationId)).size,
+    7,
+  );
+
+  const expectedScopes = {
+    createPool: 'create:pools',
+    deactivatePool: 'delete:pools',
+    decrementPoolFollowers: 'follow:pools',
+    incrementPoolFollowers: 'follow:pools',
+    updatePool: 'update:pools',
+  };
+  assert.deepEqual(
+    Object.fromEntries(
+      operations
+        .filter(({ operation }) => operation['x-required-scope'])
+        .map(({ operation }) => [
+          operation.operationId,
+          operation['x-required-scope'],
+        ])
+        .sort(([left], [right]) => left.localeCompare(right)),
+    ),
+    expectedScopes,
+  );
+  assert.deepEqual(pools.security, [{ bearerAuth: [] }]);
+
+  assert.deepEqual(
+    Object.keys(pools.components.schemas.PoolInternalResponse.properties).sort(
+      (left, right) => left.localeCompare(right),
+    ),
+    [
+      'active',
+      'divisionId',
+      'followersCount',
+      'format',
+      'gender',
+      'id',
+      'leagueCode',
+      'leagueName',
+      'name',
+      'poolCode',
+      'rawName',
+      'season',
+      'shortName',
+    ],
+  );
+
+  const createSchema = pools.components.schemas.CreatePoolInternalRequest;
+  assert.deepEqual(
+    Object.keys(createSchema.properties).sort((left, right) =>
+      left.localeCompare(right),
+    ),
+    [
+      'divisionId',
+      'format',
+      'gender',
+      'leagueCode',
+      'leagueName',
+      'name',
+      'poolCode',
+      'rawName',
+      'season',
+      'shortName',
+    ],
+  );
+  assert.deepEqual(createSchema.required, [
+    'poolCode',
+    'leagueCode',
+    'season',
+    'leagueName',
+    'rawName',
+    'name',
+    'shortName',
+    'divisionId',
+    'format',
+    'gender',
+  ]);
+
+  const updateSchema = pools.components.schemas.UpdatePoolInternalRequest;
+  assert.deepEqual(
+    Object.keys(updateSchema.properties).sort((left, right) =>
+      left.localeCompare(right),
+    ),
+    [
+      'active',
+      'divisionId',
+      'format',
+      'gender',
+      'leagueCode',
+      'leagueName',
+      'name',
+      'poolCode',
+      'rawName',
+      'season',
+      'shortName',
+    ],
+  );
+  assert.deepEqual(updateSchema.required, undefined);
+  assert.equal(updateSchema.properties.active.nullable, true);
+
+  assert.deepEqual(
+    Object.keys(pools.components.schemas.PoolInternalPageResponse.properties),
+    ['items', 'pageInfo'],
+  );
+  assert.deepEqual(
+    pools.paths['/api/v2/pools'].get.parameters.map(
+      (parameter) => parameter.$ref,
+    ),
+    [
+      '#/components/parameters/PoolLeagueCode',
+      '#/components/parameters/PoolSeason',
+      '#/components/parameters/PoolActive',
+      '#/components/parameters/PoolIds',
+      '#/components/parameters/Page',
+      '#/components/parameters/PageSize',
+    ],
+  );
+  assert.equal(pools.components.parameters.PoolIds.explode, true);
+
+  for (const action of ['increment', 'decrement']) {
+    const followerOperation =
+      pools.paths[`/api/v2/pools/{poolId}/followers/${action}`].post;
+    assert.deepEqual(Object.keys(followerOperation.responses).sort(), [
+      '204',
+      '401',
+      '403',
+      '404',
+      '500',
+    ]);
+  }
+  assert.equal(pools.components.parameters.FollowerUserId.name, 'userId');
+  assert.equal(pools.components.parameters.FollowerUserId.required, true);
+});
+
 test('workspace stable enums remain named top-level components', async () => {
   const sourceFiles = await listJsonFiles(sourceDir);
   const inlineEnumLocations = [];

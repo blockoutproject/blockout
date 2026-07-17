@@ -28,10 +28,10 @@ editing either artifact manually. CI regenerates both and requires a clean tree.
 
 The committed shared bundle contains the MRG-316 technical catalog. Deployable bundles inherit its security,
 pagination, request-correlation, and Problem Details components while resolving only the shared schemas their active
-operations or reusable components reference. MRG-317 through MRG-319 make `config.json`, `clubs.json`, and `teams.json`
-authoritative owner bundles, with their audited canonical operations and required wire fields. Later owner tasks
-populate the remaining service bundles. Bundle authority defines the target contract; it does not activate routes or
-change runtime authority.
+operations or reusable components reference. MRG-317 through MRG-320 make `config.json`, `clubs.json`, `teams.json`,
+and `pools.json` authoritative owner bundles, with their audited canonical operations and required wire fields. Later
+owner tasks populate the remaining service bundles. Bundle authority defines the target contract; it does not activate
+routes or change runtime authority.
 The bundler's fixture and workspace guarantees run through:
 
 ```bash

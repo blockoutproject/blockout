@@ -1,0 +1,31 @@
+{
+  "CreatePoolInternalRequest": {
+    "type": "object",
+    "description": "Pool creation input containing only caller-owned identity, display, and classification fields. Server identity, follower projection, lifecycle, and audit timestamps are not client-controlled.",
+    "required": [
+      "poolCode",
+      "leagueCode",
+      "season",
+      "leagueName",
+      "rawName",
+      "name",
+      "shortName",
+      "divisionId",
+      "format",
+      "gender"
+    ],
+    "properties": {
+      "poolCode": { "type": "string", "maxLength": 255 },
+      "leagueCode": { "type": "string", "maxLength": 255 },
+      "season": { "type": "string", "maxLength": 255 },
+      "leagueName": { "type": "string", "maxLength": 255 },
+      "rawName": { "type": "string", "maxLength": 255 },
+      "name": { "type": "string", "maxLength": 255 },
+      "shortName": { "type": "string", "maxLength": 255 },
+      "divisionId": { "$ref": "#/components/schemas/NumericIdentifier" },
+      "format": { "$ref": "#/components/schemas/FormatEnum" },
+      "gender": { "$ref": "#/components/schemas/GenderEnum" }
+    },
+    "additionalProperties": false
+  }
+}
