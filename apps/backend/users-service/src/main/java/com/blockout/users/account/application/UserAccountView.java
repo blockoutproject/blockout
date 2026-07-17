@@ -1,5 +1,6 @@
 package com.blockout.users.account.application;
 
+import com.blockout.users.favorite.application.FavoriteView;
 import java.time.Instant;
 import java.util.List;
 
@@ -16,7 +17,7 @@ public record UserAccountView(
         Boolean active,
         Instant createdAt,
         Instant lastUpdate,
-        List<UserFavoriteView> favorites) {
+        List<FavoriteView> favorites) {
 
     /** Preserves nullable legacy favorite semantics while preventing mutable account snapshots. */
     public UserAccountView {

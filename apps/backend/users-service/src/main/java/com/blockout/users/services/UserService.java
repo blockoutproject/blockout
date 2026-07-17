@@ -7,8 +7,8 @@ import com.blockout.users.config.Auth0Properties;
 import com.blockout.users.config.Auth0TokenManager;
 import com.blockout.users.exceptions.CustomUserEmailAlreadyUsedException;
 import com.blockout.users.exceptions.CustomUserNotFoundException;
+import com.blockout.users.favorite.application.FavoriteEventPublisher;
 import com.blockout.users.models.entities.CustomUser;
-import com.blockout.users.models.enums.EventType;
 import com.blockout.users.repositories.UserRepository;
 import com.blockout.users.utils.DiffUtils;
 
@@ -34,7 +34,7 @@ public class UserService {
 
     private final Auth0TokenManager tokenManager;
     private final UserRepository userRepository;
-    private final EventPublisher eventPublisher;
+    private final FavoriteEventPublisher eventPublisher;
     private final Auth0Properties auth0Properties;
 
     /**
@@ -74,11 +74,10 @@ public class UserService {
         try {
             user.getFavorites().forEach(fav -> {
                 try {
-                    eventPublisher.publishFollowEvent(
+                    eventPublisher.publishDeleted(
                             user.getId(),
                             fav.getEntityType(),
-                            fav.getEntityId(),
-                            EventType.DELETED);
+                            fav.getEntityId());
                 } catch (RuntimeException e) {
                     logger.error("Erreur lors de la publication de l'évènement de suppression de favori",
                             keyValue("action", "delete_user_publish_event"),

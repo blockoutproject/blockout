@@ -4,7 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.blockout.shared.model.EntityTypeEnum;
 import com.blockout.users.account.application.UserAccountView;
-import com.blockout.users.account.application.UserFavoriteView;
+import com.blockout.users.favorite.application.FavoriteView;
 import com.blockout.users.generated.api.UserAccountsApi;
 import com.blockout.users.generated.model.UserAccountInternalResponse;
 import com.blockout.users.models.enums.EntityType;
@@ -78,6 +78,6 @@ class UserAccountApiMapperUnitTest {
                 true,
                 createdAt,
                 Instant.parse("2026-07-02T10:00:00Z"),
-                List.of(new UserFavoriteView(5L, EntityType.TEAM, 11L, LocalDateTime.parse("2026-07-01T09:00:00"))));
+                List.of(new FavoriteView(5L, EntityType.TEAM, 11L, LocalDateTime.parse("2026-07-01T09:00:00"))));
     }
 }

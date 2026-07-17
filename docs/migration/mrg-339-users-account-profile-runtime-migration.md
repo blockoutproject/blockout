@@ -38,7 +38,7 @@ inside contract-first restructuring.
 | Concern                     | Owner and target                                                    |
 | --------------------------- | ------------------------------------------------------------------- |
 | Account query               | `UserAccountService`                                                |
-| Account/profile projection  | `UserAccountView` and `UserFavoriteView`                            |
+| Account/profile projection  | `UserAccountView` and favorite-owned `FavoriteView`                 |
 | Profile mutation intent     | `UpdateUserProfileCommand` and `UserProfileImageChange`             |
 | Account orchestration       | `UserAccountApplicationService`                                     |
 | Profile mutation behavior   | transactional `UserProfileMutationService`                          |
@@ -142,7 +142,8 @@ The active goal stops before Phase MRG-900 and therefore neither performs nor au
 
 ## Closed Scope
 
-- MRG-363 owns generated favorite boundaries and caller migration.
+- [MRG-363](mrg-363-users-favorites-runtime-migration.md) owns the generated favorite boundary and canonical
+  favorite authority; BFF and Expo caller migration remains deferred.
 - MRG-364 owns the deeper Auth0 identity-link, deletion, storage, and orchestration split.
 - MRG-341, MRG-343, MRG-347, and MRG-365 own notification, BFF, and Expo consumers.
 - MRG-369 and MRG-372 own favorite/follow event contracts and the users-service outbox.

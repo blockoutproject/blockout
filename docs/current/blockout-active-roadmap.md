@@ -784,8 +784,19 @@ state moves to GitHub and this file becomes a historical migration record.
     full backend packaging, documentation, Maaatch comparison, Prettier, and whitespace checks pass. Databases, events,
     BFF runtime, scraper runtime, standalone repositories, production, Maaatch, Blockout Orval settings, and Python
     generator settings are unchanged.
-- [ ] MRG-363 Migrate `users-service` favorite commands and projections, making favorites the canonical source while
+- [x] MRG-363 Migrate `users-service` favorite commands and projections, making favorites the canonical source while
       retaining counter, optimistic UI, and event compatibility.
+  - Evidence: `USER-07` through `USER-09` now implement generated `UserFavoritesApi` through favorite-owned command,
+    immutable view/page, transactional application service, strict persistence/API mapping, progressive Problem
+    Details, and payload-free compatibility telemetry. The isolated v1 adapter preserves its unpaged entity-shaped
+    snake_case array, query names, optional filter, repository order, scopes, statuses, errors, and idempotent no-op
+    behavior without exposing JPA entities. Users-service uses only generated team/pool follower clients and the dead
+    generic HTTP client is removed. Canonical favorite rows remain authoritative while the exact local row, remote
+    counter, then legacy event sequence and Expo optimistic contract remain unchanged; outbox and reconciliation are
+    explicitly deferred. Twenty-two users tests, generated server/client compilation, contract/lint, full backend,
+    documentation, Maaatch comparison, Prettier, and whitespace checks pass. Contracts, generated artifacts,
+    databases, event formats/topology, BFF, Expo, scrapers, standalone repositories, production, Maaatch, Blockout
+    Orval settings, and Python generator settings are unchanged.
 - [ ] MRG-364 Migrate `users-service` identity-link, account-deletion, and storage boundaries behind explicit Auth0 and
       S3 adapters without changing current deletion, retention, or authentication behavior.
 - [ ] MRG-340 Migrate `reports-service` generated server boundaries and internal generated clients while preserving

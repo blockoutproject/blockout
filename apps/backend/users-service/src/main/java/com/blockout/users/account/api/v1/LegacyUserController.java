@@ -5,7 +5,7 @@ import com.blockout.users.account.api.UserProfileImageUploads;
 import com.blockout.users.account.application.UpdateUserProfileCommand;
 import com.blockout.users.account.application.UserAccountService;
 import com.blockout.users.account.application.UserAccountView;
-import com.blockout.users.account.application.UserFavoriteView;
+import com.blockout.users.favorite.application.FavoriteView;
 import com.blockout.users.account.application.UserProfileImageChange;
 import com.blockout.users.account.application.UserProfileImageUpload;
 import com.blockout.users.models.enums.EntityType;
@@ -108,7 +108,7 @@ public class LegacyUserController {
     }
 
     /** Maps one application favorite to the legacy response shape. */
-    private LegacyUserFavoriteResponse favoriteResponse(UserFavoriteView favorite) {
+    private LegacyUserFavoriteResponse favoriteResponse(FavoriteView favorite) {
         return new LegacyUserFavoriteResponse(favorite.entityType(), favorite.entityId());
     }
 

@@ -3,6 +3,7 @@ package com.blockout.users.shared.api.v2;
 import com.blockout.shared.model.ProblemDetail;
 import com.blockout.users.account.api.v2.UserAccountV2Controller;
 import com.blockout.users.account.application.UserIdentityProviderException;
+import com.blockout.users.favorite.api.v2.UserFavoriteV2Controller;
 import com.blockout.users.exceptions.ConflictException;
 import com.blockout.users.exceptions.CustomUserEmailAlreadyUsedException;
 import com.blockout.users.exceptions.CustomUserNotFoundException;
@@ -24,7 +25,7 @@ import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 /** Translates canonical account/profile failures without changing the legacy error body. */
 @Order(Ordered.HIGHEST_PRECEDENCE)
-@RestControllerAdvice(assignableTypes = UserAccountV2Controller.class)
+@RestControllerAdvice(assignableTypes = {UserAccountV2Controller.class, UserFavoriteV2Controller.class})
 @RequiredArgsConstructor
 public class UsersV2ExceptionHandler {
 

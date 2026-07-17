@@ -366,6 +366,9 @@ and retained concurrency behavior are recorded in the
 The users-service account/profile boundary, explicit image intent, corrected positive numeric local identity,
 isolated legacy adapter, and activated matches-service generated user client are recorded in the
 [MRG-339 users migration](../migration/mrg-339-users-account-profile-runtime-migration.md).
+The favorite command/page boundary, canonical local authority, generated team/pool projection clients, retained event
+sequence, isolated legacy adapter, and deferred consistency work are recorded in the
+[MRG-363 favorites migration](../migration/mrg-363-users-favorites-runtime-migration.md).
 
 ## 12. Approved Roadmap Sequence
 
