@@ -21,13 +21,6 @@ def get_token() -> str:
         raise ValueError("Le token n'est pas encore défini.")
     return MIRROR_TOKEN
 
-def _get_headers() -> dict:
-    """
-    Génère les headers d'authentification avec le token JWT.
-    """
-    token = get_token()
-    return {"Authorization": f"Bearer {token}"}
-
 async def fetch_auth0_token():
     """
     Utilise le SDK Auth0 pour récupérer un token d'accès JWT.

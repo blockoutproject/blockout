@@ -268,13 +268,29 @@ class GeneratedClientTests(unittest.TestCase):
         )
         self.assertEqual("Bearer fresh-token", authenticated[2]["Authorization"])
 
-    def test_generated_source_is_not_imported_outside_blockout_adapter_foundation(self) -> None:
-        imports = []
+    def test_generated_source_is_confined_to_scraper_blockout_adapters(self) -> None:
+        imports = set()
         for scraper in ("club-scraper", "competition-scraper"):
             for source in (WORKSPACE_ROOT / f"apps/scrapers/{scraper}").rglob("*.py"):
                 if "blockout_contract_clients" in source.read_text():
-                    imports.append(source)
-        self.assertEqual([], imports)
+                    imports.add(source.relative_to(WORKSPACE_ROOT).as_posix())
+        self.assertEqual(
+            {
+                "apps/scrapers/club-scraper/api/blockout_client.py",
+                "apps/scrapers/club-scraper/api/clubs_api.py",
+                "apps/scrapers/club-scraper/api/competitions_api.py",
+                "apps/scrapers/club-scraper/api/config_api.py",
+                "apps/scrapers/club-scraper/api/teams_api.py",
+            },
+            imports,
+        )
+        club_root = WORKSPACE_ROOT / "apps/scrapers/club-scraper"
+        for adapter_name in ("clubs_api.py", "competitions_api.py", "config_api.py", "teams_api.py"):
+            adapter_source = (club_root / "api" / adapter_name).read_text()
+            self.assertNotIn("aiohttp", adapter_source)
+            self.assertNotIn("_get_headers", adapter_source)
+        self.assertFalse((club_root / "utils/handlers/api_handler.py").exists())
+        self.assertNotIn("def to_dict", (club_root / "utils/utils.py").read_text())
 
     def test_match_live_operations_have_separate_generated_async_owners(self) -> None:
         owners = {

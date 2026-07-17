@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+from contextlib import AsyncExitStack, asynccontextmanager
 from dataclasses import dataclass
 import inspect
 import json
-from typing import Any, Awaitable, Callable
+from typing import Any, AsyncIterator, Awaitable, Callable
 
 
 TokenSupplier = Callable[[], str | Awaitable[str]]
@@ -80,6 +81,13 @@ class BlockoutClientSession:
         await self.api_client.close()
 
 
+@dataclass(frozen=True)
+class ClubBlockoutClients:
+    clubs: BlockoutClientSession
+    teams: BlockoutClientSession
+    competition: BlockoutClientSession
+
+
 def create_status_client(
     configuration_type: type[Any], api_client_type: type[Any], host: str, token_supplier: TokenSupplier
 ) -> BlockoutClientSession:
@@ -92,6 +100,36 @@ def create_run_client(
     configuration_type: type[Any], api_client_type: type[Any], host: str, token_supplier: TokenSupplier
 ) -> BlockoutClientSession:
     return BlockoutClientSession.create(configuration_type, api_client_type, host, token_supplier, RUN_TIMEOUT_SECONDS)
+
+
+@asynccontextmanager
+async def create_run_clients(token_supplier: TokenSupplier) -> AsyncIterator[ClubBlockoutClients]:
+    from blockout_contract_clients.clubs_service.api_client import ApiClient as ClubsApiClient
+    from blockout_contract_clients.clubs_service.configuration import Configuration as ClubsConfiguration
+    from blockout_contract_clients.competition_service.api_client import ApiClient as CompetitionApiClient
+    from blockout_contract_clients.competition_service.configuration import Configuration as CompetitionConfiguration
+    from blockout_contract_clients.teams_service.api_client import ApiClient as TeamsApiClient
+    from blockout_contract_clients.teams_service.configuration import Configuration as TeamsConfiguration
+    from config.env_config import CLUB_API_URL, COMPETITION_API_URL, TEAM_API_URL
+
+    async with AsyncExitStack() as stack:
+        clients = ClubBlockoutClients(
+            clubs=await stack.enter_async_context(
+                create_run_client(ClubsConfiguration, ClubsApiClient, CLUB_API_URL, token_supplier)
+            ),
+            teams=await stack.enter_async_context(
+                create_run_client(TeamsConfiguration, TeamsApiClient, TEAM_API_URL, token_supplier)
+            ),
+            competition=await stack.enter_async_context(
+                create_run_client(
+                    CompetitionConfiguration,
+                    CompetitionApiClient,
+                    COMPETITION_API_URL,
+                    token_supplier,
+                )
+            ),
+        )
+        yield clients
 
 
 def _safe_payload(body: Any) -> dict[str, Any] | str | None:

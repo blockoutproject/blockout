@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from typing import Any, Mapping, Optional
 import aiohttp
 from prometheus_client import Gauge
+from api.blockout_client import ClubBlockoutClients
 from api.clubs_api import get_all_clubs
 from api.teams_api import get_unique_club_ids
 from config.logger_config import log_event, current_scraper
@@ -16,12 +17,14 @@ class Scraper(ABC):
 
     def __init__(
         self, 
-        session: aiohttp.ClientSession, 
+        session: aiohttp.ClientSession,
+        blockout_clients: ClubBlockoutClients,
         name: str, 
         url: str = None, 
         max_concurrency: int = 10
     ):
         self.session = session
+        self.blockout_clients = blockout_clients
         self.name = name
         self.url = url
         self._max_concurrency = max_concurrency
@@ -53,7 +56,7 @@ class Scraper(ABC):
         
         try:
             await self.init_clubs_cache()
-            club_ids = await get_unique_club_ids(self.session)
+            club_ids = await get_unique_club_ids(self.blockout_clients.teams)
             await self.run_scraping(club_ids)
         except Exception as e:
             log_event(
@@ -194,7 +197,7 @@ class Scraper(ABC):
         et les place dans le cache local (_clubs_cache) avec priority=DB.
         """
         try:
-            existing_clubs = await get_all_clubs(self.session) or []
+            existing_clubs = await get_all_clubs(self.blockout_clients.clubs) or []
             for c in existing_clubs:
                 club_key = (c.id)
                 

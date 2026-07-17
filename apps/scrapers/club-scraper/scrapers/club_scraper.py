@@ -3,6 +3,7 @@ import re
 from typing import Optional
 import aiohttp
 from bs4 import BeautifulSoup
+from api.blockout_client import ClubBlockoutClients
 from api.competitions_api import bulk_deactivate_clubs
 from config.logger_config import log_event
 from models.scraper import Scraper
@@ -11,9 +12,10 @@ from services.clubs_service import add_or_update_club
 from utils.utils import capitalize_words
 
 class ClubScraper(Scraper):
-    def __init__(self, session: aiohttp.ClientSession):
+    def __init__(self, session: aiohttp.ClientSession, blockout_clients: ClubBlockoutClients):
         super().__init__(
             session=session,
+            blockout_clients=blockout_clients,
             name="club_scraper",
         )
         # Compteur de succès de requêtes vers l'adressier (HTML non vide récupéré)
@@ -47,7 +49,7 @@ class ClubScraper(Scraper):
                         missing_pool_ids=missing_clubs_ids,
                         message="Désactivation en masse des clubs non scrapés (au moins une requête réussie)."
                     )
-                    await bulk_deactivate_clubs(self.session, missing_clubs_ids)
+                    await bulk_deactivate_clubs(self.blockout_clients.competition, missing_clubs_ids)
             else:
                 # Aucune requête réussie -> on NE désactive PAS
                 log_event(
@@ -101,7 +103,7 @@ class ClubScraper(Scraper):
                 for field in ['name', 'city', 'postal_code', 'email', 'phone_number', 'website', 'address']:
                     setattr(updated_obj, field, getattr(club, field, None))
 
-            new_club = await add_or_update_club(self.session, updated_obj, existing_obj)
+            new_club = await add_or_update_club(self.blockout_clients.clubs, updated_obj, existing_obj)
             self.scraped_club_ids.add(new_club.id)
 
         except Exception as e:

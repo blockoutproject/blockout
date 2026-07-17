@@ -2,7 +2,8 @@ import asyncio
 import aiohttp
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from datetime import datetime, timezone
-from api.auth0 import refresh_token_task
+from api.auth0 import get_token, refresh_token_task
+from api.blockout_client import create_run_clients
 from api.config_api import get_scraper_status
 from config.logger_config import log_event
 from scrapers.scraper_factory import ScraperFactory
@@ -30,16 +31,15 @@ async def scraper_enabled() -> bool:
     Vérifie via l'API si le scraper est activé.
     """
     try:
-        async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=10), trust_env=True) as session:
-            status = await get_scraper_status(session, SCRAPER_NAME)
-            if not status.enabled:
-                log_event(
-                    action="scraper_skipped",
-                    level="warning",
-                    message=f"Scraper '{SCRAPER_NAME}' désactivé via API config."
-                )
-                return False
-            return True
+        status = await get_scraper_status(SCRAPER_NAME)
+        if not status.enabled:
+            log_event(
+                action="scraper_skipped",
+                level="warning",
+                message=f"Scraper '{SCRAPER_NAME}' désactivé via API config."
+            )
+            return False
+        return True
     except Exception as e:
         log_event(
             action="scraper_status_fetch_failed",
@@ -58,12 +58,13 @@ async def run_scraper():
         connector = aiohttp.TCPConnector(limit=20, ssl=False)
         timeout = aiohttp.ClientTimeout(total=60)
         async with aiohttp.ClientSession(timeout=timeout, trust_env=True, connector=connector) as session:
-            tasks = []
-            for scraper_type in SCRAPER_TYPES:
-                current_scraper.set(scraper_type)
-                scraper = ScraperFactory.create_scraper(scraper_type, session)
-                tasks.append(scraper.scrape())
-            await asyncio.gather(*tasks)
+            async with create_run_clients(get_token) as blockout_clients:
+                tasks = []
+                for scraper_type in SCRAPER_TYPES:
+                    current_scraper.set(scraper_type)
+                    scraper = ScraperFactory.create_scraper(scraper_type, session, blockout_clients)
+                    tasks.append(scraper.scrape())
+                await asyncio.gather(*tasks)
 
 async def main():
     """

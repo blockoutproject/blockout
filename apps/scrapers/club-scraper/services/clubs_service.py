@@ -1,10 +1,14 @@
 from typing import Optional
-import aiohttp
+from api.blockout_client import BlockoutClientSession
 from config.logger_config import log_event
 from models.club import Club
 from api.clubs_api import create_club, update_club
 
-async def add_or_update_club(session: aiohttp.ClientSession, club: Club, existing_club: Optional[Club]) -> Club:
+async def add_or_update_club(
+    client: BlockoutClientSession,
+    club: Club,
+    existing_club: Optional[Club],
+) -> Club:
     """
     Vérifie si un club existe et le met à jour ou le crée selon les besoins.
     """
@@ -26,7 +30,7 @@ async def add_or_update_club(session: aiohttp.ClientSession, club: Club, existin
             changes_list.append("Club réactivé.")
 
         if changes_list:
-            new_club = await update_club(session, club)
+            new_club = await update_club(client, club)
             log_event(
                 action="update_club",
                 level="info",
@@ -39,7 +43,7 @@ async def add_or_update_club(session: aiohttp.ClientSession, club: Club, existin
         # Si aucune modification n'est nécessaire, on ne fait rien
         return existing_club
     else:
-        new_club = await create_club(session, club)
+        new_club = await create_club(client, club)
         log_event(
             action="create_club",
             level="info",

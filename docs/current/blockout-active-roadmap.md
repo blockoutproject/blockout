@@ -1041,10 +1041,29 @@ state moves to GitHub and this file becomes a historical migration record.
     whitespace checks pass. No scraper call, route, payload, provider/federation behavior, production, standalone
     repository, backend, Expo, event, database, or Maaatch file changes; the detailed boundary and proof record is
     `docs/migration/mrg-378-python-httpx-transport-migration.md`.
-- [ ] MRG-348 After MRG-378, migrate the `club-scraper`'s six audited Blockout operations to thin adapters over the
+- [x] MRG-348 After MRG-378, migrate the `club-scraper`'s six audited Blockout operations to thin adapters over the
       fully generated `httpx` clients, preserving Python snake_case application identifiers, Auth0 refresh,
       `trust_env`, connection limits/timeouts, multipart files, errors, scheduling, and provider aiohttp behavior;
       remove only migrated handwritten wire conversion.
+  - Evidence: the club scraper's `CLUB-01`, `CLUB-03`, `CLUB-04`, `COMP-06`, `CFG-14`, and `TEAM-06` calls now invoke
+    their generated HTTPX operation owners through four thin scraper adapters. Club and team-ID reads aggregate
+    canonical pages of 100 into the former complete application lists. Create/update use generated multipart models,
+    canonical aliases, explicit nullable values, address updates, and keep-logo intent; missing-club deactivation uses
+    the generated sorted `missingClubIds` command; scraper status uses the generated enum and maps only canonical
+    `name`/`enabled`. Generated responses project immediately to scraper `Club`/`ScraperStatus` models. A short-lived
+    config client owns each ten-second status probe, while an `AsyncExitStack` owns clubs, teams, and competition
+    clients for each 60-second run; per-call Auth0 token refresh, limit 20, proxy/trust-env behavior, zero retry, safe
+    errors, cancellation, and deterministic close remain in the MRG-378 foundation. The provider
+    `aiohttp.ClientSession` now reaches only the unchanged FFVB form POST and retains its timeout, semaphore, retry,
+    TLS, decoding, scheduling, concurrency, metrics, and logs. Handwritten Blockout URLs/methods/headers/FormData,
+    generic response/dataclass conversion, recursive `to_dict()`, and the manual Auth0 header builder are removed.
+    Eighteen Python tests prove all six operations, canonical models/aliases, multipart inputs, two paginators,
+    projections, status and run lifecycles, Auth0/error behavior, and generated-import confinement. Syntax, the
+    root-context image, and an ephemeral installed-image import of `main` and all four adapters pass. Environment,
+    documentation, Nx, Maaatch, formatting, generated-output, and whitespace gates pass. No provider/federation,
+    competition-scraper, backend, Expo, event, database, contract, generated source, standalone repository,
+    production, or Maaatch change; `docs/migration/mrg-348-club-scraper-generated-client-migration.md` records the
+    mapping, lifecycle, removal, compatibility, and rollback boundaries.
 - [ ] MRG-349 After MRG-378, migrate the `competition-scraper`'s eighteen audited Blockout operations to thin adapters
       over the fully generated `httpx` clients, preserving Python snake_case application identifiers, Auth0 refresh,
       `trust_env`, connection limits/timeouts, multipart files, errors, scheduling/concurrency, and provider aiohttp

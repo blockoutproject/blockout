@@ -1,19 +1,20 @@
 from typing import Set
-import aiohttp
-from config.env_config import COMPETITION_API_URL
-from utils.handlers.api_handler import handle_api_response
-from api.auth0 import _get_headers
+
+from blockout_contract_clients.competition_service.api.competition_lifecycle_api import CompetitionLifecycleApi
+from blockout_contract_clients.competition_service.models.missing_club_ids_internal_request import (
+    MissingClubIdsInternalRequest,
+)
+
+from api.blockout_client import BlockoutClientSession
 
 
-@handle_api_response(response_type=None)
 async def bulk_deactivate_clubs(
-    session: aiohttp.ClientSession,
-    missing_club_ids: Set[str]
+    client: BlockoutClientSession,
+    missing_club_ids: Set[str],
 ) -> None:
-    """
-    Désactive en masse les clubs absents de la liste.
-    """
-    headers = _get_headers()
-    url = f"{COMPETITION_API_URL}/clubs/bulk-deactivate"
-    payload = {"missing_club_ids": list(missing_club_ids)}
-    await session.put(url, json=payload, headers=headers)
+    """Deactivate missing clubs through the canonical generated command."""
+    command = MissingClubIdsInternalRequest(missing_club_ids=sorted(missing_club_ids))
+    await client.invoke(
+        CompetitionLifecycleApi(client.api_client).bulk_deactivate_competition_clubs,
+        missing_club_ids_internal_request=command,
+    )
