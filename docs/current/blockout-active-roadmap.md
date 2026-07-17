@@ -1171,9 +1171,19 @@ state moves to GitHub and this file becomes a historical migration record.
     required before publication. No deployment, production observation, v1 retirement, MRG-9xx, or MRG-1000 action;
     caller evidence, rollback, and the retained MRG-304 gate are recorded in
     `docs/migration/mrg-351-config-catalog-casing-cleanup.md`.
-- [ ] MRG-373 Remove global Jackson `SNAKE_CASE` and slice-owned Blockout annotations from competition, matches, and
+- [x] MRG-373 Remove global Jackson `SNAKE_CASE` and slice-owned Blockout annotations from competition, matches, and
       users canonical v2 paths only after every v2 caller uses camelCase; retain the isolated v1 transport adapters
       required by MRG-304.
+  - Evidence: competition, matches, and users no longer configure a global Jackson naming strategy; generated v2
+    association, ranking, lifecycle, match, live, moderation, account, favorite, identity, and Problem Details
+    boundaries serialize canonical camelCase with the default mapper after their owner and caller migrations. Current
+    main source contains no slice-owned `@JsonProperty`, `@JsonAlias`, or `@JsonNaming`; annotations inventoried before
+    the runtime migrations disappeared with their handwritten DTOs. Exactly three isolated v1 JSON mappers retain
+    local `SNAKE_CASE`, and their compatibility suites pass beside the focused default-mapper v2 suites and targeted
+    reactor. REST cleanup changes no outbox or event serialization. Complete backend compilation, repository gates,
+    generated-file checks, and CI are required before publication. No deployment, production observation, v1
+    retirement, event cutover, MRG-9xx, or MRG-1000 action; caller evidence, rollback, and the retained MRG-304 gate are
+    recorded in `docs/migration/mrg-373-competition-match-user-casing-cleanup.md`.
 - [ ] MRG-374 Remove global Jackson `SNAKE_CASE` and slice-owned Blockout annotations from reports, notifications,
       search-service, and search-worker canonical v2 paths only after every v2 caller uses camelCase; retain isolated
       v1 adapters and vendor-native mappings.

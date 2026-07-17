@@ -13,7 +13,6 @@ import com.blockout.shared.model.LiveLinkStatusEnum;
 import com.blockout.shared.model.LiveProviderEnum;
 import com.blockout.shared.model.MatchStatusEnum;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import jakarta.validation.Validation;
 import java.time.Instant;
 import org.junit.jupiter.api.Test;
@@ -30,15 +29,14 @@ class MatchModerationV2BoundaryTest {
     }
 
     @Test
-    void canonicalModerationProjectionStaysCamelCaseUnderTheTemporaryGlobalSnakeMapper() throws Exception {
+    void canonicalModerationProjectionUsesCamelCaseWithTheDefaultMapper() throws Exception {
         MatchModerationApiMapper mapper = Mappers.getMapper(MatchModerationApiMapper.class);
         var response = mapper.toResponse(new MatchLiveModerationView(
                 1L, "M1", "L1", 9L, 10L, 11L, Instant.parse("2026-07-17T10:00:00Z"), "2026",
                 "3-1", "75-70", MatchStatusEnum.FINISHED, 42L, 100L, LiveLinkStatusEnum.ACTIVE,
                 LiveProviderEnum.YOUTUBE, "https://youtu.be/a", "auth0|owner",
                 Instant.parse("2026-07-17T09:00:00Z")));
-        ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules()
-                .setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE);
+        ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
 
         String body = objectMapper.writeValueAsString(response);
 

@@ -22,7 +22,6 @@ import com.blockout.competitions.ranking.api.v2.CompetitionRankingsV2Controller;
 import com.blockout.competitions.ranking.application.PoolRankingView;
 import com.blockout.competitions.ranking.application.TeamRankingView;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import jakarta.validation.Validation;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -54,9 +53,8 @@ class CompetitionV2BoundaryTest {
     }
 
     @Test
-    void generatedLifecycleRequestsStayCamelCaseUnderTheTemporaryGlobalSnakeMapper() throws Exception {
-        ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules()
-                .setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE);
+    void generatedLifecycleRequestsUseCanonicalCamelCaseWithTheDefaultMapper() throws Exception {
+        ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
 
         String teams = objectMapper.writeValueAsString(new MissingTeamIdsInternalRequest(List.of(20L)));
         String pools = objectMapper.writeValueAsString(new MissingPoolIdsInternalRequest(List.of(30L)));
@@ -80,12 +78,11 @@ class CompetitionV2BoundaryTest {
     }
 
     @Test
-    void generatedRankingStaysCamelCaseUnderTheTemporaryGlobalSnakeMapper() throws Exception {
+    void generatedRankingUsesCanonicalCamelCaseWithTheDefaultMapper() throws Exception {
         CompetitionRankingApiMapper mapper = Mappers.getMapper(CompetitionRankingApiMapper.class);
         var response = mapper.toResponse(new PoolRankingView(10L, List.of(
                 new TeamRankingView(20L, 3, 1, 4, 2, 2, 1.5, 1.25))));
-        ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules()
-                .setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE);
+        ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
 
         String body = objectMapper.writeValueAsString(response);
 
@@ -95,11 +92,10 @@ class CompetitionV2BoundaryTest {
     }
 
     @Test
-    void generatedResponseStaysCamelCaseUnderTheTemporaryGlobalSnakeMapper() throws Exception {
+    void generatedResponseUsesCanonicalCamelCaseWithTheDefaultMapper() throws Exception {
         CompetitionAssociationApiMapper mapper = Mappers.getMapper(CompetitionAssociationApiMapper.class);
         CompetitionAssociationInternalResponse response = mapper.toResponse(view());
-        ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules()
-                .setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE);
+        ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
 
         String body = objectMapper.writeValueAsString(response);
 

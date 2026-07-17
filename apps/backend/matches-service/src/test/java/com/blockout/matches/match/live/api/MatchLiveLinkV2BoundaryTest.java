@@ -15,7 +15,6 @@ import com.blockout.matches.match.live.application.MatchLiveLinkResultView;
 import com.blockout.shared.model.LiveLinkStatusEnum;
 import com.blockout.shared.model.LiveProviderEnum;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import java.net.URI;
 import org.junit.jupiter.api.Test;
 import org.mapstruct.factory.Mappers;
@@ -45,12 +44,11 @@ class MatchLiveLinkV2BoundaryTest {
     }
 
     @Test
-    void canonicalResultStaysCamelCaseUnderTheTemporaryGlobalSnakeMapper() throws Exception {
+    void canonicalResultUsesCamelCaseWithTheDefaultMapper() throws Exception {
         MatchLiveLinkApiMapper mapper = Mappers.getMapper(MatchLiveLinkApiMapper.class);
         var response = mapper.toResponse(new MatchLiveLinkResultView(
                 1L, LiveProviderEnum.YOUTUBE, "https://youtu.be/a", LiveLinkStatusEnum.ACTIVE, 4, "auth0|owner"));
-        ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules()
-                .setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE);
+        ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
 
         String body = objectMapper.writeValueAsString(response);
 

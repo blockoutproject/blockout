@@ -13,7 +13,6 @@ import com.blockout.matches.match.api.v2.MatchesV2Controller;
 import com.blockout.matches.match.application.MatchSnapshot;
 import com.blockout.shared.model.MatchStatusEnum;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import jakarta.validation.Validation;
 import java.time.Instant;
 import java.util.List;
@@ -43,11 +42,10 @@ class MatchV2BoundaryTest {
     }
 
     @Test
-    void canonicalModelsStayCamelCaseUnderTheTemporaryGlobalSnakeMapper() throws Exception {
+    void canonicalModelsUseCamelCaseWithTheDefaultMapper() throws Exception {
         MatchApiMapper mapper = Mappers.getMapper(MatchApiMapper.class);
         MatchInternalResponse response = mapper.toResponse(snapshot());
-        ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules()
-                .setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE);
+        ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
 
         String body = objectMapper.writeValueAsString(response);
 

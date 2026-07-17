@@ -10,7 +10,6 @@ import com.blockout.users.generated.api.UserFavoritesApi;
 import com.blockout.users.generated.model.UserFavoritePageResponse;
 import com.blockout.users.models.enums.EntityType;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import java.time.LocalDateTime;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
@@ -54,12 +53,11 @@ class FavoriteApiMapperUnitTest {
         assertThat(response.getPageInfo().getHasNext()).isFalse();
     }
 
-    /** Proves generated v2 fields stay camelCase under the temporary global snake mapper. */
+    /** Proves generated v2 fields use camelCase with the default mapper. */
     @Test
     @DisplayName("keeps canonical camelCase serialization")
     void keepsCanonicalCamelCaseSerialization() throws Exception {
-        ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules()
-                .setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE);
+        ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
         FavoritePage page = new FavoritePage(
                 List.of(new FavoriteView(5L, EntityType.POOL, 13L, null)), 0, 25, 1, false);
 

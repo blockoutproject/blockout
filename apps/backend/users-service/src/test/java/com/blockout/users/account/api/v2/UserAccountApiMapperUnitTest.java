@@ -9,7 +9,6 @@ import com.blockout.users.generated.api.UserAccountsApi;
 import com.blockout.users.generated.model.UserAccountInternalResponse;
 import com.blockout.users.models.enums.EntityType;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import java.net.URI;
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -50,12 +49,11 @@ class UserAccountApiMapperUnitTest {
         });
     }
 
-    /** Proves generated account models retain camelCase under the temporary global snake mapper. */
+    /** Proves generated account models use camelCase with the default mapper. */
     @Test
     @DisplayName("keeps canonical camelCase serialization")
     void keepsCanonicalCamelCaseSerialization() throws Exception {
-        ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules()
-                .setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE);
+        ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
 
         String body = objectMapper.writeValueAsString(
                 mapper.toResponse(view(Instant.parse("2026-07-01T10:00:00Z"))));
