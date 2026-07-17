@@ -1,0 +1,136 @@
+{
+  "$defs": {
+    "ClubDeactivationV2Message": {
+      "bindings": {
+        "amqp": {
+          "bindingVersion": "0.3.0",
+          "contentEncoding": "UTF-8",
+          "messageType": "CLUB_DEACTIVATED"
+        }
+      },
+      "contentType": "application/json",
+      "headers": { "$ref": "../headers/blockout-v2-headers.json" },
+      "name": "ClubDeactivationV2Message",
+      "payload": {
+        "$ref": "../schemas/lifecycle.json#/$defs/ClubDeactivationV2Event"
+      },
+      "title": "Club deactivation v2",
+      "x-blockout-amqp-properties": [
+        "messageId",
+        "type",
+        "timestamp",
+        "correlationId"
+      ]
+    },
+    "ClubUpsertV2Message": {
+      "bindings": {
+        "amqp": {
+          "bindingVersion": "0.3.0",
+          "contentEncoding": "UTF-8",
+          "messageType": "CLUB_UPSERT"
+        }
+      },
+      "contentType": "application/json",
+      "headers": { "$ref": "../headers/blockout-v2-headers.json" },
+      "name": "ClubUpsertV2Message",
+      "payload": {
+        "$ref": "../schemas/lifecycle.json#/$defs/ClubUpsertV2Event"
+      },
+      "title": "Club upsert v2",
+      "x-blockout-amqp-properties": [
+        "messageId",
+        "type",
+        "timestamp",
+        "correlationId"
+      ]
+    },
+    "PoolDeactivationV2Message": {
+      "bindings": {
+        "amqp": {
+          "bindingVersion": "0.3.0",
+          "contentEncoding": "UTF-8",
+          "messageType": "POOL_DEACTIVATED"
+        }
+      },
+      "contentType": "application/json",
+      "headers": { "$ref": "../headers/blockout-v2-headers.json" },
+      "name": "PoolDeactivationV2Message",
+      "payload": {
+        "$ref": "../schemas/lifecycle.json#/$defs/PoolDeactivationV2Event"
+      },
+      "title": "Pool deactivation v2",
+      "x-blockout-amqp-properties": [
+        "messageId",
+        "type",
+        "timestamp",
+        "correlationId"
+      ]
+    },
+    "PoolUpsertV2Message": {
+      "bindings": {
+        "amqp": {
+          "bindingVersion": "0.3.0",
+          "contentEncoding": "UTF-8",
+          "messageType": "POOL_UPSERT"
+        }
+      },
+      "contentType": "application/json",
+      "headers": { "$ref": "../headers/blockout-v2-headers.json" },
+      "name": "PoolUpsertV2Message",
+      "payload": {
+        "$ref": "../schemas/lifecycle.json#/$defs/PoolUpsertV2Event"
+      },
+      "title": "Pool upsert v2",
+      "x-blockout-amqp-properties": [
+        "messageId",
+        "type",
+        "timestamp",
+        "correlationId"
+      ]
+    },
+    "TeamDeactivationV2Message": {
+      "bindings": {
+        "amqp": {
+          "bindingVersion": "0.3.0",
+          "contentEncoding": "UTF-8",
+          "messageType": "TEAM_DEACTIVATED"
+        }
+      },
+      "contentType": "application/json",
+      "headers": { "$ref": "../headers/blockout-v2-headers.json" },
+      "name": "TeamDeactivationV2Message",
+      "payload": {
+        "$ref": "../schemas/lifecycle.json#/$defs/TeamDeactivationV2Event"
+      },
+      "title": "Team deactivation v2",
+      "x-blockout-amqp-properties": [
+        "messageId",
+        "type",
+        "timestamp",
+        "correlationId"
+      ]
+    },
+    "TeamUpsertV2Message": {
+      "bindings": {
+        "amqp": {
+          "bindingVersion": "0.3.0",
+          "contentEncoding": "UTF-8",
+          "messageType": "TEAM_UPSERT"
+        }
+      },
+      "contentType": "application/json",
+      "headers": { "$ref": "../headers/blockout-v2-headers.json" },
+      "name": "TeamUpsertV2Message",
+      "payload": {
+        "$ref": "../schemas/lifecycle.json#/$defs/TeamUpsertV2Event"
+      },
+      "title": "Team upsert v2",
+      "x-blockout-amqp-properties": [
+        "messageId",
+        "type",
+        "timestamp",
+        "correlationId"
+      ]
+    }
+  }
+}

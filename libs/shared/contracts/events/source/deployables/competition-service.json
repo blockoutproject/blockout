@@ -1,0 +1,30 @@
+{
+  "asyncapi": "3.0.0",
+  "channels": {
+    "ClubDeactivation": {
+      "$ref": "../shared/channels/lifecycle.json#/$defs/ClubDeactivation"
+    },
+    "PoolDeactivation": {
+      "$ref": "../shared/channels/lifecycle.json#/$defs/PoolDeactivation"
+    },
+    "TeamDeactivation": {
+      "$ref": "../shared/channels/lifecycle.json#/$defs/TeamDeactivation"
+    }
+  },
+  "defaultContentType": "application/json",
+  "info": { "title": "competition-service event contract", "version": "2.0.0" },
+  "operations": {
+    "publishClubDeactivation": {
+      "action": "send",
+      "channel": { "$ref": "#/channels/ClubDeactivation" }
+    },
+    "publishPoolDeactivation": {
+      "action": "send",
+      "channel": { "$ref": "#/channels/PoolDeactivation" }
+    },
+    "publishTeamDeactivation": {
+      "action": "send",
+      "channel": { "$ref": "#/channels/TeamDeactivation" }
+    }
+  }
+}

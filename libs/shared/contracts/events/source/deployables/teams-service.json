@@ -1,0 +1,34 @@
+{
+  "asyncapi": "3.0.0",
+  "channels": {
+    "ClubDeactivation": {
+      "$ref": "../shared/channels/lifecycle.json#/$defs/ClubDeactivation"
+    },
+    "TeamDeactivation": {
+      "$ref": "../shared/channels/lifecycle.json#/$defs/TeamDeactivation"
+    },
+    "TeamUpsert": {
+      "$ref": "../shared/channels/lifecycle.json#/$defs/TeamUpsert"
+    }
+  },
+  "defaultContentType": "application/json",
+  "info": { "title": "teams-service event contract", "version": "2.0.0" },
+  "operations": {
+    "consumeClubDeactivation": {
+      "action": "receive",
+      "channel": { "$ref": "#/channels/ClubDeactivation" }
+    },
+    "consumeTeamDeactivation": {
+      "action": "receive",
+      "channel": { "$ref": "#/channels/TeamDeactivation" }
+    },
+    "publishTeamUpsert": {
+      "action": "send",
+      "channel": { "$ref": "#/channels/TeamUpsert" }
+    }
+  },
+  "x-blockout-primary-queues": [
+    "club.deactivation.queue.teams.v2",
+    "team.deactivation.queue.teams.v2"
+  ]
+}

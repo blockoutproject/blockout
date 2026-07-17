@@ -1,0 +1,16 @@
+{
+  "asyncapi": "3.0.0",
+  "channels": {},
+  "defaultContentType": "application/json",
+  "info": {
+    "title": "notification-service event contract",
+    "version": "2.0.0"
+  },
+  "operations": {},
+  "x-blockout-deferred-routes": [
+    "match.finished.v2",
+    "match.live-link-created.v2",
+    "team.follow.v2",
+    "pool.follow.v2"
+  ]
+}

@@ -1,0 +1,177 @@
+{
+  "ClubDeactivationV2Event": {
+    "amqpProperties": {
+      "correlationId": "migration-350",
+      "messageId": "00000000-0000-4000-8000-000000000004",
+      "timestamp": "2026-07-17T12:00:03Z",
+      "type": "CLUB_DEACTIVATED"
+    },
+    "body": {
+      "aggregateVersion": 4,
+      "correlationId": "migration-350",
+      "eventId": "00000000-0000-4000-8000-000000000004",
+      "eventType": "CLUB_DEACTIVATED",
+      "occurredAt": "2026-07-17T12:00:03Z",
+      "orderingKey": "club:club-1",
+      "payload": { "clubId": "club-1" },
+      "producer": "competition-service",
+      "schemaVersion": "2.0.0"
+    },
+    "headers": {
+      "x-blockout-aggregate-version": 4,
+      "x-blockout-ordering-key": "club:club-1",
+      "x-blockout-producer": "competition-service",
+      "x-blockout-schema-version": "2.0.0"
+    }
+  },
+  "ClubUpsertV2Event": {
+    "amqpProperties": {
+      "correlationId": "migration-350",
+      "messageId": "00000000-0000-4000-8000-000000000001",
+      "timestamp": "2026-07-17T12:00:00Z",
+      "type": "CLUB_UPSERT"
+    },
+    "body": {
+      "aggregateVersion": 1,
+      "correlationId": "migration-350",
+      "eventId": "00000000-0000-4000-8000-000000000001",
+      "eventType": "CLUB_UPSERT",
+      "occurredAt": "2026-07-17T12:00:00Z",
+      "orderingKey": "club:club-1",
+      "payload": {
+        "city": "Paris",
+        "id": "club-1",
+        "logoUrl": "https://cdn.example/club.png",
+        "name": "Club"
+      },
+      "producer": "clubs-service",
+      "schemaVersion": "2.0.0"
+    },
+    "headers": {
+      "x-blockout-aggregate-version": 1,
+      "x-blockout-ordering-key": "club:club-1",
+      "x-blockout-producer": "clubs-service",
+      "x-blockout-schema-version": "2.0.0"
+    }
+  },
+  "PoolDeactivationV2Event": {
+    "amqpProperties": {
+      "correlationId": "migration-350",
+      "messageId": "00000000-0000-4000-8000-000000000006",
+      "timestamp": "2026-07-17T12:00:05Z",
+      "type": "POOL_DEACTIVATED"
+    },
+    "body": {
+      "aggregateVersion": 6,
+      "correlationId": "migration-350",
+      "eventId": "00000000-0000-4000-8000-000000000006",
+      "eventType": "POOL_DEACTIVATED",
+      "occurredAt": "2026-07-17T12:00:05Z",
+      "orderingKey": "pool:4",
+      "payload": { "poolId": 4 },
+      "producer": "competition-service",
+      "schemaVersion": "2.0.0"
+    },
+    "headers": {
+      "x-blockout-aggregate-version": 6,
+      "x-blockout-ordering-key": "pool:4",
+      "x-blockout-producer": "competition-service",
+      "x-blockout-schema-version": "2.0.0"
+    }
+  },
+  "PoolUpsertV2Event": {
+    "amqpProperties": {
+      "correlationId": "migration-350",
+      "messageId": "00000000-0000-4000-8000-000000000003",
+      "timestamp": "2026-07-17T12:00:02Z",
+      "type": "POOL_UPSERT"
+    },
+    "body": {
+      "aggregateVersion": 3,
+      "correlationId": "migration-350",
+      "eventId": "00000000-0000-4000-8000-000000000003",
+      "eventType": "POOL_UPSERT",
+      "occurredAt": "2026-07-17T12:00:02Z",
+      "orderingKey": "pool:4",
+      "payload": {
+        "divisionId": 3,
+        "format": "SIX",
+        "gender": "F",
+        "id": 4,
+        "leagueCode": "ARA",
+        "leagueName": "League",
+        "name": "Pool",
+        "season": "2026/2027",
+        "shortName": "P"
+      },
+      "producer": "pools-service",
+      "schemaVersion": "2.0.0"
+    },
+    "headers": {
+      "x-blockout-aggregate-version": 3,
+      "x-blockout-ordering-key": "pool:4",
+      "x-blockout-producer": "pools-service",
+      "x-blockout-schema-version": "2.0.0"
+    }
+  },
+  "TeamDeactivationV2Event": {
+    "amqpProperties": {
+      "correlationId": "migration-350",
+      "messageId": "00000000-0000-4000-8000-000000000005",
+      "timestamp": "2026-07-17T12:00:04Z",
+      "type": "TEAM_DEACTIVATED"
+    },
+    "body": {
+      "aggregateVersion": 5,
+      "correlationId": "migration-350",
+      "eventId": "00000000-0000-4000-8000-000000000005",
+      "eventType": "TEAM_DEACTIVATED",
+      "occurredAt": "2026-07-17T12:00:04Z",
+      "orderingKey": "team:2",
+      "payload": { "teamId": 2 },
+      "producer": "competition-service",
+      "schemaVersion": "2.0.0"
+    },
+    "headers": {
+      "x-blockout-aggregate-version": 5,
+      "x-blockout-ordering-key": "team:2",
+      "x-blockout-producer": "competition-service",
+      "x-blockout-schema-version": "2.0.0"
+    }
+  },
+  "TeamUpsertV2Event": {
+    "amqpProperties": {
+      "correlationId": "migration-350",
+      "messageId": "00000000-0000-4000-8000-000000000002",
+      "timestamp": "2026-07-17T12:00:01Z",
+      "type": "TEAM_UPSERT"
+    },
+    "body": {
+      "aggregateVersion": 2,
+      "correlationId": "migration-350",
+      "eventId": "00000000-0000-4000-8000-000000000002",
+      "eventType": "TEAM_UPSERT",
+      "occurredAt": "2026-07-17T12:00:01Z",
+      "orderingKey": "team:2",
+      "payload": {
+        "clubId": "club-1",
+        "divisionId": 3,
+        "format": "SIX",
+        "gender": "M",
+        "id": 2,
+        "logoUrl": "https://cdn.example/team.png",
+        "name": "Team",
+        "season": "2026/2027",
+        "shortName": "TM"
+      },
+      "producer": "teams-service",
+      "schemaVersion": "2.0.0"
+    },
+    "headers": {
+      "x-blockout-aggregate-version": 2,
+      "x-blockout-ordering-key": "team:2",
+      "x-blockout-producer": "teams-service",
+      "x-blockout-schema-version": "2.0.0"
+    }
+  }
+}

@@ -1085,11 +1085,23 @@ state moves to GitHub and this file becomes a historical migration record.
     provider/federation behavior, backend, Expo, event, database, contract, generated source, standalone repository,
     production, Maaatch, MRG-350, MRG-9xx, or MRG-1000 change; the detailed record is
     `docs/migration/mrg-349-competition-scraper-generated-client-migration.md`.
-- [ ] MRG-350 Pin parser `3.6.0` and Modelina `5.10.1`; create local-reference AsyncAPI `3.0.0` source/bundles, the
+- [x] MRG-350 Pin parser `3.6.0` and Modelina `5.10.1`; create local-reference AsyncAPI `3.0.0` source/bundles, the
       component-only generation catalog, deterministic targets, and `apps/backend/event-contracts`; generate committed
       Java 21 records with `modelType: "record"`, `collectionType: "List"`, and package
       `com.blockout.events.v2.model`; then add audited club/team/pool lifecycle payloads and reconcile all 11 routes/19
       queues, including no EV-TPD/Q-11–Q-13/Q-16–Q-17 v2 activation.
+  - Evidence: the repository now pins parser `3.6.0` and Modelina `5.10.1` and owns local-reference AsyncAPI `3.0.0`
+    shared sources, eight deployable documents, a component-only catalog, direct parser/bundler/Modelina scripts, and
+    deterministic Nx targets. Nine committed resolved bundles contain no `$ref`; two final generations produce
+    identical SHA-256 sets. The isolated Maven module compiles twelve framework-free Java 21 records plus the six-value
+    `EventType` enum under `com.blockout.events.v2.model`, with Node absent from Maven. Six tests prove exact pins,
+    source/bundle validation, envelope and catalog shape, golden camelCase bodies/AMQP properties/stable headers,
+    generated-source confinement, and reconciliation of all 11 routes and 19 queues. Only club/team/pool upsert and
+    deactivation contracts are active: match/follow routes remain deferred, while `EV-TPD`, Q-11–Q-13, and Q-16–Q-17
+    have explicit no-v2 dispositions. `npm ci --dry-run`, formatting, XML, documentation, environment, Nx, Maaatch,
+    targeted Maven, and the complete 15-module backend compile pass. No runtime publisher, listener, broker, outbox,
+    database, REST, BFF, Expo, scraper, production, standalone repository, Maaatch, MRG-9xx, or MRG-1000 change; the
+    detailed boundary and rollback record is `docs/migration/mrg-350-asyncapi-event-contract-foundation.md`.
 - [ ] MRG-369 Add the audited favorite/follow `EventType` values, AsyncAPI payloads, generated records, publisher and
       consumer adapter mappings, canonical positive numeric user IDs, idempotent/rebuildable projections, compatibility,
       reconciliation, golden JSON, and rollback without changing the MRG-315 envelope/tooling/topology.

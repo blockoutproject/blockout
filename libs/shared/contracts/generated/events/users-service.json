@@ -1,0 +1,18 @@
+{
+  "asyncapi": "3.0.0",
+  "channels": {},
+  "defaultContentType": "application/json",
+  "info": {
+    "title": "users-service event contract",
+    "version": "2.0.0"
+  },
+  "operations": {},
+  "x-blockout-deferred-routes": [
+    "team.follow.v2",
+    "pool.follow.v2"
+  ],
+  "x-blockout-excluded-v2-queues": [
+    "team.follow.queue.teams.v2",
+    "pool.follow.queue.pools.v2"
+  ]
+}

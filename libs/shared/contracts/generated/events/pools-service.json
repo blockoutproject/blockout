@@ -1,0 +1,663 @@
+{
+  "asyncapi": "3.0.0",
+  "channels": {
+    "PoolDeactivation": {
+      "address": "pool.deactivation.v2",
+      "bindings": {
+        "amqp": {
+          "bindingVersion": "0.3.0",
+          "exchange": {
+            "autoDelete": false,
+            "durable": true,
+            "name": "entity.lifecycle.exchange",
+            "type": "topic"
+          },
+          "is": "routingKey"
+        }
+      },
+      "messages": {
+        "PoolDeactivationV2Message": {
+          "bindings": {
+            "amqp": {
+              "bindingVersion": "0.3.0",
+              "contentEncoding": "UTF-8",
+              "messageType": "POOL_DEACTIVATED"
+            }
+          },
+          "contentType": "application/json",
+          "headers": {
+            "additionalProperties": false,
+            "properties": {
+              "x-blockout-aggregate-version": {
+                "format": "int64",
+                "minimum": 0,
+                "type": "integer"
+              },
+              "x-blockout-ordering-key": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "x-blockout-producer": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "x-blockout-schema-version": {
+                "const": "2.0.0",
+                "type": "string"
+              }
+            },
+            "required": [
+              "x-blockout-schema-version",
+              "x-blockout-producer",
+              "x-blockout-ordering-key"
+            ],
+            "type": "object"
+          },
+          "name": "PoolDeactivationV2Message",
+          "payload": {
+            "additionalProperties": false,
+            "properties": {
+              "aggregateVersion": {
+                "format": "int64",
+                "minimum": 0,
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "correlationId": {
+                "minLength": 1,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "eventId": {
+                "format": "uuid",
+                "type": "string"
+              },
+              "eventType": {
+                "enum": [
+                  "CLUB_UPSERT",
+                  "TEAM_UPSERT",
+                  "POOL_UPSERT",
+                  "CLUB_DEACTIVATED",
+                  "TEAM_DEACTIVATED",
+                  "POOL_DEACTIVATED"
+                ],
+                "type": "string"
+              },
+              "occurredAt": {
+                "format": "date-time",
+                "type": "string"
+              },
+              "orderingKey": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "payload": {
+                "additionalProperties": false,
+                "properties": {
+                  "poolId": {
+                    "format": "int64",
+                    "minimum": 1,
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "poolId"
+                ],
+                "type": "object"
+              },
+              "producer": {
+                "const": "competition-service",
+                "type": "string"
+              },
+              "schemaVersion": {
+                "const": "2.0.0",
+                "type": "string"
+              }
+            },
+            "required": [
+              "eventId",
+              "eventType",
+              "schemaVersion",
+              "occurredAt",
+              "producer",
+              "orderingKey",
+              "payload"
+            ],
+            "type": "object"
+          },
+          "title": "Pool deactivation v2",
+          "x-blockout-amqp-properties": [
+            "messageId",
+            "type",
+            "timestamp",
+            "correlationId"
+          ]
+        }
+      }
+    },
+    "PoolUpsert": {
+      "address": "pool.upsert.v2",
+      "bindings": {
+        "amqp": {
+          "bindingVersion": "0.3.0",
+          "exchange": {
+            "autoDelete": false,
+            "durable": true,
+            "name": "entity.lifecycle.exchange",
+            "type": "topic"
+          },
+          "is": "routingKey"
+        }
+      },
+      "messages": {
+        "PoolUpsertV2Message": {
+          "bindings": {
+            "amqp": {
+              "bindingVersion": "0.3.0",
+              "contentEncoding": "UTF-8",
+              "messageType": "POOL_UPSERT"
+            }
+          },
+          "contentType": "application/json",
+          "headers": {
+            "additionalProperties": false,
+            "properties": {
+              "x-blockout-aggregate-version": {
+                "format": "int64",
+                "minimum": 0,
+                "type": "integer"
+              },
+              "x-blockout-ordering-key": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "x-blockout-producer": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "x-blockout-schema-version": {
+                "const": "2.0.0",
+                "type": "string"
+              }
+            },
+            "required": [
+              "x-blockout-schema-version",
+              "x-blockout-producer",
+              "x-blockout-ordering-key"
+            ],
+            "type": "object"
+          },
+          "name": "PoolUpsertV2Message",
+          "payload": {
+            "additionalProperties": false,
+            "properties": {
+              "aggregateVersion": {
+                "format": "int64",
+                "minimum": 0,
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "correlationId": {
+                "minLength": 1,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "eventId": {
+                "format": "uuid",
+                "type": "string"
+              },
+              "eventType": {
+                "enum": [
+                  "CLUB_UPSERT",
+                  "TEAM_UPSERT",
+                  "POOL_UPSERT",
+                  "CLUB_DEACTIVATED",
+                  "TEAM_DEACTIVATED",
+                  "POOL_DEACTIVATED"
+                ],
+                "type": "string"
+              },
+              "occurredAt": {
+                "format": "date-time",
+                "type": "string"
+              },
+              "orderingKey": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "payload": {
+                "additionalProperties": false,
+                "properties": {
+                  "divisionId": {
+                    "format": "int64",
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  "format": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "gender": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "id": {
+                    "format": "int64",
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  "leagueCode": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "leagueName": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "name": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "season": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "shortName": {
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "name",
+                  "shortName",
+                  "divisionId",
+                  "leagueCode",
+                  "leagueName",
+                  "season",
+                  "format",
+                  "gender"
+                ],
+                "type": "object"
+              },
+              "producer": {
+                "const": "pools-service",
+                "type": "string"
+              },
+              "schemaVersion": {
+                "const": "2.0.0",
+                "type": "string"
+              }
+            },
+            "required": [
+              "eventId",
+              "eventType",
+              "schemaVersion",
+              "occurredAt",
+              "producer",
+              "orderingKey",
+              "payload"
+            ],
+            "type": "object"
+          },
+          "title": "Pool upsert v2",
+          "x-blockout-amqp-properties": [
+            "messageId",
+            "type",
+            "timestamp",
+            "correlationId"
+          ]
+        }
+      }
+    }
+  },
+  "defaultContentType": "application/json",
+  "info": {
+    "title": "pools-service event contract",
+    "version": "2.0.0"
+  },
+  "operations": {
+    "consumePoolDeactivation": {
+      "action": "receive",
+      "channel": {
+        "address": "pool.deactivation.v2",
+        "bindings": {
+          "amqp": {
+            "bindingVersion": "0.3.0",
+            "exchange": {
+              "autoDelete": false,
+              "durable": true,
+              "name": "entity.lifecycle.exchange",
+              "type": "topic"
+            },
+            "is": "routingKey"
+          }
+        },
+        "messages": {
+          "PoolDeactivationV2Message": {
+            "bindings": {
+              "amqp": {
+                "bindingVersion": "0.3.0",
+                "contentEncoding": "UTF-8",
+                "messageType": "POOL_DEACTIVATED"
+              }
+            },
+            "contentType": "application/json",
+            "headers": {
+              "additionalProperties": false,
+              "properties": {
+                "x-blockout-aggregate-version": {
+                  "format": "int64",
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "x-blockout-ordering-key": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "x-blockout-producer": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "x-blockout-schema-version": {
+                  "const": "2.0.0",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "x-blockout-schema-version",
+                "x-blockout-producer",
+                "x-blockout-ordering-key"
+              ],
+              "type": "object"
+            },
+            "name": "PoolDeactivationV2Message",
+            "payload": {
+              "additionalProperties": false,
+              "properties": {
+                "aggregateVersion": {
+                  "format": "int64",
+                  "minimum": 0,
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                },
+                "correlationId": {
+                  "minLength": 1,
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "eventId": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "eventType": {
+                  "enum": [
+                    "CLUB_UPSERT",
+                    "TEAM_UPSERT",
+                    "POOL_UPSERT",
+                    "CLUB_DEACTIVATED",
+                    "TEAM_DEACTIVATED",
+                    "POOL_DEACTIVATED"
+                  ],
+                  "type": "string"
+                },
+                "occurredAt": {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                "orderingKey": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "payload": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "poolId": {
+                      "format": "int64",
+                      "minimum": 1,
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "poolId"
+                  ],
+                  "type": "object"
+                },
+                "producer": {
+                  "const": "competition-service",
+                  "type": "string"
+                },
+                "schemaVersion": {
+                  "const": "2.0.0",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "eventId",
+                "eventType",
+                "schemaVersion",
+                "occurredAt",
+                "producer",
+                "orderingKey",
+                "payload"
+              ],
+              "type": "object"
+            },
+            "title": "Pool deactivation v2",
+            "x-blockout-amqp-properties": [
+              "messageId",
+              "type",
+              "timestamp",
+              "correlationId"
+            ]
+          }
+        }
+      }
+    },
+    "publishPoolUpsert": {
+      "action": "send",
+      "channel": {
+        "address": "pool.upsert.v2",
+        "bindings": {
+          "amqp": {
+            "bindingVersion": "0.3.0",
+            "exchange": {
+              "autoDelete": false,
+              "durable": true,
+              "name": "entity.lifecycle.exchange",
+              "type": "topic"
+            },
+            "is": "routingKey"
+          }
+        },
+        "messages": {
+          "PoolUpsertV2Message": {
+            "bindings": {
+              "amqp": {
+                "bindingVersion": "0.3.0",
+                "contentEncoding": "UTF-8",
+                "messageType": "POOL_UPSERT"
+              }
+            },
+            "contentType": "application/json",
+            "headers": {
+              "additionalProperties": false,
+              "properties": {
+                "x-blockout-aggregate-version": {
+                  "format": "int64",
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "x-blockout-ordering-key": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "x-blockout-producer": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "x-blockout-schema-version": {
+                  "const": "2.0.0",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "x-blockout-schema-version",
+                "x-blockout-producer",
+                "x-blockout-ordering-key"
+              ],
+              "type": "object"
+            },
+            "name": "PoolUpsertV2Message",
+            "payload": {
+              "additionalProperties": false,
+              "properties": {
+                "aggregateVersion": {
+                  "format": "int64",
+                  "minimum": 0,
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                },
+                "correlationId": {
+                  "minLength": 1,
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "eventId": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "eventType": {
+                  "enum": [
+                    "CLUB_UPSERT",
+                    "TEAM_UPSERT",
+                    "POOL_UPSERT",
+                    "CLUB_DEACTIVATED",
+                    "TEAM_DEACTIVATED",
+                    "POOL_DEACTIVATED"
+                  ],
+                  "type": "string"
+                },
+                "occurredAt": {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                "orderingKey": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "payload": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "divisionId": {
+                      "format": "int64",
+                      "minimum": 1,
+                      "type": "integer"
+                    },
+                    "format": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "gender": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "id": {
+                      "format": "int64",
+                      "minimum": 1,
+                      "type": "integer"
+                    },
+                    "leagueCode": {
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "leagueName": {
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "name": {
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "season": {
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "shortName": {
+                      "minLength": 1,
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "shortName",
+                    "divisionId",
+                    "leagueCode",
+                    "leagueName",
+                    "season",
+                    "format",
+                    "gender"
+                  ],
+                  "type": "object"
+                },
+                "producer": {
+                  "const": "pools-service",
+                  "type": "string"
+                },
+                "schemaVersion": {
+                  "const": "2.0.0",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "eventId",
+                "eventType",
+                "schemaVersion",
+                "occurredAt",
+                "producer",
+                "orderingKey",
+                "payload"
+              ],
+              "type": "object"
+            },
+            "title": "Pool upsert v2",
+            "x-blockout-amqp-properties": [
+              "messageId",
+              "type",
+              "timestamp",
+              "correlationId"
+            ]
+          }
+        }
+      }
+    }
+  },
+  "x-blockout-primary-queues": [
+    "pool.deactivation.queue.pools.v2"
+  ]
+}

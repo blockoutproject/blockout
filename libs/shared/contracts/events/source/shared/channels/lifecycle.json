@@ -1,0 +1,124 @@
+{
+  "$defs": {
+    "ClubDeactivation": {
+      "address": "club.deactivation.v2",
+      "bindings": {
+        "amqp": {
+          "bindingVersion": "0.3.0",
+          "exchange": {
+            "autoDelete": false,
+            "durable": true,
+            "name": "entity.lifecycle.exchange",
+            "type": "topic"
+          },
+          "is": "routingKey"
+        }
+      },
+      "messages": {
+        "ClubDeactivationV2Message": {
+          "$ref": "../messages/lifecycle.json#/$defs/ClubDeactivationV2Message"
+        }
+      }
+    },
+    "ClubUpsert": {
+      "address": "club.upsert.v2",
+      "bindings": {
+        "amqp": {
+          "bindingVersion": "0.3.0",
+          "exchange": {
+            "autoDelete": false,
+            "durable": true,
+            "name": "entity.lifecycle.exchange",
+            "type": "topic"
+          },
+          "is": "routingKey"
+        }
+      },
+      "messages": {
+        "ClubUpsertV2Message": {
+          "$ref": "../messages/lifecycle.json#/$defs/ClubUpsertV2Message"
+        }
+      }
+    },
+    "PoolDeactivation": {
+      "address": "pool.deactivation.v2",
+      "bindings": {
+        "amqp": {
+          "bindingVersion": "0.3.0",
+          "exchange": {
+            "autoDelete": false,
+            "durable": true,
+            "name": "entity.lifecycle.exchange",
+            "type": "topic"
+          },
+          "is": "routingKey"
+        }
+      },
+      "messages": {
+        "PoolDeactivationV2Message": {
+          "$ref": "../messages/lifecycle.json#/$defs/PoolDeactivationV2Message"
+        }
+      }
+    },
+    "PoolUpsert": {
+      "address": "pool.upsert.v2",
+      "bindings": {
+        "amqp": {
+          "bindingVersion": "0.3.0",
+          "exchange": {
+            "autoDelete": false,
+            "durable": true,
+            "name": "entity.lifecycle.exchange",
+            "type": "topic"
+          },
+          "is": "routingKey"
+        }
+      },
+      "messages": {
+        "PoolUpsertV2Message": {
+          "$ref": "../messages/lifecycle.json#/$defs/PoolUpsertV2Message"
+        }
+      }
+    },
+    "TeamDeactivation": {
+      "address": "team.deactivation.v2",
+      "bindings": {
+        "amqp": {
+          "bindingVersion": "0.3.0",
+          "exchange": {
+            "autoDelete": false,
+            "durable": true,
+            "name": "entity.lifecycle.exchange",
+            "type": "topic"
+          },
+          "is": "routingKey"
+        }
+      },
+      "messages": {
+        "TeamDeactivationV2Message": {
+          "$ref": "../messages/lifecycle.json#/$defs/TeamDeactivationV2Message"
+        }
+      }
+    },
+    "TeamUpsert": {
+      "address": "team.upsert.v2",
+      "bindings": {
+        "amqp": {
+          "bindingVersion": "0.3.0",
+          "exchange": {
+            "autoDelete": false,
+            "durable": true,
+            "name": "entity.lifecycle.exchange",
+            "type": "topic"
+          },
+          "is": "routingKey"
+        }
+      },
+      "messages": {
+        "TeamUpsertV2Message": {
+          "$ref": "../messages/lifecycle.json#/$defs/TeamUpsertV2Message"
+        }
+      }
+    }
+  }
+}

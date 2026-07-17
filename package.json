@@ -16,6 +16,8 @@
     "libs/react/*"
   ],
   "devDependencies": {
+    "@asyncapi/modelina": "5.10.1",
+    "@asyncapi/parser": "3.6.0",
     "@nx/expo": "23.0.0",
     "@nx/js": "23.0.0",
     "@nx/maven": "23.0.0",

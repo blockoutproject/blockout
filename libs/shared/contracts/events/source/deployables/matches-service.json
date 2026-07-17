@@ -1,0 +1,16 @@
+{
+  "asyncapi": "3.0.0",
+  "channels": {},
+  "defaultContentType": "application/json",
+  "info": { "title": "matches-service event contract", "version": "2.0.0" },
+  "operations": {},
+  "x-blockout-deferred-routes": [
+    "match.finished.v2",
+    "match.live-link-created.v2"
+  ],
+  "x-blockout-excluded-v2-queues": [
+    "team.deactivation.queue.matches.v2",
+    "pool.deactivation.queue.matches.v2",
+    "teambypool.deactivation.queue.matches.v2"
+  ]
+}

@@ -78,6 +78,62 @@
           }
         ]
       },
+      "generate-event-bundles": {
+        "executor": "nx:run-commands",
+        "cache": true,
+        "inputs": [
+          "{projectRoot}/events/source/**/*.json",
+          "{projectRoot}/events/scripts/bundle-events.mjs",
+          "{projectRoot}/events/scripts/event-contract-utils.mjs",
+          "{workspaceRoot}/package-lock.json"
+        ],
+        "outputs": [
+          "{projectRoot}/generated/events/*.json"
+        ],
+        "options": {
+          "command": "node libs/shared/contracts/events/scripts/bundle-events.mjs"
+        }
+      },
+      "generate-event-models": {
+        "executor": "nx:run-commands",
+        "cache": true,
+        "dependsOn": [
+          {
+            "target": "generate-event-bundles"
+          }
+        ],
+        "inputs": [
+          "{projectRoot}/events/source/**/*.json",
+          "{projectRoot}/events/scripts/generate-java-events.mjs",
+          "{projectRoot}/events/scripts/event-contract-utils.mjs",
+          "{workspaceRoot}/package-lock.json"
+        ],
+        "outputs": [
+          "{workspaceRoot}/apps/backend/event-contracts/src/generated/java/**"
+        ],
+        "options": {
+          "command": "node libs/shared/contracts/events/scripts/generate-java-events.mjs"
+        }
+      },
+      "generate-event-contracts": {
+        "executor": "nx:noop",
+        "outputs": [
+          "{projectRoot}/generated/events/*.json",
+          "{workspaceRoot}/apps/backend/event-contracts/src/generated/java/**"
+        ],
+        "dependsOn": [
+          {
+            "target": "generate-event-models"
+          }
+        ]
+      },
+      "test-event-contracts": {
+        "executor": "nx:run-commands",
+        "cache": false,
+        "options": {
+          "command": "node --test libs/shared/contracts/events/scripts/event-contracts.test.mjs"
+        }
+      },
       "generate-python-clients": {
         "executor": "nx:run-commands",
         "cache": true,
