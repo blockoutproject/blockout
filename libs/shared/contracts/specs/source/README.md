@@ -82,7 +82,8 @@ directory.
 
 ## Generation Boundary
 
-MRG-306 will port the deterministic Maaatch-shaped bundler and discover service directories lexicographically. It will
-write only to `libs/shared/contracts/generated/specs/**`. MRG-307 owns bundle tests, and MRG-308 owns source lint. Until
-those tasks are complete, this layout does not claim that generation is available or that any service is
-contract-authoritative.
+MRG-306 through MRG-309 establish the deterministic Maaatch-shaped bundler, tests, source lint, committed source shells,
+and generated bundles. The bundler discovers service directories lexicographically, cleans its owned output, and
+writes only to `libs/shared/contracts/generated/specs/**`. Empty `paths` and `schemas` in the initial bundles state that
+no canonical operation or business shape exists yet; MRG-316 and the owner contract tasks populate them. Generation
+availability does not by itself make a service contract-authoritative.

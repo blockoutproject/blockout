@@ -292,8 +292,13 @@ state moves to GitHub and this file becomes a historical migration record.
     exceptions; malformed, duplicate, and stale exceptions fail. The cached `lint-openapi-source` Nx target and both
     shadow CI workflows enforce the empty current exception registry; the full nine-test contract suite, formatting,
     Nx discovery, documentation links, Maaatch comparison, typecheck, and diff checks pass.
-- [ ] MRG-309 Introduce generated OpenAPI bundles under `libs/shared/contracts/generated/specs/**` and prove two clean
+- [x] MRG-309 Introduce generated OpenAPI bundles under `libs/shared/contracts/generated/specs/**` and prove two clean
       generations produce no diff.
+  - Evidence: 12 minimal OpenAPI 3.0.3 source shells and their committed generated bundles cover shared, every REST
+    owner, and the Expo-facing `mobile-gateway` without inventing operations, business schemas, security, or runtime
+    authority. The generator now cleans its owned output, the bundle suite rejects stale artifacts, and both shadow CI
+    workflows regenerate and require a clean generated tree; source lint, nine tests, two consecutive generations,
+    formatting, documentation links, Maaatch comparison, typecheck, shell-shape checks, and diff checks pass.
 - [ ] MRG-310 Port Maaatch's generated `schemaMappings` synchronizer and protect its backend parent block from manual
       edits.
 - [ ] MRG-311 Configure the backend parent plugin management, Java type mappings, generated-source ownership, and

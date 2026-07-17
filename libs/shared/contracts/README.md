@@ -13,8 +13,10 @@ The deterministic bundle entrypoint is available through:
 npm exec nx run @blockout/contracts:generate-openapi-bundles
 ```
 
-It discovers future service source directories lexicographically and writes bundles only to `generated/specs/*.json`.
-Until an owning roadmap task adds a real `base.json`, the command succeeds without manufacturing placeholder output.
+It discovers service source directories lexicographically, cleans its owned output directory, and writes bundles only
+to `generated/specs/*.json`. The committed bundles currently contain the shared and deployable contract shells with no
+operations or business schemas. MRG-316 and the owner contract tasks populate those shells; their presence alone does
+not make a runtime boundary contract-authoritative.
 The bundler's fixture and workspace guarantees run through:
 
 ```bash

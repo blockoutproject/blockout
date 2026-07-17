@@ -307,6 +307,9 @@ test('fixture bundles transitive schemas, shared enums, and stable output', asyn
     path.join(fixture.generatedSpecsDir, 'shared.json'),
     'utf8',
   );
+  await writeJson(path.join(fixture.generatedSpecsDir, 'stale.json'), {
+    stale: true,
+  });
 
   const secondResult = runBundle(fixture.scriptFile, fixture.projectRoot);
   assert.equal(

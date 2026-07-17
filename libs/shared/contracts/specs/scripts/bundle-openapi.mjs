@@ -1,4 +1,4 @@
-import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -228,6 +228,7 @@ async function bundle() {
     a.localeCompare(b),
   );
   const services = await discoverServices();
+  await rm(generatedSpecsDir, { recursive: true, force: true });
 
   for (const service of services) {
     const serviceDir = path.join(servicesDir, service);
