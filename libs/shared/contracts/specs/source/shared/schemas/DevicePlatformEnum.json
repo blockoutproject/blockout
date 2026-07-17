@@ -1,0 +1,7 @@
+{
+  "DevicePlatformEnum": {
+    "type": "string",
+    "description": "Platforms accepted by Blockout notification token contracts.",
+    "enum": ["IOS", "ANDROID", "WEB", "UNKNOWN"]
+  }
+}

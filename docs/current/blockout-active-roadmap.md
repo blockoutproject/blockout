@@ -351,8 +351,15 @@ state moves to GitHub and this file becomes a historical migration record.
     documentation links, roadmap ownership, formatting, documentation validation, Maaatch comparison, unchanged
     backend packaging, and diff checks pass without creating event source, generated records, broker topology,
     publishers, listeners, outboxes, deployments, or runtime behavior.
-- [ ] MRG-316 Add shared REST primitives for Problem Details errors, security, pagination, bounded lists, identifiers,
+- [x] MRG-316 Add shared REST primitives for Problem Details errors, security, pagination, bounded lists, identifiers,
       dates, and shared enums before service-specific schemas duplicate them.
+  - Evidence: the authoritative shared catalog now contains `ProblemDetail`, `PageInfo`, UUID/numeric identifier and
+    calendar/UTC date aliases, the exact twelve approved enum wires, Bearer JWT security, request correlation, bounded
+    page parameters, and reusable `400`/`401`/`403`/`404`/`409`/`413`/`500` Problem Details responses. All eleven
+    deployable bundles inherit the shared component and schema registries without allowing owner shadowing; typed owner-local
+    `*ListResponse` and `*PageResponse` rules avoid an unsafe generic item bag. Eighteen sorted backend mappings use
+    generated shared models or validated native Java types, 17 contract tests and source lint pass, two generations are
+    clean, documentation and Maaatch structure checks pass, and the unchanged backend reactor packages successfully.
 - [ ] MRG-317 Define and bundle the `config-service` contract from its approved audit using only required wire fields and
       canonical camelCase names, without changing runtime behavior.
 - [ ] MRG-318 Define and bundle the `clubs-service` contract from its approved audit using only required camelCase wire

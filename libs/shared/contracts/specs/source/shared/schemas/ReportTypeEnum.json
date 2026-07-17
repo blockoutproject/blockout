@@ -1,0 +1,7 @@
+{
+  "ReportTypeEnum": {
+    "type": "string",
+    "description": "User-facing Blockout report categories.",
+    "enum": ["DISPLAY_BUG", "DATA_ERROR", "LOGO", "LIVE", "OTHER"]
+  }
+}

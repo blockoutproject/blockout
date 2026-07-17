@@ -1,0 +1,7 @@
+{
+  "MatchStatusEnum": {
+    "type": "string",
+    "description": "Observable Blockout match lifecycle states.",
+    "enum": ["UPCOMING", "FINISHED"]
+  }
+}

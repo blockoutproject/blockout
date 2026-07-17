@@ -1,0 +1,7 @@
+{
+  "ScraperNameEnum": {
+    "type": "string",
+    "description": "Blockout-owned scraper process identifiers.",
+    "enum": ["SCRAPER", "SCRAPER_CLUBS"]
+  }
+}

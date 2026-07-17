@@ -172,6 +172,11 @@ legacy `UserGender` remains a removal candidate under MRG-267 gates.
 Approved technical primitives include Problem Details, page information, bounded-list wrappers, identifiers, dates,
 and security shapes only when several contracts share identical semantics.
 
+The MRG-316 shared catalog implements that boundary with `ProblemDetail`, `PageInfo`, UUID/numeric identifier aliases,
+calendar/UTC date aliases, Bearer JWT security, request correlation, common Problem Details responses, and the approved
+REST enums. `*ListResponse` and `*PageResponse` remain concrete owner-local schemas so generated clients retain their
+item type; sharing the wrapper policy does not justify an untyped generic item bag.
+
 ## 5. Error And Collection Contracts
 
 The target error body is Problem Details compatible and includes a stable machine-readable `code`. A safe request

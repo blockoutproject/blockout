@@ -36,8 +36,11 @@ async function listSchemaFiles(dir) {
   }
 }
 
-async function loadSchemaNames(dir) {
+const javaTypePattern = /^(?:[A-Za-z_$][\w$]*\.)+[A-Za-z_$][\w$]*$/;
+
+async function loadSchemaMappings(dir) {
   const schemaOwners = new Map();
+  const schemaMappings = new Map();
 
   for (const filename of await listSchemaFiles(dir)) {
     const file = path.join(dir, filename);
@@ -51,7 +54,7 @@ async function loadSchemaNames(dir) {
       throw new Error(`Shared schema fragment must be an object: ${file}`);
     }
 
-    for (const schemaName of Object.keys(content)) {
+    for (const [schemaName, schema] of Object.entries(content)) {
       const previousOwner = schemaOwners.get(schemaName);
       if (previousOwner) {
         throw new Error(
@@ -60,21 +63,35 @@ async function loadSchemaNames(dir) {
       }
 
       schemaOwners.set(schemaName, filename);
+      const javaType = schema?.['x-java-type'];
+      if (
+        javaType !== undefined &&
+        (typeof javaType !== 'string' || !javaTypePattern.test(javaType))
+      ) {
+        throw new Error(
+          `Invalid x-java-type for shared schema ${schemaName} in ${filename}`,
+        );
+      }
+
+      schemaMappings.set(
+        schemaName,
+        javaType ?? `${sharedModelPackage}.${schemaName}`,
+      );
     }
   }
 
-  return [...schemaOwners.keys()].sort((left, right) =>
+  return [...schemaMappings.entries()].sort(([left], [right]) =>
     left.localeCompare(right),
   );
 }
 
-function buildSchemaMappingsBlock(schemaNames) {
+function buildSchemaMappingsBlock(schemaMappings) {
   return [
     '            <!-- BEGIN generated schemaMappings -->',
     '            <schemaMappings>',
-    ...schemaNames.map(
-      (schemaName) =>
-        `              <schemaMapping>${schemaName}=${sharedModelPackage}.${schemaName}</schemaMapping>`,
+    ...schemaMappings.map(
+      ([schemaName, javaType]) =>
+        `              <schemaMapping>${schemaName}=${javaType}</schemaMapping>`,
     ),
     '            </schemaMappings>',
     '            <!-- END generated schemaMappings -->',
@@ -111,18 +128,18 @@ export async function syncBackendSchemaMappings(
   sharedSchemasDir = defaultSharedSchemasDir,
   backendPomFile = defaultBackendPomFile,
 ) {
-  const schemaNames = await loadSchemaNames(sharedSchemasDir);
+  const schemaMappings = await loadSchemaMappings(sharedSchemasDir);
   const pomContent = await readFile(backendPomFile, 'utf8');
   const updatedPomContent = replaceGeneratedBlock(
     pomContent,
-    buildSchemaMappingsBlock(schemaNames),
+    buildSchemaMappingsBlock(schemaMappings),
   );
 
   if (updatedPomContent !== pomContent) {
     await writeFile(backendPomFile, updatedPomContent, 'utf8');
   }
 
-  return schemaNames;
+  return schemaMappings.map(([schemaName]) => schemaName);
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === __filename) {

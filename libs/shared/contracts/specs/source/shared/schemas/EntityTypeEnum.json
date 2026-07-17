@@ -1,0 +1,7 @@
+{
+  "EntityTypeEnum": {
+    "type": "string",
+    "description": "Entity kinds that can be followed by a Blockout user.",
+    "enum": ["TEAM", "POOL"]
+  }
+}

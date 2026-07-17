@@ -1,0 +1,9 @@
+{
+  "NumericIdentifier": {
+    "type": "integer",
+    "format": "int64",
+    "minimum": 1,
+    "description": "Canonical positive numeric identifier wire shape.",
+    "x-java-type": "java.lang.Long"
+  }
+}

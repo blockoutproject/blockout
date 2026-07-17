@@ -119,6 +119,24 @@
                         </importMappings>
             <!-- BEGIN generated schemaMappings -->
             <schemaMappings>
+              <schemaMapping>CalendarDate=java.time.LocalDate</schemaMapping>
+              <schemaMapping>DevicePlatformEnum=com.blockout.shared.model.DevicePlatformEnum</schemaMapping>
+              <schemaMapping>EntityTypeEnum=com.blockout.shared.model.EntityTypeEnum</schemaMapping>
+              <schemaMapping>FormatEnum=com.blockout.shared.model.FormatEnum</schemaMapping>
+              <schemaMapping>GenderEnum=com.blockout.shared.model.GenderEnum</schemaMapping>
+              <schemaMapping>LiveLinkStatusEnum=com.blockout.shared.model.LiveLinkStatusEnum</schemaMapping>
+              <schemaMapping>LiveProviderEnum=com.blockout.shared.model.LiveProviderEnum</schemaMapping>
+              <schemaMapping>MatchStatusEnum=com.blockout.shared.model.MatchStatusEnum</schemaMapping>
+              <schemaMapping>NotificationStatusEnum=com.blockout.shared.model.NotificationStatusEnum</schemaMapping>
+              <schemaMapping>NotificationTargetTypeEnum=com.blockout.shared.model.NotificationTargetTypeEnum</schemaMapping>
+              <schemaMapping>NotificationTypeEnum=com.blockout.shared.model.NotificationTypeEnum</schemaMapping>
+              <schemaMapping>NumericIdentifier=java.lang.Long</schemaMapping>
+              <schemaMapping>PageInfo=com.blockout.shared.model.PageInfo</schemaMapping>
+              <schemaMapping>ProblemDetail=com.blockout.shared.model.ProblemDetail</schemaMapping>
+              <schemaMapping>ReportTypeEnum=com.blockout.shared.model.ReportTypeEnum</schemaMapping>
+              <schemaMapping>ScraperNameEnum=com.blockout.shared.model.ScraperNameEnum</schemaMapping>
+              <schemaMapping>UtcDateTime=java.time.Instant</schemaMapping>
+              <schemaMapping>UuidIdentifier=java.util.UUID</schemaMapping>
             </schemaMappings>
             <!-- END generated schemaMappings -->
                     </configuration>

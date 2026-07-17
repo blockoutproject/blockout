@@ -1,0 +1,14 @@
+{
+  "LiveLinkStatusEnum": {
+    "type": "string",
+    "description": "Moderation and lifecycle states for a match live link.",
+    "enum": [
+      "ACTIVE",
+      "DEACTIVATED",
+      "BANNED",
+      "EXPIRED",
+      "PENDING",
+      "REJECTED"
+    ]
+  }
+}

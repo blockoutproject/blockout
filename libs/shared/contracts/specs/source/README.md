@@ -49,6 +49,36 @@ Fragments are JSON and contain only deterministic, repository-local content. Sch
 bundler. Files never reference generated bundles, backend sources, Expo sources, standalone repositories, or remote
 URLs.
 
+## Shared REST Catalog
+
+MRG-316 establishes the only components inherited automatically by every deployable REST bundle:
+
+- `bearerAuth` defines the common HTTP Bearer JWT shape, but operations still declare their exact public,
+  authenticated, or scope-protected security requirement;
+- `Page` and `PageSize` define zero-based pagination with a default size of 25 and a hard shared maximum of 100; an
+  owner may document and enforce a lower maximum;
+- `RequestId` and the standard Problem Details responses expose `X-Request-ID` without making correlation metadata a
+  business field;
+- `ProblemDetail` requires `title`, HTTP `status`, and stable machine-readable `code`; `requestId` remains optional
+  when a runtime cannot safely supply it;
+- `PageInfo` requires `page`, `pageSize`, and `hasNext`; `totalItems` remains optional;
+- `UuidIdentifier`, `NumericIdentifier`, `CalendarDate`, and `UtcDateTime` are wire aliases mapped to native Java
+  types through validated `x-java-type` values;
+- the twelve approved REST enums retain their exact deployed wire values and contain no UI labels or provider
+  metadata.
+
+The inherited response catalog covers `400`, `401`, `403`, `404`, `409`, `413`, and `500`. An operation references
+only the statuses it can actually return; the catalog does not silently change legacy behavior or make every response
+universal.
+
+Bounded-list wrappers deliberately remain owner-local and typed. A `*ListResponse` contains only a required `items`
+array with a concrete item schema, while a `*PageResponse` contains concrete `items` plus shared `PageInfo`. There is no
+generic untyped list schema. Complete-list operations document the bounded source and deterministic ordering;
+growable collections use `Page`, `PageSize`, and a stable ordering tie-breaker.
+
+Shared and owner component registries are merged deterministically. An owner cannot shadow a shared component or
+schema name; the bundler rejects the collision so security, error, or enum behavior cannot drift silently.
+
 ## Owner And Bundle Map
 
 | Source directory          | Contract owner                      | Generated bundle      | Contract task             | Consumers                                                   |
@@ -84,6 +114,7 @@ directory.
 
 MRG-306 through MRG-309 establish the deterministic Maaatch-shaped bundler, tests, source lint, committed source shells,
 and generated bundles. The bundler discovers service directories lexicographically, cleans its owned output, and
-writes only to `libs/shared/contracts/generated/specs/**`. Empty `paths` and `schemas` in the initial bundles state that
-no canonical operation or business shape exists yet; MRG-316 and the owner contract tasks populate them. Generation
-availability does not by itself make a service contract-authoritative.
+writes only to `libs/shared/contracts/generated/specs/**`. Empty `paths` in deployable bundles state that no canonical
+operation exists yet. Shared Problem Details may already appear because inherited reusable responses reference it;
+owner contract tasks populate business paths and schemas. Generation availability does not by itself make a service
+contract-authoritative.

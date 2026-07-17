@@ -1,0 +1,7 @@
+{
+  "NotificationTypeEnum": {
+    "type": "string",
+    "description": "Notification kinds exposed by Blockout REST contracts.",
+    "enum": ["MATCH_FINISHED", "MATCH_LIVE_LINK_CREATED", "GENERIC"]
+  }
+}

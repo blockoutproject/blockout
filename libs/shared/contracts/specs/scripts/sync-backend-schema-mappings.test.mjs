@@ -46,13 +46,21 @@ test('writes sorted Blockout shared-model mappings and is idempotent', async () 
     );
     await writeFile(
       path.join(schemas, 'a-first.json'),
-      JSON.stringify({ MiddleEnum: { type: 'string' } }),
+      JSON.stringify({
+        MiddleEnum: { type: 'string' },
+        UuidIdentifier: {
+          type: 'string',
+          format: 'uuid',
+          'x-java-type': 'java.util.UUID',
+        },
+      }),
       'utf8',
     );
 
     assert.deepEqual(await syncBackendSchemaMappings(schemas, pom), [
       'AlphaEnum',
       'MiddleEnum',
+      'UuidIdentifier',
       'ZetaEnum',
     ]);
 
@@ -61,6 +69,7 @@ test('writes sorted Blockout shared-model mappings and is idempotent', async () 
       first,
       /AlphaEnum=com\.blockout\.shared\.model\.AlphaEnum[\s\S]*MiddleEnum=com\.blockout\.shared\.model\.MiddleEnum[\s\S]*ZetaEnum=com\.blockout\.shared\.model\.ZetaEnum/,
     );
+    assert.match(first, /UuidIdentifier=java\.util\.UUID/);
 
     await syncBackendSchemaMappings(schemas, pom);
     assert.equal(await readFile(pom, 'utf8'), first);
@@ -94,6 +103,26 @@ test('rejects duplicate shared schema ownership', async () => {
     await assert.rejects(
       syncBackendSchemaMappings(schemas, pom),
       /Duplicate shared schema SharedEnum in one\.json and two\.json/,
+    );
+  });
+});
+
+test('rejects an invalid explicit Java type mapping', async () => {
+  await withFixture(async ({ schemas, pom }) => {
+    await writeFile(
+      path.join(schemas, 'invalid.json'),
+      JSON.stringify({
+        InvalidIdentifier: {
+          type: 'string',
+          'x-java-type': 'java.util.UUID</schemaMapping>',
+        },
+      }),
+      'utf8',
+    );
+
+    await assert.rejects(
+      syncBackendSchemaMappings(schemas, pom),
+      /Invalid x-java-type for shared schema InvalidIdentifier/,
     );
   });
 });

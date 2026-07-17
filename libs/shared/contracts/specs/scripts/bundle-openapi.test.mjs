@@ -24,6 +24,38 @@ const rootSpecsDir = path.resolve(__dirname, '..');
 const generatedSpecsDir = path.resolve(__dirname, '../../generated/specs');
 const sourceDir = path.resolve(__dirname, '../source');
 const servicesDir = path.join(sourceDir, 'services');
+const sharedSchemasDir = path.join(sourceDir, 'shared/schemas');
+const expectedSharedEnums = {
+  DevicePlatformEnum: ['IOS', 'ANDROID', 'WEB', 'UNKNOWN'],
+  EntityTypeEnum: ['TEAM', 'POOL'],
+  FormatEnum: ['SIX', 'FOUR', 'TWO'],
+  GenderEnum: ['M', 'F', 'O'],
+  LiveLinkStatusEnum: [
+    'ACTIVE',
+    'DEACTIVATED',
+    'BANNED',
+    'EXPIRED',
+    'PENDING',
+    'REJECTED',
+  ],
+  LiveProviderEnum: ['YOUTUBE', 'TWITCH', 'FACEBOOK'],
+  MatchStatusEnum: ['UPCOMING', 'FINISHED'],
+  NotificationStatusEnum: [
+    'SENT',
+    'PENDING',
+    'DELIVERED',
+    'FAILED',
+    'SENT_NO_TOKEN',
+  ],
+  NotificationTargetTypeEnum: ['MATCH', 'GENERIC'],
+  NotificationTypeEnum: [
+    'MATCH_FINISHED',
+    'MATCH_LIVE_LINK_CREATED',
+    'GENERIC',
+  ],
+  ReportTypeEnum: ['DISPLAY_BUG', 'DATA_ERROR', 'LOGO', 'LIVE', 'OTHER'],
+  ScraperNameEnum: ['SCRAPER', 'SCRAPER_CLUBS'],
+};
 
 async function readDirOrEmpty(dir, options) {
   try {
@@ -159,6 +191,23 @@ test('workspace source state bundles without placeholder output', async () => {
     assert.equal(typeof bundle.info?.title, 'string');
     assert.equal(typeof bundle.paths, 'object');
     assert.equal(typeof bundle.components?.schemas, 'object');
+
+    if (bundleFile !== 'shared.json') {
+      assert.deepEqual(bundle.components.securitySchemes?.bearerAuth, {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+      });
+      assert.equal(bundle.components.parameters?.Page?.name, 'page');
+      assert.equal(bundle.components.parameters?.PageSize?.name, 'pageSize');
+      assert.equal(
+        bundle.components.responses?.BadRequestProblem?.content?.[
+          'application/problem+json'
+        ]?.schema?.$ref,
+        '#/components/schemas/ProblemDetail',
+      );
+      assert.equal(typeof bundle.components.schemas.ProblemDetail, 'object');
+    }
   }
 });
 
@@ -185,6 +234,38 @@ test('workspace stable enums remain named top-level components', async () => {
   );
 });
 
+test('workspace shared catalog keeps the approved schemas and enum wires', async () => {
+  const expectedTechnicalSchemas = [
+    'CalendarDate',
+    'NumericIdentifier',
+    'PageInfo',
+    'ProblemDetail',
+    'UtcDateTime',
+    'UuidIdentifier',
+  ];
+  const schemaFiles = (await readdir(sharedSchemasDir))
+    .filter((filename) => filename.endsWith('.json'))
+    .sort((a, b) => a.localeCompare(b));
+  const expectedSchemaNames = [
+    ...Object.keys(expectedSharedEnums),
+    ...expectedTechnicalSchemas,
+  ].sort((a, b) => a.localeCompare(b));
+
+  assert.deepEqual(
+    schemaFiles,
+    expectedSchemaNames.map((schemaName) => `${schemaName}.json`),
+  );
+
+  for (const [schemaName, expectedValues] of Object.entries(
+    expectedSharedEnums,
+  )) {
+    const fragment = await readJson(
+      path.join(sharedSchemasDir, `${schemaName}.json`),
+    );
+    assert.deepEqual(fragment[schemaName].enum, expectedValues);
+  }
+});
+
 test('fixture bundles transitive schemas, shared enums, and stable output', async (t) => {
   const fixture = await createFixtureProject(t);
 
@@ -192,6 +273,32 @@ test('fixture bundles transitive schemas, shared enums, and stable output', asyn
     openapi: '3.1.0',
     info: { title: 'Blockout Shared API', version: '2.0.0' },
     paths: {},
+    components: {
+      securitySchemes: {
+        bearerAuth: {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT',
+        },
+      },
+      parameters: {
+        Page: {
+          name: 'page',
+          in: 'query',
+          schema: { type: 'integer', minimum: 0 },
+        },
+      },
+      responses: {
+        BadRequestProblem: {
+          description: 'Bad request',
+          content: {
+            'application/problem+json': {
+              schema: { $ref: '#/components/schemas/ProblemDetail' },
+            },
+          },
+        },
+      },
+    },
   });
   await writeJson(
     path.join(fixture.sourceDir, 'shared/schemas/FormatEnum.json'),
@@ -211,6 +318,10 @@ test('fixture bundles transitive schemas, shared enums, and stable output', asyn
   await writeJson(
     path.join(fixture.sourceDir, 'shared/schemas/SharedId.json'),
     { SharedId: { type: 'string', format: 'uuid' } },
+  );
+  await writeJson(
+    path.join(fixture.sourceDir, 'shared/schemas/ProblemDetail.json'),
+    { ProblemDetail: { type: 'object' } },
   );
   await writeJson(path.join(fixture.sourceDir, 'shared/schemas/TraceId.json'), {
     TraceId: { type: 'string' },
@@ -344,16 +455,35 @@ test('fixture bundles transitive schemas, shared enums, and stable output', asyn
       'ClubInternalListResponse',
       'ClubInternalResponse',
       'FormatEnum',
+      'ProblemDetail',
       'SharedEnvelope',
       'SharedId',
       'TraceId',
     ],
   );
   assert.equal(Object.hasOwn(clubs.components.schemas, 'UnusedClub'), false);
+  assert.deepEqual(clubs.components.securitySchemes, {
+    bearerAuth: {
+      type: 'http',
+      scheme: 'bearer',
+      bearerFormat: 'JWT',
+    },
+  });
+  assert.deepEqual(Object.keys(clubs.components.parameters), [
+    'Page',
+    'TraceIdHeader',
+  ]);
+  assert.equal(
+    clubs.components.responses.BadRequestProblem.content[
+      'application/problem+json'
+    ].schema.$ref,
+    '#/components/schemas/ProblemDetail',
+  );
 
   const shared = JSON.parse(firstShared);
   assert.deepEqual(Object.keys(shared.components.schemas), [
     'FormatEnum',
+    'ProblemDetail',
     'SharedEnvelope',
     'SharedId',
     'TraceId',
@@ -363,6 +493,77 @@ test('fixture bundles transitive schemas, shared enums, and stable output', asyn
     'SIX_VS_SIX',
     'FOUR_VS_FOUR',
   ]);
+});
+
+test('fixture bundling rejects owner overrides of shared components', async (t) => {
+  const fixture = await createFixtureProject(t);
+
+  await writeJson(path.join(fixture.sourceDir, 'shared/base.json'), {
+    openapi: '3.1.0',
+    info: { title: 'Blockout Shared API', version: '2.0.0' },
+    paths: {},
+    components: {
+      parameters: {
+        Page: {
+          name: 'page',
+          in: 'query',
+          schema: { type: 'integer' },
+        },
+      },
+    },
+  });
+
+  const clubsDir = path.join(fixture.sourceDir, 'services/clubs');
+  await writeJson(path.join(clubsDir, 'base.json'), {
+    openapi: '3.1.0',
+    info: { title: 'Blockout Clubs Internal API', version: '2.0.0' },
+    components: {
+      parameters: {
+        Page: {
+          name: 'pageNumber',
+          in: 'query',
+          schema: { type: 'integer' },
+        },
+      },
+    },
+  });
+
+  const result = runBundle(fixture.scriptFile, fixture.projectRoot);
+  assert.notEqual(result.status, 0, `${result.stdout}\n${result.stderr}`);
+  assert.match(
+    result.stderr,
+    /Duplicate component "parameters\.Page" in shared and owner base documents/,
+  );
+});
+
+test('fixture bundling rejects owner overrides of shared schemas', async (t) => {
+  const fixture = await createFixtureProject(t);
+
+  await writeJson(path.join(fixture.sourceDir, 'shared/base.json'), {
+    openapi: '3.1.0',
+    info: { title: 'Blockout Shared API', version: '2.0.0' },
+    paths: {},
+  });
+  await writeJson(
+    path.join(fixture.sourceDir, 'shared/schemas/ProblemDetail.json'),
+    { ProblemDetail: { type: 'object' } },
+  );
+
+  const clubsDir = path.join(fixture.sourceDir, 'services/clubs');
+  await writeJson(path.join(clubsDir, 'base.json'), {
+    openapi: '3.1.0',
+    info: { title: 'Blockout Clubs Internal API', version: '2.0.0' },
+  });
+  await writeJson(path.join(clubsDir, 'schemas/ProblemDetail.json'), {
+    ProblemDetail: { type: 'string' },
+  });
+
+  const result = runBundle(fixture.scriptFile, fixture.projectRoot);
+  assert.notEqual(result.status, 0, `${result.stdout}\n${result.stderr}`);
+  assert.match(
+    result.stderr,
+    /Duplicate component "schemas\.ProblemDetail" in shared and owner base documents/,
+  );
 });
 
 test('fixture bundling fails on a missing transitive schema', async (t) => {

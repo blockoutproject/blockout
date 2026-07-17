@@ -15,19 +15,21 @@ npm exec nx run @blockout/contracts:generate-contracts
 
 It discovers service directories lexicographically, regenerates bundles under `generated/specs/*.json`, and
 synchronizes the backend parent `schemaMappings` block from
-`specs/source/shared/schemas/*.json`. The synchronizer maps every shared schema to
-`com.blockout.shared.model.<SchemaName>` in lexical order. The backend parent supplies shared generator defaults, but
-`pluginManagement` does not activate them: no backend API or model generation is active yet. Later owning modules must
-declare their own executions and keep all generated Java beneath their module-local
+`specs/source/shared/schemas/*.json`. The synchronizer maps generated shared models to
+`com.blockout.shared.model.<SchemaName>` and maps primitive aliases through their validated `x-java-type` in lexical
+order. The backend parent supplies shared generator defaults, but `pluginManagement` does not activate them. The
+`shared-models` module generates the shared objects and enums; later owning modules must declare their own executions
+and keep all generated Java beneath their module-local
 `target/generated-sources/openapi/<boundary>` directory.
 
 The generated bundle directory and the block between `BEGIN generated schemaMappings` and
 `END generated schemaMappings` are generated artifacts. Edit source fragments or generation scripts instead of
 editing either artifact manually. CI regenerates both and requires a clean tree.
 
-The committed bundles currently contain the shared and deployable contract shells with no operations or business
-schemas. MRG-316 and the owner contract tasks populate those shells; their presence alone does not make a runtime
-boundary contract-authoritative.
+The committed shared bundle contains the MRG-316 technical catalog. Deployable bundles inherit its security,
+pagination, request-correlation, and Problem Details components while resolving only the shared schemas their active
+operations or reusable components reference. Owner contract tasks add service operations and business schemas; bundle
+presence alone does not make a runtime boundary contract-authoritative.
 The bundler's fixture and workspace guarantees run through:
 
 ```bash

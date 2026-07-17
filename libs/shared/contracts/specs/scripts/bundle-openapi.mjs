@@ -162,12 +162,54 @@ function resolveTags(paths, baseTags = []) {
   return baseTags.filter((tag) => used.has(tag.name));
 }
 
+function mergeComponentRegistries(sharedComponents = {}, ownerComponents = {}) {
+  const merged = {};
+  const registryNames = [
+    ...new Set([
+      ...Object.keys(sharedComponents),
+      ...Object.keys(ownerComponents),
+    ]),
+  ];
+
+  for (const registryName of registryNames) {
+    const sharedRegistry = sharedComponents[registryName] ?? {};
+    const ownerRegistry = ownerComponents[registryName] ?? {};
+
+    if (
+      !sharedRegistry ||
+      Array.isArray(sharedRegistry) ||
+      typeof sharedRegistry !== 'object' ||
+      !ownerRegistry ||
+      Array.isArray(ownerRegistry) ||
+      typeof ownerRegistry !== 'object'
+    ) {
+      throw new Error(`Component registry "${registryName}" must be an object`);
+    }
+
+    for (const componentName of Object.keys(ownerRegistry)) {
+      if (Object.hasOwn(sharedRegistry, componentName)) {
+        throw new Error(
+          `Duplicate component "${registryName}.${componentName}" in shared and owner base documents`,
+        );
+      }
+    }
+
+    merged[registryName] = {
+      ...sharedRegistry,
+      ...ownerRegistry,
+    };
+  }
+
+  return merged;
+}
+
 async function buildContract({
   baseFile,
   pathsDir,
   outputFile,
   allSchemas,
   rootSchemaNames,
+  inheritedComponents,
 }) {
   const base = await loadJson(baseFile);
   const paths = pathsDir ? await loadDirAsMap(pathsDir) : (base.paths ?? {});
@@ -178,9 +220,12 @@ async function buildContract({
     components: baseComponents,
     ...restBase
   } = base;
+  const mergedBaseComponents = inheritedComponents
+    ? mergeComponentRegistries(inheritedComponents, baseComponents ?? {})
+    : (baseComponents ?? {});
   const schemas = rootSchemaNames
     ? resolveSchemasFromRoots(rootSchemaNames, allSchemas)
-    : resolveSchemas(paths, allSchemas, baseComponents ?? {});
+    : resolveSchemas(paths, allSchemas, mergedBaseComponents);
   const tags = pathsDir
     ? resolveTags(paths, base.tags ?? [])
     : (base.tags ?? []);
@@ -194,7 +239,7 @@ async function buildContract({
     tags,
     ...restBase,
     paths,
-    components: baseComponents ? { ...baseComponents, schemas } : { schemas },
+    components: { ...mergedBaseComponents, schemas },
   };
 
   await mkdir(path.dirname(outputFile), { recursive: true });
@@ -228,6 +273,9 @@ async function bundle() {
     a.localeCompare(b),
   );
   const services = await discoverServices();
+  const hasSharedBase = await pathExists(sharedBaseFile);
+  const sharedBase = hasSharedBase ? await loadJson(sharedBaseFile) : {};
+  const sharedComponents = sharedBase.components ?? {};
   await rm(generatedSpecsDir, { recursive: true, force: true });
 
   for (const service of services) {
@@ -237,19 +285,20 @@ async function bundle() {
       throw new Error(`Missing base document for service "${service}"`);
     }
     const serviceSchemas = await loadDirAsMap(path.join(serviceDir, 'schemas'));
+    const allSchemas = mergeComponentRegistries(
+      { schemas: sharedSchemas },
+      { schemas: serviceSchemas },
+    ).schemas;
 
     await buildContract({
       baseFile: serviceBaseFile,
       pathsDir: path.join(serviceDir, 'paths'),
       outputFile: path.join(generatedSpecsDir, `${service}.json`),
-      allSchemas: {
-        ...sharedSchemas,
-        ...serviceSchemas,
-      },
+      allSchemas,
+      inheritedComponents: sharedComponents,
     });
   }
 
-  const hasSharedBase = await pathExists(sharedBaseFile);
   if (sharedSchemaNames.length > 0 && !hasSharedBase) {
     throw new Error('Shared schemas require source/shared/base.json');
   }

@@ -1,0 +1,7 @@
+{
+  "NotificationStatusEnum": {
+    "type": "string",
+    "description": "Observable notification delivery states.",
+    "enum": ["SENT", "PENDING", "DELIVERED", "FAILED", "SENT_NO_TOKEN"]
+  }
+}

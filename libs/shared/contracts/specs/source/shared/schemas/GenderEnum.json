@@ -1,0 +1,7 @@
+{
+  "GenderEnum": {
+    "type": "string",
+    "description": "Gender category used by Blockout competition data.",
+    "enum": ["M", "F", "O"]
+  }
+}

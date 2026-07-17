@@ -1,0 +1,7 @@
+{
+  "LiveProviderEnum": {
+    "type": "string",
+    "description": "Supported providers for a match live link.",
+    "enum": ["YOUTUBE", "TWITCH", "FACEBOOK"]
+  }
+}
