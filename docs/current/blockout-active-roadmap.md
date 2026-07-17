@@ -628,9 +628,22 @@ state moves to GitHub and this file becomes a historical migration record.
     comparison, and whitespace checks pass. Runtime authorization, v1/v2 coexistence, scrapers, events, databases,
     production, standalone repositories, and Maaatch remain unchanged; MRG-378 still owns the generated async `httpx`
     transport switch before scraper migration.
-- [ ] MRG-376 Migrate the remaining `config-service` app-status, division, raw-mapping, and scraper-status generated
+- [x] MRG-376 Migrate the remaining `config-service` app-status, division, raw-mapping, and scraper-status generated
       server boundaries with application records, entity mappings, compatibility, and the search-worker generated
       snapshot client; leave BFF, Expo, and scraper caller cutovers to MRG-343, MRG-344, MRG-348, and MRG-349.
+  - Evidence: all 14 remaining config-service operations now implement generated v2 Spring interfaces through
+    feature-owned commands/views, strict MapStruct API and persistence mappings, dedicated JPA entities, shared enums,
+    a division logo intent/storage port, canonical Problem Details, and per-operation coexistence telemetry. Isolated
+    adapter-local v1 snake_case records preserve list/entity shapes, scopes, null semantics, multipart behavior,
+    reactivation, soft deletion, raw entity-shaped creation, scraper upsert, and legacy errors without entity exposure
+    or handwritten Jackson annotations. The raw update source now correctly permits omission or explicit null to
+    unmap fields instead of generating contradictory `@NotNull` validation; the config bundle, official generated
+    Python model, and wheel are regenerated. Search-worker now uses the official generated Java `DivisionsClient`,
+    existing Auth0 bearer transport, normalized v2 base URL, and an immediate immutable `DivisionSnapshot` projection;
+    its handwritten config client and annotated DTO are removed. The 19 impacted Java behavior tests, 30 contract
+    tests, OpenAPI lint, nine Python 3.12 client tests, deterministic bundle/model regeneration, complete 14-module
+    backend package, documentation links, Maaatch comparison, Prettier, and whitespace checks pass. Mobile-gateway,
+    Expo, scraper runtime calls, databases, events, standalone repositories, production, and Maaatch remain unchanged.
 - [ ] MRG-334 Migrate `clubs-service` generated server boundaries and internal generated clients, including multipart
       mapping and temporary compatibility defined by MRG-304.
 - [ ] MRG-335 Migrate `teams-service` generated server boundaries and internal generated clients, including multipart

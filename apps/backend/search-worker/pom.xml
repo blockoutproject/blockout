@@ -26,6 +26,15 @@
 	</scm>
 	<dependencies>
         <dependency>
+            <groupId>com.blockout</groupId>
+            <artifactId>shared-models</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.mapstruct</groupId>
+            <artifactId>mapstruct</artifactId>
+            <version>${mapstruct.version}</version>
+        </dependency>
+        <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
@@ -92,9 +101,59 @@
                             <artifactId>lombok</artifactId>
                             <version>${lombok.version}</version>
                         </path>
+                        <path>
+                            <groupId>org.mapstruct</groupId>
+                            <artifactId>mapstruct-processor</artifactId>
+                            <version>${mapstruct.version}</version>
+                        </path>
                     </annotationProcessorPaths>
                 </configuration>
             </plugin>
+			<plugin>
+				<groupId>org.openapitools</groupId>
+				<artifactId>openapi-generator-maven-plugin</artifactId>
+				<executions>
+					<execution>
+						<id>generate-config-client</id>
+						<phase>generate-sources</phase>
+						<goals>
+							<goal>generate</goal>
+						</goals>
+						<configuration>
+							<inputSpec>${project.basedir}/../../../libs/shared/contracts/generated/specs/config.json</inputSpec>
+							<generatorName>java</generatorName>
+							<apiNameSuffix>Client</apiNameSuffix>
+							<output>${openapi.generated-sources.root}/config-client</output>
+							<apiPackage>com.blockout.workersearch.configclient.api</apiPackage>
+							<modelPackage>com.blockout.workersearch.configclient.model</modelPackage>
+							<invokerPackage>com.blockout.workersearch.configclient.invoker</invokerPackage>
+							<configOptions>
+								<library>resttemplate</library>
+								<useJakartaEe>true</useJakartaEe>
+								<hideGenerationTimestamp>true</hideGenerationTimestamp>
+							</configOptions>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>build-helper-maven-plugin</artifactId>
+				<executions>
+					<execution>
+						<id>add-generated-sources</id>
+						<phase>generate-sources</phase>
+						<goals>
+							<goal>add-source</goal>
+						</goals>
+						<configuration>
+							<sources>
+								<source>${openapi.generated-sources.root}/config-client/src/main/java</source>
+							</sources>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
 		</plugins>
 	</build>
 

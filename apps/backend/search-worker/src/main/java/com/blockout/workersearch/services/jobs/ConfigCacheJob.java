@@ -7,8 +7,8 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import com.blockout.workersearch.models.events.DivisionUpsertEvent;
+import com.blockout.workersearch.configuration.division.application.DivisionCatalog;
 import com.blockout.workersearch.services.caches.ConfigCacheService;
-import com.blockout.workersearch.services.clients.ConfigClientService;
 
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
@@ -17,18 +17,18 @@ import static net.logstash.logback.argument.StructuredArguments.keyValue;
 public class ConfigCacheJob {
 
     private static final Logger logger = LoggerFactory.getLogger(ConfigCacheJob.class);
-    private final ConfigClientService configClientService;
+    private final DivisionCatalog divisionCatalog;
     private final ConfigCacheService configCacheService;
 
     @Scheduled(fixedRate = 600000)
     public void refreshDivisionCache() {
         try {
-            var divisions = configClientService.listDivisions();
+            var divisions = divisionCatalog.findAll();
             var events = divisions.stream()
                     .map(division -> DivisionUpsertEvent.builder()
-                            .id(division.getId())
-                            .name(division.getName())
-                            .logoUrl(division.getLogoUrl())
+                            .id(division.id())
+                            .name(division.name())
+                            .logoUrl(division.logoUrl())
                             .build())
                     .toList();
 

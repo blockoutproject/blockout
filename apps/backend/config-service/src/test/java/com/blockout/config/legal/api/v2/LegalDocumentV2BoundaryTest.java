@@ -7,6 +7,7 @@ import com.blockout.config.generated.model.LegalDocumentInternalResponse;
 import com.blockout.config.generated.model.UpdateLegalDocumentInternalRequest;
 import com.blockout.config.legal.application.LegalDocumentSnapshot;
 import com.blockout.config.legal.application.UpdateLegalDocumentCommand;
+import com.blockout.config.shared.api.v2.ConfigProblemFactory;
 import com.blockout.shared.model.ProblemDetail;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -49,8 +50,8 @@ class LegalDocumentV2BoundaryTest {
     @Test
     void emitsStableCamelCaseProblemDetailsWithARequestIdentifier() throws Exception {
         MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v2/config/legal/missing");
-        request.addHeader(LegalDocumentProblemFactory.REQUEST_ID_HEADER, "request-123");
-        ResponseEntity<ProblemDetail> response = new LegalDocumentProblemFactory().response(
+        request.addHeader(ConfigProblemFactory.REQUEST_ID_HEADER, "request-123");
+        ResponseEntity<ProblemDetail> response = new ConfigProblemFactory().response(
                 HttpStatus.INTERNAL_SERVER_ERROR,
                 "legal_document_not_found",
                 "The legal document could not be found.",
@@ -62,7 +63,7 @@ class LegalDocumentV2BoundaryTest {
         JsonNode body = snakeCaseWorkspaceMapper.readTree(snakeCaseWorkspaceMapper.writeValueAsBytes(response.getBody()));
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
-        assertThat(response.getHeaders().getFirst(LegalDocumentProblemFactory.REQUEST_ID_HEADER))
+        assertThat(response.getHeaders().getFirst(ConfigProblemFactory.REQUEST_ID_HEADER))
                 .isEqualTo("request-123");
         assertThat(body.get("code").asText()).isEqualTo("legal_document_not_found");
         assertThat(body.get("requestId").asText()).isEqualTo("request-123");
@@ -72,9 +73,9 @@ class LegalDocumentV2BoundaryTest {
     @Test
     void replacesAnUnsafeOversizedRequestIdentifier() {
         MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v2/config/legal/missing");
-        request.addHeader(LegalDocumentProblemFactory.REQUEST_ID_HEADER, "x".repeat(256));
+        request.addHeader(ConfigProblemFactory.REQUEST_ID_HEADER, "x".repeat(256));
 
-        assertThat(LegalDocumentProblemFactory.resolveRequestId(request))
+        assertThat(ConfigProblemFactory.resolveRequestId(request))
                 .hasSize(36)
                 .isNotEqualTo("x".repeat(256));
     }

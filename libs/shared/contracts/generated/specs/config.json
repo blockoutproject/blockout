@@ -1315,12 +1315,7 @@
       },
       "UpdateRawDivisionMappingInternalRequest": {
         "type": "object",
-        "description": "Replaces all three mapping fields. Each field is required and nullable so an explicit null preserves the current unmapping behavior without omission ambiguity.",
-        "required": [
-          "divisionId",
-          "format",
-          "gender"
-        ],
+        "description": "Replaces all three mapping fields. An omitted or explicit-null field is stored as null, preserving the current unmapping behavior.",
         "properties": {
           "divisionId": {
             "type": "integer",

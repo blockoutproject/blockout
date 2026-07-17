@@ -1,6 +1,7 @@
 package com.blockout.config.legal.api.v2;
 
 import com.blockout.config.exceptions.LegalDocumentNotFoundException;
+import com.blockout.config.shared.api.v2.ConfigProblemFactory;
 import com.blockout.shared.model.ProblemDetail;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
@@ -21,7 +22,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @RequiredArgsConstructor
 public class LegalDocumentV2ExceptionHandler {
 
-    private final LegalDocumentProblemFactory problems;
+    private final ConfigProblemFactory problems;
 
     @ExceptionHandler(LegalDocumentNotFoundException.class)
     public ResponseEntity<ProblemDetail> handleNotFound(

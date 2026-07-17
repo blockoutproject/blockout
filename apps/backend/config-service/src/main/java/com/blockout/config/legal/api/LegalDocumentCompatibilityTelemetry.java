@@ -2,7 +2,7 @@ package com.blockout.config.legal.api;
 
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
-import com.blockout.config.legal.api.v2.LegalDocumentProblemFactory;
+import com.blockout.config.shared.api.v2.ConfigProblemFactory;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -40,7 +40,7 @@ public class LegalDocumentCompatibilityTelemetry extends OncePerRequestFilter {
             FilterChain filterChain) throws ServletException, IOException {
         long startedAt = System.nanoTime();
         String requestId = requestId(request);
-        request.setAttribute(LegalDocumentProblemFactory.REQUEST_ID_ATTRIBUTE, requestId);
+        request.setAttribute(ConfigProblemFactory.REQUEST_ID_ATTRIBUTE, requestId);
         try {
             filterChain.doFilter(request, response);
         } finally {
@@ -62,6 +62,6 @@ public class LegalDocumentCompatibilityTelemetry extends OncePerRequestFilter {
     }
 
     private String requestId(HttpServletRequest request) {
-        return LegalDocumentProblemFactory.resolveRequestId(request);
+        return ConfigProblemFactory.resolveRequestId(request);
     }
 }

@@ -28,11 +28,11 @@ from pydantic_core import to_jsonable_python
 
 class UpdateRawDivisionMappingInternalRequest(BaseModel):
     """
-    Replaces all three mapping fields. Each field is required and nullable so an explicit null preserves the current unmapping behavior without omission ambiguity.
+    Replaces all three mapping fields. An omitted or explicit-null field is stored as null, preserving the current unmapping behavior.
     """ # noqa: E501
-    division_id: Optional[Annotated[int, Field(strict=True, ge=1)]] = Field(alias="divisionId")
-    format: Optional[FormatEnum]
-    gender: Optional[GenderEnum]
+    division_id: Optional[Annotated[int, Field(strict=True, ge=1)]] = Field(default=None, alias="divisionId")
+    format: Optional[FormatEnum] = None
+    gender: Optional[GenderEnum] = None
     __properties: ClassVar[List[str]] = ["divisionId", "format", "gender"]
 
     model_config = ConfigDict(

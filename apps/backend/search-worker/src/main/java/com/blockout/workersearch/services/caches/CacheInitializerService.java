@@ -7,13 +7,13 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import com.blockout.workersearch.models.dto.club.ClubDTO;
-import com.blockout.workersearch.models.dto.config.DivisionDTO;
 import com.blockout.workersearch.models.dto.team.TeamDTO;
+import com.blockout.workersearch.configuration.division.application.DivisionCatalog;
+import com.blockout.workersearch.configuration.division.application.DivisionSnapshot;
 import com.blockout.workersearch.models.events.ClubUpsertEvent;
 import com.blockout.workersearch.models.events.DivisionUpsertEvent;
 import com.blockout.workersearch.models.events.TeamUpsertEvent;
 import com.blockout.workersearch.services.clients.ClubClientService;
-import com.blockout.workersearch.services.clients.ConfigClientService;
 import com.blockout.workersearch.services.clients.PoolClientService;
 import com.blockout.workersearch.services.clients.TeamClientService;
 
@@ -29,7 +29,7 @@ public class CacheInitializerService {
 
     private final ClubClientService clubClientService;
     private final TeamClientService teamClientService;
-    private final ConfigClientService configClientService;
+    private final DivisionCatalog divisionCatalog;
     private final ClubCacheService clubCacheService;
     private final TeamCacheService teamCacheService;
     private final ConfigCacheService configCacheService;
@@ -78,12 +78,12 @@ public class CacheInitializerService {
                 keyValue("teamCount", teamCacheService.getAllTeamCache().size()));
 
         // Initialisation du cache des divisions
-        List<DivisionDTO> divisions = configClientService.listDivisions();
+        List<DivisionSnapshot> divisions = divisionCatalog.findAll();
         List<DivisionUpsertEvent> divisionEvents = divisions.stream()
                 .map(division -> DivisionUpsertEvent.builder()
-                        .id(division.getId())
-                        .name(division.getName())
-                        .logoUrl(division.getLogoUrl())
+                        .id(division.id())
+                        .name(division.name())
+                        .logoUrl(division.logoUrl())
                         .build())
                 .toList();
 

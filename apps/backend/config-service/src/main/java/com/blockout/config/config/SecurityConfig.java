@@ -1,6 +1,6 @@
 package com.blockout.config.config;
 
-import com.blockout.config.legal.api.v2.LegalDocumentSecurityProblemWriter;
+import com.blockout.config.shared.api.v2.ConfigSecurityProblemWriter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -18,7 +18,7 @@ import static org.springframework.security.config.Customizer.withDefaults;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    private final LegalDocumentSecurityProblemWriter legalDocumentSecurityProblemWriter;
+    private final ConfigSecurityProblemWriter configSecurityProblemWriter;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -31,8 +31,8 @@ public class SecurityConfig {
                         .anyRequest().authenticated()
                 )
                 .exceptionHandling(exceptions -> exceptions
-                        .authenticationEntryPoint(legalDocumentSecurityProblemWriter)
-                        .accessDeniedHandler(legalDocumentSecurityProblemWriter))
+                        .authenticationEntryPoint(configSecurityProblemWriter)
+                        .accessDeniedHandler(configSecurityProblemWriter))
                 .csrf(csrf -> csrf.disable())
                 .cors(withDefaults())
                 .oauth2ResourceServer(oauth2 -> oauth2
