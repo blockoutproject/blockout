@@ -797,8 +797,19 @@ state moves to GitHub and this file becomes a historical migration record.
     documentation, Maaatch comparison, Prettier, and whitespace checks pass. Contracts, generated artifacts,
     databases, event formats/topology, BFF, Expo, scrapers, standalone repositories, production, Maaatch, Blockout
     Orval settings, and Python generator settings are unchanged.
-- [ ] MRG-364 Migrate `users-service` identity-link, account-deletion, and storage boundaries behind explicit Auth0 and
+- [x] MRG-364 Migrate `users-service` identity-link, account-deletion, and storage boundaries behind explicit Auth0 and
       S3 adapters without changing current deletion, retention, or authentication behavior.
+  - Evidence: `USER-04` through `USER-06` now cross application-owned identity/profile ports, with Auth0 SDK models
+    confined to `Auth0IdentityProvider`, S3 requests confined to `S3ProfileImageStorage`, and the generated
+    `UserIdentityApi` activated behind a dedicated v2 controller. Same-email linking, field-limited synchronization,
+    pseudo generation, Auth0-first deletion, one legacy delete event per favorite, local deletion, profile-image
+    delete-before-upload, foreign-URL handling, retained data, scopes, and provider failure windows remain unchanged.
+    The isolated v1 internal filter retains exact API-key matching and plain-text errors while v2 uses stable Problem
+    Details. The mixed `UserService` and generic S3 client are removed without adding compensation, retry, outbox,
+    cleanup, deployment, or production authority. Thirty-nine users tests, thirty contract tests, source confinement,
+    generated compilation, full 14-module backend packaging, documentation, Maaatch comparison, Prettier, and
+    whitespace checks pass; `docs/migration/mrg-364-users-identity-storage-runtime-migration.md` records the parity,
+    rollback, retention, and temporary coexistence-name gates.
 - [ ] MRG-340 Migrate `reports-service` generated server boundaries and internal generated clients while preserving
       explicit GitHub and Discord vendor adapters.
 - [ ] MRG-341 Migrate `notification-service` inbox and page read boundaries with generated clients, stable ordering,

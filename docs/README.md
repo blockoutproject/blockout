@@ -45,6 +45,7 @@ GitHub Project task planning remains dormant until the final GitFlow activation 
 | Moderation slice      | [MRG-362 matches moderation and reports][mrg-362]                                                                            | Moderation projection, actions, reports, and parity        |
 | Users account slice   | [MRG-339 users account and profile][mrg-339]                                                                                 | Generated account boundary, image intent, and user client  |
 | Users favorite slice  | [MRG-363 users favorites][mrg-363]                                                                                           | Canonical favorites, generated boundary, and projections   |
+| Users identity slice  | [MRG-364 users identity and storage][mrg-364]                                                                                | Auth0/S3 adapters, deletion order, and generated identity  |
 | Expo contracts/forms  | [`decisions/mrg-313-expo-contract-generation.md`](decisions/mrg-313-expo-contract-generation.md)                             | Orval, TanStack, Zod, React Hook Form, and form migration  |
 | Python clients        | [`decisions/mrg-314-python-contract-clients.md`](decisions/mrg-314-python-contract-clients.md)                               | Generated async clients, adapters, wheel, and scraper use  |
 | RabbitMQ contracts    | [`decisions/mrg-315-rabbitmq-event-contracts.md`](decisions/mrg-315-rabbitmq-event-contracts.md)                             | AsyncAPI source, Java records, envelope, and v2 topology   |
@@ -58,6 +59,7 @@ GitHub Project task planning remains dormant until the final GitFlow activation 
 [mrg-362]: migration/mrg-362-matches-moderation-report-runtime-migration.md
 [mrg-339]: migration/mrg-339-users-account-profile-runtime-migration.md
 [mrg-363]: migration/mrg-363-users-favorites-runtime-migration.md
+[mrg-364]: migration/mrg-364-users-identity-storage-runtime-migration.md
 
 ## Documentation Map
 

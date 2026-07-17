@@ -6,7 +6,6 @@ import com.blockout.users.exceptions.ConflictException;
 import com.blockout.users.exceptions.CustomUserNotFoundException;
 import com.blockout.users.models.entities.CustomUser;
 import com.blockout.users.repositories.UserRepository;
-import com.blockout.users.services.clients.S3StorageClientService;
 import com.blockout.users.utils.DiffUtils;
 import java.util.Objects;
 import lombok.RequiredArgsConstructor;
@@ -24,7 +23,7 @@ public class UserProfileMutationService {
     private static final Logger LOGGER = LoggerFactory.getLogger(UserProfileMutationService.class);
 
     private final UserRepository userRepository;
-    private final S3StorageClientService imageStorage;
+    private final ProfileImageStorage imageStorage;
 
     /** Updates one account from explicit text and image intent. */
     @Transactional
@@ -74,7 +73,7 @@ public class UserProfileMutationService {
             }
             case REPLACE -> {
                 deleteStoredPicture(existing);
-                existing.setPictureUrl(imageStorage.uploadProfileImage(change.upload(), "users"));
+                existing.setPictureUrl(imageStorage.upload(change.upload(), "users"));
             }
         }
     }
@@ -82,7 +81,7 @@ public class UserProfileMutationService {
     /** Deletes the current object only when a picture URL is present. */
     private void deleteStoredPicture(CustomUser existing) {
         if (existing.getPictureUrl() != null) {
-            imageStorage.deleteObjectByUrl(existing.getPictureUrl());
+            imageStorage.deleteByUrl(existing.getPictureUrl());
         }
     }
 

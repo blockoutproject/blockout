@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 import com.auth0.exception.Auth0Exception;
+import com.blockout.users.account.application.UserIdentityProviderException;
 
 import java.time.Instant;
 import java.util.Map;
@@ -67,6 +68,16 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Auth0Exception.class)
     public ResponseEntity<Map<String, Object>> handleAuth0UserNotFound(
             Auth0Exception ex, HttpServletRequest request) {
+        return buildErrorResponse(
+                ex.getMessage(),
+                HttpStatus.UNAUTHORIZED,
+                request.getRequestURI());
+    }
+
+    /** Preserves the v1 401 body after Auth0 becomes an isolated adapter. */
+    @ExceptionHandler(UserIdentityProviderException.class)
+    public ResponseEntity<Map<String, Object>> handleIdentityProvider(
+            UserIdentityProviderException ex, HttpServletRequest request) {
         return buildErrorResponse(
                 ex.getMessage(),
                 HttpStatus.UNAUTHORIZED,

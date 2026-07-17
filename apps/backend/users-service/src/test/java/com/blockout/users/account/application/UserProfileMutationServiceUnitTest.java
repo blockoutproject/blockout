@@ -2,10 +2,8 @@ package com.blockout.users.account.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.blockout.users.config.AwsS3Properties;
 import com.blockout.users.models.entities.CustomUser;
 import com.blockout.users.repositories.UserRepository;
-import com.blockout.users.services.clients.S3StorageClientService;
 import java.lang.reflect.Proxy;
 import java.time.Instant;
 import java.util.Optional;
@@ -108,25 +106,20 @@ class UserProfileMutationServiceUnitTest {
     }
 
     /** Records storage effects while avoiding AWS initialization. */
-    private static final class RecordingStorage extends S3StorageClientService {
+    private static final class RecordingStorage implements ProfileImageStorage {
         private String deletedUrl;
         private UserProfileImageUpload uploaded;
 
-        /** Creates an uninitialized storage double with inert properties. */
-        private RecordingStorage() {
-            super(new AwsS3Properties());
-        }
-
         /** Records replacement bytes and returns a deterministic URL. */
         @Override
-        public String uploadProfileImage(UserProfileImageUpload upload, String folder) {
+        public String upload(UserProfileImageUpload upload, String folder) {
             this.uploaded = upload;
             return "https://cdn.example/new.png";
         }
 
         /** Records the retained delete-before-upload call. */
         @Override
-        public void deleteObjectByUrl(String url) {
+        public void deleteByUrl(String url) {
             this.deletedUrl = url;
         }
     }

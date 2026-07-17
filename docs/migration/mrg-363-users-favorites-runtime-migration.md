@@ -73,8 +73,8 @@ local row. MRG-369 owns the generated favorite event contract, MRG-372 owns the 
 deduplication, and MRG-425 owns idempotent rebuildable projection reconciliation.
 
 Account deletion now invokes the same application event port but retains Auth0-first deletion and one legacy DELETED
-event per favorite. MRG-364 owns the identity, deletion, and storage restructuring and may not change retention or
-ordering without explicit evidence.
+event per favorite. The later MRG-364 identity, deletion, and storage restructuring retains that sequence and does not
+change retention or ordering.
 
 ## Authentication, Errors, And Compatibility
 
@@ -131,7 +131,8 @@ The active goal stops before Phase MRG-900 and therefore neither performs nor au
 
 ## Closed Scope
 
-- MRG-364 owns Auth0 identity-link, account-deletion, storage, and orchestration boundaries.
+- [MRG-364](mrg-364-users-identity-storage-runtime-migration.md) completes Auth0 identity-link, account-deletion,
+  storage, and orchestration boundaries without changing the retained favorite-deletion sequence.
 - MRG-343 and MRG-347 own mobile-gateway and Expo favorite consumers and optimistic state parity.
 - MRG-369 and MRG-372 own generated favorite events, the users-service outbox, and consumer deduplication.
 - MRG-425 owns deeper favorite persistence, projection reconciliation, and lifecycle restructuring.

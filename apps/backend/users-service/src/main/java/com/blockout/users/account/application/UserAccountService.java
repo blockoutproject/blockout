@@ -1,7 +1,5 @@
 package com.blockout.users.account.application;
 
-import com.auth0.exception.Auth0Exception;
-
 /** Exposes account and profile use cases without transport or persistence models. */
 public interface UserAccountService {
 
@@ -12,8 +10,8 @@ public interface UserAccountService {
     UserAccountView updateByAuth0Id(String auth0Id, UpdateUserProfileCommand command);
 
     /** Creates or synchronizes the account associated with the current Auth0 identity. */
-    UserAccountView ensureCurrent(String auth0Id) throws Auth0Exception;
+    UserAccountView ensureCurrent(String auth0Id);
 
     /** Deletes the account associated with the current Auth0 identity using the retained ordering. */
-    void deleteCurrent(String auth0Id) throws Auth0Exception;
+    void deleteCurrent(String auth0Id);
 }

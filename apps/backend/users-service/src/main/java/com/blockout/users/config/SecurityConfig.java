@@ -1,6 +1,7 @@
 package com.blockout.users.config;
 
 import com.blockout.users.shared.api.v2.UsersSecurityProblemWriter;
+import com.blockout.users.shared.security.CanonicalApiKeyFilter;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -44,9 +45,24 @@ public class SecurityConfig {
                 .build();
     }
 
-    /** Configures bearer authentication and version-aware security responses. */
+    /** Protects the generated v2 internal identity operation with canonical failures. */
     @Bean
     @Order(2)
+    public SecurityFilterChain canonicalInternalChain(HttpSecurity http) throws Exception {
+        return http
+                .securityMatcher("/api/v2/users/internal/**")
+                .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
+                .addFilterBefore(
+                        new CanonicalApiKeyFilter(authProperties, securityProblems),
+                        UsernamePasswordAuthenticationFilter.class)
+                .csrf(csrf -> csrf.disable())
+                .cors(withDefaults())
+                .build();
+    }
+
+    /** Configures bearer authentication and version-aware security responses. */
+    @Bean
+    @Order(3)
     public SecurityFilterChain apiChain(HttpSecurity http) throws Exception {
         return http
                 .authorizeHttpRequests(auth -> auth.anyRequest().authenticated())

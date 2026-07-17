@@ -57,6 +57,12 @@ public class UsersSecurityProblemWriter implements AuthenticationEntryPoint, Acc
         write(problems.response(HttpStatus.FORBIDDEN, "forbidden", "Access is forbidden.", request), response);
     }
 
+    /** Writes a canonical unauthorized response for the v2 internal API-key boundary. */
+    public void writeApiKeyUnauthorized(
+            HttpServletRequest request, HttpServletResponse response, String detail) throws IOException {
+        write(problems.response(HttpStatus.UNAUTHORIZED, "invalid_api_key", detail, request), response);
+    }
+
     /** Identifies canonical users-service routes. */
     private boolean isV2(HttpServletRequest request) {
         String path = request.getRequestURI();

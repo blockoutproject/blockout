@@ -35,20 +35,20 @@ inside contract-first restructuring.
 
 ## Boundary Ownership
 
-| Concern                     | Owner and target                                                    |
-| --------------------------- | ------------------------------------------------------------------- |
-| Account query               | `UserAccountService`                                                |
-| Account/profile projection  | `UserAccountView` and favorite-owned `FavoriteView`                 |
-| Profile mutation intent     | `UpdateUserProfileCommand` and `UserProfileImageChange`             |
-| Account orchestration       | `UserAccountApplicationService`                                     |
-| Profile mutation behavior   | transactional `UserProfileMutationService`                          |
-| Entity projection           | strict `UserAccountViewMapper`                                      |
-| Generated transport mapping | strict `UserAccountApiMapper`                                       |
-| Canonical REST              | generated `UserAccountsApi` behind `UserAccountV2Controller`        |
-| Legacy REST                 | `LegacyUserController`, adapter records, and `LegacyUsersJson`      |
-| Authenticated subject       | `AuthenticatedUserSubject`                                          |
-| Object storage              | `S3StorageClientService`, receiving application-owned upload bytes  |
-| Auth0 management            | retained `UserService` internals pending the MRG-364 identity split |
+| Concern                     | Owner and target                                                              |
+| --------------------------- | ----------------------------------------------------------------------------- |
+| Account query               | `UserAccountService`                                                          |
+| Account/profile projection  | `UserAccountView` and favorite-owned `FavoriteView`                           |
+| Profile mutation intent     | `UpdateUserProfileCommand` and `UserProfileImageChange`                       |
+| Account orchestration       | `UserAccountApplicationService`                                               |
+| Profile mutation behavior   | transactional `UserProfileMutationService`                                    |
+| Entity projection           | strict `UserAccountViewMapper`                                                |
+| Generated transport mapping | strict `UserAccountApiMapper`                                                 |
+| Canonical REST              | generated `UserAccountsApi` behind `UserAccountV2Controller`                  |
+| Legacy REST                 | `LegacyUserController`, adapter records, and `LegacyUsersJson`                |
+| Authenticated subject       | `AuthenticatedUserSubject`                                                    |
+| Object storage              | `S3StorageClientService`, receiving application-owned upload bytes            |
+| Auth0 management            | then-retained `UserService` internals, replaced by the MRG-364 identity split |
 
 Generated models never enter application, persistence, Auth0, or S3 code. JPA entities never leave the application
 boundary. The former handwritten account/update/favorite DTOs, their mappers, the multipart image utility, and the
@@ -81,7 +81,7 @@ Profile mutation now expresses image intent without using a nullable transport f
 - the v1 adapter translates its historical multipart convention to the same three intents.
 
 Pseudo trimming, case-insensitive uniqueness, blank-value handling, reactivation, timestamps, S3 ordering, conflict
-mapping, and successful response bodies remain unchanged. MRG-364 still owns the deeper Auth0 identity-link,
+mapping, and successful response bodies remain unchanged. The later MRG-364 slice owns the deeper Auth0 identity-link,
 account-deletion, storage, and orchestration restructuring; MRG-339 does not silently correct those workflows.
 
 ## Authentication, Errors, And Compatibility
@@ -144,7 +144,8 @@ The active goal stops before Phase MRG-900 and therefore neither performs nor au
 
 - [MRG-363](mrg-363-users-favorites-runtime-migration.md) owns the generated favorite boundary and canonical
   favorite authority; BFF and Expo caller migration remains deferred.
-- MRG-364 owns the deeper Auth0 identity-link, deletion, storage, and orchestration split.
+- [MRG-364](mrg-364-users-identity-storage-runtime-migration.md) completes the Auth0 identity-link, deletion, storage,
+  and orchestration split while retaining current behavior.
 - MRG-341, MRG-343, MRG-347, and MRG-365 own notification, BFF, and Expo consumers.
 - MRG-369 and MRG-372 own favorite/follow event contracts and the users-service outbox.
 - MRG-408, MRG-425, and MRG-426 own deeper users-service restructuring.

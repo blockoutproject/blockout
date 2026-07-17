@@ -369,6 +369,9 @@ isolated legacy adapter, and activated matches-service generated user client are
 The favorite command/page boundary, canonical local authority, generated team/pool projection clients, retained event
 sequence, isolated legacy adapter, and deferred consistency work are recorded in the
 [MRG-363 favorites migration](../migration/mrg-363-users-favorites-runtime-migration.md).
+The Auth0 identity port, provider-first deletion orchestration, generated internal identity boundary, S3 profile-image
+adapter, retained security behavior, and deferred retention work are recorded in the
+[MRG-364 identity and storage migration](../migration/mrg-364-users-identity-storage-runtime-migration.md).
 
 ## 12. Approved Roadmap Sequence
 

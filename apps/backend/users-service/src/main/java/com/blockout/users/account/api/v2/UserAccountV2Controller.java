@@ -1,9 +1,7 @@
 package com.blockout.users.account.api.v2;
 
-import com.auth0.exception.Auth0Exception;
 import com.blockout.users.account.api.UserProfileImageUploads;
 import com.blockout.users.account.application.UserAccountService;
-import com.blockout.users.account.application.UserIdentityProviderException;
 import com.blockout.users.account.application.UserProfileImageChange;
 import com.blockout.users.account.application.UserProfileImageUpload;
 import com.blockout.users.generated.api.UserAccountsApi;
@@ -63,22 +61,14 @@ public class UserAccountV2Controller implements UserAccountsApi {
     @Override
     @PreAuthorize("hasAuthority('SCOPE_create:current_user')")
     public ResponseEntity<UserAccountInternalResponse> ensureCurrentUser() {
-        try {
-            return ResponseEntity.ok(mapper.toResponse(accounts.ensureCurrent(authenticatedSubject.get())));
-        } catch (Auth0Exception exception) {
-            throw new UserIdentityProviderException(exception);
-        }
+        return ResponseEntity.ok(mapper.toResponse(accounts.ensureCurrent(authenticatedSubject.get())));
     }
 
     /** {@inheritDoc} */
     @Override
     @PreAuthorize("hasAuthority('SCOPE_delete:current_user')")
     public ResponseEntity<Void> deleteCurrentUser() {
-        try {
-            accounts.deleteCurrent(authenticatedSubject.get());
-            return ResponseEntity.noContent().build();
-        } catch (Auth0Exception exception) {
-            throw new UserIdentityProviderException(exception);
-        }
+        accounts.deleteCurrent(authenticatedSubject.get());
+        return ResponseEntity.noContent().build();
     }
 }

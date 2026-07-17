@@ -1,15 +1,14 @@
 package com.blockout.users.account.api.v1;
 
-import com.auth0.exception.Auth0Exception;
 import com.blockout.users.account.api.UserProfileImageUploads;
 import com.blockout.users.account.application.UpdateUserProfileCommand;
 import com.blockout.users.account.application.UserAccountService;
 import com.blockout.users.account.application.UserAccountView;
+import com.blockout.users.account.application.UserIdentityService;
 import com.blockout.users.favorite.application.FavoriteView;
 import com.blockout.users.account.application.UserProfileImageChange;
 import com.blockout.users.account.application.UserProfileImageUpload;
 import com.blockout.users.models.enums.EntityType;
-import com.blockout.users.services.UserService;
 import com.blockout.users.shared.api.v1.LegacyUsersJson;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import java.time.Instant;
@@ -38,7 +37,7 @@ import org.springframework.web.multipart.MultipartFile;
 public class LegacyUserController {
 
     private final UserAccountService accounts;
-    private final UserService legacyIdentityOrchestration;
+    private final UserIdentityService identities;
     private final LegacyUsersJson json;
 
     /** Returns the retained complete account response with reduced favorites by Auth0 identity. */
@@ -78,22 +77,22 @@ public class LegacyUserController {
     @PutMapping("/me")
     @PreAuthorize("hasAuthority('SCOPE_create:current_user')")
     public ResponseEntity<String> ensureCurrentUser(@AuthenticationPrincipal Jwt jwt)
-            throws Auth0Exception, JsonProcessingException {
+            throws JsonProcessingException {
         return ResponseEntity.ok(json.write(entityResponse(accounts.ensureCurrent(jwt.getSubject()))));
     }
 
     /** Deletes the current account with the retained Auth0-first ordering. */
     @DeleteMapping("/me")
     @PreAuthorize("hasAuthority('SCOPE_delete:current_user')")
-    public ResponseEntity<Void> deleteUser(@AuthenticationPrincipal Jwt jwt) throws Auth0Exception {
+    public ResponseEntity<Void> deleteUser(@AuthenticationPrincipal Jwt jwt) {
         accounts.deleteCurrent(jwt.getSubject());
         return ResponseEntity.noContent().build();
     }
 
-    /** Preserves the v1 API-key-protected default-role operation for MRG-364. */
+    /** Preserves the v1 API-key-protected default-role operation. */
     @PostMapping("/internal/{auth0Id}/assign-default-role")
     public ResponseEntity<Void> assignDefaultRole(@PathVariable String auth0Id) {
-        legacyIdentityOrchestration.assignDefaultRole(auth0Id);
+        identities.assignDefaultRole(auth0Id);
         return ResponseEntity.noContent().build();
     }
 
