@@ -1,5 +1,6 @@
 package com.blockout.clubs.config;
 
+import com.blockout.clubs.shared.api.v2.ClubsSecurityProblemWriter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -16,6 +17,8 @@ import static org.springframework.security.config.Customizer.withDefaults;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
+    private final ClubsSecurityProblemWriter clubsSecurityProblemWriter;
+
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
@@ -24,6 +27,9 @@ public class SecurityConfig {
             )
             .csrf(csrf -> csrf.disable())
             .cors(withDefaults())
+            .exceptionHandling(exceptions -> exceptions
+                .authenticationEntryPoint(clubsSecurityProblemWriter)
+                .accessDeniedHandler(clubsSecurityProblemWriter))
             .oauth2ResourceServer(oauth2 -> oauth2
                 .jwt(jwt -> jwt
                     .jwtAuthenticationConverter(jwtAuthenticationConverter())

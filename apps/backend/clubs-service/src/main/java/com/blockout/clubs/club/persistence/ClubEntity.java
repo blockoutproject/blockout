@@ -1,12 +1,16 @@
-package com.blockout.clubs.models.entities;
+package com.blockout.clubs.club.persistence;
 
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
+import jakarta.persistence.Table;
+import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-
-import jakarta.persistence.*;
-import java.time.LocalDateTime;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
 @Builder(toBuilder = true)
@@ -14,7 +18,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Entity
 @Table(name = "clubs")
-public class Club {
+public class ClubEntity {
 
     @Id
     @Column(name = "id", nullable = false, unique = true)
@@ -64,13 +68,13 @@ public class Club {
     private LocalDateTime lastUpdate;
 
     @PrePersist
-    public void prePersist() {
+    void prePersist() {
         createdAt = LocalDateTime.now();
         lastUpdate = LocalDateTime.now();
     }
 
     @PreUpdate
-    public void preUpdate() {
+    void preUpdate() {
         lastUpdate = LocalDateTime.now();
     }
 }

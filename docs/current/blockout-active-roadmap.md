@@ -644,8 +644,21 @@ state moves to GitHub and this file becomes a historical migration record.
     tests, OpenAPI lint, nine Python 3.12 client tests, deterministic bundle/model regeneration, complete 14-module
     backend package, documentation links, Maaatch comparison, Prettier, and whitespace checks pass. Mobile-gateway,
     Expo, scraper runtime calls, databases, events, standalone repositories, production, and Maaatch remain unchanged.
-- [ ] MRG-334 Migrate `clubs-service` generated server boundaries and internal generated clients, including multipart
+- [x] MRG-334 Migrate `clubs-service` generated server boundaries and internal generated clients, including multipart
       mapping and temporary compatibility defined by MRG-304.
+  - Evidence: all six club operations now implement generated v2 Spring interfaces through feature-owned create and
+    update commands, `ClubView`/`ClubPage`, a dedicated JPA entity, strict MapStruct API and persistence mappings,
+    explicit logo intent, an S3 port, progressive Problem Details, and per-operation coexistence telemetry. The
+    isolated v1 adapter retains snake_case records, entity-shaped audit fields, scopes, authenticated unscoped logo
+    reads, list shape, null-preserving updates, logo removal/replacement semantics, reactivation, soft deletion,
+    storage ordering, errors, and the unversioned club upsert event without exposing entities or handwritten Jackson
+    annotations.
+    Search-worker now uses the official generated Java `ClubsClient`, existing Auth0 bearer transport, normalized v2
+    base URL, complete page aggregation, and immediate immutable minimal snapshots; its handwritten club client and
+    annotated copied DTO are removed. The 15 impacted Java tests, 30 contract tests, 136-fragment OpenAPI lint,
+    complete 14-module Maven package, documentation links, Maaatch comparison, Prettier, and whitespace checks pass.
+    Mobile-gateway, Expo, Python scrapers, databases, event topology, standalone repositories, production, Maaatch,
+    Orval settings, and Python generator settings remain unchanged.
 - [ ] MRG-335 Migrate `teams-service` generated server boundaries and internal generated clients, including multipart
       mapping and temporary compatibility defined by MRG-304.
 - [ ] MRG-336 Migrate `pools-service` generated server boundaries and internal generated clients with parity evidence.

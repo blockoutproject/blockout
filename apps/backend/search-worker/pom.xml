@@ -134,6 +134,27 @@
 							</configOptions>
 						</configuration>
 					</execution>
+					<execution>
+						<id>generate-clubs-client</id>
+						<phase>generate-sources</phase>
+						<goals>
+							<goal>generate</goal>
+						</goals>
+						<configuration>
+							<inputSpec>${project.basedir}/../../../libs/shared/contracts/generated/specs/clubs.json</inputSpec>
+							<generatorName>java</generatorName>
+							<apiNameSuffix>Client</apiNameSuffix>
+							<output>${openapi.generated-sources.root}/clubs-client</output>
+							<apiPackage>com.blockout.workersearch.clubsclient.api</apiPackage>
+							<modelPackage>com.blockout.workersearch.clubsclient.model</modelPackage>
+							<invokerPackage>com.blockout.workersearch.clubsclient.invoker</invokerPackage>
+							<configOptions>
+								<library>resttemplate</library>
+								<useJakartaEe>true</useJakartaEe>
+								<hideGenerationTimestamp>true</hideGenerationTimestamp>
+							</configOptions>
+						</configuration>
+					</execution>
 				</executions>
 			</plugin>
 			<plugin>
@@ -149,6 +170,7 @@
 						<configuration>
 							<sources>
 								<source>${openapi.generated-sources.root}/config-client/src/main/java</source>
+								<source>${openapi.generated-sources.root}/clubs-client/src/main/java</source>
 							</sources>
 						</configuration>
 					</execution>

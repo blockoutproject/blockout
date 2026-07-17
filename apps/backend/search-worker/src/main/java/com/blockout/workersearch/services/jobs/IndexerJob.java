@@ -7,13 +7,13 @@ import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import com.blockout.workersearch.models.dto.club.ClubDTO;
 import com.blockout.workersearch.models.dto.pool.PoolDTO;
 import com.blockout.workersearch.models.dto.team.TeamDTO;
+import com.blockout.workersearch.club.application.ClubCatalog;
+import com.blockout.workersearch.club.application.ClubSnapshot;
 import com.blockout.workersearch.models.events.ClubUpsertEvent;
 import com.blockout.workersearch.models.events.PoolUpsertEvent;
 import com.blockout.workersearch.models.events.TeamUpsertEvent;
-import com.blockout.workersearch.services.clients.ClubClientService;
 import com.blockout.workersearch.services.clients.PoolClientService;
 import com.blockout.workersearch.services.clients.TeamClientService;
 import com.blockout.workersearch.services.index.ClubIndexService;
@@ -30,7 +30,7 @@ public class IndexerJob {
 
     private static final Logger logger = LoggerFactory.getLogger(IndexerJob.class);
 
-    private final ClubClientService clubClientService;
+    private final ClubCatalog clubCatalog;
     private final TeamClientService teamClientService;
     private final PoolClientService poolClientService;
     private final ClubIndexService clubIndexService;
@@ -50,13 +50,13 @@ public class IndexerJob {
 
     private void reindexClubs() {
         clubIndexService.deleteAll();
-        List<ClubDTO> clubs = clubClientService.listActiveClubs();
+        List<ClubSnapshot> clubs = clubCatalog.findActiveClubs();
         List<ClubUpsertEvent> events = clubs.stream()
                 .map(club -> ClubUpsertEvent.builder()
-                        .id(club.getId())
-                        .name(club.getName())
-                        .logoUrl(club.getLogoUrl())
-                        .city(club.getCity())
+                        .id(club.id())
+                        .name(club.name())
+                        .logoUrl(club.logoUrl())
+                        .city(club.city())
                         .build())
                 .toList();
 

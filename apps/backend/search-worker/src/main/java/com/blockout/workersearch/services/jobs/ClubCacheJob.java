@@ -7,8 +7,8 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import com.blockout.workersearch.models.events.ClubUpsertEvent;
+import com.blockout.workersearch.club.application.ClubCatalog;
 import com.blockout.workersearch.services.caches.ClubCacheService;
-import com.blockout.workersearch.services.clients.ClubClientService;
 
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
@@ -17,19 +17,19 @@ import static net.logstash.logback.argument.StructuredArguments.keyValue;
 public class ClubCacheJob {
 
     private static final Logger logger = LoggerFactory.getLogger(ClubCacheJob.class);
-    private final ClubClientService clubClientService;
+    private final ClubCatalog clubCatalog;
     private final ClubCacheService clubCacheService;
 
     @Scheduled(fixedRate = 600000)
     public void refreshClubCache() {
         try {
-            var clubs = clubClientService.listActiveClubs();
+            var clubs = clubCatalog.findActiveClubs();
             var events = clubs.stream()
                     .map(club -> ClubUpsertEvent.builder()
-                            .id(club.getId())
-                            .name(club.getName())
-                            .logoUrl(club.getLogoUrl())
-                            .city(club.getCity())
+                            .id(club.id())
+                            .name(club.name())
+                            .logoUrl(club.logoUrl())
+                            .city(club.city())
                             .build())
                     .toList();
 

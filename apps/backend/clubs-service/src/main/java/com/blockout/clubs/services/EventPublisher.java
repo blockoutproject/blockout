@@ -1,7 +1,8 @@
 package com.blockout.clubs.services;
 
 import com.blockout.clubs.config.RabbitMQConfig;
-import com.blockout.clubs.models.entities.Club;
+import com.blockout.clubs.club.application.ClubEventPublisher;
+import com.blockout.clubs.club.application.ClubView;
 import com.blockout.clubs.models.events.ClubUpsertEvent;
 
 import lombok.RequiredArgsConstructor;
@@ -16,19 +17,20 @@ import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
 @Service
 @RequiredArgsConstructor
-public class EventPublisher {
+public class EventPublisher implements ClubEventPublisher {
 
     private static final Logger logger = LoggerFactory.getLogger(EventPublisher.class);
 
     private final RabbitTemplate rabbitTemplate;
 
-    public void publishClubUpsert(Club club) {
+    @Override
+    public void publishUpsert(ClubView club) {
 
         ClubUpsertEvent event = ClubUpsertEvent.builder()
-                .id(club.getId())
-                .name(club.getName())
-                .logoUrl(club.getLogoUrl())
-                .city(club.getCity())
+                .id(club.id())
+                .name(club.name())
+                .logoUrl(club.logoUrl())
+                .city(club.city())
                 .build();
 
         try {
@@ -39,12 +41,12 @@ public class EventPublisher {
 
             logger.info("Club upsert event sent",
                     keyValue("action", "publish_club_upsert"),
-                    keyValue("clubId", club.getId()));
+                    keyValue("clubId", club.id()));
 
         } catch (AmqpException ex) {
             logger.error("Failed to publish club event",
-                    keyValue("clubId", club.getId()), ex);
-            throw ex;   // ou retry / DLQ
+                    keyValue("clubId", club.id()), ex);
+            throw ex;
         }
     }
 }

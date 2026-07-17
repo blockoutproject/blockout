@@ -1,7 +1,7 @@
 package com.blockout.clubs.services.jobs;
 
-import com.blockout.clubs.models.entities.Club;
-import com.blockout.clubs.repositories.ClubRepository;
+import com.blockout.clubs.club.persistence.ClubEntity;
+import com.blockout.clubs.club.persistence.ClubRepository;
 import com.blockout.clubs.services.clients.MapboxClient;
 
 import lombok.RequiredArgsConstructor;
@@ -32,7 +32,7 @@ public class ClubGeocodingJob {
         int processed = 0;
 
         try {
-            List<Club> clubs = clubRepository.findAll().stream()
+            List<ClubEntity> clubs = clubRepository.findAll().stream()
                     .filter(c -> Boolean.TRUE.equals(c.getActive())
                             && (c.getLatitude() == null || c.getLongitude() == null)
                             && c.getCity() != null
@@ -56,7 +56,7 @@ public class ClubGeocodingJob {
                     keyValue("action", "club_geocoding_start"),
                     keyValue("count", clubs.size()));
 
-            for (Club club : clubs) {
+            for (ClubEntity club : clubs) {
                 try {
                     processed++;
 

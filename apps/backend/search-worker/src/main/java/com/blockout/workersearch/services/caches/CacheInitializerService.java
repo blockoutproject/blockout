@@ -6,14 +6,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-import com.blockout.workersearch.models.dto.club.ClubDTO;
 import com.blockout.workersearch.models.dto.team.TeamDTO;
+import com.blockout.workersearch.club.application.ClubCatalog;
+import com.blockout.workersearch.club.application.ClubSnapshot;
 import com.blockout.workersearch.configuration.division.application.DivisionCatalog;
 import com.blockout.workersearch.configuration.division.application.DivisionSnapshot;
 import com.blockout.workersearch.models.events.ClubUpsertEvent;
 import com.blockout.workersearch.models.events.DivisionUpsertEvent;
 import com.blockout.workersearch.models.events.TeamUpsertEvent;
-import com.blockout.workersearch.services.clients.ClubClientService;
 import com.blockout.workersearch.services.clients.PoolClientService;
 import com.blockout.workersearch.services.clients.TeamClientService;
 
@@ -27,7 +27,7 @@ import static net.logstash.logback.argument.StructuredArguments.keyValue;
 public class CacheInitializerService {
     private static final Logger logger = LoggerFactory.getLogger(PoolClientService.class);
 
-    private final ClubClientService clubClientService;
+    private final ClubCatalog clubCatalog;
     private final TeamClientService teamClientService;
     private final DivisionCatalog divisionCatalog;
     private final ClubCacheService clubCacheService;
@@ -38,13 +38,13 @@ public class CacheInitializerService {
     public void initializeCaches() {
 
         // Initialisation du cache des clubs
-        List<ClubDTO> clubs = clubClientService.listActiveClubs();
+        List<ClubSnapshot> clubs = clubCatalog.findActiveClubs();
         List<ClubUpsertEvent> clubEvents = clubs.stream()
                 .map(club -> ClubUpsertEvent.builder()
-                        .id(club.getId())
-                        .name(club.getName())
-                        .logoUrl(club.getLogoUrl())
-                        .city(club.getCity())
+                        .id(club.id())
+                        .name(club.name())
+                        .logoUrl(club.logoUrl())
+                        .city(club.city())
                         .build())
                 .toList();
 

@@ -344,6 +344,8 @@ The source-syntax cleanup and complete REST regeneration are recorded in the
 [MRG-377 OpenAPI normalization](../migration/mrg-377-openapi-standard-syntax-normalization.md).
 The remaining config-service owner boundaries and the first search-worker generated snapshot client are recorded in
 the [MRG-376 config runtime migration](../migration/mrg-376-config-runtime-migration.md).
+The clubs-service owner boundaries, explicit logo intent, isolated v1 adapter, and generated worker snapshot client
+are recorded in the [MRG-334 clubs runtime migration](../migration/mrg-334-clubs-runtime-migration.md).
 
 ## 12. Approved Roadmap Sequence
 
