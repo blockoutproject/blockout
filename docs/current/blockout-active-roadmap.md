@@ -285,8 +285,13 @@ state moves to GitHub and this file becomes a historical migration record.
     and component order, byte-identical repeated generation, and missing transitive references; the uncached
     `@blockout/contracts:test` target is enforced by both shadow CI workflows. Formatting, Nx project discovery, and
     diff checks pass.
-- [ ] MRG-308 Add source-contract lint that rejects snake_case property and Blockout-owned query names, duplicate
+- [x] MRG-308 Add source-contract lint that rejects snake_case property and Blockout-owned query names, duplicate
       operation IDs, inline stable enums, ambiguous DTO suffixes, and undocumented exceptions.
+  - Evidence: `lint-openapi-source.mjs` and its five passing tests enforce canonical property/query names, owner-local
+    operation ID uniqueness, shared top-level enums, explicit schema roles, and exact task-owned compatibility
+    exceptions; malformed, duplicate, and stale exceptions fail. The cached `lint-openapi-source` Nx target and both
+    shadow CI workflows enforce the empty current exception registry; the full nine-test contract suite, formatting,
+    Nx discovery, documentation links, Maaatch comparison, typecheck, and diff checks pass.
 - [ ] MRG-309 Introduce generated OpenAPI bundles under `libs/shared/contracts/generated/specs/**` and prove two clean
       generations produce no diff.
 - [ ] MRG-310 Port Maaatch's generated `schemaMappings` synchronizer and protect its backend parent block from manual

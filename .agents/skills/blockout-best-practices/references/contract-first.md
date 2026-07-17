@@ -38,6 +38,21 @@ Never hand-edit:
 - `apps/backend/*/target/generated-sources/**`
 - the generated `schemaMappings` block in `apps/backend/pom.xml`
 
+## Source Lint
+
+Run `npm exec nx run @blockout/contracts:lint-openapi-source` before bundling authoritative fragments. It rejects:
+
+- schema property and Blockout-owned query names that are not canonical `camelCase`;
+- duplicate `operationId` values within one contract owner;
+- enum values outside one named `*Enum` component under `source/shared/schemas`;
+- schema names ending in ambiguous transport or persistence suffixes: `Dto`, `DTO`, `DataTransferObject`, `ApiModel`,
+  `Model`, or `Entity`.
+
+Temporary exceptions are exact matches in `libs/shared/contracts/specs/lint-exceptions.json`. Each entry documents its
+rule, source-relative file, JSON Pointer, compatibility reason, owning MRG task, and removal MRG task. Do not add broad
+file or rule exclusions. The lint rejects malformed, duplicate, and unused exceptions so a retired compatibility case
+cannot leave a permanent bypass.
+
 ## Canonical JSON Naming
 
 - Every Blockout-owned REST property, query parameter, multipart JSON part, and asynchronous event field uses
@@ -157,6 +172,7 @@ Errors use `ProblemDetail`-compatible bodies with a stable machine-readable `cod
 Run only the commands useful to impacted layers, in this order:
 
 ```bash
+npm exec nx run @blockout/contracts:lint-openapi-source
 npm exec nx run @blockout/contracts:generate-contracts
 mvn -f apps/backend/pom.xml -DskipTests generate-sources
 ```

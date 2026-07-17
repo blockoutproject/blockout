@@ -19,7 +19,19 @@
         "executor": "nx:run-commands",
         "cache": false,
         "options": {
-          "command": "node --test libs/shared/contracts/specs/scripts/bundle-openapi.test.mjs"
+          "command": "node --test libs/shared/contracts/specs/scripts/bundle-openapi.test.mjs libs/shared/contracts/specs/scripts/lint-openapi-source.test.mjs"
+        }
+      },
+      "lint-openapi-source": {
+        "executor": "nx:run-commands",
+        "cache": true,
+        "inputs": [
+          "{projectRoot}/specs/source/**/*.json",
+          "{projectRoot}/specs/lint-exceptions.json",
+          "{projectRoot}/specs/scripts/lint-openapi-source.mjs"
+        ],
+        "options": {
+          "command": "node libs/shared/contracts/specs/scripts/lint-openapi-source.mjs"
         }
       },
       "generate-openapi-bundles": {

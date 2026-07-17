@@ -56,6 +56,9 @@ jobs:
       - name: Test OpenAPI bundling
         run: npm exec nx run @blockout/contracts:test
 
+      - name: Lint OpenAPI source
+        run: npm exec nx run @blockout/contracts:lint-openapi-source
+
       - name: Typecheck reserved contract boundary
         run: npm exec nx run @blockout/contracts:typecheck
 
