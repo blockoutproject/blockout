@@ -456,8 +456,21 @@ state moves to GitHub and this file becomes a historical migration record.
     operation, scope, command fields/requiredness, multipart shape, minimal result, provider-model exclusion, statuses,
     and side-effect policy; source lint, deterministic generation, documentation and Maaatch structure checks, and the
     unchanged backend reactor package successfully without modifying runtime code.
-- [ ] MRG-325 Define and bundle the `notification-service` REST contract from its approved audit, keeping RabbitMQ event
+- [x] MRG-325 Define and bundle the `notification-service` REST contract from its approved audit, keeping RabbitMQ event
       contracts in their separately selected source format.
+  - Evidence: the authoritative notification source and generated bundle reconcile all six MRG-301 operations under
+    `/api/v2/notifications/**` across current-user inbox, state mutation, deletion, unread-count, and push-token
+    families. The generated inbox view replaces direct JPA exposure with nine role-owned camelCase fields, makes
+    `divisionId` an explicit enrichment input instead of exporting generic metadata, and omits recipient/target storage
+    keys and read/open persistence timestamps. The stable page uses `items + pageInfo`, retains the mobile default of
+    20, adds validation and a created-time/identity tie-breaker, while the isolated v1 adapter keeps its legacy wrapper,
+    query name, cursor fields, and current ordering until cutover. Unread count is explicit, repeated read/open/delete
+    404 behavior remains documented, and push registration uses the canonical user UUID plus required token, shared
+    platform enum, and device identifier without hiding the existing path-ownership gap. Expo provider models,
+    delivery-ledger/follower persistence, and every RabbitMQ/AsyncAPI artifact remain outside OpenAPI. Twenty-six
+    contract tests cover operation IDs, scopes, schemas, page semantics, mutation outcomes, token validation, UUID
+    identity, provider/event exclusions, source lint, and deterministic generation; documentation and Maaatch structure
+    checks and the unchanged backend reactor package successfully without modifying runtime code.
 - [ ] MRG-326 Define and bundle the `search-service` contract from its approved audit using only required camelCase wire
       fields; classify `search-worker` as an event consumer rather than inventing REST behavior.
 - [ ] MRG-327 Define and bundle the `mobile-gateway` configuration, user, report, search, and notification BFF contracts

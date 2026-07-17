@@ -1,0 +1,37 @@
+{
+  "NotificationInternalResponse": {
+    "type": "object",
+    "description": "Persistence-independent inbox view. Recipient ownership, target storage keys, generic metadata, and read/open timestamps remain behind the application and persistence boundaries.",
+    "required": [
+      "id",
+      "type",
+      "title",
+      "body",
+      "deepLink",
+      "divisionId",
+      "isRead",
+      "isOpened",
+      "createdAt"
+    ],
+    "properties": {
+      "id": { "$ref": "#/components/schemas/NumericIdentifier" },
+      "type": { "$ref": "#/components/schemas/NotificationTypeEnum" },
+      "title": { "type": "string", "minLength": 1 },
+      "body": { "type": "string", "minLength": 1 },
+      "deepLink": {
+        "type": "string",
+        "maxLength": 2048,
+        "nullable": true
+      },
+      "divisionId": {
+        "allOf": [{ "$ref": "#/components/schemas/NumericIdentifier" }],
+        "description": "Explicit enrichment input derived from the persisted metadata tree.",
+        "nullable": true
+      },
+      "isRead": { "type": "boolean" },
+      "isOpened": { "type": "boolean" },
+      "createdAt": { "$ref": "#/components/schemas/UtcDateTime" }
+    },
+    "additionalProperties": false
+  }
+}

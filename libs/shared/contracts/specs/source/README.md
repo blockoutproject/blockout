@@ -278,6 +278,30 @@ changing them. Legacy malformed-JSON/image errors, aggregate request limits, ano
 leaks, orphan cleanup, validation corrections, provider compensation, BFF projection, Expo form migration, and runtime
 activation remain assigned later work.
 
+## Notification-Service Contract
+
+MRG-325 makes `services/notification` authoritative for all six notification-service REST operations inventoried by
+MRG-301 and allocated by MRG-304. The bundle separates current-user inbox reads and mutations from push-token
+registration under `/api/v2/notifications/**`, retains the audited scopes, and keeps the approved coexistence token
+path with the canonical local Blockout user UUID.
+
+The persistence-independent inbox item retains the visible content, notification kind, read/open state, creation time,
+and an explicit nullable `divisionId` needed by BFF enrichment. Recipient IDs, target storage keys, generic `JsonNode`
+metadata, read/open timestamps, and the JPA entity remain outside the generated boundary. The page uses `items` plus
+shared `PageInfo`, defaults to the current mobile size of 20, and adds a hard maximum and deterministic
+creation-time/identity ordering. The v1 adapter preserves its `notifications`, `hasNext`, `nextPage`, `size`, and
+equal-timestamp behavior until the vertical cutover proves parity.
+
+Unread count uses the unambiguous `unreadCount` field. Read, opened, and delete mutations retain their current
+state-sensitive 404 outcomes instead of silently becoming idempotent. Push registration requires the token, shared
+platform enum, and device identifier; Expo messages, tickets, receipts, provider configuration, delivery-ledger state,
+and follower projections do not enter the REST contract. The current caller-controlled user path, OS-build device
+identity, missing unregister/account-cleanup behavior, and delivery consistency gaps remain explicit later security,
+privacy, application, and persistence work.
+
+RabbitMQ schemas, envelopes, routes, headers, queues, publishers, and listeners remain solely governed by MRG-315 and
+its event-contract tasks. MRG-325 creates no AsyncAPI component and activates no REST or broker runtime behavior.
+
 ## Closed Boundaries
 
 - `search-worker` has no REST controller and receives no source directory or generated server bundle.

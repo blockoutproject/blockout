@@ -9,6 +9,39 @@
       "url": "http://localhost"
     }
   ],
-  "tags": [],
-  "components": {}
+  "tags": [
+    { "name": "NotificationInbox" },
+    { "name": "NotificationPushTokens" }
+  ],
+  "security": [{ "bearerAuth": [] }],
+  "components": {
+    "parameters": {
+      "NotificationId": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "description": "Notification inbox identity scoped to the current authenticated user.",
+        "schema": { "$ref": "#/components/schemas/NumericIdentifier" }
+      },
+      "NotificationPageSize": {
+        "name": "pageSize",
+        "in": "query",
+        "required": false,
+        "description": "Requested inbox page size. The default preserves the current mobile page size while v2 adds a hard bound.",
+        "schema": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "default": 20
+        }
+      },
+      "UserId": {
+        "name": "userId",
+        "in": "path",
+        "required": true,
+        "description": "Canonical local Blockout user UUID retained on the approved coexistence route.",
+        "schema": { "$ref": "#/components/schemas/UuidIdentifier" }
+      }
+    }
+  }
 }

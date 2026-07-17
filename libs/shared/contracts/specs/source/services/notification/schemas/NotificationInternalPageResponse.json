@@ -1,0 +1,17 @@
+{
+  "NotificationInternalPageResponse": {
+    "type": "object",
+    "description": "Stable zero-based inbox page. Consumers derive the next page from pageInfo when hasNext is true.",
+    "required": ["items", "pageInfo"],
+    "properties": {
+      "items": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/NotificationInternalResponse"
+        }
+      },
+      "pageInfo": { "$ref": "#/components/schemas/PageInfo" }
+    },
+    "additionalProperties": false
+  }
+}

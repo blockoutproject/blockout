@@ -1424,6 +1424,146 @@ test('workspace reports contract separates Blockout and vendor roles', async () 
   );
 });
 
+test('workspace notification contract reconciles REST without event or provider leakage', async () => {
+  const notification = await readJson(
+    path.join(generatedSpecsDir, 'notification.json'),
+  );
+  const operations = Object.entries(notification.paths).flatMap(
+    ([operationPath, pathItem]) =>
+      Object.entries(pathItem)
+        .filter(([method]) => method !== 'parameters')
+        .map(([method, operation]) => ({
+          key: `${method.toUpperCase()} ${operationPath}`,
+          operation,
+        })),
+  );
+  assert.deepEqual(
+    Object.fromEntries(
+      operations
+        .map(({ key, operation }) => [key, operation.operationId])
+        .sort(([left], [right]) => left.localeCompare(right)),
+    ),
+    {
+      'DELETE /api/v2/notifications/{id}': 'deleteCurrentUserNotification',
+      'GET /api/v2/notifications': 'listCurrentUserNotifications',
+      'GET /api/v2/notifications/unread-count':
+        'getCurrentUserUnreadNotificationCount',
+      'POST /api/v2/notifications/users/{userId}/push-tokens':
+        'registerUserPushToken',
+      'POST /api/v2/notifications/{id}/opened':
+        'markCurrentUserNotificationOpened',
+      'POST /api/v2/notifications/{id}/read': 'markCurrentUserNotificationRead',
+    },
+  );
+  assert.equal(
+    new Set(operations.map(({ operation }) => operation.operationId)).size,
+    6,
+  );
+  assert.deepEqual(notification.security, [{ bearerAuth: [] }]);
+  assert.deepEqual(
+    Object.fromEntries(
+      operations
+        .map(({ operation }) => [
+          operation.operationId,
+          operation['x-required-scope'],
+        ])
+        .sort(([left], [right]) => left.localeCompare(right)),
+    ),
+    {
+      deleteCurrentUserNotification: 'read:current_user',
+      getCurrentUserUnreadNotificationCount: 'read:current_user',
+      listCurrentUserNotifications: 'read:current_user',
+      markCurrentUserNotificationOpened: 'read:current_user',
+      markCurrentUserNotificationRead: 'read:current_user',
+      registerUserPushToken: 'update:current_user',
+    },
+  );
+
+  const item = notification.components.schemas.NotificationInternalResponse;
+  assert.deepEqual(Object.keys(item.properties), [
+    'id',
+    'type',
+    'title',
+    'body',
+    'deepLink',
+    'divisionId',
+    'isRead',
+    'isOpened',
+    'createdAt',
+  ]);
+  for (const excludedField of [
+    'userId',
+    'targetType',
+    'targetId',
+    'metadata',
+    'readAt',
+    'openedAt',
+  ]) {
+    assert.equal(item.properties[excludedField], undefined);
+  }
+  assert.equal(
+    item.properties.type.$ref,
+    '#/components/schemas/NotificationTypeEnum',
+  );
+  assert.equal(item.properties.divisionId.nullable, true);
+
+  const page = notification.components.schemas.NotificationInternalPageResponse;
+  assert.deepEqual(Object.keys(page.properties), ['items', 'pageInfo']);
+  assert.equal(
+    notification.components.parameters.NotificationPageSize.schema.default,
+    20,
+  );
+  assert.equal(
+    notification.components.parameters.NotificationPageSize.schema.maximum,
+    100,
+  );
+  assert.equal(
+    notification.components.parameters.UserId.schema.$ref,
+    '#/components/schemas/UuidIdentifier',
+  );
+  assert.deepEqual(
+    Object.keys(
+      notification.components.schemas.UnreadNotificationCountInternalResponse
+        .properties,
+    ),
+    ['unreadCount'],
+  );
+
+  const tokenRequest =
+    notification.components.schemas.RegisterPushTokenInternalRequest;
+  assert.deepEqual(Object.keys(tokenRequest.properties), [
+    'expoPushToken',
+    'platform',
+    'deviceId',
+  ]);
+  assert.deepEqual(tokenRequest.required, [
+    'expoPushToken',
+    'platform',
+    'deviceId',
+  ]);
+  assert.equal(
+    tokenRequest.properties.platform.$ref,
+    '#/components/schemas/DevicePlatformEnum',
+  );
+  assert.deepEqual(
+    Object.keys(notification.components.schemas).filter((name) =>
+      /Event|Rabbit|ExpoMessage|ExpoTicket|NotificationSend|Follower/.test(
+        name,
+      ),
+    ),
+    [],
+  );
+  assert.match(
+    notification.paths['/api/v2/notifications/{id}/read'].post.description,
+    /already marked read returns 404/,
+  );
+  assert.match(
+    notification.paths['/api/v2/notifications/users/{userId}/push-tokens'].post
+      .description,
+    /does not compare userId with the authenticated subject/,
+  );
+});
+
 test('workspace stable enums remain named top-level components', async () => {
   const sourceFiles = await listJsonFiles(sourceDir);
   const inlineEnumLocations = [];
