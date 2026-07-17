@@ -49,6 +49,7 @@ GitHub Project task planning remains dormant until the final GitFlow activation 
 | Reports runtime slice  | [MRG-340 reports runtime][mrg-340]                                                                                           | Generated report boundary and provider adapter isolation   |
 | Notification inbox     | [MRG-341 notification inbox][mrg-341]                                                                                        | Generated page, stable ordering, and legacy continuation   |
 | Notification mutations | [MRG-365 notification mutations][mrg-365]                                                                                    | Current-user state changes and token lifecycle boundary    |
+| Notification delivery  | [MRG-366 notification delivery][mrg-366]                                                                                     | Provider-neutral delivery and Expo adapter boundary        |
 | Expo contracts/forms   | [`decisions/mrg-313-expo-contract-generation.md`](decisions/mrg-313-expo-contract-generation.md)                             | Orval, TanStack, Zod, React Hook Form, and form migration  |
 | Python clients         | [`decisions/mrg-314-python-contract-clients.md`](decisions/mrg-314-python-contract-clients.md)                               | Generated async clients, adapters, wheel, and scraper use  |
 | RabbitMQ contracts     | [`decisions/mrg-315-rabbitmq-event-contracts.md`](decisions/mrg-315-rabbitmq-event-contracts.md)                             | AsyncAPI source, Java records, envelope, and v2 topology   |
@@ -66,6 +67,7 @@ GitHub Project task planning remains dormant until the final GitFlow activation 
 [mrg-340]: migration/mrg-340-reports-runtime-migration.md
 [mrg-341]: migration/mrg-341-notification-inbox-runtime-migration.md
 [mrg-365]: migration/mrg-365-notification-mutation-token-runtime-migration.md
+[mrg-366]: migration/mrg-366-notification-delivery-provider-runtime-migration.md
 
 ## Documentation Map
 

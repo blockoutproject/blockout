@@ -381,6 +381,9 @@ continuation/casing adapter, and generated current-user client are recorded in t
 The current-user mutation boundary, state-sensitive result parity, validated generated push-token command, preserved
 device lifecycle, and explicit caller-selected identity debt are recorded in the
 [MRG-365 notification mutation migration](../migration/mrg-365-notification-mutation-token-runtime-migration.md).
+The provider-neutral delivery records and ports, isolated Expo SDK adapter, token and ledger persistence adapters, and
+preserved incomplete-ticket behavior are recorded in the
+[MRG-366 notification delivery migration](../migration/mrg-366-notification-delivery-provider-runtime-migration.md).
 
 ## 12. Approved Roadmap Sequence
 

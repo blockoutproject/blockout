@@ -860,8 +860,21 @@ state moves to GitHub and this file becomes a historical migration record.
     standalone repositories, production, Maaatch, Orval, and Python generation are unchanged;
     `docs/migration/mrg-365-notification-mutation-token-runtime-migration.md` records parity, rollback, security debt,
     device lifecycle, and temporary coexistence-name retirement gates.
-- [ ] MRG-366 Separate and migrate `notification-service` delivery-state inputs from provider ticket/receipt models,
+- [x] MRG-366 Separate and migrate `notification-service` delivery-state inputs from provider ticket/receipt models,
       preserving current send, retry, invalid-token, and incomplete-receipt behavior until separately changed.
+  - Evidence: notification orchestration now depends only on immutable `DeliveryMessage`, `DeliveryBatchResult`, and
+    `DeliveryTokenPage` records plus provider-neutral delivery, token-catalog, and ledger ports. Expo SDK requests,
+    status values, tickets, and immediate ticket interpretation are confined to one provider adapter; token lookup,
+    invalid-token deactivation, typed reservation, and ledger transitions are explicit JPA adapters. The former mixed
+    services and delivery DTOs are removed. The 2,000-user resolution page, 100-message provider batch, inbox-first
+    order, no-token state, at-least-one-success aggregation, global provider-failure result, invalid-token phrases,
+    and deliberately incomplete `min(messages, tickets)` correlation remain unchanged. No retry or receipt processor
+    is invented, and the match/user-only cross-type ledger update debt remains deferred. Thirty-nine notification
+    tests, thirty contract tests, generated compilation, Expo SDK source confinement, full 14-module backend
+    packaging, documentation, Maaatch comparison, Prettier, and whitespace checks pass. REST/event contracts,
+    generated artifacts, databases, RabbitMQ, BFF, Expo mobile code, scrapers, standalone repositories, production,
+    Maaatch, Orval, and Python generation are unchanged;
+    `docs/migration/mrg-366-notification-delivery-provider-runtime-migration.md` records the exact parity and debt.
 - [ ] MRG-342 Migrate `search-service` generated server boundaries and internal generated clients with parity evidence.
 - [ ] MRG-343 Migrate remaining `mobile-gateway` configuration, user, report, search, and notification relay workflows
       to generated clients and BFF interfaces with workflow-owned commands, views, mappers, and compatibility.
