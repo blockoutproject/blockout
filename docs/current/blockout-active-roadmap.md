@@ -1238,9 +1238,20 @@ state moves to GitHub and this file becomes a historical migration record.
     before publication. No form migration, Expo release, deployment, production observation, v1 retirement,
     MRG-9xx, or MRG-1000 action; compatibility, rollback, and the retained MRG-304 server-v1 gate are recorded in
     `docs/migration/mrg-353-expo-case-conversion-retirement.md`.
-- [ ] MRG-354 Add a repository-wide allowlisted guard proving Blockout-owned REST, event, Expo, and scraper wire keys are
+- [x] MRG-354 Add a repository-wide allowlisted guard proving Blockout-owned REST, event, Expo, and scraper wire keys are
       camelCase while explicitly allowlisting only isolated v1 adapters, database columns, Python identifiers, and
       external vendor payloads.
+  - Evidence: `npm run validate:wire-casing` now runs six negative/positive and live-repository tests over 174 REST and
+    event contract files, 2,979 JSON/query/path names, handwritten Java source, generated and application Expo source,
+    generated Python wire aliases/parameters, and both scraper trees. Its closed structured allowlist permits exactly
+    twelve v1 JSON mappers, eleven v1 request-name files, persistence annotations/migrations, Python identifiers, and
+    nine exact vendor files; stale entries, new categories, global/Jackson/Expo converters, direct scraper transport,
+    non-camel contract/generated names, and unlisted snake_case object keys fail. Approved AMQP `x-blockout-*`
+    protocol headers remain distinct from event envelope/payload JSON keys. The guard is wired into PR and Push CI;
+    guard tests, contract/event suites, generation checks, backend compile, mobile/scraper checks, repository gates,
+    and CI are required before publication. No deployment, production observation, v1 retirement, MRG-9xx, or
+    MRG-1000 action; policy, rollback, and exception ownership are recorded in
+    `docs/migration/mrg-354-wire-casing-guard.md`.
 - [ ] MRG-355 Add complete contract generation, backend generation, committed Orval operation/model/Zod generation,
       scraper generation when selected, event generation, formatting, compilation, two-run deterministic no-diff and
       generated-file-edit guards, plus v1-adapter isolation checks to local verification.

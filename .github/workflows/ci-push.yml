@@ -59,6 +59,9 @@ jobs:
       - name: Lint OpenAPI source
         run: npm exec nx run @blockout/contracts:lint-openapi-source
 
+      - name: Validate repository wire casing
+        run: npm run validate:wire-casing
+
       - name: Generate contract artifacts
         run: npm exec nx run @blockout/contracts:generate-contracts
 

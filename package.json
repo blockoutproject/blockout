@@ -6,7 +6,8 @@
     "compare:maaatch": "node scripts/compare-maaatch-structure.mjs",
     "local:logs": "node tools/local-logs/collect-local-logs.mjs",
     "validate:docs": "node tools/scripts/validate-doc-links.mjs",
-    "validate:env": "node tools/scripts/validate-env-examples.mjs"
+    "validate:env": "node tools/scripts/validate-env-examples.mjs",
+    "validate:wire-casing": "node --test tools/scripts/validate-wire-casing.test.mjs"
   },
   "private": true,
   "workspaces": [

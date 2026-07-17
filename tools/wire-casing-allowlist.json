@@ -1,0 +1,103 @@
+{
+  "version": 1,
+  "v1Adapters": {
+    "snakeCaseMappers": [
+      "apps/backend/clubs-service/src/main/java/com/blockout/clubs/shared/api/v1/LegacyClubsJson.java",
+      "apps/backend/competition-service/src/main/java/com/blockout/competitions/shared/api/v1/LegacyCompetitionJson.java",
+      "apps/backend/config-service/src/main/java/com/blockout/config/legal/api/v1/LegacyLegalDocumentJson.java",
+      "apps/backend/config-service/src/main/java/com/blockout/config/shared/api/v1/LegacyConfigJson.java",
+      "apps/backend/matches-service/src/main/java/com/blockout/matches/shared/api/v1/LegacyMatchesJson.java",
+      "apps/backend/mobile-gateway/src/main/java/com/blockout/mobilegateway/shared/api/v1/LegacyMobileGatewayJson.java",
+      "apps/backend/notification-service/src/main/java/com/blockout/notifications/inbox/api/v1/LegacyNotificationsJson.java",
+      "apps/backend/pools-service/src/main/java/com/blockout/pools/shared/api/v1/LegacyPoolsJson.java",
+      "apps/backend/reports-service/src/main/java/com/blockout/reports/report/api/v1/LegacyReportsJson.java",
+      "apps/backend/search-service/src/main/java/com/blockout/search/shared/api/v1/LegacySearchJson.java",
+      "apps/backend/teams-service/src/main/java/com/blockout/teams/shared/api/v1/LegacyTeamsJson.java",
+      "apps/backend/users-service/src/main/java/com/blockout/users/shared/api/v1/LegacyUsersJson.java"
+    ],
+    "snakeCaseRequestParameters": [
+      "apps/backend/competition-service/src/main/java/com/blockout/competitions/association/api/v1/LegacyCompetitionController.java",
+      "apps/backend/config-service/src/main/java/com/blockout/config/rawmapping/api/v1/LegacyRawDivisionMappingController.java",
+      "apps/backend/matches-service/src/main/java/com/blockout/matches/controllers/v1/MatchController.java",
+      "apps/backend/mobile-gateway/src/main/java/com/blockout/mobilegateway/controllers/v1/publicapi/MatchPublicController.java",
+      "apps/backend/mobile-gateway/src/main/java/com/blockout/mobilegateway/controllers/v1/publicapi/SearchPublicController.java",
+      "apps/backend/mobile-gateway/src/main/java/com/blockout/mobilegateway/controllers/v1/secureapi/ConfigSecureController.java",
+      "apps/backend/mobile-gateway/src/main/java/com/blockout/mobilegateway/controllers/v1/secureapi/UserSecureController.java",
+      "apps/backend/pools-service/src/main/java/com/blockout/pools/pool/api/v1/LegacyPoolController.java",
+      "apps/backend/search-service/src/main/java/com/blockout/search/shared/api/v1/LegacySearchController.java",
+      "apps/backend/teams-service/src/main/java/com/blockout/teams/team/api/v1/LegacyTeamController.java",
+      "apps/backend/users-service/src/main/java/com/blockout/users/favorite/api/v1/LegacyUserFavoriteController.java"
+    ]
+  },
+  "databaseColumns": {
+    "javaAnnotations": [
+      "AttributeOverride",
+      "CollectionTable",
+      "Column",
+      "Index",
+      "JoinColumn",
+      "JoinTable",
+      "MapKeyColumn",
+      "OrderColumn",
+      "Table",
+      "UniqueConstraint"
+    ],
+    "migrationRoot": "apps/backend"
+  },
+  "pythonIdentifiers": {
+    "roots": [
+      "apps/scrapers",
+      "libs/shared/contracts/clients/python/src/blockout_contract_clients"
+    ]
+  },
+  "externalVendorPayloads": [
+    {
+      "path": "apps/frontend/mobile/src/components/user/LegalDocumentScreen.tsx",
+      "kind": "object-keys",
+      "keys": ["bullet_list", "list_item"],
+      "reason": "react-native-markdown-display style keys are library-owned, not Blockout wire keys"
+    },
+    {
+      "path": "apps/frontend/mobile/src/utils/notifications.ts",
+      "kind": "direct-http",
+      "reason": "debug-only Expo push provider request is an external provider payload"
+    },
+    {
+      "path": "apps/scrapers/club-scraper/api/auth0.py",
+      "kind": "object-keys",
+      "keys": ["access_token"],
+      "reason": "Auth0 SDK response keys are provider-owned"
+    },
+    {
+      "path": "apps/scrapers/club-scraper/models/scraper.py",
+      "kind": "direct-http",
+      "reason": "club scraper HTTP calls target the external FFVB provider"
+    },
+    {
+      "path": "apps/scrapers/competition-scraper/api/auth0.py",
+      "kind": "object-keys",
+      "keys": ["access_token"],
+      "reason": "Auth0 SDK response keys are provider-owned"
+    },
+    {
+      "path": "apps/scrapers/competition-scraper/models/scraper.py",
+      "kind": "direct-http",
+      "reason": "competition scraper HTTP calls target external federation providers"
+    },
+    {
+      "path": "apps/scrapers/competition-scraper/sse2.py",
+      "kind": "direct-http",
+      "reason": "legacy diagnostic SignalR calls target an external provider"
+    },
+    {
+      "path": "apps/scrapers/competition-scraper/sse3.py",
+      "kind": "direct-http",
+      "reason": "legacy diagnostic SignalR calls target an external provider"
+    },
+    {
+      "path": "apps/scrapers/competition-scraper/utils/file_utils.py",
+      "kind": "direct-http",
+      "reason": "federation export request and CSV keys are external provider-owned"
+    }
+  ]
+}
