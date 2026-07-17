@@ -37,10 +37,13 @@ GitHub Project task planning remains dormant until the final GitFlow activation 
 | Clubs runtime slice   | [`migration/mrg-334-clubs-runtime-migration.md`](migration/mrg-334-clubs-runtime-migration.md)                               | Generated club owner boundaries and worker snapshot client |
 | Teams runtime slice   | [`migration/mrg-335-teams-runtime-migration.md`](migration/mrg-335-teams-runtime-migration.md)                               | Generated team owner boundaries and internal clients       |
 | Pools runtime slice   | [`migration/mrg-336-pools-runtime-migration.md`](migration/mrg-336-pools-runtime-migration.md)                               | Generated pool owner boundaries and internal clients       |
+| Competition slice     | [MRG-337 competition runtime][mrg-337]                                                                                       | Generated association and statistics owner boundaries      |
 | Expo contracts/forms  | [`decisions/mrg-313-expo-contract-generation.md`](decisions/mrg-313-expo-contract-generation.md)                             | Orval, TanStack, Zod, React Hook Form, and form migration  |
 | Python clients        | [`decisions/mrg-314-python-contract-clients.md`](decisions/mrg-314-python-contract-clients.md)                               | Generated async clients, adapters, wheel, and scraper use  |
 | RabbitMQ contracts    | [`decisions/mrg-315-rabbitmq-event-contracts.md`](decisions/mrg-315-rabbitmq-event-contracts.md)                             | AsyncAPI source, Java records, envelope, and v2 topology   |
 | Production cutover    | [`migration/monorepo-cutover.md`](migration/monorepo-cutover.md)                                                             | Temporary per-deployable migration and rollback procedure  |
+
+[mrg-337]: migration/mrg-337-competition-association-statistics-runtime-migration.md
 
 ## Documentation Map
 

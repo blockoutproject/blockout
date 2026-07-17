@@ -688,8 +688,19 @@ state moves to GitHub and this file becomes a historical migration record.
     documentation, Maaatch comparison, Prettier, and whitespace checks pass. Mobile-gateway, Expo, Python scrapers,
     databases, event topology, standalone repositories, production, Maaatch, Blockout Orval settings, and Python
     generator settings remain unchanged.
-- [ ] MRG-337 Migrate `competition-service` association and statistics generated server boundaries and internal clients,
+- [x] MRG-337 Migrate `competition-service` association and statistics generated server boundaries and internal clients,
       preserving full-snapshot, validation, persistence, and reactivation behavior.
+  - Evidence: `COMP-01`, `COMP-02`, `COMP-03`, and `COMP-07` now implement generated v2 Spring interfaces through an
+    explicit add/reactivate command, complete seventeen-field statistics snapshot, role-owned view/page records, strict
+    API and persistence MapStruct mappings, a dedicated JPA entity, progressive Problem Details, and per-operation
+    coexistence telemetry. The isolated v1 adapter retains snake_case, unpaged arrays, direct 200 responses,
+    entity-shaped identity/audit fields without entity exposure, original scopes and errors, zero-state creation,
+    stored club identity, historical statistics, reactivation, and nullable full-replacement failure behavior.
+    Ranking and lifecycle behavior remain v1-only behind separate services for MRG-359/360. Repository reconciliation
+    proves there is no in-scope backend Java client: mobile-gateway and scraper caller migrations remain assigned to
+    MRG-368 and MRG-348/349. Eleven focused tests plus contract/lint, full backend, documentation, Maaatch comparison,
+    Prettier, and whitespace checks pass. Contracts, generated artifacts, databases, events, BFF, Expo, scrapers,
+    standalone repositories, production, Maaatch, Blockout Orval settings, and Python generator settings are unchanged.
 - [ ] MRG-359 Migrate `competition-service` ranking boundaries through one owner projection and ordering policy, with
       exact BFF/Expo ordering and tie parity.
 - [ ] MRG-360 Migrate `competition-service` bulk lifecycle and cascade boundaries, preserving missing-ID, zero-item,
