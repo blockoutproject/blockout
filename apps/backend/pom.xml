@@ -21,6 +21,7 @@
     <modules>
         <module>shared-models</module>
         <module>event-contracts</module>
+        <module>outbox-support</module>
         <module>clubs-service</module>
         <module>competition-service</module>
         <module>config-service</module>
@@ -56,6 +57,11 @@
             <dependency>
                 <groupId>com.blockout</groupId>
                 <artifactId>event-contracts</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.blockout</groupId>
+                <artifactId>outbox-support</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

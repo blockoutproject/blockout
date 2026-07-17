@@ -59,3 +59,9 @@ aws:
 
 mapbox:
   access-token: ${MAPBOX_ACCESS_TOKEN}
+
+blockout:
+  outbox:
+    publisher-enabled: ${OUTBOX_PUBLISHER_ENABLED:true}
+    batch-size: ${OUTBOX_BATCH_SIZE:50}
+    retention: ${OUTBOX_RETENTION:7d}

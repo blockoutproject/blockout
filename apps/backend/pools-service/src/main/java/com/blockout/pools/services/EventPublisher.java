@@ -1,59 +1,49 @@
 package com.blockout.pools.services;
 
+import com.blockout.events.v2.model.EventType;
+import com.blockout.events.v2.model.PoolUpsertV2Event;
+import com.blockout.events.v2.model.PoolUpsertV2Payload;
+import com.blockout.outbox.OutboxEvent;
+import com.blockout.outbox.OutboxMetadata;
+import com.blockout.outbox.OutboxRecorder;
 import com.blockout.pools.config.RabbitMQConfig;
 import com.blockout.pools.models.enums.Format;
 import com.blockout.pools.models.enums.Gender;
 import com.blockout.pools.models.events.PoolUpsertEvent;
 import com.blockout.pools.pool.application.PoolEventPublisher;
 import com.blockout.pools.pool.application.PoolView;
-
 import lombok.RequiredArgsConstructor;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.amqp.AmqpException;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Service;
-import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
+/** Records both pool wire versions atomically; Rabbit publication is owned by the outbox job. */
 @Service
 @RequiredArgsConstructor
 public class EventPublisher implements PoolEventPublisher {
 
-    private static final Logger logger = LoggerFactory.getLogger(EventPublisher.class);
+    private static final String PRODUCER = "pools-service";
+    private static final String VERSION = "2.0.0";
 
-    private final RabbitTemplate rabbitTemplate;
+    private final OutboxRecorder outbox;
 
     @Override
     public void publishUpsert(PoolView pool) {
-        PoolUpsertEvent event = PoolUpsertEvent.builder()
-                .id(pool.id())
-                .name(pool.name())
-                .shortName(pool.shortName())
-                .divisionId(pool.divisionId())
-                .leagueCode(pool.leagueCode())
-                .leagueName(pool.leagueName())
-                .season(pool.season())
+        OutboxMetadata metadata = outbox.newMetadata();
+        var legacy = PoolUpsertEvent.builder()
+                .id(pool.id()).name(pool.name()).shortName(pool.shortName()).divisionId(pool.divisionId())
+                .leagueCode(pool.leagueCode()).leagueName(pool.leagueName()).season(pool.season())
                 .format(pool.format() == null ? null : Format.valueOf(pool.format().name()))
-                .gender(pool.gender() == null ? null : Gender.valueOf(pool.gender().name()))
-                .build();
+                .gender(pool.gender() == null ? null : Gender.valueOf(pool.gender().name())).build();
+        var canonical = new PoolUpsertV2Event(
+                null, metadata.correlationId(), metadata.eventId(), EventType.POOL_UPSERT, metadata.occurredAt(),
+                "pool:" + pool.id(), new PoolUpsertV2Payload(
+                        pool.divisionId(), value(pool.format()), value(pool.gender()), pool.id(), pool.leagueCode(),
+                        pool.leagueName(), pool.name(), pool.season(), pool.shortName()), PRODUCER, VERSION);
+        outbox.record(new OutboxEvent(
+                metadata, EventType.POOL_UPSERT.getValue(), VERSION, PRODUCER, "pool:" + pool.id(), null,
+                RabbitMQConfig.ENTITY_LIFECYCLE_EXCHANGE, "pool.upsert", legacy, "pool.upsert.v2", canonical));
+    }
 
-        try {
-            rabbitTemplate.convertAndSend(
-                    RabbitMQConfig.ENTITY_LIFECYCLE_EXCHANGE,
-                    "pool.upsert",
-                    event);
-            logger.info("Pool upsert event sent",
-                    keyValue("action", "publish_pool_upsert"),
-                    keyValue("id", pool.id()),
-                    keyValue("name", pool.name()));
-
-        } catch (AmqpException ex) {
-            logger.error("Failed to publish pool event",
-                    keyValue("id", pool.id()),
-                    keyValue("name", pool.name()),
-                    ex);
-            throw ex; // ou retry / DLQ selon ta stratégie
-        }
+    private String value(Object value) {
+        return value == null ? null : value.toString();
     }
 }

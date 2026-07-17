@@ -1131,9 +1131,20 @@ state moves to GitHub and this file becomes a historical migration record.
     deduplication, acknowledgement/retry/requeue change, cutover, deployment, broker action, production, MRG-9xx, or
     MRG-1000 work; detailed compatibility and rollback are in
     `docs/migration/mrg-370-match-event-contract-migration.md`.
-- [ ] MRG-371 Introduce transactional outboxes for clubs, teams, pools, and competition with one event UUID, semantic
+- [x] MRG-371 Introduce transactional outboxes for clubs, teams, pools, and competition with one event UUID, semantic
       schema version, ordering metadata, idempotent per-v1/v2 publication, shared `x-blockout-event-id`, observation,
       cleanup, and per-service rollback; prohibit direct dual-publish.
+  - Evidence: clubs, teams, pools, and competition now record the business change plus one immutable service-local
+    PostgreSQL outbox row in the existing transaction. The shared support module owns UUID/time creation, isolated
+    legacy snake_case and canonical camelCase bodies, v1/v2 publication timestamps, `FOR UPDATE SKIP LOCKED` claims,
+    bounded retry, pause, backlog logs, and completed-row retention. V1 keeps its exact payload type and adds only the
+    shared event-ID header; v2 uses the same UUID, schema `2.0.0`, aggregate ordering metadata, standard AMQP
+    properties/headers, and no `__TypeId__`. Six approved facts dual-publish while the orphan
+    `teambypool.deactivation` route remains v1-only. Twelve focused tests cover all producers and the support engine;
+    the targeted five-module reactor, repository gates, and complete backend compilation pass. Publication is
+    explicitly at-least-once, consumer deduplication and paused side-effect cutover remain MRG-372 scope, and no
+    production, broker, topology, MRG-9xx, or MRG-1000 action is authorized. Observation, cleanup, and per-service
+    rollback are detailed in `docs/migration/mrg-371-transactional-event-outbox-migration.md`.
 - [ ] MRG-372 Introduce transactional outboxes for matches and users plus event-ID deduplication for migrated consumers,
       preserving current queue, acknowledgement, retry, requeue, and DLQ behavior; emit v2 AMQP properties/headers
       without `__TypeId__` and run v1/v2 side-effect consumers only through the MRG-304 paused cutover sequence.
