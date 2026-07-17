@@ -77,15 +77,10 @@ export interface TeamUpdateResult {
 
 export interface TeamSearchDocDTO {
   id: number;
-  name: string;
-  clubId: string;
-  clubName: string;
-  clubCity: string;
+  name: string | null;
   logoUrl: string | null;
-  divisionId: number;
-  divisionMainColor: string;
-  divisionName: string;
-  format: string;
-  gender: string;
-  season: string;
+  divisionName: string | null;
+  format: EnumFormat | null;
+  gender: EnumGender | null;
+  season: string | null;
 }

@@ -71,14 +71,12 @@ export interface PoolUpdateResult {
 
 export type PoolSearchDocDTO = {
   id: number;
-  name: string;
-  divisionId: number;
-  divisionName: string;
-  divisionMainColor: string;
-  leagueCode: string;
-  leagueName: string;
-  logoUrl?: string;
-  format: string;
-  gender: string;
-  season: string;
+  name: string | null;
+  divisionName: string | null;
+  leagueCode: string | null;
+  leagueName: string | null;
+  logoUrl: string | null;
+  format: EnumFormat | null;
+  gender: EnumGender | null;
+  season: string | null;
 };

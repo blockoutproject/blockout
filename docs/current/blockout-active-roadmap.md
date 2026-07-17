@@ -993,9 +993,30 @@ state moves to GitHub and this file becomes a historical migration record.
     artifacts, dependencies, native configuration, backend, scrapers, events, databases, standalone repositories,
     production, and Maaatch are unchanged; `docs/migration/mrg-346-expo-match-client-migration.md` records projection,
     cache, pagination, mutation, rollback, signed-document, and deferred-form boundaries.
-- [ ] MRG-347 Migrate Expo user, search, notification, and report modules to generated BFF clients and wire schemas,
+- [x] MRG-347 Migrate Expo user, search, notification, and report modules to generated BFF clients and wire schemas,
       preserving handwritten query/view-model, optimistic, image, and multipart policy; defer editable profile and
       report forms to MRG-514–515.
+  - Evidence: all twelve active user/session, favorite, search, notification, push-registration, and report consumers
+    now call canonical v2 Orval operations; generated schemas validate paths, queries, commands, and responses before
+    handwritten projections reach screens, caches, or session state. Current-user and search cache keys,
+    disabled/empty-query behavior, five-minute freshness, no-retry policy, request filters, BFF ordering, notification
+    page-size identity and continuation, and TanStack cancellation remain explicit. Canonical nullable search values
+    render with omitted chips, empty primitive-compatible identities, and neutral division colors rather than
+    recreating absent fields. Follow/unfollow retains local flag and follower-count updates, session refetch, rollback,
+    and invalidation; notification deletion retains full infinite-cache snapshot, optimistic removal, rollback, and
+    settled invalidation. Onboarding and session bootstrap share one generated push registration path and require the
+    canonical non-blank physical-device build identifier without redesigning caller-selected identity. Profile and
+    report multipart use the existing React Native URI/name/MIME adapter, canonical JSON parts, explicit picture
+    removal, numeric report user identity, and provider-independent report result. `BFF-S-22` through `BFF-S-24` remain
+    inactive because Expo has no unread/read/opened caller. The four handwritten resource clients are removed; the
+    legacy provider remains an empty cleanup shell. Profile and report forms retain Formik/Yup state and visible
+    behavior until MRG-514–515. Mobile typecheck, the eight-form boundary guard, seven retained form contract tests,
+    thirty REST contract tests, 136-fragment source lint, two direct deterministic Orval generations, a fresh Expo
+    export containing Android and iOS Hermes bundles, Nx project inspection, documentation validation, Maaatch
+    comparison, targeted Prettier, generated/source-confinement, and whitespace checks pass. Contracts, generated
+    artifacts, dependencies, native configuration, backend, scrapers, events, databases, standalone repositories,
+    providers, production, and Maaatch are unchanged; `docs/migration/mrg-347-expo-relay-client-migration.md` records
+    projection, cache, optimistic, push, multipart, rollback, inactive-operation, and deferred-form boundaries.
 - [ ] MRG-378 Replace MRG-330's interim generated `asyncio`/aiohttp clients with OpenAPI Generator's standard
       asynchronous `httpx` library before any scraper call migration. Regenerate all six committed packages; replace
       the generated wheel's aiohttp/aiohttp-retry transport dependencies with the supported httpx dependency; adapt

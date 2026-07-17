@@ -15,7 +15,7 @@ export interface Club {
 
 export interface ClubSearchDocDTO {
   id: string;
-  name: string;
+  name: string | null;
   logoUrl: string | null;
-  city: string;
+  city: string | null;
 }
