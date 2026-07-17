@@ -19,6 +19,7 @@
     <description>Parent POM for BlockOut backend services</description>
 
     <modules>
+        <module>shared-models</module>
         <module>clubs-service</module>
         <module>competition-service</module>
         <module>config-service</module>
@@ -37,11 +38,27 @@
         <java.version>21</java.version>
         <lombok.version>1.18.38</lombok.version>
         <mapstruct.version>1.6.3</mapstruct.version>
+        <springdoc-openapi.version>2.6.0</springdoc-openapi.version>
         <openapi-generator-maven-plugin.version>7.19.0</openapi-generator-maven-plugin.version>
         <build-helper-maven-plugin.version>3.6.1</build-helper-maven-plugin.version>
         <maven-compiler-plugin.version>3.15.0</maven-compiler-plugin.version>
         <openapi.generated-sources.root>${project.build.directory}/generated-sources/openapi</openapi.generated-sources.root>
     </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>com.blockout</groupId>
+                <artifactId>shared-models</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.springdoc</groupId>
+                <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+                <version>${springdoc-openapi.version}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
     <build>
         <pluginManagement>

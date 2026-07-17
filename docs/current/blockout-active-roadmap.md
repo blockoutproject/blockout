@@ -316,8 +316,14 @@ state moves to GitHub and this file becomes a historical migration record.
     execution is active, no generated Java directory is created, and the unchanged 13-module Maven reactor packages;
     contract generation, formatting, documentation links, Maaatch comparison, Nx discovery/typecheck, and diff checks
     pass.
-- [ ] MRG-312 Add the backend `shared-models` module for generated shared enums and rare technical primitives, then
+- [x] MRG-312 Add the backend `shared-models` module for generated shared enums and rare technical primitives, then
       compile it in the Maven reactor.
+  - Evidence: `apps/backend/shared-models` is a model-only OpenAPI Generator module sourced exclusively from the
+    committed shared bundle, overrides parent `schemaMappings` to generate the owning shared types, and registers only
+    its module-local generated Java directory. The parent reactor and dependency management expose the module without
+    adding it to any service prematurely; the current empty shared catalog generates no invented types. Two clean
+    contract generations, targeted shared-model generation, the 14-module Maven package, formatting, documentation
+    links, Maaatch comparison, Nx discovery, generated-source/status inspection, and diff checks pass.
 - [ ] MRG-313 Select the Expo-compatible TypeScript client and contract-schema generator, including React Query
       integration, auth/error mutator, output ownership, caching, formatting, and generated-file policy.
   - Execution mode: PLAN_REQUIRED
