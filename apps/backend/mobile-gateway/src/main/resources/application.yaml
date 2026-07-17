@@ -16,9 +16,6 @@ spring:
         jwt:
           issuer-uri: ${AUTH0_ISSUER}
 
-  jackson:
-    property-naming-strategy: SNAKE_CASE
-
   config:
     import: optional:file:.env.local[.properties]
     on-missing-location: fail
@@ -57,12 +54,12 @@ api:
     url: ${SEARCH_API_URL}
   report:
     url: ${REPORT_API_URL}
-    
+
 proxy:
   host: ${FFVB_PROXY_HOST}
   port: ${FFVB_PROXY_PORT}
 
 pdf-link-token:
-  secret: "${PDF_LINK_TOKEN_SECRET}"
+  secret: '${PDF_LINK_TOKEN_SECRET}'
   ttl-seconds: 600
   kid: primary

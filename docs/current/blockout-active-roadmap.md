@@ -1198,9 +1198,19 @@ state moves to GitHub and this file becomes a historical migration record.
     provider call, production observation, v1 retirement, event cutover, MRG-9xx, or MRG-1000 action; caller evidence,
     rollback, and retained external mappings are recorded in
     `docs/migration/mrg-374-report-notification-search-casing-cleanup.md`.
-- [ ] MRG-375 Remove global Jackson `SNAKE_CASE` and slice-owned Blockout annotations from `mobile-gateway` only after
+- [x] MRG-375 Remove global Jackson `SNAKE_CASE` and slice-owned Blockout annotations from `mobile-gateway` only after
       every generated downstream and Expo v2 boundary uses canonical camelCase; keep the BFF v1 adapter available for
       every still-supported mobile version.
+  - Evidence: mobile-gateway removes the backend's final global Jackson naming strategy after all canonical gateway,
+    downstream-client, and Expo caller migrations. Generated v2 models serialize camelCase with the default mapper,
+    and canonical packages reference no handwritten DTO or naming annotation. The released-mobile v1 graph remains:
+    its 220 inventoried explicit properties plus twenty-four fields that still depended on the global strategy now
+    form 244 `@JsonProperty` sites confined to `models.dto`, with every compound field explicitly snake_case until
+    MRG-352 installs the final local adapter and removes them. Focused default-mapper v1/v2 casing, canonical relay,
+    generated-client, and targeted reactor tests pass. Complete backend compilation, repository gates, generated-file
+    checks, and CI are required before publication. No form migration, mobile release, deployment, production
+    observation, v1 retirement, MRG-9xx, or MRG-1000 action; caller evidence, compatibility, rollback, and the retained
+    MRG-304 gate are recorded in `docs/migration/mrg-375-mobile-gateway-casing-cleanup.md`.
 - [ ] MRG-352 Remove legacy `@JsonProperty`, `@JsonAlias`, and naming adapters used only for Blockout snake_case;
       retain documented annotations only at genuine vendor boundaries and retain snake_case conversion only inside
       the explicit MRG-304 v1 transport adapters.
