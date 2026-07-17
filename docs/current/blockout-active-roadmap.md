@@ -1184,9 +1184,20 @@ state moves to GitHub and this file becomes a historical migration record.
     generated-file checks, and CI are required before publication. No deployment, production observation, v1
     retirement, event cutover, MRG-9xx, or MRG-1000 action; caller evidence, rollback, and the retained MRG-304 gate are
     recorded in `docs/migration/mrg-373-competition-match-user-casing-cleanup.md`.
-- [ ] MRG-374 Remove global Jackson `SNAKE_CASE` and slice-owned Blockout annotations from reports, notifications,
+- [x] MRG-374 Remove global Jackson `SNAKE_CASE` and slice-owned Blockout annotations from reports, notifications,
       search-service, and search-worker canonical v2 paths only after every v2 caller uses camelCase; retain isolated
       v1 adapters and vendor-native mappings.
+  - Evidence: reports, notifications, search-service, and search-worker now configure no global Jackson naming
+    strategy; the first three were already isolated by MRG-340/341/342 and this task removes the remaining worker
+    setting after all four generated worker snapshot clients migrated. Current main source contains no slice-owned
+    `@JsonProperty`, `@JsonAlias`, or `@JsonNaming`. Exactly three v1 JSON mappers retain local `SNAKE_CASE`; the three
+    `@JsonIgnoreProperties` sites retained on Elasticsearch documents are non-naming store tolerance. Focused report,
+    notification, search, v1, and all four worker generated-client suites plus the targeted reactor pass. HTTP/client
+    cleanup changes no provider payload, Elasticsearch field, cache, index, or event serialization. Complete backend
+    compilation, repository gates, generated-file checks, and CI are required before publication. No deployment,
+    provider call, production observation, v1 retirement, event cutover, MRG-9xx, or MRG-1000 action; caller evidence,
+    rollback, and retained external mappings are recorded in
+    `docs/migration/mrg-374-report-notification-search-casing-cleanup.md`.
 - [ ] MRG-375 Remove global Jackson `SNAKE_CASE` and slice-owned Blockout annotations from `mobile-gateway` only after
       every generated downstream and Expo v2 boundary uses canonical camelCase; keep the BFF v1 adapter available for
       every still-supported mobile version.

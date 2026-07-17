@@ -8,9 +8,6 @@ spring:
     multipart:
       max-file-size: 5MB
       max-request-size: 5MB
-  
-  jackson:
-    property-naming-strategy: SNAKE_CASE
 
   config:
     import: optional:file:.env.local[.properties]
@@ -41,7 +38,7 @@ auth0:
   client-secret: ${AUTH0_CLIENT_SECRET}
   audience: ${AUTH0_AUDIENCE}
   token-refresh-delay: 48h
-  
+
 api:
   club:
     url: ${CLUB_API_URL}
