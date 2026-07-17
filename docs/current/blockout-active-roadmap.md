@@ -266,8 +266,12 @@ state moves to GitHub and this file becomes a historical migration record.
     coexistence for all 130 operations, 11 routes, and 19 queues, with provider-first task ownership, rollback,
     telemetry, and 30-day removal gates; Prettier, docs links, Maaatch comparison, diff checks, and the backend Maven
     package baseline pass with runtime checks intentionally skipped for this documentation-only task.
-- [ ] MRG-305 Define the Blockout fragment layout for shared schemas, internal service APIs, and the mobile-gateway BFF
+- [x] MRG-305 Define the Blockout fragment layout for shared schemas, internal service APIs, and the mobile-gateway BFF
       under `libs/shared/contracts/specs/source/**`, retaining Blockout service ownership and Expo terminology.
+  - Evidence: `libs/shared/contracts/specs/source/README.md` fixes the deterministic shared, service-owned internal API,
+    and Expo-facing `mobile-gateway` layout, fragment roles, bundle ownership, closed boundaries, and later generation
+    owners without introducing placeholder contracts; Prettier, documentation links, Maaatch comparison, the contracts
+    Nx project/typecheck, the no-source-JSON guard, and diff checks pass.
 - [ ] MRG-306 Port Maaatch's deterministic OpenAPI bundle generator with Blockout service names and output paths.
 - [ ] MRG-307 Port and adapt Maaatch's bundle tests for missing references, transitive schemas, stable ordering, shared
       enums, and deterministic output.
