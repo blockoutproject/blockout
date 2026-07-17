@@ -1,0 +1,51 @@
+{
+  "/api/v2/reports": {
+    "post": {
+      "operationId": "createReport",
+      "tags": ["Reports"],
+      "summary": "Submit a Blockout report",
+      "description": "Accepts canonical Blockout report context and optional PNG/JPEG attachments. The current sequential S3 upload, GitHub create/update, best-effort Discord notification, partial-success, and five-megabyte file/request behavior remain application and adapter policy.",
+      "x-required-scope": "create:reports",
+      "requestBody": {
+        "required": true,
+        "content": {
+          "multipart/form-data": {
+            "schema": {
+              "type": "object",
+              "required": ["data"],
+              "properties": {
+                "data": {
+                  "$ref": "#/components/schemas/CreateReportInternalRequest"
+                },
+                "images": {
+                  "type": "array",
+                  "description": "Optional repeated PNG or JPEG attachments. Empty parts are ignored and no attachment-count limit is currently imposed.",
+                  "items": { "type": "string", "format": "binary" }
+                }
+              },
+              "additionalProperties": false
+            },
+            "encoding": { "data": { "contentType": "application/json" } }
+          }
+        }
+      },
+      "responses": {
+        "201": {
+          "description": "Report accepted and durable GitHub issue created.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReportCreatedInternalResponse"
+              }
+            }
+          }
+        },
+        "400": { "$ref": "#/components/responses/BadRequestProblem" },
+        "401": { "$ref": "#/components/responses/UnauthorizedProblem" },
+        "403": { "$ref": "#/components/responses/ForbiddenProblem" },
+        "413": { "$ref": "#/components/responses/PayloadTooLargeProblem" },
+        "500": { "$ref": "#/components/responses/InternalServerErrorProblem" }
+      }
+    }
+  }
+}

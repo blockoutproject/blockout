@@ -443,8 +443,19 @@ state moves to GitHub and this file becomes a historical migration record.
     fields, multipart image intent, favorite paging/query casing, no-op statuses, and preserved authorization/deletion
     semantics; source lint, deterministic generation, documentation and Maaatch structure checks, and the unchanged
     backend reactor package successfully without modifying runtime code.
-- [ ] MRG-324 Define and bundle the `reports-service` contract from its approved audit, separating required Blockout
+- [x] MRG-324 Define and bundle the `reports-service` contract from its approved audit, separating required Blockout
       camelCase payloads from GitHub and Discord vendor adapters.
+  - Evidence: the authoritative reports source and generated bundle define the single audited
+    `POST /api/v2/reports` operation with bearer authentication, `create:reports`, a canonical JSON `data` part, and
+    repeated binary `images`. The Blockout command contains only the nine consumer-backed camelCase context fields,
+    uses the shared report enum and canonical optional user UUID, and excludes caller-controlled attachment URLs. The
+    Blockout result retains only issue number, public URL, and title; GitHub IDs/state/SDK shapes, labels/Markdown, S3
+    storage objects, Discord payloads, and provider configuration remain adapter-owned and absent from OpenAPI. Current
+    sequential upload, GitHub create/update, best-effort Discord, partial-success, empty-image, missing count/idempotency,
+    and file/request-limit behavior remains documented and unchanged. Twenty-five contract tests cover the exact
+    operation, scope, command fields/requiredness, multipart shape, minimal result, provider-model exclusion, statuses,
+    and side-effect policy; source lint, deterministic generation, documentation and Maaatch structure checks, and the
+    unchanged backend reactor package successfully without modifying runtime code.
 - [ ] MRG-325 Define and bundle the `notification-service` REST contract from its approved audit, keeping RabbitMQ event
       contracts in their separately selected source format.
 - [ ] MRG-326 Define and bundle the `search-service` contract from its approved audit using only required camelCase wire

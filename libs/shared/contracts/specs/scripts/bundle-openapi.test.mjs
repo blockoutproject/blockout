@@ -1332,6 +1332,98 @@ test('workspace users contract reconciles the nine audited operations', async ()
   );
 });
 
+test('workspace reports contract separates Blockout and vendor roles', async () => {
+  const reports = await readJson(path.join(generatedSpecsDir, 'reports.json'));
+  const operations = Object.entries(reports.paths).flatMap(
+    ([operationPath, pathItem]) =>
+      Object.entries(pathItem)
+        .filter(([method]) => method !== 'parameters')
+        .map(([method, operation]) => ({
+          key: `${method.toUpperCase()} ${operationPath}`,
+          operation,
+        })),
+  );
+  assert.deepEqual(
+    Object.fromEntries(
+      operations.map(({ key, operation }) => [key, operation.operationId]),
+    ),
+    { 'POST /api/v2/reports': 'createReport' },
+  );
+  assert.deepEqual(reports.security, [{ bearerAuth: [] }]);
+  assert.equal(
+    reports.paths['/api/v2/reports'].post['x-required-scope'],
+    'create:reports',
+  );
+
+  const command = reports.components.schemas.CreateReportInternalRequest;
+  assert.deepEqual(Object.keys(command.properties), [
+    'type',
+    'title',
+    'description',
+    'appVersion',
+    'userId',
+    'userName',
+    'screen',
+    'deviceModel',
+    'os',
+  ]);
+  assert.deepEqual(command.required, [
+    'type',
+    'title',
+    'description',
+    'userName',
+    'screen',
+    'os',
+  ]);
+  assert.equal(command.properties.attachmentImageUrls, undefined);
+  assert.equal(
+    command.properties.type.$ref,
+    '#/components/schemas/ReportTypeEnum',
+  );
+  assert.equal(
+    command.properties.userId.allOf[0].$ref,
+    '#/components/schemas/UuidIdentifier',
+  );
+
+  const multipart =
+    reports.paths['/api/v2/reports'].post.requestBody.content[
+      'multipart/form-data'
+    ];
+  assert.deepEqual(Object.keys(multipart.schema.properties), [
+    'data',
+    'images',
+  ]);
+  assert.equal(multipart.encoding.data.contentType, 'application/json');
+  assert.deepEqual(multipart.schema.properties.images.items, {
+    type: 'string',
+    format: 'binary',
+  });
+
+  const result = reports.components.schemas.ReportCreatedInternalResponse;
+  assert.deepEqual(Object.keys(result.properties), [
+    'number',
+    'htmlUrl',
+    'title',
+  ]);
+  assert.equal(result.properties.id, undefined);
+  assert.equal(result.properties.state, undefined);
+  assert.deepEqual(result.required, ['number', 'htmlUrl', 'title']);
+  assert.deepEqual(
+    Object.keys(reports.components.schemas).filter((name) =>
+      /GitHub|Discord|S3/.test(name),
+    ),
+    [],
+  );
+  assert.deepEqual(
+    Object.keys(reports.paths['/api/v2/reports'].post.responses),
+    ['201', '400', '401', '403', '413', '500'],
+  );
+  assert.match(
+    reports.paths['/api/v2/reports'].post.description,
+    /best-effort Discord notification.*partial-success/,
+  );
+});
+
 test('workspace stable enums remain named top-level components', async () => {
   const sourceFiles = await listJsonFiles(sourceDir);
   const inlineEnumLocations = [];

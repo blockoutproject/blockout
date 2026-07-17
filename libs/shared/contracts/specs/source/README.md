@@ -259,6 +259,25 @@ ID; the v1 adapter preserves its unpaged repository response. Current Auth0 link
 synchronous counters, follow publication, null favorites, authorization gaps, and retention behavior are preserved
 until their assigned runtime, storage, event, security, and privacy tasks.
 
+## Reports-Service Contract
+
+MRG-324 makes `services/reports` authoritative for the single reports-service operation inventoried by MRG-301 and
+allocated by MRG-304. The canonical `/api/v2/reports` multipart boundary retains bearer authentication and the
+`create:reports` scope. Its `data` part is a generated Blockout command, and its repeated `images` parts remain explicit
+attachment inputs. The command carries the nine consumer-backed report/context fields in camelCase and never accepts
+the legacy caller-controlled `attachmentImageUrls` workflow state.
+
+The canonical result contains only the provider-independent issue number, public URL, and title required by the current
+workflow. GitHub global ID/state, SDK objects, label names, Markdown, assignees and milestone; S3 keys, bucket and public
+URL construction; and Discord webhook JSON remain infrastructure-adapter models. No provider model or configuration
+enters the OpenAPI source.
+
+The contract records current sequential uploads, GitHub create then best-effort body update, best-effort Discord
+notification, empty-image skipping, missing attachment-count/idempotency limits, and partial-success semantics without
+changing them. Legacy malformed-JSON/image errors, aggregate request limits, anonymous BFF-to-M2M relay, token/secret
+leaks, orphan cleanup, validation corrections, provider compensation, BFF projection, Expo form migration, and runtime
+activation remain assigned later work.
+
 ## Closed Boundaries
 
 - `search-worker` has no REST controller and receives no source directory or generated server bundle.

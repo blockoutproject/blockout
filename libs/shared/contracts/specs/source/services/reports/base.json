@@ -9,6 +9,7 @@
       "url": "http://localhost"
     }
   ],
-  "tags": [],
+  "tags": [{ "name": "Reports" }],
+  "security": [{ "bearerAuth": [] }],
   "components": {}
 }

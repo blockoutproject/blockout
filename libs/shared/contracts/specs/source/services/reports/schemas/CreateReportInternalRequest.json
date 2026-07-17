@@ -1,0 +1,26 @@
+{
+  "CreateReportInternalRequest": {
+    "type": "object",
+    "description": "Blockout-owned report command and diagnostic context. Uploaded attachment URLs are server-owned workflow state and are never accepted from callers.",
+    "required": ["type", "title", "description", "userName", "screen", "os"],
+    "properties": {
+      "type": { "$ref": "#/components/schemas/ReportTypeEnum" },
+      "title": { "type": "string", "minLength": 1, "maxLength": 255 },
+      "description": { "type": "string", "minLength": 1 },
+      "appVersion": { "type": "string", "maxLength": 255, "nullable": true },
+      "userId": {
+        "allOf": [{ "$ref": "#/components/schemas/UuidIdentifier" }],
+        "nullable": true
+      },
+      "userName": { "type": "string", "minLength": 1, "maxLength": 255 },
+      "screen": { "type": "string", "minLength": 1, "maxLength": 255 },
+      "deviceModel": {
+        "type": "string",
+        "maxLength": 255,
+        "nullable": true
+      },
+      "os": { "type": "string", "minLength": 1, "maxLength": 255 }
+    },
+    "additionalProperties": false
+  }
+}
