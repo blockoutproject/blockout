@@ -955,8 +955,25 @@ state moves to GitHub and this file becomes a historical migration record.
     repositories, production, and Maaatch are unchanged;
     `docs/migration/mrg-344-expo-configuration-client-migration.md` records parity, auth, multipart, rollback, and
     deferred-form boundaries.
-- [ ] MRG-345 Migrate Expo club, team, and pool modules to generated BFF clients and wire schemas, preserving
+- [x] MRG-345 Migrate Expo club, team, and pool modules to generated BFF clients and wire schemas, preserving
       handwritten query/view-model and multipart policy; defer editable forms to MRG-507–509.
+  - Evidence: all nine active club, team, and pool detail, list, and edit consumers now call canonical v2 Orval
+    operations, validate paths, query parameters, commands, and responses with generated wire schemas, and immediately
+    project generated enums, catalog divisions, ranking rows, details, summaries, and narrow edit results into
+    handwritten mobile views. Existing detail/list/followed cache keys, zero/five-minute freshness, disabled-empty
+    behavior, no-retry policy, optimistic follower cache ownership, refetches, feedback, haptics, and ordering remain
+    unchanged; TanStack cancellation now reaches the generated transport. Explicit nullable list enrichment renders
+    with a neutral card fallback instead of dereferencing a missing division. The public club view keeps the BFF
+    privacy exclusion for phone data. Club and team multipart use the existing React Native URI/name/MIME adapter,
+    generated FormData assembly, and explicit keep/replace/remove logo commands. The three editable forms retain their
+    Formik/Yup state and visible behavior until MRG-507–509. Mobile typecheck, the eight-form boundary guard, seven
+    retained form contract tests, thirty REST contract tests, 136-fragment source lint, two direct deterministic Orval
+    generations, a fresh Expo export containing Android and iOS Hermes bundles, Nx project inspection, documentation
+    validation, Maaatch comparison, targeted Prettier, generated/source-confinement, and whitespace checks pass.
+    Contracts, generated artifacts, dependencies, native configuration, backend, scrapers, events, databases,
+    standalone repositories, production, and Maaatch are unchanged;
+    `docs/migration/mrg-345-expo-catalog-client-migration.md` records parity, cache, privacy, multipart, rollback, and
+    deferred-form boundaries.
 - [ ] MRG-346 Migrate Expo competition and match modules to generated BFF clients and wire schemas, preserving
       handwritten pagination, projection, cache, and mutation policy; defer editable live forms to MRG-512–513.
 - [ ] MRG-347 Migrate Expo user, search, notification, and report modules to generated BFF clients and wire schemas,

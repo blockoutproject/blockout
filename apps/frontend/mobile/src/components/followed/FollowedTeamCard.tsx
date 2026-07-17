@@ -4,7 +4,6 @@ import { TeamSummaryDTO } from "@/src/types/Team";
 import { EnumGender, GenderLabels } from "@/src/types/enums/Gender";
 import { withAlpha } from "@/src/utils/utils";
 import EntityGradientCard, { EntityCardChip } from "../common/EntityGradientCard";
-import { te } from "date-fns/locale";
 import { FormatLabels } from "@/src/types/enums/Format";
 
 export type FollowedTeamCardProps = {
@@ -30,11 +29,17 @@ const FollowedTeamCard: React.FC<FollowedTeamCardProps> = ({
 
     const title = team.name;
     const division = team.division;
-    const gradient = [
-        division.firstGradientColor,
-        division.secondGradientColor,
-        division.thirdGradientColor,
-    ] as const;
+    const gradient = division
+        ? [
+            division.firstGradientColor,
+            division.secondGradientColor,
+            division.thirdGradientColor,
+        ] as const
+        : [
+            theme.backgroundSecondary,
+            theme.backgroundSecondary,
+            theme.backgroundSecondary,
+        ] as const;
 
     const chips: EntityCardChip[] = [];
 

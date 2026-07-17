@@ -29,11 +29,17 @@ const TeamListCard: React.FC<TeamListCardProps> = ({
 
     const title = team.shortName || team.name;
     const division = team.division;
-    const gradient = [
-        division.firstGradientColor,
-        division.secondGradientColor,
-        division.thirdGradientColor,
-    ] as const;
+    const gradient = division
+        ? [
+            division.firstGradientColor,
+            division.secondGradientColor,
+            division.thirdGradientColor,
+        ] as const
+        : [
+            theme.backgroundSecondary,
+            theme.backgroundSecondary,
+            theme.backgroundSecondary,
+        ] as const;
 
     const chips: EntityCardChip[] = [];
 

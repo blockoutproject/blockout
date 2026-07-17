@@ -6,14 +6,20 @@ import * as Yup from "yup";
 import * as Haptics from "expo-haptics";
 
 import { useAppTheme } from "@/src/context/ThemeProvider";
-import type { EnrichedPoolDTO, Pool } from "@/src/types/Pool";
+import type { EnrichedPoolDTO, PoolUpdateResult } from "@/src/types/Pool";
 import { CORNERS } from "@/src/theme/globals";
 import ApiErrorToast from "@/src/components/common/feedback/ApiErrorToast";
 
 import FormCard from "@/src/components/common/form/FormCard";
 import Field from "@/src/components/common/form/Field";
 import SheetTextInput from "@/src/components/common/form/SheetTextInput";
-import { useApis } from "@/src/context/ApiProvider";
+import { updateMobilePool } from '@/src/api/generated/mobile-gateway/endpoints/mobile-pools/mobile-pools';
+import {
+    UpdateMobilePoolBody,
+    UpdateMobilePoolParams,
+    UpdateMobilePoolResponse,
+} from '@/src/api/generated/mobile-gateway/schemas/mobile-pools/mobile-pools.zod';
+import { toPoolUpdateResult } from '@/src/hooks/pool/poolView';
 
 export type PoolFormExternalState = {
     loading: boolean;
@@ -22,14 +28,13 @@ export type PoolFormExternalState = {
 
 export type PoolFormProps = {
     pool: EnrichedPoolDTO;
-    onSuccess: (updated?: Pool) => void;
+    onSuccess: (updated?: PoolUpdateResult) => void;
     onRegisterSubmit: (submit: () => void) => void;
     onStateChange?: (state: PoolFormExternalState) => void;
 };
 
 const PoolForm: React.FC<PoolFormProps> = ({ pool, onSuccess, onRegisterSubmit, onStateChange }) => {
     const theme = useAppTheme();
-    const { mobile } = useApis();
 
     const [loading, setLoading] = useState(false);
     const [apiError, setApiError] = useState<string | null>(null);
@@ -48,11 +53,15 @@ const PoolForm: React.FC<PoolFormProps> = ({ pool, onSuccess, onRegisterSubmit, 
                 await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
                 setLoading(true);
                 setApiError(null);
-                const dto = { 
+                const path = UpdateMobilePoolParams.parse({ id: pool.id });
+                const body = UpdateMobilePoolBody.parse({
                     name: values.name.trim(),
                     shortName: values.shortName.trim()
-                };
-                const updated = await mobile.pools.updatePool(pool.id, dto);
+                });
+                const response = await updateMobilePool(path.id, body);
+                const updated = toPoolUpdateResult(
+                    UpdateMobilePoolResponse.parse(response),
+                );
                 await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
                 onSuccess(updated);
             } catch {

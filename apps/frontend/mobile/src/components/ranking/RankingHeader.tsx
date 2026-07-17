@@ -6,12 +6,12 @@ import { LinearGradient } from "expo-linear-gradient";
 
 import MaskedImage from "../common/images/MaskedImage";
 import { isRegional, withAlpha } from "@/src/utils/utils";
-import { EnrichedPoolDTO } from "@/src/types/Pool";
+import { RankedPoolView } from "@/src/types/Pool";
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import { GenderLabels } from "@/src/types/enums/Gender";
 
 type Props = {
-    pool: EnrichedPoolDTO;
+    pool: RankedPoolView;
     onPress: () => void;
 };
 

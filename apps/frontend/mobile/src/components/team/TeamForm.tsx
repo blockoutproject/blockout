@@ -10,14 +10,21 @@ import { Image } from "expo-image";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 import { useAppTheme } from "@/src/context/ThemeProvider";
-import type { EnrichedTeamDTO, Team } from "@/src/types/Team";
+import type { EnrichedTeamDTO, TeamUpdateResult } from "@/src/types/Team";
 import { CORNERS } from "@/src/theme/globals";
 import ApiErrorToast from "@/src/components/common/feedback/ApiErrorToast";
 
 import FormCard from "@/src/components/common/form/FormCard";
 import Field from "@/src/components/common/form/Field";
-import { useApis } from "@/src/context/ApiProvider";
 import { CustomImage } from "@/src/types/Common";
+import { updateMobileTeam } from '@/src/api/generated/mobile-gateway/endpoints/mobile-teams/mobile-teams';
+import {
+    UpdateMobileTeamBody,
+    UpdateMobileTeamParams,
+    UpdateMobileTeamResponse,
+} from '@/src/api/generated/mobile-gateway/schemas/mobile-teams/mobile-teams.zod';
+import { toOrvalMultipartFile } from '@/src/api/core/reactNativeMultipart';
+import { toTeamUpdateResult } from '@/src/hooks/team/teamView';
 import SheetTextInput from "../common/form/SheetTextInput";
 
 export type TeamFormExternalState = {
@@ -27,14 +34,13 @@ export type TeamFormExternalState = {
 
 export type TeamFormProps = {
     team: EnrichedTeamDTO;
-    onSuccess: (updated?: Team) => void;
+    onSuccess: (updated?: TeamUpdateResult) => void;
     onRegisterSubmit: (submit: () => void) => void;
     onStateChange?: (state: TeamFormExternalState) => void;
 };
 
 const TeamForm: React.FC<TeamFormProps> = ({ team, onSuccess, onRegisterSubmit, onStateChange }) => {
     const theme = useAppTheme();
-    const { mobile } = useApis();
 
     const [imageFile, setImageFile] = useState<CustomImage | null>(null);
     const [previewUri, setPreviewUri] = useState<string | null>(null);
@@ -91,19 +97,20 @@ const TeamForm: React.FC<TeamFormProps> = ({ team, onSuccess, onRegisterSubmit, 
                 setLoading(true);
                 setApiError(null);
 
-                const dto: Partial<Team> = {
-                    name: values.name.trim(),
-                    shortName: values.shortName.trim(),
-                };
-
-                if (imageFile) {
-                } else if (removedLogo) {
-                    dto.logoUrl = null;
-                } else if (team.logoUrl) {
-                    dto.logoUrl = team.logoUrl;
-                }
-
-                const updated = await mobile.teams.updateTeam(team.id, dto, imageFile ?? undefined);
+                const path = UpdateMobileTeamParams.parse({ id: team.id });
+                const response = await updateMobileTeam(path.id, {
+                    data: UpdateMobileTeamBody.shape.data.parse({
+                        name: values.name.trim(),
+                        shortName: values.shortName.trim(),
+                        removeLogo: removedLogo,
+                    }),
+                    image: imageFile
+                        ? toOrvalMultipartFile(imageFile)
+                        : undefined,
+                });
+                const updated = toTeamUpdateResult(
+                    UpdateMobileTeamResponse.parse(response),
+                );
                 await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
                 onSuccess(updated);
             } catch {

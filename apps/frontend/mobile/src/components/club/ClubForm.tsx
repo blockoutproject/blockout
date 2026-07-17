@@ -16,8 +16,15 @@ import ApiErrorToast from "@/src/components/common/feedback/ApiErrorToast";
 
 import FormCard from "@/src/components/common/form/FormCard";
 import SheetTextInput from "@/src/components/common/form/SheetTextInput";
-import { useApis } from "@/src/context/ApiProvider";
 import { CustomImage } from "@/src/types/Common";
+import { updateMobileClub } from '@/src/api/generated/mobile-gateway/endpoints/mobile-clubs/mobile-clubs';
+import {
+    UpdateMobileClubBody,
+    UpdateMobileClubParams,
+    UpdateMobileClubResponse,
+} from '@/src/api/generated/mobile-gateway/schemas/mobile-clubs/mobile-clubs.zod';
+import { toOrvalMultipartFile } from '@/src/api/core/reactNativeMultipart';
+import { toClubView } from '@/src/hooks/club/clubView';
 import Field from "../common/form/Field";
 
 export type ClubFormExternalState = {
@@ -34,7 +41,6 @@ export type ClubFormProps = {
 
 const ClubForm: React.FC<ClubFormProps> = ({ club, onSuccess, onRegisterSubmit, onStateChange }) => {
     const theme = useAppTheme();
-    const { mobile } = useApis();
 
     const [imageFile, setImageFile] = useState<CustomImage | null>(null);
     const [previewUri, setPreviewUri] = useState<string | null>(null);
@@ -85,18 +91,17 @@ const ClubForm: React.FC<ClubFormProps> = ({ club, onSuccess, onRegisterSubmit, 
                 setLoading(true);
                 setApiError(null);
 
-                const dto: Partial<Club> = {
-                    name: values.name.trim(),
-                };
-
-                if (imageFile) {
-                } else if (removedLogo) {
-                    dto.logoUrl = null;
-                } else if (club.logoUrl) {
-                    dto.logoUrl = club.logoUrl;
-                }
-
-                const updated = await mobile.clubs.updateClub(club.id, dto, imageFile ?? undefined);
+                const path = UpdateMobileClubParams.parse({ id: club.id });
+                const response = await updateMobileClub(path.id, {
+                    data: UpdateMobileClubBody.shape.data.parse({
+                        name: values.name.trim(),
+                        removeLogo: removedLogo,
+                    }),
+                    image: imageFile
+                        ? toOrvalMultipartFile(imageFile)
+                        : undefined,
+                });
+                const updated = toClubView(UpdateMobileClubResponse.parse(response));
                 await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
                 onSuccess(updated);
             } catch (err) {

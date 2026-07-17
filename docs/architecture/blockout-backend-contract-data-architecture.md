@@ -349,6 +349,9 @@ The generated Expo consumer, mobile view projection, and first React Hook Form/Z
 The remaining configuration Expo clients, wire validation, handwritten projections, Auth0 mutator continuity, and
 deferred-form boundary are recorded in the
 [MRG-344 Expo configuration migration](../migration/mrg-344-expo-configuration-client-migration.md).
+The club, team, and pool Expo clients, catalog projections, cache continuity, privacy boundary, multipart policy, and
+deferred-form ownership are recorded in the
+[MRG-345 Expo catalog migration](../migration/mrg-345-expo-catalog-client-migration.md).
 The source-syntax cleanup and complete REST regeneration are recorded in the
 [MRG-377 OpenAPI normalization](../migration/mrg-377-openapi-standard-syntax-normalization.md).
 The remaining config-service owner boundaries and the first search-worker generated snapshot client are recorded in

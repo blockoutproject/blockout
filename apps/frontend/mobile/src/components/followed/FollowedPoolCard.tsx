@@ -31,19 +31,25 @@ const FollowedPoolCard: React.FC<FollowedPoolCardProps> = ({
     const isReg = isRegional(pool.leagueCode);
     const title = pool.name;
     const division = pool.division;
-    const gradient = [
-        division.firstGradientColor,
-        division.secondGradientColor,
-        division.thirdGradientColor,
-    ] as const;
+    const gradient = division
+        ? [
+            division.firstGradientColor,
+            division.secondGradientColor,
+            division.thirdGradientColor,
+        ] as const
+        : [
+            theme.backgroundSecondary,
+            theme.backgroundSecondary,
+            theme.backgroundSecondary,
+        ] as const;
 
     const chips: EntityCardChip[] = [];
 
-    if (division.name) {
+    if (division?.name) {
         chips.push({
-            label: pool.division.name,
-            borderColor: pool.division.mainColor,
-            backgroundColor: withAlpha(pool.division.mainColor, 0.12),
+            label: division.name,
+            borderColor: division.mainColor,
+            backgroundColor: withAlpha(division.mainColor, 0.12),
         });
     }
 
@@ -96,7 +102,7 @@ const FollowedPoolCard: React.FC<FollowedPoolCardProps> = ({
     return (
         <EntityGradientCard
             title={title}
-            imageUri={pool.division.logoUrl}
+            imageUri={division?.logoUrl ?? null}
             chips={chips}
             onPress={onPress}
             testID={testID}

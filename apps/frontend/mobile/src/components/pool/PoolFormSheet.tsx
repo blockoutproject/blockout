@@ -4,12 +4,12 @@ import * as Haptics from "expo-haptics";
 import BottomSheetCustomModal from "@/src/components/common/bottomSheet/BottomSheetCustomModal";
 import BottomSheetFormFooter from "@/src/components/common/form/BottomSheetFormFooter";
 import PoolForm, { PoolFormExternalState } from "@/src/components/pool/PoolForm";
-import type { EnrichedPoolDTO, Pool } from "@/src/types/Pool";
+import type { EnrichedPoolDTO, PoolUpdateResult } from "@/src/types/Pool";
 
 export type PoolFormSheetProps = {
     pool: EnrichedPoolDTO;
     snapPoint?: string | number;
-    onSuccess: (updated?: Pool) => void;
+    onSuccess: (updated?: PoolUpdateResult) => void;
     footerLabel?: string;
 };
 

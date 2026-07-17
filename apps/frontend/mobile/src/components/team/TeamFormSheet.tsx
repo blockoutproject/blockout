@@ -4,12 +4,12 @@ import * as Haptics from "expo-haptics";
 import BottomSheetCustomModal from "@/src/components/common/bottomSheet/BottomSheetCustomModal";
 import BottomSheetFormFooter from "@/src/components/common/form/BottomSheetFormFooter";
 import TeamForm, { TeamFormExternalState } from "@/src/components/team/TeamForm";
-import type { EnrichedTeamDTO, Team } from "@/src/types/Team";
+import type { EnrichedTeamDTO, TeamUpdateResult } from "@/src/types/Team";
 
 export type TeamFormSheetProps = {
     team: EnrichedTeamDTO;
     snapPoint?: string | number;
-    onSuccess: (updated?: Team) => void;
+    onSuccess: (updated?: TeamUpdateResult) => void;
     footerLabel?: string;
 };
 

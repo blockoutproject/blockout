@@ -4,13 +4,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import RankingCard from './RankingCard';
 import { useAppTheme } from '@/src/context/ThemeProvider';
-import { EnrichedPoolDTO } from '@/src/types/Pool';
+import { RankedPoolView } from '@/src/types/Pool';
 import { BOTTOM_TABBAR_HEIGHT, SECTION_SEPARATOR_HEIGHT, TABBAR_HEIGHT } from '@/src/theme/globals';
 import { TeamHighlight } from '@/src/types/Team';
 import FadeIn from '../common/animations/FadeIn';
 
 type Props = {
-    enrichedPool: EnrichedPoolDTO
+    enrichedPool: RankedPoolView
     highlightTeams?: TeamHighlight[];
 };
 

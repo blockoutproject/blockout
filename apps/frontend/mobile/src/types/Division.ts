@@ -9,3 +9,14 @@ export interface Division {
   logoUrl: string | null;
   active: boolean;
 }
+
+/** Division label and styling embedded in catalog projections. */
+export type CatalogDivision = Pick<
+  Division,
+  | 'name'
+  | 'mainColor'
+  | 'firstGradientColor'
+  | 'secondGradientColor'
+  | 'thirdGradientColor'
+  | 'logoUrl'
+>;
