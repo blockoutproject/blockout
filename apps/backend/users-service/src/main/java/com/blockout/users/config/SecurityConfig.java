@@ -1,10 +1,14 @@
 package com.blockout.users.config;
 
+import com.blockout.users.shared.api.v2.UsersSecurityProblemWriter;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
@@ -15,19 +19,19 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtGra
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.filter.OncePerRequestFilter;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import java.io.IOException;
 
 import static org.springframework.security.config.Customizer.withDefaults;
 
+/** Configures retained v1 and canonical v2 users-service authentication boundaries. */
 @Configuration
 @RequiredArgsConstructor
 @EnableMethodSecurity
 public class SecurityConfig {
 
     private final AuthProperties authProperties;
+    private final UsersSecurityProblemWriter securityProblems;
 
+    /** Preserves the exact v1 API-key filter for the deferred identity operation. */
     @Bean
     @Order(1)
     public SecurityFilterChain internalChain(HttpSecurity http) throws Exception {
@@ -40,18 +44,25 @@ public class SecurityConfig {
                 .build();
     }
 
+    /** Configures bearer authentication and version-aware security responses. */
     @Bean
     @Order(2)
     public SecurityFilterChain apiChain(HttpSecurity http) throws Exception {
         return http
                 .authorizeHttpRequests(auth -> auth.anyRequest().authenticated())
                 .oauth2ResourceServer(oauth2 -> oauth2
-                        .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())))
+                        .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter()))
+                        .authenticationEntryPoint(securityProblems)
+                        .accessDeniedHandler(securityProblems))
+                .exceptionHandling(exceptions -> exceptions
+                        .authenticationEntryPoint(securityProblems)
+                        .accessDeniedHandler(securityProblems))
                 .csrf(csrf -> csrf.disable())
                 .cors(withDefaults())
                 .build();
     }
 
+    /** Maps the Auth0 permissions claim to Spring scope authorities. */
     private JwtAuthenticationConverter jwtAuthenticationConverter() {
         var granted = new JwtGrantedAuthoritiesConverter();
         granted.setAuthorityPrefix("SCOPE_");
@@ -62,15 +73,18 @@ public class SecurityConfig {
         return conv;
     }
 
+    /** Enforces the retained exact API key for the v1 internal identity route. */
     static class ApiKeyFilter extends OncePerRequestFilter {
 
         private static final Logger logger = LoggerFactory.getLogger(ApiKeyFilter.class);
         private final AuthProperties props;
 
+        /** Creates the filter from users-service authentication properties. */
         ApiKeyFilter(AuthProperties props) {
             this.props = props;
         }
 
+        /** Validates the API key without changing the legacy plain-text response. */
         @Override
         protected void doFilterInternal(HttpServletRequest request,
                 HttpServletResponse response,
@@ -103,6 +117,7 @@ public class SecurityConfig {
             chain.doFilter(request, response);
         }
 
+        /** Masks an API key before legacy diagnostic logging. */
         private String mask(String key) {
             if (key == null || key.length() < 6)
                 return "<invalid>";

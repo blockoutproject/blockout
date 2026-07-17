@@ -136,8 +136,9 @@ export const DeleteMobileNotificationResponse = zod.void();
  * Preserves the audited userId path until subject-binding security work is approved. Provider messages and delivery state remain outside this boundary.
  * @summary Register a current-user mobile push token
  */
+
 export const RegisterMobilePushTokenParams = zod.object({
-  userId: zod.uuid(),
+  userId: zod.number().min(1),
 });
 
 export const registerMobilePushTokenBodyExpoPushTokenMax = 2048;

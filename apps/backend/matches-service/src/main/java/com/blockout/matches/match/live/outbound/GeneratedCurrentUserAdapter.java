@@ -7,12 +7,14 @@ import com.blockout.matches.usersclient.model.UserAccountInternalResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
-@Component("generatedCurrentUserAdapter")
+/** Reduces the generated users-service response to the two live-policy fields. */
+@Component
 @RequiredArgsConstructor
 public class GeneratedCurrentUserAdapter implements CurrentUserProvider {
 
     private final UserAccountsClient users;
 
+    /** {@inheritDoc} */
     @Override
     public CurrentUserSnapshot getCurrentUser() {
         UserAccountInternalResponse user = users.getCurrentUser();

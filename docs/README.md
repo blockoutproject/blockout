@@ -43,6 +43,7 @@ GitHub Project task planning remains dormant until the final GitFlow activation 
 | Matches core slice    | [MRG-338 matches core and day page][mrg-338]                                                                                 | Generated match owner and grouped-day boundaries           |
 | Matches live slice    | [MRG-361 matches live and history][mrg-361]                                                                                  | Live commands, history, policy parity, and users client    |
 | Moderation slice      | [MRG-362 matches moderation and reports][mrg-362]                                                                            | Moderation projection, actions, reports, and parity        |
+| Users account slice   | [MRG-339 users account and profile][mrg-339]                                                                                 | Generated account boundary, image intent, and user client  |
 | Expo contracts/forms  | [`decisions/mrg-313-expo-contract-generation.md`](decisions/mrg-313-expo-contract-generation.md)                             | Orval, TanStack, Zod, React Hook Form, and form migration  |
 | Python clients        | [`decisions/mrg-314-python-contract-clients.md`](decisions/mrg-314-python-contract-clients.md)                               | Generated async clients, adapters, wheel, and scraper use  |
 | RabbitMQ contracts    | [`decisions/mrg-315-rabbitmq-event-contracts.md`](decisions/mrg-315-rabbitmq-event-contracts.md)                             | AsyncAPI source, Java records, envelope, and v2 topology   |
@@ -54,6 +55,7 @@ GitHub Project task planning remains dormant until the final GitFlow activation 
 [mrg-338]: migration/mrg-338-matches-core-day-runtime-migration.md
 [mrg-361]: migration/mrg-361-matches-live-history-runtime-migration.md
 [mrg-362]: migration/mrg-362-matches-moderation-report-runtime-migration.md
+[mrg-339]: migration/mrg-339-users-account-profile-runtime-migration.md
 
 ## Documentation Map
 

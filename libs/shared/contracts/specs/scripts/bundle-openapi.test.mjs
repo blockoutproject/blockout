@@ -1191,10 +1191,11 @@ test('workspace users contract reconciles the nine audited operations', async ()
     'createdAt',
     'favorites',
   ]);
-  assert.equal(
-    account.properties.id.$ref,
-    '#/components/schemas/UuidIdentifier',
-  );
+  assert.deepEqual(account.properties.id, {
+    type: 'integer',
+    format: 'int64',
+    minimum: 1,
+  });
   for (const removedField of [
     'firstName',
     'lastName',
@@ -1231,10 +1232,11 @@ test('workspace users contract reconciles the nine audited operations', async ()
     Object.keys(users.components.schemas.UserFavoritePageResponse.properties),
     ['items', 'pageInfo'],
   );
-  assert.equal(
-    users.components.parameters.UserId.schema.$ref,
-    '#/components/schemas/UuidIdentifier',
-  );
+  assert.deepEqual(users.components.parameters.UserId.schema, {
+    type: 'integer',
+    format: 'int64',
+    minimum: 1,
+  });
   assert.deepEqual(
     users.paths['/api/v2/users/{userId}/favorites'].get.parameters.map(
       (parameter) => parameter.$ref,
@@ -1309,10 +1311,12 @@ test('workspace reports contract separates Blockout and vendor roles', async () 
     command.properties.type.$ref,
     '#/components/schemas/ReportTypeEnum',
   );
-  assert.equal(
-    command.properties.userId.allOf[0].$ref,
-    '#/components/schemas/UuidIdentifier',
-  );
+  assert.deepEqual(command.properties.userId, {
+    type: 'integer',
+    format: 'int64',
+    minimum: 1,
+    nullable: true,
+  });
 
   const multipart =
     reports.paths['/api/v2/reports'].post.requestBody.content[
@@ -1428,10 +1432,11 @@ test('workspace notification contract reconciles REST without event or provider 
     notification.components.parameters.NotificationPageSize.schema.maximum,
     100,
   );
-  assert.equal(
-    notification.components.parameters.UserId.schema.$ref,
-    '#/components/schemas/UuidIdentifier',
-  );
+  assert.deepEqual(notification.components.parameters.UserId.schema, {
+    type: 'integer',
+    format: 'int64',
+    minimum: 1,
+  });
   assert.deepEqual(
     Object.keys(
       notification.components.schemas.UnreadNotificationCountInternalResponse
@@ -1717,10 +1722,11 @@ test('workspace mobile gateway contract owns the thirty relay workflow operation
     Object.keys(gateway.components.schemas.MobileUser.properties),
     ['id', 'auth0Id', 'email', 'pseudo', 'pictureUrl', 'favorites'],
   );
-  assert.equal(
-    gateway.components.schemas.MobileUser.properties.id.$ref,
-    '#/components/schemas/UuidIdentifier',
-  );
+  assert.deepEqual(gateway.components.schemas.MobileUser.properties.id, {
+    type: 'integer',
+    format: 'int64',
+    minimum: 1,
+  });
   assert.deepEqual(
     Object.keys(gateway.components.schemas.MobileUserFavorite.properties),
     ['entityType', 'entityId'],
@@ -1790,10 +1796,11 @@ test('workspace mobile gateway contract owns the thirty relay workflow operation
     ),
     ['unreadCount'],
   );
-  assert.equal(
-    gateway.components.parameters.MobileUserId.schema.$ref,
-    '#/components/schemas/UuidIdentifier',
-  );
+  assert.deepEqual(gateway.components.parameters.MobileUserId.schema, {
+    type: 'integer',
+    format: 'int64',
+    minimum: 1,
+  });
   assert.deepEqual(
     Object.keys(
       gateway.components.schemas.RegisterMobilePushTokenRequest.properties,

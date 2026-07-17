@@ -1,7 +1,7 @@
 {
   "UserAccountInternalResponse": {
     "type": "object",
-    "description": "Required account/profile view for current consumers. The local UUID is canonical; Auth0 subject remains only for the audited identity and live-owner compatibility workflows. Names, phone, active state, and persistence update timestamp remain v1-only compatibility fields.",
+    "description": "Required account/profile view for current consumers. The positive numeric local identifier is canonical; Auth0 subject remains only for the audited identity and live-owner compatibility workflows. Names, phone, active state, and persistence update timestamp remain v1-only compatibility fields.",
     "required": [
       "id",
       "auth0Id",
@@ -12,7 +12,11 @@
       "favorites"
     ],
     "properties": {
-      "id": { "$ref": "#/components/schemas/UuidIdentifier" },
+      "id": {
+        "type": "integer",
+        "format": "int64",
+        "minimum": 1
+      },
       "auth0Id": { "type": "string", "minLength": 1, "maxLength": 255 },
       "email": { "type": "string", "format": "email", "maxLength": 255 },
       "pseudo": { "type": "string", "minLength": 1, "maxLength": 255 },

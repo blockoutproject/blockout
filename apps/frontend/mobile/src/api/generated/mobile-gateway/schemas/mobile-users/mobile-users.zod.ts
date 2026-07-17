@@ -44,7 +44,7 @@ export const updateMobileUserResponsePictureUrlMax = 2048;
 
 export const UpdateMobileUserResponse = zod
   .object({
-    id: zod.uuid().describe('Canonical UUID identifier wire shape.'),
+    id: zod.number().min(1),
     auth0Id: zod.string().min(1).max(updateMobileUserResponseAuth0IdMax),
     email: zod.email().max(updateMobileUserResponseEmailMax),
     pseudo: zod.string().min(1).max(updateMobileUserResponsePseudoMax),
@@ -61,12 +61,13 @@ export const UpdateMobileUserResponse = zod
       .nullable(),
   })
   .describe(
-    'Expo session and profile projection. The local UUID is canonical; Auth0 remains a compatibility identity input.',
+    'Expo session and profile projection. The positive numeric local identifier is canonical; Auth0 remains a compatibility identity input.',
   );
 
 /**
  * @summary Ensure the current mobile user
  */
+
 export const ensureCurrentMobileUserResponseAuth0IdMax = 255;
 
 export const ensureCurrentMobileUserResponseEmailMax = 255;
@@ -77,7 +78,7 @@ export const ensureCurrentMobileUserResponsePictureUrlMax = 2048;
 
 export const EnsureCurrentMobileUserResponse = zod
   .object({
-    id: zod.uuid().describe('Canonical UUID identifier wire shape.'),
+    id: zod.number().min(1),
     auth0Id: zod.string().min(1).max(ensureCurrentMobileUserResponseAuth0IdMax),
     email: zod.email().max(ensureCurrentMobileUserResponseEmailMax),
     pseudo: zod.string().min(1).max(ensureCurrentMobileUserResponsePseudoMax),
@@ -97,7 +98,7 @@ export const EnsureCurrentMobileUserResponse = zod
       .nullable(),
   })
   .describe(
-    'Expo session and profile projection. The local UUID is canonical; Auth0 remains a compatibility identity input.',
+    'Expo session and profile projection. The positive numeric local identifier is canonical; Auth0 remains a compatibility identity input.',
   );
 
 /**

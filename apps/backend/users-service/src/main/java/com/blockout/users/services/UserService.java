@@ -5,18 +5,12 @@ import com.auth0.exception.Auth0Exception;
 import com.auth0.json.mgmt.users.User;
 import com.blockout.users.config.Auth0Properties;
 import com.blockout.users.config.Auth0TokenManager;
-import com.blockout.users.exceptions.ConflictException;
 import com.blockout.users.exceptions.CustomUserEmailAlreadyUsedException;
 import com.blockout.users.exceptions.CustomUserNotFoundException;
-import com.blockout.users.models.dto.CustomUserDTO;
-import com.blockout.users.models.dto.CustomUserUpdateDTO;
 import com.blockout.users.models.entities.CustomUser;
 import com.blockout.users.models.enums.EventType;
-import com.blockout.users.models.mappers.CustomUserMapper;
 import com.blockout.users.repositories.UserRepository;
-import com.blockout.users.services.clients.S3StorageClientService;
 import com.blockout.users.utils.DiffUtils;
-import com.blockout.users.utils.ImageUtils;
 
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -24,15 +18,14 @@ import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.multipart.MultipartFile;
 
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
-import java.io.IOException;
 import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
 
+/** Retains Auth0 identity, role, linking, and deletion orchestration until MRG-364. */
 @Service
 @RequiredArgsConstructor
 public class UserService {
@@ -41,26 +34,8 @@ public class UserService {
 
     private final Auth0TokenManager tokenManager;
     private final UserRepository userRepository;
-    private final CustomUserMapper customUserMapper;
     private final EventPublisher eventPublisher;
     private final Auth0Properties auth0Properties;
-    private final S3StorageClientService s3StorageClient;
-
-    /**
-     * Récupère un utilisateur par son ID Auth0.
-     *
-     * @param auth0Id L'identifiant Auth0
-     * @return L'utilisateur mappé en DTO
-     * @throws CustomUserNotFoundException si aucun utilisateur n'est trouvé
-     */
-    public CustomUserDTO getUserByAuth0Id(String auth0Id) {
-        return userRepository.findByAuth0IdWithFavorites(auth0Id)
-                .map(customUserMapper::toDto)
-                .orElseThrow(() -> {
-                    logger.warn("Utilisateur introuvable", keyValue("auth0Id", auth0Id));
-                    return new CustomUserNotFoundException(auth0Id);
-                });
-    }
 
     /**
      * Supprime un utilisateur de la base de données et de Auth0.
@@ -139,94 +114,6 @@ public class UserService {
                     keyValue("auth0Id", auth0Id), e);
             throw new RuntimeException("Erreur assignation rôle", e);
         }
-    }
-
-    /**
-     * Met à jour un utilisateur existant.
-     * Seuls les champs non nuls dans dto sont modifiés.
-     * Si un fichier image est fourni, l'ancienne image est supprimée et remplacée.
-     * Vérifie l'unicité du pseudo avant sauvegarde.
-     *
-     * @param auth0Id L'identifiant Auth0 de l'utilisateur à mettre à jour
-     * @param dto     Les nouvelles données de l'utilisateur (pseudo, prénom, nom)
-     * @param image   La nouvelle photo de profil (optionnelle)
-     * @return L'utilisateur mis à jour
-     * @throws CustomUserNotFoundException si aucun utilisateur n'est trouvé avec
-     *                                     cet identifiant
-     * @throws ConflictException           si le pseudo demandé est déjà utilisé par
-     *                                     un autre utilisateur
-     * @throws RuntimeException            en cas d'échec lors de l'upload de
-     *                                     l'image
-     */
-    @Transactional
-    public CustomUser updateUser(String auth0Id, CustomUserUpdateDTO dto, MultipartFile image) {
-        return userRepository.findByAuth0Id(auth0Id).map(existing -> {
-            CustomUser before = existing.toBuilder().build();
-
-            if (dto.getPseudo() != null) {
-                String requested = dto.getPseudo().trim();
-                if (!requested.isEmpty() && !Objects.equals(requested, existing.getPseudo())) {
-                    boolean taken = userRepository.existsByPseudoIgnoreCaseAndIdNot(requested, existing.getId());
-                    if (taken) {
-                        logger.error("Pseudo déjà utilisé",
-                                keyValue("action", "update_user"),
-                                keyValue("auth0Id", auth0Id),
-                                keyValue("requestedPseudo", requested));
-                        throw new ConflictException("Ce pseudo est déjà utilisé.");
-                    }
-                    existing.setPseudo(requested);
-                }
-            }
-
-            if (image != null && !image.isEmpty()) {
-                ImageUtils.validateImage(image);
-                try {
-                    if (existing.getPictureUrl() != null) {
-                        s3StorageClient.deleteObjectByUrl(existing.getPictureUrl());
-                    }
-
-                    String logoUrl = s3StorageClient.uploadProfileImage(image, "users");
-                    existing.setPictureUrl(logoUrl);
-                } catch (IOException e) {
-                    logger.error("Erreur lors de l'upload de l'image",
-                            keyValue("fileName", image.getOriginalFilename()), e);
-                    throw new RuntimeException("Échec de l’upload de l’image");
-                }
-            } else {
-                if (dto.getPictureUrl() == null) {
-                    if (existing.getPictureUrl() != null) {
-                        s3StorageClient.deleteObjectByUrl(existing.getPictureUrl());
-                    }
-                    existing.setPictureUrl(null);
-                }
-            }
-
-            if (!existing.getActive()) {
-                existing.setActive(true);
-                logger.info("Utilisateur réactivé",
-                        keyValue("action", "reactivate_user"),
-                        keyValue("auth0Id", auth0Id),
-                        keyValue("userId", existing.getId()));
-            }
-
-            try {
-                CustomUser updated = userRepository.save(existing);
-                DiffUtils.logChanges(before, updated, logger, "update_user", updated.getId());
-                return updated;
-            } catch (DataIntegrityViolationException dive) {
-                logger.error(
-                        "Violation d'intégrité lors de la mise à jour de l'utilisateur (pseudo probablement en double)",
-                        keyValue("action", "update_user"),
-                        keyValue("auth0Id", auth0Id),
-                        keyValue("requestedPseudo", dto.getPseudo()), dive);
-                throw new ConflictException("Ce pseudo est déjà utilisé.");
-            }
-        }).orElseThrow(() -> {
-            logger.error("User not found. Cannot update.",
-                    keyValue("action", "update_user"),
-                    keyValue("auth0Id", auth0Id));
-            return new CustomUserNotFoundException(auth0Id);
-        });
     }
 
     @Transactional

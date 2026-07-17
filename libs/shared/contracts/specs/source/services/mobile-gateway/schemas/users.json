@@ -1,10 +1,14 @@
 {
   "MobileUser": {
     "type": "object",
-    "description": "Expo session and profile projection. The local UUID is canonical; Auth0 remains a compatibility identity input.",
+    "description": "Expo session and profile projection. The positive numeric local identifier is canonical; Auth0 remains a compatibility identity input.",
     "required": ["id", "auth0Id", "email", "pseudo", "pictureUrl", "favorites"],
     "properties": {
-      "id": { "$ref": "#/components/schemas/UuidIdentifier" },
+      "id": {
+        "type": "integer",
+        "format": "int64",
+        "minimum": 1
+      },
       "auth0Id": { "type": "string", "minLength": 1, "maxLength": 255 },
       "email": { "type": "string", "format": "email", "maxLength": 255 },
       "pseudo": { "type": "string", "minLength": 1, "maxLength": 255 },

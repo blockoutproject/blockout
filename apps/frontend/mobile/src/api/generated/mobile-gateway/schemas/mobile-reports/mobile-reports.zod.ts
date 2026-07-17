@@ -34,10 +34,7 @@ export const CreateMobileReportBody = zod.object({
         .string()
         .max(createMobileReportBodyDataAppVersionMax)
         .nullish(),
-      userId: zod
-        .uuid()
-        .describe('Canonical UUID identifier wire shape.')
-        .nullish(),
+      userId: zod.number().min(1).nullish(),
       userName: zod.string().min(1).max(createMobileReportBodyDataUserNameMax),
       screen: zod.string().min(1).max(createMobileReportBodyDataScreenMax),
       deviceModel: zod

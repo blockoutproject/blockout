@@ -229,9 +229,9 @@ family migrates and rolls back independently under MRG-304.
 
 ### 7.1 User Identity
 
-The local Blockout user UUID is the canonical business and persistence identifier. Auth0 subjects, linked identities,
+The positive numeric local Blockout user identifier is the canonical business and persistence identifier. Auth0 subjects, linked identities,
 tokens, roles, and provider profiles are vendor-owned inputs resolved in an identity adapter. Auth0 subjects do not
-become general domain IDs or appear in unrelated contracts when the local UUID is sufficient.
+become general domain IDs or appear in unrelated contracts when the local identifier is sufficient.
 
 Identity migration preserves current authentication and authorization behavior. Account linking, deletion ordering,
 retention, and post-link token behavior require their existing evidence or a separately approved product/security
@@ -263,7 +263,7 @@ enough identity/version evidence to avoid stale overwrites once MRG-302, MRG-315
 | pools-service        | create/update/reactivation commands, PoolView, follower projection inputs                                                           | PoolEntity, event/outbox adapters                                               | BFF ranking/summary views remain separate                                       |
 | competition-service  | association/statistics snapshots, ranking views/policy, lifecycle and cascade commands                                              | association entities, repositories, outbox                                      | one ranking policy/projector owns ordering; full stats stay owner data          |
 | matches-service      | match/day views, match commands, live policies/views, moderation/report commands/views                                              | match/live/report entities, repositories, event/outbox adapters                 | matches owns live decisions; BFF only enriches                                  |
-| users-service        | account/profile commands/views, image intent, favorites, identity resolution, deletion orchestration                                | user/favorite entities, Auth0 and S3 adapters, outbox                           | local UUID canonical; Auth0 remains vendor-owned                                |
+| users-service        | account/profile commands/views, image intent, favorites, identity resolution, deletion orchestration                                | user/favorite entities, Auth0 and S3 adapters, outbox                           | positive numeric local ID canonical; Auth0 remains vendor-owned                 |
 | reports-service      | Blockout report command/result and attachment inputs                                                                                | S3, GitHub, and Discord adapters                                                | vendor request/results never define Blockout API types                          |
 | notification-service | inbox/page views, token command, follower projection, delivery decisions                                                            | inbox/token/ledger entities, Rabbit adapters, Expo provider adapter             | favorites are upstream truth; provider payloads stay contained                  |
 | search-service       | search query input and result views                                                                                                 | Elasticsearch read adapter                                                      | store documents never leave infrastructure                                      |
@@ -363,6 +363,9 @@ transport are recorded in the
 The separate moderation projection/actions, live-link report command, generated v2 boundaries, legacy adapter parity,
 and retained concurrency behavior are recorded in the
 [MRG-362 matches moderation migration](../migration/mrg-362-matches-moderation-report-runtime-migration.md).
+The users-service account/profile boundary, explicit image intent, corrected positive numeric local identity,
+isolated legacy adapter, and activated matches-service generated user client are recorded in the
+[MRG-339 users migration](../migration/mrg-339-users-account-profile-runtime-migration.md).
 
 ## 12. Approved Roadmap Sequence
 

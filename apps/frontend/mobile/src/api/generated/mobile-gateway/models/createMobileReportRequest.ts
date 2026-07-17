@@ -5,7 +5,6 @@
  * OpenAPI spec version: 2.0.0
  */
 import type { ReportTypeEnum } from './reportTypeEnum';
-import type { UuidIdentifier } from './uuidIdentifier';
 
 /**
  * Blockout-owned mobile report and diagnostic context.
@@ -24,7 +23,11 @@ export interface CreateMobileReportRequest {
    * @nullable
    */
   appVersion?: string | null;
-  userId?: UuidIdentifier | null;
+  /**
+   * @minimum 1
+   * @nullable
+   */
+  userId?: number | null;
   /**
    * @minLength 1
    * @maxLength 255

@@ -271,11 +271,9 @@
             "nullable": true
           },
           "userId": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/UuidIdentifier"
-              }
-            ],
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1,
             "nullable": true
           },
           "userName": {
@@ -377,11 +375,6 @@
           "LIVE",
           "OTHER"
         ]
-      },
-      "UuidIdentifier": {
-        "type": "string",
-        "format": "uuid",
-        "description": "Canonical UUID identifier wire shape."
       }
     }
   }

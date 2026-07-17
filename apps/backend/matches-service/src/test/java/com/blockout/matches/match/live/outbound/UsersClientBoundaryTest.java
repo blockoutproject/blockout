@@ -6,12 +6,16 @@ import com.blockout.matches.match.live.application.CurrentUserSnapshot;
 import com.blockout.matches.usersclient.api.UserAccountsClient;
 import com.blockout.matches.usersclient.model.UserAccountInternalResponse;
 import java.time.Instant;
-import java.util.UUID;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+/** Verifies URL normalization and immediate generated-user projection. */
+@DisplayName("Generated users-service client boundary")
 class UsersClientBoundaryTest {
 
+    /** Proves both coexistence route suffixes normalize to the generated client base URL. */
     @Test
+    @DisplayName("normalizes configured v1 and v2 user URLs")
     void configuredVersionedUrlsNormalizeBeforeTheGeneratedV2Call() {
         assertThat(UsersServiceUrl.canonicalBasePath("https://users.example/api/v1/users"))
                 .isEqualTo("https://users.example");
@@ -21,12 +25,13 @@ class UsersClientBoundaryTest {
                 .isEqualTo("https://users.example");
     }
 
+    /** Proves generated transport data does not escape the outbound adapter. */
     @Test
+    @DisplayName("reduces the generated account to the live-policy snapshot")
     void generatedResponseIsReducedImmediatelyToTheLivePolicySnapshot() {
-        UUID id = UUID.fromString("00000000-0000-0000-0000-000000000007");
         Instant createdAt = Instant.parse("2026-07-01T10:00:00Z");
         UserAccountInternalResponse response = new UserAccountInternalResponse()
-                .id(id)
+                .id(7L)
                 .auth0Id("auth0|owner")
                 .email("owner@example.com")
                 .pseudo("owner")

@@ -434,8 +434,8 @@ state moves to GitHub and this file becomes a historical migration record.
       fields and current authentication semantics.
   - Evidence: the authoritative users source and generated bundle reconcile all nine MRG-301 operations under
     `/api/v2/users/**` across account, identity-role, and favorite families. The canonical account view uses the local
-    Blockout UUID and retains only seven proven fields; Auth0 subjects remain limited to audited identity/profile
-    compatibility while names, phone, active/update state, numeric IDs, JPA relationships, and favorite persistence
+    positive numeric Blockout identifier and retains only seven proven fields; Auth0 subjects remain limited to audited
+    identity/profile compatibility while names, phone, active/update state, JPA relationships, and favorite persistence
     fields stay out of v2. Profile multipart uses explicit `removePicture` intent instead of the legacy picture URL
     echo/null protocol, and favorite reads use a stable shared page with reduced entries while v1 retains its current
     unpaged adapter. Bearer scopes, type-dependent team/pool follow scopes, exact API-key override, the unbound Auth0
@@ -449,7 +449,7 @@ state moves to GitHub and this file becomes a historical migration record.
   - Evidence: the authoritative reports source and generated bundle define the single audited
     `POST /api/v2/reports` operation with bearer authentication, `create:reports`, a canonical JSON `data` part, and
     repeated binary `images`. The Blockout command contains only the nine consumer-backed camelCase context fields,
-    uses the shared report enum and canonical optional user UUID, and excludes caller-controlled attachment URLs. The
+    uses the shared report enum and canonical optional numeric user ID, and excludes caller-controlled attachment URLs. The
     Blockout result retains only issue number, public URL, and title; GitHub IDs/state/SDK shapes, labels/Markdown, S3
     storage objects, Discord payloads, and provider configuration remain adapter-owned and absent from OpenAPI. Current
     sequential upload, GitHub create/update, best-effort Discord, partial-success, empty-image, missing count/idempotency,
@@ -466,10 +466,10 @@ state moves to GitHub and this file becomes a historical migration record.
     keys and read/open persistence timestamps. The stable page uses `items + pageInfo`, retains the mobile default of
     20, adds validation and a created-time/identity tie-breaker, while the isolated v1 adapter keeps its legacy wrapper,
     query name, cursor fields, and current ordering until cutover. Unread count is explicit, repeated read/open/delete
-    404 behavior remains documented, and push registration uses the canonical user UUID plus required token, shared
+    404 behavior remains documented, and push registration uses the canonical numeric user ID plus required token, shared
     platform enum, and device identifier without hiding the existing path-ownership gap. Expo provider models,
     delivery-ledger/follower persistence, and every RabbitMQ/AsyncAPI artifact remain outside OpenAPI. Twenty-six
-    contract tests cover operation IDs, scopes, schemas, page semantics, mutation outcomes, token validation, UUID
+    contract tests cover operation IDs, scopes, schemas, page semantics, mutation outcomes, token validation, numeric ID
     identity, provider/event exclusions, source lint, and deterministic generation; documentation and Maaatch structure
     checks and the unchanged backend reactor package successfully without modifying runtime code.
 - [x] MRG-326 Define and bundle the `search-service` contract from its approved audit using only required camelCase wire
@@ -491,7 +491,7 @@ state moves to GitHub and this file becomes a historical migration record.
   - Evidence: the authoritative mobile-gateway source and generated bundle reconcile all 30 MRG-301 relay operations
     allocated by MRG-304 across fifteen configuration, five account/favorite, one report, three search, and six
     notification workflows. Exact public/secure v2 paths and bearer behavior, camelCase query and multipart fields,
-    typed bounded lists, notification `items + pageInfo`, explicit `unreadCount`, canonical local user UUID, explicit
+    typed bounded lists, notification `items + pageInfo`, explicit `unreadCount`, canonical numeric local user ID, explicit
     picture intent, and reduced Expo projections replace copied internal DTOs without exposing persistence, vendor,
     Elasticsearch, cache, delivery, or event models. The documentation preserves v1 raw arrays, snake_case, `count`,
     `nextPage`, status, auth, cache, null, fallback, and partial-failure behavior for later compatibility adapters.
@@ -767,10 +767,23 @@ state moves to GitHub and this file becomes a historical migration record.
     full backend, documentation, Maaatch comparison, Prettier, and whitespace checks pass. Contracts, committed
     generated artifacts, databases, events, BFF, Expo, scrapers, standalone repositories, production, Maaatch,
     Blockout Orval settings, and Python generator settings are unchanged.
-- [ ] MRG-339 Migrate `users-service` account and profile generated boundaries and clients, keeping local UUID identity,
+- [x] MRG-339 Migrate `users-service` account and profile generated boundaries and clients, keeping the positive numeric local identity,
       Auth0 resolution, image intent, authentication, and current behavior explicit; then activate matches-service's
       staged generated `UserAccountsClient` and remove its temporary `LegacyCurrentUserAdapter` after provider-first
       parity and rollback proof.
+  - Evidence: `USER-01` through `USER-05` now implement generated `UserAccountsApi` through role-owned account/favorite
+    views, update command, explicit keep/remove/replace image intent, strict entity/API mappers, progressive Problem
+    Details, and payload-free compatibility telemetry. The isolated v1 adapter preserves snake_case, scopes, nulls,
+    Auth0 behavior, multipart semantics, full account fields, reduced read favorites, entity-shaped update/ensure
+    favorites, and Auth0-first deletion. Database and Java evidence corrected the unimplemented UUID assumption: every
+    current local-user wire now uses standard inline positive `integer`/`int64`, with Auth0 subjects kept at identity
+    edges and no custom scalar or vendor extension. Six superseded DTO/mapper/image classes and the mixed controller are
+    removed. Matches-service now uses only its generated `UserAccountsClient`; its temporary JsonNode v1 adapter is
+    deleted with provider-first rollback documented. Twelve users tests, all 38 retained non-context matches tests,
+    thirty contract tests, source lint, deterministic bundle/Orval generation, mobile typecheck and Android/iOS exports,
+    full backend packaging, documentation, Maaatch comparison, Prettier, and whitespace checks pass. Databases, events,
+    BFF runtime, scraper runtime, standalone repositories, production, Maaatch, Blockout Orval settings, and Python
+    generator settings are unchanged.
 - [ ] MRG-363 Migrate `users-service` favorite commands and projections, making favorites the canonical source while
       retaining counter, optimistic UI, and event compatibility.
 - [ ] MRG-364 Migrate `users-service` identity-link, account-deletion, and storage boundaries behind explicit Auth0 and
@@ -822,7 +835,7 @@ state moves to GitHub and this file becomes a historical migration record.
       `com.blockout.events.v2.model`; then add audited club/team/pool lifecycle payloads and reconcile all 11 routes/19
       queues, including no EV-TPD/Q-11–Q-13/Q-16–Q-17 v2 activation.
 - [ ] MRG-369 Add the audited favorite/follow `EventType` values, AsyncAPI payloads, generated records, publisher and
-      consumer adapter mappings, canonical user UUIDs, idempotent/rebuildable projections, compatibility,
+      consumer adapter mappings, canonical positive numeric user IDs, idempotent/rebuildable projections, compatibility,
       reconciliation, golden JSON, and rollback without changing the MRG-315 envelope/tooling/topology.
 - [ ] MRG-370 Add the audited match-finished/live-link `EventType` values, AsyncAPI payloads, generated records,
       publisher and consumer adapter mappings, acknowledgement/order/version parity, notification-owned Q-14/Q-15 v2

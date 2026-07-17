@@ -5,7 +5,7 @@
       "operationId": "getUserByAuth0Id",
       "tags": ["UserAccounts"],
       "summary": "Resolve a user account by Auth0 subject",
-      "description": "Identity-facing compatibility read. Auth0 remains vendor-owned; the response identifies the account by its canonical local UUID.",
+      "description": "Identity-facing compatibility read. Auth0 remains vendor-owned; the response identifies the account by its canonical positive numeric local identifier.",
       "responses": {
         "200": {
           "description": "Resolved user account.",

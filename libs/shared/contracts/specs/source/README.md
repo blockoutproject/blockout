@@ -251,10 +251,10 @@ the role-assignment operation overrides it with a service-local `X-API-KEY` sche
 type-dependent team/pool follow scopes, the unbound Auth0 update path, and current idempotent follow/unfollow outcomes
 remain explicit contract behavior rather than being silently corrected.
 
-The local Blockout UUID is the canonical v2 user identity. Auth0 subjects remain only on the two audited identity-facing
-paths and the account view needed by current profile/live-owner workflows. The account view contains the seven
+The positive numeric local Blockout ID is the canonical v2 user identity. Auth0 subjects remain only on the two audited
+identity-facing paths and the account view needed by current profile/live-owner workflows. The account view contains the seven
 consumer-backed fields: local identity, Auth0 identity, email, pseudo, picture URL, creation time, and reduced favorites.
-Names, phone, active state, update timestamp, numeric persistence identity, favorite row IDs, owner relationships, and
+Names, phone, active state, update timestamp, favorite row IDs, owner relationships, and
 favorite timestamps stay isolated in v1 compatibility or persistence adapters.
 
 Profile update is a canonical multipart command with optional pseudo, required `removePicture`, and optional image. It
@@ -288,7 +288,7 @@ activation remain assigned later work.
 MRG-325 makes `services/notification` authoritative for all six notification-service REST operations inventoried by
 MRG-301 and allocated by MRG-304. The bundle separates current-user inbox reads and mutations from push-token
 registration under `/api/v2/notifications/**`, retains the audited scopes, and keeps the approved coexistence token
-path with the canonical local Blockout user UUID.
+path with the canonical positive numeric local Blockout user ID.
 
 The persistence-independent inbox item retains the visible content, notification kind, read/open state, creation time,
 and an explicit nullable `divisionId` needed by BFF enrichment. Recipient IDs, target storage keys, generic `JsonNode`
@@ -341,7 +341,7 @@ approved by MRG-304. Public operations declare empty security locally; secure op
 Every schema is BFF-owned and named for the mobile workflow. No downstream `Internal` DTO is reused across the boundary.
 Complete configuration and search collections use typed `items` wrappers, notifications use `items + pageInfo`, and
 multipart JSON parts are typed camelCase requests. The notification view contains only the six fields consumed by the
-mobile inbox, including the BFF-enriched nullable division logo. The local user UUID is canonical, vendor/report/search
+mobile inbox, including the BFF-enriched nullable division logo. The positive numeric local user ID is canonical, vendor/report/search
 store models stay outside the bundle, and no BFF cache representation enters the wire contract.
 
 This source defines target v2 behavior only. Isolated v1 adapters retain current raw arrays, `count` and `nextPage`,

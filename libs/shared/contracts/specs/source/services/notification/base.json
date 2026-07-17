@@ -43,8 +43,12 @@
         "name": "userId",
         "in": "path",
         "required": true,
-        "description": "Canonical local Blockout user UUID retained on the approved coexistence route.",
-        "schema": { "$ref": "#/components/schemas/UuidIdentifier" }
+        "description": "Canonical positive numeric local Blockout user identifier retained on the approved coexistence route.",
+        "schema": {
+          "type": "integer",
+          "format": "int64",
+          "minimum": 1
+        }
       }
     }
   }

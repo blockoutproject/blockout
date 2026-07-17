@@ -9,7 +9,9 @@
       "description": { "type": "string", "minLength": 1 },
       "appVersion": { "type": "string", "maxLength": 255, "nullable": true },
       "userId": {
-        "allOf": [{ "$ref": "#/components/schemas/UuidIdentifier" }],
+        "type": "integer",
+        "format": "int64",
+        "minimum": 1,
         "nullable": true
       },
       "userName": { "type": "string", "minLength": 1, "maxLength": 255 },

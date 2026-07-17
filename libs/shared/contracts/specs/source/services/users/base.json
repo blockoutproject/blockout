@@ -36,8 +36,12 @@
         "name": "userId",
         "in": "path",
         "required": true,
-        "description": "Canonical local Blockout user UUID.",
-        "schema": { "$ref": "#/components/schemas/UuidIdentifier" }
+        "description": "Canonical positive numeric local Blockout user identifier.",
+        "schema": {
+          "type": "integer",
+          "format": "int64",
+          "minimum": 1
+        }
       },
       "FavoriteEntityType": {
         "name": "entityType",

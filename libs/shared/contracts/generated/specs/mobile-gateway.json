@@ -2230,7 +2230,9 @@
         "in": "path",
         "required": true,
         "schema": {
-          "$ref": "#/components/schemas/UuidIdentifier"
+          "type": "integer",
+          "format": "int64",
+          "minimum": 1
         }
       },
       "MobileClubId": {
@@ -3671,11 +3673,9 @@
             "nullable": true
           },
           "userId": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/UuidIdentifier"
-              }
-            ],
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1,
             "nullable": true
           },
           "userName": {
@@ -3797,7 +3797,7 @@
       },
       "MobileUser": {
         "type": "object",
-        "description": "Expo session and profile projection. The local UUID is canonical; Auth0 remains a compatibility identity input.",
+        "description": "Expo session and profile projection. The positive numeric local identifier is canonical; Auth0 remains a compatibility identity input.",
         "required": [
           "id",
           "auth0Id",
@@ -3808,7 +3808,9 @@
         ],
         "properties": {
           "id": {
-            "$ref": "#/components/schemas/UuidIdentifier"
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
           },
           "auth0Id": {
             "type": "string",
@@ -3874,11 +3876,6 @@
           "F",
           "O"
         ]
-      },
-      "UuidIdentifier": {
-        "type": "string",
-        "format": "uuid",
-        "description": "Canonical UUID identifier wire shape."
       },
       "MatchStatusEnum": {
         "type": "string",

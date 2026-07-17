@@ -87,7 +87,7 @@ and v2 live commands in the monorepo baseline, so an explicitly temporary `Legac
 It uses the existing forwarded bearer, requests the unchanged v1 route, reads only `auth0_id` and `created_at` from a
 `JsonNode`, and exposes the same minimal snapshot. MRG-339 must implement the provider first, switch authority to the
 already generated adapter, prove rollback, and delete this legacy adapter. No runtime fallback or dual-call behavior
-is introduced. The local UUID remains canonical in users-service; the live-link policy does not consume a local user
+is introduced. The positive numeric local ID remains canonical in users-service; the live-link policy does not consume a local user
 identifier while ownership rows still use Auth0 subjects.
 
 ## Generated Python Artifact

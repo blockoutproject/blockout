@@ -138,7 +138,11 @@
         "name": "userId",
         "in": "path",
         "required": true,
-        "schema": { "$ref": "#/components/schemas/UuidIdentifier" }
+        "schema": {
+          "type": "integer",
+          "format": "int64",
+          "minimum": 1
+        }
       },
       "MobileClubId": {
         "name": "id",

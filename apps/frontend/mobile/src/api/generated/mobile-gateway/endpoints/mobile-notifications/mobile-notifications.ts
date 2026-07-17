@@ -704,7 +704,7 @@ export const useDeleteMobileNotification = <
  * @summary Register a current-user mobile push token
  */
 export const registerMobilePushToken = (
-  userId: string,
+  userId: number,
   registerMobilePushTokenRequest: RegisterMobilePushTokenRequest,
   options?: SecondParameter<typeof orvalAxios>,
   signal?: AbortSignal,
@@ -732,14 +732,14 @@ export const getRegisterMobilePushTokenMutationOptions = <
   mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof registerMobilePushToken>>,
     TError,
-    { userId: string; data: RegisterMobilePushTokenRequest },
+    { userId: number; data: RegisterMobilePushTokenRequest },
     TContext
   >;
   request?: SecondParameter<typeof orvalAxios>;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof registerMobilePushToken>>,
   TError,
-  { userId: string; data: RegisterMobilePushTokenRequest },
+  { userId: number; data: RegisterMobilePushTokenRequest },
   TContext
 > => {
   const mutationKey = ['registerMobilePushToken'];
@@ -753,7 +753,7 @@ export const getRegisterMobilePushTokenMutationOptions = <
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof registerMobilePushToken>>,
-    { userId: string; data: RegisterMobilePushTokenRequest }
+    { userId: number; data: RegisterMobilePushTokenRequest }
   > = (props) => {
     const { userId, data } = props ?? {};
 
@@ -789,7 +789,7 @@ export const useRegisterMobilePushToken = <
     mutation?: UseMutationOptions<
       Awaited<ReturnType<typeof registerMobilePushToken>>,
       TError,
-      { userId: string; data: RegisterMobilePushTokenRequest },
+      { userId: number; data: RegisterMobilePushTokenRequest },
       TContext
     >;
     request?: SecondParameter<typeof orvalAxios>;
@@ -798,7 +798,7 @@ export const useRegisterMobilePushToken = <
 ): UseMutationResult<
   Awaited<ReturnType<typeof registerMobilePushToken>>,
   TError,
-  { userId: string; data: RegisterMobilePushTokenRequest },
+  { userId: number; data: RegisterMobilePushTokenRequest },
   TContext
 > => {
   return useMutation(

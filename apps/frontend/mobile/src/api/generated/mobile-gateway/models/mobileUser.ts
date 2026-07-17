@@ -5,13 +5,13 @@
  * OpenAPI spec version: 2.0.0
  */
 import type { MobileUserFavorite } from './mobileUserFavorite';
-import type { UuidIdentifier } from './uuidIdentifier';
 
 /**
- * Expo session and profile projection. The local UUID is canonical; Auth0 remains a compatibility identity input.
+ * Expo session and profile projection. The positive numeric local identifier is canonical; Auth0 remains a compatibility identity input.
  */
 export interface MobileUser {
-  id: UuidIdentifier;
+  /** @minimum 1 */
+  id: number;
   /**
    * @minLength 1
    * @maxLength 255
