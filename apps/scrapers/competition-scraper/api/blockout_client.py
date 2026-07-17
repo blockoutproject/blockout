@@ -54,7 +54,6 @@ class BlockoutClientSession:
     ) -> "BlockoutClientSession":
         configuration = configuration_type(
             host=host,
-            retries=None,
             verify_ssl=False,
             connection_pool_maxsize=CONNECTION_LIMIT,
         )

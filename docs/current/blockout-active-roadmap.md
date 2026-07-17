@@ -1017,7 +1017,7 @@ state moves to GitHub and this file becomes a historical migration record.
     artifacts, dependencies, native configuration, backend, scrapers, events, databases, standalone repositories,
     providers, production, and Maaatch are unchanged; `docs/migration/mrg-347-expo-relay-client-migration.md` records
     projection, cache, optimistic, push, multipart, rollback, inactive-operation, and deferred-form boundaries.
-- [ ] MRG-378 Replace MRG-330's interim generated `asyncio`/aiohttp clients with OpenAPI Generator's standard
+- [x] MRG-378 Replace MRG-330's interim generated `asyncio`/aiohttp clients with OpenAPI Generator's standard
       asynchronous `httpx` library before any scraper call migration. Regenerate all six committed packages; replace
       the generated wheel's aiohttp/aiohttp-retry transport dependencies with the supported httpx dependency; adapt
       both scraper-owned Blockout factories without changing provider aiohttp sessions; and re-prove all 24 operation
@@ -1025,6 +1025,22 @@ state moves to GitHub and this file becomes a historical migration record.
       limits, operation-family timeouts, cancellation, explicit close, safe errors, zero automatic retry, wheel/image
       builds, generated-file guards, and two-run determinism. Do not write models, endpoints, serialization, auth, or
       transport by hand and do not use custom generator templates.
+  - Evidence: all six pinned Python 3.12 configs now select the standard generated `httpx` library, and the common
+    wheel replaces aiohttp/aiohttp-retry with `httpx>=0.28.1,<1`. Generated REST packages use `httpx.AsyncClient`,
+    `trust_env=True`, optional proxy construction, a bounded connection pool, per-call timeouts, multipart JSON/files,
+    and asynchronous close without a retry wrapper. Both scraper-owned Blockout factories stop configuring the unused
+    generic retry field while retaining a limit of 20, per-call Auth0 Bearer refresh, the club 60-second run timeout,
+    all 10-second status/competition profiles, cancellation propagation, deterministic close, and sanitized generated
+    errors. Provider and federation requirements, aiohttp sessions, and retry loops remain unchanged. Thirteen Python
+    fixtures prove six-package imports, all 24 coroutine operations, canonical aliases, lists/query/path/empty/`204`
+    semantics, actual HTTPX multipart encoding, proxy/limit/timeout controls, zero retry, both factory profiles,
+    cancellation, close, safe errors, generated-source isolation, standard generator markers, and no custom templates.
+    Two direct clean generations produce the identical source diff hash. The wheel contains all six packages with the
+    expected metadata; both scraper syntax checks and root-context images pass, and ephemeral image probes confirm
+    provider aiohttp `3.14.1` alongside Blockout httpx `0.28.1`. Documentation validation, Maaatch comparison, and
+    whitespace checks pass. No scraper call, route, payload, provider/federation behavior, production, standalone
+    repository, backend, Expo, event, database, or Maaatch file changes; the detailed boundary and proof record is
+    `docs/migration/mrg-378-python-httpx-transport-migration.md`.
 - [ ] MRG-348 After MRG-378, migrate the `club-scraper`'s six audited Blockout operations to thin adapters over the
       fully generated `httpx` clients, preserving Python snake_case application identifiers, Auth0 refresh,
       `trust_env`, connection limits/timeouts, multipart files, errors, scheduling, and provider aiohttp behavior;

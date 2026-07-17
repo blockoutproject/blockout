@@ -2,7 +2,7 @@
   "generatorName": "python",
   "inputSpec": "libs/shared/contracts/generated/specs/competition.json",
   "outputDir": "libs/shared/contracts/clients/python/src",
-  "library": "asyncio",
+  "library": "httpx",
   "additionalProperties": {
     "packageName": "blockout_contract_clients.competition_service",
     "packageVersion": "0.1.0",
