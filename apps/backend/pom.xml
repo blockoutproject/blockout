@@ -38,22 +38,78 @@
         <lombok.version>1.18.38</lombok.version>
         <mapstruct.version>1.6.3</mapstruct.version>
         <openapi-generator-maven-plugin.version>7.19.0</openapi-generator-maven-plugin.version>
+        <build-helper-maven-plugin.version>3.6.1</build-helper-maven-plugin.version>
+        <maven-compiler-plugin.version>3.15.0</maven-compiler-plugin.version>
+        <openapi.generated-sources.root>${project.build.directory}/generated-sources/openapi</openapi.generated-sources.root>
     </properties>
 
     <build>
         <pluginManagement>
             <plugins>
-                <!-- Dormant ownership anchor. MRG-311 adds the shared generator configuration. -->
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <version>${maven-compiler-plugin.version}</version>
+                    <configuration>
+                        <source>${java.version}</source>
+                        <target>${java.version}</target>
+                        <annotationProcessorPaths>
+                            <path>
+                                <groupId>org.projectlombok</groupId>
+                                <artifactId>lombok</artifactId>
+                                <version>${lombok.version}</version>
+                            </path>
+                            <path>
+                                <groupId>org.mapstruct</groupId>
+                                <artifactId>mapstruct-processor</artifactId>
+                                <version>${mapstruct.version}</version>
+                            </path>
+                        </annotationProcessorPaths>
+                    </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-maven-plugin</artifactId>
+                    <configuration>
+                        <excludes>
+                            <exclude>
+                                <groupId>org.projectlombok</groupId>
+                                <artifactId>lombok</artifactId>
+                            </exclude>
+                        </excludes>
+                    </configuration>
+                </plugin>
                 <plugin>
                     <groupId>org.openapitools</groupId>
                     <artifactId>openapi-generator-maven-plugin</artifactId>
                     <version>${openapi-generator-maven-plugin.version}</version>
                     <configuration>
+                        <configOptions>
+                            <useTags>true</useTags>
+                            <useOneOfInterfaces>true</useOneOfInterfaces>
+                            <openApiNullable>false</openApiNullable>
+                            <legacyDiscriminatorBehavior>false</legacyDiscriminatorBehavior>
+                        </configOptions>
+                        <generateApiDocumentation>false</generateApiDocumentation>
+                        <generateApiTests>false</generateApiTests>
+                        <generateModelDocumentation>false</generateModelDocumentation>
+                        <generateModelTests>false</generateModelTests>
+                        <typeMappings>
+                            <typeMapping>DateTime=Instant</typeMapping>
+                        </typeMappings>
+                        <importMappings>
+                            <importMapping>Instant=java.time.Instant</importMapping>
+                        </importMappings>
             <!-- BEGIN generated schemaMappings -->
             <schemaMappings>
             </schemaMappings>
             <!-- END generated schemaMappings -->
                     </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>org.codehaus.mojo</groupId>
+                    <artifactId>build-helper-maven-plugin</artifactId>
+                    <version>${build-helper-maven-plugin.version}</version>
                 </plugin>
             </plugins>
         </pluginManagement>

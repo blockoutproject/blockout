@@ -307,8 +307,15 @@ state moves to GitHub and this file becomes a historical migration record.
     `generate-contracts` target, both shadow CI workflows, a dormant Maven plugin-management anchor, two clean syncs,
     contract tests/lint/generation, Maven baseline compilation, formatting, documentation links, Maaatch comparison,
     Nx discovery/typecheck, and diff checks pass without generating service APIs.
-- [ ] MRG-311 Configure the backend parent plugin management, Java type mappings, generated-source ownership, and
+- [x] MRG-311 Configure the backend parent plugin management, Java type mappings, generated-source ownership, and
       shared generator options without generating service APIs yet.
+  - Evidence: the backend parent now pins compiler, OpenAPI Generator, and build-helper plugins in dormant
+    `pluginManagement`; shares Java 21 annotation processors, generator test/documentation suppression, tag/union/
+    nullable/discriminator defaults, and `DateTime` to `Instant` mappings; and reserves module-local
+    `target/generated-sources/openapi/<boundary>` ownership. Effective-POM inspection proves no OpenAPI or build-helper
+    execution is active, no generated Java directory is created, and the unchanged 13-module Maven reactor packages;
+    contract generation, formatting, documentation links, Maaatch comparison, Nx discovery/typecheck, and diff checks
+    pass.
 - [ ] MRG-312 Add the backend `shared-models` module for generated shared enums and rare technical primitives, then
       compile it in the Maven reactor.
 - [ ] MRG-313 Select the Expo-compatible TypeScript client and contract-schema generator, including React Query

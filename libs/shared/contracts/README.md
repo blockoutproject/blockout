@@ -16,8 +16,10 @@ npm exec nx run @blockout/contracts:generate-contracts
 It discovers service directories lexicographically, regenerates bundles under `generated/specs/*.json`, and
 synchronizes the backend parent `schemaMappings` block from
 `specs/source/shared/schemas/*.json`. The synchronizer maps every shared schema to
-`com.blockout.shared.model.<SchemaName>` in lexical order. The OpenAPI Maven plugin declaration remains dormant until
-MRG-311 adds the shared generator configuration; no backend API or model generation is active yet.
+`com.blockout.shared.model.<SchemaName>` in lexical order. The backend parent supplies shared generator defaults, but
+`pluginManagement` does not activate them: no backend API or model generation is active yet. Later owning modules must
+declare their own executions and keep all generated Java beneath their module-local
+`target/generated-sources/openapi/<boundary>` directory.
 
 The generated bundle directory and the block between `BEGIN generated schemaMappings` and
 `END generated schemaMappings` are generated artifacts. Edit source fragments or generation scripts instead of

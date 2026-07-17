@@ -169,6 +169,17 @@ Errors use `ProblemDetail`-compatible bodies with a stable machine-readable `cod
 
 ## Generation
 
+The backend parent keeps shared OpenAPI Generator defaults in `pluginManagement`; those defaults do not activate
+generation. Each backend module owns the executions for the server or downstream clients it actually needs and writes
+each execution beneath `${openapi.generated-sources.root}/<boundary>`, which resolves inside that module's `target`.
+The same module explicitly activates `build-helper-maven-plugin` for the corresponding `src/main/java` directories.
+Generated backend sources stay uncommitted and are never shared between module `target` directories.
+
+The parent maps OpenAPI `DateTime` to `java.time.Instant`, disables generated documentation and tests, and keeps shared
+tag, `oneOf`, nullable, and discriminator behavior aligned across later server and client executions. A module may add
+generator-specific settings such as Spring interface-only or Java RestTemplate options, but it must not replace these
+shared defaults without a task-owned compatibility reason.
+
 Run only the commands useful to impacted layers, in this order:
 
 ```bash
