@@ -555,11 +555,21 @@ state moves to GitHub and this file becomes a historical migration record.
     deferred to MRG-505. Clean install, form guard, deterministic Orval guard, contract tests (30), source lint (137
     fragments), forced mobile typecheck, combined Android/iOS Expo export, documentation links, Maaatch structure
     comparison, and the unchanged 14-module backend package baseline all pass.
-- [ ] MRG-330 Pin `@openapitools/openapi-generator-cli` `2.39.1` and OpenAPI Generator `7.23.0`; generate Python 3.12
+- [x] MRG-330 Pin `@openapitools/openapi-generator-cli` `2.39.1` and OpenAPI Generator `7.23.0`; generate Python 3.12
       `asyncio` clients for config, clubs, teams, pools, competition, and matches into committed
       `blockout-contract-clients` `src/**`; expose `@blockout/contracts:generate-python-clients`; build one local wheel;
       switch both scraper Docker targets to root context and install it; and prove two-run no-diff plus all 24
       Blockout operations, JSON/list/query/path/`204`/multipart/Auth0/proxy/timeout/no-retry/error/lifecycle fixtures.
+  - Evidence: the workspace pins CLI `2.39.1` and generator `7.23.0`; six stable configurations generate 149 committed
+    Python 3.12 `asyncio` files in the one private `blockout-contract-clients` wheel, and two clean executions produce
+    the same SHA-256 source digest. The audited operation manifest resolves six club and eighteen competition scraper
+    calls to asynchronous generated methods. Nine focused fixtures prove camelCase aliases, list/query/path/`204`,
+    generated multipart file handling, per-call Bearer refresh, `trust_env`, connector limit 20, 10/60-second timeout
+    profiles, proxy propagation, no Blockout retry, safe Problem Details mapping, explicit close, and adapter
+    isolation. Both scraper-owned factories preserve the handwritten runtime boundary for MRG-348/349; their Nx and
+    shadow-CI image builds now use the monorepo root, build/install the local wheel on Python 3.12, and retain the
+    existing entry points. Generated imports, Python syntax, wheel construction, contract docs, and baseline checks
+    pass without changing any current scraper call or provider retry.
 - [ ] MRG-331 Configure generated Spring interfaces and models for `config-service`, then migrate legal-document read
       and update through generated DTOs, role-owned application records, entity mapping, canonical camelCase,
       Problem Details compatibility, and rollback evidence.

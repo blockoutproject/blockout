@@ -89,16 +89,42 @@ jobs:
         with:
           python-version: '3.12'
 
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Generate Python API clients twice
+        run: |
+          npm exec nx run @blockout/contracts:generate-python-clients
+          npm exec nx run @blockout/contracts:generate-python-clients --skip-nx-cache
+
+      - name: Verify Python API clients are committed
+        run: test -z "$(git status --porcelain -- libs/shared/contracts/clients/python/src)"
+
+      - name: Install local contract client wheel
+        run: python -m pip install libs/shared/contracts/clients/python
+
+      - name: Test Python contract client boundary
+        run: npm exec nx run @blockout/contracts:test-python-clients
+
       - name: Validate scraper syntax
         run: |
           python -m compileall -q apps/scrapers/competition-scraper
           python -m compileall -q apps/scrapers/club-scraper
 
       - name: Build competition scraper image
-        run: docker build --tag blockout-shadow/competition-scraper:${{ github.sha }} apps/scrapers/competition-scraper
+        run: docker build --file apps/scrapers/competition-scraper/Dockerfile --tag blockout-shadow/competition-scraper:${{ github.sha }} .
 
       - name: Build club scraper image
-        run: docker build --tag blockout-shadow/club-scraper:${{ github.sha }} apps/scrapers/club-scraper
+        run: docker build --file apps/scrapers/club-scraper/Dockerfile --tag blockout-shadow/club-scraper:${{ github.sha }} .
 
   local-compose:
     runs-on: ubuntu-latest

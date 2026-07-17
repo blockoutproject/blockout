@@ -89,7 +89,8 @@ revalidation. Generated output, history, and the migration roadmap never activat
 - Every deployable that reads environment variables owns a safe `.env.example`.
 - Use the root npm lockfile. Do not create nested JavaScript lockfiles.
 - Backend Dockerfiles use `apps/backend` as their context.
-- Scrapers are explicit Nx projects without a Python Nx plugin.
+- Scrapers are explicit Nx projects without a Python Nx plugin. Their Docker targets use the monorepo root context so
+  both images can build and install the local generated `blockout-contract-clients` wheel.
 - Local Compose consists only of the two Maaatch-shaped files and pgAdmin registration under `infra/compose`.
 - Standalone repositories remain production authority until each deployable completes its cutover.
 

@@ -24,9 +24,9 @@
     "docker-build": {
       "executor": "nx:run-commands",
       "cache": false,
+      "dependsOn": ["@blockout/contracts:generate-python-clients"],
       "options": {
-        "cwd": "apps/scrapers/competition-scraper",
-        "command": "docker build --tag blockoutproject/blockout-scraper:latest ."
+        "command": "docker build --file apps/scrapers/competition-scraper/Dockerfile --tag blockoutproject/blockout-scraper:latest ."
       }
     }
   }

@@ -9,8 +9,9 @@ The competition and club scrapers are standalone Python deployables represented 
 - Use async HTTP clients consistently and keep bounded timeouts and concurrency.
 - Never log tokens, credentials, proxy passwords, or raw sensitive responses.
 - Keep proxy credentials in environment files or deployment secrets.
-- No scraper test suite is currently collected. Run the Nx syntax check and build the owning Docker image after
-  packaging changes; do not report pytest as passing until real tests exist.
+- No application-level scraper suite is currently collected. The generated-client boundary has focused `unittest`
+  fixtures under `libs/shared/contracts/clients/python/tests`; still run the Nx syntax check and build the owning
+  Docker image after packaging changes, and do not report scraper business behavior as tested by those fixtures.
 
 ## Blockout Contract Clients
 
@@ -40,7 +41,7 @@ form, CSV, and SignalR behavior until the owning scraper architecture task chang
 
 ## Generation And Packaging Gates
 
-MRG-330 owns generation activation, the common local wheel, root-context Docker builds, and fixtures for all 24 audited
+MRG-330 activates generation, the common local wheel, root-context Docker builds, and fixtures for all 24 audited
 Blockout operations. MRG-348 and MRG-349 own the two runtime migrations. Until those tasks complete:
 
 - current handwritten calls remain authoritative for their operation slices;

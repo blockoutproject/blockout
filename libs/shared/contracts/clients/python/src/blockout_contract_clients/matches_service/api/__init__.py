@@ -1,0 +1,8 @@
+# flake8: noqa
+
+# import apis into api package
+from blockout_contract_clients.matches_service.api.match_days_api import MatchDaysApi
+from blockout_contract_clients.matches_service.api.match_internal_tests_api import MatchInternalTestsApi
+from blockout_contract_clients.matches_service.api.match_live_links_api import MatchLiveLinksApi
+from blockout_contract_clients.matches_service.api.match_moderation_api import MatchModerationApi
+from blockout_contract_clients.matches_service.api.matches_api import MatchesApi

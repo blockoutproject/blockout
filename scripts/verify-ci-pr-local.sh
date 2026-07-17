@@ -66,10 +66,15 @@ npm exec nx run @blockout/mobile:typecheck
 npm exec nx run @blockout/mobile:export --platform=android
 
 echo "== Scrapers =="
+npm exec nx run @blockout/contracts:generate-python-clients
+npm exec nx run @blockout/contracts:generate-python-clients --skip-nx-cache
+test -z "$(git status --porcelain -- libs/shared/contracts/clients/python/src)"
+python3 -m pip install libs/shared/contracts/clients/python
+npm exec nx run @blockout/contracts:test-python-clients
 npm exec nx run @blockout/competition-scraper:syntax-check
 npm exec nx run @blockout/club-scraper:syntax-check
-docker build --tag blockout-shadow/competition-scraper:local apps/scrapers/competition-scraper
-docker build --tag blockout-shadow/club-scraper:local apps/scrapers/club-scraper
+docker build --file apps/scrapers/competition-scraper/Dockerfile --tag blockout-shadow/competition-scraper:local .
+docker build --file apps/scrapers/club-scraper/Dockerfile --tag blockout-shadow/club-scraper:local .
 
 echo "== Local Compose =="
 docker compose --file infra/compose/docker-compose.third-party.yml --file infra/compose/docker-compose.app.yml config --quiet

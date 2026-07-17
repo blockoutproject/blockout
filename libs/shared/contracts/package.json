@@ -77,6 +77,50 @@
             "target": "sync-backend-schema-mappings"
           }
         ]
+      },
+      "generate-python-clients": {
+        "executor": "nx:run-commands",
+        "cache": true,
+        "inputs": [
+          "{projectRoot}/generated/specs/config.json",
+          "{projectRoot}/generated/specs/clubs.json",
+          "{projectRoot}/generated/specs/teams.json",
+          "{projectRoot}/generated/specs/pools.json",
+          "{projectRoot}/generated/specs/competition.json",
+          "{projectRoot}/generated/specs/matches.json",
+          "{projectRoot}/clients/python/config/*.json",
+          "{projectRoot}/clients/python/scripts/generate-python-clients.mjs",
+          "{workspaceRoot}/openapitools.json",
+          "{workspaceRoot}/package-lock.json"
+        ],
+        "outputs": [
+          "{projectRoot}/clients/python/src/**"
+        ],
+        "dependsOn": [
+          {
+            "target": "generate-openapi-bundles"
+          }
+        ],
+        "options": {
+          "command": "node libs/shared/contracts/clients/python/scripts/generate-python-clients.mjs"
+        }
+      },
+      "test-python-clients": {
+        "executor": "nx:run-commands",
+        "cache": false,
+        "options": {
+          "command": "python3 -m unittest discover -s libs/shared/contracts/clients/python/tests -p 'test_*.py'"
+        }
+      },
+      "build-python-wheel": {
+        "executor": "nx:run-commands",
+        "cache": false,
+        "outputs": [
+          "{projectRoot}/clients/python/dist/*.whl"
+        ],
+        "options": {
+          "command": "python3 -m pip wheel --no-deps --wheel-dir libs/shared/contracts/clients/python/dist libs/shared/contracts/clients/python"
+        }
       }
     }
   }

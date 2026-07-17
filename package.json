@@ -21,6 +21,7 @@
     "@nx/maven": "23.0.0",
     "@nx/react": "23.0.0",
     "@nx/workspace": "23.0.0",
+    "@openapitools/openapi-generator-cli": "2.39.1",
     "@swc/helpers": "~0.5.18",
     "@types/react": "~19.1.10",
     "babel-preset-expo": "54.0.11",

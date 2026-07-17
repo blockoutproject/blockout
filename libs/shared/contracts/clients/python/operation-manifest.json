@@ -1,0 +1,80 @@
+{
+  "club": [
+    ["CLUB-01", "clubs_service", "clubs_api", "list_clubs"],
+    ["CLUB-03", "clubs_service", "clubs_api", "create_club"],
+    ["CLUB-04", "clubs_service", "clubs_api", "update_club"],
+    [
+      "COMP-06",
+      "competition_service",
+      "competition_lifecycle_api",
+      "bulk_deactivate_competition_clubs"
+    ],
+    ["CFG-14", "config_service", "scraper_statuses_api", "get_scraper_status"],
+    [
+      "TEAM-06",
+      "teams_service",
+      "team_club_discovery_api",
+      "list_team_club_ids"
+    ]
+  ],
+  "competition": [
+    [
+      "COMP-02",
+      "competition_service",
+      "competition_associations_api",
+      "list_competition_associations_by_pool"
+    ],
+    [
+      "COMP-01",
+      "competition_service",
+      "competition_associations_api",
+      "add_or_reactivate_competition_association"
+    ],
+    [
+      "COMP-04",
+      "competition_service",
+      "competition_lifecycle_api",
+      "bulk_deactivate_competition_teams_by_pool"
+    ],
+    [
+      "COMP-05",
+      "competition_service",
+      "competition_lifecycle_api",
+      "bulk_deactivate_competition_pools"
+    ],
+    [
+      "COMP-07",
+      "competition_service",
+      "competition_statistics_api",
+      "replace_competition_statistics"
+    ],
+    [
+      "CFG-11",
+      "config_service",
+      "raw_division_mappings_api",
+      "list_raw_division_mappings"
+    ],
+    [
+      "CFG-10",
+      "config_service",
+      "raw_division_mappings_api",
+      "create_raw_division_mapping"
+    ],
+    ["CFG-14", "config_service", "scraper_statuses_api", "get_scraper_status"],
+    ["MATCH-01", "matches_service", "matches_api", "list_matches"],
+    ["MATCH-04", "matches_service", "matches_api", "create_match"],
+    ["MATCH-05", "matches_service", "matches_api", "update_match"],
+    [
+      "MATCH-06",
+      "matches_service",
+      "matches_api",
+      "bulk_deactivate_matches_by_pool"
+    ],
+    ["POOL-01", "pools_service", "pools_api", "list_pools"],
+    ["POOL-02", "pools_service", "pools_api", "create_pool"],
+    ["POOL-04", "pools_service", "pools_api", "update_pool"],
+    ["TEAM-02", "teams_service", "teams_api", "create_team"],
+    ["TEAM-04", "teams_service", "teams_api", "update_team"],
+    ["TEAM-01", "teams_service", "teams_api", "list_teams"]
+  ]
+}

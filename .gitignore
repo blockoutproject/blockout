@@ -75,3 +75,9 @@ cache/
 # Local infrastructure data
 **/postgres-data/
 data-export/
+
+# Generated Python contract client build artifacts
+**/__pycache__/
+*.py[cod]
+libs/shared/contracts/clients/python/build/
+libs/shared/contracts/clients/python/src/*.egg-info/
