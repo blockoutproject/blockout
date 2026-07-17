@@ -304,8 +304,8 @@ No generated transport type becomes route state, form state, persisted state, or
 view/form transforms remain mobile-owned when the UI needs a different shape. Every migrated form separates its
 generated wire schema, handwritten form schema, and generated request type, with an explicit typed submission
 transform. The mobile-owned stack, output paths, mutator, form API, migration order, and parity gates are fixed by
-[MRG-313](../decisions/mrg-313-expo-contract-generation.md). React Hook Form and Zod remain planned until MRG-329
-activates them.
+[MRG-313](../decisions/mrg-313-expo-contract-generation.md). MRG-329 activates React Hook Form and Zod through the
+central mobile form API while retaining Formik and Yup only for the explicit migration allowlist.
 
 Each Python scraper keeps parsing, scheduling, proxy, authentication, federation, and domain values separate from its
 Blockout adapter. Python identifiers may remain snake_case. The fully generated asynchronous clients selected by

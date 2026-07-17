@@ -35,6 +35,17 @@
       "options": {
         "command": "git diff --exit-code -- apps/frontend/mobile/src/api/generated/mobile-gateway"
       }
+    },
+    "validate-form-boundary": {
+      "executor": "nx:run-commands",
+      "cache": true,
+      "inputs": [
+        "{projectRoot}/scripts/validate-form-boundary.mjs",
+        "{projectRoot}/src/**/*.{js,jsx,ts,tsx}"
+      ],
+      "options": {
+        "command": "node apps/frontend/mobile/scripts/validate-form-boundary.mjs"
+      }
     }
   }
 }

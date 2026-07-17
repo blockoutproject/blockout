@@ -540,10 +540,21 @@ state moves to GitHub and this file becomes a historical migration record.
     until MRG-329 installs Zod directly. Contract tests (30), source lint (137 fragments), mobile typecheck, combined
     Android/iOS Expo export, documentation links, Maaatch structure comparison, and the unchanged 14-module backend
     package baseline all pass.
-- [ ] MRG-329 Pin React Hook Form `7.72.0`, `@hookform/resolvers` `5.2.2`, and Zod `4.4.3`; create the allowlisted
+- [x] MRG-329 Pin React Hook Form `7.72.0`, `@hookform/resolvers` `5.2.2`, and Zod `4.4.3`; create the allowlisted
       `src/forms/index.ts` mobile API; adapt proven common primitives to `fieldState.error`/`isTouched`; require
       `Controller` or `useController` for native fields; and prohibit new Formik/Yup forms while leaving unmigrated
       forms operational until MRG-516.
+  - Evidence: the mobile package pins the three approved runtime versions exactly, and `src/forms/index.ts` exposes
+    only the MRG-313 value/type allowlist; it does not expose `register`, DOM helpers, components, or form policy. The
+    generated `.zod.ts` wire schemas now participate in a forced full TypeScript build. `Field` and `FieldError` accept
+    React Hook Form-compatible `fieldState.error.message`/`fieldState.isTouched` while retaining their legacy
+    `error`/`touched` fallback, so no existing form or sheet behavior changes. The Nx/CI form-boundary guard fixes the
+    exact nine transition-only Formik/Yup files, rejects any new legacy import, and requires all handwritten RHF,
+    resolver, and Zod imports to pass through the central API; a negative direct-import probe failed as expected. The
+    mobile policy and architecture now record the active stack, while generic Zod-skill adoption remains explicitly
+    deferred to MRG-505. Clean install, form guard, deterministic Orval guard, contract tests (30), source lint (137
+    fragments), forced mobile typecheck, combined Android/iOS Expo export, documentation links, Maaatch structure
+    comparison, and the unchanged 14-module backend package baseline all pass.
 - [ ] MRG-330 Pin `@openapitools/openapi-generator-cli` `2.39.1` and OpenAPI Generator `7.23.0`; generate Python 3.12
       `asyncio` clients for config, clubs, teams, pools, competition, and matches into committed
       `blockout-contract-clients` `src/**`; expose `@blockout/contracts:generate-python-clients`; build one local wheel;

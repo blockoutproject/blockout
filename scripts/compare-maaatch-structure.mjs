@@ -83,7 +83,12 @@ const nonApplicableGenericSkills = new Map([
   ['next-best-practices', 'Next.js runtime and App Router are absent'],
   ['shadcn', 'shadcn, Tailwind, and DOM registries are absent'],
   ['web-design-guidelines', 'browser-only interface review'],
-  ['zod', 'Zod is not installed; mobile forms use Formik and Yup'],
+]);
+const deferredGenericSkills = new Map([
+  [
+    'zod',
+    'mobile Zod is active; skill adoption is intentionally re-audited by MRG-505',
+  ],
 ]);
 const maaatchGenericSkills = directories(
   join(maaatchRoot, '.agents/skills'),
@@ -94,11 +99,19 @@ const blockoutSkills = new Set(
 
 console.log('\nGENERIC SKILLS');
 for (const name of maaatchGenericSkills) {
+  const deferredReason = deferredGenericSkills.get(name);
+  if (deferredReason && !blockoutSkills.has(name)) {
+    console.log(`DEFER   ${name} (${deferredReason})`);
+    continue;
+  }
+
   const nonApplicableReason = nonApplicableGenericSkills.get(name);
   if (nonApplicableReason) {
     console.log(`NONAPP  ${name} (${nonApplicableReason})`);
     if (blockoutSkills.has(name)) {
-      failures.push(`Non-applicable generic skill copied into Blockout: ${name}`);
+      failures.push(
+        `Non-applicable generic skill copied into Blockout: ${name}`,
+      );
     }
     continue;
   }

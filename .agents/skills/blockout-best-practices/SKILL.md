@@ -56,17 +56,17 @@ credential mutation, or retirement of standalone repositories.
 
 Use these generic Maaatch-aligned skills only within Blockout's technology and product boundaries:
 
-| Skill                         | Blockout status       | Scope                                                                                                 |
-| ----------------------------- | --------------------- | ----------------------------------------------------------------------------------------------------- |
-| `karpathy-guidelines`         | Applicable            | Planning, implementation discipline, and code review                                                  |
-| `no-use-effect`               | Adapted               | React Native effects; direct effects remain valid for real external synchronization                   |
-| `nx-workspace-patterns`       | Applicable            | Nx structure, subject to `references/nx-workspace-policy.md` and Expo variants                        |
-| `vercel-composition-patterns` | Adapted               | Framework-neutral React composition translated to native primitives                                   |
-| `vercel-react-best-practices` | Adapted               | Allowlisted React and JavaScript rules only; its Next.js, server, DOM, and browser rules are inactive |
-| `next-best-practices`         | Non-applicable        | Next.js runtime and App Router are not present                                                        |
-| `shadcn`                      | Non-applicable        | shadcn, Tailwind, and DOM component registries are not part of the mobile stack                       |
-| `web-design-guidelines`       | Non-applicable        | Browser interface checks do not replace React Native accessibility and platform validation            |
-| `zod`                         | Planned until MRG-329 | MRG-313 approves mobile-owned Zod with React Hook Form; do not import it before activation            |
+| Skill                         | Blockout status        | Scope                                                                                                 |
+| ----------------------------- | ---------------------- | ----------------------------------------------------------------------------------------------------- |
+| `karpathy-guidelines`         | Applicable             | Planning, implementation discipline, and code review                                                  |
+| `no-use-effect`               | Adapted                | React Native effects; direct effects remain valid for real external synchronization                   |
+| `nx-workspace-patterns`       | Applicable             | Nx structure, subject to `references/nx-workspace-policy.md` and Expo variants                        |
+| `vercel-composition-patterns` | Adapted                | Framework-neutral React composition translated to native primitives                                   |
+| `vercel-react-best-practices` | Adapted                | Allowlisted React and JavaScript rules only; its Next.js, server, DOM, and browser rules are inactive |
+| `next-best-practices`         | Non-applicable         | Next.js runtime and App Router are not present                                                        |
+| `shadcn`                      | Non-applicable         | shadcn, Tailwind, and DOM component registries are not part of the mobile stack                       |
+| `web-design-guidelines`       | Non-applicable         | Browser interface checks do not replace React Native accessibility and platform validation            |
+| `zod`                         | Active, audit deferred | Mobile-owned Zod/RHF is active through MRG-329; MRG-505 decides whether to adopt the generic skill    |
 
 Do not create placeholder copies of non-applicable skills. Reassess a classification only when an authoritative
 roadmap task changes the stack; MRG-505 owns the later mobile skill audit after the architecture is defined.

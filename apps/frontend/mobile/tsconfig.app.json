@@ -14,8 +14,7 @@
     "**/*.spec.js",
     "**/*.test.jsx",
     "**/*.spec.jsx",
-    "src/test-setup.ts",
-    "src/api/generated/mobile-gateway/schemas/**/*.zod.ts"
+    "src/test-setup.ts"
   ],
   "include": [
     "**/*.ts",

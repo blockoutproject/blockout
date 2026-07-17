@@ -19,6 +19,7 @@
     "@expo/metro-runtime": "~6.1.2",
     "@expo/vector-icons": "^15.0.2",
     "@gorhom/bottom-sheet": "^5.2.3",
+    "@hookform/resolvers": "5.2.2",
     "@legendapp/list": "^2.0.9",
     "@maplibre/maplibre-react-native": "^10.4.2",
     "@react-native-picker/picker": "2.11.1",
@@ -67,6 +68,7 @@
     "qs": "^6.14.0",
     "react": "19.1.0",
     "react-dom": "19.1.0",
+    "react-hook-form": "7.72.0",
     "react-native": "0.81.5",
     "react-native-auth0": "^5.2.1",
     "react-native-edge-to-edge": "^1.7.0",
@@ -93,6 +95,7 @@
     "twrnc": "^4.6.1",
     "use-debounce": "^10.0.4",
     "yup": "^1.6.1",
+    "zod": "4.4.3",
     "zustand": "^5.0.8"
   },
   "devDependencies": {

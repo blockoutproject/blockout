@@ -24,8 +24,8 @@ the boundaries below incrementally to new or task-owned code while preserving pr
 This policy owns mobile placement, layering, state, native-boundary, and verification rules. Also load the repository
 references required by the work:
 
-- [`contract-first.md`](contract-first.md) before changing an API shape, DTO, error, endpoint, or future generated
-  client. Mobile generation is not active until the roadmap configures it.
+- [`contract-first.md`](contract-first.md) before changing an API shape, DTO, error, endpoint, or generated client.
+  Mobile generation is active through MRG-328, while caller migration remains vertical and incremental.
 - [`environment-configuration-policy.md`](environment-configuration-policy.md) before changing Expo configuration,
   EAS variables, public runtime values, or the Google Services file path.
 - [`logging-policy.md`](logging-policy.md) before adding, changing, or retaining diagnostic output.
@@ -53,7 +53,8 @@ Use the existing folders according to their current roles:
 | `src/components/<domain>/**` | Domain screen content and interaction components                                 |
 | `src/components/common/**`   | Proven cross-domain mobile UI primitives and feedback states                     |
 | `src/hooks/<domain>/**`      | Domain queries, mutations, subscriptions, and derived interaction behavior       |
-| `src/api/**`                 | Current handwritten HTTP and mobile-gateway boundary                             |
+| `src/api/**`                 | Handwritten transport plus generated mobile-gateway boundary                     |
+| `src/forms/index.ts`         | Allowlisted React Hook Form, resolver, Zod values, and types                     |
 | `src/context/**`             | App-wide providers for APIs, authentication/session, purchases, and theme        |
 | `src/types/**`               | Current handwritten boundary and screen types pending contract migration         |
 | `src/utils/**`               | Named pure operations, platform bridges, and deliberately persisted local stores |
@@ -158,9 +159,9 @@ with a behavioral rewrite unless the task owns both.
 
 ## Remote Data And API Access
 
-The current application has active TanStack Query consumers and one root `QueryClientProvider`. TanStack and future
-Orval integration remain owned by `apps/frontend/mobile` because Blockout has one React application. Preserve the
-current provider lifetime and defaults until MRG-203 introduces the mobile-local boundary.
+The current application has active TanStack Query consumers, generated Orval output, and one root
+`QueryClientProvider`. TanStack and Orval remain owned by `apps/frontend/mobile` because Blockout has one React
+application. Preserve the current provider lifetime and defaults throughout caller migration.
 
 - Access current API clients through `ApiProvider` and `useApis`; do not instantiate competing clients in screens or
   hooks.
@@ -213,14 +214,12 @@ representations, name the authoritative owner and derive the others.
 
 ## Forms And Validation
 
-The approved target is React Hook Form `7.72.0`, `@hookform/resolvers` `5.2.2`, and Zod `4.4.3`. This stack remains
-planned until MRG-329 installs it and creates the mobile-owned central API at `src/forms/index.ts`. Before activation,
-do not add runtime imports. After activation, every new form and every extension of a migrated form uses the approved
-stack. Formik and Yup remain transition-only for forms not yet migrated and are removed by MRG-516.
+React Hook Form `7.72.0`, `@hookform/resolvers` `5.2.2`, and Zod `4.4.3` are active through the mobile-owned central API
+at `src/forms/index.ts`. Every new form and every extension of a migrated form uses this stack. Formik and Yup remain
+transition-only for the explicit legacy allowlist and are removed by MRG-516.
 
 - Import `useForm`, `useFormContext`, `useController`, `useWatch`, `Controller`, `FormProvider`, required types,
-  `zodResolver`, and Zod only through `src/forms/index.ts` after MRG-329. Expand its allowlist only for a proven mobile
-  form need.
+  `zodResolver`, and Zod only through `src/forms/index.ts`. Expand its allowlist only for a proven mobile form need.
 - Use `Controller` or `useController` for React Native inputs. Do not copy Maaatch DOM wrappers or use `register` as if
   a native input were an HTML input.
 - Keep three distinct shapes: the generated Zod wire schema, the handwritten Zod form schema, and the generated request
