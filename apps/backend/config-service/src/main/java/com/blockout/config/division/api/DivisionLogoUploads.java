@@ -1,6 +1,6 @@
 package com.blockout.config.division.api;
 
-import com.blockout.config.division.application.DivisionLogoUpload;
+import com.blockout.config.division.domain.DivisionLogoUpload;
 import java.io.IOException;
 import lombok.experimental.UtilityClass;
 import org.springframework.web.multipart.MultipartFile;

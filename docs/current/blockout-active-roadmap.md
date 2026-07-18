@@ -1321,8 +1321,23 @@ state moves to GitHub and this file becomes a historical migration record.
     independently verified task. Documentation validation, Maaatch comparison, formatting, and whitespace checks pass.
     No service source, contract, generated artifact, event topology, database mapping, dependency, runtime,
     deployment, production, or Maaatch state changes.
-- [ ] MRG-402 Restructure `config-service` into explicit API, application, domain where justified, and persistence
+- [x] MRG-402 Restructure `config-service` into explicit API, application, domain where justified, and persistence
       boundaries with role-owned records and mappers.
+  - Evidence: all five config feature services now depend on role-owned application store ports rather than Spring
+    Data repositories, JPA entities, or persistence mappers. Feature-local `Jpa*Store` adapters own entity lookup,
+    mutation, strict mapping, and persistence for app status, divisions, legal documents, raw mappings, and scraper
+    status. Generated v2 models remain in `api/v2`; legacy snake-case shapes remain in `api/v1`; the S3 SDK remains in
+    the division storage adapter. Only the defensive immutable division-logo value earns a domain package because it
+    owns supported-MIME and five-megabyte invariants; no synthetic domain wrappers were added for simple data.
+    Feature exceptions move beside their application owners, and the generic reflection utility becomes an
+    application-owned change log without changing audit output. Seventeen focused tests preserve null updates, logo
+    bytes/validation/replacement/reactivation, legal lookup normalization, raw unmapping, scraper upsert, generated
+    camelCase, legacy JSON, telemetry, and Problem Details. The config reactor, complete backend packaging, all backend
+    Dockerfile checks, full local CI gate, documentation, formatting, and whitespace checks pass. Flyway V1-V6, repositories,
+    schemas, contracts, generated artifacts, REST routes, scopes, compatibility adapters, events, callers,
+    deployment, production, and Maaatch are unchanged;
+    `docs/migration/mrg-402-config-service-architecture.md` records ownership, parity, removal, rollback, and deferred
+    compatibility gates.
 - [ ] MRG-403 Restructure `clubs-service` into explicit API, application, domain, persistence, S3, scraper-facing, and
       event boundaries with role-owned records and mappers.
 - [ ] MRG-404 Restructure `teams-service` into explicit API, application, domain, persistence, S3, scraper-facing, and

@@ -3,10 +3,10 @@ package com.blockout.config.legal.application;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.blockout.config.exceptions.LegalDocumentNotFoundException;
 import com.blockout.config.legal.persistence.LegalDocumentEntity;
 import com.blockout.config.legal.persistence.LegalDocumentPersistenceMapper;
 import com.blockout.config.legal.persistence.LegalDocumentRepository;
+import com.blockout.config.legal.persistence.JpaLegalDocumentStore;
 import java.lang.reflect.Proxy;
 import java.time.LocalDateTime;
 import java.util.Optional;
@@ -22,7 +22,7 @@ class LegalDocumentServiceTest {
     void getKeepsTheLegacyExactPathLookup() {
         AtomicReference<String> lookup = new AtomicReference<>();
         LegalDocumentRepository repository = repository(Optional.empty(), lookup);
-        LegalDocumentService service = new LegalDocumentService(repository, mapper);
+        LegalDocumentService service = new LegalDocumentService(new JpaLegalDocumentStore(repository, mapper));
 
         assertThatThrownBy(() -> service.getByType(" Privacy "))
                 .isInstanceOf(LegalDocumentNotFoundException.class);
@@ -45,7 +45,7 @@ class LegalDocumentServiceTest {
                 .build();
         AtomicReference<String> lookup = new AtomicReference<>();
         LegalDocumentRepository repository = repository(Optional.of(entity), lookup);
-        LegalDocumentService service = new LegalDocumentService(repository, mapper);
+        LegalDocumentService service = new LegalDocumentService(new JpaLegalDocumentStore(repository, mapper));
 
         LegalDocumentSnapshot result = service.update(
                 " Privacy ",

@@ -1,5 +1,9 @@
 package com.blockout.config.exceptions;
 
+import com.blockout.config.appstatus.application.AppStatusNotFoundException;
+import com.blockout.config.division.application.DivisionNotFoundException;
+import com.blockout.config.rawmapping.application.RawDivisionMappingNotFoundException;
+import com.blockout.config.scraperstatus.application.ScraperNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
 
 import org.apache.tomcat.util.http.fileupload.impl.SizeLimitExceededException;

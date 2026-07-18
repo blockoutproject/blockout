@@ -1,10 +1,6 @@
 package com.blockout.config.appstatus.application;
 
-import com.blockout.config.appstatus.persistence.AppStatusEntity;
-import com.blockout.config.appstatus.persistence.AppStatusPersistenceMapper;
-import com.blockout.config.appstatus.persistence.AppStatusRepository;
-import com.blockout.config.exceptions.AppStatusNotFoundException;
-import com.blockout.config.utils.DiffUtils;
+import com.blockout.config.shared.application.ChangeLog;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,24 +13,17 @@ public class AppStatusService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AppStatusService.class);
 
-    private final AppStatusRepository repository;
-    private final AppStatusPersistenceMapper mapper;
+    private final AppStatusStore store;
 
     @Transactional(readOnly = true)
     public AppStatusView get() {
-        return repository.findFirstByOrderByIdAsc()
-                .map(mapper::toView)
-                .orElseThrow(AppStatusNotFoundException::new);
+        return store.find().orElseThrow(AppStatusNotFoundException::new);
     }
 
     @Transactional
     public AppStatusView update(UpdateAppStatusCommand command) {
-        AppStatusEntity entity = repository.findFirstByOrderByIdAsc()
-                .orElseThrow(AppStatusNotFoundException::new);
-        AppStatusEntity before = entity.toBuilder().build();
-        mapper.apply(command, entity);
-        AppStatusEntity saved = repository.save(entity);
-        DiffUtils.logChanges(before, saved, LOGGER, "update_app_status", saved.getId());
-        return mapper.toView(saved);
+        AppStatusChange change = store.update(command).orElseThrow(AppStatusNotFoundException::new);
+        ChangeLog.logChanges(change.before(), change.after(), LOGGER, "update_app_status", change.id());
+        return change.after();
     }
 }

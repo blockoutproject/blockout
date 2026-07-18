@@ -1,6 +1,6 @@
 package com.blockout.config.legal.api.v2;
 
-import com.blockout.config.exceptions.LegalDocumentNotFoundException;
+import com.blockout.config.legal.application.LegalDocumentNotFoundException;
 import com.blockout.config.shared.api.v2.ConfigProblemFactory;
 import com.blockout.shared.model.ProblemDetail;
 import jakarta.servlet.http.HttpServletRequest;

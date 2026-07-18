@@ -2,10 +2,10 @@ package com.blockout.config.shared.api.v2;
 
 import com.blockout.config.appstatus.api.v2.AppStatusV2Controller;
 import com.blockout.config.division.api.v2.DivisionV2Controller;
-import com.blockout.config.exceptions.AppStatusNotFoundException;
-import com.blockout.config.exceptions.DivisionNotFoundException;
-import com.blockout.config.exceptions.RawDivisionMappingNotFoundException;
-import com.blockout.config.exceptions.ScraperNotFoundException;
+import com.blockout.config.appstatus.application.AppStatusNotFoundException;
+import com.blockout.config.division.application.DivisionNotFoundException;
+import com.blockout.config.rawmapping.application.RawDivisionMappingNotFoundException;
+import com.blockout.config.scraperstatus.application.ScraperNotFoundException;
 import com.blockout.config.rawmapping.api.v2.RawDivisionMappingV2Controller;
 import com.blockout.config.scraperstatus.api.v2.ScraperStatusV2Controller;
 import com.blockout.shared.model.ProblemDetail;

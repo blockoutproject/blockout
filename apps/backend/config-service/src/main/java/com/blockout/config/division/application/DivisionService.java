@@ -2,11 +2,8 @@ package com.blockout.config.division.application;
 
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
-import com.blockout.config.division.persistence.DivisionEntity;
-import com.blockout.config.division.persistence.DivisionPersistenceMapper;
-import com.blockout.config.division.persistence.DivisionRepository;
-import com.blockout.config.exceptions.DivisionNotFoundException;
-import com.blockout.config.utils.DiffUtils;
+import com.blockout.config.division.domain.DivisionLogoUpload;
+import com.blockout.config.shared.application.ChangeLog;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -20,13 +17,12 @@ public class DivisionService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DivisionService.class);
 
-    private final DivisionRepository repository;
-    private final DivisionPersistenceMapper mapper;
+    private final DivisionStore store;
     private final DivisionLogoStorage logoStorage;
 
     @Transactional(readOnly = true)
     public List<DivisionView> findAll() {
-        List<DivisionView> divisions = repository.findAll().stream().map(mapper::toView).toList();
+        List<DivisionView> divisions = store.findAll();
         LOGGER.debug("Listing all divisions", keyValue("action", "list_all_divisions"),
                 keyValue("count", divisions.size()));
         return divisions;
@@ -34,63 +30,62 @@ public class DivisionService {
 
     @Transactional(readOnly = true)
     public DivisionView getById(Long id) {
-        return mapper.toView(findEntity(id));
+        return find(id);
     }
 
     @Transactional
     public DivisionView create(CreateDivisionCommand command, DivisionLogoUpload image) {
-        repository.findByNameIgnoreCase(command.name()).ifPresent(existing -> {
+        if (store.existsByNameIgnoreCase(command.name())) {
             throw new IllegalStateException("Une division avec ce nom existe déjà.");
-        });
-
-        DivisionEntity entity = mapper.toEntity(command);
-        entity.setActive(true);
-        if (image != null) {
-            entity.setLogoUrl(logoStorage.upload(image));
         }
-        DivisionEntity saved = repository.save(entity);
+
+        String logoUrl = image == null ? null : logoStorage.upload(image);
+        DivisionView saved = store.create(command, logoUrl);
         LOGGER.info("New division created", keyValue("action", "create_division"),
-                keyValue("divisionId", saved.getId()));
-        return mapper.toView(saved);
+                keyValue("divisionId", saved.id()));
+        return saved;
     }
 
     @Transactional
     public DivisionView update(Long id, UpdateDivisionCommand command, DivisionLogoUpload image) {
-        DivisionEntity entity = findEntity(id);
-        DivisionEntity before = entity.toBuilder().build();
-        mapper.apply(command, entity);
+        DivisionUpdate update = store.findForUpdate(id).orElseThrow(() -> notFound(id));
+        DivisionView current = update.current();
+        String replacementLogoUrl = null;
+        boolean replaceLogo = image != null;
 
-        if (image != null) {
-            if (entity.getLogoUrl() != null) {
-                logoStorage.delete(entity.getLogoUrl());
+        if (replaceLogo) {
+            if (current.logoUrl() != null) {
+                logoStorage.delete(current.logoUrl());
             }
-            entity.setLogoUrl(logoStorage.upload(image));
+            replacementLogoUrl = logoStorage.upload(image);
         }
 
-        if (!entity.getActive()) {
-            entity.setActive(true);
+        if (Boolean.FALSE.equals(current.active())) {
             LOGGER.info("Division reactivated", keyValue("action", "reactivate_division"),
-                    keyValue("divisionId", id), keyValue("divisionName", entity.getName()));
+                    keyValue("divisionId", id), keyValue("divisionName", current.name()));
         }
 
-        DivisionEntity saved = repository.save(entity);
-        DiffUtils.logChanges(before, saved, LOGGER, "update_division", saved.getId());
-        return mapper.toView(saved);
+        DivisionUpdatePlan plan = new DivisionUpdatePlan(command, replacementLogoUrl, replaceLogo, true);
+        DivisionChange change = update.apply(plan);
+        ChangeLog.logChanges(change.before(), change.after(), LOGGER, "update_division", change.after().id());
+        return change.after();
     }
 
     @Transactional
     public void deactivate(Long id) {
-        DivisionEntity entity = findEntity(id);
-        entity.setActive(false);
-        repository.save(entity);
+        if (!store.deactivate(id)) {
+            throw notFound(id);
+        }
         LOGGER.info("Division deactivated", keyValue("action", "deactivate_division"),
                 keyValue("divisionId", id));
     }
 
-    private DivisionEntity findEntity(Long id) {
-        return repository.findById(id).orElseThrow(() -> {
-            LOGGER.warn("Division not found", keyValue("divisionId", id));
-            return new DivisionNotFoundException(id);
-        });
+    private DivisionView find(Long id) {
+        return store.findById(id).orElseThrow(() -> notFound(id));
+    }
+
+    private DivisionNotFoundException notFound(Long id) {
+        LOGGER.warn("Division not found", keyValue("divisionId", id));
+        return new DivisionNotFoundException(id);
     }
 }

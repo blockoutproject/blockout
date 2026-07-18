@@ -1,28 +1,33 @@
 package com.blockout.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.blockout.config.appstatus.application.AppStatusService;
 import com.blockout.config.appstatus.application.UpdateAppStatusCommand;
 import com.blockout.config.appstatus.persistence.AppStatusEntity;
 import com.blockout.config.appstatus.persistence.AppStatusPersistenceMapper;
 import com.blockout.config.appstatus.persistence.AppStatusRepository;
+import com.blockout.config.appstatus.persistence.JpaAppStatusStore;
 import com.blockout.config.division.application.DivisionLogoStorage;
-import com.blockout.config.division.application.DivisionLogoUpload;
 import com.blockout.config.division.application.DivisionService;
 import com.blockout.config.division.application.UpdateDivisionCommand;
+import com.blockout.config.division.domain.DivisionLogoUpload;
 import com.blockout.config.division.persistence.DivisionEntity;
 import com.blockout.config.division.persistence.DivisionPersistenceMapper;
 import com.blockout.config.division.persistence.DivisionRepository;
+import com.blockout.config.division.persistence.JpaDivisionStore;
 import com.blockout.config.rawmapping.application.RawDivisionMappingService;
 import com.blockout.config.rawmapping.application.UpdateRawDivisionMappingCommand;
 import com.blockout.config.rawmapping.persistence.RawDivisionMappingEntity;
 import com.blockout.config.rawmapping.persistence.RawDivisionMappingPersistenceMapper;
 import com.blockout.config.rawmapping.persistence.RawDivisionMappingRepository;
+import com.blockout.config.rawmapping.persistence.JpaRawDivisionMappingStore;
 import com.blockout.config.scraperstatus.application.ScraperStatusService;
 import com.blockout.config.scraperstatus.persistence.ScraperStatusEntity;
 import com.blockout.config.scraperstatus.persistence.ScraperStatusPersistenceMapper;
 import com.blockout.config.scraperstatus.persistence.ScraperStatusRepository;
+import com.blockout.config.scraperstatus.persistence.JpaScraperStatusStore;
 import com.blockout.shared.model.FormatEnum;
 import com.blockout.shared.model.GenderEnum;
 import com.blockout.shared.model.ScraperNameEnum;
@@ -33,6 +38,22 @@ import org.junit.jupiter.api.Test;
 import org.mapstruct.factory.Mappers;
 
 class ConfigFeatureServicesTest {
+
+    @Test
+    void divisionLogoValueKeepsTheExistingImageBoundary() {
+        byte[] source = new byte[] {1, 2};
+        DivisionLogoUpload upload = new DivisionLogoUpload("logo.png", "image/png", source);
+        source[0] = 9;
+        byte[] exposed = upload.content();
+        exposed[1] = 9;
+
+        assertThat(upload.content()).containsExactly(1, 2);
+        assertThatThrownBy(() -> new DivisionLogoUpload("logo.gif", "image/gif", new byte[] {1}))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> new DivisionLogoUpload(
+                "logo.png", "image/png", new byte[5 * 1024 * 1024 + 1]))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
 
     @Test
     void appStatusNullFieldsPreserveStoredValues() {
@@ -49,8 +70,8 @@ class ConfigFeatureServicesTest {
                     case "save" -> arguments[0];
                     default -> unsupported(method);
                 });
-        AppStatusService service = new AppStatusService(
-                repository, Mappers.getMapper(AppStatusPersistenceMapper.class));
+        AppStatusService service = new AppStatusService(new JpaAppStatusStore(
+                repository, Mappers.getMapper(AppStatusPersistenceMapper.class)));
 
         var updated = service.update(new UpdateAppStatusCommand(
                 true, null, null, "2.0", null, null, null, null));
@@ -92,8 +113,8 @@ class ConfigFeatureServicesTest {
                 deleted.set(url);
             }
         };
-        DivisionService service = new DivisionService(
-                repository, Mappers.getMapper(DivisionPersistenceMapper.class), storage);
+        DivisionService service = new DivisionService(new JpaDivisionStore(
+                repository, Mappers.getMapper(DivisionPersistenceMapper.class)), storage);
 
         var updated = service.update(
                 7L,
@@ -125,8 +146,8 @@ class ConfigFeatureServicesTest {
                     case "save" -> arguments[0];
                     default -> unsupported(method);
                 });
-        RawDivisionMappingService service = new RawDivisionMappingService(
-                repository, Mappers.getMapper(RawDivisionMappingPersistenceMapper.class));
+        RawDivisionMappingService service = new RawDivisionMappingService(new JpaRawDivisionMappingStore(
+                repository, Mappers.getMapper(RawDivisionMappingPersistenceMapper.class)));
 
         var updated = service.update(9L, new UpdateRawDivisionMappingCommand(null, null, null));
 
@@ -149,8 +170,8 @@ class ConfigFeatureServicesTest {
                     }
                     default -> unsupported(method);
                 });
-        ScraperStatusService service = new ScraperStatusService(
-                repository, Mappers.getMapper(ScraperStatusPersistenceMapper.class));
+        ScraperStatusService service = new ScraperStatusService(new JpaScraperStatusStore(
+                repository, Mappers.getMapper(ScraperStatusPersistenceMapper.class)));
 
         var updated = service.update(ScraperNameEnum.SCRAPER_CLUBS, true);
 

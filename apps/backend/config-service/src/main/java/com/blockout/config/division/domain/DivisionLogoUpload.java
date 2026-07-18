@@ -1,4 +1,4 @@
-package com.blockout.config.division.application;
+package com.blockout.config.division.domain;
 
 import java.util.Arrays;
 

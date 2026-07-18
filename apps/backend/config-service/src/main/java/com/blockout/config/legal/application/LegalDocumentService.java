@@ -2,11 +2,7 @@ package com.blockout.config.legal.application;
 
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
-import com.blockout.config.exceptions.LegalDocumentNotFoundException;
-import com.blockout.config.legal.persistence.LegalDocumentEntity;
-import com.blockout.config.legal.persistence.LegalDocumentPersistenceMapper;
-import com.blockout.config.legal.persistence.LegalDocumentRepository;
-import com.blockout.config.utils.DiffUtils;
+import com.blockout.config.shared.application.ChangeLog;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,30 +15,20 @@ public class LegalDocumentService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LegalDocumentService.class);
 
-    private final LegalDocumentRepository repository;
-    private final LegalDocumentPersistenceMapper mapper;
+    private final LegalDocumentStore store;
 
     @Transactional(readOnly = true)
     public LegalDocumentSnapshot getByType(String type) {
-        return repository.findByType(type)
-                .map(mapper::toSnapshot)
-                .orElseThrow(() -> notFound(type));
+        return store.findByType(type).orElseThrow(() -> notFound(type));
     }
 
     @Transactional
     public LegalDocumentSnapshot update(String type, UpdateLegalDocumentCommand command) {
         String normalizedType = type.toLowerCase().trim();
-        return repository.findByType(normalizedType)
-                .map(existing -> update(existing, command))
-                .orElseThrow(() -> notFound(type));
-    }
-
-    private LegalDocumentSnapshot update(LegalDocumentEntity existing, UpdateLegalDocumentCommand command) {
-        LegalDocumentEntity before = existing.toBuilder().build();
-        mapper.apply(command, existing);
-        LegalDocumentEntity updated = repository.save(existing);
-        DiffUtils.logChanges(before, updated, LOGGER, "update_legal_document", updated.getId());
-        return mapper.toSnapshot(updated);
+        LegalDocumentChange change = store.update(normalizedType, command).orElseThrow(() -> notFound(type));
+        ChangeLog.logChanges(
+                change.before(), change.after(), LOGGER, "update_legal_document", change.after().id());
+        return change.after();
     }
 
     private LegalDocumentNotFoundException notFound(String type) {

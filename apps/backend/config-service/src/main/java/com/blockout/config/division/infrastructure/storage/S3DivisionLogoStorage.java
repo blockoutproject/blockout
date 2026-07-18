@@ -2,7 +2,7 @@ package com.blockout.config.division.infrastructure.storage;
 
 import com.blockout.config.config.AwsS3Properties;
 import com.blockout.config.division.application.DivisionLogoStorage;
-import com.blockout.config.division.application.DivisionLogoUpload;
+import com.blockout.config.division.domain.DivisionLogoUpload;
 import jakarta.annotation.PostConstruct;
 import java.io.ByteArrayInputStream;
 import java.util.UUID;
