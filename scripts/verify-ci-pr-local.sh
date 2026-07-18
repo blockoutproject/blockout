@@ -111,7 +111,7 @@ echo "== Repository configuration =="
 npm run validate:env
 npm run validate:docs
 npm run validate:backend-enums-generated
-npm run validate:python-enums-generated
+npm run validate:python-enum-ownership
 npm run validate:generated-untracked
 npm exec nx show projects
 npm exec nx run @blockout/contracts:test

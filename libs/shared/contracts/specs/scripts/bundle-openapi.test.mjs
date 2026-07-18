@@ -28,7 +28,6 @@ const sharedSchemasDir = path.join(sourceDir, 'shared/schemas');
 const expectedSharedEnums = {
   ConsumedEventClaimEnum: ['CLAIMED', 'DUPLICATE'],
   ConsumedEventResultEnum: ['APPLIED', 'DUPLICATE'],
-  DataSourcePriorityEnum: [0, 1, 2, 3],
   DevicePlatformEnum: ['IOS', 'ANDROID', 'WEB', 'UNKNOWN'],
   EntityEventActionEnum: ['CREATED', 'DELETED'],
   EntityTypeEnum: ['TEAM', 'POOL'],
@@ -253,6 +252,20 @@ test('workspace source state bundles without placeholder output', async () => {
       assert.equal(typeof bundle.components.schemas.ProblemDetail, 'object');
     }
   }
+});
+
+test('Python client generation hashes authoritative OpenAPI sources', async () => {
+  const contractsProject = JSON.parse(
+    await readFile(
+      path.join(workspaceRoot, 'libs/shared/contracts/package.json'),
+    ),
+  );
+  const inputs = contractsProject.nx.targets['generate-python-clients'].inputs;
+
+  assert.ok(
+    inputs.includes('{projectRoot}/specs/source/**/*.json'),
+    'The Python generation cache must invalidate directly from authoritative OpenAPI sources.',
+  );
 });
 
 test('workspace config contract reconciles the sixteen audited operations', async () => {
@@ -2450,14 +2463,6 @@ test('workspace shared catalog keeps the approved schemas and enum wires', async
     );
     assert.deepEqual(fragment[schemaName].enum, expectedValues);
   }
-
-  const dataSourcePriority = await readJson(
-    path.join(sharedSchemasDir, 'DataSourcePriorityEnum.json'),
-  );
-  assert.deepEqual(
-    dataSourcePriority.DataSourcePriorityEnum['x-enum-varnames'],
-    ['DB', 'FFVB', 'LNV_XML', 'LNV_HTML'],
-  );
 });
 
 test('fixture bundles transitive schemas, shared enums, and stable output', async (t) => {

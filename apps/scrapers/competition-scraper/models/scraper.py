@@ -9,9 +9,7 @@ from api.competitions_api import get_active_team_associations_by_pool, update_te
 from api.matches_api import create_match, update_match, get_matches_by_pool
 from config.logger_config import log_event, current_scraper
 from models.association_stats import AssociationStats
-from blockout_contract_clients.shared.models.data_source_priority_enum import (
-    DataSourcePriorityEnum,
-)
+from models.data_source_priority import DataSourcePriority
 from models.match import Match
 from dataclasses import replace
 
@@ -40,7 +38,7 @@ class Scraper(ABC):
         # Cache local : dict[(league_code, match_code), (existing_match, updated_match, changes_list, priority)]
         self._matches_cache: dict[
             tuple[str, str],
-            tuple[Optional[Match], Match, list[str], DataSourcePriorityEnum]
+            tuple[Optional[Match], Match, list[str], DataSourcePriority]
         ] = {}
         # Cache pour gérer les points, matchs joués, matchs gagnés et perdus, etc ...
         self._associations_cache: dict[
@@ -203,7 +201,7 @@ class Scraper(ABC):
                         m,           # existing_match
                         replace(m),  # updated_match (copie mutable)
                         [],
-                        DataSourcePriorityEnum.DB
+                        DataSourcePriority.DB
                     )
 
         except Exception as e:
@@ -263,7 +261,7 @@ class Scraper(ABC):
         self,
         updated_match: Match, 
         prefix: str, 
-        priority: DataSourcePriorityEnum
+        priority: DataSourcePriority
     ):
         """
         Fusionne le match dans le cache, avec logique de priorité (DB, FFVB, LNV-XML, LNV-HTML).
@@ -291,7 +289,7 @@ class Scraper(ABC):
 
             if self.priority_validation_enabled:
                 # LNV-XML
-                if priority == DataSourcePriorityEnum.LNV_XML:
+                if priority == DataSourcePriority.LNV_XML:
                     for field_name in lnv_priority_fields:
                         old_val = getattr(updated_obj, field_name, None)
                         new_val = getattr(updated_match, field_name, None)
@@ -301,7 +299,7 @@ class Scraper(ABC):
                     self._matches_cache[match_key] = (existing_obj, updated_obj, changes_list, priority)
 
                 # LNV-HTML
-                elif priority == DataSourcePriorityEnum.LNV_HTML:
+                elif priority == DataSourcePriority.LNV_HTML:
                     old_val = getattr(updated_obj, live_code_field, None)
                     new_val = getattr(updated_match, live_code_field, None)
                     if new_val != old_val:
@@ -310,7 +308,7 @@ class Scraper(ABC):
                     self._matches_cache[match_key] = (existing_obj, updated_obj, changes_list, priority)
 
                 # FFVB
-                elif priority == DataSourcePriorityEnum.FFVB:
+                elif priority == DataSourcePriority.FFVB:
                     for field_name in general_fields:
                         old_val = getattr(updated_obj, field_name, None)
                         new_val = getattr(updated_match, field_name, None)

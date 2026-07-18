@@ -6,6 +6,8 @@
   scraper call migration
 - Workspace amendment: 2026-07-18; MRG-433 adds one model-only shared namespace and moves packaging into the root uv
   workspace without changing the six service transports
+- Enum ownership amendment: 2026-07-18; MRG-435 limits generation to OpenAPI-owned enums and restores application-only
+  `DataSourcePriority` to the competition scraper
 - Runtime effect: none; MRG-314 changes documentation and future task structure only
 - Applies to: `apps/scrapers/club-scraper`, `apps/scrapers/competition-scraper`, and their Blockout REST adapters
 
@@ -118,6 +120,11 @@ Generated code is an adapter artifact, not application or product authority. A g
 through an upstream-supported option, source-contract correction, or an explicit revision to this decision; it must
 not produce a handwritten fork of generated transport code.
 
+The shared model namespace contains only schemas that participate in a Blockout REST contract. A reusable Python name
+is not sufficient reason to add OpenAPI source. Scraper-only policy enums remain handwritten application types, while
+the repository guard derives contract enum names and member/value fingerprints from shared OpenAPI source and rejects
+local mirrors without a manual allowlist.
+
 ## 3. Casing And Model Boundary
 
 Python application identifiers remain idiomatic `snake_case`. Canonical Blockout v2 JSON, query, path, and multipart
@@ -217,6 +224,7 @@ configuration, or scraper requirements change. Standalone scraper repositories r
 | MRG-348 | replace the club scraper's six Blockout operations with thin generated `httpx` client adapters; delete only their legacy request/response conversion paths                         |
 | MRG-349 | replace the competition scraper's eighteen Blockout operations with thin generated `httpx` client adapters; delete only their legacy request/response conversion paths             |
 | MRG-433 | own the root uv workspace, seventh shared model namespace, Python Nx project/edges, generated-enum guard, locked Docker packaging, and CI command migration                        |
+| MRG-435 | correct enum ownership, restore local `DataSourcePriority`, and replace the blanket enum ban with a contract-derived mirror guard                                                  |
 | MRG-601 | audit post-migration boundaries, shared adapter reuse, session ownership, scheduler/proxy behavior, and separation of the eleven provider/federation calls                         |
 | MRG-802 | enforce pinned generation, wheel build, ignored-output determinism, syntax, adapter isolation, and both root-context scraper image builds in CI                                    |
 

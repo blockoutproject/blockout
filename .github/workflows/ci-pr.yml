@@ -173,7 +173,7 @@ jobs:
         run: npm exec nx run @blockout/python-contract-clients:test
 
       - name: Validate generated Python enums
-        run: npm run validate:python-enums-generated
+        run: npm run validate:python-enum-ownership
 
       - name: Validate scraper syntax
         run: |

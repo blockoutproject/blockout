@@ -148,6 +148,15 @@ def team_response(identifier: int = 11):
 
 
 class CompetitionScraperGeneratedAdapterTests(unittest.IsolatedAsyncioTestCase):
+    def test_data_source_priority_is_application_owned(self) -> None:
+        with competition_scraper_modules():
+            from models.data_source_priority import DataSourcePriority
+
+            self.assertEqual(0, DataSourcePriority.DB.value)
+            self.assertEqual(1, DataSourcePriority.FFVB.value)
+            self.assertEqual(2, DataSourcePriority.LNV_XML.value)
+            self.assertEqual(3, DataSourcePriority.LNV_HTML.value)
+
     async def test_run_bundle_owns_five_generated_client_lifecycles(self) -> None:
         with competition_scraper_modules():
             from api import blockout_client

@@ -76,7 +76,8 @@ cannot leave a permanent bypass.
   or `pageSize`; document the bounded source and deterministic order.
 - Paginated collection: return an `items` + `pageInfo` wrapper named `*PageResponse`; guarantee `hasNext`; do not
   require `totalItems` without product need and reliable count.
-- Shared enum: every `*Enum` schema belongs in `source/shared/schemas`.
+- Contract enum: every `*Enum` schema belongs in `source/shared/schemas`; application-only policies do not become
+  OpenAPI schemas merely to share their implementation.
 - Shared non-enum schema: use `source/shared/schemas` only for true cross-boundary technical primitives.
 - Public union: expose it only when behavior is implemented and activable, or when a schema-only roadmap slice
   explicitly defines the boundary.
@@ -122,7 +123,7 @@ cannot leave a permanent bypass.
 - Nested value objects may stay boundary-local, but they still need an intentional name. Add `Internal` when the nested
   object is owned by an internal service contract and could be confused with a BFF projection.
 - Generated DTOs from another service stay in client/adapter packages and are mapped immediately to local domain,
-  read-model, or BFF DTOs. Enums are the exception because every enum is shared.
+  read-model, or BFF DTOs. Contract enums are the exception because every wire enum is shared.
 
 ## Polymorphic `oneOf`
 

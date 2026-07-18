@@ -44,15 +44,6 @@ class GeneratedClientTests(unittest.TestCase):
             module = importlib.import_module(f"blockout_contract_clients.{service}")
             self.assertIsNotNone(module)
 
-        from blockout_contract_clients.shared.models.data_source_priority_enum import (
-            DataSourcePriorityEnum,
-        )
-
-        self.assertEqual(0, DataSourcePriorityEnum.DB.value)
-        self.assertEqual(1, DataSourcePriorityEnum.FFVB.value)
-        self.assertEqual(2, DataSourcePriorityEnum.LNV_XML.value)
-        self.assertEqual(3, DataSourcePriorityEnum.LNV_HTML.value)
-
     def test_all_configs_and_wheel_metadata_select_standard_httpx(self) -> None:
         for config_path in sorted((CLIENT_ROOT / "config").glob("*.json")):
             config = json.loads(config_path.read_text())
@@ -307,24 +298,10 @@ class GeneratedClientTests(unittest.TestCase):
                 "apps/scrapers/competition-scraper/api/matches_api.py",
                 "apps/scrapers/competition-scraper/api/pools_api.py",
                 "apps/scrapers/competition-scraper/api/teams_api.py",
-                "apps/scrapers/competition-scraper/models/scraper.py",
-                "apps/scrapers/competition-scraper/scrapers/pro_scraper.py",
-                "apps/scrapers/competition-scraper/utils/scraper_logic.py",
             },
             imports,
         )
         competition_root = WORKSPACE_ROOT / "apps/scrapers/competition-scraper"
-        for relative_path in (
-            "models/scraper.py",
-            "scrapers/pro_scraper.py",
-            "utils/scraper_logic.py",
-        ):
-            source = (competition_root / relative_path).read_text()
-            self.assertIn(
-                "blockout_contract_clients.shared.models.data_source_priority_enum",
-                source,
-            )
-            self.assertNotIn("models.enums.datasource_priority", source)
         club_root = WORKSPACE_ROOT / "apps/scrapers/club-scraper"
         for adapter_name in ("clubs_api.py", "competitions_api.py", "config_api.py", "teams_api.py"):
             adapter_source = (club_root / "api" / adapter_name).read_text()

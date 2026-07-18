@@ -1,9 +1,0 @@
-{
-  "DataSourcePriorityEnum": {
-    "type": "integer",
-    "format": "int32",
-    "description": "Source precedence used while reconciling scraped competition data.",
-    "enum": [0, 1, 2, 3],
-    "x-enum-varnames": ["DB", "FFVB", "LNV_XML", "LNV_HTML"]
-  }
-}

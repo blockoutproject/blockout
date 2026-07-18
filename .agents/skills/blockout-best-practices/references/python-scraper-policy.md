@@ -22,8 +22,10 @@ generator with its `httpx` library and Python 3.12.
 - Generate six service clients and the model-only `blockout_contract_clients.shared` namespace into the private
   `blockout-contract-clients` wheel under `libs/shared/contracts/clients/python`; everything below that package's
   `src/**` is generated, ignored, untracked, and must not be edited.
-- Define reusable enums in shared OpenAPI source. Do not declare `Enum`, `IntEnum`, or `StrEnum` in scraper source;
-  generated service-specific types remain adapter-confined.
+- Generate enums that are owned by a Blockout OpenAPI contract from shared source and keep service-specific generated
+  types adapter-confined. Pure scraper policy may use a local `Enum`, `IntEnum`, or `StrEnum` when no wire contract owns
+  the concept. The enum-ownership guard derives contract names and values from shared schemas and rejects handwritten
+  mirrors without a manual allowlist.
 - Keep Python application identifiers snake_case. Generated aliases alone map them to camelCase Blockout v2 wire keys;
   do not add a recursive case converter or serialize application dataclasses directly onto a Blockout wire.
 - Put each generated service client behind a thin scraper-owned Blockout adapter. Map application values to generated

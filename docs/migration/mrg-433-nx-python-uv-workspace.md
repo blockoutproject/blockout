@@ -37,14 +37,14 @@ repeat the graph, executor, and differential-audit proof before changing the pin
 
 ## Shared Enum Generation
 
-`DataSourcePriorityEnum` is authoritative in shared OpenAPI source with stable integer members `DB=0`, `FFVB=1`,
-`LNV_XML=2`, and `LNV_HTML=3`. The seventh generator configuration emits the model-only
-`blockout_contract_clients.shared` namespace into the same private wheel. Scrapers import that generated enum; local
-`DataSourcePriority`, `Format`, `Gender`, and `MatchStatus` copies are removed.
+MRG-433 originally classified `DataSourcePriorityEnum` as shared OpenAPI source and installed a blanket handwritten-
+enum ban. MRG-435 supersedes that ownership decision: source precedence is competition-scraper application policy, so
+`DataSourcePriority` is local, while `Format`, `Gender`, `MatchStatus`, and other wire concepts remain generated from
+OpenAPI. The seventh model-only `blockout_contract_clients.shared` namespace remains in the same private wheel for real
+shared contract schemas.
 
-The repository AST guard rejects any handwritten scraper class derived from `Enum`, `IntEnum`, or `StrEnum`, including
-direct, qualified, and aliased bases, without an allowlist. Generated service-specific models and enums remain confined
-to adapters.
+The MRG-435 AST guard derives contract enum names and member/value fingerprints from authoritative shared schemas. It
+rejects handwritten contract mirrors without a manual allowlist while permitting distinct application enums.
 
 ## Docker And Runtime Parity
 
@@ -59,7 +59,7 @@ The before/after image comparison excludes only bootstrap `pip`, `setuptools`, a
 | club scraper        |                      43 |                     43 | exact          |
 | competition scraper |                      45 |                     45 | exact          |
 
-Both migrated images import their generated clients, shared enum, and active adapters. Each process remained alive for
+Both migrated images import their generated clients, shared models, and active adapters. Each process remained alive for
 three seconds with networking disabled and placeholder environment values, matching the reference smoke. Python is
 3.12.13 in both before and after images.
 
@@ -74,6 +74,6 @@ and integer enum values. No generated source, wheel, `.venv`, or cache is tracke
 
 If the plugin graph, uv resolver, wheel, Docker runtime, or deterministic generation regresses, revert MRG-433 as one
 unit: remove the plugin and root Python workspace metadata, restore the two scraper `requirements.txt` files and prior
-Docker stages, restore the old CI/local commands, and restore the local enum import. Generated outputs require no Git
+Docker stages, restore the old CI/local commands, and restore the prior enum ownership. Generated outputs require no Git
 cleanup because they remain ignored. No production rollback or data migration is required because MRG-433 changes no
 deployed behavior or persistent state.

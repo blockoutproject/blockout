@@ -1714,9 +1714,20 @@ state moves to GitHub and this file becomes a historical migration record.
     continuation, enum and Docker corrections, owner-version prerequisites, and MRG-430-before-MRG-429 dependency;
     the task runbook and MRG-401 rule enforce the new order. Documentation links, Prettier, Maaatch comparison, and Git
     whitespace checks pass.
-- [ ] MRG-435 Correct Python enum ownership after MRG-433: keep `DataSourcePriority` as a competition-scraper-local
+- [x] MRG-435 Correct Python enum ownership after MRG-433: keep `DataSourcePriority` as a competition-scraper-local
       `IntEnum`, generate only enum concepts owned by OpenAPI or AsyncAPI contracts, derive the handwritten-mirror guard
       from authoritative contract schemas without a manual allowlist, and keep every generated source outside Git.
+  - Evidence: `DataSourcePriority` is now the competition-scraper-local `IntEnum` with values `DB=0`, `FFVB=1`,
+    `LNV_XML=2`, and `LNV_HTML=3`; its false OpenAPI schema, generated-client assertions, and backend schema mapping are
+    removed while real contract enums remain generated. The AST ownership guard derives names and member/value
+    fingerprints from authoritative shared OpenAPI fragments with no manual allowlist, and the Nx generation cache now
+    hashes those source fragments directly so dependent targets cannot restore a deleted schema from stale output. Two
+    clean Python generations are identical at 174 files, all 31 REST contract tests, five ownership-guard tests, and 24
+    Python client/adapter tests pass, and Git tracks no generated artifact. The complete local verifier passes the
+    16-module backend reactor, mobile checks, isolated wheel import, scraper syntax and image builds, Compose, final
+    manifest stability, and lockfile check; both images retain `/app`, `TZ=UTC`, `python main.py`, the runtime imports,
+    and remain alive after an offline placeholder-environment smoke. Documentation, Prettier, Maaatch comparison, and
+    Git whitespace checks pass.
 - [ ] MRG-436 Simplify both scraper containers around the `matches-service` builder/runtime shape while retaining the
       three-member uv workspace and narrow Nx integration: use one locked package sync, keep Nx and validation outside
       Docker, remove unused test tools from runtime dependencies, preserve the image contract, and prove runtime rather
