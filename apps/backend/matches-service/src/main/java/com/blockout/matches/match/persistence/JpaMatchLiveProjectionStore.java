@@ -2,9 +2,9 @@ package com.blockout.matches.match.persistence;
 
 import com.blockout.matches.match.application.MatchLiveProjection;
 import com.blockout.matches.match.application.MatchLiveProjectionStore;
-import com.blockout.matches.models.entities.MatchLiveLink;
+import com.blockout.matches.match.live.persistence.MatchLiveLink;
+import com.blockout.matches.match.live.persistence.MatchLiveLinkRepository;
 import com.blockout.matches.models.enums.LiveLinkStatus;
-import com.blockout.matches.repositories.MatchLiveLinkRepository;
 import com.blockout.shared.model.LiveProviderEnum;
 import java.util.List;
 import java.util.Optional;

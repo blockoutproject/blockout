@@ -1,7 +1,7 @@
 package com.blockout.matches.match.live.report.persistence;
 
 import com.blockout.matches.match.live.report.application.ReportMatchLiveLinkCommand;
-import com.blockout.matches.models.entities.MatchLiveLink;
+import com.blockout.matches.match.live.persistence.MatchLiveLink;
 import com.blockout.matches.models.entities.MatchLiveLinkReport;
 import com.blockout.matches.shared.mapping.MatchesMapperConfig;
 import java.time.Instant;

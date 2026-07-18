@@ -2,6 +2,7 @@ package com.blockout.matches.controllers.v1;
 
 import com.blockout.matches.match.live.application.MatchLiveLinkApplicationService;
 import com.blockout.matches.match.live.application.MatchLiveLinkHistoryItemView;
+import com.blockout.matches.match.live.application.MatchLiveLinkHistoryService;
 import com.blockout.matches.match.live.application.MatchLiveLinkResultView;
 import com.blockout.matches.match.live.application.UpsertMatchLiveLinkCommand;
 import com.blockout.matches.match.live.moderation.application.MatchLiveLinkDecision;
@@ -36,6 +37,7 @@ import java.util.List;
 public class MatchLiveLinkController {
 
     private final MatchLiveLinkApplicationService liveLinks;
+    private final MatchLiveLinkHistoryService liveLinkHistory;
     private final MatchLiveModerationApplicationService moderation;
     private final MatchLiveLinkReportApplicationService reports;
     private final LegacyMatchesJson json;
@@ -48,7 +50,7 @@ public class MatchLiveLinkController {
     @PreAuthorize("hasAuthority('SCOPE_moderate:match_live_link')")
     @GetMapping(value = "/{matchId}/live-links", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<String> getLiveLinksHistory(@PathVariable Long matchId) throws JsonProcessingException {
-        List<LegacyLiveLinkHistoryResponse> response = liveLinks.findAllHistory(matchId).stream()
+        List<LegacyLiveLinkHistoryResponse> response = liveLinkHistory.findAllHistory(matchId).stream()
                 .map(this::legacyResponse)
                 .toList();
         return ResponseEntity.ok(json.write(response));

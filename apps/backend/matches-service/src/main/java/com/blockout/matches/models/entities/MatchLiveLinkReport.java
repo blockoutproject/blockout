@@ -1,5 +1,6 @@
 package com.blockout.matches.models.entities;
 
+import com.blockout.matches.match.live.persistence.MatchLiveLink;
 import jakarta.persistence.*;
 import lombok.*;
 

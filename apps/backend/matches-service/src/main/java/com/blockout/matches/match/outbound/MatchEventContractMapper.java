@@ -3,11 +3,8 @@ package com.blockout.matches.match.outbound;
 import com.blockout.events.v2.model.EventType;
 import com.blockout.events.v2.model.MatchFinishedV2Event;
 import com.blockout.events.v2.model.MatchFinishedV2Payload;
-import com.blockout.events.v2.model.MatchLiveLinkCreatedV2Event;
-import com.blockout.events.v2.model.MatchLiveLinkCreatedV2Payload;
 import com.blockout.matches.match.application.MatchEventMetadata;
 import com.blockout.matches.match.application.MatchFinishedEventInput;
-import com.blockout.matches.match.live.application.MatchLiveLinkCreatedEventInput;
 import org.springframework.stereotype.Component;
 
 /** Maps audited match facts to generated v2 records without publishing them before MRG-372. */
@@ -31,22 +28,6 @@ public class MatchEventContractMapper {
                 orderingKey(input.matchId()),
                 new MatchFinishedV2Payload(
                         input.matchId(), input.poolId(), input.set(), input.teamIdA(), input.teamIdB()),
-                PRODUCER,
-                SCHEMA_VERSION);
-    }
-
-    public MatchLiveLinkCreatedV2Event toMatchLiveLinkCreated(
-            MatchLiveLinkCreatedEventInput input, MatchEventMetadata metadata) {
-        requireMatch(input.matchId(), input.teamIdA(), input.teamIdB(), input.poolId());
-        return new MatchLiveLinkCreatedV2Event(
-                null,
-                metadata.correlationId(),
-                metadata.eventId(),
-                EventType.MATCH_LIVE_LINK_CREATED,
-                metadata.occurredAt(),
-                orderingKey(input.matchId()),
-                new MatchLiveLinkCreatedV2Payload(
-                        input.matchId(), input.poolId(), input.teamIdA(), input.teamIdB()),
                 PRODUCER,
                 SCHEMA_VERSION);
     }

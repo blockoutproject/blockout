@@ -2,7 +2,7 @@ package com.blockout.matches.match.live.moderation.persistence;
 
 import com.blockout.matches.match.live.moderation.application.MatchLiveModerationView;
 import com.blockout.matches.match.persistence.Match;
-import com.blockout.matches.models.entities.MatchLiveLink;
+import com.blockout.matches.match.live.persistence.MatchLiveLink;
 import com.blockout.matches.models.enums.LiveLinkStatus;
 import com.blockout.matches.models.enums.LiveProvider;
 import com.blockout.matches.models.enums.MatchStatus;

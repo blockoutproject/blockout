@@ -6,6 +6,8 @@ import com.blockout.events.v2.model.MatchFinishedV2Event;
 import com.blockout.events.v2.model.MatchLiveLinkCreatedV2Event;
 import com.blockout.matches.match.application.MatchFinishedEventInput;
 import com.blockout.matches.match.live.application.MatchLiveLinkCreatedEventInput;
+import com.blockout.matches.match.live.outbound.MatchLiveLinkEventContractMapper;
+import com.blockout.matches.match.live.outbound.OutboxMatchLiveLinkEvents;
 import com.blockout.matches.match.outbound.MatchEventContractMapper;
 import com.blockout.outbox.OutboxEvent;
 import com.blockout.outbox.OutboxMetadata;
@@ -22,9 +24,11 @@ class EventPublisherTest {
     void recordsMatchFactsWithSharedV1V2Identity() {
         Recorder recorder = new Recorder();
         EventPublisher publisher = new EventPublisher(recorder, new MatchEventContractMapper());
+        OutboxMatchLiveLinkEvents liveEvents =
+                new OutboxMatchLiveLinkEvents(recorder, new MatchLiveLinkEventContractMapper());
 
         publisher.publishMatchFinished(new MatchFinishedEventInput(10L, 11L, 12L, 13L, "3-1"));
-        publisher.publishMatchLiveLinkCreated(new MatchLiveLinkCreatedEventInput(20L, 21L, 22L, 23L));
+        liveEvents.publishMatchLiveLinkCreated(new MatchLiveLinkCreatedEventInput(20L, 21L, 22L, 23L));
 
         assertThat(recorder.events).extracting(OutboxEvent::eventType)
                 .containsExactly("MATCH_FINISHED", "MATCH_LIVE_LINK_CREATED");

@@ -1447,8 +1447,24 @@ state moves to GitHub and this file becomes a historical migration record.
     deferred to MRG-423, and moderation/report internals to MRG-424;
     `docs/migration/mrg-407-matches-core-architecture.md` records ownership, parity, removal, rollback, retained
     compatibility risks, and deferred gates.
-- [ ] MRG-423 Restructure `matches-service` live-link decision, state, history, provider, and event internals while
+- [x] MRG-423 Restructure `matches-service` live-link decision, state, history, provider, and event internals while
       keeping live policy owned by the service and enrichment owned by the BFF.
+  - Evidence: `MatchLiveLinkApplicationService` and the dedicated history service now depend only on live-owned ports,
+    immutable match/link snapshots, an explicit upsert plan, provider resolver, policy, and projectors rather than JPA,
+    Spring Data, repositories, persistence enums, or generated transport models. `JpaMatchLiveLinkStore` owns the exact
+    entity creation, match references, status transitions, owner/day counts, post-match touch, and history paging; the
+    entity and repository now live together under the live persistence owner without changing the table, columns,
+    callbacks, relations, query names, or query text. A live-owned outbox adapter and mapper preserve the exact dual
+    legacy/v2 `MATCH_LIVE_LINK_CREATED` routes, payloads, ordering key, metadata identity, producer, schema version,
+    and pending-row compatibility while the general match event adapter now owns only match-finished facts. Fifty
+    focused matches-service tests, complete backend packaging, all backend Dockerfile checks, the full local CI gate,
+    documentation, formatting, and whitespace checks pass. Flyway V1-V5, database structure, contracts, generated
+    artifacts, Rabbit topology, routes, scopes, queues, callers, deployment, production, and Maaatch are unchanged.
+    Existing multiple-`ACTIVE` rows, concurrency and quota races, post-match visibility, Auth0-owned identity, and the
+    moderator/professional-league decision remain preserved compatibility risks rather than silent corrections.
+    Moderation and report behavior remains exclusively deferred to MRG-424;
+    `docs/migration/mrg-423-matches-live-link-architecture.md` records ownership, parity, rollback, retained unknowns,
+    and deferred gates.
 - [ ] MRG-424 Restructure `matches-service` moderation and live-report internals into explicit commands, views,
       policies, entities, projections, and adapter mappings.
 - [ ] MRG-408 Restructure `users-service` account, profile, local identity, Auth0, S3, and persistence boundaries;

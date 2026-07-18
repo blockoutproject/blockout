@@ -2,8 +2,8 @@ package com.blockout.matches.match.live.api.v2;
 
 import com.blockout.matches.generated.api.MatchLiveLinkHistoryApi;
 import com.blockout.matches.generated.model.MatchLiveLinkHistoryPageResponse;
-import com.blockout.matches.match.live.application.MatchLiveLinkApplicationService;
 import com.blockout.matches.match.live.application.MatchLiveLinkHistoryPage;
+import com.blockout.matches.match.live.application.MatchLiveLinkHistoryService;
 import com.blockout.shared.model.PageInfo;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class MatchLiveLinkHistoryV2Controller implements MatchLiveLinkHistoryApi {
 
-    private final MatchLiveLinkApplicationService service;
+    private final MatchLiveLinkHistoryService service;
     private final MatchLiveLinkApiMapper mapper;
 
     @Override

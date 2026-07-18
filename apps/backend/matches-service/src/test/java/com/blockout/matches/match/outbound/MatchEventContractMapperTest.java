@@ -6,7 +6,6 @@ import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException
 import com.blockout.events.v2.model.EventType;
 import com.blockout.matches.match.application.MatchEventMetadata;
 import com.blockout.matches.match.application.MatchFinishedEventInput;
-import com.blockout.matches.match.live.application.MatchLiveLinkCreatedEventInput;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -19,9 +18,8 @@ class MatchEventContractMapperTest {
     private final MatchEventMetadata metadata = new MatchEventMetadata(EVENT_ID, OCCURRED_AT, "migration-370");
 
     @Test
-    void mapsFinishedAndLiveLinkFactsToGeneratedEnvelopes() {
+    void mapsFinishedFactsToGeneratedEnvelopes() {
         var finished = mapper.toMatchFinished(new MatchFinishedEventInput(5L, 2L, 6L, 4L, "2-1"), metadata);
-        var live = mapper.toMatchLiveLinkCreated(new MatchLiveLinkCreatedEventInput(5L, 2L, 6L, 4L), metadata);
 
         assertThat(finished.eventType()).isEqualTo(EventType.MATCH_FINISHED);
         assertThat(finished.payload().matchId()).isEqualTo(5L);
@@ -30,16 +28,12 @@ class MatchEventContractMapperTest {
         assertThat(finished.producer()).isEqualTo("matches-service");
         assertThat(finished.schemaVersion()).isEqualTo("2.0.0");
         assertThat(finished.aggregateVersion()).isNull();
-        assertThat(live.eventType()).isEqualTo(EventType.MATCH_LIVE_LINK_CREATED);
-        assertThat(live.orderingKey()).isEqualTo("match:5");
     }
 
     @Test
     void rejectsMissingFactsAndBlankMetadata() {
         assertThatIllegalArgumentException().isThrownBy(() -> mapper.toMatchFinished(
                 new MatchFinishedEventInput(5L, 2L, 6L, 4L, " "), metadata));
-        assertThatIllegalArgumentException().isThrownBy(() -> mapper.toMatchLiveLinkCreated(
-                new MatchLiveLinkCreatedEventInput(0L, 2L, 6L, 4L), metadata));
         assertThatIllegalArgumentException().isThrownBy(() -> new MatchEventMetadata(EVENT_ID, OCCURRED_AT, " "));
     }
 }

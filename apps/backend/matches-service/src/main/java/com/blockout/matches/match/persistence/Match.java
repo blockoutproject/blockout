@@ -1,6 +1,6 @@
 package com.blockout.matches.match.persistence;
 
-import com.blockout.matches.models.entities.MatchLiveLink;
+import com.blockout.matches.match.live.persistence.MatchLiveLink;
 import com.blockout.matches.models.enums.MatchStatus;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.CascadeType;
