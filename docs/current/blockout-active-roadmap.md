@@ -1669,6 +1669,13 @@ state moves to GitHub and this file becomes a historical migration record.
       including application intent/result values, while retaining the generated AsyncAPI `EventType` in the shared
       event-contract module. Remove service-local enum copies, keep generated sources out of Git, prove clean-checkout
       generation and full behavioral parity, and add a repository guard preventing handwritten backend enums.
+- [ ] MRG-433 Integrate both Python scrapers and the shared generated Python contract client into the Nx project graph
+      with `@nxlv/python` and `uv`. Define one coherent workspace, environment, lockfile, dependency-graph, generation,
+      test, package, Docker, and CI ownership model; retire duplicated `requirements.txt` flows only after proving image
+      and runtime parity; pin and assess the community plugin before adoption; and keep generated sources out of Git.
+      Do not change scraper schedules, provider/federation behavior, Blockout API behavior, credentials, deployment, or
+      production.
+  - Execution mode: PLAN_REQUIRED
 - [ ] MRG-429 Restructure `search-worker` event-consumer and incremental-projection internals with versioned event
       inputs, idempotency, stale-write protection, cache consistency, and reconciliation evidence.
 - [ ] MRG-430 Implement versioned Elasticsearch index documents, validation, atomic alias swaps, bounded rollback-index
