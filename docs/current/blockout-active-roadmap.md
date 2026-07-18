@@ -1295,9 +1295,17 @@ state moves to GitHub and this file becomes a historical migration record.
     checks pass. No listener activation, deployment, broker mutation, v1 retirement, MRG-9xx, or MRG-1000 work; the
     approved route-family cutover and rollback remain operational gates in
     `docs/migration/mrg-381-owner-lifecycle-v2-consumers.md`.
-- [ ] MRG-356 Mark each REST and event boundary contract-authoritative only after source, generated artifacts, mappers,
+- [x] MRG-356 Mark each REST and event boundary contract-authoritative only after source, generated artifacts, mappers,
       all canonical consumers, runtime parity, rollback evidence, and canonical-conversion cleanup are complete; the
       separately isolated v1 adapter may remain until the MRG-304 30-day production-retirement gate.
+  - Evidence: the final authority matrix reconciles all 80 owner and 50 BFF REST operations, ten active event routes,
+    fourteen active consumer queues, generated server/client/model/schema artifacts, canonical runtime adapters, Expo
+    and scraper consumers, transactional producers, and all generated-record consumers. Deterministic regeneration,
+    full backend compilation, contract/event/casing/isolation guards, formatting, documentation, mobile, scraper, and
+    Compose checks pass. The last dead generic search-worker HTTP client is removed; required v1 adapters remain
+    isolated and operationally governed by MRG-304. No cutover, deployment, production observation, v1 retirement,
+    MRG-9xx, or MRG-1000 work; the authority and operational boundary are recorded in
+    `docs/migration/mrg-356-contract-authority-closure.md`.
 
 ## Phase MRG-400 — Backend Architecture
 

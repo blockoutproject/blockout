@@ -29,11 +29,14 @@ mvn -Dmaven.repo.local=.m2/repository -f apps/backend/pom.xml -pl event-contract
 Run generation twice before committing and require identical output. MRG-802 owns moving the complete deterministic
 generation, committed-output, compilation, reconciliation, and forbidden-source checks into CI.
 
-## Active MRG-350, MRG-369, And MRG-370 Boundary
+## Contract-Authoritative Boundary
 
-MRG-350 defines the six club, team, and pool lifecycle event families. MRG-369 adds team/pool followed and unfollowed
-facts with positive numeric user and target IDs and activates only Q-18/Q-19. MRG-370 adds audited match-finished and
-live-link facts with positive match/team/pool IDs and activates only the notification-owned Q-14/Q-15 successor
-contracts. All v2 side-effect listeners and users/matches publication remain inactive until MRG-372. `EV-TPD`, Q-11
-through Q-13, and Q-16 through Q-17 retain explicit no-v2 dispositions. No outbox,
-deduplication, traffic switch, broker operation, or production action is authorized by the contract source.
+MRG-356 marks the ten active v2 routes and fourteen active v2 consumer queues as contract-authoritative. The eight
+deployable documents own ten `send` operations and fourteen `receive` operations for lifecycle, favorite, and match
+facts. Their fixed envelopes, camelCase payloads, generated Java records, AMQP metadata, producers, consumers, routes,
+and queue dispositions derive only from this source.
+
+`EV-TPD`, Q-11 through Q-13, and Q-16 through Q-17 retain explicit excluded dispositions and are not canonical event
+boundaries. Generated bundles and Java records remain derivative artifacts. Retained v1 publishers, listeners, queues,
+and DTOs are compatibility adapters only; their runtime defaults, traffic cutover, broker operations, observation, and
+retirement remain governed by MRG-304. Contract authority does not activate v2 traffic or change production authority.

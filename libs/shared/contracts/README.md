@@ -62,9 +62,33 @@ generated boundary.
 Exact temporary exceptions live in `specs/lint-exceptions.json`. Every entry must identify one rule, file, JSON
 Pointer, compatibility reason, owning task, and removal task; malformed, duplicated, or unused entries fail the lint.
 
-Only owner contracts completed in the active roadmap are authoritative here. Generated server and client boundaries,
-runtime route activation, and end-to-end migration remain separate tasks; do not infer their completion from bundle
-presence.
+## Contract Authority
+
+MRG-356 closes the contract migration and marks every source bundle in this boundary as contract-authoritative:
+
+| Source owner     | Canonical operations |
+| ---------------- | -------------------: |
+| `config`         |                   16 |
+| `clubs`          |                    6 |
+| `teams`          |                    8 |
+| `pools`          |                    7 |
+| `competition`    |                    8 |
+| `matches`        |                   16 |
+| `users`          |                    9 |
+| `reports`        |                    1 |
+| `notification`   |                    6 |
+| `search`         |                    3 |
+| `mobile-gateway` |                   50 |
+
+The 80 owner operations and 50 BFF operations are the canonical Blockout REST definition. Generated bundles, Spring
+interfaces/models/clients, Orval operations/models/Zod schemas, and selected Python clients are derivative artifacts;
+edit the source fragments and regenerate them. Canonical runtime adapters and consumers use those generated
+boundaries. Retained `/api/v1/**` controllers, DTOs, and clients are compatibility adapters only and remain isolated
+until the MRG-304 production observation and retirement gate permits their removal.
+
+Contract authority does not mean production deployment authority. Standalone repositories and deployed images remain
+operationally authoritative until a separately authorized cutover. Vendor contracts, storage schemas, and RabbitMQ
+messages are outside this OpenAPI boundary; Blockout-owned events are authoritative under `events/source/**`.
 
 The complete repository-local generation gate is:
 
