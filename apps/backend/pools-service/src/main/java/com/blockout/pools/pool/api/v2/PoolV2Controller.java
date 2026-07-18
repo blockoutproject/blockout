@@ -6,6 +6,7 @@ import com.blockout.pools.generated.model.PoolInternalPageResponse;
 import com.blockout.pools.generated.model.PoolInternalResponse;
 import com.blockout.pools.generated.model.UpdatePoolInternalRequest;
 import com.blockout.pools.pool.application.PoolFilter;
+import com.blockout.pools.pool.application.PoolLifecycleService;
 import com.blockout.pools.pool.application.PoolPage;
 import com.blockout.pools.pool.application.PoolService;
 import com.blockout.shared.model.PageInfo;
@@ -22,6 +23,7 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 public class PoolV2Controller implements PoolsApi {
 
     private final PoolService service;
+    private final PoolLifecycleService lifecycleService;
     private final PoolApiMapper mapper;
 
     @Override
@@ -62,7 +64,7 @@ public class PoolV2Controller implements PoolsApi {
     @Override
     @PreAuthorize("hasAuthority('SCOPE_delete:pools')")
     public ResponseEntity<Void> deactivatePool(Long id) {
-        service.deactivate(id);
+        lifecycleService.deactivate(id);
         return ResponseEntity.noContent().build();
     }
 }

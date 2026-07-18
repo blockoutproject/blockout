@@ -2,18 +2,11 @@ package com.blockout.pools.pool.application;
 
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
-import com.blockout.pools.exceptions.PoolNotFoundException;
-import com.blockout.pools.pool.persistence.PoolEntity;
-import com.blockout.pools.pool.persistence.PoolPersistenceMapper;
-import com.blockout.pools.pool.persistence.PoolRepository;
-import com.blockout.pools.utils.DiffUtils;
+import com.blockout.pools.shared.application.ChangeLog;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,97 +16,55 @@ public class PoolService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(PoolService.class);
 
-    private final PoolRepository repository;
-    private final PoolPersistenceMapper mapper;
+    private final PoolStore store;
     private final PoolEventPublisher eventPublisher;
 
     @Transactional
     public PoolView create(CreatePoolCommand command) {
-        PoolEntity entity = mapper.toEntity(command);
-        entity.setFollowersCount(0L);
-        entity.setActive(true);
-        return saveCreated(entity);
+        return publishCreated(store.create(command));
     }
 
     @Transactional
     public PoolView createLegacy(LegacyCreatePoolCommand command) {
-        return saveCreated(mapper.toEntity(command));
+        return publishCreated(store.createLegacy(command));
     }
 
     @Transactional(readOnly = true)
     public PoolView getById(Long id) {
-        return mapper.toView(findEntity(id));
+        return store.findById(id).orElseThrow(() -> notFound(id));
     }
 
     @Transactional(readOnly = true)
     public List<PoolView> findLegacy(PoolFilter filter) {
-        return repository.findFilteredLegacy(filter.leagueCode(), filter.season(), filter.active(), filter.ids(),
-                        filter.ids().size())
-                .stream().map(mapper::toView).toList();
+        return store.findLegacy(filter);
     }
 
     @Transactional(readOnly = true)
     public PoolPage findPage(PoolFilter filter, int page, int pageSize) {
-        Sort sort = Sort.by(Sort.Order.desc("season"), Sort.Order.asc("name").nullsLast(), Sort.Order.asc("id"));
-        Page<PoolEntity> result = repository.findFiltered(filter.leagueCode(), filter.season(), filter.active(),
-                filter.ids(), filter.ids().size(), PageRequest.of(page, pageSize, sort));
-        return new PoolPage(result.getContent().stream().map(mapper::toView).toList(), page, pageSize,
-                result.getTotalElements(), result.hasNext());
+        return store.findPage(filter, page, pageSize);
     }
 
     @Transactional
     public PoolView update(Long id, UpdatePoolCommand command) {
-        PoolEntity entity = findEntity(id);
-        PoolEntity before = entity.toBuilder().build();
-        mapper.apply(command, entity);
-        if (Boolean.FALSE.equals(before.getActive()) && Boolean.TRUE.equals(entity.getActive())) {
+        PoolUpdate update = store.findForUpdate(id).orElseThrow(() -> notFound(id));
+        PoolChange change = update.apply(new PoolUpdatePlan(command));
+        if (Boolean.FALSE.equals(change.before().active()) && Boolean.TRUE.equals(change.after().active())) {
             LOGGER.info("Pool reactivated", keyValue("action", "reactivate_pool"), keyValue("poolId", id),
-                    keyValue("leagueCode", entity.getLeagueCode()), keyValue("name", entity.getName()));
+                    keyValue("leagueCode", change.after().leagueCode()), keyValue("name", change.after().name()));
         }
-        PoolEntity saved = repository.save(entity);
-        PoolView view = mapper.toView(saved);
-        DiffUtils.logChanges(before, saved, LOGGER, "update_pool", saved.getId());
-        eventPublisher.publishUpsert(view);
+        ChangeLog.logChanges(change.before(), change.after(), LOGGER, "update_pool", change.after().id());
+        eventPublisher.publishUpsert(PoolUpsertFact.from(change.after()));
+        return change.after();
+    }
+
+    private PoolView publishCreated(PoolView view) {
+        LOGGER.info("Pool created successfully", keyValue("action", "create_pool"), keyValue("poolId", view.id()));
+        eventPublisher.publishUpsert(PoolUpsertFact.from(view));
         return view;
     }
 
-    @Transactional
-    public void deactivate(Long id) {
-        PoolEntity entity = findEntity(id);
-        entity.setActive(false);
-        repository.save(entity);
-        LOGGER.info("Pool successfully deactivated", keyValue("action", "deactivate_pool"), keyValue("poolId", id));
-    }
-
-    @Transactional
-    public PoolView updateFollowers(PoolFollowerCommand command) {
-        PoolEntity entity = findEntity(command.poolId());
-        if (command.delta() == PoolFollowerCommand.Delta.INCREMENT) {
-            entity.setFollowersCount(entity.getFollowersCount() + 1);
-        } else {
-            entity.setFollowersCount(Math.max(0, entity.getFollowersCount() - 1));
-        }
-        PoolEntity saved = repository.save(entity);
-        String action = command.delta() == PoolFollowerCommand.Delta.INCREMENT
-                ? "increment_followers_count" : "decrement_followers_count";
-        LOGGER.info("Pool followers projection updated", keyValue("action", action),
-                keyValue("poolId", command.poolId()), keyValue("userId", command.userId()),
-                keyValue("newFollowersCount", saved.getFollowersCount()));
-        return mapper.toView(saved);
-    }
-
-    private PoolView saveCreated(PoolEntity entity) {
-        PoolEntity saved = repository.save(entity);
-        PoolView view = mapper.toView(saved);
-        LOGGER.info("Pool created successfully", keyValue("action", "create_pool"), keyValue("poolId", saved.getId()));
-        eventPublisher.publishUpsert(view);
-        return view;
-    }
-
-    private PoolEntity findEntity(Long id) {
-        return repository.findById(id).orElseThrow(() -> {
-            LOGGER.warn("Pool not found", keyValue("action", "get_pool_by_id"), keyValue("poolId", id));
-            return new PoolNotFoundException(id);
-        });
+    private PoolNotFoundException notFound(Long id) {
+        LOGGER.warn("Pool not found", keyValue("action", "get_pool_by_id"), keyValue("poolId", id));
+        return new PoolNotFoundException(id);
     }
 }

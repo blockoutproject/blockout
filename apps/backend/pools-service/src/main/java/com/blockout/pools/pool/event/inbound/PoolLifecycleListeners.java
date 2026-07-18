@@ -1,8 +1,8 @@
-package com.blockout.pools.listeners;
+package com.blockout.pools.pool.event.inbound;
 
 import com.blockout.pools.config.RabbitMQConfig;
 import com.blockout.pools.models.events.PoolDeactivationEvent;
-import com.blockout.pools.pool.application.PoolService;
+import com.blockout.pools.pool.application.PoolLifecycleService;
 import com.blockout.outbox.ConsumedEventProcessor;
 
 import lombok.RequiredArgsConstructor;
@@ -14,9 +14,9 @@ import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
-public class PoolListeners {
+public class PoolLifecycleListeners {
 
-    private final PoolService poolService;
+    private final PoolLifecycleService lifecycleService;
     private final PoolLifecycleV2MessageDecoder v2Decoder;
     private final ConsumedEventProcessor consumedEvents;
 
@@ -27,15 +27,15 @@ public class PoolListeners {
             PoolDeactivationEvent event,
             @Header(name = "x-blockout-event-id", required = false) String eventId) {
         Long poolId = event.getPoolId();
-        consumedEvents.processLegacy(eventId, "POOL_DEACTIVATED", () -> poolService.deactivate(poolId));
+        consumedEvents.processLegacy(eventId, "POOL_DEACTIVATED", () -> lifecycleService.deactivate(poolId));
     }
 
     @RabbitListener(
             queues = RabbitMQConfig.POOL_DEACTIVATION_QUEUE_POOLS_V2,
             autoStartup = "${blockout.events.consumers.lifecycle-v2-enabled:false}")
     public void handlePoolDeactivationV2(Message message) {
-        var event = v2Decoder.decode(message);
-        consumedEvents.processV2(event.eventId(), event.eventType().name(),
-                () -> poolService.deactivate(event.payload().poolId()));
+        PoolDeactivationFact event = v2Decoder.decode(message);
+        consumedEvents.processV2(
+                event.eventId(), event.eventType(), () -> lifecycleService.deactivate(event.poolId()));
     }
 }

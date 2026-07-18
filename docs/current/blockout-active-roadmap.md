@@ -1371,8 +1371,25 @@ state moves to GitHub and this file becomes a historical migration record.
     deployment, production, and Maaatch are unchanged;
     `docs/migration/mrg-404-teams-service-architecture.md` records ownership, parity, removal, rollback, and deferred
     compatibility/projection gates.
-- [ ] MRG-405 Restructure `pools-service` into explicit API, application, domain, persistence, scraper-facing, and event
+- [x] MRG-405 Restructure `pools-service` into explicit API, application, domain, persistence, scraper-facing, and event
       boundaries with role-owned records and mappers.
+  - Evidence: catalog application code now depends on a role-owned store and event-publisher port rather than JPA,
+    Spring Data, entities, generated models, or Rabbit messages. `JpaPoolStore` owns queries, stable sorting, entity,
+    MapStruct, update-handle, follower-projection, lifecycle, and persistence work. Separate catalog, lifecycle, and
+    follower-projection services retain the scraper-facing v1 and generated v2 routes while preserving null updates,
+    reactivation, audit history, soft deactivation, and the follower zero floor. No synthetic domain value was added:
+    this service currently has no invariant-bearing pool value beyond the role-owned application records, so the
+    domain boundary remains intentionally empty. A minimal pool-upsert fact maps inside the outbox adapter to the
+    retained v1 payload and generated v2 event; inbound generated events narrow to a role-owned deactivation fact
+    before application handling. The historic v1 upsert class name remains stable for pending outbox rows and rollback
+    readers, including nullable format and gender behavior. Fourteen focused tests preserve catalog defaults, null
+    updates, stable paging, follower and lifecycle behavior, REST casing, outbox identity, nullable event fields,
+    decoder, metadata, and queue behavior. The pools reactor, complete backend packaging, all backend Dockerfile
+    checks, full local CI gate, documentation, formatting, and whitespace checks pass. Flyway history, repositories,
+    schemas, REST/event contracts, generated artifacts, routes, scopes, queues, rollout flags, favorite authority,
+    callers, deployment, production, and Maaatch are unchanged;
+    `docs/migration/mrg-405-pools-service-architecture.md` records ownership, parity, removal, rollback, and deferred
+    compatibility/projection gates.
 - [ ] MRG-406 Restructure `competition-service` association, statistics snapshot, bulk-command, and persistence
       boundaries with validated commands, role-owned views, dedicated entities, and structural mappers.
 - [ ] MRG-422 Consolidate `competition-service` ranking, lifecycle, cascade, and event internals behind one ranking

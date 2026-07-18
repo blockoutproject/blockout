@@ -71,6 +71,7 @@ GitHub Project task planning remains dormant until the final GitFlow activation 
 | Config architecture    | [`migration/mrg-402-config-service-architecture.md`](migration/mrg-402-config-service-architecture.md)                       | Config application ports and persistence adapters          |
 | Clubs architecture     | [`migration/mrg-403-clubs-service-architecture.md`](migration/mrg-403-clubs-service-architecture.md)                         | Club catalog, storage, geocoding, and event adapters       |
 | Teams architecture     | [`migration/mrg-404-teams-service-architecture.md`](migration/mrg-404-teams-service-architecture.md)                         | Team catalog, storage, projection, lifecycle, and events   |
+| Pools architecture     | [`migration/mrg-405-pools-service-architecture.md`](migration/mrg-405-pools-service-architecture.md)                         | Pool catalog, projection, lifecycle, and event adapters    |
 | Production cutover     | [`migration/monorepo-cutover.md`](migration/monorepo-cutover.md)                                                             | Temporary per-deployable migration and rollback procedure  |
 
 [mrg-337]: migration/mrg-337-competition-association-statistics-runtime-migration.md

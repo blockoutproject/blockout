@@ -3,6 +3,7 @@ package com.blockout.pools.pool.application;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.blockout.pools.pool.persistence.PoolEntity;
+import com.blockout.pools.pool.persistence.JpaPoolStore;
 import com.blockout.pools.pool.persistence.PoolPersistenceMapper;
 import com.blockout.pools.pool.persistence.PoolRepository;
 import com.blockout.shared.model.FormatEnum;
@@ -33,7 +34,7 @@ class PoolServiceTest {
         assertThat(result.id()).isEqualTo(1L);
         assertThat(result.followersCount()).isZero();
         assertThat(result.active()).isTrue();
-        assertThat(publisher.published).containsExactly(result);
+        assertThat(publisher.published).containsExactly(PoolUpsertFact.from(result));
     }
 
     @Test
@@ -54,12 +55,25 @@ class PoolServiceTest {
     void followerDecrementKeepsTheExistingZeroFloor() {
         RepositoryDouble repository = new RepositoryDouble();
         repository.entity = entity(true, 0L);
-        PoolService service = service(repository, new EventPublisherDouble());
+        JpaPoolStore store = store(repository);
+        PoolFollowerProjectionService service = new PoolFollowerProjectionService(store);
 
         PoolView result = service.updateFollowers(
                 new PoolFollowerCommand(1L, 9L, PoolFollowerCommand.Delta.DECREMENT));
 
         assertThat(result.followersCount()).isZero();
+    }
+
+    @Test
+    void directDeactivationRemainsASoftLifecycleWrite() {
+        RepositoryDouble repository = new RepositoryDouble();
+        repository.entity = entity(true, 2L);
+        JpaPoolStore store = store(repository);
+        PoolLifecycleService service = new PoolLifecycleService(store);
+
+        service.deactivate(1L);
+
+        assertThat(repository.entity.getActive()).isFalse();
     }
 
     @Test
@@ -78,7 +92,11 @@ class PoolServiceTest {
     }
 
     private PoolService service(RepositoryDouble repository, EventPublisherDouble publisher) {
-        return new PoolService(repository.proxy(), mapper, publisher);
+        return new PoolService(store(repository), publisher);
+    }
+
+    private JpaPoolStore store(RepositoryDouble repository) {
+        return new JpaPoolStore(repository.proxy(), mapper);
     }
 
     private CreatePoolCommand command() {
@@ -126,10 +144,10 @@ class PoolServiceTest {
     }
 
     private static final class EventPublisherDouble implements PoolEventPublisher {
-        private final List<PoolView> published = new ArrayList<>();
+        private final List<PoolUpsertFact> published = new ArrayList<>();
 
         @Override
-        public void publishUpsert(PoolView pool) {
+        public void publishUpsert(PoolUpsertFact pool) {
             published.add(pool);
         }
     }

@@ -1,4 +1,4 @@
-package com.blockout.pools.listeners;
+package com.blockout.pools.pool.event.inbound;
 
 import com.blockout.events.v2.model.EventType;
 import com.blockout.events.v2.model.PoolDeactivationV2Event;
@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component;
 
 /** Explicitly decodes the generated pool deactivation record without Spring type metadata. */
 @Component
-public class PoolLifecycleV2MessageDecoder {
+class PoolLifecycleV2MessageDecoder {
 
     private static final String VERSION = "2.0.0";
     private final ObjectMapper objectMapper;
@@ -21,7 +21,7 @@ public class PoolLifecycleV2MessageDecoder {
         this.metadataValidator = metadataValidator;
     }
 
-    PoolDeactivationV2Event decode(Message message) {
+    PoolDeactivationFact decode(Message message) {
         if (message.getMessageProperties().getHeaders().containsKey("__TypeId__")) {
             throw new IllegalArgumentException("V2 event must not contain __TypeId__");
         }
@@ -37,7 +37,7 @@ public class PoolLifecycleV2MessageDecoder {
                 message.getMessageProperties(), event.eventId(), event.eventType().name(), event.occurredAt(),
                 event.producer(), event.schemaVersion(), event.orderingKey(), event.aggregateVersion(),
                 event.correlationId());
-        return event;
+        return new PoolDeactivationFact(event.eventId(), event.eventType().name(), event.payload().poolId());
     }
 
     private PoolDeactivationV2Event read(Message message) {

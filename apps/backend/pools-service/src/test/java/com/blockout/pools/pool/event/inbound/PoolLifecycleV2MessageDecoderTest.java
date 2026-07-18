@@ -1,4 +1,4 @@
-package com.blockout.pools.listeners;
+package com.blockout.pools.pool.event.inbound;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -31,7 +31,7 @@ class PoolLifecycleV2MessageDecoderTest {
                 new PoolDeactivationV2Payload(4L), "competition-service", "2.0.0");
 
         assertThat(decoder.decode(message(event, eventId, "POOL_DEACTIVATED", "pool:4"))
-                .payload().poolId()).isEqualTo(4L);
+                .poolId()).isEqualTo(4L);
 
         var wrong = new PoolDeactivationV2Event(
                 null, null, eventId, EventType.POOL_DEACTIVATED, OCCURRED_AT, "pool:5",

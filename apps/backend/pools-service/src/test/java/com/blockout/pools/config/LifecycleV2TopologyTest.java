@@ -3,7 +3,7 @@ package com.blockout.pools.config;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.blockout.pools.listeners.PoolListeners;
+import com.blockout.pools.pool.event.inbound.PoolLifecycleListeners;
 import org.junit.jupiter.api.Test;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 
@@ -42,7 +42,7 @@ class LifecycleV2TopologyTest {
     }
 
     private RabbitListener annotation(String methodName) {
-        return java.util.Arrays.stream(PoolListeners.class.getDeclaredMethods())
+        return java.util.Arrays.stream(PoolLifecycleListeners.class.getDeclaredMethods())
                 .filter(method -> method.getName().equals(methodName))
                 .findFirst().orElseThrow().getAnnotation(RabbitListener.class);
     }

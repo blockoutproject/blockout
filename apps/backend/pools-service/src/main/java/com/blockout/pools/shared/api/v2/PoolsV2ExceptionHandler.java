@@ -1,6 +1,6 @@
 package com.blockout.pools.shared.api.v2;
 
-import com.blockout.pools.exceptions.PoolNotFoundException;
+import com.blockout.pools.pool.application.PoolNotFoundException;
 import com.blockout.pools.pool.api.v2.PoolFollowersV2Controller;
 import com.blockout.pools.pool.api.v2.PoolV2Controller;
 import com.blockout.shared.model.ProblemDetail;

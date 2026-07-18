@@ -3,6 +3,8 @@ package com.blockout.pools.pool.api.v1;
 import com.blockout.pools.pool.application.LegacyCreatePoolCommand;
 import com.blockout.pools.pool.application.PoolFilter;
 import com.blockout.pools.pool.application.PoolFollowerCommand;
+import com.blockout.pools.pool.application.PoolFollowerProjectionService;
+import com.blockout.pools.pool.application.PoolLifecycleService;
 import com.blockout.pools.pool.application.PoolService;
 import com.blockout.pools.pool.application.PoolView;
 import com.blockout.pools.pool.application.UpdatePoolCommand;
@@ -35,6 +37,8 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 public class LegacyPoolController {
 
     private final PoolService service;
+    private final PoolLifecycleService lifecycleService;
+    private final PoolFollowerProjectionService followerProjectionService;
     private final LegacyPoolsJson json;
 
     @GetMapping
@@ -84,7 +88,7 @@ public class LegacyPoolController {
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('SCOPE_delete:pools')")
     public ResponseEntity<Void> deactivatePool(@PathVariable Long id) {
-        service.deactivate(id);
+        lifecycleService.deactivate(id);
         return ResponseEntity.noContent().build();
     }
 
@@ -106,7 +110,7 @@ public class LegacyPoolController {
 
     private ResponseEntity<String> followerResponse(Long poolId, Long userId, PoolFollowerCommand.Delta delta)
             throws JsonProcessingException {
-        PoolView updated = service.updateFollowers(new PoolFollowerCommand(poolId, userId, delta));
+        PoolView updated = followerProjectionService.updateFollowers(new PoolFollowerCommand(poolId, userId, delta));
         return ResponseEntity.ok(json.write(response(updated)));
     }
 
