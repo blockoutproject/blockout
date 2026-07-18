@@ -1484,8 +1484,25 @@ state moves to GitHub and this file becomes a historical migration record.
     evidence-gated decisions rather than silent corrections;
     `docs/migration/mrg-424-matches-moderation-report-architecture.md` records ownership, parity, rollback, retained
     unknowns, and deferred correction gates.
-- [ ] MRG-408 Restructure `users-service` account, profile, local identity, Auth0, S3, and persistence boundaries;
+- [x] MRG-408 Restructure `users-service` account, profile, local identity, Auth0, S3, and persistence boundaries;
       retain and relocate existing mappers only where their source/target ownership remains correct.
+  - Evidence: account, profile, and identity application services now depend on a role-owned account store, immutable
+    views and intents, an explicit transaction-bound update handle, identity and image-storage ports, and the existing
+    favorite event port, with no JPA, Spring Data, repository, persistence-mapper, generated-model, Auth0, or S3
+    coupling. `JpaUserAccountStore`, `UserAccountEntity`, `UserAccountRepository`, and
+    `UserAccountPersistenceMapper` own persistence while preserving the `CustomUser` JPA entity name, `users` table,
+    join-fetch query, callbacks, relations, constraints, identifiers, timestamps, and transaction behavior.
+    `Auth0TokenManager` now lives beside the Auth0 identity adapter, and the favorite persistence mapper now lives
+    beside its entity source. Exact account reads, pseudo generation and uniqueness, profile keep/remove/replace
+    ordering, same-email identity linking, synchronization fallback, default-role errors, provider-first deletion,
+    Auth0 token refresh, and S3 key/URL behavior remain covered. Forty-nine focused users-service tests, complete
+    backend packaging, all backend Dockerfile checks, the full local CI gate, documentation, formatting, and
+    whitespace checks pass. Flyway V1-V5, database structure, contracts, generated artifacts, events, Rabbit topology,
+    routes, scopes, queues, callers, deployment, production, and Maaatch are unchanged. Favorite canonical-source and
+    projection restructuring remains exclusive to MRG-425; deletion, retention, compensation, storage-plan,
+    transaction, and outbox redesign remain exclusive to MRG-426;
+    `docs/migration/mrg-408-users-account-architecture.md` records ownership, parity, rollback, compatibility, and the
+    deferred boundaries.
 - [ ] MRG-425 Restructure `users-service` favorite internals as the canonical source and make team, pool, and
       notification follower state explicit derived, idempotent, rebuildable projections.
 - [ ] MRG-426 Restructure `users-service` deletion and storage orchestration with explicit application plans, identity

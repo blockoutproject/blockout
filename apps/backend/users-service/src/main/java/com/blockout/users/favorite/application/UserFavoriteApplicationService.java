@@ -3,11 +3,12 @@ package com.blockout.users.favorite.application;
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
 import com.blockout.users.exceptions.CustomUserNotFoundException;
-import com.blockout.users.models.entities.CustomUser;
+import com.blockout.users.account.persistence.UserAccountEntity;
+import com.blockout.users.account.persistence.UserAccountRepository;
+import com.blockout.users.favorite.persistence.FavoritePersistenceMapper;
 import com.blockout.users.models.entities.UserFavorite;
 import com.blockout.users.models.enums.EntityType;
 import com.blockout.users.repositories.UserFavoriteRepository;
-import com.blockout.users.repositories.UserRepository;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -27,7 +28,7 @@ public class UserFavoriteApplicationService implements FavoriteService {
     private static final Sort CANONICAL_ORDER = Sort.by("createdAt").ascending().and(Sort.by("id").ascending());
 
     private final UserFavoriteRepository favorites;
-    private final UserRepository users;
+    private final UserAccountRepository users;
     private final FavoritePersistenceMapper mapper;
     private final TeamFollowerProjection teamFollowers;
     private final PoolFollowerProjection poolFollowers;
@@ -65,7 +66,7 @@ public class UserFavoriteApplicationService implements FavoriteService {
     @Override
     @Transactional
     public void follow(FavoriteCommand command) {
-        CustomUser user = requireUser(command);
+        UserAccountEntity user = requireUser(command);
         if (favorites.existsByUserAndEntityTypeAndEntityId(user, command.entityType(), command.entityId())) {
             LOGGER.info("Suivi déjà existant", keyValue("userId", user.getId()),
                     keyValue("entityType", command.entityType()), keyValue("entityId", command.entityId()));
@@ -89,7 +90,7 @@ public class UserFavoriteApplicationService implements FavoriteService {
     @Override
     @Transactional
     public void unfollow(FavoriteCommand command) {
-        CustomUser user = requireUser(command);
+        UserAccountEntity user = requireUser(command);
         int deleted = favorites.deleteByUserAndEntityTypeAndEntityId(
                 user, command.entityType(), command.entityId());
         if (deleted == 0) {
@@ -103,7 +104,7 @@ public class UserFavoriteApplicationService implements FavoriteService {
     }
 
     /** Resolves the compatibility identity before any favorite mutation. */
-    private CustomUser requireUser(FavoriteCommand command) {
+    private UserAccountEntity requireUser(FavoriteCommand command) {
         return users.findByAuth0Id(command.auth0Id()).orElseThrow(() -> {
             LOGGER.error("Utilisateur introuvable pour mutation de favori", keyValue("auth0Id", command.auth0Id()),
                     keyValue("entityType", command.entityType()), keyValue("entityId", command.entityId()));

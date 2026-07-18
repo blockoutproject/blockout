@@ -9,7 +9,6 @@ import com.blockout.users.account.application.IdentityProfile;
 import com.blockout.users.account.application.IdentityProvider;
 import com.blockout.users.account.application.UserIdentityProviderException;
 import com.blockout.users.config.Auth0Properties;
-import com.blockout.users.config.Auth0TokenManager;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;

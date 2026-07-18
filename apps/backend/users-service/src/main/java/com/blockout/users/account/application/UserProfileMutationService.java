@@ -4,14 +4,11 @@ import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
 import com.blockout.users.exceptions.ConflictException;
 import com.blockout.users.exceptions.CustomUserNotFoundException;
-import com.blockout.users.models.entities.CustomUser;
-import com.blockout.users.repositories.UserRepository;
 import com.blockout.users.utils.DiffUtils;
 import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,18 +19,18 @@ public class UserProfileMutationService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(UserProfileMutationService.class);
 
-    private final UserRepository userRepository;
+    private final UserAccountStore accounts;
     private final ProfileImageStorage imageStorage;
 
     /** Updates one account from explicit text and image intent. */
     @Transactional
-    public CustomUser update(String auth0Id, UpdateUserProfileCommand command) {
-        return userRepository.findByAuth0Id(auth0Id).map(existing -> {
-            CustomUser before = existing.toBuilder().build();
-            updatePseudo(existing, auth0Id, command.pseudo());
-            updatePicture(existing, command.imageChange());
-            reactivate(existing, auth0Id);
-            return save(existing, before, auth0Id, command.pseudo());
+    public UserAccountView update(String auth0Id, UpdateUserProfileCommand command) {
+        return accounts.findForUpdateByAuth0Id(auth0Id).map(update -> {
+            UserAccountView existing = update.current();
+            String pseudo = updatePseudo(existing, auth0Id, command.pseudo());
+            PictureChange picture = updatePicture(existing, command.imageChange());
+            boolean active = reactivate(existing, auth0Id);
+            return save(update, pseudo, picture, active, auth0Id, command.pseudo());
         }).orElseThrow(() -> {
             LOGGER.error("User not found. Cannot update.",
                     keyValue("action", "update_user"),
@@ -43,71 +40,88 @@ public class UserProfileMutationService {
     }
 
     /** Applies the retained trim, empty-value, and case-insensitive uniqueness rules. */
-    private void updatePseudo(CustomUser existing, String auth0Id, String pseudo) {
+    private String updatePseudo(UserAccountView existing, String auth0Id, String pseudo) {
         if (pseudo == null) {
-            return;
+            return null;
         }
         String requested = pseudo.trim();
-        if (requested.isEmpty() || Objects.equals(requested, existing.getPseudo())) {
-            return;
+        if (requested.isEmpty() || Objects.equals(requested, existing.pseudo())) {
+            return null;
         }
-        if (userRepository.existsByPseudoIgnoreCaseAndIdNot(requested, existing.getId())) {
+        if (accounts.existsByPseudoIgnoringCaseExcept(requested, existing.id())) {
             LOGGER.error("Pseudo déjà utilisé",
                     keyValue("action", "update_user"),
                     keyValue("auth0Id", auth0Id),
                     keyValue("requestedPseudo", requested));
             throw new ConflictException("Ce pseudo est déjà utilisé.");
         }
-        existing.setPseudo(requested);
+        return requested;
     }
 
     /** Applies explicit keep, remove, or replace image intent with the retained storage ordering. */
-    private void updatePicture(CustomUser existing, UserProfileImageChange change) {
-        switch (change.mode()) {
-            case KEEP -> {
-                return;
-            }
+    private PictureChange updatePicture(UserAccountView existing, UserProfileImageChange change) {
+        return switch (change.mode()) {
+            case KEEP -> PictureChange.keep();
             case REMOVE -> {
                 deleteStoredPicture(existing);
-                existing.setPictureUrl(null);
+                yield PictureChange.replace(null);
             }
             case REPLACE -> {
                 deleteStoredPicture(existing);
-                existing.setPictureUrl(imageStorage.upload(change.upload(), "users"));
+                yield PictureChange.replace(imageStorage.upload(change.upload(), "users"));
             }
-        }
+        };
     }
 
     /** Deletes the current object only when a picture URL is present. */
-    private void deleteStoredPicture(CustomUser existing) {
-        if (existing.getPictureUrl() != null) {
-            imageStorage.deleteByUrl(existing.getPictureUrl());
+    private void deleteStoredPicture(UserAccountView existing) {
+        if (existing.pictureUrl() != null) {
+            imageStorage.deleteByUrl(existing.pictureUrl());
         }
     }
 
     /** Preserves the current profile-update reactivation behavior. */
-    private void reactivate(CustomUser existing, String auth0Id) {
-        if (!existing.getActive()) {
-            existing.setActive(true);
+    private boolean reactivate(UserAccountView existing, String auth0Id) {
+        if (!existing.active()) {
             LOGGER.info("Utilisateur réactivé",
                     keyValue("action", "reactivate_user"),
                     keyValue("auth0Id", auth0Id),
-                    keyValue("userId", existing.getId()));
+                    keyValue("userId", existing.id()));
         }
+        return true;
     }
 
     /** Saves the mutation and retains the current pseudo-conflict response. */
-    private CustomUser save(CustomUser existing, CustomUser before, String auth0Id, String requestedPseudo) {
+    private UserAccountView save(
+            UserAccountUpdate update,
+            String pseudo,
+            PictureChange picture,
+            boolean active,
+            String auth0Id,
+            String requestedPseudo) {
         try {
-            CustomUser updated = userRepository.save(existing);
-            DiffUtils.logChanges(before, updated, LOGGER, "update_user", updated.getId());
-            return updated;
-        } catch (DataIntegrityViolationException exception) {
+            UserAccountChange changed = update.updateProfile(new UserProfileChange(
+                    pseudo, pseudo != null, picture.url(), picture.replace(), active));
+            DiffUtils.logChanges(changed.before(), changed.after(), LOGGER, "update_user", changed.after().id());
+            return changed.after();
+        } catch (UserAccountPersistenceException exception) {
             LOGGER.error("Violation d'intégrité lors de la mise à jour de l'utilisateur",
                     keyValue("action", "update_user"),
                     keyValue("auth0Id", auth0Id),
                     keyValue("requestedPseudo", requestedPseudo), exception);
             throw new ConflictException("Ce pseudo est déjà utilisé.");
+        }
+    }
+
+    /** Distinguishes keep from explicit nullable replacement at the persistence boundary. */
+    private record PictureChange(String url, boolean replace) {
+
+        private static PictureChange keep() {
+            return new PictureChange(null, false);
+        }
+
+        private static PictureChange replace(String url) {
+            return new PictureChange(url, true);
         }
     }
 }

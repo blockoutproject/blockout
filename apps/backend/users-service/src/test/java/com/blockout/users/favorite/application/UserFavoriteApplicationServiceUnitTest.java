@@ -4,11 +4,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.blockout.users.exceptions.CustomUserNotFoundException;
-import com.blockout.users.models.entities.CustomUser;
+import com.blockout.users.account.persistence.UserAccountEntity;
+import com.blockout.users.account.persistence.UserAccountRepository;
+import com.blockout.users.favorite.persistence.FavoritePersistenceMapper;
 import com.blockout.users.models.entities.UserFavorite;
 import com.blockout.users.models.enums.EntityType;
 import com.blockout.users.repositories.UserFavoriteRepository;
-import com.blockout.users.repositories.UserRepository;
 import java.lang.reflect.Proxy;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -105,7 +106,7 @@ class UserFavoriteApplicationServiceUnitTest {
     private static final class Fixture {
 
         private final List<String> calls = new ArrayList<>();
-        private final CustomUser user = CustomUser.builder()
+        private final UserAccountEntity user = UserAccountEntity.builder()
                 .id(7L)
                 .auth0Id("auth0|owner")
                 .email("owner@example.com")
@@ -171,8 +172,8 @@ class UserFavoriteApplicationServiceUnitTest {
         }
 
         /** Provides local numeric and Auth0 identity lookup behavior. */
-        private UserRepository userRepository() {
-            return proxy(UserRepository.class, (method, arguments) -> switch (method) {
+        private UserAccountRepository userRepository() {
+            return proxy(UserAccountRepository.class, (method, arguments) -> switch (method) {
                 case "findByAuth0Id" -> auth0UserPresent ? Optional.of(user) : Optional.empty();
                 case "existsById" -> true;
                 default -> throw new UnsupportedOperationException(method);

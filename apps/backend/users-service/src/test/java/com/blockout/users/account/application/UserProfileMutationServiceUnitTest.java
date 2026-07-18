@@ -2,106 +2,152 @@ package com.blockout.users.account.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.blockout.users.models.entities.CustomUser;
-import com.blockout.users.repositories.UserRepository;
-import java.lang.reflect.Proxy;
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-/** Verifies retained profile mutation behavior through explicit image intent. */
+/** Verifies retained profile mutation behavior through the account store boundary. */
 @DisplayName("User profile mutation service")
 class UserProfileMutationServiceUnitTest {
 
-    /** Proves keep intent preserves the picture while trim and reactivation remain unchanged. */
     @Test
     @DisplayName("keeps the picture, trims the pseudo, and reactivates the account")
     void keepsPictureTrimsPseudoAndReactivatesAccount() {
-        RepositoryState state = new RepositoryState(user("old", "https://cdn.example/old.png", false));
+        StoreDouble store = new StoreDouble(view("old", "https://cdn.example/old.png", false));
         RecordingStorage storage = new RecordingStorage();
-        UserProfileMutationService service = new UserProfileMutationService(repository(state), storage);
+        UserProfileMutationService service = new UserProfileMutationService(store, storage);
 
-        CustomUser updated = service.update(
+        UserAccountView updated = service.update(
                 "auth0|owner", new UpdateUserProfileCommand("  new-name  ", UserProfileImageChange.keep()));
 
-        assertThat(updated.getPseudo()).isEqualTo("new-name");
-        assertThat(updated.getPictureUrl()).isEqualTo("https://cdn.example/old.png");
-        assertThat(updated.getActive()).isTrue();
+        assertThat(updated.pseudo()).isEqualTo("new-name");
+        assertThat(updated.pictureUrl()).isEqualTo("https://cdn.example/old.png");
+        assertThat(updated.active()).isTrue();
         assertThat(storage.deletedUrl).isNull();
         assertThat(storage.uploaded).isNull();
     }
 
-    /** Proves remove intent deletes the current owned URL and clears the persisted field. */
     @Test
     @DisplayName("removes the stored picture explicitly")
     void removesStoredPictureExplicitly() {
-        RepositoryState state = new RepositoryState(user("owner", "https://cdn.example/old.png", true));
+        StoreDouble store = new StoreDouble(view("owner", "https://cdn.example/old.png", true));
         RecordingStorage storage = new RecordingStorage();
-        UserProfileMutationService service = new UserProfileMutationService(repository(state), storage);
+        UserProfileMutationService service = new UserProfileMutationService(store, storage);
 
-        CustomUser updated = service.update(
+        UserAccountView updated = service.update(
                 "auth0|owner", new UpdateUserProfileCommand(null, UserProfileImageChange.remove()));
 
-        assertThat(updated.getPictureUrl()).isNull();
+        assertThat(updated.pictureUrl()).isNull();
         assertThat(storage.deletedUrl).isEqualTo("https://cdn.example/old.png");
         assertThat(storage.uploaded).isNull();
     }
 
-    /** Proves replace intent retains delete-before-upload ordering and persists the returned URL. */
     @Test
     @DisplayName("replaces the stored picture with validated bytes")
     void replacesStoredPictureWithValidatedBytes() {
-        RepositoryState state = new RepositoryState(user("owner", "https://cdn.example/old.png", true));
+        StoreDouble store = new StoreDouble(view("owner", "https://cdn.example/old.png", true));
         RecordingStorage storage = new RecordingStorage();
-        UserProfileMutationService service = new UserProfileMutationService(repository(state), storage);
+        UserProfileMutationService service = new UserProfileMutationService(store, storage);
         UserProfileImageUpload upload = new UserProfileImageUpload("new.png", "image/png", new byte[] {1, 2, 3});
 
-        CustomUser updated = service.update(
+        UserAccountView updated = service.update(
                 "auth0|owner", new UpdateUserProfileCommand(null, UserProfileImageChange.replace(upload)));
 
         assertThat(storage.deletedUrl).isEqualTo("https://cdn.example/old.png");
         assertThat(storage.uploaded).isEqualTo(upload);
-        assertThat(updated.getPictureUrl()).isEqualTo("https://cdn.example/new.png");
+        assertThat(updated.pictureUrl()).isEqualTo("https://cdn.example/new.png");
     }
 
-    /** Creates deterministic persisted account state for mutation tests. */
-    private CustomUser user(String pseudo, String pictureUrl, boolean active) {
-        return CustomUser.builder()
-                .id(7L)
-                .auth0Id("auth0|owner")
-                .email("owner@example.com")
-                .pseudo(pseudo)
-                .pictureUrl(pictureUrl)
-                .active(active)
-                .createdAt(Instant.parse("2026-07-01T10:00:00Z"))
-                .lastUpdate(Instant.parse("2026-07-01T10:00:00Z"))
-                .build();
+    private static UserAccountView view(String pseudo, String pictureUrl, boolean active) {
+        Instant timestamp = Instant.parse("2026-07-01T10:00:00Z");
+        return new UserAccountView(
+                7L,
+                "auth0|owner",
+                "owner@example.com",
+                pseudo,
+                null,
+                null,
+                pictureUrl,
+                null,
+                active,
+                timestamp,
+                timestamp,
+                List.of());
     }
 
-    /** Creates a small repository double without Mockito agent attachment. */
-    private UserRepository repository(RepositoryState state) {
-        return (UserRepository) Proxy.newProxyInstance(
-                UserRepository.class.getClassLoader(),
-                new Class<?>[] {UserRepository.class},
-                (proxy, method, arguments) -> switch (method.getName()) {
-                    case "findByAuth0Id" -> Optional.of(state.user);
-                    case "existsByPseudoIgnoreCaseAndIdNot" -> false;
-                    case "save" -> state.user = (CustomUser) arguments[0];
-                    case "toString" -> "UserRepositoryDouble";
-                    case "hashCode" -> System.identityHashCode(proxy);
-                    case "equals" -> proxy == arguments[0];
-                    default -> throw new UnsupportedOperationException(method.getName());
-                });
-    }
+    /** Implements only the role-owned store behavior exercised by profile mutation. */
+    private static final class StoreDouble implements UserAccountStore, UserAccountUpdate {
 
-    /** Holds mutable persisted state for the repository double. */
-    private static final class RepositoryState {
-        private CustomUser user;
+        private UserAccountView current;
 
-        /** Creates repository state around one account. */
-        private RepositoryState(CustomUser user) {
-            this.user = user;
+        private StoreDouble(UserAccountView current) {
+            this.current = current;
+        }
+
+        @Override
+        public Optional<UserAccountView> findByAuth0Id(String auth0Id) {
+            return Optional.of(current);
+        }
+
+        @Override
+        public Optional<UserAccountUpdate> findForUpdateByAuth0Id(String auth0Id) {
+            return Optional.of(this);
+        }
+
+        @Override
+        public Optional<UserAccountUpdate> findForUpdateByEmail(String email) {
+            return Optional.empty();
+        }
+
+        @Override
+        public boolean existsByPseudoIgnoringCaseExcept(String pseudo, Long accountId) {
+            return false;
+        }
+
+        @Override
+        public boolean existsByPseudoIgnoringCase(String pseudo) {
+            return false;
+        }
+
+        @Override
+        public UserAccountView create(NewUserAccount account) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public UserAccountView current() {
+            return current;
+        }
+
+        @Override
+        public UserAccountChange synchronize(UserIdentitySynchronization synchronization) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public UserAccountChange updateProfile(UserProfileChange change) {
+            UserAccountView before = current;
+            current = new UserAccountView(
+                    before.id(),
+                    before.auth0Id(),
+                    before.email(),
+                    change.replacePseudo() ? change.pseudo() : before.pseudo(),
+                    before.firstName(),
+                    before.lastName(),
+                    change.replacePicture() ? change.pictureUrl() : before.pictureUrl(),
+                    before.phoneNumber(),
+                    change.active(),
+                    before.createdAt(),
+                    before.lastUpdate(),
+                    before.favorites());
+            return new UserAccountChange(before, current);
+        }
+
+        @Override
+        public void delete() {
+            throw new UnsupportedOperationException();
         }
     }
 
@@ -110,14 +156,12 @@ class UserProfileMutationServiceUnitTest {
         private String deletedUrl;
         private UserProfileImageUpload uploaded;
 
-        /** Records replacement bytes and returns a deterministic URL. */
         @Override
         public String upload(UserProfileImageUpload upload, String folder) {
             this.uploaded = upload;
             return "https://cdn.example/new.png";
         }
 
-        /** Records the retained delete-before-upload call. */
         @Override
         public void deleteByUrl(String url) {
             this.deletedUrl = url;

@@ -3,7 +3,6 @@ package com.blockout.users.account.infrastructure.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.blockout.users.config.Auth0Properties;
-import com.blockout.users.config.Auth0TokenManager;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 

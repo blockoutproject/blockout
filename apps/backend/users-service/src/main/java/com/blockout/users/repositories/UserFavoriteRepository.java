@@ -1,6 +1,6 @@
 package com.blockout.users.repositories;
 
-import com.blockout.users.models.entities.CustomUser;
+import com.blockout.users.account.persistence.UserAccountEntity;
 import com.blockout.users.models.entities.UserFavorite;
 import com.blockout.users.models.enums.EntityType;
 import java.util.List;
@@ -12,9 +12,9 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface UserFavoriteRepository extends JpaRepository<UserFavorite, Long> {
 
-    boolean existsByUserAndEntityTypeAndEntityId(CustomUser user, EntityType type, Long entityId);
+    boolean existsByUserAndEntityTypeAndEntityId(UserAccountEntity user, EntityType type, Long entityId);
 
-    int deleteByUserAndEntityTypeAndEntityId(CustomUser user, EntityType type, Long entityId);
+    int deleteByUserAndEntityTypeAndEntityId(UserAccountEntity user, EntityType type, Long entityId);
 
     List<UserFavorite> findByUserId(Long userId);
 

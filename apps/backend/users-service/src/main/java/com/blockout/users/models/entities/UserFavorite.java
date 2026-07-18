@@ -1,5 +1,7 @@
 package com.blockout.users.models.entities;
 
+import com.blockout.users.account.persistence.UserAccountEntity;
+
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
@@ -25,7 +27,7 @@ public class UserFavorite {
     @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
-    private CustomUser user;
+    private UserAccountEntity user;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "entity_type", nullable = false)
