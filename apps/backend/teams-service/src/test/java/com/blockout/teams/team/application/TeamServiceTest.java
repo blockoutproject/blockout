@@ -5,8 +5,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.blockout.shared.model.FormatEnum;
 import com.blockout.shared.model.GenderEnum;
 import com.blockout.teams.team.persistence.TeamEntity;
+import com.blockout.teams.team.persistence.JpaTeamStore;
 import com.blockout.teams.team.persistence.TeamPersistenceMapper;
 import com.blockout.teams.team.persistence.TeamRepository;
+import com.blockout.teams.team.domain.TeamLogoUpload;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Proxy;
 import java.time.LocalDateTime;
@@ -34,7 +36,7 @@ class TeamServiceTest {
         assertThat(result.followersCount()).isZero();
         assertThat(result.active()).isTrue();
         assertThat(result.logoUrl()).isNull();
-        assertThat(publisher.published).containsExactly(result);
+        assertThat(publisher.published).containsExactly(TeamUpsertFact.from(result));
     }
 
     @Test
@@ -58,7 +60,8 @@ class TeamServiceTest {
     void followerDecrementKeepsTheExistingZeroFloor() {
         RepositoryDouble repository = new RepositoryDouble();
         repository.entity = entity(null, true, 0L);
-        TeamService service = service(repository, new LogoStorageDouble(), new EventPublisherDouble());
+        JpaTeamStore store = store(repository);
+        TeamFollowerProjectionService service = new TeamFollowerProjectionService(store);
 
         TeamView result = service.updateFollowers(
                 new TeamFollowerCommand(1L, 9L, TeamFollowerCommand.Delta.DECREMENT));
@@ -80,7 +83,11 @@ class TeamServiceTest {
     }
 
     private TeamService service(RepositoryDouble repository, LogoStorageDouble storage, EventPublisherDouble publisher) {
-        return new TeamService(repository.proxy(), mapper, storage, publisher);
+        return new TeamService(store(repository), storage, publisher);
+    }
+
+    private JpaTeamStore store(RepositoryDouble repository) {
+        return new JpaTeamStore(repository.proxy(), mapper);
     }
 
     private CreateTeamCommand command() {
@@ -132,7 +139,7 @@ class TeamServiceTest {
     }
 
     private static final class EventPublisherDouble implements TeamEventPublisher {
-        private final List<TeamView> published = new ArrayList<>();
-        @Override public void publishUpsert(TeamView team) { published.add(team); }
+        private final List<TeamUpsertFact> published = new ArrayList<>();
+        @Override public void publishUpsert(TeamUpsertFact team) { published.add(team); }
     }
 }

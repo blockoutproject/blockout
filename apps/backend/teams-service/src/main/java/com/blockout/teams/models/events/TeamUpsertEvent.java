@@ -8,6 +8,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+/** Historic v1 outbox payload; keep this class name stable for pending rows and rollback readers. */
 @Data
 @Builder
 @NoArgsConstructor

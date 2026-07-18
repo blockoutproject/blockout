@@ -2,5 +2,5 @@ package com.blockout.teams.team.application;
 
 public interface TeamEventPublisher {
 
-    void publishUpsert(TeamView team);
+    void publishUpsert(TeamUpsertFact team);
 }

@@ -1,7 +1,7 @@
 package com.blockout.teams.shared.api.v2;
 
 import com.blockout.shared.model.ProblemDetail;
-import com.blockout.teams.exceptions.TeamNotFoundException;
+import com.blockout.teams.team.application.TeamNotFoundException;
 import com.blockout.teams.team.api.v2.TeamClubDiscoveryV2Controller;
 import com.blockout.teams.team.api.v2.TeamFollowersV2Controller;
 import com.blockout.teams.team.api.v2.TeamV2Controller;

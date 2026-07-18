@@ -1,4 +1,4 @@
-package com.blockout.teams.listeners;
+package com.blockout.teams.team.event.inbound;
 
 import com.blockout.events.v2.model.ClubDeactivationV2Event;
 import com.blockout.events.v2.model.EventType;
@@ -9,9 +9,9 @@ import java.io.IOException;
 import org.springframework.amqp.core.Message;
 import org.springframework.stereotype.Component;
 
-/** Explicitly decodes generated team-owner lifecycle records without Spring type metadata. */
+/** Decodes generated competition-owner wire records into team-owned lifecycle facts. */
 @Component
-public class TeamLifecycleV2MessageDecoder {
+class TeamLifecycleV2MessageDecoder {
 
     private static final String VERSION = "2.0.0";
     private final ObjectMapper objectMapper;
@@ -22,7 +22,7 @@ public class TeamLifecycleV2MessageDecoder {
         this.metadataValidator = metadataValidator;
     }
 
-    TeamDeactivationV2Event decodeTeam(Message message) {
+    TeamDeactivationFact decodeTeam(Message message) {
         var event = read(message, TeamDeactivationV2Event.class);
         if (event.payload() == null
                 || event.eventType() != EventType.TEAM_DEACTIVATED
@@ -33,10 +33,10 @@ public class TeamLifecycleV2MessageDecoder {
         }
         validate(message, event.eventId(), event.eventType(), event.occurredAt(), event.producer(),
                 event.schemaVersion(), event.orderingKey(), event.aggregateVersion(), event.correlationId());
-        return event;
+        return new TeamDeactivationFact(event.eventId(), event.eventType().name(), event.payload().teamId());
     }
 
-    ClubDeactivationV2Event decodeClub(Message message) {
+    ClubDeactivationFact decodeClub(Message message) {
         var event = read(message, ClubDeactivationV2Event.class);
         if (event.payload() == null || event.payload().clubId() == null
                 || event.eventType() != EventType.CLUB_DEACTIVATED
@@ -47,7 +47,7 @@ public class TeamLifecycleV2MessageDecoder {
         }
         validate(message, event.eventId(), event.eventType(), event.occurredAt(), event.producer(),
                 event.schemaVersion(), event.orderingKey(), event.aggregateVersion(), event.correlationId());
-        return event;
+        return new ClubDeactivationFact(event.eventId(), event.eventType().name(), event.payload().clubId());
     }
 
     private <T> T read(Message message, Class<T> recordType) {

@@ -1,4 +1,4 @@
-package com.blockout.teams.services;
+package com.blockout.teams.team.event.outbox;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -8,26 +8,29 @@ import com.blockout.outbox.OutboxMetadata;
 import com.blockout.outbox.OutboxRecorder;
 import com.blockout.shared.model.FormatEnum;
 import com.blockout.shared.model.GenderEnum;
-import com.blockout.teams.team.application.TeamView;
+import com.blockout.teams.models.events.TeamUpsertEvent;
+import com.blockout.teams.team.application.TeamUpsertFact;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
-class EventPublisherTest {
+class OutboxTeamEventPublisherTest {
 
     @Test
     void recordsOneTeamFactWithSharedV1V2Identity() {
         Recorder recorder = new Recorder();
-        TeamView team = new TeamView(
-                12L, "club-1", "raw", "First Team", "A", "LNV", 8L, "2026",
-                FormatEnum.SIX, GenderEnum.M, 3L, "https://logo", true, null, null);
+        TeamUpsertFact team = new TeamUpsertFact(
+                12L, "First Team", "A", "club-1", 8L, FormatEnum.SIX, GenderEnum.M, "2026", "https://logo");
 
-        new EventPublisher(recorder).publishUpsert(team);
+        new OutboxTeamEventPublisher(recorder, new TeamEventMapper()).publishUpsert(team);
 
         assertThat(recorder.event.eventType()).isEqualTo("TEAM_UPSERT");
         assertThat(recorder.event.orderingKey()).isEqualTo("team:12");
         assertThat(recorder.event.v1RoutingKey()).isEqualTo("team.upsert");
         assertThat(recorder.event.v2RoutingKey()).isEqualTo("team.upsert.v2");
+        assertThat(recorder.event.v1Payload()).isInstanceOf(TeamUpsertEvent.class);
+        assertThat(recorder.event.v1Payload().getClass().getName())
+                .isEqualTo("com.blockout.teams.models.events.TeamUpsertEvent");
         TeamUpsertV2Event v2 = (TeamUpsertV2Event) recorder.event.v2Payload();
         assertThat(v2.eventId()).isEqualTo(recorder.metadata.eventId());
         assertThat(v2.payload().clubId()).isEqualTo("club-1");

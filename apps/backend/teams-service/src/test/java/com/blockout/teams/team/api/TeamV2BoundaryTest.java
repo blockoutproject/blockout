@@ -46,7 +46,7 @@ class TeamV2BoundaryTest {
 
     @Test
     void canonicalUpdateRejectsConflictingLogoIntents() {
-        TeamV2Controller controller = new TeamV2Controller(null, Mappers.getMapper(TeamApiMapper.class));
+        TeamV2Controller controller = new TeamV2Controller(null, null, Mappers.getMapper(TeamApiMapper.class));
         UpdateTeamInternalRequest request = new UpdateTeamInternalRequest(true);
         MockMultipartFile image = new MockMultipartFile("image", "logo.png", "image/png", new byte[]{1});
 

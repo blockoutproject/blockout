@@ -1,4 +1,4 @@
-package com.blockout.teams.exceptions;
+package com.blockout.teams.team.application;
 
 public class TeamNotFoundException extends RuntimeException {
     public TeamNotFoundException(Long id) {

@@ -1,5 +1,7 @@
 package com.blockout.teams.exceptions;
 
+import com.blockout.teams.team.application.TeamNotFoundException;
+
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

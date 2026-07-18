@@ -1,5 +1,7 @@
 package com.blockout.teams.team.application;
 
+import com.blockout.teams.team.domain.TeamLogoUpload;
+
 public record TeamLogoChange(Mode mode, TeamLogoUpload upload) {
 
     public enum Mode {

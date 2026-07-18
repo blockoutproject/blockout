@@ -1,4 +1,4 @@
-package com.blockout.teams.listeners;
+package com.blockout.teams.team.event.inbound;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -37,9 +37,9 @@ class TeamLifecycleV2MessageDecoderTest {
                 new ClubDeactivationV2Payload("c1"), "competition-service", "2.0.0");
 
         assertThat(decoder.decodeTeam(message(team, teamEventId, "TEAM_DEACTIVATED", "team:2"))
-                .payload().teamId()).isEqualTo(2L);
+                .teamId()).isEqualTo(2L);
         assertThat(decoder.decodeClub(message(club, clubEventId, "CLUB_DEACTIVATED", "club:c1"))
-                .payload().clubId()).isEqualTo("c1");
+                .clubId()).isEqualTo("c1");
     }
 
     @Test

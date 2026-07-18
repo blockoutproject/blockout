@@ -6,6 +6,8 @@ import com.blockout.teams.shared.api.v1.LegacyTeamsJson;
 import com.blockout.teams.team.application.LegacyCreateTeamCommand;
 import com.blockout.teams.team.application.TeamFilter;
 import com.blockout.teams.team.application.TeamFollowerCommand;
+import com.blockout.teams.team.application.TeamFollowerProjectionService;
+import com.blockout.teams.team.application.TeamLifecycleService;
 import com.blockout.teams.team.application.TeamService;
 import com.blockout.teams.team.application.TeamView;
 import com.blockout.teams.team.application.UpdateTeamCommand;
@@ -37,6 +39,8 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 public class LegacyTeamController {
 
     private final TeamService service;
+    private final TeamLifecycleService lifecycleService;
+    private final TeamFollowerProjectionService followerProjectionService;
     private final LegacyTeamsJson json;
 
     @GetMapping
@@ -92,7 +96,7 @@ public class LegacyTeamController {
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('SCOPE_delete:teams')")
     public ResponseEntity<Void> deactivateTeam(@PathVariable Long id) {
-        service.deactivate(id);
+        lifecycleService.deactivate(id);
         return ResponseEntity.noContent().build();
     }
 
@@ -119,7 +123,7 @@ public class LegacyTeamController {
 
     private ResponseEntity<String> followerResponse(Long teamId, Long userId, TeamFollowerCommand.Delta delta)
             throws JsonProcessingException {
-        TeamView updated = service.updateFollowers(new TeamFollowerCommand(teamId, userId, delta));
+        TeamView updated = followerProjectionService.updateFollowers(new TeamFollowerCommand(teamId, userId, delta));
         return ResponseEntity.ok(json.write(response(updated)));
     }
 

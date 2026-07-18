@@ -1354,8 +1354,23 @@ state moves to GitHub and this file becomes a historical migration record.
     artifacts, routes, scopes, queues, rollout flags, callers, deployment, production, and Maaatch are unchanged;
     `docs/migration/mrg-403-clubs-service-architecture.md` records ownership, parity, removal, rollback, and deferred
     compatibility gates.
-- [ ] MRG-404 Restructure `teams-service` into explicit API, application, domain, persistence, S3, scraper-facing, and
+- [x] MRG-404 Restructure `teams-service` into explicit API, application, domain, persistence, S3, scraper-facing, and
       event boundaries with role-owned records and mappers.
+  - Evidence: catalog application code now depends on role-owned store, logo-storage, and event-publisher ports rather
+    than JPA, Spring Data, generated models, AWS SDK, or Rabbit messages. `JpaTeamStore` owns query, entity, MapStruct,
+    update-handle, follower-projection, lifecycle-cascade, and persistence work while the immutable team-logo domain
+    value owns bytes, MIME, and size invariants. The scraper-facing v1 compatibility adapter and generated v2 server
+    retain their routes and map into separate catalog, lifecycle, and follower-projection services. A minimal
+    team-upsert fact maps inside the outbox adapter to the retained v1 payload and generated v2 event; inbound generated
+    events narrow to role-owned deactivation facts before deduplicated lifecycle handling. The historic v1 upsert class
+    name remains stable for pending outbox rows and rollback readers. Eighteen focused tests preserve catalog defaults,
+    null updates, logo intent and validation, stable paging, follower zero floor, REST casing, outbox identity, decoder,
+    metadata, and queue behavior. The teams reactor, complete backend packaging, all backend Dockerfile checks, full
+    local CI gate, documentation, formatting, and whitespace checks pass. Flyway history, repositories, schemas,
+    REST/event contracts, generated artifacts, routes, scopes, queues, rollout flags, favorite authority, callers,
+    deployment, production, and Maaatch are unchanged;
+    `docs/migration/mrg-404-teams-service-architecture.md` records ownership, parity, removal, rollback, and deferred
+    compatibility/projection gates.
 - [ ] MRG-405 Restructure `pools-service` into explicit API, application, domain, persistence, scraper-facing, and event
       boundaries with role-owned records and mappers.
 - [ ] MRG-406 Restructure `competition-service` association, statistics snapshot, bulk-command, and persistence

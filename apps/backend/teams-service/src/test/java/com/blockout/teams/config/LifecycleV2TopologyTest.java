@@ -3,7 +3,7 @@ package com.blockout.teams.config;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.blockout.teams.listeners.TeamListeners;
+import com.blockout.teams.team.event.inbound.TeamLifecycleListeners;
 import org.junit.jupiter.api.Test;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 
@@ -51,7 +51,7 @@ class LifecycleV2TopologyTest {
     }
 
     private RabbitListener annotation(String methodName) {
-        return java.util.Arrays.stream(TeamListeners.class.getDeclaredMethods())
+        return java.util.Arrays.stream(TeamLifecycleListeners.class.getDeclaredMethods())
                 .filter(method -> method.getName().equals(methodName))
                 .findFirst().orElseThrow().getAnnotation(RabbitListener.class);
     }

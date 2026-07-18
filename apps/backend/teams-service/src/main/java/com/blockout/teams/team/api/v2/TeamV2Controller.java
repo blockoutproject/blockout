@@ -10,10 +10,11 @@ import com.blockout.teams.generated.model.TeamInternalResponse;
 import com.blockout.teams.generated.model.UpdateTeamInternalRequest;
 import com.blockout.teams.team.api.TeamLogoUploads;
 import com.blockout.teams.team.application.TeamFilter;
+import com.blockout.teams.team.application.TeamLifecycleService;
 import com.blockout.teams.team.application.TeamLogoChange;
-import com.blockout.teams.team.application.TeamLogoUpload;
 import com.blockout.teams.team.application.TeamPage;
 import com.blockout.teams.team.application.TeamService;
+import com.blockout.teams.team.domain.TeamLogoUpload;
 import java.net.URI;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +29,7 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 public class TeamV2Controller implements TeamsApi {
 
     private final TeamService service;
+    private final TeamLifecycleService lifecycleService;
     private final TeamApiMapper mapper;
 
     @Override
@@ -84,7 +86,7 @@ public class TeamV2Controller implements TeamsApi {
     @Override
     @PreAuthorize("hasAuthority('SCOPE_delete:teams')")
     public ResponseEntity<Void> deactivateTeam(Long id) {
-        service.deactivate(id);
+        lifecycleService.deactivate(id);
         return ResponseEntity.noContent().build();
     }
 }

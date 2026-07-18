@@ -2,7 +2,7 @@ package com.blockout.teams.team.infrastructure.storage;
 
 import com.blockout.teams.config.AwsS3Properties;
 import com.blockout.teams.team.application.TeamLogoStorage;
-import com.blockout.teams.team.application.TeamLogoUpload;
+import com.blockout.teams.team.domain.TeamLogoUpload;
 import jakarta.annotation.PostConstruct;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
