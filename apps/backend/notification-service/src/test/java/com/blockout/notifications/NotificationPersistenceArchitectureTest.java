@@ -8,6 +8,11 @@ import com.blockout.notifications.inbox.persistence.NotificationInboxRepository;
 import com.blockout.notifications.delivery.application.NotificationDeliveryApplicationService;
 import com.blockout.notifications.delivery.persistence.DeliveryAttemptEntity;
 import com.blockout.notifications.delivery.persistence.DeliveryAttemptRepository;
+import com.blockout.notifications.events.application.ConsumedEventProcessor;
+import com.blockout.notifications.events.persistence.JdbcConsumedEventStore;
+import com.blockout.notifications.followers.application.FollowerProjectionApplicationService;
+import com.blockout.notifications.followers.persistence.FollowerProjectionEntity;
+import com.blockout.notifications.followers.persistence.FollowerProjectionRepository;
 import com.blockout.notifications.push.application.PushTokenRegistrationApplicationService;
 import com.blockout.notifications.push.persistence.PushTokenEntity;
 import com.blockout.notifications.push.persistence.PushTokenRepository;
@@ -24,7 +29,7 @@ import org.junit.jupiter.api.Test;
 class NotificationPersistenceArchitectureTest {
 
     @Test
-    void inboxAndTokenRowsAreOwnedByTheirPersistencePackages() {
+    void roleOwnedRowsAndRepositoriesLiveInTheirPersistencePackages() {
         assertThat(NotificationInboxEntity.class.getPackageName())
                 .isEqualTo("com.blockout.notifications.inbox.persistence");
         assertThat(NotificationInboxRepository.class.getPackageName())
@@ -37,6 +42,12 @@ class NotificationPersistenceArchitectureTest {
                 .isEqualTo("com.blockout.notifications.delivery.persistence");
         assertThat(DeliveryAttemptRepository.class.getPackageName())
                 .isEqualTo("com.blockout.notifications.delivery.persistence");
+        assertThat(FollowerProjectionEntity.class.getPackageName())
+                .isEqualTo("com.blockout.notifications.followers.persistence");
+        assertThat(FollowerProjectionRepository.class.getPackageName())
+                .isEqualTo("com.blockout.notifications.followers.persistence");
+        assertThat(JdbcConsumedEventStore.class.getPackageName())
+                .isEqualTo("com.blockout.notifications.events.persistence");
     }
 
     @Test
@@ -51,6 +62,10 @@ class NotificationPersistenceArchitectureTest {
                 .containsOnly(
                         "com.blockout.notifications.delivery.application",
                         "com.blockout.notifications.inbox.application");
+        assertThat(instanceFieldPackages(FollowerProjectionApplicationService.class))
+                .containsOnly("com.blockout.notifications.followers.application");
+        assertThat(instanceFieldPackages(ConsumedEventProcessor.class))
+                .containsOnly("com.blockout.notifications.events.application");
     }
 
     @Test
@@ -72,6 +87,14 @@ class NotificationPersistenceArchitectureTest {
                 .singleElement()
                 .satisfies(constraint -> assertThat(constraint.columnNames())
                         .containsExactly("user_id", "match_id", "notification_type"));
+        assertThat(FollowerProjectionEntity.class.getAnnotation(Entity.class).name())
+                .isEqualTo("FollowersProjection");
+        assertThat(FollowerProjectionEntity.class.getAnnotation(Table.class).name())
+                .isEqualTo("followers_projection");
+        assertThat(FollowerProjectionEntity.class.getAnnotation(Table.class).uniqueConstraints())
+                .singleElement()
+                .satisfies(constraint -> assertThat(constraint.columnNames())
+                        .containsExactly("entity_type", "entity_id", "user_id"));
     }
 
     private java.util.List<String> instanceFieldPackages(Class<?> type) {

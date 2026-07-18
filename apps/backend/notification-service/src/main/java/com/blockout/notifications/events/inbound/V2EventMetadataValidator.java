@@ -1,4 +1,4 @@
-package com.blockout.notifications.events;
+package com.blockout.notifications.events.inbound;
 
 import java.time.OffsetDateTime;
 import java.util.Objects;

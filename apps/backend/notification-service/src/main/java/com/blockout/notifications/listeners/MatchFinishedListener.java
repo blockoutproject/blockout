@@ -10,8 +10,8 @@ import org.springframework.stereotype.Component;
 
 import com.blockout.events.v2.model.MatchFinishedV2Event;
 import com.blockout.notifications.config.RabbitMQConfig;
-import com.blockout.notifications.events.ConsumedEventProcessor;
-import com.blockout.notifications.events.V2EventMetadataValidator;
+import com.blockout.notifications.events.application.EventConsumption;
+import com.blockout.notifications.events.inbound.V2EventMetadataValidator;
 import com.blockout.notifications.matches.inbound.MatchEventContractMapper;
 import com.blockout.notifications.models.events.MatchFinishedEvent;
 import com.blockout.notifications.services.NotificationOrchestratorService;
@@ -26,12 +26,13 @@ public class MatchFinishedListener {
 
     private final NotificationOrchestratorService orchestrator;
     private final MatchEventContractMapper mapper;
-    private final ConsumedEventProcessor consumedEvents;
+    private final EventConsumption consumedEvents;
     private final V2EventMetadataValidator metadataValidator;
 
     @RabbitListener(
             queues = RabbitMQConfig.MATCH_FINISHED_QUEUE,
-            autoStartup = "${blockout.events.consumers.matches-v1-enabled:true}")
+            autoStartup = "${blockout.events.consumers.matches-v1-enabled:true}",
+            ackMode = "AUTO")
     public void onMatchFinished(
             MatchFinishedEvent event,
             @Header(name = "x-blockout-event-id", required = false) String eventId) {
@@ -55,7 +56,8 @@ public class MatchFinishedListener {
 
     @RabbitListener(
             queues = RabbitMQConfig.MATCH_FINISHED_QUEUE_V2,
-            autoStartup = "${blockout.events.consumers.matches-v2-enabled:false}")
+            autoStartup = "${blockout.events.consumers.matches-v2-enabled:false}",
+            ackMode = "AUTO")
     public void onMatchFinishedV2(
             MatchFinishedV2Event event,
             Message message,

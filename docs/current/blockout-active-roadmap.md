@@ -1592,8 +1592,23 @@ state moves to GitHub and this file becomes a historical migration record.
     event-consumer and follower-projection ownership;
     `docs/migration/mrg-427-notification-delivery-architecture.md` records decisions, retained order, compatibility,
     deferred policy, and rollback.
-- [ ] MRG-428 Restructure `notification-service` event and follower projection internals as idempotent, rebuildable
+- [x] MRG-428 Restructure `notification-service` event and follower projection internals as idempotent, rebuildable
       consumers with explicit reconciliation, deduplication, acknowledgement, and rollback policy.
+  - Evidence: all eight v1/v2 Rabbit endpoints now explicitly retain `AUTO` acknowledgement and depend on narrow
+    event-consumption or follower-consumer roles. The transactional `consumed_event` claim returns applied or
+    duplicate across shared v1/v2 identity, while reuse of one UUID for another event type now fails instead of being
+    acknowledged as a duplicate; escaped validation, collision, persistence, and side-effect failures retain marker
+    and local-effect rollback. Follower writes now use atomic insert-on-conflict or typed delete operations and return
+    applied/unchanged outcomes without an existence-check race. A separate reconciler compares one immutable
+    canonical user snapshot, applies exact add/remove differences, and reports retained rows without adding snapshot
+    acquisition, a route, scheduler, repair command, replay, or live reconciliation. Event JDBC and follower JPA
+    adapters now own their persistence packages while retaining V1/V7 tables, columns, types, indexes, constraints,
+    timestamps, and identities. Eighty-four focused notification-service tests, complete backend packaging, all
+    backend Dockerfile checks, deterministic generation, the full local CI gate, documentation, formatting, and
+    whitespace checks pass. REST/event contracts, generated artifacts, Rabbit topology, listener activation defaults,
+    retry/requeue/container policy, outboxes, delivery behavior, callers, deployment, production, and Maaatch are
+    unchanged; `docs/migration/mrg-428-notification-consumer-projection-architecture.md` records reconciliation,
+    acknowledgement, failure, compatibility, and rollback policy.
 - [ ] MRG-411 Restructure `search-service` query, filter, search-view, and Elasticsearch adapter boundaries without
       changing result ordering or empty-result behavior.
 - [ ] MRG-412 Restructure `search-worker` bootstrap, schedules, generated client adapters, and immutable cache snapshots

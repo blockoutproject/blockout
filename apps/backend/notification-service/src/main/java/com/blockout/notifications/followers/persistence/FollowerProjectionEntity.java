@@ -1,19 +1,30 @@
-package com.blockout.notifications.models.entity;
-
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import jakarta.persistence.*;
-import java.time.LocalDateTime;
+package com.blockout.notifications.followers.persistence;
 
 import com.blockout.notifications.models.enums.EntityType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Index;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
+import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
+import java.time.LocalDateTime;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
+/** Owns the retained followers_projection JPA row. */
 @Data
 @Builder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
-@Entity
+@Entity(name = "FollowersProjection")
 @Table(name = "followers_projection",
         uniqueConstraints = {
                 @UniqueConstraint(columnNames = {"entity_type", "entity_id", "user_id"},
@@ -23,7 +34,7 @@ import com.blockout.notifications.models.enums.EntityType;
                 @Index(name = "idx_followers_projection_entity", columnList = "entity_type, entity_id"),
                 @Index(name = "idx_followers_projection_user", columnList = "user_id")
         })
-public class FollowersProjection {
+public class FollowerProjectionEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

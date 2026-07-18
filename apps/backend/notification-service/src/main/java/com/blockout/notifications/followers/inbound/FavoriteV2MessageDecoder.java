@@ -4,7 +4,7 @@ import com.blockout.events.v2.model.PoolFollowedV2Event;
 import com.blockout.events.v2.model.PoolUnfollowedV2Event;
 import com.blockout.events.v2.model.TeamFollowedV2Event;
 import com.blockout.events.v2.model.TeamUnfollowedV2Event;
-import com.blockout.notifications.events.V2EventMetadataValidator;
+import com.blockout.notifications.events.inbound.V2EventMetadataValidator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import org.springframework.amqp.core.Message;

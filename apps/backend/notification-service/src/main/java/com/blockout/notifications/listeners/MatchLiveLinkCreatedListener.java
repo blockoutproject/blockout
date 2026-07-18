@@ -10,8 +10,8 @@ import org.springframework.stereotype.Component;
 
 import com.blockout.events.v2.model.MatchLiveLinkCreatedV2Event;
 import com.blockout.notifications.config.RabbitMQConfig;
-import com.blockout.notifications.events.ConsumedEventProcessor;
-import com.blockout.notifications.events.V2EventMetadataValidator;
+import com.blockout.notifications.events.application.EventConsumption;
+import com.blockout.notifications.events.inbound.V2EventMetadataValidator;
 import com.blockout.notifications.matches.inbound.MatchEventContractMapper;
 import com.blockout.notifications.models.events.MatchLiveLinkCreatedEvent;
 import com.blockout.notifications.services.NotificationOrchestratorService;
@@ -26,12 +26,13 @@ public class MatchLiveLinkCreatedListener {
 
     private final NotificationOrchestratorService orchestrator;
     private final MatchEventContractMapper mapper;
-    private final ConsumedEventProcessor consumedEvents;
+    private final EventConsumption consumedEvents;
     private final V2EventMetadataValidator metadataValidator;
 
     @RabbitListener(
             queues = RabbitMQConfig.MATCH_LIVE_LINK_CREATED_QUEUE,
-            autoStartup = "${blockout.events.consumers.matches-v1-enabled:true}")
+            autoStartup = "${blockout.events.consumers.matches-v1-enabled:true}",
+            ackMode = "AUTO")
     public void onMatchLiveLinkCreated(
             MatchLiveLinkCreatedEvent event,
             @Header(name = "x-blockout-event-id", required = false) String eventId) {
@@ -53,7 +54,8 @@ public class MatchLiveLinkCreatedListener {
 
     @RabbitListener(
             queues = RabbitMQConfig.MATCH_LIVE_LINK_CREATED_QUEUE_V2,
-            autoStartup = "${blockout.events.consumers.matches-v2-enabled:false}")
+            autoStartup = "${blockout.events.consumers.matches-v2-enabled:false}",
+            ackMode = "AUTO")
     public void onMatchLiveLinkCreatedV2(
             MatchLiveLinkCreatedV2Event event,
             Message message,

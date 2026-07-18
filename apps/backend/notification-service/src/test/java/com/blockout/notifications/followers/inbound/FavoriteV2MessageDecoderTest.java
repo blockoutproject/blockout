@@ -8,7 +8,7 @@ import com.blockout.events.v2.model.PoolFollowV2Payload;
 import com.blockout.events.v2.model.PoolUnfollowedV2Event;
 import com.blockout.events.v2.model.TeamFollowV2Payload;
 import com.blockout.events.v2.model.TeamFollowedV2Event;
-import com.blockout.notifications.events.V2EventMetadataValidator;
+import com.blockout.notifications.events.inbound.V2EventMetadataValidator;
 import com.blockout.notifications.followers.application.FollowerProjectionAction;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
