@@ -72,6 +72,7 @@ GitHub Project task planning remains dormant until the final GitFlow activation 
 | Clubs architecture     | [`migration/mrg-403-clubs-service-architecture.md`](migration/mrg-403-clubs-service-architecture.md)                         | Club catalog, storage, geocoding, and event adapters       |
 | Teams architecture     | [`migration/mrg-404-teams-service-architecture.md`](migration/mrg-404-teams-service-architecture.md)                         | Team catalog, storage, projection, lifecycle, and events   |
 | Pools architecture     | [`migration/mrg-405-pools-service-architecture.md`](migration/mrg-405-pools-service-architecture.md)                         | Pool catalog, projection, lifecycle, and event adapters    |
+| Competition arch.      | [MRG-406 competition architecture][mrg-406]                                                                                  | Association, statistics, bulk, and persistence boundaries  |
 | Production cutover     | [`migration/monorepo-cutover.md`](migration/monorepo-cutover.md)                                                             | Temporary per-deployable migration and rollback procedure  |
 
 [mrg-337]: migration/mrg-337-competition-association-statistics-runtime-migration.md
@@ -91,6 +92,7 @@ GitHub Project task planning remains dormant until the final GitFlow activation 
 [mrg-343]: migration/mrg-343-mobile-gateway-relay-runtime-migration.md
 [mrg-367]: migration/mrg-367-mobile-gateway-catalog-runtime-migration.md
 [mrg-368]: migration/mrg-368-mobile-gateway-match-live-runtime-migration.md
+[mrg-406]: migration/mrg-406-competition-service-association-architecture.md
 
 ## Documentation Map
 

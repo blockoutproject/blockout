@@ -1,5 +1,6 @@
 package com.blockout.competitions.exceptions;
 
+import com.blockout.competitions.association.application.CompetitionAssociationNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
 
 import org.springframework.http.HttpStatus;

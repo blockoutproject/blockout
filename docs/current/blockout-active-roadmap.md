@@ -1390,8 +1390,25 @@ state moves to GitHub and this file becomes a historical migration record.
     callers, deployment, production, and Maaatch are unchanged;
     `docs/migration/mrg-405-pools-service-architecture.md` records ownership, parity, removal, rollback, and deferred
     compatibility/projection gates.
-- [ ] MRG-406 Restructure `competition-service` association, statistics snapshot, bulk-command, and persistence
+- [x] MRG-406 Restructure `competition-service` association, statistics snapshot, bulk-command, and persistence
       boundaries with validated commands, role-owned views, dedicated entities, and structural mappers.
+  - Evidence: association and statistics application services now depend on separate role-owned store ports rather
+    than JPA, Spring Data, entities, repositories, persistence mappers, or generated models. Transaction-bound
+    activation and statistics-update handles keep loaded entities inside `JpaCompetitionAssociationStore` while the
+    application owns active no-op/reactivation decisions, complete before/after snapshots, and audit logging. The JPA
+    adapter owns creation defaults, active legacy reads, stable canonical pool/team paging, entity persistence, and
+    strict structural mapping. Generated v2 requests still validate all seventeen statistics fields plus positive or
+    bounded bulk identifiers; v1 retains its nullable full-replacement failure behavior, and both adapters retain
+    defensive deduplicated bulk commands. No synthetic domain mirror was added because no separate invariant-bearing
+    value is proven. Twenty-eight focused reactor tests preserve zero-stat creation, stored-club/history behavior,
+    full and nullable replacement, both page orders, canonical casing and validation, bulk no-op/duplicate/mixed
+    behavior, transactions, cascade decisions, ranking, legacy JSON, and event/outbox behavior. The competition
+    reactor, complete backend packaging, all backend Dockerfile checks, full local CI gate, documentation, formatting,
+    and whitespace checks pass. Flyway V1-V2, table and repository queries, REST/event contracts, generated artifacts,
+    routes, scopes, queues, callers, deployment, production, and Maaatch are unchanged. Ranking, lifecycle, cascade,
+    concurrency, historical-query, and event-internal restructuring remains exclusively deferred to MRG-422;
+    `docs/migration/mrg-406-competition-service-association-architecture.md` records ownership, parity, removal,
+    rollback, unknowns, and deferred gates.
 - [ ] MRG-422 Consolidate `competition-service` ranking, lifecycle, cascade, and event internals behind one ranking
       policy/projector, explicit transaction ownership, lifecycle services, and outbox adapters.
 - [ ] MRG-407 Restructure `matches-service` match core, day projection, and persistence boundaries with separate

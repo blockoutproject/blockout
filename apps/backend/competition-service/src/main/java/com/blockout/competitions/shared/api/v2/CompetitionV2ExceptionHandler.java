@@ -2,7 +2,7 @@ package com.blockout.competitions.shared.api.v2;
 
 import com.blockout.competitions.association.api.v2.CompetitionAssociationsV2Controller;
 import com.blockout.competitions.association.api.v2.CompetitionStatisticsV2Controller;
-import com.blockout.competitions.exceptions.CompetitionAssociationNotFoundException;
+import com.blockout.competitions.association.application.CompetitionAssociationNotFoundException;
 import com.blockout.competitions.lifecycle.api.v2.CompetitionLifecycleV2Controller;
 import com.blockout.competitions.ranking.api.v2.CompetitionRankingsV2Controller;
 import com.blockout.shared.model.ProblemDetail;

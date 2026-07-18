@@ -3,6 +3,7 @@ package com.blockout.competitions.association.api.v1;
 import com.blockout.competitions.association.application.AddCompetitionAssociationCommand;
 import com.blockout.competitions.association.application.CompetitionAssociationService;
 import com.blockout.competitions.association.application.CompetitionAssociationView;
+import com.blockout.competitions.association.application.CompetitionStatisticsService;
 import com.blockout.competitions.association.application.CompetitionStatisticsSnapshot;
 import com.blockout.competitions.lifecycle.application.CompetitionLifecycleService;
 import com.blockout.competitions.lifecycle.application.DeactivateCompetitionClubsCommand;
@@ -35,6 +36,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class LegacyCompetitionController {
 
     private final CompetitionAssociationService associations;
+    private final CompetitionStatisticsService statistics;
     private final CompetitionLifecycleService lifecycle;
     private final CompetitionRankingService rankings;
     private final LegacyCompetitionJson json;
@@ -94,7 +96,7 @@ public class LegacyCompetitionController {
             @PathVariable Long poolId, @PathVariable Long teamId, @RequestBody String body)
             throws JsonProcessingException {
         LegacyStatisticsRequest request = json.read(body, LegacyStatisticsRequest.class);
-        CompetitionAssociationView updated = associations.replaceStatistics(poolId, teamId, request.snapshot());
+        CompetitionAssociationView updated = statistics.replace(poolId, teamId, request.snapshot());
         return ResponseEntity.ok(json.write(response(updated)));
     }
 

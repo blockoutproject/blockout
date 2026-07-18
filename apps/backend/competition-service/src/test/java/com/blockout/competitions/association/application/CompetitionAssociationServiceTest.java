@@ -6,7 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.blockout.competitions.association.persistence.CompetitionAssociationEntity;
 import com.blockout.competitions.association.persistence.CompetitionAssociationPersistenceMapper;
 import com.blockout.competitions.association.persistence.CompetitionAssociationRepository;
-import com.blockout.competitions.exceptions.CompetitionAssociationNotFoundException;
+import com.blockout.competitions.association.persistence.JpaCompetitionAssociationStore;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Proxy;
 import java.util.List;
@@ -73,7 +73,7 @@ class CompetitionAssociationServiceTest {
         RepositoryDouble repository = new RepositoryDouble();
         repository.entity = association(true, "club-1", 0);
 
-        CompetitionAssociationView result = service(repository).replaceStatistics(10L, 20L, snapshot());
+        CompetitionAssociationView result = statistics(repository).replace(10L, 20L, snapshot());
 
         assertThat(result.played()).isEqualTo(1);
         assertThat(result.wins()).isEqualTo(2);
@@ -98,7 +98,7 @@ class CompetitionAssociationServiceTest {
         CompetitionStatisticsSnapshot snapshot = new CompetitionStatisticsSnapshot(
                 null, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16.5, 17.5);
 
-        CompetitionAssociationView result = service(repository).replaceStatistics(10L, 20L, snapshot);
+        CompetitionAssociationView result = statistics(repository).replace(10L, 20L, snapshot);
 
         assertThat(result.played()).isNull();
         assertThat(result.points()).isEqualTo(4);
@@ -119,15 +119,34 @@ class CompetitionAssociationServiceTest {
     }
 
     @Test
+    void preservesTheStableOwnerOrderingForTeamPages() {
+        RepositoryDouble repository = new RepositoryDouble();
+        repository.pageItems = List.of(association(true, "club-1", 0));
+
+        CompetitionAssociationPage result = service(repository).findPageByTeam(20L, 0, 25);
+
+        assertThat(result.items()).hasSize(1);
+        assertThat(repository.pageable.getSort().getOrderFor("poolId").isAscending()).isTrue();
+    }
+
+    @Test
     void reportsAStableNotFoundFailureForAnUnknownStatisticsAssociation() {
         RepositoryDouble repository = new RepositoryDouble();
 
-        assertThatThrownBy(() -> service(repository).replaceStatistics(10L, 20L, snapshot()))
+        assertThatThrownBy(() -> statistics(repository).replace(10L, 20L, snapshot()))
                 .isInstanceOf(CompetitionAssociationNotFoundException.class);
     }
 
     private CompetitionAssociationService service(RepositoryDouble repository) {
-        return new CompetitionAssociationService(repository.proxy(), mapper);
+        return new CompetitionAssociationService(store(repository));
+    }
+
+    private CompetitionStatisticsService statistics(RepositoryDouble repository) {
+        return new CompetitionStatisticsService(store(repository));
+    }
+
+    private JpaCompetitionAssociationStore store(RepositoryDouble repository) {
+        return new JpaCompetitionAssociationStore(repository.proxy(), mapper);
     }
 
     private CompetitionAssociationEntity association(boolean active, String clubId, int points) {
