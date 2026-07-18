@@ -4,24 +4,27 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import co.elastic.clients.elasticsearch._types.query_dsl.Query;
 import co.elastic.clients.elasticsearch.core.SearchRequest;
+import com.blockout.search.shared.application.FilteredSearchQuery;
 import com.blockout.search.shared.application.SearchFilters;
+import com.blockout.search.shared.application.SearchQuery;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.Test;
 import org.mapstruct.factory.Mappers;
 
-class ElasticsearchTeamSearchStoreTest {
+class ElasticsearchTeamSearchRequestFactoryTest {
 
-    private final ElasticsearchTeamSearchStore store = new ElasticsearchTeamSearchStore(null, null);
+    private final ElasticsearchTeamSearchRequestFactory requests = new ElasticsearchTeamSearchRequestFactory();
 
     @Test
-    void preservesTheRandomBlankQueryWithoutEmptyFilters() {
-        SearchRequest request = store.request(new SearchFilters("", " ", null, null, ""));
+    void preservesTheRandomBlankQueryWithoutEmptyFiltersOrAnAddedOrder() {
+        SearchRequest request = requests.create(query("", " ", null, null, ""));
 
         assertThat(request.index()).containsExactly("teams");
         assertThat(request.size()).isEqualTo(5);
         assertThat(request.terminateAfter()).isEqualTo(1_000L);
+        assertThat(request.sort()).isEmpty();
         assertThat(request.query().isFunctionScore()).isTrue();
         assertThat(request.source().filter().includes()).containsExactly(
                 "id", "name", "shortName", "clubId", "clubName", "clubCity", "logoUrl",
@@ -29,15 +32,16 @@ class ElasticsearchTeamSearchStoreTest {
     }
 
     @Test
-    void preservesTheTextQueryAndAllExactFilters() {
-        SearchRequest request = store.request(new SearchFilters("Volley", "2026", 42L, "6x6", "mixed"));
+    void preservesTheTextQueryAndAllUnnormalizedExactFilters() {
+        SearchRequest request = requests.create(query(" Volley ", "2026", 42L, "6x6", "mixed"));
 
         assertThat(request.size()).isEqualTo(20);
         assertThat(request.terminateAfter()).isEqualTo(5_000L);
+        assertThat(request.sort()).isEmpty();
         assertThat(request.query().isBool()).isTrue();
         assertThat(request.query().bool().must()).singleElement().satisfies(query -> {
             assertThat(query.isMultiMatch()).isTrue();
-            assertThat(query.multiMatch().query()).isEqualTo("Volley");
+            assertThat(query.multiMatch().query()).isEqualTo(" Volley ");
         });
         Map<String, Query> filters = request.query().bool().filter().stream()
                 .collect(Collectors.toMap(query -> query.term().field(), Function.identity()));
@@ -49,14 +53,22 @@ class ElasticsearchTeamSearchStoreTest {
     }
 
     @Test
-    void mapsTheStoreDocumentIntoAnImmutableApplicationResult() {
+    void mapsTheStoreDocumentIntoAnImmutableApplicationView() {
         TeamSearchDocument document = new TeamSearchDocument(
                 1L, "Team", "TM", "club-1", "Club", "Paris", "logo", 42L, "Division", "SIX", "M", "2026");
 
-        assertThat(Mappers.getMapper(TeamSearchDocumentMapper.class).toResult(document))
+        assertThat(Mappers.getMapper(TeamSearchDocumentMapper.class).toView(document))
                 .extracting(
                         "id", "name", "shortName", "clubId", "clubName", "clubCity", "logoUrl",
                         "divisionName", "format", "gender", "season")
-                .containsExactly(1L, "Team", "TM", "club-1", "Club", "Paris", "logo", "Division", "SIX", "M", "2026");
+                .containsExactly(
+                        1L, "Team", "TM", "club-1", "Club", "Paris", "logo", "Division", "SIX", "M", "2026");
+    }
+
+    private FilteredSearchQuery query(
+            String text, String season, Long divisionId, String format, String gender) {
+        return new FilteredSearchQuery(
+                new SearchQuery(text),
+                new SearchFilters(season, divisionId, format, gender));
     }
 }

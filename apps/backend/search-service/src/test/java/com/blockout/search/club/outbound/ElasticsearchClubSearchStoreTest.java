@@ -2,43 +2,32 @@ package com.blockout.search.club.outbound;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import co.elastic.clients.elasticsearch._types.query_dsl.Operator;
-import co.elastic.clients.elasticsearch._types.query_dsl.TextQueryType;
-import co.elastic.clients.elasticsearch.core.SearchRequest;
+import co.elastic.clients.elasticsearch.core.SearchResponse;
+import co.elastic.clients.elasticsearch.core.search.Hit;
 import java.util.List;
 import org.junit.jupiter.api.Test;
+import org.mapstruct.factory.Mappers;
 
 class ElasticsearchClubSearchStoreTest {
 
-    private final ElasticsearchClubSearchStore store = new ElasticsearchClubSearchStore(null, null);
-
     @Test
-    void preservesTheRandomBlankQuery() {
-        SearchRequest request = store.request("  ");
+    void mapsHitsOneForOneWithoutChangingElasticsearchOrder() {
+        ClubSearchDocument second = new ClubSearchDocument("club-2", "Second", "logo-2", "Paris");
+        ClubSearchDocument first = new ClubSearchDocument("club-1", "First", "logo-1", "Lyon");
+        SearchResponse<ClubSearchDocument> response = SearchResponse.of(search -> search
+                .took(1)
+                .timedOut(false)
+                .shards(shards -> shards.total(1).successful(1).failed(0))
+                .hits(hits -> hits.hits(List.of(
+                        Hit.of(hit -> hit.index("clubs").id("club-2").source(second)),
+                        Hit.of(hit -> hit.index("clubs").id("club-1").source(first))))));
+        ElasticsearchClubSearchStore store = new ElasticsearchClubSearchStore(
+                null,
+                null,
+                Mappers.getMapper(ClubSearchDocumentMapper.class));
 
-        assertThat(request.index()).containsExactly("clubs");
-        assertThat(request.size()).isEqualTo(5);
-        assertThat(request.terminateAfter()).isEqualTo(1_000L);
-        assertThat(request.timeout()).isEqualTo("150ms");
-        assertThat(request.trackTotalHits().enabled()).isFalse();
-        assertThat(request.query().isFunctionScore()).isTrue();
-        assertThat(request.query().functionScore().query().isMatchAll()).isTrue();
-        assertThat(request.query().functionScore().functions()).hasSize(1);
-        assertThat(request.source().filter().includes()).containsExactly("id", "name", "city", "logoUrl");
-    }
-
-    @Test
-    void preservesTheBoostedNonBlankQuery() {
-        SearchRequest request = store.request("Volley");
-
-        assertThat(request.size()).isEqualTo(20);
-        assertThat(request.terminateAfter()).isEqualTo(5_000L);
-        assertThat(request.query().isMultiMatch()).isTrue();
-        assertThat(request.query().multiMatch().query()).isEqualTo("Volley");
-        assertThat(request.query().multiMatch().type()).isEqualTo(TextQueryType.BoolPrefix);
-        assertThat(request.query().multiMatch().operator()).isEqualTo(Operator.And);
-        assertThat(request.query().multiMatch().fields()).containsExactlyElementsOf(List.of(
-                "name^4", "name._2gram^4", "name._3gram^4",
-                "city^2", "city._2gram^2", "city._3gram^2", "all"));
+        assertThat(store.views(response))
+                .extracting("id")
+                .containsExactly("club-2", "club-1");
     }
 }

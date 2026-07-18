@@ -1609,8 +1609,22 @@ state moves to GitHub and this file becomes a historical migration record.
     retry/requeue/container policy, outboxes, delivery behavior, callers, deployment, production, and Maaatch are
     unchanged; `docs/migration/mrg-428-notification-consumer-projection-architecture.md` records reconciliation,
     acknowledgement, failure, compatibility, and rollback policy.
-- [ ] MRG-411 Restructure `search-service` query, filter, search-view, and Elasticsearch adapter boundaries without
+- [x] MRG-411 Restructure `search-service` query, filter, search-view, and Elasticsearch adapter boundaries without
       changing result ordering or empty-result behavior.
+  - Evidence: raw search text and optional exact filters now cross separate immutable application inputs, while the
+    club, team, and pool ports return immutable application-owned views instead of result-shaped transport
+    projections. Feature-owned Elasticsearch request factories now isolate index names, boosted fields, source
+    fields, limits, timeouts, and exact filter clauses from the execution stores; shared outbound query construction
+    retains the random blank branch and scored nonblank branch without exposing vendor types to application code.
+    Stores map hits one-for-one in Elasticsearch order, add no sort, and all three application services retain the
+    all-exception empty-list fallback. Thirteen focused search-service tests, complete backend packaging, all backend
+    Dockerfile checks, deterministic generation, scraper and mobile gates, the full local CI gate, documentation,
+    formatting, and whitespace checks pass. Generated and legacy REST contracts, routes, wrappers/raw arrays,
+    statuses, auth, query/filter values, index names, mappings, documents, aliases, worker ownership, callers,
+    deployment, production, and Maaatch are unchanged. MRG-412, MRG-429, and MRG-430 retain worker, event-projection,
+    index-versioning, alias-swap, rebuild, and reconciliation ownership;
+    `docs/migration/mrg-411-search-query-adapter-architecture.md` records ownership, ordering, empty-result parity,
+    compatibility, deferred scope, and rollback.
 - [ ] MRG-412 Restructure `search-worker` bootstrap, schedules, generated client adapters, and immutable cache snapshots
       without reusing generated transport DTOs as worker domain models.
 - [ ] MRG-429 Restructure `search-worker` event-consumer and incremental-projection internals with versioned event

@@ -1,5 +1,6 @@
 package com.blockout.search.club.application;
 
+import com.blockout.search.shared.application.SearchQuery;
 import java.util.Collections;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -16,7 +17,7 @@ public class ClubSearchService {
 
     private final ClubSearchStore store;
 
-    public List<ClubSearchResult> search(String query) {
+    public List<ClubSearchView> search(SearchQuery query) {
         try {
             return store.search(query);
         } catch (Exception exception) {

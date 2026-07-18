@@ -2,16 +2,16 @@ package com.blockout.search.shared.api;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.blockout.search.club.application.ClubSearchResult;
+import com.blockout.search.club.application.ClubSearchView;
 import com.blockout.search.club.application.ClubSearchService;
 import com.blockout.search.generated.api.SearchApi;
-import com.blockout.search.pool.application.PoolSearchResult;
+import com.blockout.search.pool.application.PoolSearchView;
 import com.blockout.search.pool.application.PoolSearchService;
 import com.blockout.search.shared.api.v1.LegacySearchController;
 import com.blockout.search.shared.api.v1.LegacySearchJson;
 import com.blockout.search.shared.api.v2.SearchApiMapper;
 import com.blockout.search.shared.api.v2.SearchV2Controller;
-import com.blockout.search.team.application.TeamSearchResult;
+import com.blockout.search.team.application.TeamSearchView;
 import com.blockout.search.team.application.TeamSearchService;
 import com.blockout.shared.model.FormatEnum;
 import com.blockout.shared.model.GenderEnum;
@@ -19,10 +19,10 @@ import org.junit.jupiter.api.Test;
 
 class SearchBoundaryMappingTest {
 
-    private final ClubSearchResult club = new ClubSearchResult("club-1", "Club", "club-logo", "Paris");
-    private final TeamSearchResult team = new TeamSearchResult(
+    private final ClubSearchView club = new ClubSearchView("club-1", "Club", "club-logo", "Paris");
+    private final TeamSearchView team = new TeamSearchView(
             1L, "Team", "TM", "club-1", "Club", "Paris", "team-logo", "Division", "SIX", "M", "2026");
-    private final PoolSearchResult pool = new PoolSearchResult(
+    private final PoolSearchView pool = new PoolSearchView(
             2L, "Pool", "PL", "Division", "L", "League", "2026", "SIX", "M", "pool-logo");
 
     @Test
@@ -65,7 +65,7 @@ class SearchBoundaryMappingTest {
     @Test
     void canonicalMappingContainsUnknownStoredEnumsWithoutFailingTheSearch() {
         SearchApiMapper mapper = new SearchApiMapper();
-        TeamSearchResult result = new TeamSearchResult(
+        TeamSearchView result = new TeamSearchView(
                 1L, "Team", "TM", "club-1", "Club", "Paris", "logo", "Division", "unexpected", "other", "2026");
 
         assertThat(mapper.toResponse(result).getFormat()).isNull();

@@ -6,7 +6,9 @@ import com.blockout.search.generated.model.ClubSearchInternalListResponse;
 import com.blockout.search.generated.model.PoolSearchInternalListResponse;
 import com.blockout.search.generated.model.TeamSearchInternalListResponse;
 import com.blockout.search.pool.application.PoolSearchService;
+import com.blockout.search.shared.application.FilteredSearchQuery;
 import com.blockout.search.shared.application.SearchFilters;
+import com.blockout.search.shared.application.SearchQuery;
 import com.blockout.search.team.application.TeamSearchService;
 import com.blockout.shared.model.FormatEnum;
 import com.blockout.shared.model.GenderEnum;
@@ -27,7 +29,7 @@ public class SearchV2Controller implements SearchApi {
     @Override
     public ResponseEntity<ClubSearchInternalListResponse> searchClubs(String query) {
         return ResponseEntity.ok(new ClubSearchInternalListResponse(
-                clubs.search(query).stream().map(mapper::toResponse).toList()));
+                clubs.search(new SearchQuery(query)).stream().map(mapper::toResponse).toList()));
     }
 
     @Override
@@ -38,7 +40,7 @@ public class SearchV2Controller implements SearchApi {
             FormatEnum format,
             GenderEnum gender) {
         return ResponseEntity.ok(new TeamSearchInternalListResponse(
-                teams.search(filters(query, season, divisionId, format, gender)).stream()
+                teams.search(filteredQuery(query, season, divisionId, format, gender)).stream()
                         .map(mapper::toResponse)
                         .toList()));
     }
@@ -51,22 +53,23 @@ public class SearchV2Controller implements SearchApi {
             FormatEnum format,
             GenderEnum gender) {
         return ResponseEntity.ok(new PoolSearchInternalListResponse(
-                pools.search(filters(query, season, divisionId, format, gender)).stream()
+                pools.search(filteredQuery(query, season, divisionId, format, gender)).stream()
                         .map(mapper::toResponse)
                         .toList()));
     }
 
-    private SearchFilters filters(
+    private FilteredSearchQuery filteredQuery(
             String query,
             String season,
             Long divisionId,
             FormatEnum format,
             GenderEnum gender) {
-        return new SearchFilters(
-                query,
-                season,
-                divisionId,
-                format == null ? null : format.getValue(),
-                gender == null ? null : gender.getValue());
+        return new FilteredSearchQuery(
+                new SearchQuery(query),
+                new SearchFilters(
+                        season,
+                        divisionId,
+                        format == null ? null : format.getValue(),
+                        gender == null ? null : gender.getValue()));
     }
 }

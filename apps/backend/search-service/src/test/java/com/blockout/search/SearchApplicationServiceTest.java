@@ -2,13 +2,15 @@ package com.blockout.search;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.blockout.search.club.application.ClubSearchResult;
 import com.blockout.search.club.application.ClubSearchService;
-import com.blockout.search.pool.application.PoolSearchResult;
+import com.blockout.search.club.application.ClubSearchView;
 import com.blockout.search.pool.application.PoolSearchService;
+import com.blockout.search.pool.application.PoolSearchView;
+import com.blockout.search.shared.application.FilteredSearchQuery;
 import com.blockout.search.shared.application.SearchFilters;
-import com.blockout.search.team.application.TeamSearchResult;
+import com.blockout.search.shared.application.SearchQuery;
 import com.blockout.search.team.application.TeamSearchService;
+import com.blockout.search.team.application.TeamSearchView;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
@@ -16,43 +18,67 @@ import org.junit.jupiter.api.Test;
 class SearchApplicationServiceTest {
 
     @Test
-    void returnsStoreResultsWithoutChangingThem() {
-        ClubSearchResult result = new ClubSearchResult("club-1", "Club", "logo", "Paris");
-        ClubSearchService service = new ClubSearchService(query -> List.of(result));
+    void passesRawQueriesAndReturnsStoreViewsInTheirOriginalOrder() {
+        SearchQuery query = new SearchQuery("  volley  ");
+        AtomicReference<SearchQuery> received = new AtomicReference<>();
+        ClubSearchView first = new ClubSearchView("club-2", "Second", "logo-2", "Paris");
+        ClubSearchView second = new ClubSearchView("club-1", "First", "logo-1", "Lyon");
+        ClubSearchService service = new ClubSearchService(value -> {
+            received.set(value);
+            return List.of(first, second);
+        });
 
-        assertThat(service.search("volley")).containsExactly(result);
+        assertThat(service.search(query)).containsExactly(first, second);
+        assertThat(received).hasValue(query);
     }
 
     @Test
     void preservesTheEmptyListFallbackForEveryStoreFailure() {
-        ClubSearchService service = new ClubSearchService(query -> {
+        ClubSearchService clubs = new ClubSearchService(query -> {
             throw new IllegalStateException("unavailable");
         });
+        TeamSearchService teams = new TeamSearchService(query -> {
+            throw new IllegalStateException("unavailable");
+        });
+        PoolSearchService pools = new PoolSearchService(query -> {
+            throw new IllegalStateException("unavailable");
+        });
+        FilteredSearchQuery filtered = filteredQuery();
 
-        assertThat(service.search("volley")).isEmpty();
+        assertThat(clubs.search(new SearchQuery("volley"))).isEmpty();
+        assertThat(teams.search(filtered)).isEmpty();
+        assertThat(pools.search(filtered)).isEmpty();
     }
 
     @Test
-    void passesTeamAndPoolFiltersWithoutNormalization() {
-        SearchFilters filters = new SearchFilters("  volley  ", " 2026 ", 42L, "custom", "unknown");
-        AtomicReference<SearchFilters> teamFilters = new AtomicReference<>();
-        AtomicReference<SearchFilters> poolFilters = new AtomicReference<>();
-        TeamSearchResult team = new TeamSearchResult(
+    void passesTeamAndPoolQueriesAndFiltersWithoutNormalization() {
+        FilteredSearchQuery query = filteredQuery();
+        AtomicReference<FilteredSearchQuery> teamQuery = new AtomicReference<>();
+        AtomicReference<FilteredSearchQuery> poolQuery = new AtomicReference<>();
+        TeamSearchView team = new TeamSearchView(
                 1L, "Team", "T", "club-1", "Club", "Paris", "logo", "Division", "6x6", "mixed", "2026");
-        PoolSearchResult pool = new PoolSearchResult(
+        PoolSearchView pool = new PoolSearchView(
                 2L, "Pool", "P", "Division", "L", "League", "2026", "6x6", "mixed", "logo");
         TeamSearchService teamService = new TeamSearchService(value -> {
-            teamFilters.set(value);
+            teamQuery.set(value);
             return List.of(team);
         });
         PoolSearchService poolService = new PoolSearchService(value -> {
-            poolFilters.set(value);
+            poolQuery.set(value);
             return List.of(pool);
         });
 
-        assertThat(teamService.search(filters)).containsExactly(team);
-        assertThat(poolService.search(filters)).containsExactly(pool);
-        assertThat(teamFilters).hasValue(filters);
-        assertThat(poolFilters).hasValue(filters);
+        assertThat(teamService.search(query)).containsExactly(team);
+        assertThat(poolService.search(query)).containsExactly(pool);
+        assertThat(teamQuery).hasValue(query);
+        assertThat(poolQuery).hasValue(query);
+        assertThat(query.query().text()).isEqualTo("  volley  ");
+        assertThat(query.filters().season()).isEqualTo(" 2026 ");
+    }
+
+    private FilteredSearchQuery filteredQuery() {
+        return new FilteredSearchQuery(
+                new SearchQuery("  volley  "),
+                new SearchFilters(" 2026 ", 42L, "custom", "unknown"));
     }
 }

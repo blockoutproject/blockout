@@ -1,33 +1,33 @@
 package com.blockout.search.shared.api.v2;
 
-import com.blockout.search.club.application.ClubSearchResult;
+import com.blockout.search.club.application.ClubSearchView;
 import com.blockout.search.generated.model.ClubSearchInternalResult;
 import com.blockout.search.generated.model.PoolSearchInternalResult;
 import com.blockout.search.generated.model.TeamSearchInternalResult;
-import com.blockout.search.pool.application.PoolSearchResult;
-import com.blockout.search.team.application.TeamSearchResult;
+import com.blockout.search.pool.application.PoolSearchView;
+import com.blockout.search.team.application.TeamSearchView;
 import com.blockout.shared.model.FormatEnum;
 import com.blockout.shared.model.GenderEnum;
 import org.springframework.stereotype.Component;
 
-/** Maps application results to the intentionally narrower canonical wire projections. */
+/** Maps application views to the intentionally narrower canonical wire projections. */
 @Component
 public class SearchApiMapper {
 
-    public ClubSearchInternalResult toResponse(ClubSearchResult result) {
-        return new ClubSearchInternalResult(result.id(), result.name(), result.logoUrl(), result.city());
+    public ClubSearchInternalResult toResponse(ClubSearchView view) {
+        return new ClubSearchInternalResult(view.id(), view.name(), view.logoUrl(), view.city());
     }
 
-    public TeamSearchInternalResult toResponse(TeamSearchResult result) {
+    public TeamSearchInternalResult toResponse(TeamSearchView view) {
         return new TeamSearchInternalResult(
-                result.id(), result.name(), result.logoUrl(), result.divisionName(),
-                format(result.format()), gender(result.gender()), result.season());
+                view.id(), view.name(), view.logoUrl(), view.divisionName(),
+                format(view.format()), gender(view.gender()), view.season());
     }
 
-    public PoolSearchInternalResult toResponse(PoolSearchResult result) {
+    public PoolSearchInternalResult toResponse(PoolSearchView view) {
         return new PoolSearchInternalResult(
-                result.id(), result.name(), result.divisionName(), result.leagueCode(), result.leagueName(),
-                result.season(), format(result.format()), gender(result.gender()), result.logoUrl());
+                view.id(), view.name(), view.divisionName(), view.leagueCode(), view.leagueName(),
+                view.season(), format(view.format()), gender(view.gender()), view.logoUrl());
     }
 
     private FormatEnum format(String value) {

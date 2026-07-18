@@ -1,6 +1,6 @@
 package com.blockout.search.pool.application;
 
-import com.blockout.search.shared.application.SearchFilters;
+import com.blockout.search.shared.application.FilteredSearchQuery;
 import java.util.Collections;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -17,9 +17,9 @@ public class PoolSearchService {
 
     private final PoolSearchStore store;
 
-    public List<PoolSearchResult> search(SearchFilters filters) {
+    public List<PoolSearchView> search(FilteredSearchQuery query) {
         try {
-            return store.search(filters);
+            return store.search(query);
         } catch (Exception exception) {
             LOGGER.error("Error autocompleting pools: {}", exception.getMessage());
             return Collections.emptyList();

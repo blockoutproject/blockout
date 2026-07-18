@@ -1,6 +1,6 @@
 package com.blockout.search.team.application;
 
-import com.blockout.search.shared.application.SearchFilters;
+import com.blockout.search.shared.application.FilteredSearchQuery;
 import java.util.Collections;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -17,9 +17,9 @@ public class TeamSearchService {
 
     private final TeamSearchStore store;
 
-    public List<TeamSearchResult> search(SearchFilters filters) {
+    public List<TeamSearchView> search(FilteredSearchQuery query) {
         try {
-            return store.search(filters);
+            return store.search(query);
         } catch (Exception exception) {
             LOGGER.error("Error autocompleting teams: {}", exception.getMessage());
             return Collections.emptyList();
