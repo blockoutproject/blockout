@@ -6,7 +6,7 @@
 apps/
   backend/                 Maven multi-module Spring Boot reactor
   frontend/mobile/         Nx Expo application
-  scrapers/                Explicit Nx Python deployables
+  scrapers/                Explicit Nx Python deployables in the root uv workspace
 infra/
   compose/                 Central local Docker orchestration
 docs/                      Current context, architecture, migration, runbooks
@@ -16,6 +16,7 @@ tools/scripts/             Repository validation and maintenance scripts
 ## Ownership
 
 - Root npm and lockfile own JavaScript tooling and Expo dependencies.
+- Root `pyproject.toml`, `.python-version`, and `uv.lock` own the three-member Python 3.12 workspace.
 - Root Maven POM aggregates `apps/backend`.
 - Backend parent POM owns Java 21 and Spring Boot dependency management.
 - Each deployable owns source, Dockerfile, runtime configuration, and `.env.example`.
@@ -33,7 +34,9 @@ roadmap so current production behavior and deployable boundaries remain stable.
 
 - `@nx/maven` infers Maven modules.
 - `@nx/expo/plugin` infers Expo targets.
-- Scrapers use explicit `project.json` files.
+- `@nxlv/python` 22.2.2 supplies Python graph edges, locked sync, and root `.venv` activation only;
+  `inferDependencies` and experimental sync generators stay disabled.
+- Scrapers and the shared contract-client wheel keep explicit `project.json` files.
 - Local Compose files are intentionally not an Nx project, matching Maaatch.
 - Nx provides the stable command surface; framework-native tools remain authoritative inside targets.
 

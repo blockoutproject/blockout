@@ -2,13 +2,14 @@
 
 BlockOut is an Nx monorepo for the mobile application, Spring Boot services, Python scrapers, and local Docker dependencies.
 
-The workspace intentionally follows the same structural conventions as Maaatch: deployable applications live under `apps`, Spring Boot services form a Maven reactor, frontend applications use the relevant Nx plugin, and scrapers are declared with explicit Nx projects.
+The workspace intentionally follows the same structural conventions as Maaatch: deployable applications live under `apps`, Spring Boot services form a Maven reactor, frontend applications use the relevant Nx plugin, and scrapers are declared with explicit Nx projects backed by one uv workspace.
 
 ## Requirements
 
 - Node.js 22 and npm 10 or later
 - Java 21 and Maven 3.9 or later
 - Python 3.12 for local scraper development
+- uv 0.11.29 for the shared Python workspace
 - Docker for scraper images and local platform tooling
 
 ## Workspace
@@ -83,9 +84,13 @@ Native Google Services configuration is injected through `GOOGLE_SERVICES_JSON`;
 
 ## Scrapers
 
-The scrapers intentionally use explicit Nx projects rather than a Python plugin.
+The two scraper applications and `blockout-contract-clients` share the root Python 3.12 uv workspace, one `.venv`,
+and the committed `uv.lock`. Nx keeps their explicit project names and delegates environment activation and sync to
+the narrowly configured `@nxlv/python` plugin.
 
 ```bash
+npm exec nx run @blockout/python-contract-clients:sync
+npm exec nx run @blockout/python-contract-clients:test
 npm exec nx run @blockout/competition-scraper:syntax-check
 npm exec nx run @blockout/club-scraper:syntax-check
 npm exec nx run @blockout/competition-scraper:docker-build

@@ -1,6 +1,7 @@
 .git
 .nx
 node_modules
+.venv
 tmp
 **/__pycache__
 **/*.pyc

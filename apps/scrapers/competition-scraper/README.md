@@ -3,12 +3,9 @@
 ## Local setup
 
 ```bash
-cd apps/scrapers/competition-scraper
-cp .env.example .env
-python3.12 -m venv .venv
-source .venv/bin/activate
-python -m pip install -r requirements.txt
-python main.py
+cp apps/scrapers/competition-scraper/.env.example apps/scrapers/competition-scraper/.env
+npm exec nx run @blockout/python-contract-clients:sync
+npm exec nx run @blockout/competition-scraper:serve
 ```
 
 The Prometheus endpoint listens on port `8000`. To use the centralized local VPN proxy, configure

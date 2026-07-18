@@ -28,6 +28,7 @@ const sharedSchemasDir = path.join(sourceDir, 'shared/schemas');
 const expectedSharedEnums = {
   ConsumedEventClaimEnum: ['CLAIMED', 'DUPLICATE'],
   ConsumedEventResultEnum: ['APPLIED', 'DUPLICATE'],
+  DataSourcePriorityEnum: [0, 1, 2, 3],
   DevicePlatformEnum: ['IOS', 'ANDROID', 'WEB', 'UNKNOWN'],
   EntityEventActionEnum: ['CREATED', 'DELETED'],
   EntityTypeEnum: ['TEAM', 'POOL'],
@@ -2449,6 +2450,14 @@ test('workspace shared catalog keeps the approved schemas and enum wires', async
     );
     assert.deepEqual(fragment[schemaName].enum, expectedValues);
   }
+
+  const dataSourcePriority = await readJson(
+    path.join(sharedSchemasDir, 'DataSourcePriorityEnum.json'),
+  );
+  assert.deepEqual(
+    dataSourcePriority.DataSourcePriorityEnum['x-enum-varnames'],
+    ['DB', 'FFVB', 'LNV_XML', 'LNV_HTML'],
+  );
 });
 
 test('fixture bundles transitive schemas, shared enums, and stable output', async (t) => {

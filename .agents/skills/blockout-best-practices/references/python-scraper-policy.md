@@ -2,9 +2,9 @@
 
 The competition and club scrapers are standalone Python deployables represented by explicit Nx projects.
 
-- Do not add a Python Nx plugin by default.
-- Keep requirements, Dockerfile, scheduler, Auth0 client-credentials flow, proxy behavior, and Prometheus port owned
-  by the scraper.
+- Use the root Python 3.12 uv workspace, uv 0.11.29, its one ignored `.venv`, and its one committed `uv.lock`.
+- Keep each scraper's dependencies in its member `pyproject.toml`; do not restore scraper `requirements.txt` files.
+- Keep Dockerfile, scheduler, Auth0 client-credentials flow, proxy behavior, and Prometheus port owned by the scraper.
 - Preserve scheduler frequency and enabled/disabled gating unless an explicit runtime task changes them.
 - Use async HTTP clients consistently and keep bounded timeouts and concurrency.
 - Never log tokens, credentials, proxy passwords, or raw sensitive responses.
@@ -17,10 +17,13 @@ The competition and club scrapers are standalone Python deployables represented 
 
 Follow [MRG-314](../../../../docs/decisions/mrg-314-python-contract-clients.md) for Blockout-owned REST traffic. The
 approved target is OpenAPI Generator `7.23.0` through `@openapitools/openapi-generator-cli` `2.39.1`, using the Python
-generator with its `asyncio` library and Python 3.12.
+generator with its `httpx` library and Python 3.12.
 
-- Generate all six service clients into the committed `blockout-contract-clients` wheel under
-  `libs/shared/contracts/clients/python`; everything below that package's `src/**` is generated and must not be edited.
+- Generate six service clients and the model-only `blockout_contract_clients.shared` namespace into the private
+  `blockout-contract-clients` wheel under `libs/shared/contracts/clients/python`; everything below that package's
+  `src/**` is generated, ignored, untracked, and must not be edited.
+- Define reusable enums in shared OpenAPI source. Do not declare `Enum`, `IntEnum`, or `StrEnum` in scraper source;
+  generated service-specific types remain adapter-confined.
 - Keep Python application identifiers snake_case. Generated aliases alone map them to camelCase Blockout v2 wire keys;
   do not add a recursive case converter or serialize application dataclasses directly onto a Blockout wire.
 - Put each generated service client behind a thin scraper-owned Blockout adapter. Map application values to generated
@@ -52,3 +55,6 @@ Blockout operations. MRG-348 and MRG-349 own the two runtime migrations. Until t
 
 After packaging or generated-client changes, prove Python 3.12 syntax/imports, deterministic no-diff generation, wheel
 installation, adapter isolation, both root-context Docker image builds, and the behavior fixtures required by MRG-314.
+Use `@blockout/python-contract-clients:sync`, `:test`, and `:build` plus the scraper Nx targets as the authoritative
+command surface. `@nxlv/python` is pinned to 22.2.2 and may provide graph edges, uv sync, and `.venv` activation only;
+keep `inferDependencies` and experimental sync generators disabled.

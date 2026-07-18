@@ -1,0 +1,33 @@
+{
+  "name": "@blockout/python-contract-clients",
+  "$schema": "../../../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/shared/contracts/clients/python/src",
+  "projectType": "library",
+  "tags": ["scope:shared", "type:library", "platform:python"],
+  "targets": {
+    "sync": {
+      "executor": "@nxlv/python:sync",
+      "cache": false,
+      "options": {
+        "args": "--locked --all-packages"
+      }
+    },
+    "test": {
+      "executor": "@nxlv/python:run-commands",
+      "cache": false,
+      "dependsOn": ["@blockout/contracts:generate-python-clients"],
+      "options": {
+        "command": "python -m unittest discover -s libs/shared/contracts/clients/python/tests -p 'test_*.py'"
+      }
+    },
+    "build": {
+      "executor": "@nxlv/python:run-commands",
+      "cache": false,
+      "dependsOn": ["@blockout/contracts:generate-python-clients"],
+      "outputs": ["{projectRoot}/dist/*.whl"],
+      "options": {
+        "command": "uv build --package blockout-contract-clients --wheel --out-dir libs/shared/contracts/clients/python/dist"
+      }
+    }
+  }
+}

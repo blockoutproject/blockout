@@ -143,9 +143,11 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - uses: actions/setup-python@v5
+      - uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
         with:
+          version: '0.11.29'
           python-version: '3.12'
+          enable-cache: true
 
       - uses: actions/setup-java@v5
         with:
@@ -164,22 +166,25 @@ jobs:
           name: contract-generated-artifacts
           path: .
 
-      - name: Install local contract client wheel
-        run: python -m pip install libs/shared/contracts/clients/python
+      - name: Sync Python workspace
+        run: npm exec nx run @blockout/python-contract-clients:sync
 
       - name: Test Python contract client boundary
-        run: npm exec nx run @blockout/contracts:test-python-clients
+        run: npm exec nx run @blockout/python-contract-clients:test
+
+      - name: Validate generated Python enums
+        run: npm run validate:python-enums-generated
 
       - name: Validate scraper syntax
         run: |
-          python -m compileall -q apps/scrapers/competition-scraper
-          python -m compileall -q apps/scrapers/club-scraper
+          npm exec nx run @blockout/competition-scraper:syntax-check
+          npm exec nx run @blockout/club-scraper:syntax-check
 
       - name: Build competition scraper image
-        run: docker build --file apps/scrapers/competition-scraper/Dockerfile --tag blockout-shadow/competition-scraper:${{ github.sha }} .
+        run: npm exec nx run @blockout/competition-scraper:docker-build:ci
 
       - name: Build club scraper image
-        run: docker build --file apps/scrapers/club-scraper/Dockerfile --tag blockout-shadow/club-scraper:${{ github.sha }} .
+        run: npm exec nx run @blockout/club-scraper:docker-build:ci
 
   local-compose:
     runs-on: ubuntu-latest

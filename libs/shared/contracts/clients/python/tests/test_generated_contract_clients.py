@@ -30,9 +30,10 @@ def load_factory(scraper: str) -> types.ModuleType:
 
 
 class GeneratedClientTests(unittest.TestCase):
-    def test_python_runtime_and_six_packages(self) -> None:
+    def test_python_runtime_and_seven_packages(self) -> None:
         self.assertGreaterEqual(sys.version_info, (3, 12))
         for service in (
+            "shared",
             "config_service",
             "clubs_service",
             "teams_service",
@@ -42,6 +43,15 @@ class GeneratedClientTests(unittest.TestCase):
         ):
             module = importlib.import_module(f"blockout_contract_clients.{service}")
             self.assertIsNotNone(module)
+
+        from blockout_contract_clients.shared.models.data_source_priority_enum import (
+            DataSourcePriorityEnum,
+        )
+
+        self.assertEqual(0, DataSourcePriorityEnum.DB.value)
+        self.assertEqual(1, DataSourcePriorityEnum.FFVB.value)
+        self.assertEqual(2, DataSourcePriorityEnum.LNV_XML.value)
+        self.assertEqual(3, DataSourcePriorityEnum.LNV_HTML.value)
 
     def test_all_configs_and_wheel_metadata_select_standard_httpx(self) -> None:
         for config_path in sorted((CLIENT_ROOT / "config").glob("*.json")):
@@ -58,8 +68,16 @@ class GeneratedClientTests(unittest.TestCase):
         self.assertFalse(any(item.startswith("aiohttp") for item in dependencies))
 
         for scraper in ("club-scraper", "competition-scraper"):
-            requirements = (WORKSPACE_ROOT / f"apps/scrapers/{scraper}/requirements.txt").read_text().splitlines()
-            self.assertIn("aiohttp", requirements)
+            metadata = tomllib.loads(
+                (WORKSPACE_ROOT / f"apps/scrapers/{scraper}/pyproject.toml").read_text()
+            )
+            dependencies = metadata["project"]["dependencies"]
+            self.assertIn("aiohttp==3.14.1", dependencies)
+            self.assertIn("blockout-contract-clients", dependencies)
+            self.assertEqual(
+                {"workspace": True},
+                metadata["tool"]["uv"]["sources"]["blockout-contract-clients"],
+            )
 
     def test_six_generated_transports_are_unmodified_standard_httpx(self) -> None:
         services = (
@@ -82,6 +100,8 @@ class GeneratedClientTests(unittest.TestCase):
 
         generation_script = (CLIENT_ROOT / "scripts/generate-python-clients.mjs").read_text()
         self.assertNotIn("--template-dir", generation_script)
+        self.assertNotIn("rmSync(outputDirectory", generation_script)
+        self.assertIn("rmSync(generatedPackageDirectory", generation_script)
         self.assertFalse((CLIENT_ROOT / "templates").exists())
 
     def test_all_twenty_four_audited_calls_resolve_to_async_methods(self) -> None:
@@ -287,9 +307,24 @@ class GeneratedClientTests(unittest.TestCase):
                 "apps/scrapers/competition-scraper/api/matches_api.py",
                 "apps/scrapers/competition-scraper/api/pools_api.py",
                 "apps/scrapers/competition-scraper/api/teams_api.py",
+                "apps/scrapers/competition-scraper/models/scraper.py",
+                "apps/scrapers/competition-scraper/scrapers/pro_scraper.py",
+                "apps/scrapers/competition-scraper/utils/scraper_logic.py",
             },
             imports,
         )
+        competition_root = WORKSPACE_ROOT / "apps/scrapers/competition-scraper"
+        for relative_path in (
+            "models/scraper.py",
+            "scrapers/pro_scraper.py",
+            "utils/scraper_logic.py",
+        ):
+            source = (competition_root / relative_path).read_text()
+            self.assertIn(
+                "blockout_contract_clients.shared.models.data_source_priority_enum",
+                source,
+            )
+            self.assertNotIn("models.enums.datasource_priority", source)
         club_root = WORKSPACE_ROOT / "apps/scrapers/club-scraper"
         for adapter_name in ("clubs_api.py", "competitions_api.py", "config_api.py", "teams_api.py"):
             adapter_source = (club_root / "api" / adapter_name).read_text()
@@ -297,7 +332,6 @@ class GeneratedClientTests(unittest.TestCase):
             self.assertNotIn("_get_headers", adapter_source)
         self.assertFalse((club_root / "utils/handlers/api_handler.py").exists())
         self.assertNotIn("def to_dict", (club_root / "utils/utils.py").read_text())
-        competition_root = WORKSPACE_ROOT / "apps/scrapers/competition-scraper"
         for adapter_name in ("competitions_api.py", "config_api.py", "matches_api.py", "pools_api.py", "teams_api.py"):
             adapter_source = (competition_root / "api" / adapter_name).read_text()
             self.assertNotIn("aiohttp", adapter_source)

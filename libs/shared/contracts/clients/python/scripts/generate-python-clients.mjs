@@ -7,6 +7,10 @@ const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
 const workspaceRoot = path.resolve(scriptDirectory, '../../../../../..');
 const clientsRoot = path.resolve(scriptDirectory, '..');
 const outputDirectory = path.join(clientsRoot, 'src');
+const generatedPackageDirectory = path.join(
+  outputDirectory,
+  'blockout_contract_clients',
+);
 const generator = path.join(
   workspaceRoot,
   'node_modules',
@@ -14,6 +18,7 @@ const generator = path.join(
   'openapi-generator-cli',
 );
 const configurations = [
+  'shared.json',
   'config-service.json',
   'clubs-service.json',
   'teams-service.json',
@@ -38,7 +43,10 @@ function normalizeGeneratedText(directory) {
   }
 }
 
-rmSync(outputDirectory, { recursive: true, force: true });
+// Clean the generated package itself while preserving packaging metadata created
+// by uv's editable workspace installation next to it. That metadata is not part
+// of contract generation and deleting it makes otherwise identical passes differ.
+rmSync(generatedPackageDirectory, { recursive: true, force: true });
 
 for (const configuration of configurations) {
   const result = spawnSync(

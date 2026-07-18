@@ -3,12 +3,9 @@
 ## Local setup
 
 ```bash
-cd apps/scrapers/club-scraper
-cp .env.example .env
-python3.12 -m venv .venv
-source .venv/bin/activate
-python -m pip install -r requirements.txt
-python main.py
+cp apps/scrapers/club-scraper/.env.example apps/scrapers/club-scraper/.env
+npm exec nx run @blockout/python-contract-clients:sync
+npm exec nx run @blockout/club-scraper:serve
 ```
 
 The Prometheus endpoint listens on port `8001`.

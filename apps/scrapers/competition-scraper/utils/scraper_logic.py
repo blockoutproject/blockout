@@ -15,7 +15,9 @@ from utils.html_utils import extract_club_stats_list
 from utils.match_utils import compute_volleyball_match_stats, is_anomalous_set_format
 from utils.team_utils import get_full_name, get_short_name, normalize
 from utils.utils import capitalize_words, parse_date
-from models.enums.datasource_priority import DataSourcePriority
+from blockout_contract_clients.shared.models.data_source_priority_enum import (
+    DataSourcePriorityEnum,
+)
 
 
 async def handle_csv_download_and_parse(
@@ -199,7 +201,7 @@ async def handle_csv_download_and_parse(
             #             message="Erreur parsing score pour calcul des stats"
             #         )
 
-            scraper.schedule_match_changes(updated_match=updated_match, prefix="CSV", priority=DataSourcePriority.FFVB)
+            scraper.schedule_match_changes(updated_match=updated_match, prefix="CSV", priority=DataSourcePriorityEnum.FFVB)
 
         # Fallback classement si anomalie
         if has_anomalous_match or is_nat_or_pro:

@@ -1,7 +1,8 @@
 # Blockout Contract Clients
 
-This private Python distribution contains the six generated asynchronous clients used by Blockout scrapers. Its
-authoritative inputs are the generated v2 OpenAPI bundles for config, clubs, teams, pools, competition, and matches.
+This private Python distribution contains the six generated asynchronous clients used by Blockout scrapers plus the
+model-only `blockout_contract_clients.shared` namespace. Its authoritative inputs are the generated shared, config,
+clubs, teams, pools, competition, and matches OpenAPI bundles.
 The generated Blockout transport uses the generator's standard `httpx` library; scraper provider traffic keeps its
 separate aiohttp ownership.
 
@@ -12,5 +13,7 @@ instead.
 `blockout_contract_clients` is an implicit namespace package. Import the owning service namespace explicitly; the
 common package does not re-export one service's generated APIs or models as if they belonged to every client.
 
-The wheel is built and installed locally by the scraper Docker images. It is not published to a package registry.
+The wheel is the buildable member of the root uv workspace and is built through
+`@blockout/python-contract-clients:build`. It is installed locally by the scraper Docker images and is not published
+to a package registry.
 Generated models and exceptions are adapter-only and must not escape a scraper's Blockout adapter.

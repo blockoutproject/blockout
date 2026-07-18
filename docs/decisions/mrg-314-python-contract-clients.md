@@ -4,6 +4,8 @@
 - Decision date: 2026-07-17
 - Transport amendment: 2026-07-17; generated `httpx` supersedes the interim generated `asyncio` transport before
   scraper call migration
+- Workspace amendment: 2026-07-18; MRG-433 adds one model-only shared namespace and moves packaging into the root uv
+  workspace without changing the six service transports
 - Runtime effect: none; MRG-314 changes documentation and future task structure only
 - Applies to: `apps/scrapers/club-scraper`, `apps/scrapers/competition-scraper`, and their Blockout REST adapters
 
@@ -15,14 +17,14 @@ manual endpoint, serialization, authentication, multipart, and error-contract du
 
 The selected toolchain is exact:
 
-| Tool or runtime                       | Version or value            | Purpose                                 |
-| ------------------------------------- | --------------------------- | --------------------------------------- |
-| `@openapitools/openapi-generator-cli` | `2.39.1`                    | pinned workspace generation entry point |
-| OpenAPI Generator                     | `7.23.0`                    | pinned generator binary                 |
-| generator                             | `python`                    | typed Python operations and models      |
-| library                               | `httpx`                     | asynchronous Blockout transport         |
-| generated Python target               | `3.12`                      | common scraper runtime floor            |
-| distribution                          | `blockout-contract-clients` | one internal wheel for six clients      |
+| Tool or runtime                       | Version or value            | Purpose                                              |
+| ------------------------------------- | --------------------------- | ---------------------------------------------------- |
+| `@openapitools/openapi-generator-cli` | `2.39.1`                    | pinned workspace generation entry point              |
+| OpenAPI Generator                     | `7.23.0`                    | pinned generator binary                              |
+| generator                             | `python`                    | typed Python operations and models                   |
+| library                               | `httpx`                     | asynchronous Blockout transport                      |
+| generated Python target               | `3.12`                      | common scraper runtime floor                         |
+| distribution                          | `blockout-contract-clients` | one internal wheel for six clients and shared models |
 
 No Mustache template is owned by Blockout. The standard generator output is adapted only through supported generator
 configuration and handwritten scraper adapters outside generated source.
@@ -37,8 +39,8 @@ sessions, making the required ownership split explicit.
 `openapi-python-client` is not selected because its own project still documents incomplete OpenAPI feature coverage.
 Introducing a second generator would also discard the already-proven operation and multipart coverage without a
 Blockout requirement it solves better. The small workspace Node entry point is orchestration only: it invokes the
-official pinned generator for six configs and may normalize formatting, but it may not synthesize models, operations,
-transport, authentication, or serialization.
+official pinned generator for six service configs and one model-only shared config and may normalize formatting, but
+it may not synthesize models, operations, transport, authentication, or serialization.
 
 ## 1. Ownership And Package Layout
 
@@ -47,6 +49,7 @@ MRG-330 creates the handwritten distribution boundary at `libs/shared/contracts/
 ```text
 libs/shared/contracts/clients/python/
 ├── pyproject.toml
+├── project.json
 ├── README.md
 ├── config/
 │   ├── clubs-service.json
@@ -54,9 +57,11 @@ libs/shared/contracts/clients/python/
 │   ├── config-service.json
 │   ├── matches-service.json
 │   ├── pools-service.json
+│   ├── shared.json
 │   └── teams-service.json
 └── src/
     └── blockout_contract_clients/
+        ├── shared/
         ├── clubs_service/
         ├── competition_service/
         ├── config_service/
@@ -67,13 +72,15 @@ libs/shared/contracts/clients/python/
 
 `pyproject.toml`, the package README, generator configuration, wheel commands, and repository guards are handwritten.
 Everything under `src/**` is generated, ignored by Git, deterministically formatted, and forbidden to manual editing.
-Each service package has a distinct Python namespace but all six ship in the one private wheel
+Each service package has a distinct Python namespace and shared contract models use a seventh model-only namespace;
+all seven namespaces ship in the one private wheel
 `blockout_contract_clients`/`blockout-contract-clients`.
 
 The authoritative inputs are the generated v2 bundles produced from committed source fragments:
 
 | Generated package     | OpenAPI input                                            |
 | --------------------- | -------------------------------------------------------- |
+| `shared`              | `libs/shared/contracts/generated/specs/shared.json`      |
 | `config_service`      | `libs/shared/contracts/generated/specs/config.json`      |
 | `clubs_service`       | `libs/shared/contracts/generated/specs/clubs.json`       |
 | `teams_service`       | `libs/shared/contracts/generated/specs/teams.json`       |
@@ -100,9 +107,12 @@ Every service configuration fixes:
 - no generated tests, documentation site, package metadata, or standalone distribution;
 - no custom template directory or post-generation semantic rewrite.
 
+The seventh `shared` configuration selects models only. It generates shared schemas and enums without an API client,
+transport, or standalone distribution.
+
 The root workspace pins CLI `2.39.1`; its committed version-manager configuration pins OpenAPI Generator `7.23.0`.
-MRG-330 exposes `@blockout/contracts:generate-python-clients`, makes it depend on all six generated REST bundles, and
-runs the six configurations in a stable service order. Two clean executions must leave the worktree unchanged.
+MRG-330 exposes `@blockout/contracts:generate-python-clients`; MRG-433 extends its stable order to the shared model
+bundle followed by the six REST service bundles. Two clean executions must leave the worktree unchanged.
 
 Generated code is an adapter artifact, not application or product authority. A generator limitation must be resolved
 through an upstream-supported option, source-contract correction, or an explicit revision to this decision; it must
@@ -190,9 +200,9 @@ same boundary with no invented status or code.
 
 ## 8. Docker And Wheel Installation
 
-MRG-330 changes both scraper Docker builds to use the monorepo root as build context. Each image builds or copies the
-local `blockout-contract-clients` wheel in a deterministic build stage, installs that wheel with the scraper's pinned
-requirements, then copies only its owning scraper source and required runtime artifacts.
+MRG-433 makes both scraper Docker builds consume the committed workspace lock in a Python 3.12 multi-stage build with
+uv 0.11.29. Each builder syncs only its scraper package with `--locked --no-dev --no-editable`; the final image copies
+the resulting environment, contains no uv binary, and then copies only its owning scraper source.
 
 The wheel is local and immutable within the image build. It is not published to PyPI or another external package
 registry. Docker cache boundaries must invalidate when the Python client source, wheel metadata, REST bundle, generator
@@ -206,11 +216,13 @@ configuration, or scraper requirements change. Standalone scraper repositories r
 | MRG-378 | replace the interim generated `asyncio` output and factories with standard generated `httpx` clients, then re-prove the complete MRG-330 transport gate                            |
 | MRG-348 | replace the club scraper's six Blockout operations with thin generated `httpx` client adapters; delete only their legacy request/response conversion paths                         |
 | MRG-349 | replace the competition scraper's eighteen Blockout operations with thin generated `httpx` client adapters; delete only their legacy request/response conversion paths             |
+| MRG-433 | own the root uv workspace, seventh shared model namespace, Python Nx project/edges, generated-enum guard, locked Docker packaging, and CI command migration                        |
 | MRG-601 | audit post-migration boundaries, shared adapter reuse, session ownership, scheduler/proxy behavior, and separation of the eleven provider/federation calls                         |
 | MRG-802 | enforce pinned generation, wheel build, ignored-output determinism, syntax, adapter isolation, and both root-context scraper image builds in CI                                    |
 
-MRG-431 amends only output ownership: Python sources and REST bundles are regenerated from authoritative sources in
-local, CI, image, and packaging boundaries and never tracked by Git, matching Maaatch.
+MRG-431 amends output ownership: Python sources and REST bundles are regenerated from authoritative sources in local,
+CI, image, and packaging boundaries and never tracked by Git, matching Maaatch. MRG-433 preserves that rule while
+committing only the workspace metadata and `uv.lock`.
 
 The 24-operation total is the MRG-303 baseline: six club-scraper Blockout operations and eighteen competition-scraper
 Blockout operations. The eleven provider/federation calls stay outside generation.
@@ -221,7 +233,7 @@ MRG-330 established the first generated-client baseline with the standard `async
 migrates, MRG-378 replaces that interim transport with the standard `httpx` library and re-proves with Python 3.12
 fixtures and generated code:
 
-- all six packages import from the one installed wheel;
+- all six service packages and the model-only shared namespace import from the one installed wheel;
 - two clean generations produce no diff and generated-source guards pass;
 - all 24 audited operation IDs resolve to generated asynchronous methods;
 - camelCase JSON request/response aliases map to snake_case generated attributes;

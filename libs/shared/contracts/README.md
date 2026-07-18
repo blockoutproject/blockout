@@ -54,14 +54,15 @@ Canonical source policy is enforced separately through:
 npm exec nx run @blockout/contracts:lint-openapi-source
 ```
 
-The scraper-owned Python boundary is generated separately from the six service bundles selected by MRG-314:
+The scraper-owned Python boundary is generated from the shared model bundle and six service bundles selected by
+MRG-314 and MRG-433:
 
 ```bash
 npm exec nx run @blockout/contracts:generate-python-clients
-npm exec nx run @blockout/contracts:build-python-wheel
+npm exec nx run @blockout/python-contract-clients:build
 ```
 
-OpenAPI Generator `7.23.0` produces the ignored Python 3.12 `asyncio` namespaces beneath
+OpenAPI Generator `7.23.0` produces the ignored Python 3.12 model-only shared namespace and six `httpx` namespaces beneath
 `clients/python/src/blockout_contract_clients`. Those files are generated-only. The private
 `blockout-contract-clients` wheel is installed from the monorepo by both root-context scraper images and is never
 published externally. MRG-348 and MRG-349 remain responsible for moving the existing handwritten calls behind the

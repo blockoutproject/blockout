@@ -1682,12 +1682,23 @@ state moves to GitHub and this file becomes a historical migration record.
     `AUTH0_ISSUER` runtime value. Contracts, event topology, database values, behavior, dependencies, deployment,
     production, and Maaatch are unchanged; `docs/migration/mrg-432-generated-backend-enums.md` records source
     ownership, inventory, generation, compatibility, enforcement, and rollback.
-- [ ] MRG-433 Integrate both Python scrapers and the shared generated Python contract client into the Nx project graph
+- [x] MRG-433 Integrate both Python scrapers and the shared generated Python contract client into the Nx project graph
       with `@nxlv/python` and `uv`. Define one coherent workspace, environment, lockfile, dependency-graph, generation,
       test, package, Docker, and CI ownership model; retire duplicated `requirements.txt` flows only after proving image
       and runtime parity; pin and assess the community plugin before adoption; and keep generated sources out of Git.
       Do not change scraper schedules, provider/federation behavior, Blockout API behavior, credentials, deployment, or
       production.
+  - Evidence: Python 3.12, uv 0.11.29, one ignored root `.venv`, one committed `uv.lock`, and three workspace members
+    now own both scraper applications and the private generated-client wheel. Nx 23 discovers all three projects, the
+    two scraper-to-client edges, and the narrowly pinned `@nxlv/python` 22.2.2 sync and environment targets;
+    the differential audit adds no high or critical plugin finding. Shared OpenAPI source now generates the seventh
+    model-only namespace and `DataSourcePriorityEnum`, while the zero-allowlist AST guard rejects handwritten scraper
+    enums and Git still tracks no generated source. Before/after image inspection proves exact 43-package club and
+    45-package competition parity, identical Python 3.12.13, workdir, timezone, command, imports, and offline startup,
+    with no uv binary in either final image; only then were both `requirements.txt` files removed. The complete local
+    gate passes locked sync, deterministic generation, 30 REST tests, eight event tests, the 16-module Maven reactor,
+    mobile tests/typecheck/export, 23 Python fixtures, isolated wheel import, both Nx syntax/image builds, Compose,
+    documentation, Maaatch structural comparison, and final zero-tracked-generated verification.
   - Execution mode: PLAN_REQUIRED
 - [ ] MRG-429 Restructure `search-worker` event-consumer and incremental-projection internals with versioned event
       inputs, idempotency, stale-write protection, cache consistency, and reconciliation evidence.

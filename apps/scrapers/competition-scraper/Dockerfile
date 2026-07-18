@@ -1,27 +1,33 @@
-FROM python:3.12-alpine AS contracts-wheel
+FROM ghcr.io/astral-sh/uv:0.11.29 AS uv
 
-WORKDIR /contracts
+FROM python:3.12-alpine AS workspace-builder
 
-COPY openapitools.json package-lock.json ./generation-inputs/
-COPY libs/shared/contracts/generated/specs/ ./generation-inputs/specs/
-COPY libs/shared/contracts/clients/python/config/ ./generation-inputs/config/
-COPY libs/shared/contracts/clients/python/pyproject.toml libs/shared/contracts/clients/python/README.md ./
-COPY libs/shared/contracts/clients/python/src/ ./src/
+COPY --from=uv /uv /uvx /bin/
 
-RUN python -m pip wheel --no-cache-dir --no-deps --wheel-dir /wheel .
+WORKDIR /workspace
+
+ENV UV_COMPILE_BYTECODE=1 \
+    UV_LINK_MODE=copy \
+    UV_PYTHON_DOWNLOADS=never
+
+COPY .python-version pyproject.toml uv.lock ./
+COPY apps/scrapers/club-scraper/pyproject.toml ./apps/scrapers/club-scraper/pyproject.toml
+COPY apps/scrapers/competition-scraper/pyproject.toml ./apps/scrapers/competition-scraper/pyproject.toml
+COPY libs/shared/contracts/clients/python/pyproject.toml libs/shared/contracts/clients/python/README.md ./libs/shared/contracts/clients/python/
+COPY libs/shared/contracts/clients/python/src/ ./libs/shared/contracts/clients/python/src/
+
+RUN uv sync --locked --package blockout-competition-scraper --no-dev --no-editable
 
 FROM python:3.12-alpine
 
-# Keep the existing scraper work directory and entry point.
 WORKDIR /app
 
-ENV TZ=UTC
+ENV TZ=UTC \
+    PATH="/workspace/.venv/bin:$PATH"
 
-COPY apps/scrapers/competition-scraper/requirements.txt .
-COPY --from=contracts-wheel /wheel/*.whl /tmp/wheels/
+COPY --from=workspace-builder /workspace/.venv /workspace/.venv
 
-RUN pip install --no-cache-dir -r requirements.txt /tmp/wheels/*.whl \
-    && python -c "import blockout_contract_clients.config_service, blockout_contract_clients.teams_service, blockout_contract_clients.pools_service, blockout_contract_clients.competition_service, blockout_contract_clients.matches_service"
+RUN python -c "import blockout_contract_clients.shared, blockout_contract_clients.config_service, blockout_contract_clients.teams_service, blockout_contract_clients.pools_service, blockout_contract_clients.competition_service, blockout_contract_clients.matches_service"
 
 COPY apps/scrapers/competition-scraper/ .
 

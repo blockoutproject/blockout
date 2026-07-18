@@ -11,7 +11,9 @@ from api.config_api import create_raw_division_mapping, get_raw_division_mapping
 from api.pools_api import get_pools_by_league_and_season
 from config.logger_config import log_event
 from models.association_stats import AssociationStats
-from models.enums.datasource_priority import DataSourcePriority
+from blockout_contract_clients.shared.models.data_source_priority_enum import (
+    DataSourcePriorityEnum,
+)
 from models.pool import Pool
 from models.raw_division_mapping import RawDivisionMapping
 from models.scraper import Scraper
@@ -269,7 +271,7 @@ class ProScraper(Scraper):
                 self.schedule_match_changes(
                     updated_match=updated_match,
                     prefix="LNV-XML",
-                    priority=DataSourcePriority.LNV_XML,
+                    priority=DataSourcePriorityEnum.LNV_XML,
                 )
 
         except Exception as e:
@@ -498,7 +500,7 @@ class ProScraper(Scraper):
         self.schedule_match_changes(
             updated_match=updated_match,
             prefix="LNV-Live",
-            priority=DataSourcePriority.LNV_HTML,
+            priority=DataSourcePriorityEnum.LNV_HTML,
         )
 
     def extract_match_id(self, match_block) -> Optional[str]:

@@ -6,19 +6,23 @@
   "tags": ["scope:scrapers", "type:application", "platform:python"],
   "targets": {
     "serve": {
-      "executor": "nx:run-commands",
+      "executor": "@nxlv/python:run-commands",
       "continuous": true,
+      "dependsOn": [
+        "@blockout/contracts:generate-python-clients",
+        "@blockout/python-contract-clients:sync"
+      ],
       "options": {
         "cwd": "apps/scrapers/club-scraper",
-        "command": "python3 main.py"
+        "command": "python main.py"
       }
     },
     "syntax-check": {
-      "executor": "nx:run-commands",
+      "executor": "@nxlv/python:run-commands",
       "cache": true,
       "options": {
         "cwd": "apps/scrapers/club-scraper",
-        "command": "python3 -m compileall -q ."
+        "command": "python -m compileall -q ."
       }
     },
     "docker-build": {
@@ -27,6 +31,14 @@
       "dependsOn": ["@blockout/contracts:generate-python-clients"],
       "options": {
         "command": "docker build --file apps/scrapers/club-scraper/Dockerfile --tag blockoutproject/blockout-scraper-clubs:latest ."
+      },
+      "configurations": {
+        "ci": {
+          "command": "docker build --file apps/scrapers/club-scraper/Dockerfile --tag blockout-shadow/club-scraper:${GITHUB_SHA} ."
+        },
+        "local": {
+          "command": "docker build --file apps/scrapers/club-scraper/Dockerfile --tag blockout-shadow/club-scraper:local ."
+        }
       }
     }
   }

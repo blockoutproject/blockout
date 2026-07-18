@@ -76,7 +76,7 @@ console.log(
 console.log('VARIANT liquibase.md -> flyway.md (production migration engine)');
 console.log('VARIANT apps/frontend/web -> apps/frontend/mobile');
 console.log(
-  'VARIANT no Python Nx plugin -> explicit scraper project.json files',
+  'VARIANT narrow @nxlv/python graph support -> explicit scraper project.json files',
 );
 
 const nonApplicableGenericSkills = new Map([

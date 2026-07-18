@@ -84,6 +84,11 @@ echo "== Environment =="
 node --version
 java -version
 docker ps >/dev/null
+MRG433_UV_VERSION="$(uv --version)"
+if [[ "$MRG433_UV_VERSION" != uv\ 0.11.29* ]]; then
+  echo "MRG-433 requires uv 0.11.29; found $MRG433_UV_VERSION." >&2
+  exit 1
+fi
 
 if [[ "$SKIP_INSTALL" == false ]]; then
   echo "== Install =="
@@ -99,10 +104,14 @@ require_identical_manifests \
   "$VERIFY_TMP_DIR/backend-config-after.txt" \
   "The committed backend schemaMappings block is stale. Regenerate it before verification."
 
+uv lock --check
+npm exec nx run @blockout/python-contract-clients:sync
+
 echo "== Repository configuration =="
 npm run validate:env
 npm run validate:docs
 npm run validate:backend-enums-generated
+npm run validate:python-enums-generated
 npm run validate:generated-untracked
 npm exec nx show projects
 npm exec nx run @blockout/contracts:test
@@ -178,27 +187,19 @@ npm exec nx run @blockout/mobile:typecheck
 npm exec nx run @blockout/mobile:export --platform=android
 
 echo "== Scrapers =="
-python3 -m venv "$VERIFY_TMP_DIR/python-venv"
-PYTHON_VENV_BIN="$VERIFY_TMP_DIR/python-venv/bin"
-mkdir -p "$VERIFY_TMP_DIR/python-wheel"
-cp -R \
-  libs/shared/contracts/clients/python \
-  "$VERIFY_TMP_DIR/python-client-source"
-"$PYTHON_VENV_BIN/python" -m pip wheel \
-  --no-deps \
-  --wheel-dir "$VERIFY_TMP_DIR/python-wheel" \
-  "$VERIFY_TMP_DIR/python-client-source"
-PYTHON_CLIENT_WHEELS=("$VERIFY_TMP_DIR"/python-wheel/*.whl)
+npm exec nx run @blockout/python-contract-clients:test
+npm exec nx run @blockout/python-contract-clients:build
+PYTHON_CLIENT_WHEELS=(libs/shared/contracts/clients/python/dist/*.whl)
 if [[ "${#PYTHON_CLIENT_WHEELS[@]}" -ne 1 || ! -f "${PYTHON_CLIENT_WHEELS[0]}" ]]; then
   echo "Expected exactly one generated Python client wheel." >&2
   exit 1
 fi
-"$PYTHON_VENV_BIN/python" -m pip install "${PYTHON_CLIENT_WHEELS[0]}"
-PATH="$PYTHON_VENV_BIN:$PATH" npm exec nx run @blockout/contracts:test-python-clients
-PATH="$PYTHON_VENV_BIN:$PATH" npm exec nx run @blockout/competition-scraper:syntax-check
-PATH="$PYTHON_VENV_BIN:$PATH" npm exec nx run @blockout/club-scraper:syntax-check
-docker build --file apps/scrapers/competition-scraper/Dockerfile --tag blockout-shadow/competition-scraper:local .
-docker build --file apps/scrapers/club-scraper/Dockerfile --tag blockout-shadow/club-scraper:local .
+uv run --isolated --no-project --with "${PYTHON_CLIENT_WHEELS[0]}" python -c \
+  "import blockout_contract_clients.shared, blockout_contract_clients.config_service, blockout_contract_clients.matches_service"
+npm exec nx run @blockout/competition-scraper:syntax-check
+npm exec nx run @blockout/club-scraper:syntax-check
+npm exec nx run @blockout/competition-scraper:docker-build:local
+npm exec nx run @blockout/club-scraper:docker-build:local
 
 echo "== Local Compose =="
 docker compose --file infra/compose/docker-compose.third-party.yml --file infra/compose/docker-compose.app.yml config --quiet
@@ -210,6 +211,7 @@ require_identical_manifests \
   "$VERIFY_TMP_DIR/generated-final.txt" \
   "A later verification step modified generated artifacts."
 npm run validate:generated-untracked
+uv lock --check
 git diff --check
 
 echo "Local PR CI verification completed."
