@@ -8,10 +8,10 @@ import org.springframework.stereotype.Service;
 import com.blockout.workersearch.models.docs.PoolDoc;
 import com.blockout.workersearch.models.enums.Format;
 import com.blockout.workersearch.models.enums.Gender;
-import com.blockout.workersearch.models.events.DivisionUpsertEvent;
 import com.blockout.workersearch.models.events.PoolUpsertEvent;
+import com.blockout.workersearch.projection.snapshot.application.DivisionCacheSnapshot;
+import com.blockout.workersearch.projection.snapshot.application.DivisionProjectionCache;
 import com.blockout.workersearch.repositories.PoolRepository;
-import com.blockout.workersearch.services.caches.ConfigCacheService;
 
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
@@ -22,7 +22,7 @@ public class PoolIndexService {
     private static final Logger logger = LoggerFactory.getLogger(PoolIndexService.class);
 
     private final PoolRepository poolRepository;
-    private final ConfigCacheService configCacheService;
+    private final DivisionProjectionCache divisionCache;
 
     public void upsert(PoolUpsertEvent e) {
         PoolDoc doc = map(e);
@@ -54,10 +54,10 @@ public class PoolIndexService {
     }
 
     private PoolDoc map(PoolUpsertEvent e) {
-        DivisionUpsertEvent division = configCacheService.getDivisionById(e.getDivisionId());
-        String divisionName = division != null ? division.getName() : "Division inconnue";
-        String logoUrl = division != null ? division.getLogoUrl() : null;
-        Long divisionId = division != null ? division.getId() : null;
+        DivisionCacheSnapshot division = divisionCache.getById(e.getDivisionId());
+        String divisionName = division != null ? division.name() : "Division inconnue";
+        String logoUrl = division != null ? division.logoUrl() : null;
+        Long divisionId = division != null ? division.id() : null;
         Format format = e.getFormat();
         Gender gender = e.getGender();
 

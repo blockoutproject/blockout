@@ -9,13 +9,14 @@ import org.springframework.stereotype.Service;
 import com.blockout.workersearch.models.docs.TeamDoc;
 import com.blockout.workersearch.models.enums.Format;
 import com.blockout.workersearch.models.enums.Gender;
-import com.blockout.workersearch.models.events.ClubUpsertEvent;
-import com.blockout.workersearch.models.events.DivisionUpsertEvent;
 import com.blockout.workersearch.models.events.TeamUpsertEvent;
+import com.blockout.workersearch.projection.snapshot.application.ClubCacheSnapshot;
+import com.blockout.workersearch.projection.snapshot.application.ClubProjectionCache;
+import com.blockout.workersearch.projection.snapshot.application.DivisionCacheSnapshot;
+import com.blockout.workersearch.projection.snapshot.application.DivisionProjectionCache;
+import com.blockout.workersearch.projection.snapshot.application.TeamCacheSnapshot;
+import com.blockout.workersearch.projection.snapshot.application.TeamProjectionCache;
 import com.blockout.workersearch.repositories.TeamRepository;
-import com.blockout.workersearch.services.caches.ClubCacheService;
-import com.blockout.workersearch.services.caches.ConfigCacheService;
-import com.blockout.workersearch.services.caches.TeamCacheService;
 
 import java.util.List;
 
@@ -28,9 +29,9 @@ public class TeamIndexService {
     private static final Logger logger = LoggerFactory.getLogger(TeamIndexService.class);
 
     private final TeamRepository teamRepository;
-    private final TeamCacheService teamCacheService;
-    private final ClubCacheService clubCacheService;
-    private final ConfigCacheService configCacheService;
+    private final TeamProjectionCache teamCache;
+    private final ClubProjectionCache clubCache;
+    private final DivisionProjectionCache divisionCache;
 
     public void upsert(TeamUpsertEvent e) {
         TeamDoc doc = map(e);
@@ -39,7 +40,7 @@ public class TeamIndexService {
                 keyValue("id", doc.getId()),
                 keyValue("name", doc.getName()));
         teamRepository.save(doc);
-        teamCacheService.put(e);
+        teamCache.put(toCacheSnapshot(e));
     }
 
     public void upsertBatch(List<TeamUpsertEvent> events) {
@@ -48,7 +49,15 @@ public class TeamIndexService {
                 keyValue("action", "upsert_team_batch"),
                 keyValue("count", docs.size()));
         teamRepository.saveAll(docs);
-        events.forEach(teamCacheService::put);
+        events.stream().map(this::toCacheSnapshot).forEach(teamCache::put);
+    }
+
+    public void upsertCachedBatch(List<TeamCacheSnapshot> teams) {
+        List<TeamDoc> docs = teams.stream().map(this::map).toList();
+        logger.info("Upserting cached batch of teams",
+                keyValue("action", "upsert_cached_team_batch"),
+                keyValue("count", docs.size()));
+        teamRepository.saveAll(docs);
     }
 
     public void delete(Long id) {
@@ -62,27 +71,31 @@ public class TeamIndexService {
     }
 
     private TeamDoc map(TeamUpsertEvent e) {
-        ClubUpsertEvent club = clubCacheService.getClubById(e.getClubId());
-        DivisionUpsertEvent division = configCacheService.getDivisionById(e.getDivisionId());
+        return map(toCacheSnapshot(e));
+    }
 
-        String clubName = club != null ? club.getName() : null;
-        String clubCity = club != null ? club.getCity() : null;
-        String clubLogoUrl = club != null ? club.getLogoUrl() : null;
+    private TeamDoc map(TeamCacheSnapshot team) {
+        ClubCacheSnapshot club = clubCache.getById(team.clubId());
+        DivisionCacheSnapshot division = divisionCache.getById(team.divisionId());
 
-        String logoUrl = StringUtils.isNotBlank(e.getLogoUrl())
-                ? e.getLogoUrl()
+        String clubName = club != null ? club.name() : null;
+        String clubCity = club != null ? club.city() : null;
+        String clubLogoUrl = club != null ? club.logoUrl() : null;
+
+        String logoUrl = StringUtils.isNotBlank(team.logoUrl())
+                ? team.logoUrl()
                 : clubLogoUrl;
 
-        String divisionName = division != null ? division.getName() : "Division inconnue";
-        Long divisionId = division != null ? division.getId() : null;
-        Format format = e.getFormat();
-        Gender gender = e.getGender();
+        String divisionName = division != null ? division.name() : "Division inconnue";
+        Long divisionId = division != null ? division.id() : null;
+        Format format = team.format();
+        Gender gender = team.gender();
 
         return TeamDoc.builder()
-                .id(e.getId())
-                .name(e.getName())
-                .shortName(e.getShortName())
-                .clubId(e.getClubId())
+                .id(team.id())
+                .name(team.name())
+                .shortName(team.shortName())
+                .clubId(team.clubId())
                 .clubName(clubName)
                 .clubCity(clubCity)
                 .logoUrl(logoUrl)
@@ -90,7 +103,20 @@ public class TeamIndexService {
                 .divisionName(divisionName)
                 .format(format.name())
                 .gender(gender.name())
-                .season(e.getSeason())
+                .season(team.season())
                 .build();
+    }
+
+    private TeamCacheSnapshot toCacheSnapshot(TeamUpsertEvent event) {
+        return new TeamCacheSnapshot(
+                event.getId(),
+                event.getName(),
+                event.getShortName(),
+                event.getClubId(),
+                event.getDivisionId(),
+                event.getFormat(),
+                event.getGender(),
+                event.getSeason(),
+                event.getLogoUrl());
     }
 }

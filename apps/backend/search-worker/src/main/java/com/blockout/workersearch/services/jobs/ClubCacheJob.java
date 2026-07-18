@@ -6,9 +6,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import com.blockout.workersearch.models.events.ClubUpsertEvent;
-import com.blockout.workersearch.club.application.ClubCatalog;
-import com.blockout.workersearch.services.caches.ClubCacheService;
+import com.blockout.workersearch.projection.snapshot.application.ProjectionCacheRefreshService;
 
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
@@ -17,27 +15,16 @@ import static net.logstash.logback.argument.StructuredArguments.keyValue;
 public class ClubCacheJob {
 
     private static final Logger logger = LoggerFactory.getLogger(ClubCacheJob.class);
-    private final ClubCatalog clubCatalog;
-    private final ClubCacheService clubCacheService;
+    private final ProjectionCacheRefreshService cacheRefreshService;
 
     @Scheduled(fixedRate = 600000)
     public void refreshClubCache() {
         try {
-            var clubs = clubCatalog.findActiveClubs();
-            var events = clubs.stream()
-                    .map(club -> ClubUpsertEvent.builder()
-                            .id(club.id())
-                            .name(club.name())
-                            .logoUrl(club.logoUrl())
-                            .city(club.city())
-                            .build())
-                    .toList();
-
-            clubCacheService.replaceAll(events);
+            int count = cacheRefreshService.refreshClubs();
 
             logger.info("Club cache refreshed",
                     keyValue("action", "refresh_club_cache"),
-                    keyValue("count", events.size()));
+                    keyValue("count", count));
 
         } catch (Exception e) {
             logger.error("Error while refreshing club cache",

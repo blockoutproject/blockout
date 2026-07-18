@@ -1625,8 +1625,25 @@ state moves to GitHub and this file becomes a historical migration record.
     index-versioning, alias-swap, rebuild, and reconciliation ownership;
     `docs/migration/mrg-411-search-query-adapter-architecture.md` records ownership, ordering, empty-result parity,
     compatibility, deferred scope, and rollback.
-- [ ] MRG-412 Restructure `search-worker` bootstrap, schedules, generated client adapters, and immutable cache snapshots
+- [x] MRG-412 Restructure `search-worker` bootstrap, schedules, generated client adapters, and immutable cache snapshots
       without reusing generated transport DTOs as worker domain models.
+  - Evidence: generated club, team, and pool adapters now share one transport-only canonical page collector while all
+    four generated clients still map immediately to immutable application snapshots. Auth0 client-credentials
+    acquisition, retained last-known-good token state, bearer transport, and explicit five-second connect and
+    fifteen-second read timeouts are isolated behind outbound interfaces. Club, team, and division caches publish
+    complete immutable map generations atomically; team identity is ID-based, repeated upserts replace rather than
+    append, club movement cannot retain duplicates, and returned views preserve source order. One application service
+    owns source-to-cache mapping, while startup and ten-minute refresh triggers are thin delegates and preserve the
+    prior initialization and failure behavior. The hourly trigger now delegates to a named rebuild operation without
+    changing its current index order or delete-before-fetch behavior. Twenty-nine focused worker tests, complete
+    backend packaging, all backend Dockerfile checks, deterministic generation, scraper and mobile gates, the full
+    local CI gate, documentation, formatting, and whitespace checks pass. REST and event contracts, generated
+    artifacts, Rabbit topology and acknowledgement, event decoding and deduplication,
+    source URLs and filters, schedules, index names, mappings, documents, aliases, callers, deployment, production,
+    and Maaatch are unchanged. MRG-429 retains versioned incremental projection and reconciliation; MRG-430 retains
+    index generations, validation, alias swaps, rollback retention, cleanup, and failed-rebuild reconciliation;
+    `docs/migration/mrg-412-search-worker-snapshot-architecture.md` records ownership, atomicity, compatibility,
+    deferred scope, and rollback.
 - [ ] MRG-429 Restructure `search-worker` event-consumer and incremental-projection internals with versioned event
       inputs, idempotency, stale-write protection, cache consistency, and reconciliation evidence.
 - [ ] MRG-430 Implement versioned Elasticsearch index documents, validation, atomic alias swaps, bounded rollback-index

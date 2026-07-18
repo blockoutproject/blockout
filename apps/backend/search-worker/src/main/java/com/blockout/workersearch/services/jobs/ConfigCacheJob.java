@@ -6,9 +6,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import com.blockout.workersearch.models.events.DivisionUpsertEvent;
-import com.blockout.workersearch.configuration.division.application.DivisionCatalog;
-import com.blockout.workersearch.services.caches.ConfigCacheService;
+import com.blockout.workersearch.projection.snapshot.application.ProjectionCacheRefreshService;
 
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
@@ -17,26 +15,16 @@ import static net.logstash.logback.argument.StructuredArguments.keyValue;
 public class ConfigCacheJob {
 
     private static final Logger logger = LoggerFactory.getLogger(ConfigCacheJob.class);
-    private final DivisionCatalog divisionCatalog;
-    private final ConfigCacheService configCacheService;
+    private final ProjectionCacheRefreshService cacheRefreshService;
 
     @Scheduled(fixedRate = 600000)
     public void refreshDivisionCache() {
         try {
-            var divisions = divisionCatalog.findAll();
-            var events = divisions.stream()
-                    .map(division -> DivisionUpsertEvent.builder()
-                            .id(division.id())
-                            .name(division.name())
-                            .logoUrl(division.logoUrl())
-                            .build())
-                    .toList();
-
-            configCacheService.replaceDivisions(events);
+            int count = cacheRefreshService.refreshDivisions();
 
             logger.info("Division cache refreshed",
                     keyValue("action", "refresh_division_cache"),
-                    keyValue("count", events.size()));
+                    keyValue("count", count));
 
         } catch (Exception e) {
             logger.error("Error while refreshing division cache",

@@ -6,12 +6,12 @@ import org.springframework.stereotype.Service;
 
 import com.blockout.workersearch.models.docs.ClubDoc;
 import com.blockout.workersearch.models.events.ClubUpsertEvent;
+import com.blockout.workersearch.projection.snapshot.application.ClubCacheSnapshot;
+import com.blockout.workersearch.projection.snapshot.application.ClubProjectionCache;
+import com.blockout.workersearch.projection.snapshot.application.TeamCacheSnapshot;
+import com.blockout.workersearch.projection.snapshot.application.TeamProjectionCache;
 import com.blockout.workersearch.repositories.ClubRepository;
-import com.blockout.workersearch.services.caches.ClubCacheService;
-import com.blockout.workersearch.services.caches.TeamCacheService;
-import com.blockout.workersearch.models.events.TeamUpsertEvent;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
@@ -23,8 +23,8 @@ public class ClubIndexService {
     private static final Logger logger = LoggerFactory.getLogger(ClubIndexService.class);
 
     private final ClubRepository clubRepository;
-    private final ClubCacheService clubCacheService;
-    private final TeamCacheService teamCacheService;
+    private final ClubProjectionCache clubCache;
+    private final TeamProjectionCache teamCache;
     private final TeamIndexService teamIndexService;
 
     public void upsert(ClubUpsertEvent e) {
@@ -34,7 +34,7 @@ public class ClubIndexService {
                 keyValue("id", doc.getId()),
                 keyValue("name", doc.getName()));
         clubRepository.save(doc);
-        clubCacheService.put(e);
+        clubCache.put(toCacheSnapshot(e));
         reindexTeamsForClub(doc.getId());
     }
 
@@ -44,15 +44,15 @@ public class ClubIndexService {
                 keyValue("action","upsert_club_batch"),
                 keyValue("count", docs.size()));
         clubRepository.saveAll(docs);
-        events.forEach(clubCacheService::put);
+        events.stream().map(this::toCacheSnapshot).forEach(clubCache::put);
         docs.forEach(d -> reindexTeamsForClub(d.getId()));
     }
 
     public void delete(String id) {
         logger.info("Deleting club", keyValue("action","delete_club"), keyValue("id", id));
         clubRepository.deleteById(id);
-        clubCacheService.remove(id);
-        teamCacheService.remove(id);
+        clubCache.remove(id);
+        teamCache.removeClub(id);
     }
 
     public void deleteAll() {
@@ -69,8 +69,12 @@ public class ClubIndexService {
                 .build();
     }
 
+    private ClubCacheSnapshot toCacheSnapshot(ClubUpsertEvent event) {
+        return new ClubCacheSnapshot(event.getId(), event.getName(), event.getLogoUrl(), event.getCity());
+    }
+
     private void reindexTeamsForClub(String clubId) {
-        List<TeamUpsertEvent> events = new ArrayList<>(teamCacheService.getTeamsByClubId(clubId));
-        teamIndexService.upsertBatch(events);
+        List<TeamCacheSnapshot> teams = teamCache.getByClubId(clubId);
+        teamIndexService.upsertCachedBatch(teams);
     }
 }
