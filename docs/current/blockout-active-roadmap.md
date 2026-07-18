@@ -1263,6 +1263,23 @@ state moves to GitHub and this file becomes a historical migration record.
     temporary-wheel Python tests, both scraper images, Compose, documentation, and whitespace checks pass. No
     deployment, MRG-9xx, or MRG-1000 work; scope and rollback ownership are recorded in
     `docs/migration/mrg-355-local-generation-verification.md`.
+- [x] MRG-379 Correct the MRG-356 dependency order after the live authority audit proves lifecycle Q-01 through Q-10
+      still have v1-only consumers; split search projections from owner-service cascade side effects before final
+      contract-authority closure.
+  - Evidence: generated-event imports exist in all six canonical producers and in notification's match/favorite
+    consumers, but the six search-worker listeners and four clubs/teams/pools cascade listeners still consume only
+    handwritten v1 payloads and queues. MRG-371 explicitly activated no v2 side-effect listener, while MRG-372
+    explicitly deferred lifecycle consumer conversion. MRG-380 and MRG-381 now close those distinct projection and
+    owner-side-effect families before MRG-356; this maintenance iteration changes no implementation, contract,
+    generated artifact, runtime, production, MRG-9xx, or MRG-1000 scope.
+- [ ] MRG-380 Migrate search-worker lifecycle Q-01 through Q-06 to generated v2 records behind mutually exclusive
+      v1/v2 listener flags, shared event-ID deduplication, explicit decoding without `__TypeId__`, and the MRG-304
+      pause/drain/switch/resume rollback; preserve projection behavior, batch/single listener shape, acknowledgement,
+      retry, requeue, DLQ, cache, index, and v1-default behavior.
+- [ ] MRG-381 Migrate clubs-service, teams-service, and pools-service lifecycle Q-07 through Q-10 to generated v2
+      records behind mutually exclusive v1/v2 listener flags, service-local event-ID deduplication, explicit decoding
+      without `__TypeId__`, and the MRG-304 pause/drain/switch/resume rollback; preserve cascade side effects,
+      acknowledgement, retry, requeue, queue topology, and v1-default behavior.
 - [ ] MRG-356 Mark each REST and event boundary contract-authoritative only after source, generated artifacts, mappers,
       all canonical consumers, runtime parity, rollback evidence, and canonical-conversion cleanup are complete; the
       separately isolated v1 adapter may remain until the MRG-304 30-day production-retirement gate.
