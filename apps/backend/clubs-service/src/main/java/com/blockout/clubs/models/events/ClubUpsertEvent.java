@@ -5,6 +5,9 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+/**
+ * Retained v1 outbox payload type. Its class name is persisted in pending rows and is therefore compatibility state.
+ */
 @Data
 @Builder
 @NoArgsConstructor

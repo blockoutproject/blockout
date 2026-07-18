@@ -1,8 +1,8 @@
 package com.blockout.clubs.club.infrastructure.storage;
 
 import com.blockout.clubs.club.application.ClubLogoStorage;
-import com.blockout.clubs.club.application.ClubLogoUpload;
 import com.blockout.clubs.config.AwsS3Properties;
+import com.blockout.clubs.club.domain.ClubLogoUpload;
 import jakarta.annotation.PostConstruct;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;

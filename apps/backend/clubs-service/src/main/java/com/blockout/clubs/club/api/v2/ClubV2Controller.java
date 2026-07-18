@@ -2,7 +2,7 @@ package com.blockout.clubs.club.api.v2;
 
 import com.blockout.clubs.club.api.ClubLogoUploads;
 import com.blockout.clubs.club.application.ClubLogoChange;
-import com.blockout.clubs.club.application.ClubLogoUpload;
+import com.blockout.clubs.club.domain.ClubLogoUpload;
 import com.blockout.clubs.club.application.ClubPage;
 import com.blockout.clubs.club.application.ClubService;
 import com.blockout.clubs.generated.api.ClubsApi;

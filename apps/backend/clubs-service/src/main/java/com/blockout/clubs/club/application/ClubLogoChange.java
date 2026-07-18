@@ -1,5 +1,7 @@
 package com.blockout.clubs.club.application;
 
+import com.blockout.clubs.club.domain.ClubLogoUpload;
+
 public record ClubLogoChange(Mode mode, ClubLogoUpload upload) {
 
     public enum Mode {

@@ -1,4 +1,4 @@
-package com.blockout.clubs.listeners;
+package com.blockout.clubs.club.event.inbound;
 
 import com.blockout.events.v2.model.ClubDeactivationV2Event;
 import com.blockout.events.v2.model.EventType;
@@ -8,7 +8,7 @@ import java.io.IOException;
 import org.springframework.amqp.core.Message;
 import org.springframework.stereotype.Component;
 
-/** Explicitly decodes the generated club deactivation record without Spring type metadata. */
+/** Decodes the generated event inside the Rabbit adapter and exposes only the role-owned fact. */
 @Component
 public class ClubLifecycleV2MessageDecoder {
 
@@ -21,7 +21,7 @@ public class ClubLifecycleV2MessageDecoder {
         this.metadataValidator = metadataValidator;
     }
 
-    ClubDeactivationV2Event decode(Message message) {
+    ClubDeactivationFact decode(Message message) {
         if (message.getMessageProperties().getHeaders().containsKey("__TypeId__")) {
             throw new IllegalArgumentException("V2 event must not contain __TypeId__");
         }
@@ -37,7 +37,7 @@ public class ClubLifecycleV2MessageDecoder {
                 message.getMessageProperties(), event.eventId(), event.eventType().name(), event.occurredAt(),
                 event.producer(), event.schemaVersion(), event.orderingKey(), event.aggregateVersion(),
                 event.correlationId());
-        return event;
+        return new ClubDeactivationFact(event.eventId(), event.eventType().name(), event.payload().clubId());
     }
 
     private ClubDeactivationV2Event read(Message message) {

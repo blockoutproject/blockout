@@ -2,19 +2,13 @@ package com.blockout.clubs.club.application;
 
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
-import com.blockout.clubs.club.persistence.ClubEntity;
-import com.blockout.clubs.club.persistence.ClubPersistenceMapper;
-import com.blockout.clubs.club.persistence.ClubRepository;
-import com.blockout.clubs.exceptions.ClubNotFoundException;
-import com.blockout.clubs.utils.DiffUtils;
+import com.blockout.clubs.club.domain.ClubLogoUpload;
+import com.blockout.clubs.shared.application.ChangeLog;
 import java.util.Collections;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,17 +18,14 @@ public class ClubService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ClubService.class);
 
-    private final ClubRepository repository;
-    private final ClubPersistenceMapper mapper;
+    private final ClubStore store;
     private final ClubLogoStorage logoStorage;
     private final ClubEventPublisher eventPublisher;
 
     @Transactional(readOnly = true)
     public List<ClubView> findLegacy(List<String> ids, Boolean active) {
         List<String> safeIds = ids == null ? Collections.emptyList() : ids;
-        List<ClubView> clubs = repository.findFilteredLegacy(safeIds, safeIds.size(), active).stream()
-                .map(mapper::toView)
-                .toList();
+        List<ClubView> clubs = store.findLegacy(safeIds, active);
         logList(safeIds, clubs.size());
         return clubs;
     }
@@ -42,80 +33,66 @@ public class ClubService {
     @Transactional(readOnly = true)
     public ClubPage findPage(List<String> ids, Boolean active, int page, int pageSize) {
         List<String> safeIds = ids == null ? Collections.emptyList() : ids;
-        PageRequest request = PageRequest.of(page, pageSize, Sort.by("name").ascending().and(Sort.by("id")));
-        Page<ClubEntity> result = repository.findFiltered(safeIds, safeIds.size(), active, request);
-        List<ClubView> items = result.getContent().stream().map(mapper::toView).toList();
-        logList(safeIds, items.size());
-        return new ClubPage(items, page, pageSize, result.getTotalElements(), result.hasNext());
+        ClubPage result = store.findPage(safeIds, active, page, pageSize);
+        logList(safeIds, result.items().size());
+        return result;
     }
 
     @Transactional(readOnly = true)
     public ClubView getById(String id) {
-        return mapper.toView(findEntity(id));
+        return find(id);
     }
 
     @Transactional
     public ClubView create(CreateClubCommand command, ClubLogoUpload image) {
-        ClubEntity entity = mapper.toEntity(command);
-        entity.setActive(true);
-        if (image != null) {
-            entity.setLogoUrl(logoStorage.upload(image));
-        }
-        ClubEntity saved = repository.save(entity);
-        ClubView view = mapper.toView(saved);
-        LOGGER.info("New club created", keyValue("action", "create_club"), keyValue("clubId", saved.getId()));
-        eventPublisher.publishUpsert(view);
+        String logoUrl = image == null ? null : logoStorage.upload(image);
+        ClubView view = store.create(command, logoUrl);
+        LOGGER.info("New club created", keyValue("action", "create_club"), keyValue("clubId", view.id()));
+        eventPublisher.publishUpsert(ClubUpsertFact.from(view));
         return view;
     }
 
     @Transactional
     public ClubView update(String id, UpdateClubCommand command, ClubLogoChange logoChange) {
-        ClubEntity entity = findEntity(id);
-        ClubEntity before = entity.toBuilder().build();
-        mapper.apply(command, entity);
-        applyLogoChange(entity, logoChange);
+        ClubUpdate update = store.findForUpdate(id).orElseThrow(() -> notFound(id));
+        ClubView current = update.current();
+        String replacementLogoUrl = null;
+        boolean replaceLogo = logoChange.mode() != ClubLogoChange.Mode.KEEP;
 
-        if (!entity.getActive()) {
-            entity.setActive(true);
-            LOGGER.info("Club reactivated", keyValue("action", "reactivate_club"),
-                    keyValue("clubId", id), keyValue("clubName", entity.getName()));
+        if (replaceLogo && current.logoUrl() != null) {
+            logoStorage.delete(current.logoUrl());
+        }
+        if (logoChange.mode() == ClubLogoChange.Mode.REPLACE) {
+            replacementLogoUrl = logoStorage.upload(logoChange.upload());
         }
 
-        ClubEntity saved = repository.save(entity);
-        ClubView view = mapper.toView(saved);
-        DiffUtils.logChanges(before, saved, LOGGER, "update_club", saved.getId());
-        eventPublisher.publishUpsert(view);
-        return view;
+        if (!current.active()) {
+            LOGGER.info("Club reactivated", keyValue("action", "reactivate_club"),
+                    keyValue("clubId", id), keyValue("clubName", current.name()));
+        }
+
+        ClubChange change = update.apply(new ClubUpdatePlan(command, replacementLogoUrl, replaceLogo, true));
+        ChangeLog.logChanges(change.before(), change.after(), LOGGER, "update_club", change.after().id());
+        eventPublisher.publishUpsert(ClubUpsertFact.from(change.after()));
+        return change.after();
     }
 
     @Transactional
     public void deactivate(String id) {
-        ClubEntity entity = findEntity(id);
-        entity.setActive(false);
-        repository.save(entity);
+        if (!store.deactivate(id)) {
+            throw notFound(id);
+        }
         LOGGER.info("Club successfully deactivated", keyValue("action", "deactivate_club"),
                 keyValue("clubId", id));
     }
 
-    private void applyLogoChange(ClubEntity entity, ClubLogoChange logoChange) {
-        if (logoChange.mode() == ClubLogoChange.Mode.KEEP) {
-            return;
-        }
-        if (entity.getLogoUrl() != null) {
-            logoStorage.delete(entity.getLogoUrl());
-        }
-        if (logoChange.mode() == ClubLogoChange.Mode.REMOVE) {
-            entity.setLogoUrl(null);
-            return;
-        }
-        entity.setLogoUrl(logoStorage.upload(logoChange.upload()));
+    private ClubView find(String id) {
+        return store.findById(id).orElseThrow(() -> notFound(id));
     }
 
-    private ClubEntity findEntity(String id) {
-        return repository.findById(id).orElseThrow(() -> {
-            LOGGER.warn("Club not found", keyValue("action", "get_club_by_id"), keyValue("clubId", id));
-            return new ClubNotFoundException(id);
-        });
+    private ClubNotFoundException notFound(String id) {
+        LOGGER.warn("Club not found", keyValue("action", "get_club_by_id"), keyValue("clubId", id));
+        return new ClubNotFoundException(id);
     }
 
     private void logList(List<String> ids, int count) {

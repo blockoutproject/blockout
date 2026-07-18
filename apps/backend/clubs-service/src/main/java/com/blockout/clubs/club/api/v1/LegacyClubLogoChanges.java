@@ -2,7 +2,7 @@ package com.blockout.clubs.club.api.v1;
 
 import com.blockout.clubs.club.api.ClubLogoUploads;
 import com.blockout.clubs.club.application.ClubLogoChange;
-import com.blockout.clubs.club.application.ClubLogoUpload;
+import com.blockout.clubs.club.domain.ClubLogoUpload;
 import lombok.experimental.UtilityClass;
 import org.springframework.web.multipart.MultipartFile;
 

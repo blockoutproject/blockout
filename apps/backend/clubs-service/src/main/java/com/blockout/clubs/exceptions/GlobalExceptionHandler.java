@@ -1,5 +1,7 @@
 package com.blockout.clubs.exceptions;
 
+import com.blockout.clubs.club.application.ClubNotFoundException;
+
 import jakarta.servlet.http.HttpServletRequest;
 
 import org.apache.tomcat.util.http.fileupload.impl.SizeLimitExceededException;

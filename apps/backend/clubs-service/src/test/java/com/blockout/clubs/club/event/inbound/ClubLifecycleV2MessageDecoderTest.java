@@ -1,4 +1,4 @@
-package com.blockout.clubs.listeners;
+package com.blockout.clubs.club.event.inbound;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -24,14 +24,16 @@ class ClubLifecycleV2MessageDecoderTest {
             new ClubLifecycleV2MessageDecoder(objectMapper, new V2EventMetadataValidator());
 
     @Test
-    void decodesTheGeneratedContractAndRejectsSpringTypeMetadata() throws Exception {
+    void decodesTheGeneratedContractIntoARoleOwnedFactAndRejectsSpringTypeMetadata() throws Exception {
         UUID eventId = UUID.randomUUID();
         var event = new ClubDeactivationV2Event(
                 null, null, eventId, EventType.CLUB_DEACTIVATED, OCCURRED_AT, "club:c1",
                 new ClubDeactivationV2Payload("c1"), "competition-service", "2.0.0");
         Message message = message(event, eventId, "CLUB_DEACTIVATED", "club:c1");
 
-        assertThat(decoder.decode(message).payload().clubId()).isEqualTo("c1");
+        ClubDeactivationFact decoded = decoder.decode(message);
+        assertThat(decoded.clubId()).isEqualTo("c1");
+        assertThat(decoded.eventId()).isEqualTo(eventId);
 
         message.getMessageProperties().setHeader("__TypeId__", ClubDeactivationV2Event.class.getName());
         assertThatThrownBy(() -> decoder.decode(message)).hasMessageContaining("must not contain __TypeId__");

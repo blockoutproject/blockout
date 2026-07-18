@@ -1338,8 +1338,22 @@ state moves to GitHub and this file becomes a historical migration record.
     deployment, production, and Maaatch are unchanged;
     `docs/migration/mrg-402-config-service-architecture.md` records ownership, parity, removal, rollback, and deferred
     compatibility gates.
-- [ ] MRG-403 Restructure `clubs-service` into explicit API, application, domain, persistence, S3, scraper-facing, and
+- [x] MRG-403 Restructure `clubs-service` into explicit API, application, domain, persistence, S3, scraper-facing, and
       event boundaries with role-owned records and mappers.
+  - Evidence: catalog application code now depends on role-owned store, logo-storage, and event-publisher ports rather
+    than JPA, Spring Data, generated models, AWS SDK, or Rabbit messages. `JpaClubStore` owns query, entity, MapStruct,
+    update-handle, and persistence work while the immutable club-logo domain value owns bytes, MIME, and size
+    invariants. Scheduled geocoding is split into an application service, transaction-bound JPA targets, and a Mapbox
+    adapter that contains every provider field. The scraper-facing v1 compatibility adapter and generated v2 server
+    keep their routes and map into the same application commands/views. A minimal club-upsert fact maps inside the
+    outbox adapter to the retained v1 message and generated v2 event; inbound generated events narrow to a role-owned
+    deactivation fact before deduplicated application handling. Nineteen focused tests preserve catalog, S3 intent,
+    logo validation, paging, geocoding, Mapbox ambiguity, REST casing, outbox identity, decoder, and queue behavior.
+    The clubs reactor, complete backend packaging, all backend Dockerfile checks, full local CI gate, documentation,
+    formatting, and whitespace checks pass. Flyway V1-V5, repositories, schemas, REST/event contracts, generated
+    artifacts, routes, scopes, queues, rollout flags, callers, deployment, production, and Maaatch are unchanged;
+    `docs/migration/mrg-403-clubs-service-architecture.md` records ownership, parity, removal, rollback, and deferred
+    compatibility gates.
 - [ ] MRG-404 Restructure `teams-service` into explicit API, application, domain, persistence, S3, scraper-facing, and
       event boundaries with role-owned records and mappers.
 - [ ] MRG-405 Restructure `pools-service` into explicit API, application, domain, persistence, scraper-facing, and event

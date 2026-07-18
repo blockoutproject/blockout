@@ -2,7 +2,7 @@ package com.blockout.clubs.shared.api.v2;
 
 import com.blockout.clubs.club.api.v2.ClubLogoV2Controller;
 import com.blockout.clubs.club.api.v2.ClubV2Controller;
-import com.blockout.clubs.exceptions.ClubNotFoundException;
+import com.blockout.clubs.club.application.ClubNotFoundException;
 import com.blockout.shared.model.ProblemDetail;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;

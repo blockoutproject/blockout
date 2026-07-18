@@ -2,9 +2,11 @@ package com.blockout.clubs.club.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.blockout.clubs.club.domain.ClubLogoUpload;
 import com.blockout.clubs.club.persistence.ClubEntity;
 import com.blockout.clubs.club.persistence.ClubPersistenceMapper;
 import com.blockout.clubs.club.persistence.ClubRepository;
+import com.blockout.clubs.club.persistence.JpaClubStore;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Proxy;
 import java.time.LocalDateTime;
@@ -35,7 +37,7 @@ class ClubServiceTest {
         assertThat(result.address()).isNull();
         assertThat(result.logoUrl()).isEqualTo("https://uploaded-logo");
         assertThat(result.active()).isTrue();
-        assertThat(eventPublisher.published).containsExactly(result);
+        assertThat(eventPublisher.published).containsExactly(ClubUpsertFact.from(result));
     }
 
     @Test
@@ -54,7 +56,7 @@ class ClubServiceTest {
         assertThat(result.logoUrl()).isEqualTo("old-logo");
         assertThat(result.active()).isTrue();
         assertThat(logoStorage.deleted).isEmpty();
-        assertThat(eventPublisher.published).containsExactly(result);
+        assertThat(eventPublisher.published).containsExactly(ClubUpsertFact.from(result));
     }
 
     @Test
@@ -89,7 +91,7 @@ class ClubServiceTest {
             RepositoryDouble repository,
             LogoStorageDouble logoStorage,
             EventPublisherDouble eventPublisher) {
-        return new ClubService(repository.proxy(), mapper, logoStorage, eventPublisher);
+        return new ClubService(new JpaClubStore(repository.proxy(), mapper), logoStorage, eventPublisher);
     }
 
     private ClubEntity entity(String logoUrl, boolean active) {
@@ -157,10 +159,10 @@ class ClubServiceTest {
 
     private static final class EventPublisherDouble implements ClubEventPublisher {
 
-        private final List<ClubView> published = new ArrayList<>();
+        private final List<ClubUpsertFact> published = new ArrayList<>();
 
         @Override
-        public void publishUpsert(ClubView club) {
+        public void publishUpsert(ClubUpsertFact club) {
             published.add(club);
         }
     }
