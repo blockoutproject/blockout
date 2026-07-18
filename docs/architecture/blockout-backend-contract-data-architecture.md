@@ -427,6 +427,10 @@ in the [MRG-368 match and live BFF migration](../migration/mrg-368-mobile-gatewa
 9. Repository guards, generation/no-diff verification, and boundary-authority evidence close Phase MRG-300.
 10. Phase MRG-400 completes deep service restructuring in a second controlled pass.
 
+The [MRG-401 implementation slice rule](../migration/mrg-401-backend-implementation-slice-rule.md) governs that second
+pass. Every Phase MRG-400 roadmap item remains one independently validated service-feature change; generated object
+models stay adapter-local, behavioral parity precedes removal, and MRG-267/MRG-304 gates remain mandatory.
+
 ## 13. Generator Decisions
 
 This architecture fixes ownership while the three decision tasks select tools within those boundaries:

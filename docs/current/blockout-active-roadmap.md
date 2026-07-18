@@ -1309,8 +1309,18 @@ state moves to GitHub and this file becomes a historical migration record.
 
 ## Phase MRG-400 — Backend Architecture
 
-- [ ] MRG-401 Establish the implementation slice rule from MRG-268: migrate one service feature at a time, keep generated
+- [x] MRG-401 Establish the implementation slice rule from MRG-268: migrate one service feature at a time, keep generated
       DTOs at adapters, and require behavioral parity before removing any legacy type or field.
+  - Evidence: `docs/migration/mrg-401-backend-implementation-slice-rule.md` makes one roadmap item, one owning
+    deployable, and one named feature family the maximum implementation unit for MRG-402 through MRG-430. It requires
+    current-behavior and Flyway inventory before edits; confines generated REST, client, and event object models to
+    their owning adapters; prohibits mechanical transport mirrors; defines parity evidence for API, collection,
+    persistence, event, provider, projection, and operational behavior; and keeps every legacy element behind a named
+    adapter until its MRG-267 lineage and MRG-304 coexistence/removal gates close. Every slice must publish an explicit
+    ownership, validation, persistence, rollback, unknown, compatibility, and production-authority record as one
+    independently verified task. Documentation validation, Maaatch comparison, formatting, and whitespace checks pass.
+    No service source, contract, generated artifact, event topology, database mapping, dependency, runtime,
+    deployment, production, or Maaatch state changes.
 - [ ] MRG-402 Restructure `config-service` into explicit API, application, domain where justified, and persistence
       boundaries with role-owned records and mappers.
 - [ ] MRG-403 Restructure `clubs-service` into explicit API, application, domain, persistence, S3, scraper-facing, and

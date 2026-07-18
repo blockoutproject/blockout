@@ -67,6 +67,7 @@ GitHub Project task planning remains dormant until the final GitFlow activation 
 | Search event cutover   | [`migration/mrg-380-search-lifecycle-v2-consumers.md`](migration/mrg-380-search-lifecycle-v2-consumers.md)                   | Q-01 through Q-06 generated v2 projection adapters         |
 | Owner event cutover    | [`migration/mrg-381-owner-lifecycle-v2-consumers.md`](migration/mrg-381-owner-lifecycle-v2-consumers.md)                     | Q-07 through Q-10 generated v2 cascade adapters            |
 | Contract authority     | [`migration/mrg-356-contract-authority-closure.md`](migration/mrg-356-contract-authority-closure.md)                         | Final REST and event source authority reconciliation       |
+| Backend slice rule     | [`migration/mrg-401-backend-implementation-slice-rule.md`](migration/mrg-401-backend-implementation-slice-rule.md)           | Phase MRG-400 feature, parity, and removal protocol        |
 | Production cutover     | [`migration/monorepo-cutover.md`](migration/monorepo-cutover.md)                                                             | Temporary per-deployable migration and rollback procedure  |
 
 [mrg-337]: migration/mrg-337-competition-association-statistics-runtime-migration.md
