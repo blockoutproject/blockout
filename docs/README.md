@@ -64,6 +64,7 @@ GitHub Project task planning remains dormant until the final GitFlow activation 
 | Python clients         | [`decisions/mrg-314-python-contract-clients.md`](decisions/mrg-314-python-contract-clients.md)                               | Generated async clients, adapters, wheel, and scraper use  |
 | RabbitMQ contracts     | [`decisions/mrg-315-rabbitmq-event-contracts.md`](decisions/mrg-315-rabbitmq-event-contracts.md)                             | AsyncAPI source, Java records, envelope, and v2 topology   |
 | Local generation gate  | [`migration/mrg-355-local-generation-verification.md`](migration/mrg-355-local-generation-verification.md)                   | Deterministic local generation and edit guards             |
+| Search event cutover   | [`migration/mrg-380-search-lifecycle-v2-consumers.md`](migration/mrg-380-search-lifecycle-v2-consumers.md)                   | Q-01 through Q-06 generated v2 projection adapters         |
 | Production cutover     | [`migration/monorepo-cutover.md`](migration/monorepo-cutover.md)                                                             | Temporary per-deployable migration and rollback procedure  |
 
 [mrg-337]: migration/mrg-337-competition-association-statistics-runtime-migration.md

@@ -1272,10 +1272,17 @@ state moves to GitHub and this file becomes a historical migration record.
     explicitly deferred lifecycle consumer conversion. MRG-380 and MRG-381 now close those distinct projection and
     owner-side-effect families before MRG-356; this maintenance iteration changes no implementation, contract,
     generated artifact, runtime, production, MRG-9xx, or MRG-1000 scope.
-- [ ] MRG-380 Migrate search-worker lifecycle Q-01 through Q-06 to generated v2 records behind mutually exclusive
+- [x] MRG-380 Migrate search-worker lifecycle Q-01 through Q-06 to generated v2 records behind mutually exclusive
       v1/v2 listener flags, shared event-ID deduplication, explicit decoding without `__TypeId__`, and the MRG-304
       pause/drain/switch/resume rollback; preserve projection behavior, batch/single listener shape, acknowledgement,
       retry, requeue, DLQ, cache, index, and v1-default behavior.
+  - Evidence: all six generated lifecycle records now enter queue-owned raw-AMQP decoders that reject Spring type
+    metadata and body/header or route-contract mismatches, then map into the unchanged projection services. Exact event
+    IDs share a bounded local claim and persistent Elasticsearch receipt across v1/v2 restarts; failures release claims
+    before the existing retry/DLQ path. Six durable `.v2` queue/DLQ pairs, batch/manual-ack parity, single-listener
+    parity, mutually exclusive flags, v1 defaults, tests, compile, formatting, and whitespace checks pass. No listener
+    activation, deployment, broker mutation, v1 retirement, MRG-9xx, or MRG-1000 work; the approved cutover and
+    rollback remain operational gates in `docs/migration/mrg-380-search-lifecycle-v2-consumers.md`.
 - [ ] MRG-381 Migrate clubs-service, teams-service, and pools-service lifecycle Q-07 through Q-10 to generated v2
       records behind mutually exclusive v1/v2 listener flags, service-local event-ID deduplication, explicit decoding
       without `__TypeId__`, and the MRG-304 pause/drain/switch/resume rollback; preserve cascade side effects,

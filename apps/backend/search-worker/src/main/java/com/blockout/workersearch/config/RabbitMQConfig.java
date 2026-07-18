@@ -7,6 +7,8 @@ import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
 import org.springframework.amqp.support.converter.MessageConverter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.amqp.support.converter.SimpleMessageConverter;
 
 @Configuration
 public class RabbitMQConfig {
@@ -27,6 +29,20 @@ public class RabbitMQConfig {
     public static final String TEAM_DEACTIVATION_DLQ_SEARCH = "team.deactivation.queue.search.dlq";
     public static final String POOL_UPSERT_DLQ_SEARCH = "pool.upsert.queue.search.dlq";
     public static final String POOL_DEACTIVATION_DLQ_SEARCH = "pool.deactivation.queue.search.dlq";
+
+    public static final String CLUB_UPSERT_QUEUE_SEARCH_V2 = "club.upsert.queue.search.v2";
+    public static final String CLUB_DEACTIVATION_QUEUE_SEARCH_V2 = "club.deactivation.queue.search.v2";
+    public static final String TEAM_UPSERT_QUEUE_SEARCH_V2 = "team.upsert.queue.search.v2";
+    public static final String TEAM_DEACTIVATION_QUEUE_SEARCH_V2 = "team.deactivation.queue.search.v2";
+    public static final String POOL_UPSERT_QUEUE_SEARCH_V2 = "pool.upsert.queue.search.v2";
+    public static final String POOL_DEACTIVATION_QUEUE_SEARCH_V2 = "pool.deactivation.queue.search.v2";
+
+    public static final String CLUB_UPSERT_DLQ_SEARCH_V2 = "club.upsert.queue.search.dlq.v2";
+    public static final String CLUB_DEACTIVATION_DLQ_SEARCH_V2 = "club.deactivation.queue.search.dlq.v2";
+    public static final String TEAM_UPSERT_DLQ_SEARCH_V2 = "team.upsert.queue.search.dlq.v2";
+    public static final String TEAM_DEACTIVATION_DLQ_SEARCH_V2 = "team.deactivation.queue.search.dlq.v2";
+    public static final String POOL_UPSERT_DLQ_SEARCH_V2 = "pool.upsert.queue.search.dlq.v2";
+    public static final String POOL_DEACTIVATION_DLQ_SEARCH_V2 = "pool.deactivation.queue.search.dlq.v2";
 
     @Bean
     TopicExchange entityLifecycleExchange() {
@@ -69,6 +85,36 @@ public class RabbitMQConfig {
     }
 
     @Bean
+    Queue clubUpsertQueueV2() {
+        return durableQueue(CLUB_UPSERT_QUEUE_SEARCH_V2, "club.upsert.dlq.v2");
+    }
+
+    @Bean
+    Queue clubDeactivationQueueV2() {
+        return durableQueue(CLUB_DEACTIVATION_QUEUE_SEARCH_V2, "club.deactivation.dlq.v2");
+    }
+
+    @Bean
+    Queue teamUpsertQueueV2() {
+        return durableQueue(TEAM_UPSERT_QUEUE_SEARCH_V2, "team.upsert.dlq.v2");
+    }
+
+    @Bean
+    Queue teamDeactivationQueueV2() {
+        return durableQueue(TEAM_DEACTIVATION_QUEUE_SEARCH_V2, "team.deactivation.dlq.v2");
+    }
+
+    @Bean
+    Queue poolUpsertQueueV2() {
+        return durableQueue(POOL_UPSERT_QUEUE_SEARCH_V2, "pool.upsert.dlq.v2");
+    }
+
+    @Bean
+    Queue poolDeactivationQueueV2() {
+        return durableQueue(POOL_DEACTIVATION_QUEUE_SEARCH_V2, "pool.deactivation.dlq.v2");
+    }
+
+    @Bean
     Queue clubUpsertDlq() {
         return QueueBuilder.durable(CLUB_UPSERT_DLQ_SEARCH).build();
     }
@@ -96,6 +142,36 @@ public class RabbitMQConfig {
     @Bean
     Queue poolDeactivationDlq() {
         return QueueBuilder.durable(POOL_DEACTIVATION_DLQ_SEARCH).build();
+    }
+
+    @Bean
+    Queue clubUpsertDlqV2() {
+        return QueueBuilder.durable(CLUB_UPSERT_DLQ_SEARCH_V2).build();
+    }
+
+    @Bean
+    Queue clubDeactivationDlqV2() {
+        return QueueBuilder.durable(CLUB_DEACTIVATION_DLQ_SEARCH_V2).build();
+    }
+
+    @Bean
+    Queue teamUpsertDlqV2() {
+        return QueueBuilder.durable(TEAM_UPSERT_DLQ_SEARCH_V2).build();
+    }
+
+    @Bean
+    Queue teamDeactivationDlqV2() {
+        return QueueBuilder.durable(TEAM_DEACTIVATION_DLQ_SEARCH_V2).build();
+    }
+
+    @Bean
+    Queue poolUpsertDlqV2() {
+        return QueueBuilder.durable(POOL_UPSERT_DLQ_SEARCH_V2).build();
+    }
+
+    @Bean
+    Queue poolDeactivationDlqV2() {
+        return QueueBuilder.durable(POOL_DEACTIVATION_DLQ_SEARCH_V2).build();
     }
 
     @Bean
@@ -129,6 +205,36 @@ public class RabbitMQConfig {
     }
 
     @Bean
+    Binding bindClubUpsertQueueV2() {
+        return bindQueue(clubUpsertQueueV2(), "club.upsert.v2");
+    }
+
+    @Bean
+    Binding bindClubDeactivationQueueV2() {
+        return bindQueue(clubDeactivationQueueV2(), "club.deactivation.v2");
+    }
+
+    @Bean
+    Binding bindTeamUpsertQueueV2() {
+        return bindQueue(teamUpsertQueueV2(), "team.upsert.v2");
+    }
+
+    @Bean
+    Binding bindTeamDeactivationQueueV2() {
+        return bindQueue(teamDeactivationQueueV2(), "team.deactivation.v2");
+    }
+
+    @Bean
+    Binding bindPoolUpsertQueueV2() {
+        return bindQueue(poolUpsertQueueV2(), "pool.upsert.v2");
+    }
+
+    @Bean
+    Binding bindPoolDeactivationQueueV2() {
+        return bindQueue(poolDeactivationQueueV2(), "pool.deactivation.v2");
+    }
+
+    @Bean
     Binding bindClubUpsertDlq() {
         return bindDlq(clubUpsertDlq(), "club.upsert.dlq");
     }
@@ -158,9 +264,49 @@ public class RabbitMQConfig {
         return bindDlq(poolDeactivationDlq(), "pool.deactivation.dlq");
     }
 
+    @Bean
+    Binding bindClubUpsertDlqV2() {
+        return bindDlq(clubUpsertDlqV2(), "club.upsert.dlq.v2");
+    }
+
+    @Bean
+    Binding bindClubDeactivationDlqV2() {
+        return bindDlq(clubDeactivationDlqV2(), "club.deactivation.dlq.v2");
+    }
+
+    @Bean
+    Binding bindTeamUpsertDlqV2() {
+        return bindDlq(teamUpsertDlqV2(), "team.upsert.dlq.v2");
+    }
+
+    @Bean
+    Binding bindTeamDeactivationDlqV2() {
+        return bindDlq(teamDeactivationDlqV2(), "team.deactivation.dlq.v2");
+    }
+
+    @Bean
+    Binding bindPoolUpsertDlqV2() {
+        return bindDlq(poolUpsertDlqV2(), "pool.upsert.dlq.v2");
+    }
+
+    @Bean
+    Binding bindPoolDeactivationDlqV2() {
+        return bindDlq(poolDeactivationDlqV2(), "pool.deactivation.dlq.v2");
+    }
+
     @Bean(name = "rabbitBatchFactory")
     public SimpleRabbitListenerContainerFactory rabbitBatchFactory(ConnectionFactory connectionFactory,
-            MessageConverter messageConverter) {
+            @Qualifier("messageConverter") MessageConverter messageConverter) {
+        return batchFactory(connectionFactory, messageConverter);
+    }
+
+    @Bean(name = "rabbitV2BatchFactory")
+    public SimpleRabbitListenerContainerFactory rabbitV2BatchFactory(ConnectionFactory connectionFactory) {
+        return batchFactory(connectionFactory, new SimpleMessageConverter());
+    }
+
+    private SimpleRabbitListenerContainerFactory batchFactory(
+            ConnectionFactory connectionFactory, MessageConverter messageConverter) {
         SimpleRabbitListenerContainerFactory factory = new SimpleRabbitListenerContainerFactory();
         factory.setConnectionFactory(connectionFactory);
         factory.setBatchListener(true);
