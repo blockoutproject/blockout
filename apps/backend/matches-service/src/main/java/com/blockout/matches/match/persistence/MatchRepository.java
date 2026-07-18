@@ -1,20 +1,17 @@
-package com.blockout.matches.repositories;
+package com.blockout.matches.match.persistence;
 
-import com.blockout.matches.models.entities.Match;
 import com.blockout.matches.models.enums.MatchStatus;
-
+import java.time.Instant;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
-
-import java.time.Instant;
-import java.time.LocalDate;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
 
 @Repository
 public interface MatchRepository extends JpaRepository<Match, Long> {
@@ -31,15 +28,15 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
 
     List<Match> findByIdInAndActiveTrue(Set<Long> matchIds);
 
-    @Query("SELECT m FROM Match m WHERE m.active = :active AND m.poolId = :poolId " +
-            "AND (m.teamIdA = :teamId OR m.teamIdB = :teamId)")
+    @Query("SELECT m FROM Match m WHERE m.active = :active AND m.poolId = :poolId "
+            + "AND (m.teamIdA = :teamId OR m.teamIdB = :teamId)")
     List<Match> findByActiveAndPoolIdAndTeamId(
             @Param("active") Boolean active,
             @Param("poolId") Long poolId,
             @Param("teamId") Long teamId);
 
-    @Query("SELECT m FROM Match m WHERE m.active = :active " +
-            "AND (m.teamIdA = :teamId OR m.teamIdB = :teamId)")
+    @Query("SELECT m FROM Match m WHERE m.active = :active "
+            + "AND (m.teamIdA = :teamId OR m.teamIdB = :teamId)")
     List<Match> findByActiveAndTeamId(
             @Param("active") Boolean active,
             @Param("teamId") Long teamId);
@@ -49,9 +46,9 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
 
     Page<Match> findAllByMatchDateLessThanEqual(Instant today, Pageable pageable);
 
-    @Query("SELECT m FROM Match m WHERE m.poolId = :poolId " +
-            "AND m.teamIdA = :teamIdA AND m.teamIdB = :teamIdB " +
-            "AND DATE(m.matchDate) = :matchDate")
+    @Query("SELECT m FROM Match m WHERE m.poolId = :poolId "
+            + "AND m.teamIdA = :teamIdA AND m.teamIdB = :teamIdB "
+            + "AND DATE(m.matchDate) = :matchDate")
     Optional<Match> findByPoolIdAndTeamIdAAndTeamIdBAndMatchDate(
             @Param("poolId") Long poolId,
             @Param("teamIdA") Long teamIdA,

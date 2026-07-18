@@ -4,13 +4,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.blockout.matches.match.live.moderation.persistence.MatchLiveModerationPersistenceMapper;
-import com.blockout.matches.models.entities.Match;
+import com.blockout.matches.match.persistence.Match;
+import com.blockout.matches.match.persistence.MatchRepository;
 import com.blockout.matches.models.entities.MatchLiveLink;
 import com.blockout.matches.models.enums.LiveLinkStatus;
 import com.blockout.matches.models.enums.LiveProvider;
 import com.blockout.matches.models.enums.MatchStatus;
 import com.blockout.matches.repositories.MatchLiveLinkRepository;
-import com.blockout.matches.repositories.MatchRepository;
 import com.blockout.shared.model.LiveLinkStatusEnum;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Proxy;

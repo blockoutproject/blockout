@@ -1,21 +1,38 @@
-package com.blockout.matches.models.entities;
+package com.blockout.matches.match.persistence;
 
-import lombok.*;
-import jakarta.persistence.*;
-import java.time.Instant;
-import java.util.List;
-
+import com.blockout.matches.models.entities.MatchLiveLink;
 import com.blockout.matches.models.enums.MatchStatus;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
+import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
+import java.time.Instant;
+import java.util.List;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Getter
 @Setter
 @Builder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
-@Entity
+@Entity(name = "Match")
 @Table(name = "matches", uniqueConstraints = {
-        @UniqueConstraint(columnNames = { "match_code", "league_code", "season" }, name = "uix_match")
+        @UniqueConstraint(columnNames = {"match_code", "league_code", "season"}, name = "uix_match")
 })
 public class Match {
 
@@ -81,14 +98,14 @@ public class Match {
     private List<MatchLiveLink> liveLinks;
 
     @PrePersist
-    public void prePersist() {
+    void prePersist() {
         Instant now = Instant.now();
         createdAt = now;
         lastUpdate = now;
     }
 
     @PreUpdate
-    public void preUpdate() {
+    void preUpdate() {
         lastUpdate = Instant.now();
     }
 }

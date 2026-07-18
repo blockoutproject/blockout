@@ -2,13 +2,15 @@ package com.blockout.matches.match.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.blockout.matches.match.persistence.JpaMatchLiveProjectionStore;
+import com.blockout.matches.match.persistence.JpaMatchStore;
+import com.blockout.matches.match.persistence.Match;
 import com.blockout.matches.match.persistence.MatchPersistenceMapper;
-import com.blockout.matches.models.entities.Match;
+import com.blockout.matches.match.persistence.MatchRepository;
 import com.blockout.matches.models.entities.MatchLiveLink;
 import com.blockout.matches.models.enums.LiveProvider;
 import com.blockout.matches.models.enums.MatchStatus;
 import com.blockout.matches.repositories.MatchLiveLinkRepository;
-import com.blockout.matches.repositories.MatchRepository;
 import com.blockout.shared.model.MatchStatusEnum;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Proxy;
@@ -72,6 +74,20 @@ class MatchApplicationServiceTest {
     }
 
     @Test
+    void detailProjectionKeepsTheNewestActiveLiveLinkFields() {
+        RepositoryDouble repository = new RepositoryDouble();
+        repository.entity = entity(1L, MatchStatus.UPCOMING, true, NOW);
+        LiveLinkRepositoryDouble links = new LiveLinkRepositoryDouble();
+        links.newestActive = Optional.of(liveLink(repository.entity, "https://live", NOW));
+
+        MatchDetailView result = service(repository, links, new EventsDouble()).findDetail(1L);
+
+        assertThat(result.liveUrl()).isEqualTo("https://live");
+        assertThat(result.liveProvider()).isEqualTo(com.blockout.shared.model.LiveProviderEnum.YOUTUBE);
+        assertThat(result.liveOwnerAuth0Id()).isEqualTo("auth0|owner");
+    }
+
+    @Test
     void updateReactivatesAndPublishesFinishBeforeSavingOnlyForTheOneWayTransition() {
         List<String> order = new ArrayList<>();
         RepositoryDouble repository = new RepositoryDouble(order);
@@ -127,9 +143,7 @@ class MatchApplicationServiceTest {
         links.activeLinks = List.of(
                 liveLink(poolOne, "https://old", NOW.minusSeconds(60)),
                 liveLink(poolOne, "https://new", NOW));
-        MatchApplicationService service = service(repository, links, new EventsDouble());
-
-        MatchDayPage result = service.findDayPage(new MatchDayQuery(
+        MatchDayPage result = dayService(repository, links).findPage(new MatchDayQuery(
                 List.of(1L, 2L), List.of(), MatchStatusEnum.UPCOMING, 0, 4, true));
 
         assertThat(result.dayMatches()).extracting(MatchDayView::date).containsExactly(parisDay);
@@ -145,9 +159,7 @@ class MatchApplicationServiceTest {
     void filteredEmptyDayRangePreservesTheLegacyFalseHasNextAndNextPageOddity() {
         RepositoryDouble repository = new RepositoryDouble();
         repository.days = List.of(LocalDate.of(2026, 7, 17), LocalDate.of(2026, 7, 16));
-        MatchApplicationService service = service(repository, new LiveLinkRepositoryDouble(), new EventsDouble());
-
-        MatchDayPage result = service.findDayPage(new MatchDayQuery(
+        MatchDayPage result = dayService(repository, new LiveLinkRepositoryDouble()).findPage(new MatchDayQuery(
                 List.of(1L), List.of(), MatchStatusEnum.FINISHED, 0, 1, false));
 
         assertThat(result.dayMatches()).isEmpty();
@@ -157,7 +169,20 @@ class MatchApplicationServiceTest {
 
     private MatchApplicationService service(
             RepositoryDouble repository, LiveLinkRepositoryDouble links, EventsDouble events) {
-        return new MatchApplicationService(repository.proxy(), links.proxy(), events, mapper,
+        return new MatchApplicationService(
+                new JpaMatchStore(repository.proxy(), mapper),
+                new JpaMatchLiveProjectionStore(links.proxy()),
+                events,
+                new MatchDetailProjector());
+    }
+
+    private MatchDayProjectionService dayService(
+            RepositoryDouble repository, LiveLinkRepositoryDouble links) {
+        MatchDetailProjector details = new MatchDetailProjector();
+        return new MatchDayProjectionService(
+                new JpaMatchStore(repository.proxy(), mapper),
+                new JpaMatchLiveProjectionStore(links.proxy()),
+                new MatchDayProjector(details),
                 Clock.fixed(NOW, ZoneOffset.UTC));
     }
 
@@ -238,6 +263,7 @@ class MatchApplicationServiceTest {
 
     private static final class LiveLinkRepositoryDouble implements InvocationHandler {
         private List<MatchLiveLink> activeLinks = List.of();
+        private Optional<MatchLiveLink> newestActive = Optional.empty();
 
         MatchLiveLinkRepository proxy() {
             return (MatchLiveLinkRepository) Proxy.newProxyInstance(
@@ -249,7 +275,7 @@ class MatchApplicationServiceTest {
         public Object invoke(Object proxy, java.lang.reflect.Method method, Object[] arguments) {
             return switch (method.getName()) {
                 case "findByMatchIdInAndStatus" -> activeLinks;
-                case "findFirstByMatch_IdAndStatusOrderByCreatedAtDesc" -> Optional.empty();
+                case "findFirstByMatch_IdAndStatusOrderByCreatedAtDesc" -> newestActive;
                 case "toString" -> "MatchLiveLinkRepositoryDouble";
                 default -> throw new UnsupportedOperationException(method.getName());
             };

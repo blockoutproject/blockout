@@ -1429,8 +1429,24 @@ state moves to GitHub and this file becomes a historical migration record.
     zero-row early returns, stale club ownership, concurrency gaps, and cross-service identity trust are preserved,
     not silently corrected; `docs/migration/mrg-422-competition-ranking-lifecycle-architecture.md` records ownership,
     parity, rollback, retained compatibility, and deferred correction gates.
-- [ ] MRG-407 Restructure `matches-service` match core, day projection, and persistence boundaries with separate
+- [x] MRG-407 Restructure `matches-service` match core, day projection, and persistence boundaries with separate
       commands, views, entities, projectors, and mappers.
+  - Evidence: `MatchApplicationService` and the new read-only `MatchDayProjectionService` depend only on role-owned
+    store ports, immutable commands/views, and dedicated detail/day projectors rather than JPA, Spring Data,
+    repositories, persistence mappers, generated models, or live-link entities. `JpaMatchStore` owns the exact
+    repository queries, paging, entity mapping, and transaction-bound update handles; those handles preserve the
+    existing prepare, finish-event, save, and audit order while the application retains one-way finish transitions,
+    reactivation, and zero-row deactivation behavior. The `Match` entity and repository now live together under the
+    persistence owner without changing the JPQL entity name or `matches` table. A minimal live-projection port and JPA
+    adapter isolate core detail/day enrichment while preserving newest-active-link selection. Forty-five focused
+    matches-service tests preserve catalog, mutation, transaction, Paris-day, paging, enrichment, generated/legacy,
+    live, moderation, report, event, and outbox behavior. The matches reactor, complete backend packaging, all backend
+    Dockerfile checks, full local CI gate, documentation, formatting, and whitespace checks pass. Flyway V1-V5,
+    database structure, repository query semantics, REST/event contracts, generated artifacts, routes, scopes,
+    queues, callers, deployment, production, and Maaatch are unchanged. Live-link internals remain exclusively
+    deferred to MRG-423, and moderation/report internals to MRG-424;
+    `docs/migration/mrg-407-matches-core-architecture.md` records ownership, parity, removal, rollback, retained
+    compatibility risks, and deferred gates.
 - [ ] MRG-423 Restructure `matches-service` live-link decision, state, history, provider, and event internals while
       keeping live policy owned by the service and enrichment owned by the BFF.
 - [ ] MRG-424 Restructure `matches-service` moderation and live-report internals into explicit commands, views,

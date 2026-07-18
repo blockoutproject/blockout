@@ -4,11 +4,11 @@ import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
 import com.blockout.matches.exceptions.MatchNotFoundException;
 import com.blockout.matches.match.live.moderation.persistence.MatchLiveModerationPersistenceMapper;
-import com.blockout.matches.models.entities.Match;
+import com.blockout.matches.match.persistence.Match;
+import com.blockout.matches.match.persistence.MatchRepository;
 import com.blockout.matches.models.entities.MatchLiveLink;
 import com.blockout.matches.models.enums.LiveLinkStatus;
 import com.blockout.matches.repositories.MatchLiveLinkRepository;
-import com.blockout.matches.repositories.MatchRepository;
 import com.blockout.shared.model.LiveLinkStatusEnum;
 import java.time.Clock;
 import java.time.Instant;

@@ -2,8 +2,8 @@ package com.blockout.matches.match.api.v2;
 
 import com.blockout.matches.generated.api.MatchDaysApi;
 import com.blockout.matches.generated.model.MatchDayPageResponse;
-import com.blockout.matches.match.application.MatchApplicationService;
 import com.blockout.matches.match.application.MatchDayPage;
+import com.blockout.matches.match.application.MatchDayProjectionService;
 import com.blockout.matches.match.application.MatchDayQuery;
 import com.blockout.shared.model.MatchStatusEnum;
 import java.util.List;
@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class MatchDaysV2Controller implements MatchDaysApi {
 
-    private final MatchApplicationService service;
+    private final MatchDayProjectionService service;
     private final MatchApiMapper mapper;
 
     @Override
@@ -26,7 +26,7 @@ public class MatchDaysV2Controller implements MatchDaysApi {
             List<Long> teamIds,
             MatchStatusEnum status,
             Boolean active) {
-        MatchDayPage result = service.findDayPage(
+        MatchDayPage result = service.findPage(
                 new MatchDayQuery(poolIds, teamIds, status, page, pageSize, active));
         return ResponseEntity.ok(new MatchDayPageResponse(
                 result.dayMatches().stream().map(mapper::toResponse).toList(),

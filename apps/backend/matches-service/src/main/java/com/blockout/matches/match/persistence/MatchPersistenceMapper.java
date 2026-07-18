@@ -3,7 +3,6 @@ package com.blockout.matches.match.persistence;
 import com.blockout.matches.match.application.CreateMatchCommand;
 import com.blockout.matches.match.application.MatchSnapshot;
 import com.blockout.matches.match.application.UpdateMatchCommand;
-import com.blockout.matches.models.entities.Match;
 import com.blockout.matches.models.enums.MatchStatus;
 import com.blockout.matches.shared.mapping.MatchesMapperConfig;
 import com.blockout.shared.model.MatchStatusEnum;

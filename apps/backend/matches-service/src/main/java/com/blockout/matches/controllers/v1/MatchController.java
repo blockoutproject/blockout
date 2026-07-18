@@ -5,6 +5,7 @@ import com.blockout.matches.match.application.DeactivateMatchesCommand;
 import com.blockout.matches.match.application.MatchApplicationService;
 import com.blockout.matches.match.application.MatchDayPage;
 import com.blockout.matches.match.application.MatchDayPoolView;
+import com.blockout.matches.match.application.MatchDayProjectionService;
 import com.blockout.matches.match.application.MatchDayView;
 import com.blockout.matches.match.application.MatchDetailView;
 import com.blockout.matches.match.application.MatchQuery;
@@ -44,6 +45,7 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 public class MatchController {
 
     private final MatchApplicationService matches;
+    private final MatchDayProjectionService matchDays;
     private final MatchLiveModerationApplicationService liveModeration;
     private final LegacyMatchesJson json;
 
@@ -68,7 +70,7 @@ public class MatchController {
             @RequestParam(required = false, name = "team_ids") List<Long> teamIds,
             @RequestParam(required = false) MatchStatus status,
             @RequestParam(required = false) Boolean active) throws JsonProcessingException {
-        MatchDayPage result = matches.findDayPage(new com.blockout.matches.match.application.MatchDayQuery(
+        MatchDayPage result = matchDays.findPage(new com.blockout.matches.match.application.MatchDayQuery(
                 poolIds == null ? Collections.emptyList() : poolIds,
                 teamIds == null ? Collections.emptyList() : teamIds,
                 applicationStatus(status), page, size, active));

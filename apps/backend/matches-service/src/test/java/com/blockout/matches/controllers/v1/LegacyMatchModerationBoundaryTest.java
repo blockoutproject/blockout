@@ -4,13 +4,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.blockout.matches.match.live.moderation.application.MatchLiveModerationApplicationService;
 import com.blockout.matches.match.live.moderation.persistence.MatchLiveModerationPersistenceMapper;
-import com.blockout.matches.models.entities.Match;
+import com.blockout.matches.match.persistence.Match;
+import com.blockout.matches.match.persistence.MatchRepository;
 import com.blockout.matches.models.entities.MatchLiveLink;
 import com.blockout.matches.models.enums.LiveLinkStatus;
 import com.blockout.matches.models.enums.LiveProvider;
 import com.blockout.matches.models.enums.MatchStatus;
 import com.blockout.matches.repositories.MatchLiveLinkRepository;
-import com.blockout.matches.repositories.MatchRepository;
 import com.blockout.matches.shared.api.v1.LegacyMatchesJson;
 import java.lang.reflect.Proxy;
 import java.time.Clock;
@@ -50,7 +50,7 @@ class LegacyMatchModerationBoundaryTest {
         var service = new MatchLiveModerationApplicationService(
                 matches, liveLinks, Mappers.getMapper(MatchLiveModerationPersistenceMapper.class),
                 Clock.fixed(now, ZoneOffset.UTC));
-        var controller = new MatchController(null, service, new LegacyMatchesJson());
+        var controller = new MatchController(null, null, service, new LegacyMatchesJson());
 
         String body = controller.listMatchesForLiveModeration(LiveLinkStatus.ACTIVE).getBody();
 

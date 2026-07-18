@@ -1,7 +1,7 @@
 package com.blockout.matches.services.moderation;
 
 import com.blockout.matches.match.live.application.CurrentUserSnapshot;
-import com.blockout.matches.models.entities.Match;
+import com.blockout.matches.match.persistence.Match;
 import com.blockout.matches.models.entities.MatchLiveLink;
 import com.blockout.matches.models.enums.MatchStatus;
 import lombok.RequiredArgsConstructor;

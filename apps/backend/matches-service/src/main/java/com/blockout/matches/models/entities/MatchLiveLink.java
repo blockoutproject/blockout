@@ -1,5 +1,6 @@
 package com.blockout.matches.models.entities;
 
+import com.blockout.matches.match.persistence.Match;
 import com.blockout.matches.models.enums.LiveLinkStatus;
 import com.blockout.matches.models.enums.LiveProvider;
 import jakarta.persistence.*;
