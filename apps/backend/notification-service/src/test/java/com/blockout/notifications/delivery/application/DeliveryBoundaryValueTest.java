@@ -16,14 +16,17 @@ class DeliveryBoundaryValueTest {
     @Test
     void deliveryBatchResultOwnsImmutableCopies() {
         Set<Long> successful = new LinkedHashSet<>(Set.of(1L));
+        Set<Long> retryable = new LinkedHashSet<>(Set.of(3L));
         List<String> invalid = new ArrayList<>(List.of("token"));
 
-        DeliveryBatchResult result = new DeliveryBatchResult(successful, null, invalid);
+        DeliveryBatchResult result = new DeliveryBatchResult(successful, null, retryable, invalid);
         successful.add(2L);
+        retryable.add(4L);
         invalid.add("other");
 
         assertThat(result.successfulUserIds()).containsExactlyInAnyOrder(1L);
         assertThat(result.failedUserIds()).isEmpty();
+        assertThat(result.retryableUserIds()).containsExactlyInAnyOrder(3L);
         assertThat(result.invalidTokens()).containsExactly("token");
         assertThatThrownBy(() -> result.invalidTokens().add("forbidden"))
                 .isInstanceOf(UnsupportedOperationException.class);

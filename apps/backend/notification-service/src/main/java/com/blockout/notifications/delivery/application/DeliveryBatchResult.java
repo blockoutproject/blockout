@@ -7,11 +7,13 @@ import java.util.Set;
 public record DeliveryBatchResult(
         Set<Long> successfulUserIds,
         Set<Long> failedUserIds,
+        Set<Long> retryableUserIds,
         List<String> invalidTokens) {
 
     public DeliveryBatchResult {
         successfulUserIds = successfulUserIds == null ? Set.of() : Set.copyOf(successfulUserIds);
         failedUserIds = failedUserIds == null ? Set.of() : Set.copyOf(failedUserIds);
+        retryableUserIds = retryableUserIds == null ? Set.of() : Set.copyOf(retryableUserIds);
         invalidTokens = invalidTokens == null ? List.of() : List.copyOf(invalidTokens);
     }
 }

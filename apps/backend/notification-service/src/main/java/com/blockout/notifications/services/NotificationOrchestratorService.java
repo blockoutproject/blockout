@@ -1,33 +1,18 @@
 package com.blockout.notifications.services;
 
+import static net.logstash.logback.argument.StructuredArguments.keyValue;
+
+import com.blockout.notifications.delivery.application.NotificationDelivery;
+import com.blockout.notifications.delivery.application.NotificationDeliveryCommand;
+import com.blockout.notifications.pool.application.PoolCatalog;
+import com.blockout.notifications.pool.application.PoolNameSnapshot;
+import com.blockout.notifications.team.application.TeamCatalog;
+import com.blockout.notifications.team.application.TeamNameSnapshot;
+import com.blockout.shared.model.NotificationTypeEnum;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-
-import com.blockout.notifications.delivery.application.DeliveryBatchResult;
-import com.blockout.notifications.delivery.application.DeliveryLedger;
-import com.blockout.notifications.delivery.application.DeliveryMessage;
-import com.blockout.notifications.delivery.application.DeliveryTokenCatalog;
-import com.blockout.notifications.delivery.application.DeliveryTokenPage;
-import com.blockout.notifications.delivery.application.PushDeliveryProvider;
-import com.blockout.notifications.inbox.application.CreateInboxNotificationCommand;
-import com.blockout.notifications.inbox.application.NotificationInboxWriter;
-import com.blockout.notifications.pool.application.PoolCatalog;
-import com.blockout.notifications.pool.application.PoolNameSnapshot;
-import com.blockout.shared.model.NotificationTargetTypeEnum;
-import com.blockout.shared.model.NotificationTypeEnum;
-import com.blockout.notifications.team.application.TeamCatalog;
-import com.blockout.notifications.team.application.TeamNameSnapshot;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-
-import java.time.Instant;
-import java.util.*;
-import java.util.stream.Collectors;
-
-import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
 @Service
 @RequiredArgsConstructor
@@ -35,222 +20,42 @@ public class NotificationOrchestratorService {
 
     private static final Logger logger = LoggerFactory.getLogger(NotificationOrchestratorService.class);
 
-    private final DeliveryLedger deliveryLedger;
-    private final PushDeliveryProvider pushDeliveryProvider;
-    private final NotificationInboxWriter notificationInbox;
-    private final DeliveryTokenCatalog deliveryTokenCatalog;
+    private final NotificationDelivery delivery;
 
     private final PoolCatalog poolCatalog;
     private final TeamCatalog teamCatalog;
 
-    private final ObjectMapper objectMapper;
-
-    private static final int RESOLVE_PAGE_SIZE = 2_000;
-    private static final int EXPO_BATCH_SIZE = 100;
-
-    /**
-     * Match terminé -> notif "MATCH_FINISHED".
-     */
+    /** Delivers a MATCH_FINISHED notification. */
     public void handleMatchFinished(Long matchId, Long teamIdA, Long teamIdB, Long poolId, String set) {
         ResolvedContent content = resolveFinishedContent(matchId, teamIdA, teamIdB, poolId, set);
 
-        ObjectNode baseMetadata = objectMapper.createObjectNode()
-                .put("divisionId", content.divisionId());
-
-        // Réservation typée MATCH_FINISHED
-        List<Long> reservedUserIds = deliveryLedger
-                .reserve(matchId, teamIdA, teamIdB, poolId, NotificationTypeEnum.MATCH_FINISHED);
-
-        processNotificationPipeline(
+        delivery.deliver(new NotificationDeliveryCommand(
                 matchId,
-                reservedUserIds,
+                teamIdA,
+                teamIdB,
+                poolId,
                 NotificationTypeEnum.MATCH_FINISHED,
-                content,
-                baseMetadata,
-                "match_finished");
+                content.title(),
+                content.body(),
+                content.divisionId()));
     }
 
-    /**
-     * Nouveau lien de live (avant / pendant match) -> notif
-     * "MATCH_LIVE_LINK_CREATED".
-     */
+    /** Delivers a MATCH_LIVE_LINK_CREATED notification. */
     public void handleMatchLiveLinkCreated(Long matchId, Long teamIdA, Long teamIdB, Long poolId) {
         ResolvedContent content = resolveLiveLinkContent(matchId, teamIdA, teamIdB, poolId);
 
-        ObjectNode baseMetadata = objectMapper.createObjectNode()
-                .put("divisionId", content.divisionId());
-
-        // Réservation typée MATCH_LIVE_LINK_CREATED
-        List<Long> reservedUserIds = deliveryLedger
-                .reserve(matchId, teamIdA, teamIdB, poolId, NotificationTypeEnum.MATCH_LIVE_LINK_CREATED);
-
-        processNotificationPipeline(
+        delivery.deliver(new NotificationDeliveryCommand(
                 matchId,
-                reservedUserIds,
+                teamIdA,
+                teamIdB,
+                poolId,
                 NotificationTypeEnum.MATCH_LIVE_LINK_CREATED,
-                content,
-                baseMetadata,
-                "match_live_link_created");
+                content.title(),
+                content.body(),
+                content.divisionId()));
     }
 
-    /**
-     * Pipeline générique : inbox + résolution tokens + push Expo + markSent/Failed.
-     */
-    private void processNotificationPipeline(
-            Long matchId,
-            List<Long> reservedUserIds,
-            NotificationTypeEnum notificationType,
-            ResolvedContent content,
-            ObjectNode baseMetadata,
-            String logContext) {
-        if (reservedUserIds == null || reservedUserIds.isEmpty()) {
-            logger.info("No recipients reserved",
-                    keyValue("action", "notification_reserve_empty_" + logContext),
-                    keyValue("matchId", matchId));
-            return;
-        }
-
-        logger.info("Starting token resolution & push",
-                keyValue("action", "notification_push_start_" + logContext),
-                keyValue("matchId", matchId),
-                keyValue("reservedCount", reservedUserIds.size()),
-                keyValue("resolvePageSize", RESOLVE_PAGE_SIZE),
-                keyValue("expoBatchSize", EXPO_BATCH_SIZE),
-                keyValue("title", content.title()),
-                keyValue("body", content.body()));
-
-        // 1) Inbox notifications
-        List<CreateInboxNotificationCommand> bulk = new ArrayList<>(reservedUserIds.size());
-        for (Long userId : reservedUserIds) {
-            JsonNode meta = baseMetadata.deepCopy();
-            bulk.add(new CreateInboxNotificationCommand(
-                    userId,
-                    notificationType,
-                    content.title(),
-                    content.body(),
-                    "/match/" + matchId,
-                    NotificationTargetTypeEnum.MATCH,
-                    matchId,
-                    meta));
-        }
-        notificationInbox.createBatch(bulk);
-
-        logger.info("User notifications created",
-                keyValue("action", "user_notifications_created_" + logContext),
-                keyValue("matchId", matchId),
-                keyValue("count", reservedUserIds.size()));
-
-        // 2) Pagination des users pour résolution des tokens & push Expo
-        int pageIndex = 0;
-        for (int from = 0; from < reservedUserIds.size(); from += RESOLVE_PAGE_SIZE, pageIndex++) {
-            int to = Math.min(from + RESOLVE_PAGE_SIZE, reservedUserIds.size());
-            List<Long> pageUserIds = reservedUserIds.subList(from, to);
-
-            DeliveryTokenPage page = deliveryTokenCatalog.resolvePage(pageUserIds);
-
-            if (!page.noTokenUserIds().isEmpty()) {
-                deliveryLedger.markNoToken(matchId, page.noTokenUserIds());
-            }
-
-            List<DeliveryMessage> messages = new ArrayList<>();
-            if (!page.tokensByUser().isEmpty()) {
-                for (Map.Entry<Long, List<String>> e : page.tokensByUser().entrySet()) {
-                    Long userId = e.getKey();
-                    List<String> tokens = e.getValue() == null ? List.of()
-                            : e.getValue().stream().distinct().toList();
-
-                    for (String token : tokens) {
-                        messages.add(new DeliveryMessage(
-                                token,
-                                content.title(),
-                                content.body(),
-                                Map.of("url", "blockout://match/" + matchId),
-                                userId,
-                                matchId));
-                    }
-                }
-            }
-
-            logger.info("Resolve page built",
-                    keyValue("action", "notification_resolve_page_" + logContext),
-                    keyValue("matchId", matchId),
-                    keyValue("pageIndex", pageIndex),
-                    keyValue("pageSize", pageUserIds.size()),
-                    keyValue("messageCount", messages.size()));
-
-            Set<Long> usersSent = new LinkedHashSet<>();
-            Set<Long> usersFailed = new LinkedHashSet<>();
-            List<String> invalidTokens = new ArrayList<>();
-
-            int batchIndex = 0;
-            for (int i = 0; i < messages.size(); i += EXPO_BATCH_SIZE, batchIndex++) {
-                int end = Math.min(i + EXPO_BATCH_SIZE, messages.size());
-                List<DeliveryMessage> batch = messages.subList(i, end);
-
-                try {
-                    DeliveryBatchResult result = pushDeliveryProvider.sendBatch(batch);
-
-                    usersSent.addAll(result.successfulUserIds());
-                    usersFailed.addAll(result.failedUserIds());
-                    invalidTokens.addAll(result.invalidTokens());
-
-                    logger.info("Expo batch done",
-                            keyValue("action", "expo_batch_done_" + logContext),
-                            keyValue("matchId", matchId),
-                            keyValue("pageIndex", pageIndex),
-                            keyValue("batchIndex", batchIndex),
-                            keyValue("batchSize", batch.size()),
-                            keyValue("okUsers",
-                                    result.successfulUserIds().size()),
-                            keyValue("failedUsers",
-                                    result.failedUserIds().size()),
-                            keyValue("invalidTokens",
-                                    result.invalidTokens().size()));
-
-                } catch (Exception ex) {
-                    Set<Long> batchUsers = batch.stream()
-                            .map(DeliveryMessage::userId)
-                            .collect(Collectors.toCollection(LinkedHashSet::new));
-                    usersFailed.addAll(batchUsers);
-
-                    logger.error("Expo batch send failed",
-                            keyValue("action", "expo_batch_failed_" + logContext),
-                            keyValue("matchId", matchId),
-                            keyValue("pageIndex", pageIndex),
-                            keyValue("batchIndex", batchIndex),
-                            keyValue("batchSize", batch.size()),
-                            ex);
-                }
-            }
-
-            if (!usersSent.isEmpty()) {
-                deliveryLedger.markSent(matchId, usersSent);
-            }
-            if (!usersFailed.isEmpty()) {
-                deliveryLedger.markFailed(matchId, usersFailed, "EXPO_SEND_ERROR", "See logs for details");
-            }
-            if (!invalidTokens.isEmpty()) {
-                deliveryTokenCatalog.deactivateInvalidTokens(invalidTokens.stream().distinct().toList());
-            }
-
-            logger.info("Resolve+push page done",
-                    keyValue("action", "notification_page_done_" + logContext),
-                    keyValue("matchId", matchId),
-                    keyValue("pageIndex", pageIndex),
-                    keyValue("pageUsers", pageUserIds.size()),
-                    keyValue("sentUsers", usersSent.size()),
-                    keyValue("failedUsers", usersFailed.size()));
-        }
-
-        logger.info("Push pipeline completed",
-                keyValue("action", "notification_push_done_" + logContext),
-                keyValue("matchId", matchId),
-                keyValue("time", Instant.now()));
-    }
-
-    // -----------------------------------------------------------------------------------------------------------------
-    // Résolution du contenu
-    // -----------------------------------------------------------------------------------------------------------------
+    // Content resolution
 
     private ResolvedContent resolveFinishedContent(
             Long matchId,
@@ -364,7 +169,7 @@ public class NotificationOrchestratorService {
         return new ResolvedContent(title, body, divisionId);
     }
 
-    /** Petite record interne pour transporter titre+corps+divisionId */
+    /** Carries resolved notification copy and division context. */
     private record ResolvedContent(String title, String body, Long divisionId) {
     }
 }

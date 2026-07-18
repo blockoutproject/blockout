@@ -1,27 +1,41 @@
-package com.blockout.notifications.models.entity;
+package com.blockout.notifications.delivery.persistence;
 
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import com.blockout.shared.model.NotificationStatusEnum;
+import com.blockout.shared.model.NotificationTypeEnum;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Index;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
+import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
+import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import jakarta.persistence.*;
-import java.time.LocalDateTime;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-import com.blockout.notifications.models.enums.NotificationStatus;
-
+/** Owns the retained notification_send row and its typed delivery identity. */
 @Data
 @Builder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
-@Entity
+@Entity(name = "NotificationSend")
 @Table(name = "notification_send", uniqueConstraints = {
-        @UniqueConstraint(columnNames = { "user_id", "match_id" }, name = "uix_notification_send_user_match")
+        @UniqueConstraint(
+                columnNames = {"user_id", "match_id", "notification_type"},
+                name = "uix_notification_send_user_match_type")
 }, indexes = {
         @Index(name = "idx_notification_send_match", columnList = "match_id"),
         @Index(name = "idx_notification_send_status", columnList = "status"),
         @Index(name = "idx_notification_send_user", columnList = "user_id")
 })
-public class NotificationSend {
+public class DeliveryAttemptEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -34,8 +48,12 @@ public class NotificationSend {
     private Long matchId;
 
     @Enumerated(EnumType.STRING)
+    @Column(name = "notification_type", nullable = false, length = 64)
+    private NotificationTypeEnum notificationType;
+
+    @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 32)
-    private NotificationStatus status; // défaut DB: PENDING
+    private NotificationStatusEnum status;
 
     @Column(name = "expo_ticket_id", length = 255)
     private String expoTicketId;
@@ -63,9 +81,8 @@ public class NotificationSend {
 
     @PrePersist
     public void prePersist() {
-        // Si l'app passe null, on s'aligne sur la valeur par défaut DB 'PENDING'
         if (status == null) {
-            status = NotificationStatus.PENDING;
+            status = NotificationStatusEnum.PENDING;
         }
         createdAt = LocalDateTime.now();
         lastUpdate = LocalDateTime.now();

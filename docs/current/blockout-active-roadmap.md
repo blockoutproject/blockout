@@ -1575,8 +1575,23 @@ state moves to GitHub and this file becomes a historical migration record.
     retains delivery/ledger/retry/provider ownership and MRG-428 retains consumer/projection/deduplication ownership;
     `docs/migration/mrg-410-notification-inbox-token-architecture.md` records ownership, parity, deferred debt,
     compatibility, and rollback.
-- [ ] MRG-427 Restructure `notification-service` delivery decisions, delivery ledger, retry state, and Expo provider
+- [x] MRG-427 Restructure `notification-service` delivery decisions, delivery ledger, retry state, and Expo provider
       adapter without leaking provider tickets or receipts into application contracts.
+  - Evidence: notification delivery now crosses a resolved immutable command into a dedicated application service
+    that owns the retained reserve, inbox, 2,000-user token page, no-token, 100-message provider batch, ledger, and
+    invalid-token order. Every ledger transition carries `matchId + notificationType`, applies only to `PENDING`
+    rows, and can no longer cross-update another notification type. Missing provider tickets are explicit retryable
+    users that remain `PENDING`; page-wide outcome precedence is success, then retryable, then failed. The relocated
+    ledger entity maps the deployed notification type and three-column unique constraint, while the repository and
+    Expo SDK remain persistence/provider adapters and unused unimplemented receipt queries were removed. Seventy-three
+    focused notification-service tests, complete backend packaging, all backend Dockerfile checks, deterministic
+    generation, the full local CI gate, documentation, formatting, and whitespace checks pass. Flyway V1-V7, the
+    physical schema, REST and event contracts, Rabbit topology, inbox and token-registration behavior, routes,
+    scopes, callers, credentials, deployment, production, and Maaatch are unchanged. No retry scheduler, attempt
+    policy, receipt poller, reconciliation, provider call, or token mutation is authorized; MRG-428 retains exclusive
+    event-consumer and follower-projection ownership;
+    `docs/migration/mrg-427-notification-delivery-architecture.md` records decisions, retained order, compatibility,
+    deferred policy, and rollback.
 - [ ] MRG-428 Restructure `notification-service` event and follower projection internals as idempotent, rebuildable
       consumers with explicit reconciliation, deduplication, acknowledgement, and rollback policy.
 - [ ] MRG-411 Restructure `search-service` query, filter, search-view, and Elasticsearch adapter boundaries without

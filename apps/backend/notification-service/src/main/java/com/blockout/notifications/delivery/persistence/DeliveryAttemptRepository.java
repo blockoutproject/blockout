@@ -1,22 +1,18 @@
-package com.blockout.notifications.repositories;
+package com.blockout.notifications.delivery.persistence;
 
+import com.blockout.shared.model.NotificationTypeEnum;
+import java.time.LocalDateTime;
+import java.util.Collection;
+import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import com.blockout.notifications.models.entity.NotificationSend;
-import com.blockout.notifications.models.enums.NotificationStatus;
-
-import java.time.LocalDateTime;
-import java.util.Collection;
-import java.util.List;
-
+/** Owns typed reservation and state transitions for notification_send. */
 @Repository
-public interface NotificationSendRepository extends JpaRepository<NotificationSend, Long> {
-
-    boolean existsByUserIdAndMatchId(Long userId, Long matchId);
+public interface DeliveryAttemptRepository extends JpaRepository<DeliveryAttemptEntity, Long> {
 
     @Modifying
     @Query(value = """
@@ -47,49 +43,42 @@ public interface NotificationSendRepository extends JpaRepository<NotificationSe
             @Param("teamIdA") Long teamIdA,
             @Param("teamIdB") Long teamIdB,
             @Param("poolId") Long poolId,
-            @Param("notificationType") String notificationType
-    );
+            @Param("notificationType") String notificationType);
 
-    /**
-     * Marque SENT pour un match et une liste d'utilisateurs (seulement si encore
-     * PENDING).
-     */
     @Modifying(clearAutomatically = true)
     @Query("""
             UPDATE NotificationSend ns
-                SET ns.status = :status,
+                SET ns.status = 'SENT',
                     ns.sentAt = :sentAt,
                     ns.lastUpdate = :now
             WHERE ns.matchId = :matchId
+                AND ns.notificationType = :notificationType
                 AND ns.userId IN :userIds
                 AND ns.status = 'PENDING'
             """)
-    int markSent(@Param("matchId") Long matchId,
+    int markSent(
+            @Param("matchId") Long matchId,
+            @Param("notificationType") NotificationTypeEnum notificationType,
             @Param("userIds") Collection<Long> userIds,
-            @Param("status") NotificationStatus status,
             @Param("sentAt") LocalDateTime sentAt,
             @Param("now") LocalDateTime now);
 
-    /**
-     * Marque SENT_NO_TOKEN pour les lignes encore PENDING.
-     */
     @Modifying(clearAutomatically = true)
     @Query("""
             UPDATE NotificationSend ns
                 SET ns.status = 'SENT_NO_TOKEN',
                     ns.lastUpdate = :now
             WHERE ns.matchId = :matchId
+                AND ns.notificationType = :notificationType
                 AND ns.userId IN :userIds
                 AND ns.status = 'PENDING'
             """)
-    int markNoToken(@Param("matchId") Long matchId,
+    int markNoToken(
+            @Param("matchId") Long matchId,
+            @Param("notificationType") NotificationTypeEnum notificationType,
             @Param("userIds") Collection<Long> userIds,
             @Param("now") LocalDateTime now);
 
-    /**
-     * Marque FAILED (peu importe l'état précédent — utile pour erreurs Expo
-     * immédiates).
-     */
     @Modifying(clearAutomatically = true)
     @Query("""
             UPDATE NotificationSend ns
@@ -99,29 +88,16 @@ public interface NotificationSendRepository extends JpaRepository<NotificationSe
                     ns.failedAt = :failedAt,
                     ns.lastUpdate = :now
             WHERE ns.matchId = :matchId
+                AND ns.notificationType = :notificationType
                 AND ns.userId IN :userIds
+                AND ns.status = 'PENDING'
             """)
-    int markFailed(@Param("matchId") Long matchId,
+    int markFailed(
+            @Param("matchId") Long matchId,
+            @Param("notificationType") NotificationTypeEnum notificationType,
             @Param("userIds") Collection<Long> userIds,
             @Param("errorCode") String errorCode,
             @Param("errorDetail") String errorDetail,
             @Param("failedAt") LocalDateTime failedAt,
-            @Param("now") LocalDateTime now);
-
-    /**
-     * Marque DELIVERED (quand tu traiteras les receipts Expo).
-     */
-    @Modifying(clearAutomatically = true)
-    @Query("""
-            UPDATE NotificationSend ns
-                SET ns.status = 'DELIVERED',
-                    ns.deliveredAt = :deliveredAt,
-                    ns.lastUpdate = :now
-            WHERE ns.matchId = :matchId
-                AND ns.userId IN :userIds
-            """)
-    int markDelivered(@Param("matchId") Long matchId,
-            @Param("userIds") Collection<Long> userIds,
-            @Param("deliveredAt") LocalDateTime deliveredAt,
             @Param("now") LocalDateTime now);
 }

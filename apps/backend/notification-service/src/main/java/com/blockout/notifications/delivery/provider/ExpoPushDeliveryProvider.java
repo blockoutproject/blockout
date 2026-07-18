@@ -50,7 +50,7 @@ public class ExpoPushDeliveryProvider implements PushDeliveryProvider {
     public DeliveryBatchResult sendBatch(List<DeliveryMessage> messages) {
         if (messages == null || messages.isEmpty()) {
             LOGGER.info("Empty batch, nothing to send", keyValue("action", "expo_sdk_batch_skip"));
-            return new DeliveryBatchResult(Set.of(), Set.of(), List.of());
+            return new DeliveryBatchResult(Set.of(), Set.of(), Set.of(), List.of());
         }
         List<DeliveryMessage> batch = messages.size() > MAX_BATCH ? messages.subList(0, MAX_BATCH) : messages;
         List<PushNotification> notifications = new ArrayList<>(batch.size());
@@ -76,7 +76,7 @@ public class ExpoPushDeliveryProvider implements PushDeliveryProvider {
                     keyValue("action", "expo_sdk_send_failed"),
                     keyValue("count", notifications.size()), exception);
             Set<Long> failed = batch.stream().map(DeliveryMessage::userId).collect(Collectors.toSet());
-            return new DeliveryBatchResult(Set.of(), failed, List.of());
+            return new DeliveryBatchResult(Set.of(), failed, Set.of(), List.of());
         }
     }
 
@@ -115,15 +115,22 @@ public class ExpoPushDeliveryProvider implements PushDeliveryProvider {
         }
         Set<Long> successful = okByUser.keySet();
         Set<Long> usersInBatch = batch.stream().map(DeliveryMessage::userId).collect(Collectors.toSet());
+        Set<Long> retryable = batch.subList(count, batch.size()).stream()
+                .map(DeliveryMessage::userId)
+                .filter(userId -> !successful.contains(userId))
+                .collect(Collectors.toCollection(LinkedHashSet::new));
         Set<Long> failed = usersInBatch.stream()
-                .filter(userId -> !successful.contains(userId) && errorByUser.getOrDefault(userId, 0) > 0)
+                .filter(userId -> !successful.contains(userId)
+                        && !retryable.contains(userId)
+                        && errorByUser.getOrDefault(userId, 0) > 0)
                 .collect(Collectors.toCollection(LinkedHashSet::new));
         LOGGER.info("Expo batch aggregated",
                 keyValue("action", "expo_batch_aggregate"),
                 keyValue("okUsers", successful.size()),
                 keyValue("failedUsers", failed.size()),
+                keyValue("retryableUsers", retryable.size()),
                 keyValue("invalidTokens", invalidTokens.size()));
-        return new DeliveryBatchResult(successful, failed, invalidTokens);
+        return new DeliveryBatchResult(successful, failed, retryable, invalidTokens);
     }
 
     private String detailToken(TicketResponse.Ticket ticket) {

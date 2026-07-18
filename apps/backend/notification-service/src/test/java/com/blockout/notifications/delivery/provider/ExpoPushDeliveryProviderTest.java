@@ -29,6 +29,7 @@ class ExpoPushDeliveryProviderTest {
         assertThat(calls).hasValue(0);
         assertThat(result.successfulUserIds()).isEmpty();
         assertThat(result.failedUserIds()).isEmpty();
+        assertThat(result.retryableUserIds()).isEmpty();
         assertThat(result.invalidTokens()).isEmpty();
     }
 
@@ -45,11 +46,12 @@ class ExpoPushDeliveryProviderTest {
 
         assertThat(result.successfulUserIds()).isEmpty();
         assertThat(result.failedUserIds()).containsExactlyInAnyOrder(1L, 2L);
+        assertThat(result.retryableUserIds()).isEmpty();
         assertThat(result.invalidTokens()).isEmpty();
     }
 
     @Test
-    void missingTicketsRemainUnclassifiedAsInTheLegacyAggregation() {
+    void missingTicketsAreExplicitlyRetryableWithoutBeingFailed() {
         ExpoPushDeliveryProvider provider = new ExpoPushDeliveryProvider(notifications -> List.of(ticket(Status.OK)));
 
         DeliveryBatchResult result = provider.sendBatch(List.of(
@@ -58,6 +60,7 @@ class ExpoPushDeliveryProviderTest {
 
         assertThat(result.successfulUserIds()).containsExactlyInAnyOrder(1L);
         assertThat(result.failedUserIds()).isEmpty();
+        assertThat(result.retryableUserIds()).containsExactly(2L);
     }
 
     @Test
@@ -69,6 +72,21 @@ class ExpoPushDeliveryProviderTest {
         DeliveryBatchResult result = provider.sendBatch(List.of(message(7L, "token-7")));
 
         assertThat(result.failedUserIds()).containsExactlyInAnyOrder(7L);
+        assertThat(result.retryableUserIds()).isEmpty();
+    }
+
+    @Test
+    void missingTicketKeepsAUserRetryableDespiteAnotherTokenError() {
+        ExpoPushDeliveryProvider provider = new ExpoPushDeliveryProvider(
+                notifications -> List.of(ticket(Status.ERROR)));
+
+        DeliveryBatchResult result = provider.sendBatch(List.of(
+                message(7L, "token-7a"),
+                message(7L, "token-7b")));
+
+        assertThat(result.successfulUserIds()).isEmpty();
+        assertThat(result.failedUserIds()).isEmpty();
+        assertThat(result.retryableUserIds()).containsExactly(7L);
     }
 
     @Test
@@ -87,6 +105,7 @@ class ExpoPushDeliveryProviderTest {
 
         assertThat(result.successfulUserIds()).containsExactlyInAnyOrder(9L);
         assertThat(result.failedUserIds()).isEmpty();
+        assertThat(result.retryableUserIds()).isEmpty();
         assertThat(result.invalidTokens()).containsExactly("rejected-token");
     }
 
