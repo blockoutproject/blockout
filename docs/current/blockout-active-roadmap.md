@@ -1556,8 +1556,25 @@ state moves to GitHub and this file becomes a historical migration record.
     deployment, production, and Maaatch are unchanged; retention, cleanup, compensation, reconciliation, abuse,
     Markdown, and delivery-policy decisions remain unapproved; `docs/migration/mrg-409-reports-provider-architecture.md`
     records ownership, order, security corrections, retained unknowns, compatibility, and rollback.
-- [ ] MRG-410 Restructure `notification-service` inbox, token, pagination, and persistence boundaries with role-owned
+- [x] MRG-410 Restructure `notification-service` inbox, token, pagination, and persistence boundaries with role-owned
       commands, page views, entities, and mappers.
+  - Evidence: notification creation now crosses an immutable provider-neutral inbox command, writer, transactional
+    application service, and write-store port instead of passing JPA rows through the delivery orchestrator. The inbox
+    entity, repository, read/mutation/write adapters, and strict persistence mapper now own `user_notifications` while
+    retaining the `UserNotification` JPA identity, columns, indexes, callbacks, timestamps, metadata, unread/opened
+    defaults, canonical `createdAt DESC, id DESC` pages, legacy created-at-only pages, current-user ownership, and
+    state-sensitive mutation results. Push-token registration now expresses existing-row updates as immutable changes;
+    its strict mapper, entity, repository, and adapter own `push_tokens` while preserving the `PushToken` JPA identity,
+    enum strings, constraints, indexes, callbacks, reattach/rotate/create order, duplicate cleanup, active state, and
+    masked logs. The delivery token adapter retains the same token-owned repository access without changing Expo or
+    ledger behavior. Unused generic single-notification creation and duplicate persistence enums were removed.
+    Sixty-five focused notification-service tests, complete backend packaging, all backend Dockerfile checks,
+    deterministic generation, the full local CI gate, documentation, formatting, and whitespace checks pass. Flyway
+    V1-V7, database structure, REST and event contracts, generated artifacts, Rabbit topology, routes, scopes, page
+    wrappers, caller-selected token identity, callers, deployment, production, and Maaatch are unchanged. MRG-427
+    retains delivery/ledger/retry/provider ownership and MRG-428 retains consumer/projection/deduplication ownership;
+    `docs/migration/mrg-410-notification-inbox-token-architecture.md` records ownership, parity, deferred debt,
+    compatibility, and rollback.
 - [ ] MRG-427 Restructure `notification-service` delivery decisions, delivery ledger, retry state, and Expo provider
       adapter without leaking provider tickets or receipts into application contracts.
 - [ ] MRG-428 Restructure `notification-service` event and follower projection internals as idempotent, rebuildable

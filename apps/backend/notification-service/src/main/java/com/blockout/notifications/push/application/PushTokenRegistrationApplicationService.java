@@ -24,8 +24,8 @@ public class PushTokenRegistrationApplicationService implements PushTokenRegistr
         if (existingByToken.isPresent()) {
             PushTokenRegistrationTarget existing = existingByToken.get();
             String deviceId = hasDevice(command.deviceId()) ? command.deviceId() : existing.deviceId();
-            store.update(
-                    existing.id(), command.userId(), command.expoPushToken(), command.platform(), deviceId);
+            store.update(new PushTokenRegistrationChange(
+                    existing.id(), command.userId(), command.expoPushToken(), command.platform(), deviceId));
             cleanDuplicates(command.userId(), command.deviceId(), existing.id());
             LOGGER.info("Push token reattached",
                     keyValue("action", "register_push_token"),
@@ -41,8 +41,12 @@ public class PushTokenRegistrationApplicationService implements PushTokenRegistr
             var existingByDevice = store.findByUserAndDevice(command.userId(), command.deviceId());
             if (existingByDevice.isPresent()) {
                 PushTokenRegistrationTarget existing = existingByDevice.get();
-                store.update(
-                        existing.id(), command.userId(), command.expoPushToken(), command.platform(), command.deviceId());
+                store.update(new PushTokenRegistrationChange(
+                        existing.id(),
+                        command.userId(),
+                        command.expoPushToken(),
+                        command.platform(),
+                        command.deviceId()));
                 cleanDuplicates(command.userId(), command.deviceId(), existing.id());
                 LOGGER.info("Push token rotated (by deviceId)",
                         keyValue("action", "register_push_token"),

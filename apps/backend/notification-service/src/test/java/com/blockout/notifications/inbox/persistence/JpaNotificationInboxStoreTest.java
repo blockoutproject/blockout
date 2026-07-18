@@ -3,8 +3,7 @@ package com.blockout.notifications.inbox.persistence;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.blockout.notifications.inbox.application.NotificationInboxSnapshot;
-import com.blockout.notifications.models.entity.UserNotification;
-import com.blockout.notifications.repositories.UserNotificationRepository;
+import com.blockout.notifications.inbox.application.CreateInboxNotificationCommand;
 import java.lang.reflect.Proxy;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
@@ -18,15 +17,15 @@ import org.springframework.data.domain.Sort;
 class JpaNotificationInboxStoreTest {
 
     private final AtomicReference<String> repositoryCall = new AtomicReference<>();
-    private final AtomicReference<Slice<UserNotification>> repositoryResult = new AtomicReference<>();
+    private final AtomicReference<Slice<NotificationInboxEntity>> repositoryResult = new AtomicReference<>();
     private final AtomicReference<NotificationInboxSnapshot> mappedSnapshot = new AtomicReference<>();
     private JpaNotificationInboxStore store;
 
     @BeforeEach
     void setUp() {
-        UserNotificationRepository repository = (UserNotificationRepository) Proxy.newProxyInstance(
-                UserNotificationRepository.class.getClassLoader(),
-                new Class<?>[] {UserNotificationRepository.class},
+        NotificationInboxRepository repository = (NotificationInboxRepository) Proxy.newProxyInstance(
+                NotificationInboxRepository.class.getClassLoader(),
+                new Class<?>[] {NotificationInboxRepository.class},
                 (proxy, method, arguments) -> {
                     if (method.getName().startsWith("findByUserIdOrderByCreatedAtDesc")) {
                         repositoryCall.set("%s:%s:%s".formatted(
@@ -37,8 +36,13 @@ class JpaNotificationInboxStoreTest {
                 });
         NotificationInboxPersistenceMapper mapper = new NotificationInboxPersistenceMapper() {
             @Override
-            public NotificationInboxSnapshot toSnapshot(UserNotification entity) {
+            public NotificationInboxSnapshot toSnapshot(NotificationInboxEntity entity) {
                 return mappedSnapshot.get();
+            }
+
+            @Override
+            public NotificationInboxEntity toEntity(CreateInboxNotificationCommand command) {
+                throw new UnsupportedOperationException("write mapping is outside this read-store test");
             }
         };
         store = new JpaNotificationInboxStore(repository, mapper);
@@ -46,7 +50,7 @@ class JpaNotificationInboxStoreTest {
 
     @Test
     void canonicalPagesUseTheRepositoryOwnedStableCreatedAtAndIdOrdering() {
-        UserNotification entity = new UserNotification();
+        NotificationInboxEntity entity = new NotificationInboxEntity();
         NotificationInboxSnapshot snapshot = new NotificationInboxSnapshot(
                 1L, 2L, null, "title", "body", null, null, null, null, null,
                 false, false, java.time.Instant.EPOCH, null, null);

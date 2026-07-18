@@ -1,23 +1,21 @@
-package com.blockout.notifications.repositories;
+package com.blockout.notifications.push.persistence;
 
+import java.util.Collection;
+import java.util.List;
+import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-import com.blockout.notifications.models.entity.PushToken;
+/** Owns all Spring Data access to push_tokens for registration and delivery adapters. */
+public interface PushTokenRepository extends JpaRepository<PushTokenEntity, Long> {
 
-import java.util.Collection;
-import java.util.List;
-import java.util.Optional;
+    Optional<PushTokenEntity> findByExpoPushToken(String expoPushToken);
 
-public interface PushTokenRepository extends JpaRepository<PushToken, Long> {
+    Optional<PushTokenEntity> findByUserIdAndDeviceId(Long userId, String deviceId);
 
-    Optional<PushToken> findByExpoPushToken(String expoPushToken);
-
-    Optional<PushToken> findByUserIdAndDeviceId(Long userId, String deviceId);
-
-    List<PushToken> findAllByUserIdInAndActiveTrue(List<Long> userIds);
+    List<PushTokenEntity> findAllByUserIdInAndActiveTrue(List<Long> userIds);
 
     @Modifying
     @Query("""
@@ -31,6 +29,8 @@ public interface PushTokenRepository extends JpaRepository<PushToken, Long> {
             DELETE FROM PushToken p
             WHERE p.userId = :userId AND p.deviceId = :deviceId AND p.id <> :keepId
             """)
-    int deleteOthersByUserAndDevice(@Param("userId") Long userId, @Param("deviceId") String deviceId,
+    int deleteOthersByUserAndDevice(
+            @Param("userId") Long userId,
+            @Param("deviceId") String deviceId,
             @Param("keepId") Long keepId);
 }

@@ -1,7 +1,6 @@
 package com.blockout.notifications.inbox.persistence;
 
 import com.blockout.notifications.inbox.application.NotificationInboxMutationStore;
-import com.blockout.notifications.repositories.UserNotificationRepository;
 import java.time.Instant;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -11,7 +10,7 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class JpaNotificationInboxMutationStore implements NotificationInboxMutationStore {
 
-    private final UserNotificationRepository repository;
+    private final NotificationInboxRepository repository;
 
     @Override
     public long countUnread(Long userId) {

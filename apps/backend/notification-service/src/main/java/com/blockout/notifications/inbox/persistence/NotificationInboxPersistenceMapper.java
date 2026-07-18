@@ -1,7 +1,7 @@
 package com.blockout.notifications.inbox.persistence;
 
+import com.blockout.notifications.inbox.application.CreateInboxNotificationCommand;
 import com.blockout.notifications.inbox.application.NotificationInboxSnapshot;
-import com.blockout.notifications.models.entity.UserNotification;
 import com.blockout.notifications.shared.mapping.NotificationMapperConfig;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.mapstruct.Mapper;
@@ -13,7 +13,16 @@ public interface NotificationInboxPersistenceMapper {
 
     /** Maps every retained compatibility field and derives the canonical division identity. */
     @Mapping(target = "divisionId", expression = "java(divisionId(entity.getMetadata()))")
-    NotificationInboxSnapshot toSnapshot(UserNotification entity);
+    NotificationInboxSnapshot toSnapshot(NotificationInboxEntity entity);
+
+    /** Maps one provider-neutral write to a new unread and unopened persistence row. */
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "isRead", constant = "false")
+    @Mapping(target = "isOpened", constant = "false")
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "readAt", ignore = true)
+    @Mapping(target = "openedAt", ignore = true)
+    NotificationInboxEntity toEntity(CreateInboxNotificationCommand command);
 
     /** Extracts the positive numeric or numeric-text division identity used by BFF enrichment. */
     default Long divisionId(JsonNode metadata) {

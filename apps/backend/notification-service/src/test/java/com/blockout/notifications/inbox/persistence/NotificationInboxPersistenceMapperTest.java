@@ -3,9 +3,9 @@ package com.blockout.notifications.inbox.persistence;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.blockout.notifications.inbox.application.NotificationInboxSnapshot;
-import com.blockout.notifications.models.entity.UserNotification;
-import com.blockout.notifications.models.enums.NotificationTargetType;
-import com.blockout.notifications.models.enums.NotificationType;
+import com.blockout.notifications.inbox.application.CreateInboxNotificationCommand;
+import com.blockout.shared.model.NotificationTargetTypeEnum;
+import com.blockout.shared.model.NotificationTypeEnum;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
@@ -22,14 +22,14 @@ class NotificationInboxPersistenceMapperTest {
     void mapsPersistenceFieldsAndDerivesTheCanonicalDivisionIdentity() throws Exception {
         JsonNode metadata = json.readTree("{\"divisionId\":\"57\",\"source\":\"legacy\"}");
         Instant createdAt = Instant.parse("2026-07-17T10:00:00Z");
-        UserNotification entity = UserNotification.builder()
+        NotificationInboxEntity entity = NotificationInboxEntity.builder()
                 .id(11L)
                 .userId(21L)
-                .type(NotificationType.MATCH_FINISHED)
+                .type(NotificationTypeEnum.MATCH_FINISHED)
                 .title("Final score")
                 .body("The match is complete")
                 .deepLink("blockout://matches/31")
-                .targetType(NotificationTargetType.MATCH)
+                .targetType(NotificationTargetTypeEnum.MATCH)
                 .targetId(31L)
                 .metadata(metadata)
                 .isRead(true)
@@ -46,6 +46,29 @@ class NotificationInboxPersistenceMapperTest {
         assertThat(result.divisionId()).isEqualTo(57L);
         assertThat(result.createdAt()).isEqualTo(createdAt);
         assertThat(result.metadata()).isEqualTo(metadata);
+    }
+
+    @Test
+    void mapsProviderNeutralWritesToNewUnreadPersistenceRows() throws Exception {
+        CreateInboxNotificationCommand command = new CreateInboxNotificationCommand(
+                21L,
+                NotificationTypeEnum.MATCH_FINISHED,
+                "Final score",
+                "The match is complete",
+                "/match/31",
+                NotificationTargetTypeEnum.MATCH,
+                31L,
+                json.readTree("{\"divisionId\":57}"));
+
+        NotificationInboxEntity entity = mapper.toEntity(command);
+
+        assertThat(entity.getId()).isNull();
+        assertThat(entity.getUserId()).isEqualTo(21L);
+        assertThat(entity.getType()).isEqualTo(NotificationTypeEnum.MATCH_FINISHED);
+        assertThat(entity.getTargetType()).isEqualTo(NotificationTargetTypeEnum.MATCH);
+        assertThat(entity.getIsRead()).isFalse();
+        assertThat(entity.getIsOpened()).isFalse();
+        assertThat(entity.getCreatedAt()).isNull();
     }
 
     @Test

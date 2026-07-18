@@ -4,8 +4,8 @@ import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
 import com.blockout.notifications.delivery.application.DeliveryTokenCatalog;
 import com.blockout.notifications.delivery.application.DeliveryTokenPage;
-import com.blockout.notifications.models.entity.PushToken;
-import com.blockout.notifications.repositories.PushTokenRepository;
+import com.blockout.notifications.push.persistence.PushTokenEntity;
+import com.blockout.notifications.push.persistence.PushTokenRepository;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -32,10 +32,10 @@ public class JpaDeliveryTokenCatalog implements DeliveryTokenCatalog {
         if (userIds == null || userIds.isEmpty()) {
             return new DeliveryTokenPage(Map.of(), Set.of());
         }
-        List<PushToken> rows = repository.findAllByUserIdInAndActiveTrue(userIds);
+        List<PushTokenEntity> rows = repository.findAllByUserIdInAndActiveTrue(userIds);
         Map<Long, List<String>> tokensByUser = rows.stream().collect(Collectors.groupingBy(
-                PushToken::getUserId,
-                Collectors.mapping(PushToken::getExpoPushToken, Collectors.toList())));
+                PushTokenEntity::getUserId,
+                Collectors.mapping(PushTokenEntity::getExpoPushToken, Collectors.toList())));
         Set<Long> noTokenUserIds = userIds.stream()
                 .filter(id -> !tokensByUser.containsKey(id) || tokensByUser.get(id).isEmpty())
                 .collect(Collectors.toCollection(LinkedHashSet::new));

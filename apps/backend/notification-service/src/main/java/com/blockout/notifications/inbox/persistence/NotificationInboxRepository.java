@@ -1,21 +1,21 @@
-package com.blockout.notifications.repositories;
+package com.blockout.notifications.inbox.persistence;
 
+import java.time.Instant;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
-import org.springframework.data.jpa.repository.*;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import com.blockout.notifications.models.entity.UserNotification;
-
-import java.time.Instant;
-
+/** Owns all Spring Data access to user_notifications. */
 @Repository
-public interface UserNotificationRepository extends JpaRepository<UserNotification, Long> {
+public interface NotificationInboxRepository extends JpaRepository<NotificationInboxEntity, Long> {
 
-    Slice<UserNotification> findByUserIdOrderByCreatedAtDesc(Long userId, Pageable pageable);
+    Slice<NotificationInboxEntity> findByUserIdOrderByCreatedAtDesc(Long userId, Pageable pageable);
 
-    Slice<UserNotification> findByUserIdOrderByCreatedAtDescIdDesc(Long userId, Pageable pageable);
+    Slice<NotificationInboxEntity> findByUserIdOrderByCreatedAtDescIdDesc(Long userId, Pageable pageable);
 
     long countByUserIdAndIsReadFalse(Long userId);
 

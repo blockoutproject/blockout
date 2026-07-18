@@ -1,24 +1,33 @@
-package com.blockout.notifications.models.entity;
+package com.blockout.notifications.push.persistence;
 
+import com.blockout.shared.model.DevicePlatformEnum;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
+import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import java.time.LocalDateTime;
-
-import com.blockout.notifications.models.enums.DevicePlatform;
-
-import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+/** Owns the retained push_tokens row shape inside token persistence. */
 @Data
 @Builder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
-@Entity
+@Entity(name = "PushToken")
 @Table(name = "push_tokens", uniqueConstraints = {
-        @UniqueConstraint(name = "uix_push_tokens_token", columnNames = { "expo_push_token" })
+        @UniqueConstraint(name = "uix_push_tokens_token", columnNames = {"expo_push_token"})
 })
-public class PushToken {
+public class PushTokenEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -32,7 +41,7 @@ public class PushToken {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "platform", nullable = false, length = 20)
-    private DevicePlatform platform;
+    private DevicePlatformEnum platform;
 
     @Column(name = "device_id")
     private String deviceId;
@@ -51,8 +60,9 @@ public class PushToken {
     public void prePersist() {
         createdAt = LocalDateTime.now();
         lastUpdate = LocalDateTime.now();
-        if (active == null)
+        if (active == null) {
             active = true;
+        }
     }
 
     @PreUpdate

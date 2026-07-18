@@ -90,14 +90,13 @@ class PushTokenRegistrationApplicationServiceTest {
         }
 
         @Override
-        public void update(
-                Long id,
-                Long userId,
-                String expoPushToken,
-                DevicePlatformEnum platform,
-                String deviceId) {
+        public void update(PushTokenRegistrationChange change) {
             calls.add("update:%d:%d:%s:%s:%s".formatted(
-                    id, userId, expoPushToken, platform, deviceId));
+                    change.id(),
+                    change.userId(),
+                    change.expoPushToken(),
+                    change.platform(),
+                    change.deviceId()));
         }
 
         @Override

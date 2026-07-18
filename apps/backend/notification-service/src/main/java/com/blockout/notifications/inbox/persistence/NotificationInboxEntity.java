@@ -1,28 +1,38 @@
-package com.blockout.notifications.models.entity;
+package com.blockout.notifications.inbox.persistence;
 
-import jakarta.persistence.*;
-import lombok.*;
-
+import com.blockout.shared.model.NotificationTargetTypeEnum;
+import com.blockout.shared.model.NotificationTypeEnum;
+import com.fasterxml.jackson.databind.JsonNode;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Index;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.Table;
 import java.time.Instant;
-
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
-import com.blockout.notifications.models.enums.NotificationTargetType;
-import com.blockout.notifications.models.enums.NotificationType;
-import com.fasterxml.jackson.databind.JsonNode;
-
+/** Owns the retained user_notifications row shape inside the inbox persistence adapter. */
 @Data
 @Builder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
-@Entity
+@Entity(name = "UserNotification")
 @Table(name = "user_notifications", indexes = {
         @Index(name = "idx_user_notifications_user_created", columnList = "user_id, created_at DESC"),
         @Index(name = "idx_user_notifications_user_is_read", columnList = "user_id, is_read"),
         @Index(name = "idx_user_notifications_target", columnList = "target_type, target_id")
 })
-public class UserNotification {
+public class NotificationInboxEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -33,7 +43,7 @@ public class UserNotification {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "type", nullable = false, length = 50)
-    private NotificationType type;
+    private NotificationTypeEnum type;
 
     @Column(name = "title", nullable = false, columnDefinition = "TEXT")
     private String title;
@@ -46,7 +56,7 @@ public class UserNotification {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "target_type", length = 50)
-    private NotificationTargetType targetType;
+    private NotificationTargetTypeEnum targetType;
 
     @Column(name = "target_id")
     private Long targetId;

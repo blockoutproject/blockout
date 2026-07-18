@@ -1,12 +1,9 @@
 package com.blockout.notifications.push.persistence;
 
-import com.blockout.notifications.models.entity.PushToken;
-import com.blockout.notifications.models.enums.DevicePlatform;
+import com.blockout.notifications.push.application.PushTokenRegistrationChange;
 import com.blockout.notifications.push.application.PushTokenRegistrationStore;
 import com.blockout.notifications.push.application.PushTokenRegistrationTarget;
 import com.blockout.notifications.push.application.RegisterPushTokenCommand;
-import com.blockout.notifications.repositories.PushTokenRepository;
-import com.blockout.shared.model.DevicePlatformEnum;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -17,55 +14,33 @@ import org.springframework.stereotype.Component;
 public class JpaPushTokenRegistrationStore implements PushTokenRegistrationStore {
 
     private final PushTokenRepository repository;
+    private final PushTokenPersistenceMapper mapper;
 
     @Override
     public Optional<PushTokenRegistrationTarget> findByToken(String expoPushToken) {
-        return repository.findByExpoPushToken(expoPushToken).map(this::target);
+        return repository.findByExpoPushToken(expoPushToken).map(mapper::toTarget);
     }
 
     @Override
     public Optional<PushTokenRegistrationTarget> findByUserAndDevice(Long userId, String deviceId) {
-        return repository.findByUserIdAndDeviceId(userId, deviceId).map(this::target);
+        return repository.findByUserIdAndDeviceId(userId, deviceId).map(mapper::toTarget);
     }
 
     @Override
-    public void update(
-            Long id,
-            Long userId,
-            String expoPushToken,
-            DevicePlatformEnum platform,
-            String deviceId) {
-        PushToken entity = repository.findById(id)
+    public void update(PushTokenRegistrationChange change) {
+        PushTokenEntity entity = repository.findById(change.id())
                 .orElseThrow(() -> new IllegalStateException("Push token disappeared during registration."));
-        entity.setUserId(userId);
-        entity.setExpoPushToken(expoPushToken);
-        entity.setPlatform(platform(platform));
-        entity.setDeviceId(deviceId);
-        entity.setActive(true);
+        mapper.apply(change, entity);
         repository.save(entity);
     }
 
     @Override
     public void create(RegisterPushTokenCommand command) {
-        repository.save(PushToken.builder()
-                .userId(command.userId())
-                .expoPushToken(command.expoPushToken())
-                .platform(platform(command.platform()))
-                .deviceId(command.deviceId())
-                .active(true)
-                .build());
+        repository.save(mapper.toEntity(command));
     }
 
     @Override
     public void deleteOtherUserDeviceRegistrations(Long userId, String deviceId, Long keepId) {
         repository.deleteOthersByUserAndDevice(userId, deviceId, keepId);
-    }
-
-    private PushTokenRegistrationTarget target(PushToken entity) {
-        return new PushTokenRegistrationTarget(entity.getId(), entity.getUserId(), entity.getDeviceId());
-    }
-
-    private DevicePlatform platform(DevicePlatformEnum platform) {
-        return platform == null ? null : DevicePlatform.valueOf(platform.name());
     }
 }

@@ -11,11 +11,11 @@ import com.blockout.notifications.delivery.application.DeliveryMessage;
 import com.blockout.notifications.delivery.application.DeliveryTokenCatalog;
 import com.blockout.notifications.delivery.application.DeliveryTokenPage;
 import com.blockout.notifications.delivery.application.PushDeliveryProvider;
+import com.blockout.notifications.inbox.application.CreateInboxNotificationCommand;
+import com.blockout.notifications.inbox.application.NotificationInboxWriter;
 import com.blockout.notifications.pool.application.PoolCatalog;
 import com.blockout.notifications.pool.application.PoolNameSnapshot;
-import com.blockout.notifications.models.entity.UserNotification;
-import com.blockout.notifications.models.enums.NotificationTargetType;
-import com.blockout.notifications.models.enums.NotificationType;
+import com.blockout.shared.model.NotificationTargetTypeEnum;
 import com.blockout.shared.model.NotificationTypeEnum;
 import com.blockout.notifications.team.application.TeamCatalog;
 import com.blockout.notifications.team.application.TeamNameSnapshot;
@@ -37,7 +37,7 @@ public class NotificationOrchestratorService {
 
     private final DeliveryLedger deliveryLedger;
     private final PushDeliveryProvider pushDeliveryProvider;
-    private final UserNotificationService userNotificationService;
+    private final NotificationInboxWriter notificationInbox;
     private final DeliveryTokenCatalog deliveryTokenCatalog;
 
     private final PoolCatalog poolCatalog;
@@ -120,24 +120,20 @@ public class NotificationOrchestratorService {
                 keyValue("body", content.body()));
 
         // 1) Inbox notifications
-        List<UserNotification> bulk = new ArrayList<>(reservedUserIds.size());
+        List<CreateInboxNotificationCommand> bulk = new ArrayList<>(reservedUserIds.size());
         for (Long userId : reservedUserIds) {
             JsonNode meta = baseMetadata.deepCopy();
-            bulk.add(UserNotification.builder()
-                    .userId(userId)
-                    .type(NotificationType.valueOf(notificationType.name()))
-                    .title(content.title())
-                    .body(content.body())
-                    .deepLink("/match/" + matchId)
-                    .targetType(NotificationTargetType.MATCH)
-                    .targetId(matchId)
-                    .metadata(meta)
-                    .isRead(false)
-                    .isOpened(false)
-                    .createdAt(Instant.now())
-                    .build());
+            bulk.add(new CreateInboxNotificationCommand(
+                    userId,
+                    notificationType,
+                    content.title(),
+                    content.body(),
+                    "/match/" + matchId,
+                    NotificationTargetTypeEnum.MATCH,
+                    matchId,
+                    meta));
         }
-        userNotificationService.createNotificationsBatch(bulk);
+        notificationInbox.createBatch(bulk);
 
         logger.info("User notifications created",
                 keyValue("action", "user_notifications_created_" + logContext),

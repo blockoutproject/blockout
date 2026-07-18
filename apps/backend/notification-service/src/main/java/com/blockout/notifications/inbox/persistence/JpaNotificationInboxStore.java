@@ -2,8 +2,6 @@ package com.blockout.notifications.inbox.persistence;
 
 import com.blockout.notifications.inbox.application.NotificationInboxPage;
 import com.blockout.notifications.inbox.application.NotificationInboxStore;
-import com.blockout.notifications.models.entity.UserNotification;
-import com.blockout.notifications.repositories.UserNotificationRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Slice;
@@ -15,13 +13,13 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class JpaNotificationInboxStore implements NotificationInboxStore {
 
-    private final UserNotificationRepository repository;
+    private final NotificationInboxRepository repository;
     private final NotificationInboxPersistenceMapper mapper;
 
     /** {@inheritDoc} */
     @Override
     public NotificationInboxPage findStable(Long userId, int page, int pageSize) {
-        Slice<UserNotification> result = repository.findByUserIdOrderByCreatedAtDescIdDesc(
+        Slice<NotificationInboxEntity> result = repository.findByUserIdOrderByCreatedAtDescIdDesc(
                 userId, PageRequest.of(page, pageSize));
         return toPage(result, page, pageSize);
     }
@@ -29,13 +27,13 @@ public class JpaNotificationInboxStore implements NotificationInboxStore {
     /** {@inheritDoc} */
     @Override
     public NotificationInboxPage findLegacy(Long userId, int page, int pageSize) {
-        Slice<UserNotification> result = repository.findByUserIdOrderByCreatedAtDesc(
+        Slice<NotificationInboxEntity> result = repository.findByUserIdOrderByCreatedAtDesc(
                 userId, PageRequest.of(page, pageSize, Sort.by(Sort.Direction.DESC, "createdAt")));
         return toPage(result, page, pageSize);
     }
 
     /** Maps one Spring Data slice without exposing it beyond the adapter. */
-    private NotificationInboxPage toPage(Slice<UserNotification> result, int page, int pageSize) {
+    private NotificationInboxPage toPage(Slice<NotificationInboxEntity> result, int page, int pageSize) {
         return new NotificationInboxPage(
                 result.getContent().stream().map(mapper::toSnapshot).toList(),
                 page,
