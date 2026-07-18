@@ -76,6 +76,7 @@ GitHub Project task planning remains dormant until the final GitFlow activation 
 | Competition internals  | [MRG-422 competition internals][mrg-422]                                                                                     | Ranking, lifecycle, cascade, and outbox boundaries         |
 | Matches architecture   | [MRG-407 matches architecture][mrg-407]                                                                                      | Match catalog, detail, day, and persistence boundaries     |
 | Matches live internals | [MRG-423 matches live-link architecture][mrg-423]                                                                            | Live decisions, state, history, provider, and event owners |
+| Moderation internals   | [MRG-424 matches moderation architecture][mrg-424]                                                                           | Moderation and report policies, stores, and projections    |
 | Production cutover     | [`migration/monorepo-cutover.md`](migration/monorepo-cutover.md)                                                             | Temporary per-deployable migration and rollback procedure  |
 
 [mrg-337]: migration/mrg-337-competition-association-statistics-runtime-migration.md
@@ -99,6 +100,7 @@ GitHub Project task planning remains dormant until the final GitFlow activation 
 [mrg-422]: migration/mrg-422-competition-ranking-lifecycle-architecture.md
 [mrg-407]: migration/mrg-407-matches-core-architecture.md
 [mrg-423]: migration/mrg-423-matches-live-link-architecture.md
+[mrg-424]: migration/mrg-424-matches-moderation-report-architecture.md
 
 ## Documentation Map
 

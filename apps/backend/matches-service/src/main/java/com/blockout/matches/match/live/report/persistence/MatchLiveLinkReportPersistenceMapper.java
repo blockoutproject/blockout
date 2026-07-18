@@ -1,23 +1,27 @@
 package com.blockout.matches.match.live.report.persistence;
 
-import com.blockout.matches.match.live.report.application.ReportMatchLiveLinkCommand;
 import com.blockout.matches.match.live.persistence.MatchLiveLink;
-import com.blockout.matches.models.entities.MatchLiveLinkReport;
-import com.blockout.matches.shared.mapping.MatchesMapperConfig;
-import java.time.Instant;
-import org.mapstruct.Mapper;
-import org.mapstruct.Mapping;
+import com.blockout.matches.match.live.report.application.MatchLiveLinkReportTarget;
+import com.blockout.matches.match.live.report.application.NewMatchLiveLinkReport;
+import com.blockout.shared.model.LiveLinkStatusEnum;
+import com.blockout.shared.model.MatchStatusEnum;
+import org.springframework.stereotype.Component;
 
-@Mapper(config = MatchesMapperConfig.class)
-public interface MatchLiveLinkReportPersistenceMapper {
+@Component
+public class MatchLiveLinkReportPersistenceMapper {
 
-    @Mapping(target = "id", ignore = true)
-    @Mapping(target = "liveLink", source = "liveLink")
-    @Mapping(target = "reporterAuth0Id", source = "command.reporterAuth0Id")
-    @Mapping(target = "reason", source = "command.reason")
-    @Mapping(target = "createdAt", source = "createdAt")
-    MatchLiveLinkReport toNewEntity(
-            MatchLiveLink liveLink,
-            ReportMatchLiveLinkCommand command,
-            Instant createdAt);
+    public MatchLiveLinkReportTarget toTarget(MatchLiveLink liveLink, MatchStatusEnum matchStatus) {
+        return new MatchLiveLinkReportTarget(
+                liveLink.getId(), liveLink.getMatch() == null ? null : liveLink.getMatch().getId(), matchStatus,
+                liveLink.getStatus() == null ? null : LiveLinkStatusEnum.fromValue(liveLink.getStatus().name()));
+    }
+
+    public MatchLiveLinkReport toNewEntity(MatchLiveLink liveLink, NewMatchLiveLinkReport report) {
+        return MatchLiveLinkReport.builder()
+                .liveLink(liveLink)
+                .reporterAuth0Id(report.reporterAuth0Id())
+                .reason(report.reason())
+                .createdAt(report.createdAt())
+                .build();
+    }
 }

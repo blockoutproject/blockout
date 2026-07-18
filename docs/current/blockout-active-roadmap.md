@@ -1465,8 +1465,25 @@ state moves to GitHub and this file becomes a historical migration record.
     Moderation and report behavior remains exclusively deferred to MRG-424;
     `docs/migration/mrg-423-matches-live-link-architecture.md` records ownership, parity, rollback, retained unknowns,
     and deferred gates.
-- [ ] MRG-424 Restructure `matches-service` moderation and live-report internals into explicit commands, views,
+- [x] MRG-424 Restructure `matches-service` moderation and live-report internals into explicit commands, views,
       policies, entities, projections, and adapter mappings.
+  - Evidence: moderation and report application services now depend only on role-owned store ports, immutable
+    snapshots and intents, dedicated policies, projectors, and `Clock`, with no JPA, Spring Data, repository,
+    persistence-enum, or generated-model coupling. `JpaMatchLiveModerationStore` owns the retained
+    `findAllWithLiveLinks` query projection, entity references, status writes, and match touches;
+    `JpaMatchLiveLinkReportStore` owns newest-active selection, duplicate checks, insertion, recount, materialized
+    count/status writes, and match-status lookup. The report entity and repository now live together under their
+    persistence owner without changing `match_live_link_reports`, its columns, relation, unique constraint, callback,
+    or query names. The historical status filter remains distinct from the status-priority representative, and the
+    exact approval, rejection, reactivation, duplicate no-op, three/ten-report auto-hide, error, ordering, paging, and
+    transaction behavior is preserved. Fifty-three focused matches-service tests, complete backend packaging, all
+    backend Dockerfile checks, the full local CI gate, documentation, formatting, and whitespace checks pass. Flyway
+    V1-V5, database structure, contracts, generated artifacts, events, Rabbit topology, routes, scopes, queues,
+    callers, deployment, production, and Maaatch are unchanged. Multiple-`ACTIVE` rows, report races and count drift,
+    self-reporting, reason validation, identity correction, reconciliation, and filter semantics remain explicit
+    evidence-gated decisions rather than silent corrections;
+    `docs/migration/mrg-424-matches-moderation-report-architecture.md` records ownership, parity, rollback, retained
+    unknowns, and deferred correction gates.
 - [ ] MRG-408 Restructure `users-service` account, profile, local identity, Auth0, S3, and persistence boundaries;
       retain and relocate existing mappers only where their source/target ownership remains correct.
 - [ ] MRG-425 Restructure `users-service` favorite internals as the canonical source and make team, pool, and

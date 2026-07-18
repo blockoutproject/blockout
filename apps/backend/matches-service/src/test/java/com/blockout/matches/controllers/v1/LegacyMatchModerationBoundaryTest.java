@@ -3,6 +3,9 @@ package com.blockout.matches.controllers.v1;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.blockout.matches.match.live.moderation.application.MatchLiveModerationApplicationService;
+import com.blockout.matches.match.live.moderation.application.MatchLiveModerationPolicy;
+import com.blockout.matches.match.live.moderation.application.MatchLiveModerationProjector;
+import com.blockout.matches.match.live.moderation.persistence.JpaMatchLiveModerationStore;
 import com.blockout.matches.match.live.moderation.persistence.MatchLiveModerationPersistenceMapper;
 import com.blockout.matches.match.persistence.Match;
 import com.blockout.matches.match.persistence.MatchRepository;
@@ -18,7 +21,6 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
 import org.junit.jupiter.api.Test;
-import org.mapstruct.factory.Mappers;
 
 class LegacyMatchModerationBoundaryTest {
 
@@ -47,8 +49,10 @@ class LegacyMatchModerationBoundaryTest {
                     }
                     throw new UnsupportedOperationException(method.getName());
                 });
+        var store = new JpaMatchLiveModerationStore(
+                matches, liveLinks, new MatchLiveModerationPersistenceMapper());
         var service = new MatchLiveModerationApplicationService(
-                matches, liveLinks, Mappers.getMapper(MatchLiveModerationPersistenceMapper.class),
+                store, new MatchLiveModerationPolicy(), new MatchLiveModerationProjector(),
                 Clock.fixed(now, ZoneOffset.UTC));
         var controller = new MatchController(null, null, service, new LegacyMatchesJson());
 

@@ -3,17 +3,9 @@ package com.blockout.matches.match.live.moderation.application;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.blockout.matches.match.live.moderation.persistence.MatchLiveModerationPersistenceMapper;
-import com.blockout.matches.match.persistence.Match;
-import com.blockout.matches.match.persistence.MatchRepository;
-import com.blockout.matches.match.live.persistence.MatchLiveLink;
-import com.blockout.matches.match.live.persistence.MatchLiveLinkRepository;
-import com.blockout.matches.models.enums.LiveLinkStatus;
-import com.blockout.matches.models.enums.LiveProvider;
-import com.blockout.matches.models.enums.MatchStatus;
 import com.blockout.shared.model.LiveLinkStatusEnum;
-import java.lang.reflect.InvocationHandler;
-import java.lang.reflect.Proxy;
+import com.blockout.shared.model.LiveProviderEnum;
+import com.blockout.shared.model.MatchStatusEnum;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -23,30 +15,23 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
-import org.mapstruct.factory.Mappers;
 
 class MatchLiveModerationApplicationServiceTest {
 
     private static final Instant NOW = Instant.parse("2026-07-17T10:00:00Z");
-    private final MatchLiveModerationPersistenceMapper mapper =
-            Mappers.getMapper(MatchLiveModerationPersistenceMapper.class);
 
     @Test
     void statusFilterMatchesHistoryWhileRepresentativeKeepsPriorityAndPageOrder() {
-        Match newest = match(1L, NOW, List.of());
-        Match older = match(2L, NOW.minusSeconds(60), List.of());
-        MatchLiveLink newestRejected = link(11L, newest, LiveLinkStatus.REJECTED, NOW.minusSeconds(10));
-        MatchLiveLink newestActive = link(12L, newest, LiveLinkStatus.ACTIVE, NOW.minusSeconds(20));
-        MatchLiveLink olderRejected = link(21L, older, LiveLinkStatus.REJECTED, NOW.minusSeconds(30));
-        newest.setLiveLinks(List.of(newestRejected, newestActive));
-        older.setLiveLinks(List.of(olderRejected));
-        MatchRepositoryDouble matches = new MatchRepositoryDouble(List.of(older, newest));
-        LiveLinkRepositoryDouble liveLinks = new LiveLinkRepositoryDouble();
-        MatchLiveModerationApplicationService service = service(matches, liveLinks);
+        MatchLiveModerationLinkSnapshot newestRejected = link(11L, 1L, LiveLinkStatusEnum.REJECTED, NOW.minusSeconds(10));
+        MatchLiveModerationLinkSnapshot newestActive = link(12L, 1L, LiveLinkStatusEnum.ACTIVE, NOW.minusSeconds(20));
+        MatchLiveModerationLinkSnapshot olderRejected = link(21L, 2L, LiveLinkStatusEnum.REJECTED, NOW.minusSeconds(30));
+        StoreDouble store = new StoreDouble(List.of(
+                match(2L, NOW.minusSeconds(60), List.of(olderRejected)),
+                match(1L, NOW, List.of(newestRejected, newestActive))));
 
-        MatchLiveModerationPage first = service.findPage(
+        MatchLiveModerationPage first = service(store).findPage(
                 new MatchLiveModerationQuery(LiveLinkStatusEnum.REJECTED, 0, 1));
-        MatchLiveModerationPage second = service.findPage(
+        MatchLiveModerationPage second = service(store).findPage(
                 new MatchLiveModerationQuery(LiveLinkStatusEnum.REJECTED, 1, 1));
 
         assertThat(first.items()).singleElement().satisfies(item -> {
@@ -62,134 +47,114 @@ class MatchLiveModerationApplicationServiceTest {
 
     @Test
     void approveExpiresTheCurrentActiveLinkAndActivatesPendingAtomically() {
-        Match match = match(1L, NOW, List.of());
-        MatchLiveLink pending = link(12L, match, LiveLinkStatus.PENDING, NOW.minusSeconds(10));
-        MatchLiveLink active = link(11L, match, LiveLinkStatus.ACTIVE, NOW.minusSeconds(20));
-        MatchRepositoryDouble matches = new MatchRepositoryDouble(List.of(match));
-        LiveLinkRepositoryDouble liveLinks = new LiveLinkRepositoryDouble();
-        liveLinks.byId.put(12L, pending);
-        liveLinks.active = active;
+        MatchLiveModerationLinkSnapshot pending = link(12L, 1L, LiveLinkStatusEnum.PENDING, NOW.minusSeconds(10));
+        MatchLiveModerationLinkSnapshot active = link(11L, 1L, LiveLinkStatusEnum.ACTIVE, NOW.minusSeconds(20));
+        StoreDouble store = new StoreDouble(List.of());
+        store.byId.put(12L, pending);
+        store.active = active;
 
-        service(matches, liveLinks).moderate(
-                new ModerateMatchLiveLinkCommand(12L, MatchLiveLinkDecision.APPROVE));
+        service(store).moderate(new ModerateMatchLiveLinkCommand(12L, MatchLiveLinkDecision.APPROVE));
 
-        assertThat(active.getStatus()).isEqualTo(LiveLinkStatus.EXPIRED);
-        assertThat(pending.getStatus()).isEqualTo(LiveLinkStatus.ACTIVE);
-        assertThat(active.getLastUpdate()).isEqualTo(NOW);
-        assertThat(pending.getLastUpdate()).isEqualTo(NOW);
-        assertThat(match.getLastUpdate()).isEqualTo(NOW);
-        assertThat(liveLinks.saved).containsExactly(active, pending);
-        assertThat(matches.saved).containsExactly(match);
+        assertThat(store.changes).containsExactly(
+                new StatusChange(11L, LiveLinkStatusEnum.EXPIRED, NOW),
+                new StatusChange(12L, LiveLinkStatusEnum.ACTIVE, NOW));
+        assertThat(store.touchedMatches).containsExactly(1L);
     }
 
     @Test
     void rejectRequiresPendingAndDoesNotPersistAnInvalidTransition() {
-        MatchLiveLink active = link(11L, match(1L, NOW, List.of()), LiveLinkStatus.ACTIVE, NOW);
-        MatchRepositoryDouble matches = new MatchRepositoryDouble(List.of(active.getMatch()));
-        LiveLinkRepositoryDouble liveLinks = new LiveLinkRepositoryDouble();
-        liveLinks.byId.put(11L, active);
+        StoreDouble store = new StoreDouble(List.of());
+        store.byId.put(11L, link(11L, 1L, LiveLinkStatusEnum.ACTIVE, NOW));
 
-        assertThatThrownBy(() -> service(matches, liveLinks).moderate(
+        assertThatThrownBy(() -> service(store).moderate(
                 new ModerateMatchLiveLinkCommand(11L, MatchLiveLinkDecision.REJECT)))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessage("Ce lien n'est pas en attente de validation.");
-        assertThat(liveLinks.saved).isEmpty();
+        assertThat(store.changes).isEmpty();
     }
 
     @Test
     void reactivateDeactivatesAnotherActiveLinkAndAcceptsEveryAuditedEligibleState() {
-        for (LiveLinkStatus eligible : List.of(
-                LiveLinkStatus.REJECTED,
-                LiveLinkStatus.EXPIRED,
-                LiveLinkStatus.DEACTIVATED,
-                LiveLinkStatus.BANNED)) {
-            Match match = match(1L, NOW.minusSeconds(100), List.of());
-            MatchLiveLink candidate = link(12L, match, eligible, NOW.minusSeconds(10));
-            MatchLiveLink active = link(11L, match, LiveLinkStatus.ACTIVE, NOW.minusSeconds(20));
-            MatchRepositoryDouble matches = new MatchRepositoryDouble(List.of(match));
-            LiveLinkRepositoryDouble liveLinks = new LiveLinkRepositoryDouble();
-            liveLinks.byId.put(12L, candidate);
-            liveLinks.active = active;
+        for (LiveLinkStatusEnum eligible : List.of(
+                LiveLinkStatusEnum.REJECTED,
+                LiveLinkStatusEnum.EXPIRED,
+                LiveLinkStatusEnum.DEACTIVATED,
+                LiveLinkStatusEnum.BANNED)) {
+            StoreDouble store = new StoreDouble(List.of());
+            store.byId.put(12L, link(12L, 1L, eligible, NOW.minusSeconds(10)));
+            store.active = link(11L, 1L, LiveLinkStatusEnum.ACTIVE, NOW.minusSeconds(20));
 
-            service(matches, liveLinks).moderate(
-                    new ModerateMatchLiveLinkCommand(12L, MatchLiveLinkDecision.REACTIVATE));
+            service(store).moderate(new ModerateMatchLiveLinkCommand(12L, MatchLiveLinkDecision.REACTIVATE));
 
-            assertThat(active.getStatus()).isEqualTo(LiveLinkStatus.DEACTIVATED);
-            assertThat(candidate.getStatus()).isEqualTo(LiveLinkStatus.ACTIVE);
-            assertThat(match.getLastUpdate()).isEqualTo(NOW);
+            assertThat(store.changes).containsExactly(
+                    new StatusChange(11L, LiveLinkStatusEnum.DEACTIVATED, NOW),
+                    new StatusChange(12L, LiveLinkStatusEnum.ACTIVE, NOW));
+            assertThat(store.touchedMatches).containsExactly(1L);
         }
     }
 
-    private MatchLiveModerationApplicationService service(
-            MatchRepositoryDouble matches,
-            LiveLinkRepositoryDouble liveLinks) {
+    private MatchLiveModerationApplicationService service(StoreDouble store) {
         return new MatchLiveModerationApplicationService(
-                matches.proxy(), liveLinks.proxy(), mapper, Clock.fixed(NOW, ZoneOffset.UTC));
+                store, new MatchLiveModerationPolicy(), new MatchLiveModerationProjector(),
+                Clock.fixed(NOW, ZoneOffset.UTC));
     }
 
-    private static Match match(Long id, Instant matchDate, List<MatchLiveLink> links) {
-        return Match.builder().id(id).matchCode("M" + id).leagueCode("L1").poolId(9L)
-                .teamIdA(10L).teamIdB(11L).matchDate(matchDate).season("2026")
-                .status(MatchStatus.FINISHED).active(true).createdAt(NOW.minusSeconds(200))
-                .lastUpdate(NOW.minusSeconds(100)).liveLinks(links).build();
+    private static MatchLiveModerationMatchSnapshot match(
+            Long id,
+            Instant matchDate,
+            List<MatchLiveModerationLinkSnapshot> links) {
+        return new MatchLiveModerationMatchSnapshot(
+                id, "M" + id, "L1", 9L, 10L, 11L, matchDate, "2026", null, null,
+                MatchStatusEnum.FINISHED, null, links);
     }
 
-    private static MatchLiveLink link(Long id, Match match, LiveLinkStatus status, Instant createdAt) {
-        return MatchLiveLink.builder().id(id).match(match).ownerAuth0Id("auth0|owner")
-                .provider(LiveProvider.YOUTUBE).url("https://youtu.be/" + id).status(status)
-                .reportCount(0).createdAt(createdAt).lastUpdate(createdAt).build();
+    private static MatchLiveModerationLinkSnapshot link(
+            Long id,
+            Long matchId,
+            LiveLinkStatusEnum status,
+            Instant createdAt) {
+        return new MatchLiveModerationLinkSnapshot(
+                id, matchId, status, LiveProviderEnum.YOUTUBE, "https://youtu.be/" + id,
+                "auth0|owner", createdAt);
     }
 
-    private static final class MatchRepositoryDouble implements InvocationHandler {
-        private final List<Match> all;
-        private final List<Match> saved = new ArrayList<>();
-
-        MatchRepositoryDouble(List<Match> all) {
-            this.all = all;
-        }
-
-        MatchRepository proxy() {
-            return (MatchRepository) Proxy.newProxyInstance(
-                    MatchRepository.class.getClassLoader(), new Class<?>[]{MatchRepository.class}, this);
-        }
-
-        @Override
-        public Object invoke(Object proxy, java.lang.reflect.Method method, Object[] arguments) {
-            return switch (method.getName()) {
-                case "findAllWithLiveLinks" -> all;
-                case "save" -> {
-                    saved.add((Match) arguments[0]);
-                    yield arguments[0];
-                }
-                case "toString" -> "MatchRepositoryDouble";
-                default -> throw new UnsupportedOperationException(method.getName());
-            };
-        }
+    private record StatusChange(Long liveLinkId, LiveLinkStatusEnum status, Instant now) {
     }
 
-    private static final class LiveLinkRepositoryDouble implements InvocationHandler {
-        private final Map<Long, MatchLiveLink> byId = new HashMap<>();
-        private final List<MatchLiveLink> saved = new ArrayList<>();
-        private MatchLiveLink active;
+    private static final class StoreDouble implements MatchLiveModerationStore {
+        private final List<MatchLiveModerationMatchSnapshot> matches;
+        private final Map<Long, MatchLiveModerationLinkSnapshot> byId = new HashMap<>();
+        private final List<StatusChange> changes = new ArrayList<>();
+        private final List<Long> touchedMatches = new ArrayList<>();
+        private MatchLiveModerationLinkSnapshot active;
 
-        MatchLiveLinkRepository proxy() {
-            return (MatchLiveLinkRepository) Proxy.newProxyInstance(
-                    MatchLiveLinkRepository.class.getClassLoader(),
-                    new Class<?>[]{MatchLiveLinkRepository.class}, this);
+        StoreDouble(List<MatchLiveModerationMatchSnapshot> matches) {
+            this.matches = matches;
         }
 
         @Override
-        public Object invoke(Object proxy, java.lang.reflect.Method method, Object[] arguments) {
-            return switch (method.getName()) {
-                case "findById" -> Optional.ofNullable(byId.get(arguments[0]));
-                case "findFirstByMatch_IdAndStatusOrderByCreatedAtDesc" -> Optional.ofNullable(active);
-                case "save" -> {
-                    saved.add((MatchLiveLink) arguments[0]);
-                    yield arguments[0];
-                }
-                case "toString" -> "LiveLinkRepositoryDouble";
-                default -> throw new UnsupportedOperationException(method.getName());
-            };
+        public List<MatchLiveModerationMatchSnapshot> findAllWithLiveLinks() {
+            return matches;
+        }
+
+        @Override
+        public Optional<MatchLiveModerationLinkSnapshot> findById(Long liveLinkId) {
+            return Optional.ofNullable(byId.get(liveLinkId));
+        }
+
+        @Override
+        public Optional<MatchLiveModerationLinkSnapshot> findNewestActive(Long matchId) {
+            return Optional.ofNullable(active);
+        }
+
+        @Override
+        public void changeStatus(Long liveLinkId, LiveLinkStatusEnum status, Instant now) {
+            changes.add(new StatusChange(liveLinkId, status, now));
+        }
+
+        @Override
+        public void touchMatch(Long matchId, Instant now) {
+            touchedMatches.add(matchId);
         }
     }
 }

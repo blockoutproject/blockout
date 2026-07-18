@@ -1,8 +1,6 @@
-package com.blockout.matches.repositories;
+package com.blockout.matches.match.live.report.persistence;
 
 import org.springframework.data.jpa.repository.JpaRepository;
-
-import com.blockout.matches.models.entities.MatchLiveLinkReport;
 
 public interface MatchLiveLinkReportRepository extends JpaRepository<MatchLiveLinkReport, Long> {
 
