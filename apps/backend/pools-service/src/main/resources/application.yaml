@@ -47,6 +47,10 @@ logging:
     root: ${LOGGING_LEVEL_ROOT:INFO}
 
 blockout:
+  events:
+    consumers:
+      lifecycle-v1-enabled: ${POOLS_LIFECYCLE_EVENTS_V1_ENABLED:true}
+      lifecycle-v2-enabled: ${POOLS_LIFECYCLE_EVENTS_V2_ENABLED:false}
   outbox:
     publisher-enabled: ${OUTBOX_PUBLISHER_ENABLED:true}
     batch-size: ${OUTBOX_BATCH_SIZE:50}

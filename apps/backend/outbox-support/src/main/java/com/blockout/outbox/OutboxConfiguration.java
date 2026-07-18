@@ -25,6 +25,21 @@ public class OutboxConfiguration {
     }
 
     @Bean
+    ConsumedEventStore consumedEventStore(JdbcTemplate jdbcTemplate) {
+        return new JdbcConsumedEventStore(jdbcTemplate);
+    }
+
+    @Bean
+    public ConsumedEventProcessor consumedEventProcessor(ConsumedEventStore store) {
+        return new ConsumedEventProcessor(store);
+    }
+
+    @Bean
+    public V2EventMetadataValidator v2EventMetadataValidator() {
+        return new V2EventMetadataValidator();
+    }
+
+    @Bean
     public OutboxRecorder outboxWriter(OutboxStore store, ObjectMapper objectMapper, Clock outboxClock) {
         return new OutboxWriter(store, objectMapper, outboxClock);
     }

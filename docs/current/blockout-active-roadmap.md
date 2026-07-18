@@ -1283,10 +1283,18 @@ state moves to GitHub and this file becomes a historical migration record.
     parity, mutually exclusive flags, v1 defaults, tests, compile, formatting, and whitespace checks pass. No listener
     activation, deployment, broker mutation, v1 retirement, MRG-9xx, or MRG-1000 work; the approved cutover and
     rollback remain operational gates in `docs/migration/mrg-380-search-lifecycle-v2-consumers.md`.
-- [ ] MRG-381 Migrate clubs-service, teams-service, and pools-service lifecycle Q-07 through Q-10 to generated v2
+- [x] MRG-381 Migrate clubs-service, teams-service, and pools-service lifecycle Q-07 through Q-10 to generated v2
       records behind mutually exclusive v1/v2 listener flags, service-local event-ID deduplication, explicit decoding
       without `__TypeId__`, and the MRG-304 pause/drain/switch/resume rollback; preserve cascade side effects,
       acknowledgement, retry, requeue, queue topology, and v1-default behavior.
+  - Evidence: Q-07 through Q-10 now use queue-owned raw-AMQP decoders for the generated deactivation records, reject
+    Spring type metadata and body/header or route-contract mismatches, and invoke the unchanged club, team, club-team,
+    and pool cascade operations. Each owner database records exact event IDs in the same transaction as its side
+    effect, sharing identity across v1/v2 restarts while preserving legacy no-ID delivery. Four durable v2 queues keep
+    the legacy no-DLQ topology; mutually exclusive flags, v1 defaults, tests, compile, formatting, and whitespace
+    checks pass. No listener activation, deployment, broker mutation, v1 retirement, MRG-9xx, or MRG-1000 work; the
+    approved route-family cutover and rollback remain operational gates in
+    `docs/migration/mrg-381-owner-lifecycle-v2-consumers.md`.
 - [ ] MRG-356 Mark each REST and event boundary contract-authoritative only after source, generated artifacts, mappers,
       all canonical consumers, runtime parity, rollback evidence, and canonical-conversion cleanup are complete; the
       separately isolated v1 adapter may remain until the MRG-304 30-day production-retirement gate.

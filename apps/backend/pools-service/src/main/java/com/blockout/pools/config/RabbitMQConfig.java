@@ -14,6 +14,7 @@ public class RabbitMQConfig {
     public static final String ENTITY_LIFECYCLE_EXCHANGE = "entity.lifecycle.exchange";
 
     public static final String POOL_DEACTIVATION_QUEUE_POOLS = "pool.deactivation.queue.pools";
+    public static final String POOL_DEACTIVATION_QUEUE_POOLS_V2 = "pool.deactivation.queue.pools.v2";
 
     @Bean
     public TopicExchange entityLifecycleExchange() {
@@ -26,12 +27,26 @@ public class RabbitMQConfig {
     }
 
     @Bean
+    public Queue poolDeactivationQueuePoolsV2() {
+        return new Queue(POOL_DEACTIVATION_QUEUE_POOLS_V2, true);
+    }
+
+    @Bean
     public Binding bindPoolDeactivationQueuePools(
             TopicExchange entityLifecycleExchange,
             Queue poolDeactivationQueuePools) {
         return BindingBuilder.bind(poolDeactivationQueuePools)
                 .to(entityLifecycleExchange)
                 .with("pool.deactivation");
+    }
+
+    @Bean
+    public Binding bindPoolDeactivationQueuePoolsV2(
+            TopicExchange entityLifecycleExchange,
+            Queue poolDeactivationQueuePoolsV2) {
+        return BindingBuilder.bind(poolDeactivationQueuePoolsV2)
+                .to(entityLifecycleExchange)
+                .with("pool.deactivation.v2");
     }
 
     public static final String USER_FOLLOW_EXCHANGE = "user.follow.exchange";

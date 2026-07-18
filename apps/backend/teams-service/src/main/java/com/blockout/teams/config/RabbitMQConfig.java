@@ -15,6 +15,8 @@ public class RabbitMQConfig {
 
     public static final String TEAM_DEACTIVATION_QUEUE_TEAMS = "team.deactivation.queue.teams";
     public static final String CLUB_DEACTIVATION_QUEUE_TEAMS = "club.deactivation.queue.teams";
+    public static final String TEAM_DEACTIVATION_QUEUE_TEAMS_V2 = "team.deactivation.queue.teams.v2";
+    public static final String CLUB_DEACTIVATION_QUEUE_TEAMS_V2 = "club.deactivation.queue.teams.v2";
 
     @Bean
     public TopicExchange entityLifecycleExchange() {
@@ -29,6 +31,16 @@ public class RabbitMQConfig {
     @Bean
     public Queue clubDeactivationQueueTeams() {
         return new Queue(CLUB_DEACTIVATION_QUEUE_TEAMS, true);
+    }
+
+    @Bean
+    public Queue teamDeactivationQueueTeamsV2() {
+        return new Queue(TEAM_DEACTIVATION_QUEUE_TEAMS_V2, true);
+    }
+
+    @Bean
+    public Queue clubDeactivationQueueTeamsV2() {
+        return new Queue(CLUB_DEACTIVATION_QUEUE_TEAMS_V2, true);
     }
 
     @Bean
@@ -47,6 +59,24 @@ public class RabbitMQConfig {
         return BindingBuilder.bind(clubDeactivationQueueTeams)
                 .to(entityLifecycleExchange)
                 .with("club.deactivation");
+    }
+
+    @Bean
+    public Binding bindTeamDeactivationQueueTeamsV2(
+            TopicExchange entityLifecycleExchange,
+            Queue teamDeactivationQueueTeamsV2) {
+        return BindingBuilder.bind(teamDeactivationQueueTeamsV2)
+                .to(entityLifecycleExchange)
+                .with("team.deactivation.v2");
+    }
+
+    @Bean
+    public Binding bindClubDeactivationQueueTeamsV2(
+            TopicExchange entityLifecycleExchange,
+            Queue clubDeactivationQueueTeamsV2) {
+        return BindingBuilder.bind(clubDeactivationQueueTeamsV2)
+                .to(entityLifecycleExchange)
+                .with("club.deactivation.v2");
     }
 
     public static final String USER_FOLLOW_EXCHANGE = "user.follow.exchange";
