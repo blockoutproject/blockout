@@ -3,14 +3,20 @@ package com.blockout.competitions.ranking.application;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.blockout.competitions.association.persistence.CompetitionAssociationEntity;
+import com.blockout.competitions.association.persistence.CompetitionAssociationPersistenceMapper;
 import com.blockout.competitions.association.persistence.CompetitionAssociationRepository;
+import com.blockout.competitions.ranking.persistence.JpaCompetitionRankingStore;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Proxy;
 import java.util.List;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
+import org.mapstruct.factory.Mappers;
 
 class CompetitionRankingServiceTest {
+
+    private final CompetitionAssociationPersistenceMapper mapper =
+            Mappers.getMapper(CompetitionAssociationPersistenceMapper.class);
 
     @Test
     void pagesPoolGroupsAndKeepsEveryNestedRankingCompleteAndOrdered() {
@@ -73,7 +79,9 @@ class CompetitionRankingServiceTest {
     }
 
     private CompetitionRankingService service(RepositoryDouble repository) {
-        return new CompetitionRankingService(repository.proxy(), new CompetitionRankingPolicy());
+        return new CompetitionRankingService(
+                new JpaCompetitionRankingStore(repository.proxy(), mapper),
+                new CompetitionRankingProjector(new CompetitionRankingPolicy()));
     }
 
     private CompetitionAssociationEntity association(

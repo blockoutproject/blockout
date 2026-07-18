@@ -3,6 +3,8 @@ package com.blockout.competitions.association.persistence;
 import com.blockout.competitions.association.application.AddCompetitionAssociationCommand;
 import com.blockout.competitions.association.application.CompetitionAssociationView;
 import com.blockout.competitions.association.application.CompetitionStatisticsSnapshot;
+import com.blockout.competitions.lifecycle.application.CompetitionLifecycleAssociation;
+import com.blockout.competitions.ranking.application.CompetitionRankingSnapshot;
 import com.blockout.competitions.shared.mapping.CompetitionMapperConfig;
 import org.mapstruct.BeanMapping;
 import org.mapstruct.Mapper;
@@ -21,6 +23,10 @@ public interface CompetitionAssociationPersistenceMapper {
     CompetitionAssociationEntity toEntity(AddCompetitionAssociationCommand command);
 
     CompetitionAssociationView toView(CompetitionAssociationEntity entity);
+
+    CompetitionLifecycleAssociation toLifecycleAssociation(CompetitionAssociationEntity entity);
+
+    CompetitionRankingSnapshot toRankingSnapshot(CompetitionAssociationEntity entity);
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "poolId", ignore = true)

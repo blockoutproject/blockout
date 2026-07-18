@@ -7,6 +7,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+/** Retained wire type: pending v1 outbox rows and rollback images depend on this exact class name. */
 @Data
 @Builder
 @NoArgsConstructor

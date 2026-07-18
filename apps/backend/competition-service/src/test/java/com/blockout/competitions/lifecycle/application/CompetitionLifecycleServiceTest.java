@@ -4,7 +4,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.blockout.competitions.association.persistence.CompetitionAssociationEntity;
+import com.blockout.competitions.association.persistence.CompetitionAssociationPersistenceMapper;
 import com.blockout.competitions.association.persistence.CompetitionAssociationRepository;
+import com.blockout.competitions.lifecycle.persistence.JpaCompetitionLifecycleStore;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
@@ -12,9 +14,13 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
+import org.mapstruct.factory.Mappers;
 import org.springframework.transaction.annotation.Transactional;
 
 class CompetitionLifecycleServiceTest {
+
+    private final CompetitionAssociationPersistenceMapper mapper =
+            Mappers.getMapper(CompetitionAssociationPersistenceMapper.class);
 
     @Test
     void commandsOwnDefensiveSetSnapshotsAndDuplicateSemantics() {
@@ -103,7 +109,8 @@ class CompetitionLifecycleServiceTest {
         repository.activeTeamIds = Set.of(20L);
         repository.activeClubIds = Set.of("club-1");
         EventDouble events = new EventDouble();
-        CompetitionCascadeService cascade = new CompetitionCascadeService(repository.proxy(), events);
+        CompetitionLifecycleStore store = store(repository);
+        CompetitionCascadeService cascade = new CompetitionCascadeService(store, events);
 
         cascade.execute(new CompetitionCascadePlan(Set.of(10L), Set.of(20L), Set.of("club-1")));
 
@@ -136,8 +143,12 @@ class CompetitionLifecycleServiceTest {
     }
 
     private CompetitionLifecycleService service(RepositoryDouble repository, EventDouble events) {
-        CompetitionAssociationRepository proxy = repository.proxy();
-        return new CompetitionLifecycleService(proxy, events, new CompetitionCascadeService(proxy, events));
+        CompetitionLifecycleStore store = store(repository);
+        return new CompetitionLifecycleService(store, events, new CompetitionCascadeService(store, events));
+    }
+
+    private CompetitionLifecycleStore store(RepositoryDouble repository) {
+        return new JpaCompetitionLifecycleStore(repository.proxy(), mapper);
     }
 
     private CompetitionAssociationEntity association(long poolId, long teamId, String clubId) {

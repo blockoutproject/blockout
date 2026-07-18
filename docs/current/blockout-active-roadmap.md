@@ -1409,8 +1409,26 @@ state moves to GitHub and this file becomes a historical migration record.
     concurrency, historical-query, and event-internal restructuring remains exclusively deferred to MRG-422;
     `docs/migration/mrg-406-competition-service-association-architecture.md` records ownership, parity, removal,
     rollback, unknowns, and deferred gates.
-- [ ] MRG-422 Consolidate `competition-service` ranking, lifecycle, cascade, and event internals behind one ranking
+- [x] MRG-422 Consolidate `competition-service` ranking, lifecycle, cascade, and event internals behind one ranking
       policy/projector, explicit transaction ownership, lifecycle services, and outbox adapters.
+  - Evidence: ranking application code now depends on a role-owned store and immutable association snapshots, and one
+    `CompetitionRankingProjector` owns grouping, view construction, and the existing six-key policy for both legacy and
+    canonical reads. `JpaCompetitionRankingStore` contains entity queries and structural mapping. The three defensive
+    bulk commands remain explicit transactions in `CompetitionLifecycleService`; `JpaCompetitionLifecycleStore` owns
+    active-row selection, soft writes, existence checks, and deliberately named historical cascade queries, while
+    `CompetitionCascadeService` owns unchanged candidate/event decisions through the lifecycle port. A dedicated event
+    mapper and `OutboxCompetitionLifecycleEvents` now own all four routes: team, pool, and club remain dual v1/v2, and
+    team-by-pool remains v1-only with its exact event type and ordering key. The four historic v1 payload class names
+    remain stable for pending outbox rows and rollback readers. Twenty-eight focused reactor tests preserve ranking
+    page bounds and deterministic ties, defensive bulk validation, zero-row and mixed-candidate behavior, save/event
+    order, cascade suppression/derivation, transaction rollback, exact v1 types, v1/v2 metadata identity, canonical
+    casing, legacy JSON, association/statistics behavior, and the orphan route. The competition reactor, complete
+    backend packaging, all backend Dockerfile checks, full local CI gate, documentation, formatting, and whitespace
+    checks pass. Flyway V1-V2, table and repository queries, REST/event contracts, generated artifacts, routes, scopes,
+    queues, rollout flags, callers, deployment, production, and Maaatch are unchanged. Historical query semantics,
+    zero-row early returns, stale club ownership, concurrency gaps, and cross-service identity trust are preserved,
+    not silently corrected; `docs/migration/mrg-422-competition-ranking-lifecycle-architecture.md` records ownership,
+    parity, rollback, retained compatibility, and deferred correction gates.
 - [ ] MRG-407 Restructure `matches-service` match core, day projection, and persistence boundaries with separate
       commands, views, entities, projectors, and mappers.
 - [ ] MRG-423 Restructure `matches-service` live-link decision, state, history, provider, and event internals while

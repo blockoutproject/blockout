@@ -1,4 +1,4 @@
-package com.blockout.competitions.services;
+package com.blockout.competitions.lifecycle.event.outbox;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -11,12 +11,13 @@ import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
-class EventPublisherTest {
+class OutboxCompetitionLifecycleEventsTest {
 
     @Test
     void recordsThreeDualVersionFactsAndKeepsTheOrphanRouteV1Only() {
         Recorder recorder = new Recorder();
-        EventPublisher publisher = new EventPublisher(recorder);
+        OutboxCompetitionLifecycleEvents publisher =
+                new OutboxCompetitionLifecycleEvents(recorder, new CompetitionLifecycleEventMapper());
 
         publisher.publishClubDeactivation("club-1");
         publisher.publishTeamDeactivation(12L);
@@ -27,6 +28,13 @@ class EventPublisherTest {
                 .extracting(OutboxEvent::v1RoutingKey)
                 .containsExactly("club.deactivation", "team.deactivation", "pool.deactivation",
                         "teambypool.deactivation");
+        assertThat(recorder.events)
+                .extracting(event -> event.v1Payload().getClass().getName())
+                .containsExactly(
+                        "com.blockout.competitions.models.events.ClubDeactivationEvent",
+                        "com.blockout.competitions.models.events.TeamDeactivationEvent",
+                        "com.blockout.competitions.models.events.PoolDeactivationEvent",
+                        "com.blockout.competitions.models.events.TeamDeactivationByPoolEvent");
         assertThat(recorder.events.subList(0, 3))
                 .allSatisfy(event -> {
                     assertThat(event.v2Enabled()).isTrue();
@@ -35,6 +43,7 @@ class EventPublisherTest {
                 });
         OutboxEvent orphan = recorder.events.get(3);
         assertThat(orphan.v2Enabled()).isFalse();
+        assertThat(orphan.eventType()).isEqualTo("TEAM_DEACTIVATED_BY_POOL_V1_ONLY");
         assertThat(orphan.orderingKey()).isEqualTo("pool:42:team:12");
     }
 

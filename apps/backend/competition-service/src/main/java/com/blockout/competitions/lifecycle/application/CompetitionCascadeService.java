@@ -2,7 +2,6 @@ package com.blockout.competitions.lifecycle.application;
 
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
-import com.blockout.competitions.association.persistence.CompetitionAssociationRepository;
 import java.util.HashSet;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
@@ -16,7 +15,7 @@ public class CompetitionCascadeService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(CompetitionCascadeService.class);
 
-    private final CompetitionAssociationRepository repository;
+    private final CompetitionLifecycleStore store;
     private final CompetitionLifecycleEvents events;
 
     public void execute(CompetitionCascadePlan plan) {
@@ -25,7 +24,7 @@ public class CompetitionCascadeService {
         Set<String> clubs = new HashSet<>(plan.clubIds());
 
         for (Long poolId : pools) {
-            if (!repository.existsByPoolIdAndActiveTrue(poolId)) {
+            if (!store.hasActivePool(poolId)) {
                 events.publishPoolDeactivation(poolId);
                 LOGGER.info("Pool deactivation event published", keyValue("action", "publish_pool_deactivation"),
                         keyValue("poolId", poolId));
@@ -33,10 +32,10 @@ public class CompetitionCascadeService {
         }
 
         if (teams.isEmpty() && !pools.isEmpty()) {
-            teams.addAll(repository.findDistinctTeamIdByActiveTrueAndPoolIdIn(pools));
+            teams.addAll(store.findHistoricalTeamIdsByPools(pools));
         }
         for (Long teamId : teams) {
-            if (!repository.existsByTeamIdAndActiveTrue(teamId)) {
+            if (!store.hasActiveTeam(teamId)) {
                 events.publishTeamDeactivation(teamId);
                 LOGGER.info("Team deactivation event published", keyValue("action", "publish_team_deactivation"),
                         keyValue("teamId", teamId));
@@ -44,10 +43,10 @@ public class CompetitionCascadeService {
         }
 
         if (clubs.isEmpty() && !teams.isEmpty()) {
-            clubs.addAll(repository.findDistinctClubIdByActiveTrueAndTeamIdIn(teams));
+            clubs.addAll(store.findHistoricalClubIdsByTeams(teams));
         }
         for (String clubId : clubs) {
-            if (!repository.existsByClubIdAndActiveTrue(clubId)) {
+            if (!store.hasActiveClub(clubId)) {
                 events.publishClubDeactivation(clubId);
                 LOGGER.info("Club deactivation event published", keyValue("action", "publish_club_deactivation"),
                         keyValue("clubId", clubId));

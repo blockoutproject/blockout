@@ -1,13 +1,8 @@
 package com.blockout.competitions.ranking.application;
 
-import com.blockout.competitions.association.persistence.CompetitionAssociationEntity;
-import com.blockout.competitions.association.persistence.CompetitionAssociationRepository;
-import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,8 +11,8 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class CompetitionRankingService {
 
-    private final CompetitionAssociationRepository repository;
-    private final CompetitionRankingPolicy policy;
+    private final CompetitionRankingStore store;
+    private final CompetitionRankingProjector projector;
 
     @Transactional(readOnly = true)
     public List<PoolRankingView> findLegacyByTeam(Long teamId) {
@@ -39,8 +34,7 @@ public class CompetitionRankingService {
     }
 
     private List<Long> activePoolIds(Long teamId) {
-        List<CompetitionAssociationEntity> teamAssociations = repository.findByTeamIdAndActive(teamId, true);
-        return teamAssociations.stream().map(CompetitionAssociationEntity::getPoolId).distinct().sorted().toList();
+        return store.findActivePoolIdsByTeam(teamId).stream().distinct().sorted().toList();
     }
 
     private List<PoolRankingView> project(List<Long> orderedPoolIds) {
@@ -49,22 +43,6 @@ public class CompetitionRankingService {
             return List.of();
         }
 
-        Map<Long, List<CompetitionAssociationEntity>> groupedByPool = repository.findByActiveTrueAndPoolIdIn(poolIds)
-                .stream().collect(Collectors.groupingBy(CompetitionAssociationEntity::getPoolId));
-        List<PoolRankingView> result = new ArrayList<>(orderedPoolIds.size());
-        for (Long poolId : orderedPoolIds) {
-            List<TeamRankingView> ranking = groupedByPool.getOrDefault(poolId, List.of()).stream()
-                    .map(this::teamRanking)
-                    .sorted(policy.order())
-                    .toList();
-            result.add(new PoolRankingView(poolId, ranking));
-        }
-        return List.copyOf(result);
-    }
-
-    private TeamRankingView teamRanking(CompetitionAssociationEntity association) {
-        return new TeamRankingView(association.getTeamId(), association.getPoints(), association.getPointsPenalty(),
-                association.getPlayed(), association.getWins(), association.getLosses(), association.getCoefSets(),
-                association.getCoefPoints());
+        return projector.project(orderedPoolIds, store.findActiveByPoolIds(poolIds));
     }
 }
