@@ -23,11 +23,12 @@ values instead of a wrapper model. The backend parent supplies shared generator 
 and keep all generated Java beneath their module-local
 `target/generated-sources/openapi/<boundary>` directory.
 
-The generated bundle directory and the block between `BEGIN generated schemaMappings` and
-`END generated schemaMappings` are generated artifacts. Edit source fragments or generation scripts instead of
-editing either artifact manually. CI regenerates both and requires a clean tree.
+The generated bundle directory is ignored by Git. The block between `BEGIN generated schemaMappings` and
+`END generated schemaMappings` is the only source-derived build configuration retained in Git, matching Maaatch.
+Edit source fragments or generation scripts instead of either output. CI regenerates both, proves deterministic
+content, and rejects any tracked file below a generated output directory.
 
-The committed shared bundle contains the MRG-316 technical catalog. Deployable bundles inherit its security,
+The generated shared bundle contains the MRG-316 technical catalog. Deployable bundles inherit its security,
 pagination, request-correlation, and Problem Details components while resolving only the shared schemas their active
 operations or reusable components reference. MRG-317 through MRG-327 make `config.json`, `clubs.json`, `teams.json`,
 `pools.json`, `competition.json`, `matches.json`, `users.json`, `reports.json`, `notification.json`, and `search.json`
@@ -53,7 +54,7 @@ npm exec nx run @blockout/contracts:generate-python-clients
 npm exec nx run @blockout/contracts:build-python-wheel
 ```
 
-OpenAPI Generator `7.23.0` produces the committed Python 3.12 `asyncio` namespaces beneath
+OpenAPI Generator `7.23.0` produces the ignored Python 3.12 `asyncio` namespaces beneath
 `clients/python/src/blockout_contract_clients`. Those files are generated-only. The private
 `blockout-contract-clients` wheel is installed from the monorepo by both root-context scraper images and is never
 published externally. MRG-348 and MRG-349 remain responsible for moving the existing handwritten calls behind the
@@ -96,6 +97,6 @@ The complete repository-local generation gate is:
 scripts/verify-ci-pr-local.sh --skip-install
 ```
 
-It regenerates every committed REST, Expo, selected Python, and event artifact twice without the Nx cache, rejects
-stale or manually edited generated output, proves backend OpenAPI Java generation is deterministic, compiles the
-generated boundaries, and validates that retained v1 adapters remain isolated from generated and v2 adapter types.
+It regenerates every ignored REST, Expo, selected Python, and event artifact twice without the Nx cache, rejects
+tracked generated output, proves backend OpenAPI Java generation is deterministic, compiles the generated boundaries,
+and validates that retained v1 adapters remain isolated from generated and v2 adapter types.

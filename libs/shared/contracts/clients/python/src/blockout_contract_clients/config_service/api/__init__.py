@@ -1,8 +1,0 @@
-# flake8: noqa
-
-# import apis into api package
-from blockout_contract_clients.config_service.api.app_status_api import AppStatusApi
-from blockout_contract_clients.config_service.api.divisions_api import DivisionsApi
-from blockout_contract_clients.config_service.api.legal_documents_api import LegalDocumentsApi
-from blockout_contract_clients.config_service.api.raw_division_mappings_api import RawDivisionMappingsApi
-from blockout_contract_clients.config_service.api.scraper_statuses_api import ScraperStatusesApi

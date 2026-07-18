@@ -48,7 +48,7 @@ validate transport data; they do not own input coercion, form messages, touched 
 
 ## 2. Orval Configuration
 
-MRG-328 creates the `@blockout/mobile:codegen` Nx target. It depends on generation of the committed
+MRG-328 creates the `@blockout/mobile:codegen` Nx target. It depends on generation of the ignored
 `mobile-gateway.json` bundle and invokes `apps/frontend/mobile/orval.config.ts` with these two outputs:
 
 | Output               | Required configuration                                                                                    | Directory                                    |
@@ -58,8 +58,11 @@ MRG-328 creates the `@blockout/mobile:codegen` Nx target. It depends on generati
 | wire schemas         | second output with `client: "zod"`, `mode: "tags-split"`, `clean: true`, `fileExtension: ".zod.ts"`       | `src/api/generated/mobile-gateway/schemas`   |
 
 The input is `libs/shared/contracts/generated/specs/mobile-gateway.json`. Output paths are relative to the mobile
-project. The target owns all three generated directories, commits their contents, formats them deterministically, and
-must prove two clean generations produce no diff. A generated-file header and repository guard reject manual edits.
+project. The target owns all three ignored generated directories, formats them deterministically, and must prove two
+clean generations produce identical content. A repository guard rejects any attempt to track generated output.
+
+This output policy was amended by MRG-431 to match Maaatch. The earlier committed-output decision is superseded; only
+the OpenAPI sources, Orval configuration, handwritten mutator, and deterministic generator entrypoints belong in Git.
 
 MRG-328 does not create a second QueryClient, a generated transport singleton, a form abstraction, or React Native UI.
 It does not enable runtime response validation globally. A caller uses a generated Zod wire schema only where the

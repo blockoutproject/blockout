@@ -24,8 +24,8 @@ scripts call the pinned parser and Modelina libraries without AsyncAPI CLI, Asyn
 Maven-side Node execution.
 
 The bundler rejects nonlocal references, resolves every local fragment deterministically, sorts object keys, and
-validates both source documents and committed resolved bundles. The Modelina target uses exactly
-`modelType: "record"`, `collectionType: "List"`, and package `com.blockout.events.v2.model`. Its committed output is
+validates both source documents and generated resolved bundles. The Modelina target uses exactly
+`modelType: "record"`, `collectionType: "List"`, and package `com.blockout.events.v2.model`. Its ignored output is
 the only source root of `apps/backend/event-contracts`.
 
 ## Lifecycle Contract Set
@@ -59,19 +59,20 @@ record their deferred or excluded boundary without inventing an operation or act
 
 ## Verification Evidence
 
-- Parser validation passes for every local-reference source and every fully resolved committed bundle.
+- Parser validation passes for every local-reference source and every fully resolved generated bundle.
 - Two clean bundle/model generations produce identical SHA-256 hashes across all nine JSON bundles and thirteen Java
   files.
 - Six contract tests lock exact dependency pins, component-only catalog shape, envelope fields, all route/queue
   dispositions, generated-source confinement, and golden JSON/AMQP/header fixtures.
 - The generated set contains twelve Java records plus the six-value `EventType` enum and no Spring, Lombok, JPA,
   MapStruct, Jackson annotation, naming strategy, publisher, listener, or persistence behavior.
-- The isolated Maven module compiles successfully from committed generated Java files without invoking Node.
+- The isolated Maven module compiles successfully after the build boundary generates its Java files; Maven does not
+  invoke Node.
 
 ## Compatibility And Rollback
 
 MRG-350 changes no runtime dependency or broker configuration, so current v1 event behavior remains the operational
-rollback baseline. Reverting the contract source, generated bundles, generated records, Maven module, and pinned Node
+rollback baseline. Reverting the contract source, generator configuration, Maven module, and pinned Node
 dependencies restores the pre-MRG-350 repository state without a broker, database, producer, consumer, image, or
 production rollback.
 

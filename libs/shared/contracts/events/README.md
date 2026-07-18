@@ -12,11 +12,11 @@ coexistence topology remain recorded in `docs/migration/mrg-302-deployed-rabbitm
 - `source/catalog.json` is the component-only Modelina input and the complete route/queue reconciliation ledger.
 - `scripts` contains the direct parser, bundler, Modelina, and contract-test entry points.
 - `tests/golden` locks representative JSON bodies, AMQP properties, and stable headers.
-- `../generated/events` contains committed, fully resolved deployable and catalog bundles.
-- `apps/backend/event-contracts/src/generated/java` contains committed Java 21 records.
+- `../generated/events` contains ignored, fully resolved deployable and catalog bundles.
+- `apps/backend/event-contracts/src/generated/java` contains ignored Java 21 records.
 
-All references must be repository-local. Generated bundles contain no `$ref`, and Maven compiles only committed Java
-sources; Maven never invokes Node or regenerates contracts.
+All references must be repository-local. Generated bundles contain no `$ref`. Build and CI boundaries run Nx event
+generation before Maven; Maven itself never invokes Node or regenerates contracts.
 
 ## Commands
 
@@ -26,8 +26,8 @@ npm exec nx run @blockout/contracts:test-event-contracts
 mvn -Dmaven.repo.local=.m2/repository -f apps/backend/pom.xml -pl event-contracts test
 ```
 
-Run generation twice before committing and require identical output. MRG-802 owns moving the complete deterministic
-generation, committed-output, compilation, reconciliation, and forbidden-source checks into CI.
+Run generation twice before compiling and require identical output. MRG-431 installs the ignored-output and
+zero-tracked-generated-files policy; MRG-802 retains the later complete CI consolidation ownership.
 
 ## Contract-Authoritative Boundary
 

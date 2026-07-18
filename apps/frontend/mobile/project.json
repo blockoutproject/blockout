@@ -33,7 +33,7 @@
       "cache": false,
       "dependsOn": ["codegen"],
       "options": {
-        "command": "git diff --exit-code -- apps/frontend/mobile/src/api/generated/mobile-gateway"
+        "command": "node tools/scripts/verify-generated-output-determinism.mjs apps/frontend/mobile/src/api/generated/mobile-gateway -- node_modules/.bin/orval --config apps/frontend/mobile/orval.config.ts"
       }
     },
     "validate-form-boundary": {

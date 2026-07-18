@@ -81,3 +81,9 @@ data-export/
 *.py[cod]
 libs/shared/contracts/clients/python/build/
 libs/shared/contracts/clients/python/src/*.egg-info/
+
+# Contract-derived artifacts (generate locally or in CI; never commit)
+/libs/shared/contracts/generated/
+/libs/shared/contracts/clients/python/src/blockout_contract_clients/
+/apps/backend/event-contracts/src/generated/
+/apps/frontend/mobile/src/api/generated/

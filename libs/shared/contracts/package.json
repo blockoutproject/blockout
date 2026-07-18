@@ -130,6 +130,11 @@
       "test-event-contracts": {
         "executor": "nx:run-commands",
         "cache": false,
+        "dependsOn": [
+          {
+            "target": "generate-event-contracts"
+          }
+        ],
         "options": {
           "command": "node --test libs/shared/contracts/events/scripts/event-contracts.test.mjs"
         }

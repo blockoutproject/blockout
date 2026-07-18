@@ -298,7 +298,7 @@ state moves to GitHub and this file becomes a historical migration record.
     Nx discovery, documentation links, Maaatch comparison, typecheck, and diff checks pass.
 - [x] MRG-309 Introduce generated OpenAPI bundles under `libs/shared/contracts/generated/specs/**` and prove two clean
       generations produce no diff.
-  - Evidence: 12 minimal OpenAPI 3.0.3 source shells and their committed generated bundles cover shared, every REST
+  - Evidence: 12 minimal OpenAPI 3.0.3 source shells and their generated bundles cover shared, every REST
     owner, and the Expo-facing `mobile-gateway` without inventing operations, business schemas, security, or runtime
     authority. The generator now cleans its owned output, the bundle suite rejects stale artifacts, and both shadow CI
     workflows regenerate and require a clean generated tree; source lint, nine tests, two consecutive generations,
@@ -323,7 +323,7 @@ state moves to GitHub and this file becomes a historical migration record.
 - [x] MRG-312 Add the backend `shared-models` module for generated shared enums and rare technical primitives, then
       compile it in the Maven reactor.
   - Evidence: `apps/backend/shared-models` is a model-only OpenAPI Generator module sourced exclusively from the
-    committed shared bundle, overrides parent `schemaMappings` to generate the owning shared types, and registers only
+    generated shared bundle, overrides parent `schemaMappings` to generate the owning shared types, and registers only
     its module-local generated Java directory. The parent reactor and dependency management expose the module without
     adding it to any service prematurely; the current empty shared catalog generates no invented types. Two clean
     contract generations, targeted shared-model generation, the 14-module Maven package, formatting, documentation
@@ -529,14 +529,14 @@ state moves to GitHub and this file becomes a historical migration record.
     Thirty contract tests cover the exact 50-operation/security matrix, casing, fields, cursor/pages, partial behavior,
     ranking, commands, report constraints, and signed response; source lint passes across 137 fragments without runtime
     changes.
-- [x] MRG-328 Pin Orval `8.22.0` and add the mobile `codegen` Nx target after BFF bundle generation. Generate committed,
+- [x] MRG-328 Pin Orval `8.22.0` and add the mobile `codegen` Nx target after BFF bundle generation. Generate ignored,
       formatted, deterministic mobile-gateway models under `src/api/generated/mobile-gateway/models`, tag-split React
       Query operations/hooks with Axios under `endpoints`, and a second Zod output with `.zod.ts` suffix under
       `schemas`, all with `clean: true`; keep `src/api/core/orvalAxios.ts` handwritten and preserve the singleton
       QueryClient and its current defaults.
   - Evidence: the mobile workspace pins Orval `8.22.0`; `@blockout/mobile:codegen` depends on the canonical contract
     bundle and emits 127 models plus 12 tag-split React Query/Axios endpoint files and 12 `.zod.ts` wire-schema files,
-    covering all 50 unique mobile-gateway operation IDs. Every one of the 151 committed artifacts carries the Orval
+    covering all 50 unique mobile-gateway operation IDs. Every one of the 151 generated artifacts carries the Orval
     generated-file header, and two forced generations produced identical SHA-256 sets. The handwritten
     `orvalAxios.ts` uses the existing gateway base URL, Auth0 supplier/one-`401` cleanup path, repeated parameters,
     20-second timeout, cancellation, body extraction, `ApiError`, and Problem Details metadata without casing, retry,
@@ -561,11 +561,11 @@ state moves to GitHub and this file becomes a historical migration record.
     fragments), forced mobile typecheck, combined Android/iOS Expo export, documentation links, Maaatch structure
     comparison, and the unchanged 14-module backend package baseline all pass.
 - [x] MRG-330 Pin `@openapitools/openapi-generator-cli` `2.39.1` and OpenAPI Generator `7.23.0`; generate Python 3.12
-      `asyncio` clients for config, clubs, teams, pools, competition, and matches into committed
+      `asyncio` clients for config, clubs, teams, pools, competition, and matches into ignored
       `blockout-contract-clients` `src/**`; expose `@blockout/contracts:generate-python-clients`; build one local wheel;
       switch both scraper Docker targets to root context and install it; and prove two-run no-diff plus all 24
       Blockout operations, JSON/list/query/path/`204`/multipart/Auth0/proxy/timeout/no-retry/error/lifecycle fixtures.
-  - Evidence: the workspace pins CLI `2.39.1` and generator `7.23.0`; six stable configurations generate 149 committed
+  - Evidence: the workspace pins CLI `2.39.1` and generator `7.23.0`; six stable configurations generate 149 ignored
     Python 3.12 `asyncio` files in the one private `blockout-contract-clients` wheel, and two clean executions produce
     the same SHA-256 source digest. The audited operation manifest resolves six club and eighteen competition scraper
     calls to asynchronous generated methods. Nine focused fixtures prove camelCase aliases, list/query/path/`204`,
@@ -1096,7 +1096,7 @@ state moves to GitHub and this file becomes a historical migration record.
       queues, including no EV-TPD/Q-11–Q-13/Q-16–Q-17 v2 activation.
   - Evidence: the repository now pins parser `3.6.0` and Modelina `5.10.1` and owns local-reference AsyncAPI `3.0.0`
     shared sources, eight deployable documents, a component-only catalog, direct parser/bundler/Modelina scripts, and
-    deterministic Nx targets. Nine committed resolved bundles contain no `$ref`; two final generations produce
+    deterministic Nx targets. Nine generated resolved bundles contain no `$ref`; two final generations produce
     identical SHA-256 sets. The isolated Maven module compiles twelve framework-free Java 21 records plus the six-value
     `EventType` enum under `com.blockout.events.v2.model`, with Node absent from Maven. Six tests prove exact pins,
     source/bundle validation, envelope and catalog shape, golden camelCase bodies/AMQP properties/stable headers,
@@ -1256,12 +1256,12 @@ state moves to GitHub and this file becomes a historical migration record.
     and CI are required before publication. No deployment, production observation, v1 retirement, MRG-9xx, or
     MRG-1000 action; policy, rollback, and exception ownership are recorded in
     `docs/migration/mrg-354-wire-casing-guard.md`.
-- [x] MRG-355 Add complete contract generation, backend generation, committed Orval operation/model/Zod generation,
+- [x] MRG-355 Add complete contract generation, backend generation, ignored Orval operation/model/Zod generation,
       scraper generation when selected, event generation, formatting, compilation, two-run deterministic no-diff and
       generated-file-edit guards, plus v1-adapter isolation checks to local verification.
   - Evidence: `scripts/verify-ci-pr-local.sh --skip-install` passes the complete REST, Orval operation/model/Zod,
     selected Python, and event generation matrix twice without Nx cache; pre-generation, second-pass, and final
-    manifests reject stale, manually edited, non-deterministic, or later-mutated committed output. Backend OpenAPI
+    manifests reject non-deterministic or later-mutated generated output. Backend OpenAPI
     Java sources generate twice identically after the shared-model timestamp is disabled, and the 16-module reactor
     compiles. Five v1 isolation tests, contract/event/casing/form/type checks, targeted formatting, Expo export,
     temporary-wheel Python tests, both scraper images, Compose, documentation, and whitespace checks pass. No
@@ -1648,12 +1648,23 @@ state moves to GitHub and this file becomes a historical migration record.
     index generations, validation, alias swaps, rollback retention, cleanup, and failed-rebuild reconciliation;
     `docs/migration/mrg-412-search-worker-snapshot-architecture.md` records ownership, atomicity, compatibility,
     deferred scope, and rollback.
-- [ ] MRG-431 Align generated-output ownership with Maaatch before further backend slices: keep authoritative contract
+- [x] MRG-431 Align generated-output ownership with Maaatch before further backend slices: keep authoritative contract
       sources and generator configuration in Git, ignore every generated REST bundle, event model, Expo client, and
       Python client source, generate required artifacts from a clean checkout in each build/CI boundary, and enforce
       deterministic regeneration plus a zero-tracked-generated-files repository guard. Amend the superseded committed-
       output clauses of MRG-309, MRG-313, MRG-314, MRG-315, MRG-328, MRG-350, and MRG-355 without changing runtime
       contracts, routes, event topology, dependencies, deployment, or production.
+  - Evidence: Git now ignores and tracks none of the 346 former REST bundle, AsyncAPI bundle/Java, Orval, and Python
+    outputs; a repository guard rejects all tracked `generated` paths and the generated Python namespace. PR and Push
+    CI use one Maaatch-shaped `contracts` job to generate, validate, and prove deterministic REST, event, Expo, and
+    Python output before transferring a one-day ephemeral artifact to clean-checkout backend, mobile, and scraper jobs;
+    EAS generates its mobile boundary post-install. The complete local gate passes 30 REST tests, eight event tests,
+    casing and isolation guards, deterministic manifests, the 16-module Maven reactor, all backend Dockerfile checks,
+    mobile form tests/typecheck and Android/iOS export, 23 Python client tests, both scraper syntax/image builds,
+    Compose, formatting, documentation, and final zero-tracked-generated verification. Contracts, routes, event
+    topology, runtime behavior, dependencies, deployment, production, and Maaatch are unchanged;
+    `docs/migration/mrg-431-generated-output-ownership.md` records ownership, clean-checkout build order,
+    superseded clauses, compatibility, and rollback.
 - [ ] MRG-432 Replace every handwritten backend Java `enum` declaration with a generated shared-contract enum,
       including application intent/result values, while retaining the generated AsyncAPI `EventType` in the shared
       event-contract module. Remove service-local enum copies, keep generated sources out of Git, prove clean-checkout

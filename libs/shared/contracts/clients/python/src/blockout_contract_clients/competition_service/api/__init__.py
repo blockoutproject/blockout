@@ -1,7 +1,0 @@
-# flake8: noqa
-
-# import apis into api package
-from blockout_contract_clients.competition_service.api.competition_associations_api import CompetitionAssociationsApi
-from blockout_contract_clients.competition_service.api.competition_lifecycle_api import CompetitionLifecycleApi
-from blockout_contract_clients.competition_service.api.competition_rankings_api import CompetitionRankingsApi
-from blockout_contract_clients.competition_service.api.competition_statistics_api import CompetitionStatisticsApi

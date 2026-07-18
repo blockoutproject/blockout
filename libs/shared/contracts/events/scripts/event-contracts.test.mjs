@@ -29,7 +29,7 @@ test('pins the approved parser and Modelina versions exactly', () => {
   assert.equal(require('@asyncapi/modelina/package.json').version, '5.10.1');
 });
 
-test('validates local-only AsyncAPI 3 sources and committed resolved bundles', async () => {
+test('validates local-only AsyncAPI 3 sources and generated resolved bundles', async () => {
   const sourceFiles = [
     catalogFile,
     ...DEPLOYABLE_NAMES.map((name) =>
@@ -242,7 +242,7 @@ test('reconciles all eleven routes and nineteen primary queues without orphan ac
   assert.ok(!JSON.stringify(roots).includes('teambypool.deactivation.v2'));
 });
 
-test('commits generated Java records with no runtime framework leakage', async () => {
+test('generates Java records with no runtime framework leakage', async () => {
   const files = (await readdir(generatedPackage))
     .filter((name) => name.endsWith('.java'))
     .sort();

@@ -4,6 +4,10 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
+# Long Maven generation can invalidate Nx plugin workers in the local daemon.
+# Each verification command resolves the live project graph independently.
+export NX_DAEMON=false
+
 SKIP_INSTALL=false
 
 for arg in "$@"; do
@@ -18,7 +22,7 @@ Usage: scripts/verify-ci-pr-local.sh [--skip-install]
 Runs the complete local migration verification, including the current shadow CI
 surface and the deterministic generation gates that MRG-802 will later add to CI:
   1. repository configuration
-  2. deterministic committed and backend generation
+  2. deterministic ignored and backend generation
   3. formatting and compilation
   4. mobile
   5. scrapers
@@ -44,7 +48,7 @@ fi
 VERIFY_TMP_DIR="$(mktemp -d "${TMPDIR:-/tmp}/blockout-local-verification.XXXXXX")"
 trap 'rm -rf "$VERIFY_TMP_DIR"' EXIT
 
-COMMITTED_GENERATED_PATHS=(
+GENERATED_OUTPUT_PATHS=(
   apps/backend/pom.xml
   apps/backend/event-contracts/src/generated/java
   apps/frontend/mobile/src/api/generated/mobile-gateway
@@ -69,7 +73,7 @@ require_identical_manifests() {
   fi
 }
 
-generate_committed_artifacts() {
+generate_contract_artifacts() {
   NX_SKIP_NX_CACHE=true npm exec nx run @blockout/contracts:generate-contracts
   NX_SKIP_NX_CACHE=true npm exec nx run @blockout/mobile:codegen
   NX_SKIP_NX_CACHE=true npm exec nx run @blockout/contracts:generate-python-clients
@@ -86,9 +90,19 @@ if [[ "$SKIP_INSTALL" == false ]]; then
   npm ci
 fi
 
+echo "== Initial contract generation =="
+write_manifest "$VERIFY_TMP_DIR/backend-config-before.txt" apps/backend/pom.xml
+generate_contract_artifacts
+write_manifest "$VERIFY_TMP_DIR/backend-config-after.txt" apps/backend/pom.xml
+require_identical_manifests \
+  "$VERIFY_TMP_DIR/backend-config-before.txt" \
+  "$VERIFY_TMP_DIR/backend-config-after.txt" \
+  "The committed backend schemaMappings block is stale. Regenerate it before verification."
+
 echo "== Repository configuration =="
 npm run validate:env
 npm run validate:docs
+npm run validate:generated-untracked
 npm exec nx show projects
 npm exec nx run @blockout/contracts:test
 npm exec nx run @blockout/contracts:lint-openapi-source
@@ -97,20 +111,14 @@ npm run validate:wire-casing
 npm run validate:v1-adapter-isolation
 npm exec nx run @blockout/contracts:typecheck
 
-echo "== Committed generated artifacts =="
-write_manifest "$VERIFY_TMP_DIR/committed-before.txt" "${COMMITTED_GENERATED_PATHS[@]}"
-generate_committed_artifacts
-write_manifest "$VERIFY_TMP_DIR/committed-pass-1.txt" "${COMMITTED_GENERATED_PATHS[@]}"
+echo "== Ignored generated artifacts =="
+write_manifest "$VERIFY_TMP_DIR/generated-pass-1.txt" "${GENERATED_OUTPUT_PATHS[@]}"
+generate_contract_artifacts
+write_manifest "$VERIFY_TMP_DIR/generated-pass-2.txt" "${GENERATED_OUTPUT_PATHS[@]}"
 require_identical_manifests \
-  "$VERIFY_TMP_DIR/committed-before.txt" \
-  "$VERIFY_TMP_DIR/committed-pass-1.txt" \
-  "Committed generated artifacts were stale or edited manually. Regenerate them from their authoritative sources."
-generate_committed_artifacts
-write_manifest "$VERIFY_TMP_DIR/committed-pass-2.txt" "${COMMITTED_GENERATED_PATHS[@]}"
-require_identical_manifests \
-  "$VERIFY_TMP_DIR/committed-pass-1.txt" \
-  "$VERIFY_TMP_DIR/committed-pass-2.txt" \
-  "Committed artifact generation is not deterministic across two uncached runs."
+  "$VERIFY_TMP_DIR/generated-pass-1.txt" \
+  "$VERIFY_TMP_DIR/generated-pass-2.txt" \
+  "Contract artifact generation is not deterministic across two uncached runs."
 
 echo "== Backend generation =="
 mvn -f apps/backend/pom.xml -DskipTests clean generate-sources
@@ -195,11 +203,12 @@ echo "== Local Compose =="
 docker compose --file infra/compose/docker-compose.third-party.yml --file infra/compose/docker-compose.app.yml config --quiet
 
 echo "== Final checks =="
-write_manifest "$VERIFY_TMP_DIR/committed-final.txt" "${COMMITTED_GENERATED_PATHS[@]}"
+write_manifest "$VERIFY_TMP_DIR/generated-final.txt" "${GENERATED_OUTPUT_PATHS[@]}"
 require_identical_manifests \
-  "$VERIFY_TMP_DIR/committed-pass-2.txt" \
-  "$VERIFY_TMP_DIR/committed-final.txt" \
-  "A later verification step modified committed generated artifacts."
+  "$VERIFY_TMP_DIR/generated-pass-2.txt" \
+  "$VERIFY_TMP_DIR/generated-final.txt" \
+  "A later verification step modified generated artifacts."
+npm run validate:generated-untracked
 git diff --check
 
 echo "Local PR CI verification completed."

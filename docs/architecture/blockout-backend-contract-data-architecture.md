@@ -150,7 +150,7 @@ Compatibility is never embedded permanently in generated models, application rec
 
 The backend `shared-models` module contains stable generated enums and rare cross-boundary technical primitives only.
 It must not contain shared Club, Team, Pool, User, Match, Notification, Search, Report, or other business object DTOs.
-Its only model source is the committed `generated/specs/shared.json` bundle. Maven generates model-only Java under the
+Its only model source is the ignored `generated/specs/shared.json` bundle produced before Maven. Maven generates model-only Java under the
 module-local `target/generated-sources/openapi/shared-models` tree; generated Java is not committed, and handwritten
 business models are not added to this module. Service modules declare a dependency only when their generated or
 handwritten boundary actually uses an approved shared schema.

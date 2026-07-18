@@ -15,10 +15,85 @@ permissions:
   contents: read
 
 jobs:
-  backend:
+  contracts:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - run: npm ci
+
+      - name: Validate repository configuration
+        run: |
+          npm run validate:env
+          npm run validate:docs
+          npm run validate:generated-untracked
+          npm exec nx show projects
+
+      - name: Validate contract sources
+        run: |
+          npm exec nx run @blockout/contracts:test
+          npm exec nx run @blockout/contracts:lint-openapi-source
+
+      - name: Generate contract-derived artifacts
+        run: |
+          NX_SKIP_NX_CACHE=true npm exec nx run @blockout/contracts:generate-contracts
+          NX_SKIP_NX_CACHE=true npm exec nx run @blockout/contracts:generate-event-contracts
+          NX_SKIP_NX_CACHE=true npm exec nx run @blockout/mobile:codegen
+          NX_SKIP_NX_CACHE=true npm exec nx run @blockout/contracts:generate-python-clients
+
+      - name: Validate generated contract boundaries
+        run: |
+          npm exec nx run @blockout/contracts:test-event-contracts
+          npm run validate:wire-casing
+          npm exec nx run @blockout/contracts:typecheck
+
+      - name: Verify deterministic REST contract generation
+        run: node tools/scripts/verify-generated-output-determinism.mjs libs/shared/contracts/generated/specs apps/backend/pom.xml -- npm exec nx run @blockout/contracts:generate-contracts
+
+      - name: Verify deterministic event contract generation
+        run: node tools/scripts/verify-generated-output-determinism.mjs libs/shared/contracts/generated/events apps/backend/event-contracts/src/generated/java -- npm exec nx run @blockout/contracts:generate-event-contracts
+
+      - name: Verify deterministic mobile client generation
+        run: node tools/scripts/verify-generated-output-determinism.mjs apps/frontend/mobile/src/api/generated/mobile-gateway -- node_modules/.bin/orval --config apps/frontend/mobile/orval.config.ts
+
+      - name: Verify deterministic Python client generation
+        run: node tools/scripts/verify-generated-output-determinism.mjs libs/shared/contracts/clients/python/src/blockout_contract_clients -- npm exec nx run @blockout/contracts:generate-python-clients
+
+      - name: Recheck generated-file ownership
+        run: |
+          npm run validate:generated-untracked
+          git diff --exit-code -- apps/backend/pom.xml
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: contract-generated-artifacts
+          retention-days: 1
+          path: |
+            libs/shared/contracts/generated
+            apps/backend/event-contracts/src/generated
+            apps/frontend/mobile/src/api/generated
+            libs/shared/contracts/clients/python/src/blockout_contract_clients
+
+  backend:
+    needs: contracts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: contract-generated-artifacts
+          path: .
 
       - uses: actions/setup-java@v5
         with:
@@ -33,6 +108,7 @@ jobs:
         run: for file in apps/backend/*/Dockerfile; do docker build --check --file "$file" apps/backend || exit 1; done
 
   mobile:
+    needs: contracts
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -44,41 +120,16 @@ jobs:
 
       - run: npm ci
 
-      - name: Validate environment examples
-        run: npm run validate:env
-
-      - name: Validate documentation links
-        run: npm run validate:docs
-
-      - name: Validate Nx project graph
-        run: npm exec nx show projects
-
-      - name: Test OpenAPI bundling
-        run: npm exec nx run @blockout/contracts:test
-
-      - name: Lint OpenAPI source
-        run: npm exec nx run @blockout/contracts:lint-openapi-source
-
-      - name: Validate repository wire casing
-        run: npm run validate:wire-casing
-
-      - name: Generate contract artifacts
-        run: npm exec nx run @blockout/contracts:generate-contracts
-
-      - name: Verify contract artifacts are committed
-        run: test -z "$(git status --porcelain -- libs/shared/contracts/generated/specs apps/backend/pom.xml)"
-
-      - name: Generate and verify mobile API clients
-        run: npm exec nx run @blockout/mobile:verify-codegen
+      - uses: actions/download-artifact@v4
+        with:
+          name: contract-generated-artifacts
+          path: .
 
       - name: Validate mobile form boundary
         run: npm exec nx run @blockout/mobile:validate-form-boundary
 
       - name: Test mobile form contracts
         run: npm exec nx run @blockout/mobile:test-form-contracts
-
-      - name: Typecheck reserved contract boundary
-        run: npm exec nx run @blockout/contracts:typecheck
 
       - name: Typecheck mobile application
         run: npm exec nx run @blockout/mobile:typecheck
@@ -87,6 +138,7 @@ jobs:
         run: npm exec nx run @blockout/mobile:export --platform=android
 
   scrapers:
+    needs: contracts
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -107,13 +159,10 @@ jobs:
 
       - run: npm ci
 
-      - name: Generate Python API clients twice
-        run: |
-          npm exec nx run @blockout/contracts:generate-python-clients
-          npm exec nx run @blockout/contracts:generate-python-clients --skip-nx-cache
-
-      - name: Verify Python API clients are committed
-        run: test -z "$(git status --porcelain -- libs/shared/contracts/clients/python/src)"
+      - uses: actions/download-artifact@v4
+        with:
+          name: contract-generated-artifacts
+          path: .
 
       - name: Install local contract client wheel
         run: python -m pip install libs/shared/contracts/clients/python

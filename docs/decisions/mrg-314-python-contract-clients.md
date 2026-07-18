@@ -66,11 +66,11 @@ libs/shared/contracts/clients/python/
 ```
 
 `pyproject.toml`, the package README, generator configuration, wheel commands, and repository guards are handwritten.
-Everything under `src/**` is generated, committed, deterministically formatted, and forbidden to manual editing. Each
-service package has a distinct Python namespace but all six ship in the one private wheel
+Everything under `src/**` is generated, ignored by Git, deterministically formatted, and forbidden to manual editing.
+Each service package has a distinct Python namespace but all six ship in the one private wheel
 `blockout_contract_clients`/`blockout-contract-clients`.
 
-The authoritative inputs are the committed v2 bundles:
+The authoritative inputs are the generated v2 bundles produced from committed source fragments:
 
 | Generated package     | OpenAPI input                                            |
 | --------------------- | -------------------------------------------------------- |
@@ -101,7 +101,7 @@ Every service configuration fixes:
 - no custom template directory or post-generation semantic rewrite.
 
 The root workspace pins CLI `2.39.1`; its committed version-manager configuration pins OpenAPI Generator `7.23.0`.
-MRG-330 exposes `@blockout/contracts:generate-python-clients`, makes it depend on all six committed REST bundles, and
+MRG-330 exposes `@blockout/contracts:generate-python-clients`, makes it depend on all six generated REST bundles, and
 runs the six configurations in a stable service order. Two clean executions must leave the worktree unchanged.
 
 Generated code is an adapter artifact, not application or product authority. A generator limitation must be resolved
@@ -207,7 +207,10 @@ configuration, or scraper requirements change. Standalone scraper repositories r
 | MRG-348 | replace the club scraper's six Blockout operations with thin generated `httpx` client adapters; delete only their legacy request/response conversion paths                         |
 | MRG-349 | replace the competition scraper's eighteen Blockout operations with thin generated `httpx` client adapters; delete only their legacy request/response conversion paths             |
 | MRG-601 | audit post-migration boundaries, shared adapter reuse, session ownership, scheduler/proxy behavior, and separation of the eleven provider/federation calls                         |
-| MRG-802 | enforce pinned generation, wheel build, committed-output/no-diff, syntax, adapter isolation, and both root-context scraper image builds in CI                                      |
+| MRG-802 | enforce pinned generation, wheel build, ignored-output determinism, syntax, adapter isolation, and both root-context scraper image builds in CI                                    |
+
+MRG-431 amends only output ownership: Python sources and REST bundles are regenerated from authoritative sources in
+local, CI, image, and packaging boundaries and never tracked by Git, matching Maaatch.
 
 The 24-operation total is the MRG-303 baseline: six club-scraper Blockout operations and eighteen competition-scraper
 Blockout operations. The eleven provider/federation calls stay outside generation.

@@ -56,7 +56,7 @@ All `$ref` values are repository-local relative references. HTTP references, reg
 cross-repository inputs are forbidden. Source files are JSON, not YAML, to keep parsing, ordering, and repository diffs
 deterministic.
 
-Resolved bundles are committed under:
+Resolved bundles are generated into the ignored directory:
 
 ```text
 libs/shared/contracts/generated/events/
@@ -168,17 +168,19 @@ MRG-350 configures Modelina with:
 - `collectionType: "List"`;
 - package `com.blockout.events.v2.model`;
 - deterministic file names and one public record/enum per file;
-- committed output under `apps/backend/event-contracts/src/generated/java/**`.
+- ignored output under `apps/backend/event-contracts/src/generated/java/**`.
 
 Generated records contain only values, nested generated event types, Java standard types, and generated event enums.
 They contain no Spring, Lombok, JPA, MapStruct, `@JsonProperty`, `@JsonAlias`, Jackson naming strategy, service method,
 publisher, listener, or persistence behavior.
 
 MRG-350 creates the `apps/backend/event-contracts` Maven module and adds `src/generated/java` as its only event-model
-source root. The module packages the committed generated records and has no Node execution in Maven. A Maven build from
-a clean checkout is hermetic: Node generation occurs beforehand through Nx and CI verifies the committed output, while
-Maven compiles only repository files. Services depend on this model-only jar only when their family migration task
-opens that boundary.
+source root. The module packages generated records and has no Node execution in Maven. A build boundary from a clean
+checkout runs Nx generation before Maven, verifies deterministic output, and then compiles the generated sources.
+Services depend on this model-only jar only when their family migration task opens that boundary.
+
+MRG-431 amends the earlier committed-output policy to match Maaatch: resolved bundles and Java records remain generated
+contract artifacts but are ignored by Git and recreated from the authoritative AsyncAPI sources.
 
 No service copies a generated event record. Publishers map application facts into records in outbound messaging
 adapters. Consumers accept records at inbound messaging adapters and map immediately to application commands or

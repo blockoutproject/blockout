@@ -3,8 +3,8 @@
 ## Outcome
 
 `scripts/verify-ci-pr-local.sh` is the complete local verification entrypoint for the contract migration. It now
-regenerates every active contract-derived boundary, rejects stale or edited generated output, proves two-run
-determinism, compiles generated backend sources, and keeps retained v1 adapters isolated.
+regenerates every active contract-derived boundary, rejects tracked generated output, proves two-run determinism,
+compiles generated backend sources, and keeps retained v1 adapters isolated.
 
 Run it from the repository root after dependencies are installed:
 
@@ -14,21 +14,21 @@ scripts/verify-ci-pr-local.sh --skip-install
 
 Omit `--skip-install` when the lockfile installation must also be verified.
 
-## Committed Generation Matrix
+## Ignored Generation Matrix
 
-The verifier captures a content manifest before generation, regenerates the matrix twice with the Nx cache disabled,
-and compares all three manifests.
+The verifier generates the matrix twice with the Nx cache disabled, compares both content manifests, and compares a
+final manifest after compilation, export, wheel, and image checks.
 
-| Source boundary                      | Generator                                      | Guarded committed output                                    |
-| ------------------------------------ | ---------------------------------------------- | ----------------------------------------------------------- |
-| REST OpenAPI fragments               | `@blockout/contracts:generate-contracts`       | resolved service bundles and backend parent schema mappings |
-| Mobile gateway OpenAPI               | `@blockout/mobile:codegen`                     | Orval tag-split operations, models, and Zod schemas         |
-| Six selected scraper service bundles | `@blockout/contracts:generate-python-clients`  | Python async client package source                          |
-| AsyncAPI event fragments             | `@blockout/contracts:generate-event-contracts` | resolved event bundles and Java event records               |
+| Source boundary                      | Generator                                      | Deterministic output                                       |
+| ------------------------------------ | ---------------------------------------------- | ---------------------------------------------------------- |
+| REST OpenAPI fragments               | `@blockout/contracts:generate-contracts`       | ignored service bundles and backend parent schema mappings |
+| Mobile gateway OpenAPI               | `@blockout/mobile:codegen`                     | ignored Orval operations, models, and Zod schemas          |
+| Six selected scraper service bundles | `@blockout/contracts:generate-python-clients`  | ignored Python async client package source                 |
+| AsyncAPI event fragments             | `@blockout/contracts:generate-event-contracts` | ignored event bundles and Java event records               |
 
-The first comparison is the generated-file-edit guard: current output must already equal authoritative regeneration.
-The second comparison proves deterministic output across two uncached runs. A later final comparison ensures that no
-compile, test, export, or image step rewrites committed generated files.
+The repository guard requires that none of the generated directories is tracked. The two-run comparison proves
+deterministic output across uncached runs. A later final comparison ensures that no compile, test, export, or image
+step rewrites generated files.
 
 Prettier checks every supported tracked or new file changed by the current local iteration. This keeps new work
 formatted without treating unrelated historical formatting debt as generated-output drift.
