@@ -1,6 +1,6 @@
 # Blockout Active Migration Roadmap
 
-Last updated: 2026-07-17.
+Last updated: 2026-07-18.
 
 This roadmap is the temporary source of truth for migrating Blockout to the Maaatch monorepo structure and operating
 model. It replaces GitHub task planning only for this migration. Once the final GitFlow phase is complete, active task
@@ -18,6 +18,10 @@ state moves to GitHub and this file becomes a historical migration record.
 - Add evidence as one short indented line below the completed item.
 - Unmarked pending items use `DEFAULT_EXECUTION`. A pending item that requires Codex Plan mode has the exact indented
   metadata `- Execution mode: PLAN_REQUIRED`.
+- The migration owner grants standing approval for the recommended option in every future `PLAN_REQUIRED` item within
+  this roadmap. Codex must still produce and record a decision-complete plan, but it does not wait for another human
+  confirmation before resuming execution. Missing external authority, destructive work, production changes, or an
+  unresolved contradiction still fail closed.
 - The migration owner authorizes evidence-based roadmap maintenance whenever live repository evidence exposes a
   missing dependency, unsafe order, or insufficient task granularity. Perform that maintenance as one focused
   roadmap-editing iteration; never use it to skip work, mark implementation complete, or execute a newly added task in
@@ -1700,10 +1704,45 @@ state moves to GitHub and this file becomes a historical migration record.
     mobile tests/typecheck/export, 23 Python fixtures, isolated wheel import, both Nx syntax/image builds, Compose,
     documentation, Maaatch structural comparison, and final zero-tracked-generated verification.
   - Execution mode: PLAN_REQUIRED
-- [ ] MRG-429 Restructure `search-worker` event-consumer and incremental-projection internals with versioned event
-      inputs, idempotency, stale-write protection, cache consistency, and reconciliation evidence.
-- [ ] MRG-430 Implement versioned Elasticsearch index documents, validation, atomic alias swaps, bounded rollback-index
-      retention, cleanup, and failed-rebuild reconciliation behind explicit worker application operations.
+  - Correction note: MRG-435 owns the later enum-ownership correction and MRG-436 owns the later Docker simplification;
+    the evidence above remains the factual record of what MRG-433 delivered and proved at its completion SHA.
+- [x] MRG-434 Reorder the remaining Phase MRG-400 roadmap around explicit Python enum ownership, simple scraper
+      containers, authoritative projection versions, and the safe MRG-430-before-MRG-429 dependency. Record standing
+      approval for recommended `PLAN_REQUIRED` decisions and continuous one-task-at-a-time execution without changing
+      runtime, contracts, generated artifacts, containers, services, deployment, or production.
+  - Evidence: `docs/migration/mrg-434-roadmap-continuation.md` records the standing decision authority, atomic
+    continuation, enum and Docker corrections, owner-version prerequisites, and MRG-430-before-MRG-429 dependency;
+    the task runbook and MRG-401 rule enforce the new order. Documentation links, Prettier, Maaatch comparison, and Git
+    whitespace checks pass.
+- [ ] MRG-435 Correct Python enum ownership after MRG-433: keep `DataSourcePriority` as a competition-scraper-local
+      `IntEnum`, generate only enum concepts owned by OpenAPI or AsyncAPI contracts, derive the handwritten-mirror guard
+      from authoritative contract schemas without a manual allowlist, and keep every generated source outside Git.
+- [ ] MRG-436 Simplify both scraper containers around the `matches-service` builder/runtime shape while retaining the
+      three-member uv workspace and narrow Nx integration: use one locked package sync, keep Nx and validation outside
+      Docker, remove unused test tools from runtime dependencies, preserve the image contract, and prove runtime rather
+      than historical distribution parity.
+- [ ] MRG-437 Approve the version-authority and command-versus-fact architecture required by MRG-438 through MRG-442,
+      MRG-430, and MRG-429 without changing runtime or contract sources.
+  - Execution mode: PLAN_REQUIRED
+- [ ] MRG-438 Add shared authoritative contract sources for complete club, team, and pool projection-change facts
+      produced by their owning services with required monotonic aggregate versions and active state. Keep existing
+      competition-service deactivation routes as coexistence commands and keep generated event sources outside Git.
+- [ ] MRG-439 Add a persisted optimistic revision to `config-service` divisions and expose it only through internal
+      snapshot contracts used by search enrichment, without adding a division event, outbox, public API, or production
+      activation.
+- [ ] MRG-440 Add a persisted optimistic revision and transactional owner projection facts to `clubs-service`, using
+      post-flush versions and treating repeated deactivation as a no-op while preserving every existing event route.
+- [ ] MRG-441 Add a persisted optimistic revision and transactional owner projection facts to `teams-service`, using
+      post-flush versions and treating direct or club-cascade repeated deactivation as a no-op while preserving every
+      existing event route.
+- [ ] MRG-442 Add a persisted optimistic revision and transactional owner projection facts to `pools-service`, using
+      post-flush versions and treating repeated deactivation as a no-op while preserving every existing event route.
+- [ ] MRG-430 Implement active documents and tombstones with non-regressing club, team/club/division, and pool/division
+      revision vectors, validation, atomic alias swaps, bounded rollback-index retention, cleanup, and failed-rebuild
+      reconciliation behind explicit worker application operations.
+- [ ] MRG-429 Restructure `search-worker` event consumers around the owner projection facts and versioned caches, with
+      idempotency, stale-write rejection, dependency reprojection, active/inactive reconciliation, and continued
+      MRG-304 coexistence for legacy listeners.
 - [ ] MRG-413 Replace `mobile-gateway` copied downstream DTOs and generic client services with generated client adapters
       that map immediately to workflow-owned application inputs and views.
 - [ ] MRG-414 Restructure `mobile-gateway` configuration, user, report, search, and notification facade workflows with

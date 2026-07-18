@@ -2,7 +2,7 @@
 
 - Status: active Phase MRG-400 execution rule
 - Source decision: MRG-268 approved backend contract and data architecture
-- Applies to: MRG-402 through MRG-430
+- Applies to: MRG-402 through MRG-430 and backend prerequisites MRG-438 through MRG-442
 - Runtime effect: none
 
 ## Purpose
@@ -13,8 +13,10 @@ behavioral evidence. A slice is complete only when generated transport models re
 application owns meaningful role-specific inputs and outputs, and every removal satisfies the existing compatibility
 gates.
 
-This rule is normative for Phase MRG-400. Later service tasks may specialize it for their named feature, but they may
-not weaken it or combine adjacent roadmap items merely because they touch the same deployable.
+This rule is normative for Phase MRG-400. Contract-only MRG-438 may span deployable declarations without changing
+runtime; MRG-439 through MRG-442 each retain exactly one owning deployable. Later service tasks may specialize this
+rule for their named feature, but they may not weaken it or combine adjacent roadmap items merely because they touch
+the same deployable.
 
 ## 1. Authoritative Slice Boundary
 

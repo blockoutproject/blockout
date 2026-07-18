@@ -24,6 +24,12 @@ maintenance as one focused roadmap-editing iteration: it may add, split, reorder
 their governing references, but it must not implement a newly added task, mark blocked implementation complete, or
 weaken a safety or approval gate. Record the maintenance itself as a completed roadmap item with validation evidence.
 
+The migration owner grants standing approval for the recommended option in future `PLAN_REQUIRED` tasks while the
+active roadmap remains below Phase MRG-900. This removes repeated human confirmation, not the planning or safety gate:
+Codex must still enter Plan mode, produce a decision-complete plan, record the chosen architecture, and fail closed for
+missing external authority, destructive work, production changes, or an unresolved contradiction. The standing
+approval never authorizes planning or executing MRG-9xx or MRG-1000 work.
+
 ## Read-Only Selection
 
 Before any repository or Git mutation:
@@ -51,8 +57,10 @@ the roadmap.
 PLAN_REQUIRED: Codex Plan mode is not active. No repository or Git mutation was performed.
 ```
 
-When Plan mode is active, follow its planning and approval lifecycle. Do not edit implementation files, mark the task
-complete, commit, or push until the plan has been approved and execution is authorized.
+When Plan mode is active, follow its planning lifecycle and choose the evidence-backed recommended option. The standing
+approval above authorizes execution after that decision-complete plan is recorded, without another human confirmation.
+Do not edit implementation files, mark the task complete, commit, or push while the collaboration mode still forbids
+mutation.
 
 ## Main Preflight
 
@@ -94,7 +102,9 @@ Only after the implementation and all required validations succeed:
 8. Push the commit with `git push origin main`.
 9. Monitor the resulting shadow CI run to completion. Report a failed CI without rewriting history or triggering
    production actions.
-10. Stop after this single task.
+10. End this task iteration after this single task. When an active continuous migration goal exists, immediately begin
+    a fresh read-only selection iteration from the top of the roadmap; never batch two tasks into one diff, commit,
+    push, or CI result.
 
 ## Final Report
 
