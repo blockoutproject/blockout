@@ -11,7 +11,6 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.kohsuke.github.GHIssue;
 import org.kohsuke.github.GHIssueBuilder;
-import org.kohsuke.github.GHMilestone;
 import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GitHub;
 import org.slf4j.Logger;
@@ -40,8 +39,6 @@ public class GitHubIssueAdapter implements ReportIssueTracker {
             GHRepository repository = gitHub.getRepository(repositoryName);
             GHIssueBuilder builder = repository.createIssue(request.title()).body(request.body());
             addLabels(builder, request.labels());
-            addAssignees(builder, request.assignees());
-            addMilestone(repository, builder, request.milestone());
 
             GHIssue issue = builder.create();
             ReportResult result = new ReportResult(
@@ -91,23 +88,6 @@ public class GitHubIssueAdapter implements ReportIssueTracker {
     private void addLabels(GHIssueBuilder builder, List<String> labels) {
         if (labels != null) {
             labels.stream().filter(this::notBlank).forEach(builder::label);
-        }
-    }
-
-    /** Applies the retained non-blank assignee behavior. */
-    private void addAssignees(GHIssueBuilder builder, List<String> assignees) {
-        if (assignees != null) {
-            assignees.stream().filter(this::notBlank).forEach(builder::assignee);
-        }
-    }
-
-    /** Applies the retained optional milestone lookup. */
-    private void addMilestone(GHRepository repository, GHIssueBuilder builder, Integer number) throws Exception {
-        if (number != null) {
-            GHMilestone milestone = repository.getMilestone(number);
-            if (milestone != null) {
-                builder.milestone(milestone);
-            }
         }
     }
 

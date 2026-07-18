@@ -46,7 +46,7 @@ public class GitHubIssuePayloadBuilder {
                     .forEach(url -> body.append("![screenshot](").append(url).append(")\n"));
         }
 
-        return new GitHubIssueDraft(command.title(), body.toString(), List.copyOf(labels), null, null);
+        return new GitHubIssueDraft(command.title(), body.toString(), List.copyOf(labels));
     }
 
     /** Appends one non-blank context entry. */

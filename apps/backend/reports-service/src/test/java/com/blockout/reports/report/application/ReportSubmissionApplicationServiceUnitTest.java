@@ -62,6 +62,21 @@ class ReportSubmissionApplicationServiceUnitTest {
         assertThat(dependencies.actions).isEmpty();
     }
 
+    /** Proves a later invalid attachment retains earlier committed storage effects. */
+    @Test
+    @DisplayName("validates each attachment immediately before its upload")
+    void validatesEachAttachmentImmediatelyBeforeItsUpload() {
+        RecordingDependencies dependencies = new RecordingDependencies();
+
+        assertThatThrownBy(() -> dependencies.service().submit(command(), List.of(
+                        attachment("kept.png", "image/png", 4),
+                        attachment("invalid.webp", "image/webp", 4))))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Seuls les formats PNG et JPEG sont autorisés.");
+
+        assertThat(dependencies.actions).containsExactly("upload:1:kept.png");
+    }
+
     /** Proves the five-megabyte limit remains before storage. */
     @Test
     @DisplayName("rejects an oversized attachment before side effects")
@@ -137,12 +152,12 @@ class ReportSubmissionApplicationServiceUnitTest {
         }
 
         @Override
-        public String upload(ReportAttachment attachment, String reportKey, int index) {
-            actions.add("upload:" + index + ":" + attachment.filename());
+        public String upload(ReportSubmissionPlan.AttachmentUpload upload) {
+            actions.add("upload:" + upload.index() + ":" + upload.attachment().filename());
             if (failUpload) {
                 throw new IllegalStateException("storage unavailable");
             }
-            return "https://cdn.example/" + index;
+            return "https://cdn.example/" + upload.index();
         }
 
         @Override

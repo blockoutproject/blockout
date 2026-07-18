@@ -15,7 +15,6 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class ReportSubmissionApplicationService implements ReportSubmissionService {
 
-    private static final long MAX_IMAGE_SIZE = 5L * 1024 * 1024;
     private static final Logger LOGGER = LoggerFactory.getLogger(ReportSubmissionApplicationService.class);
 
     private final ReportAttachmentStorage attachments;
@@ -25,11 +24,12 @@ public class ReportSubmissionApplicationService implements ReportSubmissionServi
     /** {@inheritDoc} */
     @Override
     public ReportResult submit(ReportCommand command, List<ReportAttachment> submittedAttachments) {
-        String reportKey = UUID.randomUUID().toString().replace("-", "");
-        LOGGER.info("Start report flow", keyValue("reportKey", reportKey));
+        ReportSubmissionPlan plan = ReportSubmissionPlan.create(
+                command, submittedAttachments, UUID.randomUUID().toString().replace("-", ""));
+        LOGGER.info("Start report flow", keyValue("reportKey", plan.reportKey()));
 
-        List<String> uploadedUrls = uploadSequentially(submittedAttachments, reportKey);
-        ReportResult result = issues.create(command);
+        List<String> uploadedUrls = uploadSequentially(plan);
+        ReportResult result = issues.create(plan.command());
         if (!uploadedUrls.isEmpty()) {
             issues.appendImages(result.number(), uploadedUrls);
         }
@@ -38,7 +38,7 @@ public class ReportSubmissionApplicationService implements ReportSubmissionServi
                 keyValue("action", "create_report"),
                 keyValue("issueNumber", result.number()),
                 keyValue("issueUrl", result.htmlUrl()),
-                keyValue("reportKey", reportKey));
+                keyValue("reportKey", plan.reportKey()));
 
         try {
             notifier.notifyCreated(result);
@@ -46,44 +46,27 @@ public class ReportSubmissionApplicationService implements ReportSubmissionServi
             LOGGER.warn("Discord notification failed",
                     keyValue("action", "discord_notify"),
                     keyValue("issueNumber", result.number()),
-                    keyValue("message", exception.getMessage()));
+                    keyValue("failureType", exception.getClass().getSimpleName()));
         }
         return result;
     }
 
     /** Uploads non-empty images in their retained one-based order. */
-    private List<String> uploadSequentially(List<ReportAttachment> submittedAttachments, String reportKey) {
+    private List<String> uploadSequentially(ReportSubmissionPlan plan) {
         List<String> uploadedUrls = new ArrayList<>();
-        if (submittedAttachments == null) {
-            return uploadedUrls;
-        }
-        int index = 1;
-        for (ReportAttachment attachment : submittedAttachments) {
-            if (attachment == null || attachment.size() == 0) {
-                continue;
-            }
-            validate(attachment);
+        for (ReportSubmissionPlan.AttachmentUpload upload : plan.attachmentUploads()) {
+            upload.validate();
             try {
-                uploadedUrls.add(attachments.upload(attachment, reportKey, index++));
+                uploadedUrls.add(attachments.upload(upload));
             } catch (RuntimeException exception) {
                 LOGGER.error("Image upload failed",
                         keyValue("action", "upload_report_image"),
-                        keyValue("reportKey", reportKey),
-                        keyValue("fileName", attachment.filename()),
+                        keyValue("reportKey", plan.reportKey()),
+                        keyValue("fileName", upload.attachment().filename()),
                         keyValue("message", exception.getMessage()), exception);
                 throw new RuntimeException("Échec de l’upload de l’image");
             }
         }
         return uploadedUrls;
-    }
-
-    /** Preserves the declared PNG/JPEG and five-megabyte checks. */
-    private void validate(ReportAttachment attachment) {
-        if (!"image/png".equals(attachment.contentType()) && !"image/jpeg".equals(attachment.contentType())) {
-            throw new IllegalArgumentException("Seuls les formats PNG et JPEG sont autorisés.");
-        }
-        if (attachment.size() > MAX_IMAGE_SIZE) {
-            throw new IllegalArgumentException("La taille maximale de l’image est de 5 Mo.");
-        }
     }
 }

@@ -4,6 +4,7 @@ import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
 import com.blockout.reports.config.DiscordProperties;
 import com.blockout.reports.report.application.ReportNotifier;
+import com.blockout.reports.report.application.ReportNotificationException;
 import com.blockout.reports.report.application.ReportResult;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -42,8 +43,7 @@ public class DiscordReportNotifier implements ReportNotifier {
             return;
         }
 
-        LOGGER.info("Posting to Discord webhook",
-                keyValue("action", "discord_webhook_post"), keyValue("url", webhook));
+        LOGGER.info("Posting to Discord webhook", keyValue("action", "discord_webhook_post"));
         try {
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
@@ -53,13 +53,12 @@ public class DiscordReportNotifier implements ReportNotifier {
         } catch (HttpClientErrorException exception) {
             LOGGER.warn("Discord client error",
                     keyValue("status", exception.getStatusCode()),
-                    keyValue("url", webhook),
-                    keyValue("responseBody", exception.getResponseBodyAsString()));
-            throw exception;
+                    keyValue("failureType", exception.getClass().getSimpleName()));
+            throw new ReportNotificationException(exception);
         } catch (Exception exception) {
             LOGGER.error("Discord webhook failed",
-                    keyValue("url", webhook), keyValue("message", exception.getMessage()), exception);
-            throw new RuntimeException("Discord webhook failed for " + webhook, exception);
+                    keyValue("failureType", exception.getClass().getSimpleName()));
+            throw new ReportNotificationException(exception);
         }
     }
 }

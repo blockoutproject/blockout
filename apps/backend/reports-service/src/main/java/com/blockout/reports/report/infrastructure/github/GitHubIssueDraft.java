@@ -6,7 +6,5 @@ import java.util.List;
 public record GitHubIssueDraft(
         String title,
         String body,
-        List<String> labels,
-        List<String> assignees,
-        Integer milestone) {
+        List<String> labels) {
 }

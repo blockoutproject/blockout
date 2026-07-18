@@ -1538,8 +1538,24 @@ state moves to GitHub and this file becomes a historical migration record.
     S3 configuration, Rabbit topology, outbox cleanup, routes, scopes, callers, deployment, production, and Maaatch
     are unchanged; `docs/migration/mrg-426-users-deletion-storage-architecture.md` records ownership, order, failure
     windows, retention unknowns, compatibility, and rollback.
-- [ ] MRG-409 Restructure `reports-service` Blockout API, application flow, attachment storage, GitHub, and Discord
+- [x] MRG-409 Restructure `reports-service` Blockout API, application flow, attachment storage, GitHub, and Discord
       adapters without leaking vendor DTOs into application contracts.
+  - Evidence: an immutable provider-neutral submission plan now owns the generated report key, ordered one-based
+    attachment work, and per-upload validation while the application service depends only on attachment-storage,
+    issue-tracker, and notifier ports. The S3 adapter owns the retained object key, MIME suffix, upload request, and
+    public URL; the GitHub adapter owns SDK construction and only the title, body, and labels actually supplied; and
+    the Discord adapter owns a dedicated HTTP client with no inbound authorization interceptor. Null and empty
+    attachments, sequential validation/upload, create-before-append-before-notify order, and all existing partial
+    success windows remain unchanged: an earlier S3 upload may orphan, GitHub image append may remain incomplete, and
+    Discord failure remains best effort. Discord no longer receives the inbound Blockout bearer token or logs its
+    credential-bearing webhook URL, provider body, or exception message. Unreachable attachment extension fallbacks,
+    unused GitHub assignee/milestone surface, and the unused generic diff utility were removed. Twenty-four focused
+    reports-service tests, complete backend packaging, all backend Dockerfile checks, deterministic generation, the
+    full local CI gate, documentation, formatting, and whitespace checks pass. Contracts, multipart handling, routes,
+    scopes, S3 key and URL shapes, GitHub content, Discord message, credentials, environment values, callers,
+    deployment, production, and Maaatch are unchanged; retention, cleanup, compensation, reconciliation, abuse,
+    Markdown, and delivery-policy decisions remain unapproved; `docs/migration/mrg-409-reports-provider-architecture.md`
+    records ownership, order, security corrections, retained unknowns, compatibility, and rollback.
 - [ ] MRG-410 Restructure `notification-service` inbox, token, pagination, and persistence boundaries with role-owned
       commands, page views, entities, and mappers.
 - [ ] MRG-427 Restructure `notification-service` delivery decisions, delivery ledger, retry state, and Expo provider
