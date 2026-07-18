@@ -9,6 +9,10 @@ state moves to GitHub and this file becomes a historical migration record.
 ## Rules
 
 - Maaatch is the structural reference. A difference must be a documented technology variant or an open migration task.
+- Contract-derived REST bundles, generated clients/models, and generated event sources are build artifacts: keep their
+  authoritative sources and generator configuration in Git, but never track the generated files themselves.
+- Backend Java enums are generated from shared contract sources; service-local handwritten enum declarations are
+  forbidden. The generated AsyncAPI event enum remains owned by the shared event-contract module.
 - Preserve current production behavior until each deployable completes its own cutover.
 - Complete and validate one item before checking it off.
 - Add evidence as one short indented line below the completed item.
@@ -1644,6 +1648,16 @@ state moves to GitHub and this file becomes a historical migration record.
     index generations, validation, alias swaps, rollback retention, cleanup, and failed-rebuild reconciliation;
     `docs/migration/mrg-412-search-worker-snapshot-architecture.md` records ownership, atomicity, compatibility,
     deferred scope, and rollback.
+- [ ] MRG-431 Align generated-output ownership with Maaatch before further backend slices: keep authoritative contract
+      sources and generator configuration in Git, ignore every generated REST bundle, event model, Expo client, and
+      Python client source, generate required artifacts from a clean checkout in each build/CI boundary, and enforce
+      deterministic regeneration plus a zero-tracked-generated-files repository guard. Amend the superseded committed-
+      output clauses of MRG-309, MRG-313, MRG-314, MRG-315, MRG-328, MRG-350, and MRG-355 without changing runtime
+      contracts, routes, event topology, dependencies, deployment, or production.
+- [ ] MRG-432 Replace every handwritten backend Java `enum` declaration with a generated shared-contract enum,
+      including application intent/result values, while retaining the generated AsyncAPI `EventType` in the shared
+      event-contract module. Remove service-local enum copies, keep generated sources out of Git, prove clean-checkout
+      generation and full behavioral parity, and add a repository guard preventing handwritten backend enums.
 - [ ] MRG-429 Restructure `search-worker` event-consumer and incremental-projection internals with versioned event
       inputs, idempotency, stale-write protection, cache consistency, and reconciliation evidence.
 - [ ] MRG-430 Implement versioned Elasticsearch index documents, validation, atomic alias swaps, bounded rollback-index
