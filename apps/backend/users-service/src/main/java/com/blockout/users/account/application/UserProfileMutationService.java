@@ -20,7 +20,7 @@ public class UserProfileMutationService {
     private static final Logger LOGGER = LoggerFactory.getLogger(UserProfileMutationService.class);
 
     private final UserAccountStore accounts;
-    private final ProfileImageStorage imageStorage;
+    private final ProfileImagePlanExecutor imagePlans;
 
     /** Updates one account from explicit text and image intent. */
     @Transactional
@@ -28,7 +28,8 @@ public class UserProfileMutationService {
         return accounts.findForUpdateByAuth0Id(auth0Id).map(update -> {
             UserAccountView existing = update.current();
             String pseudo = updatePseudo(existing, auth0Id, command.pseudo());
-            PictureChange picture = updatePicture(existing, command.imageChange());
+            ProfileImageMutationResult picture = imagePlans.execute(
+                    ProfileImageMutationPlan.from(existing.pictureUrl(), command.imageChange()));
             boolean active = reactivate(existing, auth0Id);
             return save(update, pseudo, picture, active, auth0Id, command.pseudo());
         }).orElseThrow(() -> {
@@ -58,28 +59,6 @@ public class UserProfileMutationService {
         return requested;
     }
 
-    /** Applies explicit keep, remove, or replace image intent with the retained storage ordering. */
-    private PictureChange updatePicture(UserAccountView existing, UserProfileImageChange change) {
-        return switch (change.mode()) {
-            case KEEP -> PictureChange.keep();
-            case REMOVE -> {
-                deleteStoredPicture(existing);
-                yield PictureChange.replace(null);
-            }
-            case REPLACE -> {
-                deleteStoredPicture(existing);
-                yield PictureChange.replace(imageStorage.upload(change.upload(), "users"));
-            }
-        };
-    }
-
-    /** Deletes the current object only when a picture URL is present. */
-    private void deleteStoredPicture(UserAccountView existing) {
-        if (existing.pictureUrl() != null) {
-            imageStorage.deleteByUrl(existing.pictureUrl());
-        }
-    }
-
     /** Preserves the current profile-update reactivation behavior. */
     private boolean reactivate(UserAccountView existing, String auth0Id) {
         if (!existing.active()) {
@@ -95,7 +74,7 @@ public class UserProfileMutationService {
     private UserAccountView save(
             UserAccountUpdate update,
             String pseudo,
-            PictureChange picture,
+            ProfileImageMutationResult picture,
             boolean active,
             String auth0Id,
             String requestedPseudo) {
@@ -113,15 +92,4 @@ public class UserProfileMutationService {
         }
     }
 
-    /** Distinguishes keep from explicit nullable replacement at the persistence boundary. */
-    private record PictureChange(String url, boolean replace) {
-
-        private static PictureChange keep() {
-            return new PictureChange(null, false);
-        }
-
-        private static PictureChange replace(String url) {
-            return new PictureChange(url, true);
-        }
-    }
 }

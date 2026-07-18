@@ -1,4 +1,4 @@
-package com.blockout.users.services;
+package com.blockout.users.favorite.outbound;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -7,7 +7,6 @@ import com.blockout.events.v2.model.TeamFollowedV2Event;
 import com.blockout.outbox.OutboxEvent;
 import com.blockout.outbox.OutboxMetadata;
 import com.blockout.outbox.OutboxRecorder;
-import com.blockout.users.favorite.outbound.FavoriteEventContractMapper;
 import com.blockout.users.models.enums.EntityType;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -15,15 +14,16 @@ import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
-class EventPublisherTest {
+class FavoriteOutboxEventPublisherTest {
 
     @Test
-    void recordsFavoriteFactsWithSharedV1V2Identity() {
+    void recordsFavoriteAndAccountDeletionFactsWithSharedV1V2Identity() {
         Recorder recorder = new Recorder();
-        EventPublisher publisher = new EventPublisher(recorder, new FavoriteEventContractMapper());
+        FavoriteOutboxEventPublisher publisher =
+                new FavoriteOutboxEventPublisher(recorder, new FavoriteEventContractMapper());
 
         publisher.publishCreated(10L, EntityType.TEAM, 20L);
-        publisher.publishDeleted(11L, EntityType.POOL, 21L);
+        publisher.publishFavoriteDeleted(11L, EntityType.POOL, 21L);
 
         assertThat(recorder.events).extracting(OutboxEvent::eventType)
                 .containsExactly("TEAM_FOLLOWED", "POOL_UNFOLLOWED");

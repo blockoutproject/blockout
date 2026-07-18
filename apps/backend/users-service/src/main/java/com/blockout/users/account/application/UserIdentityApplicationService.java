@@ -3,8 +3,6 @@ package com.blockout.users.account.application;
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
 import com.blockout.users.exceptions.CustomUserEmailAlreadyUsedException;
-import com.blockout.users.exceptions.CustomUserNotFoundException;
-import com.blockout.users.favorite.application.FavoriteEventPublisher;
 import com.blockout.users.utils.DiffUtils;
 import java.time.Instant;
 import java.util.Objects;
@@ -23,7 +21,7 @@ public class UserIdentityApplicationService implements UserIdentityService {
 
     private final IdentityProvider identityProvider;
     private final UserAccountStore accounts;
-    private final FavoriteEventPublisher favoriteEvents;
+    private final UserAccountDeletionService accountDeletion;
 
     /** {@inheritDoc} */
     @Override
@@ -40,27 +38,8 @@ public class UserIdentityApplicationService implements UserIdentityService {
 
     /** {@inheritDoc} */
     @Override
-    @Transactional
     public void deleteCurrent(String auth0Id) {
-        UserAccountUpdate update = accounts.findForUpdateByAuth0Id(auth0Id).orElseThrow(() -> {
-            LOGGER.warn("Suppression échouée : utilisateur introuvable", keyValue("auth0Id", auth0Id));
-            return new CustomUserNotFoundException(auth0Id);
-        });
-
-        UserAccountView user = update.current();
-        identityProvider.delete(auth0Id);
-        try {
-            user.favorites().forEach(favorite -> favoriteEvents.publishDeleted(
-                    user.id(), favorite.entityType(), favorite.entityId()));
-            update.delete();
-            LOGGER.info("Utilisateur et favoris supprimés", keyValue("auth0Id", auth0Id));
-        } catch (RuntimeException exception) {
-            LOGGER.error("Erreur lors de la suppression locale de l'utilisateur",
-                    keyValue("action", "delete_user_local"),
-                    keyValue("auth0Id", auth0Id),
-                    keyValue("userId", user.id()), exception);
-            throw exception;
-        }
+        accountDeletion.delete(auth0Id);
     }
 
     /** {@inheritDoc} */

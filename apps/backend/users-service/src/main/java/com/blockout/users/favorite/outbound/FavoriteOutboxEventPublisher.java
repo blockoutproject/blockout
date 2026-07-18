@@ -1,24 +1,24 @@
-package com.blockout.users.services;
+package com.blockout.users.favorite.outbound;
 
 import com.blockout.outbox.OutboxEvent;
 import com.blockout.outbox.OutboxMetadata;
 import com.blockout.outbox.OutboxRecorder;
+import com.blockout.users.account.application.AccountDeletionEventPublisher;
 import com.blockout.users.config.RabbitMQConfig;
 import com.blockout.users.favorite.application.FavoriteEventAction;
 import com.blockout.users.favorite.application.FavoriteEventFact;
 import com.blockout.users.favorite.application.FavoriteEventMetadata;
 import com.blockout.users.favorite.application.FavoriteEventPublisher;
-import com.blockout.users.favorite.outbound.FavoriteEventContractMapper;
 import com.blockout.users.models.enums.EntityType;
 import com.blockout.users.models.enums.EventType;
 import com.blockout.users.models.events.UserFollowEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-/** Records favorite facts atomically; Rabbit publication is owned by the shared outbox job. */
+/** Adapts favorite and account-deletion facts to the retained transactional outbox contracts. */
 @Service
 @RequiredArgsConstructor
-public class EventPublisher implements FavoriteEventPublisher {
+public class FavoriteOutboxEventPublisher implements FavoriteEventPublisher, AccountDeletionEventPublisher {
 
     private static final String PRODUCER = "users-service";
     private static final String VERSION = "2.0.0";
@@ -34,6 +34,11 @@ public class EventPublisher implements FavoriteEventPublisher {
     @Override
     public void publishDeleted(Long userId, EntityType entityType, Long entityId) {
         record(userId, entityType, entityId, EventType.DELETED, FavoriteEventAction.UNFOLLOWED);
+    }
+
+    @Override
+    public void publishFavoriteDeleted(Long userId, EntityType entityType, Long entityId) {
+        publishDeleted(userId, entityType, entityId);
     }
 
     private void record(

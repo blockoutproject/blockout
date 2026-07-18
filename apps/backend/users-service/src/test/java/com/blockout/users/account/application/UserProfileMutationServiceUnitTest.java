@@ -1,8 +1,10 @@
 package com.blockout.users.account.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
@@ -17,7 +19,7 @@ class UserProfileMutationServiceUnitTest {
     void keepsPictureTrimsPseudoAndReactivatesAccount() {
         StoreDouble store = new StoreDouble(view("old", "https://cdn.example/old.png", false));
         RecordingStorage storage = new RecordingStorage();
-        UserProfileMutationService service = new UserProfileMutationService(store, storage);
+        UserProfileMutationService service = service(store, storage);
 
         UserAccountView updated = service.update(
                 "auth0|owner", new UpdateUserProfileCommand("  new-name  ", UserProfileImageChange.keep()));
@@ -34,7 +36,7 @@ class UserProfileMutationServiceUnitTest {
     void removesStoredPictureExplicitly() {
         StoreDouble store = new StoreDouble(view("owner", "https://cdn.example/old.png", true));
         RecordingStorage storage = new RecordingStorage();
-        UserProfileMutationService service = new UserProfileMutationService(store, storage);
+        UserProfileMutationService service = service(store, storage);
 
         UserAccountView updated = service.update(
                 "auth0|owner", new UpdateUserProfileCommand(null, UserProfileImageChange.remove()));
@@ -42,6 +44,7 @@ class UserProfileMutationServiceUnitTest {
         assertThat(updated.pictureUrl()).isNull();
         assertThat(storage.deletedUrl).isEqualTo("https://cdn.example/old.png");
         assertThat(storage.uploaded).isNull();
+        assertThat(storage.calls).containsExactly("delete:https://cdn.example/old.png");
     }
 
     @Test
@@ -49,7 +52,7 @@ class UserProfileMutationServiceUnitTest {
     void replacesStoredPictureWithValidatedBytes() {
         StoreDouble store = new StoreDouble(view("owner", "https://cdn.example/old.png", true));
         RecordingStorage storage = new RecordingStorage();
-        UserProfileMutationService service = new UserProfileMutationService(store, storage);
+        UserProfileMutationService service = service(store, storage);
         UserProfileImageUpload upload = new UserProfileImageUpload("new.png", "image/png", new byte[] {1, 2, 3});
 
         UserAccountView updated = service.update(
@@ -58,6 +61,29 @@ class UserProfileMutationServiceUnitTest {
         assertThat(storage.deletedUrl).isEqualTo("https://cdn.example/old.png");
         assertThat(storage.uploaded).isEqualTo(upload);
         assertThat(updated.pictureUrl()).isEqualTo("https://cdn.example/new.png");
+        assertThat(storage.calls).containsExactly("delete:https://cdn.example/old.png", "upload:users");
+    }
+
+    @Test
+    @DisplayName("does not compensate the old object after replacement upload fails")
+    void doesNotCompensateOldObjectAfterReplacementUploadFails() {
+        StoreDouble store = new StoreDouble(view("owner", "https://cdn.example/old.png", true));
+        RecordingStorage storage = new RecordingStorage();
+        storage.failUpload = true;
+        UserProfileMutationService service = service(store, storage);
+        UserProfileImageUpload upload = new UserProfileImageUpload("new.png", "image/png", new byte[] {1, 2, 3});
+
+        assertThatThrownBy(() -> service.update(
+                        "auth0|owner", new UpdateUserProfileCommand(null, UserProfileImageChange.replace(upload))))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("upload failure");
+
+        assertThat(storage.calls).containsExactly("delete:https://cdn.example/old.png", "upload:users");
+        assertThat(store.current.pictureUrl()).isEqualTo("https://cdn.example/old.png");
+    }
+
+    private static UserProfileMutationService service(StoreDouble store, RecordingStorage storage) {
+        return new UserProfileMutationService(store, new ProfileImagePlanExecutor(storage));
     }
 
     private static UserAccountView view(String pseudo, String pictureUrl, boolean active) {
@@ -153,17 +179,24 @@ class UserProfileMutationServiceUnitTest {
 
     /** Records storage effects while avoiding AWS initialization. */
     private static final class RecordingStorage implements ProfileImageStorage {
+        private final List<String> calls = new ArrayList<>();
         private String deletedUrl;
         private UserProfileImageUpload uploaded;
+        private boolean failUpload;
 
         @Override
         public String upload(UserProfileImageUpload upload, String folder) {
+            calls.add("upload:" + folder);
             this.uploaded = upload;
+            if (failUpload) {
+                throw new IllegalStateException("upload failure");
+            }
             return "https://cdn.example/new.png";
         }
 
         @Override
         public void deleteByUrl(String url) {
+            calls.add("delete:" + url);
             this.deletedUrl = url;
         }
     }

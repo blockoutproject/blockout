@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.blockout.users.exceptions.CustomUserEmailAlreadyUsedException;
-import com.blockout.users.favorite.application.FavoriteEventPublisher;
 import com.blockout.users.favorite.application.FavoriteView;
 import com.blockout.users.models.enums.EntityType;
 import java.time.Instant;
@@ -145,6 +144,23 @@ class UserIdentityApplicationServiceUnitTest {
     }
 
     @Test
+    @DisplayName("keeps the provider-first failure window when outbox recording fails")
+    void keepsProviderFirstFailureWindowWhenOutboxRecordingFails() {
+        Fixture fixture = new Fixture();
+        fixture.local = fixture.account("auth0|owner", "owner@example.com");
+        fixture.local.favorites = List.of(new FavoriteView(5L, EntityType.TEAM, 11L, null));
+        fixture.failFavoriteEvent = true;
+
+        assertThatThrownBy(() -> fixture.service.deleteCurrent("auth0|owner"))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("outbox failure");
+
+        assertThat(fixture.calls).containsExactly(
+                "identityDelete:auth0|owner", "favoriteDeleted:7:TEAM:11");
+        assertThat(fixture.local).isNotNull();
+    }
+
+    @Test
     @DisplayName("wraps default-role provider failures")
     void wrapsDefaultRoleProviderFailures() {
         Fixture fixture = new Fixture();
@@ -163,8 +179,12 @@ class UserIdentityApplicationServiceUnitTest {
         private final List<String> calls = new ArrayList<>();
         private final RecordingIdentityProvider identities = new RecordingIdentityProvider(calls);
         private StoredAccount local;
+        private boolean failFavoriteEvent;
         private final UserIdentityApplicationService service =
-                new UserIdentityApplicationService(identities, store(), favoriteEvents());
+                new UserIdentityApplicationService(
+                        identities,
+                        store(),
+                        new UserAccountDeletionService(identities, store(), deletionEvents()));
 
         private StoredAccount account(String auth0Id, String email) {
             return new StoredAccount(auth0Id, email);
@@ -271,16 +291,14 @@ class UserIdentityApplicationServiceUnitTest {
                     account.favorites);
         }
 
-        private FavoriteEventPublisher favoriteEvents() {
-            return new FavoriteEventPublisher() {
+        private AccountDeletionEventPublisher deletionEvents() {
+            return new AccountDeletionEventPublisher() {
                 @Override
-                public void publishCreated(Long userId, EntityType entityType, Long entityId) {
-                    throw new UnsupportedOperationException();
-                }
-
-                @Override
-                public void publishDeleted(Long userId, EntityType entityType, Long entityId) {
+                public void publishFavoriteDeleted(Long userId, EntityType entityType, Long entityId) {
                     calls.add("favoriteDeleted:" + userId + ":" + entityType + ":" + entityId);
+                    if (failFavoriteEvent) {
+                        throw new IllegalStateException("outbox failure");
+                    }
                 }
             };
         }

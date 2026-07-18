@@ -1523,8 +1523,21 @@ state moves to GitHub and this file becomes a historical migration record.
     account deletion, storage retention/compensation, transaction redesign, and deletion-related outbox orchestration
     remain exclusive to MRG-426; `docs/migration/mrg-425-users-favorite-projection-architecture.md` records ownership,
     parity, rebuild inputs, retained unknowns, compatibility, and rollback.
-- [ ] MRG-426 Restructure `users-service` deletion and storage orchestration with explicit application plans, identity
+- [x] MRG-426 Restructure `users-service` deletion and storage orchestration with explicit application plans, identity
       and object-storage ports, retention behavior, transaction ownership, and event/outbox adapters.
+  - Evidence: immutable account-deletion and profile-image plans now make the retained provider-first workflow,
+    profile-image retention, keep/remove/replace storage intent, and existing failure windows explicit. A dedicated
+    account-deletion application service owns the local transaction through account, identity, and deletion-event
+    ports; the named favorite outbox adapter records the unchanged retained-v1 and canonical-v2 facts for both
+    favorite transitions and account deletion. The profile-image executor keeps no-op `KEEP`, owned-object deletion
+    before `REMOVE` persistence, and owned-object deletion before replacement upload without inventing compensation.
+    Account deletion still retains S3 objects and other externally owned data because the audited privacy inventory
+    and legal retention policy remain unknown. Fifty-nine focused users-service tests, complete backend packaging,
+    all backend Dockerfile checks, deterministic generation, the full local CI gate, documentation, formatting, and
+    whitespace checks pass. Flyway V1-V5, database structure, REST and event contracts, generated artifacts, Auth0 and
+    S3 configuration, Rabbit topology, outbox cleanup, routes, scopes, callers, deployment, production, and Maaatch
+    are unchanged; `docs/migration/mrg-426-users-deletion-storage-architecture.md` records ownership, order, failure
+    windows, retention unknowns, compatibility, and rollback.
 - [ ] MRG-409 Restructure `reports-service` Blockout API, application flow, attachment storage, GitHub, and Discord
       adapters without leaking vendor DTOs into application contracts.
 - [ ] MRG-410 Restructure `notification-service` inbox, token, pagination, and persistence boundaries with role-owned

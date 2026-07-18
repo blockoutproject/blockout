@@ -9,6 +9,7 @@ import com.blockout.users.account.persistence.JpaUserAccountStore;
 import com.blockout.users.account.persistence.UserAccountEntity;
 import com.blockout.users.account.persistence.UserAccountPersistenceMapper;
 import com.blockout.users.favorite.application.FavoriteEventPublisher;
+import com.blockout.users.favorite.outbound.FavoriteOutboxEventPublisher;
 import com.blockout.users.favorite.persistence.FavoritePersistenceMapper;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
@@ -22,9 +23,11 @@ class UserAccountArchitectureTest {
 
     @Test
     void accountApplicationServicesDependOnlyOnRoleOwnedPorts() {
-        assertApplicationFields(UserAccountApplicationService.class, false);
-        assertApplicationFields(UserProfileMutationService.class, false);
-        assertApplicationFields(UserIdentityApplicationService.class, true);
+        assertApplicationFields(UserAccountApplicationService.class);
+        assertApplicationFields(UserProfileMutationService.class);
+        assertApplicationFields(UserIdentityApplicationService.class);
+        assertApplicationFields(UserAccountDeletionService.class);
+        assertApplicationFields(ProfileImagePlanExecutor.class);
     }
 
     @Test
@@ -46,6 +49,8 @@ class UserAccountArchitectureTest {
         assertThat(Auth0TokenManager.class.getPackageName())
                 .isEqualTo("com.blockout.users.account.infrastructure.identity");
         assertThat(S3ProfileImageStorage.class.getInterfaces()).containsExactly(ProfileImageStorage.class);
+        assertThat(FavoriteOutboxEventPublisher.class.getInterfaces())
+                .containsExactly(FavoriteEventPublisher.class, AccountDeletionEventPublisher.class);
     }
 
     @Test
@@ -54,8 +59,8 @@ class UserAccountArchitectureTest {
                         .getMethod("ensureCurrent", String.class)
                         .getAnnotation(Transactional.class))
                 .isNotNull();
-        assertThat(UserIdentityApplicationService.class
-                        .getMethod("deleteCurrent", String.class)
+        assertThat(UserAccountDeletionService.class
+                        .getMethod("delete", String.class)
                         .getAnnotation(Transactional.class))
                 .isNotNull();
         assertThat(UserProfileMutationService.class
@@ -64,11 +69,10 @@ class UserAccountArchitectureTest {
                 .isNotNull();
     }
 
-    private void assertApplicationFields(Class<?> type, boolean allowsFavoriteEventPort) {
+    private void assertApplicationFields(Class<?> type) {
         assertThat(Arrays.stream(type.getDeclaredFields())
                 .filter(field -> !Modifier.isStatic(field.getModifiers()))
                 .map(field -> field.getType()))
-                .allMatch(fieldType -> fieldType.getPackageName().equals("com.blockout.users.account.application")
-                        || allowsFavoriteEventPort && fieldType.equals(FavoriteEventPublisher.class));
+                .allMatch(fieldType -> fieldType.getPackageName().equals("com.blockout.users.account.application"));
     }
 }
