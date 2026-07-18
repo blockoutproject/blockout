@@ -39,7 +39,7 @@ Directories are created by the first task that owns an actual fragment; empty pl
 | Fragment                          | Required content                                                                                                     | Forbidden content                                                               |
 | --------------------------------- | -------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
 | `shared/base.json`                | OpenAPI shell for the generated shared-model catalog                                                                 | REST operations or business-object roots                                        |
-| `shared/schemas/*.json`           | One stable enum or rare cross-boundary technical primitive per file                                                  | Club, team, pool, match, user, report, search, notification, or BFF objects     |
+| `shared/schemas/*.json`           | One stable backend enum or rare cross-boundary technical primitive per file                                          | Business-object roots, service-local copies, or generated output                |
 | `services/<owner>/base.json`      | OpenAPI version, owner-specific title, placeholder server, tags, security schemes, reusable parameters and responses | Implemented paths, inline business schemas, or another service's policy         |
 | `services/<owner>/paths/*.json`   | One coherent operation family as a top-level path map                                                                | `openapi`, `info`, generated output, events, or provider APIs                   |
 | `services/<owner>/schemas/*.json` | One boundary-local named component per file                                                                          | JPA entities, application records, vendor SDK models, or copied downstream DTOs |
@@ -64,8 +64,14 @@ MRG-316 establishes the only components inherited automatically by every deploya
 - `PageInfo` requires `page`, `pageSize`, and `hasNext`; `totalItems` remains optional;
 - `UuidIdentifier`, `CalendarDate`, and `UtcDateTime` are rare shared wire aliases whose standard OpenAPI formats map
   to native generator types; positive numeric identifiers stay inline as `integer`/`int64` with `minimum: 1`;
-- the twelve approved REST enums retain their exact deployed wire values and contain no UI labels or provider
-  metadata.
+- the twelve REST-visible enums retain their exact deployed wire values and contain no UI labels or provider metadata;
+- backend-only application intent, decision, delta, claim, and result enums live in the same source-owned catalog so
+  every backend module consumes one generated `com.blockout.shared.model.*Enum` type rather than a handwritten copy.
+
+The shared source catalog is broader than the schemas inherited by a particular deployable REST bundle. The bundler
+resolves only referenced REST components, while `shared.json` remains the complete generation input for the backend
+`shared-models` module. Blockout event discriminators remain owned by AsyncAPI and generate into the shared
+`event-contracts` module. No Java enum declaration is an authoritative source.
 
 The inherited response catalog covers `400`, `401`, `403`, `404`, `409`, `413`, and `500`. An operation references
 only the statuses it can actually return; the catalog does not silently change legacy behavior or make every response

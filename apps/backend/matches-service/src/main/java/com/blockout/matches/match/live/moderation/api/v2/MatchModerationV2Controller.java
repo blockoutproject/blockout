@@ -1,8 +1,8 @@
 package com.blockout.matches.match.live.moderation.api.v2;
 
+import com.blockout.shared.model.MatchLiveLinkDecisionEnum;
 import com.blockout.matches.generated.api.MatchModerationApi;
 import com.blockout.matches.generated.model.MatchLiveModerationPageResponse;
-import com.blockout.matches.match.live.moderation.application.MatchLiveLinkDecision;
 import com.blockout.matches.match.live.moderation.application.MatchLiveModerationApplicationService;
 import com.blockout.matches.match.live.moderation.application.MatchLiveModerationPage;
 import com.blockout.matches.match.live.moderation.application.MatchLiveModerationQuery;
@@ -35,21 +35,21 @@ public class MatchModerationV2Controller implements MatchModerationApi {
     @Override
     @PreAuthorize("hasAuthority('SCOPE_moderate:match_live_link')")
     public ResponseEntity<Void> approveMatchLiveLink(Long liveLinkId) {
-        service.moderate(new ModerateMatchLiveLinkCommand(liveLinkId, MatchLiveLinkDecision.APPROVE));
+        service.moderate(new ModerateMatchLiveLinkCommand(liveLinkId, MatchLiveLinkDecisionEnum.APPROVE));
         return ResponseEntity.noContent().build();
     }
 
     @Override
     @PreAuthorize("hasAuthority('SCOPE_moderate:match_live_link')")
     public ResponseEntity<Void> rejectMatchLiveLink(Long liveLinkId) {
-        service.moderate(new ModerateMatchLiveLinkCommand(liveLinkId, MatchLiveLinkDecision.REJECT));
+        service.moderate(new ModerateMatchLiveLinkCommand(liveLinkId, MatchLiveLinkDecisionEnum.REJECT));
         return ResponseEntity.noContent().build();
     }
 
     @Override
     @PreAuthorize("hasAuthority('SCOPE_moderate:match_live_link')")
     public ResponseEntity<Void> reactivateMatchLiveLink(Long liveLinkId) {
-        service.moderate(new ModerateMatchLiveLinkCommand(liveLinkId, MatchLiveLinkDecision.REACTIVATE));
+        service.moderate(new ModerateMatchLiveLinkCommand(liveLinkId, MatchLiveLinkDecisionEnum.REACTIVATE));
         return ResponseEntity.noContent().build();
     }
 }

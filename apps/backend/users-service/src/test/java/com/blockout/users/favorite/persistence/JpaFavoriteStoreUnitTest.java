@@ -9,7 +9,7 @@ import com.blockout.users.favorite.application.FavoriteOwner;
 import com.blockout.users.favorite.application.FavoritePage;
 import com.blockout.users.favorite.application.FavoriteTarget;
 import com.blockout.users.favorite.application.FavoriteView;
-import com.blockout.users.models.enums.EntityType;
+import com.blockout.shared.model.EntityTypeEnum;
 import java.lang.reflect.Proxy;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -26,7 +26,7 @@ class JpaFavoriteStoreUnitTest {
     void preservesEffectiveAndNoOpCanonicalTransitions() {
         Fixture fixture = new Fixture();
         FavoriteOwner owner = fixture.store.findOwnerByAuth0Id("auth0|owner").orElseThrow();
-        FavoriteTarget target = new FavoriteTarget(EntityType.TEAM, 11L);
+        FavoriteTarget target = new FavoriteTarget(EntityTypeEnum.TEAM, 11L);
 
         FavoriteChange followed = owner.follow(target).orElseThrow();
         fixture.favoriteExists = true;
@@ -58,9 +58,9 @@ class JpaFavoriteStoreUnitTest {
         Fixture fixture = new Fixture();
 
         var userSnapshot = fixture.store.snapshotForUser(7L);
-        var targetSnapshot = fixture.store.snapshotForTarget(EntityType.TEAM, 11L);
+        var targetSnapshot = fixture.store.snapshotForTarget(EntityTypeEnum.TEAM, 11L);
 
-        assertThat(userSnapshot.favorites()).containsExactly(new FavoriteTarget(EntityType.TEAM, 11L));
+        assertThat(userSnapshot.favorites()).containsExactly(new FavoriteTarget(EntityTypeEnum.TEAM, 11L));
         assertThat(targetSnapshot.followerCount()).isEqualTo(3);
         assertThat(fixture.calls).containsExactly("findUserFavorites", "countTarget");
     }
@@ -77,12 +77,12 @@ class JpaFavoriteStoreUnitTest {
         private final FavoriteEntity entity = FavoriteEntity.builder()
                 .id(5L)
                 .user(user)
-                .entityType(EntityType.TEAM)
+                .entityType(EntityTypeEnum.TEAM)
                 .entityId(11L)
                 .createdAt(LocalDateTime.parse("2026-07-01T09:00:00"))
                 .build();
         private final FavoriteView view = new FavoriteView(
-                5L, EntityType.TEAM, 11L, LocalDateTime.parse("2026-07-01T09:00:00"));
+                5L, EntityTypeEnum.TEAM, 11L, LocalDateTime.parse("2026-07-01T09:00:00"));
 
         private boolean favoriteExists;
         private int deleted;

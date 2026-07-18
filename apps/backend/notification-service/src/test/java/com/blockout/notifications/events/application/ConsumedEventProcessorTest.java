@@ -1,5 +1,7 @@
 package com.blockout.notifications.events.application;
 
+import com.blockout.shared.model.ConsumedEventResultEnum;
+import com.blockout.shared.model.ConsumedEventClaimEnum;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -18,13 +20,13 @@ class ConsumedEventProcessorTest {
         AtomicInteger effects = new AtomicInteger();
         UUID eventId = UUID.fromString("d8c91431-687c-4f30-ab3d-8f1cce8eef83");
 
-        ConsumedEventResult first = processor.processLegacy(
+        ConsumedEventResultEnum first = processor.processLegacy(
                 eventId.toString(), "TEAM_FOLLOWED", effects::incrementAndGet);
-        ConsumedEventResult duplicate = processor.processV2(
+        ConsumedEventResultEnum duplicate = processor.processV2(
                 eventId, eventId.toString(), "TEAM_FOLLOWED", effects::incrementAndGet);
 
-        assertThat(first).isEqualTo(ConsumedEventResult.APPLIED);
-        assertThat(duplicate).isEqualTo(ConsumedEventResult.DUPLICATE);
+        assertThat(first).isEqualTo(ConsumedEventResultEnum.APPLIED);
+        assertThat(duplicate).isEqualTo(ConsumedEventResultEnum.DUPLICATE);
         assertThat(effects).hasValue(1);
         assertThat(store.types).containsEntry(eventId, "TEAM_FOLLOWED");
     }
@@ -36,7 +38,7 @@ class ConsumedEventProcessorTest {
         UUID eventId = UUID.fromString("d8c91431-687c-4f30-ab3d-8f1cce8eef83");
 
         assertThat(processor.processLegacy(null, "MATCH_FINISHED", effects::incrementAndGet))
-                .isEqualTo(ConsumedEventResult.APPLIED);
+                .isEqualTo(ConsumedEventResultEnum.APPLIED);
 
         assertThat(effects).hasValue(1);
         assertThatThrownBy(() -> processor.processV2(
@@ -78,16 +80,16 @@ class ConsumedEventProcessorTest {
         private final Map<UUID, String> types = new HashMap<>();
 
         @Override
-        public ConsumedEventClaim claim(ConsumedEventIdentity identity) {
+        public ConsumedEventClaimEnum claim(ConsumedEventIdentity identity) {
             String existingType = types.putIfAbsent(identity.eventId(), identity.eventType());
             if (existingType == null) {
-                return ConsumedEventClaim.CLAIMED;
+                return ConsumedEventClaimEnum.CLAIMED;
             }
             if (!existingType.equals(identity.eventType())) {
                 throw new ConsumedEventIdentityCollisionException(
                         identity.eventId(), identity.eventType(), existingType);
             }
-            return ConsumedEventClaim.DUPLICATE;
+            return ConsumedEventClaimEnum.DUPLICATE;
         }
     }
 }

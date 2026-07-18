@@ -3,8 +3,8 @@ package com.blockout.mobilegateway.models.dto.team;
 import com.blockout.mobilegateway.models.dto.club.ClubDTO;
 import com.blockout.mobilegateway.models.dto.config.DivisionDTO;
 import com.blockout.mobilegateway.models.dto.pool.EnrichedPoolDTO;
-import com.blockout.mobilegateway.models.enums.Format;
-import com.blockout.mobilegateway.models.enums.Gender;
+import com.blockout.shared.model.FormatEnum;
+import com.blockout.shared.model.GenderEnum;
 import lombok.*;
 
 import java.util.List;
@@ -24,9 +24,9 @@ public class EnrichedTeamDTO {
 
     private String rawName;
 
-    private Format format;
+    private FormatEnum format;
 
-    private Gender gender;
+    private GenderEnum gender;
 
     private String season;
 

@@ -1,10 +1,10 @@
 package com.blockout.notifications.followers.application;
 
-import com.blockout.notifications.models.enums.EntityType;
+import com.blockout.shared.model.EntityTypeEnum;
 import java.util.Objects;
 
 /** One canonical favorite target used to rebuild a user's derived projection. */
-public record FollowerProjectionTarget(EntityType entityType, Long entityId) {
+public record FollowerProjectionTarget(EntityTypeEnum entityType, Long entityId) {
 
     public FollowerProjectionTarget {
         Objects.requireNonNull(entityType, "entityType is required");

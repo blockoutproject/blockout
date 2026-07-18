@@ -2,8 +2,8 @@ package com.blockout.pools.models.events;
 
 import java.io.Serializable;
 
-import com.blockout.pools.models.enums.EntityType;
-import com.blockout.pools.models.enums.EventType;
+import com.blockout.shared.model.EntityTypeEnum;
+import com.blockout.shared.model.EntityEventActionEnum;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -16,7 +16,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class UserFollowEvent implements Serializable {
     private Long userId;
-    private EntityType entityType;
+    private EntityTypeEnum entityType;
     private Long entityId;
-    private EventType eventType;
+    private EntityEventActionEnum eventType;
 }

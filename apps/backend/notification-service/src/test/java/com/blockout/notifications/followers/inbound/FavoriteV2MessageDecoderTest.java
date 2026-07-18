@@ -1,5 +1,6 @@
 package com.blockout.notifications.followers.inbound;
 
+import com.blockout.shared.model.FollowerProjectionActionEnum;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -9,7 +10,6 @@ import com.blockout.events.v2.model.PoolUnfollowedV2Event;
 import com.blockout.events.v2.model.TeamFollowV2Payload;
 import com.blockout.events.v2.model.TeamFollowedV2Event;
 import com.blockout.notifications.events.inbound.V2EventMetadataValidator;
-import com.blockout.notifications.followers.application.FollowerProjectionAction;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import java.time.OffsetDateTime;
@@ -42,9 +42,9 @@ class FavoriteV2MessageDecoderTest {
         DecodedFavoriteEvent decodedPool = decoder.decodePool(message(pool, poolId, occurredAt, "POOL_UNFOLLOWED",
                 "user:11:pool:21"));
 
-        assertThat(decodedTeam.command().action()).isEqualTo(FollowerProjectionAction.FOLLOW);
+        assertThat(decodedTeam.command().action()).isEqualTo(FollowerProjectionActionEnum.FOLLOW);
         assertThat(decodedTeam.command().entityId()).isEqualTo(20L);
-        assertThat(decodedPool.command().action()).isEqualTo(FollowerProjectionAction.UNFOLLOW);
+        assertThat(decodedPool.command().action()).isEqualTo(FollowerProjectionActionEnum.UNFOLLOW);
         assertThat(decodedPool.command().entityId()).isEqualTo(21L);
     }
 

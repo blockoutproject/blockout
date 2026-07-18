@@ -6,8 +6,8 @@ import org.slf4j.*;
 import org.springframework.stereotype.Service;
 
 import com.blockout.workersearch.models.docs.PoolDoc;
-import com.blockout.workersearch.models.enums.Format;
-import com.blockout.workersearch.models.enums.Gender;
+import com.blockout.shared.model.FormatEnum;
+import com.blockout.shared.model.GenderEnum;
 import com.blockout.workersearch.models.events.PoolUpsertEvent;
 import com.blockout.workersearch.projection.snapshot.application.DivisionCacheSnapshot;
 import com.blockout.workersearch.projection.snapshot.application.DivisionProjectionCache;
@@ -58,8 +58,8 @@ public class PoolIndexService {
         String divisionName = division != null ? division.name() : "Division inconnue";
         String logoUrl = division != null ? division.logoUrl() : null;
         Long divisionId = division != null ? division.id() : null;
-        Format format = e.getFormat();
-        Gender gender = e.getGender();
+        FormatEnum format = e.getFormat();
+        GenderEnum gender = e.getGender();
 
         return PoolDoc.builder()
                 .id(e.getId())

@@ -7,7 +7,6 @@ import com.blockout.matches.match.live.persistence.MatchLiveLink;
 import com.blockout.matches.match.live.persistence.MatchLiveLinkRepository;
 import com.blockout.matches.match.persistence.Match;
 import com.blockout.matches.match.persistence.MatchRepository;
-import com.blockout.matches.models.enums.LiveLinkStatus;
 import com.blockout.shared.model.LiveLinkStatusEnum;
 import java.time.Instant;
 import java.util.List;
@@ -35,14 +34,14 @@ public class JpaMatchLiveModerationStore implements MatchLiveModerationStore {
 
     @Override
     public Optional<MatchLiveModerationLinkSnapshot> findNewestActive(Long matchId) {
-        return liveLinks.findFirstByMatch_IdAndStatusOrderByCreatedAtDesc(matchId, LiveLinkStatus.ACTIVE)
+        return liveLinks.findFirstByMatch_IdAndStatusOrderByCreatedAtDesc(matchId, LiveLinkStatusEnum.ACTIVE)
                 .map(mapper::toSnapshot);
     }
 
     @Override
     public void changeStatus(Long liveLinkId, LiveLinkStatusEnum status, Instant now) {
         MatchLiveLink link = liveLinks.getReferenceById(liveLinkId);
-        link.setStatus(LiveLinkStatus.valueOf(status.getValue()));
+        link.setStatus(LiveLinkStatusEnum.valueOf(status.getValue()));
         link.setLastUpdate(now);
         liveLinks.save(link);
     }

@@ -1,6 +1,6 @@
 package com.blockout.matches.match.live.persistence;
 
-import com.blockout.matches.models.enums.LiveLinkStatus;
+import com.blockout.shared.model.LiveLinkStatusEnum;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -14,7 +14,7 @@ public interface MatchLiveLinkRepository extends JpaRepository<MatchLiveLink, Lo
 
     Optional<MatchLiveLink> findFirstByMatch_IdAndStatusOrderByCreatedAtDesc(
             Long matchId,
-            LiveLinkStatus status);
+            LiveLinkStatusEnum status);
 
     List<MatchLiveLink> findByMatch_IdOrderByCreatedAtDescIdDesc(Long matchId);
 
@@ -38,12 +38,12 @@ public interface MatchLiveLinkRepository extends JpaRepository<MatchLiveLink, Lo
             String ownerAuth0Id,
             Instant createdAtAfter);
 
-    List<MatchLiveLink> findByStatus(LiveLinkStatus status);
+    List<MatchLiveLink> findByStatus(LiveLinkStatusEnum status);
 
     List<MatchLiveLink> findByMatch_IdAndOwnerAuth0IdAndStatus(
             Long matchId,
             String ownerAuth0Id,
-            LiveLinkStatus status);
+            LiveLinkStatusEnum status);
 
     Optional<MatchLiveLink> findFirstByMatch_IdAndOwnerAuth0IdOrderByCreatedAtDesc(
             Long matchId,
@@ -59,5 +59,5 @@ public interface MatchLiveLinkRepository extends JpaRepository<MatchLiveLink, Lo
             """)
     List<MatchLiveLink> findByMatchIdInAndStatus(
             @Param("matchIds") List<Long> matchIds,
-            @Param("status") LiveLinkStatus status);
+            @Param("status") LiveLinkStatusEnum status);
 }

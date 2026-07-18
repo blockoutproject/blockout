@@ -1,6 +1,6 @@
 package com.blockout.matches.match.persistence;
 
-import com.blockout.matches.models.enums.MatchStatus;
+import com.blockout.shared.model.MatchStatusEnum;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
@@ -42,7 +42,7 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
             @Param("teamId") Long teamId);
 
     List<Match> findByStatusAndActiveAndMatchDateLessThanEqual(
-            MatchStatus status, boolean active, Instant matchDate);
+            MatchStatusEnum status, boolean active, Instant matchDate);
 
     Page<Match> findAllByMatchDateLessThanEqual(Instant today, Pageable pageable);
 
@@ -109,7 +109,7 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
             @Param("endOfDay") Instant endOfDay,
             @Param("poolIds") List<Long> poolIds,
             @Param("poolIdsSize") int poolIdsSize,
-            @Param("status") MatchStatus status,
+            @Param("status") MatchStatusEnum status,
             @Param("teamIds") List<Long> teamIds,
             @Param("teamIdsSize") int teamIdsSize,
             @Param("active") Boolean active);
@@ -132,7 +132,7 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
             @Param("endOfDay") Instant endOfDay,
             @Param("poolIds") List<Long> poolIds,
             @Param("poolIdsSize") int poolIdsSize,
-            @Param("status") MatchStatus status,
+            @Param("status") MatchStatusEnum status,
             @Param("teamIds") List<Long> teamIds,
             @Param("teamIdsSize") int teamIdsSize,
             @Param("active") Boolean active);
@@ -148,7 +148,7 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
             """)
     List<Match> findFiltered(
             @Param("poolId") Long poolId,
-            @Param("status") MatchStatus status,
+            @Param("status") MatchStatusEnum status,
             @Param("active") Boolean active,
             @Param("teamIds") List<Long> teamIds,
             @Param("teamIdsSize") int teamIdsSize);
@@ -173,7 +173,7 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
                     """)
     Page<Match> findFilteredPage(
             @Param("poolId") Long poolId,
-            @Param("status") MatchStatus status,
+            @Param("status") MatchStatusEnum status,
             @Param("active") Boolean active,
             @Param("teamIds") List<Long> teamIds,
             @Param("teamIdsSize") int teamIdsSize,

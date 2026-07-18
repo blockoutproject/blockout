@@ -1,5 +1,6 @@
 package com.blockout.matches.match.live.moderation.application;
 
+import com.blockout.shared.model.MatchLiveLinkDecisionEnum;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -53,7 +54,7 @@ class MatchLiveModerationApplicationServiceTest {
         store.byId.put(12L, pending);
         store.active = active;
 
-        service(store).moderate(new ModerateMatchLiveLinkCommand(12L, MatchLiveLinkDecision.APPROVE));
+        service(store).moderate(new ModerateMatchLiveLinkCommand(12L, MatchLiveLinkDecisionEnum.APPROVE));
 
         assertThat(store.changes).containsExactly(
                 new StatusChange(11L, LiveLinkStatusEnum.EXPIRED, NOW),
@@ -67,7 +68,7 @@ class MatchLiveModerationApplicationServiceTest {
         store.byId.put(11L, link(11L, 1L, LiveLinkStatusEnum.ACTIVE, NOW));
 
         assertThatThrownBy(() -> service(store).moderate(
-                new ModerateMatchLiveLinkCommand(11L, MatchLiveLinkDecision.REJECT)))
+                new ModerateMatchLiveLinkCommand(11L, MatchLiveLinkDecisionEnum.REJECT)))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessage("Ce lien n'est pas en attente de validation.");
         assertThat(store.changes).isEmpty();
@@ -84,7 +85,7 @@ class MatchLiveModerationApplicationServiceTest {
             store.byId.put(12L, link(12L, 1L, eligible, NOW.minusSeconds(10)));
             store.active = link(11L, 1L, LiveLinkStatusEnum.ACTIVE, NOW.minusSeconds(20));
 
-            service(store).moderate(new ModerateMatchLiveLinkCommand(12L, MatchLiveLinkDecision.REACTIVATE));
+            service(store).moderate(new ModerateMatchLiveLinkCommand(12L, MatchLiveLinkDecisionEnum.REACTIVATE));
 
             assertThat(store.changes).containsExactly(
                     new StatusChange(11L, LiveLinkStatusEnum.DEACTIVATED, NOW),

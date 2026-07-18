@@ -1,5 +1,6 @@
 package com.blockout.pools.pool.api.v1;
 
+import com.blockout.shared.model.FollowerCountDeltaEnum;
 import com.blockout.pools.pool.application.LegacyCreatePoolCommand;
 import com.blockout.pools.pool.application.PoolFilter;
 import com.blockout.pools.pool.application.PoolFollowerCommand;
@@ -97,7 +98,7 @@ public class LegacyPoolController {
     public ResponseEntity<String> incrementFollowers(
             @PathVariable Long poolId,
             @RequestParam(name = "user_id") Long userId) throws JsonProcessingException {
-        return followerResponse(poolId, userId, PoolFollowerCommand.Delta.INCREMENT);
+        return followerResponse(poolId, userId, FollowerCountDeltaEnum.INCREMENT);
     }
 
     @PostMapping("/{poolId}/followers/decrement")
@@ -105,10 +106,10 @@ public class LegacyPoolController {
     public ResponseEntity<String> decrementFollowers(
             @PathVariable Long poolId,
             @RequestParam(name = "user_id") Long userId) throws JsonProcessingException {
-        return followerResponse(poolId, userId, PoolFollowerCommand.Delta.DECREMENT);
+        return followerResponse(poolId, userId, FollowerCountDeltaEnum.DECREMENT);
     }
 
-    private ResponseEntity<String> followerResponse(Long poolId, Long userId, PoolFollowerCommand.Delta delta)
+    private ResponseEntity<String> followerResponse(Long poolId, Long userId, FollowerCountDeltaEnum delta)
             throws JsonProcessingException {
         PoolView updated = followerProjectionService.updateFollowers(new PoolFollowerCommand(poolId, userId, delta));
         return ResponseEntity.ok(json.write(response(updated)));

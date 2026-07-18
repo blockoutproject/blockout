@@ -1,7 +1,7 @@
 package com.blockout.mobilegateway.models.dto.config;
 
-import com.blockout.mobilegateway.models.enums.Format;
-import com.blockout.mobilegateway.models.enums.Gender;
+import com.blockout.shared.model.FormatEnum;
+import com.blockout.shared.model.GenderEnum;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -12,6 +12,6 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class RawDivisionMappingUpdateDTO {
     private Long divisionId;
-    private Format format;
-    private Gender gender;
+    private FormatEnum format;
+    private GenderEnum gender;
 }

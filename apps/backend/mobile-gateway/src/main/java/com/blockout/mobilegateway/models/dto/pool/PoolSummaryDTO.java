@@ -1,8 +1,8 @@
 package com.blockout.mobilegateway.models.dto.pool;
 
 import com.blockout.mobilegateway.models.dto.config.DivisionDTO;
-import com.blockout.mobilegateway.models.enums.Gender;
-import com.blockout.mobilegateway.models.enums.Format;
+import com.blockout.shared.model.GenderEnum;
+import com.blockout.shared.model.FormatEnum;
 import lombok.*;
 
 @Data
@@ -20,7 +20,7 @@ public class PoolSummaryDTO {
     public String leagueCode;
 
     private String season;
-    private Gender gender;
-    private Format format;
+    private GenderEnum gender;
+    private FormatEnum format;
     private DivisionDTO division;
 }

@@ -1,5 +1,6 @@
 package com.blockout.clubs.club.application;
 
+import com.blockout.shared.model.ImageChangeModeEnum;
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
 import com.blockout.clubs.club.domain.ClubLogoUpload;
@@ -57,12 +58,12 @@ public class ClubService {
         ClubUpdate update = store.findForUpdate(id).orElseThrow(() -> notFound(id));
         ClubView current = update.current();
         String replacementLogoUrl = null;
-        boolean replaceLogo = logoChange.mode() != ClubLogoChange.Mode.KEEP;
+        boolean replaceLogo = logoChange.mode() != ImageChangeModeEnum.KEEP;
 
         if (replaceLogo && current.logoUrl() != null) {
             logoStorage.delete(current.logoUrl());
         }
-        if (logoChange.mode() == ClubLogoChange.Mode.REPLACE) {
+        if (logoChange.mode() == ImageChangeModeEnum.REPLACE) {
             replacementLogoUrl = logoStorage.upload(logoChange.upload());
         }
 

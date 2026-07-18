@@ -3,9 +3,7 @@ package com.blockout.matches.match.persistence;
 import com.blockout.matches.match.application.CreateMatchCommand;
 import com.blockout.matches.match.application.MatchSnapshot;
 import com.blockout.matches.match.application.UpdateMatchCommand;
-import com.blockout.matches.models.enums.MatchStatus;
 import com.blockout.matches.shared.mapping.MatchesMapperConfig;
-import com.blockout.shared.model.MatchStatusEnum;
 import org.mapstruct.BeanMapping;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -40,11 +38,4 @@ public interface MatchPersistenceMapper {
     @Mapping(target = "secondReferee", source = "secondReferee")
     void replaceScraperFields(UpdateMatchCommand command, @MappingTarget Match entity);
 
-    default MatchStatusEnum toApplicationStatus(MatchStatus status) {
-        return status == null ? null : MatchStatusEnum.fromValue(status.name());
-    }
-
-    default MatchStatus toPersistenceStatus(MatchStatusEnum status) {
-        return status == null ? null : MatchStatus.valueOf(status.getValue());
-    }
 }

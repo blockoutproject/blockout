@@ -2,7 +2,7 @@ package com.blockout.mobilegateway.models.dto.match;
 
 import com.blockout.mobilegateway.models.dto.pool.EnrichedPoolDTO;
 import com.blockout.mobilegateway.models.dto.team.TeamDTO;
-import com.blockout.mobilegateway.models.enums.LiveProvider;
+import com.blockout.shared.model.LiveProviderEnum;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 import lombok.AllArgsConstructor;
@@ -38,7 +38,7 @@ public class EnrichedMatchDTO {
 
     private String liveUrl;
 
-    private LiveProvider liveProvider;
+    private LiveProviderEnum liveProvider;
 
     private String liveOwnerAuth0Id;
 

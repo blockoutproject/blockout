@@ -8,8 +8,6 @@ import com.blockout.workersearch.club.application.ClubCatalog;
 import com.blockout.workersearch.club.application.ClubSnapshot;
 import com.blockout.workersearch.configuration.division.application.DivisionCatalog;
 import com.blockout.workersearch.configuration.division.application.DivisionSnapshot;
-import com.blockout.workersearch.models.enums.Format;
-import com.blockout.workersearch.models.enums.Gender;
 import com.blockout.workersearch.team.application.TeamCatalog;
 import com.blockout.workersearch.team.application.TeamSnapshot;
 import java.util.List;
@@ -40,7 +38,7 @@ class ProjectionCacheRefreshServiceTest {
         assertThat(clubCache.getById("club-1"))
                 .isEqualTo(new ClubCacheSnapshot("club-1", "Club", "club-logo", "Paris"));
         assertThat(teamCache.getByClubId("club-1")).containsExactly(new TeamCacheSnapshot(
-                1L, "Team", "TM", "club-1", 2L, Format.SIX, Gender.M, "2026", "team-logo"));
+                1L, "Team", "TM", "club-1", 2L, FormatEnum.SIX, GenderEnum.M, "2026", "team-logo"));
         assertThat(divisionCache.getById(2L))
                 .isEqualTo(new DivisionCacheSnapshot(2L, "Division", "division-logo"));
     }

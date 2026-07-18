@@ -36,6 +36,7 @@ jobs:
         run: |
           npm run validate:env
           npm run validate:docs
+          npm run validate:backend-enums-generated
           npm run validate:generated-untracked
           npm exec nx show projects
 

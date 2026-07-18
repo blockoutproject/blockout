@@ -10,10 +10,10 @@ import com.blockout.mobilegateway.models.dto.search.PoolSearchDocDTO;
 import com.blockout.mobilegateway.models.dto.search.TeamSearchDocDTO;
 import com.blockout.mobilegateway.models.dto.user.CustomUserDTO;
 import com.blockout.mobilegateway.models.dto.user.UserFavoriteDTO;
-import com.blockout.mobilegateway.models.enums.DevicePlatform;
-import com.blockout.mobilegateway.models.enums.EntityType;
-import com.blockout.mobilegateway.models.enums.Format;
-import com.blockout.mobilegateway.models.enums.Gender;
+import com.blockout.shared.model.DevicePlatformEnum;
+import com.blockout.shared.model.EntityTypeEnum;
+import com.blockout.shared.model.FormatEnum;
+import com.blockout.shared.model.GenderEnum;
 import com.blockout.mobilegateway.shared.api.v1.LegacyMobileGatewayJson;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
@@ -64,7 +64,7 @@ class MobileGatewayCasingBoundaryTest {
                 .createdAt(Instant.EPOCH)
                 .lastUpdate(Instant.EPOCH)
                 .favorites(List.of(UserFavoriteDTO.builder()
-                        .entityType(EntityType.TEAM)
+                        .entityType(EntityTypeEnum.TEAM)
                         .entityId(42L)
                         .build()))
                 .build();
@@ -99,10 +99,10 @@ class MobileGatewayCasingBoundaryTest {
                 RegisterPushTokenRequestDTO.class);
 
         assertThat(rawMapping.getDivisionId()).isEqualTo(7L);
-        assertThat(rawMapping.getFormat()).isEqualTo(Format.SIX);
-        assertThat(rawMapping.getGender()).isEqualTo(Gender.M);
+        assertThat(rawMapping.getFormat()).isEqualTo(FormatEnum.SIX);
+        assertThat(rawMapping.getGender()).isEqualTo(GenderEnum.M);
         assertThat(pushToken.getExpoPushToken()).isEqualTo("ExponentPushToken[value]");
-        assertThat(pushToken.getPlatform()).isEqualTo(DevicePlatform.IOS);
+        assertThat(pushToken.getPlatform()).isEqualTo(DevicePlatformEnum.IOS);
         assertThat(pushToken.getDeviceId()).isEqualTo("phone-1");
     }
 }

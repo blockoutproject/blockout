@@ -1,5 +1,6 @@
 package com.blockout.pools.pool.persistence;
 
+import com.blockout.shared.model.FollowerCountDeltaEnum;
 import com.blockout.pools.pool.application.CreatePoolCommand;
 import com.blockout.pools.pool.application.LegacyCreatePoolCommand;
 import com.blockout.pools.pool.application.PoolChange;
@@ -69,7 +70,7 @@ public class JpaPoolStore implements PoolStore, PoolFollowerStore, PoolLifecycle
     public Optional<PoolView> updateFollowers(PoolFollowerCommand command) {
         return repository.findById(command.poolId()).map(entity -> {
             long current = entity.getFollowersCount();
-            entity.setFollowersCount(command.delta() == PoolFollowerCommand.Delta.INCREMENT
+            entity.setFollowersCount(command.delta() == FollowerCountDeltaEnum.INCREMENT
                     ? current + 1 : Math.max(0, current - 1));
             return mapper.toView(repository.save(entity));
         });

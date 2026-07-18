@@ -1,5 +1,6 @@
 package com.blockout.notifications.listeners;
 
+import com.blockout.shared.model.FollowerProjectionActionEnum;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -9,12 +10,11 @@ import org.springframework.stereotype.Component;
 
 import com.blockout.notifications.config.RabbitMQConfig;
 import com.blockout.notifications.events.application.EventConsumption;
-import com.blockout.notifications.followers.application.FollowerProjectionAction;
 import com.blockout.notifications.followers.application.FollowerProjectionCommand;
 import com.blockout.notifications.followers.application.FollowerProjectionConsumer;
 import com.blockout.notifications.followers.inbound.FavoriteV2MessageDecoder;
-import com.blockout.notifications.models.enums.EntityType;
-import com.blockout.notifications.models.enums.EventType;
+import com.blockout.shared.model.EntityTypeEnum;
+import com.blockout.shared.model.EntityEventActionEnum;
 import com.blockout.notifications.models.events.UserFollowEvent;
 import java.util.Objects;
 import org.springframework.amqp.core.Message;
@@ -60,15 +60,15 @@ public class PoolFollowListener {
     }
 
     private String legacyType(UserFollowEvent event) {
-        return event.getEventType() == EventType.CREATED ? "POOL_FOLLOWED" : "POOL_UNFOLLOWED";
+        return event.getEventType() == EntityEventActionEnum.CREATED ? "POOL_FOLLOWED" : "POOL_UNFOLLOWED";
     }
 
     private FollowerProjectionCommand legacyCommand(UserFollowEvent event) {
-        EventType eventType = Objects.requireNonNull(event.getEventType(), "eventType is required");
-        FollowerProjectionAction action = eventType == EventType.CREATED
-                ? FollowerProjectionAction.FOLLOW
-                : FollowerProjectionAction.UNFOLLOW;
+        EntityEventActionEnum eventType = Objects.requireNonNull(event.getEventType(), "eventType is required");
+        FollowerProjectionActionEnum action = eventType == EntityEventActionEnum.CREATED
+                ? FollowerProjectionActionEnum.FOLLOW
+                : FollowerProjectionActionEnum.UNFOLLOW;
         return new FollowerProjectionCommand(
-                event.getUserId(), EntityType.POOL, event.getEntityId(), action);
+                event.getUserId(), EntityTypeEnum.POOL, event.getEntityId(), action);
     }
 }

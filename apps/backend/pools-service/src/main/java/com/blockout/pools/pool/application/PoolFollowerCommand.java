@@ -1,9 +1,6 @@
 package com.blockout.pools.pool.application;
 
-public record PoolFollowerCommand(Long poolId, Long userId, Delta delta) {
+import com.blockout.shared.model.FollowerCountDeltaEnum;
 
-    public enum Delta {
-        INCREMENT,
-        DECREMENT
-    }
+public record PoolFollowerCommand(Long poolId, Long userId, FollowerCountDeltaEnum delta) {
 }

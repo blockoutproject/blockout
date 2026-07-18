@@ -1,6 +1,6 @@
 package com.blockout.mobilegateway.models.dto.notification;
 
-import com.blockout.mobilegateway.models.enums.DevicePlatform;
+import com.blockout.shared.model.DevicePlatformEnum;
 
 import lombok.Builder;
 import lombok.Data;
@@ -9,7 +9,7 @@ import lombok.Data;
 @Builder
 public class RegisterPushTokenRequestDTO {
     private String expoPushToken;
-    private DevicePlatform platform;
+    private DevicePlatformEnum platform;
 
     private String deviceId;
 }

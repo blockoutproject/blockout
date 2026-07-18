@@ -4,8 +4,8 @@ import com.blockout.events.v2.model.EventType;
 import com.blockout.events.v2.model.TeamUpsertV2Event;
 import com.blockout.events.v2.model.TeamUpsertV2Payload;
 import com.blockout.outbox.OutboxMetadata;
-import com.blockout.teams.models.enums.Format;
-import com.blockout.teams.models.enums.Gender;
+import com.blockout.shared.model.FormatEnum;
+import com.blockout.shared.model.GenderEnum;
 import com.blockout.teams.models.events.TeamUpsertEvent;
 import com.blockout.teams.team.application.TeamUpsertFact;
 import org.springframework.stereotype.Component;
@@ -20,8 +20,8 @@ class TeamEventMapper {
                 .shortName(team.shortName())
                 .clubId(team.clubId())
                 .divisionId(team.divisionId())
-                .format(Format.valueOf(team.format().name()))
-                .gender(Gender.valueOf(team.gender().name()))
+                .format(FormatEnum.valueOf(team.format().name()))
+                .gender(GenderEnum.valueOf(team.gender().name()))
                 .season(team.season())
                 .logoUrl(team.logoUrl())
                 .build();

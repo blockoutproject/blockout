@@ -23,6 +23,13 @@ values instead of a wrapper model. The backend parent supplies shared generator 
 and keep all generated Java beneath their module-local
 `target/generated-sources/openapi/<boundary>` directory.
 
+Every backend Java enum is source-owned as one schema beneath `specs/source/shared/schemas`, including application
+intent, decision, delta, claim, and result values that are not exposed by a REST operation. Backend modules import the
+generated `com.blockout.shared.model.*Enum` type instead of declaring service-local, nested, test-only, or application
+enum copies. Blockout-owned event discriminators remain generated from AsyncAPI in `event-contracts`; the generated
+`com.blockout.events.v2.model.EventType` is therefore the deliberate event-boundary exception to the REST shared-model
+package. `npm run validate:backend-enums-generated` enforces zero handwritten declarations across backend Java.
+
 The generated bundle directory is ignored by Git. The block between `BEGIN generated schemaMappings` and
 `END generated schemaMappings` is the only source-derived build configuration retained in Git, matching Maaatch.
 Edit source fragments or generation scripts instead of either output. CI regenerates both, proves deterministic

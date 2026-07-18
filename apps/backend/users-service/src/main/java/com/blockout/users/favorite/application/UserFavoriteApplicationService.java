@@ -3,7 +3,7 @@ package com.blockout.users.favorite.application;
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
 import com.blockout.users.exceptions.CustomUserNotFoundException;
-import com.blockout.users.models.enums.EntityType;
+import com.blockout.shared.model.EntityTypeEnum;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -23,7 +23,7 @@ public class UserFavoriteApplicationService implements FavoriteService, Favorite
 
     /** {@inheritDoc} */
     @Override
-    public List<FavoriteView> listUnpaged(Long userId, EntityType entityType) {
+    public List<FavoriteView> listUnpaged(Long userId, EntityTypeEnum entityType) {
         requireUser(userId, entityType);
         List<FavoriteView> result = favorites.findUnpaged(userId, entityType);
         LOGGER.info("Favoris récupérés", keyValue("userId", userId), keyValue("entityType", entityType),
@@ -33,7 +33,7 @@ public class UserFavoriteApplicationService implements FavoriteService, Favorite
 
     /** {@inheritDoc} */
     @Override
-    public FavoritePage listPage(Long userId, EntityType entityType, int page, int pageSize) {
+    public FavoritePage listPage(Long userId, EntityTypeEnum entityType, int page, int pageSize) {
         requireUser(userId, entityType);
         return favorites.findPage(userId, entityType, page, pageSize);
     }
@@ -76,7 +76,7 @@ public class UserFavoriteApplicationService implements FavoriteService, Favorite
     }
 
     /** Preserves the v1 read's explicit local-user existence check. */
-    private void requireUser(Long userId, EntityType entityType) {
+    private void requireUser(Long userId, EntityTypeEnum entityType) {
         if (!favorites.ownerExists(userId)) {
             LOGGER.error("Utilisateur introuvable lors de la récupération des favoris",
                     keyValue("userId", userId), keyValue("entityType", entityType));
@@ -91,7 +91,7 @@ public class UserFavoriteApplicationService implements FavoriteService, Favorite
     }
 
     @Override
-    public FollowerCountSnapshot snapshotForTarget(EntityType entityType, Long entityId) {
+    public FollowerCountSnapshot snapshotForTarget(EntityTypeEnum entityType, Long entityId) {
         return favorites.snapshotForTarget(entityType, entityId);
     }
 }

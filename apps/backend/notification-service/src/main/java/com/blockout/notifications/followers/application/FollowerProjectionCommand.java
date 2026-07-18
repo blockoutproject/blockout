@@ -1,14 +1,15 @@
 package com.blockout.notifications.followers.application;
 
-import com.blockout.notifications.models.enums.EntityType;
+import com.blockout.shared.model.FollowerProjectionActionEnum;
+import com.blockout.shared.model.EntityTypeEnum;
 import java.util.Objects;
 
 /** Validated projection input independent from either Rabbit wire version. */
 public record FollowerProjectionCommand(
         Long userId,
-        EntityType entityType,
+        EntityTypeEnum entityType,
         Long entityId,
-        FollowerProjectionAction action) {
+        FollowerProjectionActionEnum action) {
 
     public FollowerProjectionCommand {
         requirePositive(userId, "userId");

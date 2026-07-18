@@ -1,7 +1,8 @@
 package com.blockout.notifications.events.application;
 
+import com.blockout.shared.model.ConsumedEventClaimEnum;
 /** Claims the event marker inside the same local transaction as its side effect. */
 public interface ConsumedEventStore {
 
-    ConsumedEventClaim claim(ConsumedEventIdentity identity);
+    ConsumedEventClaimEnum claim(ConsumedEventIdentity identity);
 }

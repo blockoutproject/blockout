@@ -1,5 +1,6 @@
 package com.blockout.users.favorite.outbound;
 
+import com.blockout.shared.model.FavoriteEventActionEnum;
 import com.blockout.events.v2.model.EventType;
 import com.blockout.events.v2.model.PoolFollowV2Payload;
 import com.blockout.events.v2.model.PoolFollowedV2Event;
@@ -7,10 +8,9 @@ import com.blockout.events.v2.model.PoolUnfollowedV2Event;
 import com.blockout.events.v2.model.TeamFollowV2Payload;
 import com.blockout.events.v2.model.TeamFollowedV2Event;
 import com.blockout.events.v2.model.TeamUnfollowedV2Event;
-import com.blockout.users.favorite.application.FavoriteEventAction;
 import com.blockout.users.favorite.application.FavoriteEventFact;
 import com.blockout.users.favorite.application.FavoriteEventMetadata;
-import com.blockout.users.models.enums.EntityType;
+import com.blockout.shared.model.EntityTypeEnum;
 import org.springframework.stereotype.Component;
 
 /** Maps favorite application facts to generated v2 records without publishing them before MRG-372. */
@@ -21,7 +21,7 @@ public class FavoriteEventContractMapper {
     private static final String SCHEMA_VERSION = "2.0.0";
 
     public TeamFollowedV2Event toTeamFollowed(FavoriteEventFact fact, FavoriteEventMetadata metadata) {
-        require(fact, EntityType.TEAM, FavoriteEventAction.FOLLOWED);
+        require(fact, EntityTypeEnum.TEAM, FavoriteEventActionEnum.FOLLOWED);
         return new TeamFollowedV2Event(
                 null,
                 metadata.correlationId(),
@@ -35,7 +35,7 @@ public class FavoriteEventContractMapper {
     }
 
     public TeamUnfollowedV2Event toTeamUnfollowed(FavoriteEventFact fact, FavoriteEventMetadata metadata) {
-        require(fact, EntityType.TEAM, FavoriteEventAction.UNFOLLOWED);
+        require(fact, EntityTypeEnum.TEAM, FavoriteEventActionEnum.UNFOLLOWED);
         return new TeamUnfollowedV2Event(
                 null,
                 metadata.correlationId(),
@@ -49,7 +49,7 @@ public class FavoriteEventContractMapper {
     }
 
     public PoolFollowedV2Event toPoolFollowed(FavoriteEventFact fact, FavoriteEventMetadata metadata) {
-        require(fact, EntityType.POOL, FavoriteEventAction.FOLLOWED);
+        require(fact, EntityTypeEnum.POOL, FavoriteEventActionEnum.FOLLOWED);
         return new PoolFollowedV2Event(
                 null,
                 metadata.correlationId(),
@@ -63,7 +63,7 @@ public class FavoriteEventContractMapper {
     }
 
     public PoolUnfollowedV2Event toPoolUnfollowed(FavoriteEventFact fact, FavoriteEventMetadata metadata) {
-        require(fact, EntityType.POOL, FavoriteEventAction.UNFOLLOWED);
+        require(fact, EntityTypeEnum.POOL, FavoriteEventActionEnum.UNFOLLOWED);
         return new PoolUnfollowedV2Event(
                 null,
                 metadata.correlationId(),
@@ -81,7 +81,7 @@ public class FavoriteEventContractMapper {
                 fact.userId(), fact.entityType().name().toLowerCase(), fact.entityId());
     }
 
-    private void require(FavoriteEventFact fact, EntityType expectedType, FavoriteEventAction expectedAction) {
+    private void require(FavoriteEventFact fact, EntityTypeEnum expectedType, FavoriteEventActionEnum expectedAction) {
         if (fact.entityType() != expectedType || fact.action() != expectedAction) {
             throw new IllegalArgumentException(
                     "Expected " + expectedType + " " + expectedAction + " favorite fact");

@@ -1,5 +1,6 @@
 package com.blockout.notifications.followers.inbound;
 
+import com.blockout.shared.model.FollowerProjectionActionEnum;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 
@@ -8,8 +9,7 @@ import com.blockout.events.v2.model.PoolFollowV2Payload;
 import com.blockout.events.v2.model.PoolUnfollowedV2Event;
 import com.blockout.events.v2.model.TeamFollowV2Payload;
 import com.blockout.events.v2.model.TeamFollowedV2Event;
-import com.blockout.notifications.followers.application.FollowerProjectionAction;
-import com.blockout.notifications.models.enums.EntityType;
+import com.blockout.shared.model.EntityTypeEnum;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -26,11 +26,11 @@ class FavoriteEventContractMapperTest {
         var pool = mapper.fromPoolUnfollowed(poolEvent(EventType.POOL_UNFOLLOWED, "user:7:pool:4", 7L, 4L));
 
         assertThat(team.userId()).isEqualTo(7L);
-        assertThat(team.entityType()).isEqualTo(EntityType.TEAM);
+        assertThat(team.entityType()).isEqualTo(EntityTypeEnum.TEAM);
         assertThat(team.entityId()).isEqualTo(2L);
-        assertThat(team.action()).isEqualTo(FollowerProjectionAction.FOLLOW);
-        assertThat(pool.entityType()).isEqualTo(EntityType.POOL);
-        assertThat(pool.action()).isEqualTo(FollowerProjectionAction.UNFOLLOW);
+        assertThat(team.action()).isEqualTo(FollowerProjectionActionEnum.FOLLOW);
+        assertThat(pool.entityType()).isEqualTo(EntityTypeEnum.POOL);
+        assertThat(pool.action()).isEqualTo(FollowerProjectionActionEnum.UNFOLLOW);
     }
 
     @Test

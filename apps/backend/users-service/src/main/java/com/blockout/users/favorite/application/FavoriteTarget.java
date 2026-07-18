@@ -1,7 +1,7 @@
 package com.blockout.users.favorite.application;
 
-import com.blockout.users.models.enums.EntityType;
+import com.blockout.shared.model.EntityTypeEnum;
 
 /** Identifies one team or pool in the canonical favorite set. */
-public record FavoriteTarget(EntityType entityType, Long entityId) {
+public record FavoriteTarget(EntityTypeEnum entityType, Long entityId) {
 }

@@ -1,5 +1,6 @@
 package com.blockout.teams.team.api.v1;
 
+import com.blockout.shared.model.FollowerCountDeltaEnum;
 import com.blockout.shared.model.FormatEnum;
 import com.blockout.shared.model.GenderEnum;
 import com.blockout.teams.shared.api.v1.LegacyTeamsJson;
@@ -110,7 +111,7 @@ public class LegacyTeamController {
     public ResponseEntity<String> incrementFollowers(
             @PathVariable Long teamId,
             @RequestParam(name = "user_id") Long userId) throws JsonProcessingException {
-        return followerResponse(teamId, userId, TeamFollowerCommand.Delta.INCREMENT);
+        return followerResponse(teamId, userId, FollowerCountDeltaEnum.INCREMENT);
     }
 
     @PostMapping("/{teamId}/followers/decrement")
@@ -118,10 +119,10 @@ public class LegacyTeamController {
     public ResponseEntity<String> decrementFollowers(
             @PathVariable Long teamId,
             @RequestParam(name = "user_id") Long userId) throws JsonProcessingException {
-        return followerResponse(teamId, userId, TeamFollowerCommand.Delta.DECREMENT);
+        return followerResponse(teamId, userId, FollowerCountDeltaEnum.DECREMENT);
     }
 
-    private ResponseEntity<String> followerResponse(Long teamId, Long userId, TeamFollowerCommand.Delta delta)
+    private ResponseEntity<String> followerResponse(Long teamId, Long userId, FollowerCountDeltaEnum delta)
             throws JsonProcessingException {
         TeamView updated = followerProjectionService.updateFollowers(new TeamFollowerCommand(teamId, userId, delta));
         return ResponseEntity.ok(json.write(response(updated)));

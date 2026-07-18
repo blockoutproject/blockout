@@ -8,7 +8,6 @@ import com.blockout.matches.match.live.application.MatchLiveMatchSnapshot;
 import com.blockout.matches.match.live.application.NewMatchLiveLink;
 import com.blockout.matches.match.persistence.Match;
 import com.blockout.matches.match.persistence.MatchRepository;
-import com.blockout.matches.models.enums.LiveLinkStatus;
 import com.blockout.shared.model.LiveLinkStatusEnum;
 import com.blockout.shared.model.MatchStatusEnum;
 import java.time.Instant;
@@ -34,7 +33,7 @@ public class JpaMatchLiveLinkStore implements MatchLiveLinkStore, MatchLiveLinkH
 
     @Override
     public Optional<MatchLiveLinkSnapshot> findNewestActive(Long matchId) {
-        return liveLinks.findFirstByMatch_IdAndStatusOrderByCreatedAtDesc(matchId, LiveLinkStatus.ACTIVE)
+        return liveLinks.findFirstByMatch_IdAndStatusOrderByCreatedAtDesc(matchId, LiveLinkStatusEnum.ACTIVE)
                 .map(mapper::toSnapshot);
     }
 
@@ -60,9 +59,9 @@ public class JpaMatchLiveLinkStore implements MatchLiveLinkStore, MatchLiveLinkH
         MatchLiveLink entity = MatchLiveLink.builder()
                 .match(match)
                 .ownerAuth0Id(liveLink.ownerAuth0Id())
-                .provider(mapper.toPersistenceProvider(liveLink.provider()))
+                .provider(liveLink.provider())
                 .url(liveLink.url())
-                .status(mapper.toPersistenceStatus(liveLink.status()))
+                .status(liveLink.status())
                 .reportCount(0)
                 .createdAt(liveLink.now())
                 .lastUpdate(liveLink.now())
@@ -73,7 +72,7 @@ public class JpaMatchLiveLinkStore implements MatchLiveLinkStore, MatchLiveLinkH
     @Override
     public void changeStatus(Long liveLinkId, LiveLinkStatusEnum status, Instant now) {
         MatchLiveLink link = liveLinks.getReferenceById(liveLinkId);
-        link.setStatus(mapper.toPersistenceStatus(status));
+        link.setStatus(status);
         link.setLastUpdate(now);
         liveLinks.save(link);
     }
@@ -82,12 +81,12 @@ public class JpaMatchLiveLinkStore implements MatchLiveLinkStore, MatchLiveLinkH
     public void changePendingByOwner(
             Long matchId, String ownerAuth0Id, LiveLinkStatusEnum status, Instant now) {
         List<MatchLiveLink> pending = liveLinks.findByMatch_IdAndOwnerAuth0IdAndStatus(
-                matchId, ownerAuth0Id, LiveLinkStatus.PENDING);
+                matchId, ownerAuth0Id, LiveLinkStatusEnum.PENDING);
         if (pending.isEmpty()) {
             return;
         }
         pending.forEach(link -> {
-            link.setStatus(mapper.toPersistenceStatus(status));
+            link.setStatus(status);
             link.setLastUpdate(now);
         });
         liveLinks.saveAll(pending);

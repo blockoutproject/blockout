@@ -1,7 +1,7 @@
 package com.blockout.matches.match.persistence;
 
 import com.blockout.matches.match.live.persistence.MatchLiveLink;
-import com.blockout.matches.models.enums.MatchStatus;
+import com.blockout.shared.model.MatchStatusEnum;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
@@ -72,7 +72,7 @@ public class Match {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
-    private MatchStatus status;
+    private MatchStatusEnum status;
 
     @Column(name = "venue")
     private String venue;

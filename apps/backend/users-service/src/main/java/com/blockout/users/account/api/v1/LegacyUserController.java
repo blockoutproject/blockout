@@ -8,7 +8,7 @@ import com.blockout.users.account.application.UserIdentityService;
 import com.blockout.users.favorite.application.FavoriteView;
 import com.blockout.users.account.application.UserProfileImageChange;
 import com.blockout.users.account.application.UserProfileImageUpload;
-import com.blockout.users.models.enums.EntityType;
+import com.blockout.shared.model.EntityTypeEnum;
 import com.blockout.users.shared.api.v1.LegacyUsersJson;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import java.time.Instant;
@@ -145,7 +145,7 @@ public class LegacyUserController {
     }
 
     /** Carries one favorite in the deployed legacy account response. */
-    record LegacyUserFavoriteResponse(EntityType entityType, Long entityId) {
+    record LegacyUserFavoriteResponse(EntityTypeEnum entityType, Long entityId) {
     }
 
     /** Carries the historical entity-shaped update and ensure response. */
@@ -167,7 +167,7 @@ public class LegacyUserController {
     /** Carries the historical entity-shaped favorite fields. */
     record LegacyUserFavoriteEntityResponse(
             Long id,
-            EntityType entityType,
+            EntityTypeEnum entityType,
             Long entityId,
             LocalDateTime createdAt) {
     }

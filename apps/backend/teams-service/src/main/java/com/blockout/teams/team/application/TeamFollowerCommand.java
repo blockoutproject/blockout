@@ -1,9 +1,6 @@
 package com.blockout.teams.team.application;
 
-public record TeamFollowerCommand(Long teamId, Long userId, Delta delta) {
+import com.blockout.shared.model.FollowerCountDeltaEnum;
 
-    public enum Delta {
-        INCREMENT,
-        DECREMENT
-    }
+public record TeamFollowerCommand(Long teamId, Long userId, FollowerCountDeltaEnum delta) {
 }

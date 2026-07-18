@@ -13,7 +13,7 @@ import com.blockout.notifications.inbox.api.v2.NotificationInboxApiMapper;
 import com.blockout.notifications.inbox.api.v2.NotificationInboxV2Controller;
 import com.blockout.notifications.inbox.application.NotificationInboxPage;
 import com.blockout.notifications.inbox.application.NotificationInboxSnapshot;
-import com.blockout.notifications.models.enums.DevicePlatform;
+import com.blockout.shared.model.DevicePlatformEnum;
 import com.blockout.shared.model.NotificationTargetTypeEnum;
 import com.blockout.shared.model.NotificationTypeEnum;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -100,7 +100,7 @@ class NotificationInboxBoundaryTest {
                 "{\"expo_push_token\":\"ExponentPushToken[value]\",\"platform\":\"IOS\",\"device_id\":\"phone-1\"}");
 
         assertThat(result.expoPushToken()).isEqualTo("ExponentPushToken[value]");
-        assertThat(result.platform()).isEqualTo(DevicePlatform.IOS);
+        assertThat(result.platform()).isEqualTo(DevicePlatformEnum.IOS);
         assertThat(result.deviceId()).isEqualTo("phone-1");
     }
 }

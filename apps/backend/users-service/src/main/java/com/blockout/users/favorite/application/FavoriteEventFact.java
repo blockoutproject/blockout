@@ -1,10 +1,11 @@
 package com.blockout.users.favorite.application;
 
-import com.blockout.users.models.enums.EntityType;
+import com.blockout.shared.model.FavoriteEventActionEnum;
+import com.blockout.shared.model.EntityTypeEnum;
 import java.util.Objects;
 
 /** Application fact mapped to either the retained v1 event or the generated v2 contract. */
-public record FavoriteEventFact(Long userId, EntityType entityType, Long entityId, FavoriteEventAction action) {
+public record FavoriteEventFact(Long userId, EntityTypeEnum entityType, Long entityId, FavoriteEventActionEnum action) {
 
     public FavoriteEventFact {
         requirePositive(userId, "userId");

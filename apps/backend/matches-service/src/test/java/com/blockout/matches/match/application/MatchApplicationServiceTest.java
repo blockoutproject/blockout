@@ -9,8 +9,8 @@ import com.blockout.matches.match.persistence.MatchPersistenceMapper;
 import com.blockout.matches.match.persistence.MatchRepository;
 import com.blockout.matches.match.live.persistence.MatchLiveLink;
 import com.blockout.matches.match.live.persistence.MatchLiveLinkRepository;
-import com.blockout.matches.models.enums.LiveProvider;
-import com.blockout.matches.models.enums.MatchStatus;
+import com.blockout.shared.model.LiveLinkStatusEnum;
+import com.blockout.shared.model.LiveProviderEnum;
 import com.blockout.shared.model.MatchStatusEnum;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Proxy;
@@ -61,7 +61,7 @@ class MatchApplicationServiceTest {
         RepositoryDouble repository = new RepositoryDouble();
         PageRequest pageable = PageRequest.of(1, 2);
         repository.page = new PageImpl<>(
-                List.of(entity(2L, MatchStatus.UPCOMING, true, NOW.plusSeconds(60))), pageable, 5);
+                List.of(entity(2L, MatchStatusEnum.UPCOMING, true, NOW.plusSeconds(60))), pageable, 5);
         MatchApplicationService service = service(repository, new LiveLinkRepositoryDouble(), new EventsDouble());
 
         MatchPage result = service.findPage(
@@ -70,13 +70,13 @@ class MatchApplicationServiceTest {
         assertThat(result.items()).extracting(MatchSnapshot::id).containsExactly(2L);
         assertThat(result.totalItems()).isEqualTo(5);
         assertThat(result.hasNext()).isTrue();
-        assertThat(repository.pageArguments).containsExactly(9L, MatchStatus.UPCOMING, true, List.of(3L), 1, pageable);
+        assertThat(repository.pageArguments).containsExactly(9L, MatchStatusEnum.UPCOMING, true, List.of(3L), 1, pageable);
     }
 
     @Test
     void detailProjectionKeepsTheNewestActiveLiveLinkFields() {
         RepositoryDouble repository = new RepositoryDouble();
-        repository.entity = entity(1L, MatchStatus.UPCOMING, true, NOW);
+        repository.entity = entity(1L, MatchStatusEnum.UPCOMING, true, NOW);
         LiveLinkRepositoryDouble links = new LiveLinkRepositoryDouble();
         links.newestActive = Optional.of(liveLink(repository.entity, "https://live", NOW));
 
@@ -92,7 +92,7 @@ class MatchApplicationServiceTest {
         List<String> order = new ArrayList<>();
         RepositoryDouble repository = new RepositoryDouble(order);
         EventsDouble events = new EventsDouble(order);
-        repository.entity = entity(1L, MatchStatus.UPCOMING, false, NOW);
+        repository.entity = entity(1L, MatchStatusEnum.UPCOMING, false, NOW);
         MatchApplicationService service = service(repository, new LiveLinkRepositoryDouble(), events);
 
         MatchSnapshot result = service.update(1L, updateCommand("3-2"));
@@ -106,7 +106,7 @@ class MatchApplicationServiceTest {
     void updateNeverReversesFinishedStatusWhenTheReplacementSetBecomesNull() {
         RepositoryDouble repository = new RepositoryDouble();
         EventsDouble events = new EventsDouble();
-        repository.entity = entity(1L, MatchStatus.FINISHED, true, NOW);
+        repository.entity = entity(1L, MatchStatusEnum.FINISHED, true, NOW);
         repository.entity.setSet("3-0");
         MatchApplicationService service = service(repository, new LiveLinkRepositoryDouble(), events);
 
@@ -134,9 +134,9 @@ class MatchApplicationServiceTest {
         RepositoryDouble repository = new RepositoryDouble();
         LiveLinkRepositoryDouble links = new LiveLinkRepositoryDouble();
         LocalDate parisDay = LocalDate.of(2026, 7, 18);
-        Match poolTwo = entity(2L, MatchStatus.UPCOMING, true, Instant.parse("2026-07-18T08:00:00Z"));
+        Match poolTwo = entity(2L, MatchStatusEnum.UPCOMING, true, Instant.parse("2026-07-18T08:00:00Z"));
         poolTwo.setPoolId(2L);
-        Match poolOne = entity(1L, MatchStatus.UPCOMING, true, Instant.parse("2026-07-18T07:00:00Z"));
+        Match poolOne = entity(1L, MatchStatusEnum.UPCOMING, true, Instant.parse("2026-07-18T07:00:00Z"));
         poolOne.setPoolId(1L);
         repository.days = List.of(parisDay);
         repository.range = List.of(poolTwo, poolOne);
@@ -196,7 +196,7 @@ class MatchApplicationServiceTest {
                 null, null, null, null);
     }
 
-    private static Match entity(long id, MatchStatus status, boolean active, Instant date) {
+    private static Match entity(long id, MatchStatusEnum status, boolean active, Instant date) {
         return Match.builder().id(id).matchCode("M" + id).leagueCode("L1").poolId(9L).teamIdA(10L)
                 .teamIdB(11L).matchDate(date).season("2026").status(status).active(active)
                 .createdAt(NOW.minusSeconds(100)).lastUpdate(NOW.minusSeconds(50)).build();
@@ -204,8 +204,8 @@ class MatchApplicationServiceTest {
 
     private MatchLiveLink liveLink(Match match, String url, Instant createdAt) {
         return MatchLiveLink.builder().id(createdAt.getEpochSecond()).match(match).ownerAuth0Id("auth0|owner")
-                .provider(LiveProvider.YOUTUBE).url(url)
-                .status(com.blockout.matches.models.enums.LiveLinkStatus.ACTIVE).createdAt(createdAt).build();
+                .provider(LiveProviderEnum.YOUTUBE).url(url)
+                .status(LiveLinkStatusEnum.ACTIVE).createdAt(createdAt).build();
     }
 
     private static final class RepositoryDouble implements InvocationHandler {

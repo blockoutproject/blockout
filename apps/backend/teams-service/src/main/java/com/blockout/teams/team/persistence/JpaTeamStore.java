@@ -1,5 +1,6 @@
 package com.blockout.teams.team.persistence;
 
+import com.blockout.shared.model.FollowerCountDeltaEnum;
 import com.blockout.teams.team.application.CreateTeamCommand;
 import com.blockout.teams.team.application.LegacyCreateTeamCommand;
 import com.blockout.teams.team.application.TeamChange;
@@ -84,7 +85,7 @@ public class JpaTeamStore implements TeamStore, TeamFollowerStore, TeamLifecycle
     public Optional<TeamView> updateFollowers(TeamFollowerCommand command) {
         return repository.findById(command.teamId()).map(entity -> {
             long current = entity.getFollowersCount();
-            entity.setFollowersCount(command.delta() == TeamFollowerCommand.Delta.INCREMENT
+            entity.setFollowersCount(command.delta() == FollowerCountDeltaEnum.INCREMENT
                     ? current + 1 : Math.max(0, current - 1));
             return mapper.toView(repository.save(entity));
         });

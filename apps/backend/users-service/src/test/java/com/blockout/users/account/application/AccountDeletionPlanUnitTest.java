@@ -3,7 +3,7 @@ package com.blockout.users.account.application;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.blockout.users.favorite.application.FavoriteView;
-import com.blockout.users.models.enums.EntityType;
+import com.blockout.shared.model.EntityTypeEnum;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -14,7 +14,7 @@ class AccountDeletionPlanUnitTest {
     @Test
     void snapshotsFavoriteFactsAndMakesProfileImageRetentionExplicit() {
         List<FavoriteView> favorites = new ArrayList<>();
-        favorites.add(new FavoriteView(5L, EntityType.TEAM, 11L, null));
+        favorites.add(new FavoriteView(5L, EntityTypeEnum.TEAM, 11L, null));
         Instant timestamp = Instant.parse("2026-07-01T10:00:00Z");
         UserAccountView account = new UserAccountView(
                 7L,
@@ -37,6 +37,6 @@ class AccountDeletionPlanUnitTest {
         assertThat(plan.identityId()).isEqualTo("auth0|owner");
         assertThat(plan.retainedProfileImageUrl()).isEqualTo("https://cdn.example/retained.png");
         assertThat(plan.favoriteDeletions())
-                .containsExactly(new AccountDeletionPlan.FavoriteDeletion(EntityType.TEAM, 11L));
+                .containsExactly(new AccountDeletionPlan.FavoriteDeletion(EntityTypeEnum.TEAM, 11L));
     }
 }

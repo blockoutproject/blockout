@@ -1,0 +1,7 @@
+{
+  "FollowerProjectionActionEnum": {
+    "type": "string",
+    "description": "Actions applied to a notification follower projection.",
+    "enum": ["FOLLOW", "UNFOLLOW"]
+  }
+}

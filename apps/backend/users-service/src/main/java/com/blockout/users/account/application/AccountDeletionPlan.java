@@ -1,7 +1,7 @@
 package com.blockout.users.account.application;
 
 import com.blockout.users.favorite.application.FavoriteView;
-import com.blockout.users.models.enums.EntityType;
+import com.blockout.shared.model.EntityTypeEnum;
 import java.util.List;
 
 /** Captures the proven provider-first account-deletion work without changing retention policy. */
@@ -25,7 +25,7 @@ public record AccountDeletionPlan(
     }
 
     /** Identifies one follower-projection fact recorded before local cascade deletion. */
-    public record FavoriteDeletion(EntityType entityType, Long entityId) {
+    public record FavoriteDeletion(EntityTypeEnum entityType, Long entityId) {
 
         private static FavoriteDeletion from(FavoriteView favorite) {
             return new FavoriteDeletion(favorite.entityType(), favorite.entityId());

@@ -1,17 +1,17 @@
 package com.blockout.matches.controllers.v1;
 
+import com.blockout.shared.model.MatchLiveLinkDecisionEnum;
 import com.blockout.matches.match.live.application.MatchLiveLinkApplicationService;
 import com.blockout.matches.match.live.application.MatchLiveLinkHistoryItemView;
 import com.blockout.matches.match.live.application.MatchLiveLinkHistoryService;
 import com.blockout.matches.match.live.application.MatchLiveLinkResultView;
 import com.blockout.matches.match.live.application.UpsertMatchLiveLinkCommand;
-import com.blockout.matches.match.live.moderation.application.MatchLiveLinkDecision;
 import com.blockout.matches.match.live.moderation.application.MatchLiveModerationApplicationService;
 import com.blockout.matches.match.live.moderation.application.ModerateMatchLiveLinkCommand;
 import com.blockout.matches.match.live.report.application.MatchLiveLinkReportApplicationService;
 import com.blockout.matches.match.live.report.application.ReportMatchLiveLinkCommand;
-import com.blockout.matches.models.enums.LiveLinkStatus;
-import com.blockout.matches.models.enums.LiveProvider;
+import com.blockout.shared.model.LiveLinkStatusEnum;
+import com.blockout.shared.model.LiveProviderEnum;
 import com.blockout.matches.shared.api.v1.LegacyMatchesJson;
 import com.fasterxml.jackson.core.JsonProcessingException;
 
@@ -117,7 +117,7 @@ public class MatchLiveLinkController {
     @PreAuthorize("hasAuthority('SCOPE_moderate:match_live_link')")
     @PostMapping("/live-links/{liveLinkId}/approve")
     public ResponseEntity<Void> approvePendingLink(@PathVariable Long liveLinkId) {
-        moderation.moderate(new ModerateMatchLiveLinkCommand(liveLinkId, MatchLiveLinkDecision.APPROVE));
+        moderation.moderate(new ModerateMatchLiveLinkCommand(liveLinkId, MatchLiveLinkDecisionEnum.APPROVE));
         return ResponseEntity.noContent().build();
     }
 
@@ -131,7 +131,7 @@ public class MatchLiveLinkController {
     @PreAuthorize("hasAuthority('SCOPE_moderate:match_live_link')")
     @PostMapping("/live-links/{liveLinkId}/reject")
     public ResponseEntity<Void> rejectPendingLink(@PathVariable Long liveLinkId) {
-        moderation.moderate(new ModerateMatchLiveLinkCommand(liveLinkId, MatchLiveLinkDecision.REJECT));
+        moderation.moderate(new ModerateMatchLiveLinkCommand(liveLinkId, MatchLiveLinkDecisionEnum.REJECT));
         return ResponseEntity.noContent().build();
     }
 
@@ -145,19 +145,19 @@ public class MatchLiveLinkController {
     @PreAuthorize("hasAuthority('SCOPE_moderate:match_live_link')")
     @PostMapping("/live-links/{liveLinkId}/reactivate")
     public ResponseEntity<Void> reactivateLiveLink(@PathVariable Long liveLinkId) {
-        moderation.moderate(new ModerateMatchLiveLinkCommand(liveLinkId, MatchLiveLinkDecision.REACTIVATE));
+        moderation.moderate(new ModerateMatchLiveLinkCommand(liveLinkId, MatchLiveLinkDecisionEnum.REACTIVATE));
         return ResponseEntity.noContent().build();
     }
 
     private LegacyLiveLinkResultResponse legacyResponse(MatchLiveLinkResultView view) {
-        return new LegacyLiveLinkResultResponse(view.matchId(), LiveProvider.valueOf(view.provider().getValue()),
-                view.url(), LiveLinkStatus.valueOf(view.status().getValue()), view.reportCount(), view.ownerAuth0Id());
+        return new LegacyLiveLinkResultResponse(view.matchId(), LiveProviderEnum.valueOf(view.provider().getValue()),
+                view.url(), LiveLinkStatusEnum.valueOf(view.status().getValue()), view.reportCount(), view.ownerAuth0Id());
     }
 
     private LegacyLiveLinkHistoryResponse legacyResponse(MatchLiveLinkHistoryItemView view) {
         return new LegacyLiveLinkHistoryResponse(view.id(), view.matchId(),
-                LiveProvider.valueOf(view.provider().getValue()), view.url(),
-                LiveLinkStatus.valueOf(view.status().getValue()), view.reportCount(), view.ownerAuth0Id(),
+                LiveProviderEnum.valueOf(view.provider().getValue()), view.url(),
+                LiveLinkStatusEnum.valueOf(view.status().getValue()), view.reportCount(), view.ownerAuth0Id(),
                 view.createdAt(), view.lastUpdate());
     }
 
@@ -169,9 +169,9 @@ public class MatchLiveLinkController {
 
     record LegacyLiveLinkResultResponse(
             Long matchId,
-            LiveProvider provider,
+            LiveProviderEnum provider,
             String url,
-            LiveLinkStatus status,
+            LiveLinkStatusEnum status,
             int reportCount,
             String ownerAuth0Id) {
     }
@@ -179,9 +179,9 @@ public class MatchLiveLinkController {
     record LegacyLiveLinkHistoryResponse(
             Long id,
             Long matchId,
-            LiveProvider provider,
+            LiveProviderEnum provider,
             String url,
-            LiveLinkStatus status,
+            LiveLinkStatusEnum status,
             int reportCount,
             String ownerAuth0Id,
             Instant createdAt,

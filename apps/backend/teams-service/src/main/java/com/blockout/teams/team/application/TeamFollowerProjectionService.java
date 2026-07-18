@@ -1,5 +1,6 @@
 package com.blockout.teams.team.application;
 
+import com.blockout.shared.model.FollowerCountDeltaEnum;
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
 import lombok.RequiredArgsConstructor;
@@ -17,7 +18,7 @@ public class TeamFollowerProjectionService {
     @Transactional
     public TeamView updateFollowers(TeamFollowerCommand command) {
         TeamView team = store.updateFollowers(command).orElseThrow(() -> notFound(command.teamId()));
-        String action = command.delta() == TeamFollowerCommand.Delta.INCREMENT
+        String action = command.delta() == FollowerCountDeltaEnum.INCREMENT
                 ? "increment_followers_count" : "decrement_followers_count";
         LOGGER.info("Team followers projection updated", keyValue("action", action),
                 keyValue("teamId", command.teamId()), keyValue("userId", command.userId()),

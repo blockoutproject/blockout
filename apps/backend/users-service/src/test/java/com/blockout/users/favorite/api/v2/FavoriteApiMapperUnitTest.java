@@ -8,7 +8,6 @@ import com.blockout.users.favorite.application.FavoritePage;
 import com.blockout.users.favorite.application.FavoriteView;
 import com.blockout.users.generated.api.UserFavoritesApi;
 import com.blockout.users.generated.model.UserFavoritePageResponse;
-import com.blockout.users.models.enums.EntityType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -35,7 +34,7 @@ class FavoriteApiMapperUnitTest {
     void mapsCanonicalSummariesAndPagination() {
         FavoritePage page = new FavoritePage(
                 List.of(new FavoriteView(
-                        5L, EntityType.TEAM, 11L, LocalDateTime.parse("2026-07-01T09:00:00"))),
+                        5L, EntityTypeEnum.TEAM, 11L, LocalDateTime.parse("2026-07-01T09:00:00"))),
                 0,
                 25,
                 1,
@@ -59,7 +58,7 @@ class FavoriteApiMapperUnitTest {
     void keepsCanonicalCamelCaseSerialization() throws Exception {
         ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
         FavoritePage page = new FavoritePage(
-                List.of(new FavoriteView(5L, EntityType.POOL, 13L, null)), 0, 25, 1, false);
+                List.of(new FavoriteView(5L, EntityTypeEnum.POOL, 13L, null)), 0, 25, 1, false);
 
         String body = objectMapper.writeValueAsString(mapper.toResponse(page));
 

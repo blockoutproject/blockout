@@ -2,7 +2,7 @@ package com.blockout.users.favorite.api.v1;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.blockout.users.models.enums.EntityType;
+import com.blockout.shared.model.EntityTypeEnum;
 import com.blockout.users.shared.api.v1.LegacyUsersJson;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -19,7 +19,7 @@ class LegacyUserFavoriteResponseShapeUnitTest {
     void keepsUnpagedEntityShapedFavoriteArray() throws Exception {
         String body = new LegacyUsersJson().write(List.of(
                 new LegacyUserFavoriteController.LegacyFavoriteResponse(
-                        5L, EntityType.TEAM, 11L, LocalDateTime.parse("2026-07-01T09:00:00"))));
+                        5L, EntityTypeEnum.TEAM, 11L, LocalDateTime.parse("2026-07-01T09:00:00"))));
 
         assertThat(body).isEqualTo(
                 "[{\"id\":5,\"entity_type\":\"TEAM\",\"entity_id\":11,\"created_at\":\"2026-07-01T09:00:00\"}]");

@@ -26,10 +26,18 @@ const sourceDir = path.resolve(__dirname, '../source');
 const servicesDir = path.join(sourceDir, 'services');
 const sharedSchemasDir = path.join(sourceDir, 'shared/schemas');
 const expectedSharedEnums = {
+  ConsumedEventClaimEnum: ['CLAIMED', 'DUPLICATE'],
+  ConsumedEventResultEnum: ['APPLIED', 'DUPLICATE'],
   DevicePlatformEnum: ['IOS', 'ANDROID', 'WEB', 'UNKNOWN'],
+  EntityEventActionEnum: ['CREATED', 'DELETED'],
   EntityTypeEnum: ['TEAM', 'POOL'],
+  FavoriteEventActionEnum: ['FOLLOWED', 'UNFOLLOWED'],
+  FollowerCountDeltaEnum: ['INCREMENT', 'DECREMENT'],
+  FollowerProjectionActionEnum: ['FOLLOW', 'UNFOLLOW'],
+  FollowerProjectionMutationEnum: ['APPLIED', 'UNCHANGED'],
   FormatEnum: ['SIX', 'FOUR', 'TWO'],
   GenderEnum: ['M', 'F', 'O'],
+  ImageChangeModeEnum: ['KEEP', 'REMOVE', 'REPLACE'],
   LiveLinkStatusEnum: [
     'ACTIVE',
     'DEACTIVATED',
@@ -39,6 +47,7 @@ const expectedSharedEnums = {
     'REJECTED',
   ],
   LiveProviderEnum: ['YOUTUBE', 'TWITCH', 'FACEBOOK'],
+  MatchLiveLinkDecisionEnum: ['APPROVE', 'REJECT', 'REACTIVATE'],
   MatchStatusEnum: ['UPCOMING', 'FINISHED'],
   NotificationStatusEnum: [
     'SENT',
@@ -1392,10 +1401,9 @@ test('workspace notification contract reconciles REST without event or provider 
     new Set(operations.map(({ operation }) => operation.operationId)).size,
     6,
   );
-  assert.deepEqual(
-    notification.paths['/api/v2/notifications'].get.tags,
-    ['NotificationInboxPages'],
-  );
+  assert.deepEqual(notification.paths['/api/v2/notifications'].get.tags, [
+    'NotificationInboxPages',
+  ]);
   for (const operation of [
     notification.paths['/api/v2/notifications/unread-count'].get,
     notification.paths['/api/v2/notifications/{id}/read'].post,

@@ -1,5 +1,6 @@
 package com.blockout.teams.team.application;
 
+import com.blockout.shared.model.ImageChangeModeEnum;
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
 import com.blockout.teams.shared.application.ChangeLog;
@@ -64,11 +65,11 @@ public class TeamService {
         TeamUpdate update = store.findForUpdate(id).orElseThrow(() -> notFound(id));
         TeamView before = update.current();
         String replacementLogoUrl = null;
-        boolean replaceLogo = logoChange.mode() != TeamLogoChange.Mode.KEEP;
+        boolean replaceLogo = logoChange.mode() != ImageChangeModeEnum.KEEP;
         if (replaceLogo && before.logoUrl() != null) {
             logoStorage.delete(before.logoUrl());
         }
-        if (logoChange.mode() == TeamLogoChange.Mode.REPLACE) {
+        if (logoChange.mode() == ImageChangeModeEnum.REPLACE) {
             replacementLogoUrl = logoStorage.upload(logoChange.upload());
         }
 

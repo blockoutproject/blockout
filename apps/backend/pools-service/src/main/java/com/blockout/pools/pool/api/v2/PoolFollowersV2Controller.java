@@ -1,5 +1,6 @@
 package com.blockout.pools.pool.api.v2;
 
+import com.blockout.shared.model.FollowerCountDeltaEnum;
 import com.blockout.pools.generated.api.PoolFollowersApi;
 import com.blockout.pools.pool.application.PoolFollowerCommand;
 import com.blockout.pools.pool.application.PoolFollowerProjectionService;
@@ -18,7 +19,7 @@ public class PoolFollowersV2Controller implements PoolFollowersApi {
     @PreAuthorize("hasAuthority('SCOPE_follow:pools')")
     public ResponseEntity<Void> incrementPoolFollowers(Long poolId, Long userId) {
         followerProjectionService.updateFollowers(
-                new PoolFollowerCommand(poolId, userId, PoolFollowerCommand.Delta.INCREMENT));
+                new PoolFollowerCommand(poolId, userId, FollowerCountDeltaEnum.INCREMENT));
         return ResponseEntity.noContent().build();
     }
 
@@ -26,7 +27,7 @@ public class PoolFollowersV2Controller implements PoolFollowersApi {
     @PreAuthorize("hasAuthority('SCOPE_follow:pools')")
     public ResponseEntity<Void> decrementPoolFollowers(Long poolId, Long userId) {
         followerProjectionService.updateFollowers(
-                new PoolFollowerCommand(poolId, userId, PoolFollowerCommand.Delta.DECREMENT));
+                new PoolFollowerCommand(poolId, userId, FollowerCountDeltaEnum.DECREMENT));
         return ResponseEntity.noContent().build();
     }
 }

@@ -6,7 +6,7 @@ import lombok.Setter;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 
-import com.blockout.mobilegateway.models.enums.LiveProvider;
+import com.blockout.shared.model.LiveProviderEnum;
 
 @Getter
 @Setter
@@ -46,7 +46,7 @@ public class MatchDTO {
 
     private String liveUrl;
 
-    private LiveProvider liveProvider;
+    private LiveProviderEnum liveProvider;
 
     private String liveOwnerAuth0Id;
 }

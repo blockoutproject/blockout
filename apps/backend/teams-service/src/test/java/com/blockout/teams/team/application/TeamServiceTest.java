@@ -1,5 +1,6 @@
 package com.blockout.teams.team.application;
 
+import com.blockout.shared.model.FollowerCountDeltaEnum;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.blockout.shared.model.FormatEnum;
@@ -64,7 +65,7 @@ class TeamServiceTest {
         TeamFollowerProjectionService service = new TeamFollowerProjectionService(store);
 
         TeamView result = service.updateFollowers(
-                new TeamFollowerCommand(1L, 9L, TeamFollowerCommand.Delta.DECREMENT));
+                new TeamFollowerCommand(1L, 9L, FollowerCountDeltaEnum.DECREMENT));
 
         assertThat(result.followersCount()).isZero();
     }

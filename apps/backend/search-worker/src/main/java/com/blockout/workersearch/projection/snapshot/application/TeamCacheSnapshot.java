@@ -1,7 +1,7 @@
 package com.blockout.workersearch.projection.snapshot.application;
 
-import com.blockout.workersearch.models.enums.Format;
-import com.blockout.workersearch.models.enums.Gender;
+import com.blockout.shared.model.FormatEnum;
+import com.blockout.shared.model.GenderEnum;
 
 public record TeamCacheSnapshot(
         Long id,
@@ -9,8 +9,8 @@ public record TeamCacheSnapshot(
         String shortName,
         String clubId,
         Long divisionId,
-        Format format,
-        Gender gender,
+        FormatEnum format,
+        GenderEnum gender,
         String season,
         String logoUrl) {
 }

@@ -1,5 +1,6 @@
 package com.blockout.pools.pool.application;
 
+import com.blockout.shared.model.FollowerCountDeltaEnum;
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
 import lombok.RequiredArgsConstructor;
@@ -17,7 +18,7 @@ public class PoolFollowerProjectionService {
     @Transactional
     public PoolView updateFollowers(PoolFollowerCommand command) {
         PoolView pool = store.updateFollowers(command).orElseThrow(() -> notFound(command.poolId()));
-        String action = command.delta() == PoolFollowerCommand.Delta.INCREMENT
+        String action = command.delta() == FollowerCountDeltaEnum.INCREMENT
                 ? "increment_followers_count" : "decrement_followers_count";
         LOGGER.info("Pool followers projection updated", keyValue("action", action),
                 keyValue("poolId", command.poolId()), keyValue("userId", command.userId()),

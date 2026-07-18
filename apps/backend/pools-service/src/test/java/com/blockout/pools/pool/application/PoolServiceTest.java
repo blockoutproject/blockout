@@ -1,5 +1,6 @@
 package com.blockout.pools.pool.application;
 
+import com.blockout.shared.model.FollowerCountDeltaEnum;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.blockout.pools.pool.persistence.PoolEntity;
@@ -59,7 +60,7 @@ class PoolServiceTest {
         PoolFollowerProjectionService service = new PoolFollowerProjectionService(store);
 
         PoolView result = service.updateFollowers(
-                new PoolFollowerCommand(1L, 9L, PoolFollowerCommand.Delta.DECREMENT));
+                new PoolFollowerCommand(1L, 9L, FollowerCountDeltaEnum.DECREMENT));
 
         assertThat(result.followersCount()).isZero();
     }

@@ -6,6 +6,7 @@
     "compare:maaatch": "node scripts/compare-maaatch-structure.mjs",
     "local:logs": "node tools/local-logs/collect-local-logs.mjs",
     "validate:docs": "node tools/scripts/validate-doc-links.mjs",
+    "validate:backend-enums-generated": "node --test tools/scripts/validate-backend-enums-generated.test.mjs",
     "validate:env": "node tools/scripts/validate-env-examples.mjs",
     "validate:generated-untracked": "node tools/scripts/validate-generated-artifacts-untracked.mjs",
     "validate:v1-adapter-isolation": "node --test tools/scripts/validate-v1-adapter-isolation.test.mjs",

@@ -2,8 +2,8 @@ package com.blockout.mobilegateway.models.dto.pool;
 
 import com.blockout.mobilegateway.models.dto.config.DivisionDTO;
 import com.blockout.mobilegateway.models.dto.team.TeamWithStatsDTO;
-import com.blockout.mobilegateway.models.enums.Format;
-import com.blockout.mobilegateway.models.enums.Gender;
+import com.blockout.shared.model.FormatEnum;
+import com.blockout.shared.model.GenderEnum;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 import lombok.*;
@@ -33,9 +33,9 @@ public class EnrichedPoolDTO {
 
     private String rawName;
 
-    private Format format;
+    private FormatEnum format;
 
-    private Gender gender;
+    private GenderEnum gender;
 
     private Long followersCount;
 

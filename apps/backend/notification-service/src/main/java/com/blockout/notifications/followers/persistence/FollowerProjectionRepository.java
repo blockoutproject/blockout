@@ -1,6 +1,6 @@
 package com.blockout.notifications.followers.persistence;
 
-import com.blockout.notifications.models.enums.EntityType;
+import com.blockout.shared.model.EntityTypeEnum;
 import java.time.LocalDateTime;
 import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -37,7 +37,7 @@ public interface FollowerProjectionRepository extends JpaRepository<FollowerProj
             @Param("createdAt") LocalDateTime createdAt,
             @Param("lastUpdate") LocalDateTime lastUpdate);
 
-    int deleteByEntityTypeAndEntityIdAndUserId(EntityType entityType, Long entityId, Long userId);
+    int deleteByEntityTypeAndEntityIdAndUserId(EntityTypeEnum entityType, Long entityId, Long userId);
 
     List<FollowerProjectionEntity> findByUserId(Long userId);
 }

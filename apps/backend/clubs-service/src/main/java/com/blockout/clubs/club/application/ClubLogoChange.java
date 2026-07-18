@@ -1,33 +1,28 @@
 package com.blockout.clubs.club.application;
 
+import com.blockout.shared.model.ImageChangeModeEnum;
 import com.blockout.clubs.club.domain.ClubLogoUpload;
 
-public record ClubLogoChange(Mode mode, ClubLogoUpload upload) {
-
-    public enum Mode {
-        KEEP,
-        REMOVE,
-        REPLACE
-    }
+public record ClubLogoChange(ImageChangeModeEnum mode, ClubLogoUpload upload) {
 
     public ClubLogoChange {
-        if (mode == Mode.REPLACE && upload == null) {
+        if (mode == ImageChangeModeEnum.REPLACE && upload == null) {
             throw new IllegalArgumentException("A replacement logo is required.");
         }
-        if (mode != Mode.REPLACE && upload != null) {
+        if (mode != ImageChangeModeEnum.REPLACE && upload != null) {
             throw new IllegalArgumentException("A logo upload is only valid for replacement.");
         }
     }
 
     public static ClubLogoChange keep() {
-        return new ClubLogoChange(Mode.KEEP, null);
+        return new ClubLogoChange(ImageChangeModeEnum.KEEP, null);
     }
 
     public static ClubLogoChange remove() {
-        return new ClubLogoChange(Mode.REMOVE, null);
+        return new ClubLogoChange(ImageChangeModeEnum.REMOVE, null);
     }
 
     public static ClubLogoChange replace(ClubLogoUpload upload) {
-        return new ClubLogoChange(Mode.REPLACE, upload);
+        return new ClubLogoChange(ImageChangeModeEnum.REPLACE, upload);
     }
 }

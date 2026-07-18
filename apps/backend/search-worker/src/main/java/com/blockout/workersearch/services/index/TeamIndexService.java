@@ -7,8 +7,8 @@ import org.slf4j.*;
 import org.springframework.stereotype.Service;
 
 import com.blockout.workersearch.models.docs.TeamDoc;
-import com.blockout.workersearch.models.enums.Format;
-import com.blockout.workersearch.models.enums.Gender;
+import com.blockout.shared.model.FormatEnum;
+import com.blockout.shared.model.GenderEnum;
 import com.blockout.workersearch.models.events.TeamUpsertEvent;
 import com.blockout.workersearch.projection.snapshot.application.ClubCacheSnapshot;
 import com.blockout.workersearch.projection.snapshot.application.ClubProjectionCache;
@@ -88,8 +88,8 @@ public class TeamIndexService {
 
         String divisionName = division != null ? division.name() : "Division inconnue";
         Long divisionId = division != null ? division.id() : null;
-        Format format = team.format();
-        Gender gender = team.gender();
+        FormatEnum format = team.format();
+        GenderEnum gender = team.gender();
 
         return TeamDoc.builder()
                 .id(team.id())

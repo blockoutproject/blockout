@@ -1,6 +1,6 @@
 package com.blockout.notifications.events.persistence;
 
-import com.blockout.notifications.events.application.ConsumedEventClaim;
+import com.blockout.shared.model.ConsumedEventClaimEnum;
 import com.blockout.notifications.events.application.ConsumedEventIdentity;
 import com.blockout.notifications.events.application.ConsumedEventIdentityCollisionException;
 import com.blockout.notifications.events.application.ConsumedEventStore;
@@ -16,14 +16,14 @@ public class JdbcConsumedEventStore implements ConsumedEventStore {
     private final JdbcTemplate jdbc;
 
     @Override
-    public ConsumedEventClaim claim(ConsumedEventIdentity identity) {
+    public ConsumedEventClaimEnum claim(ConsumedEventIdentity identity) {
         int inserted = jdbc.update("""
                 INSERT INTO consumed_event (event_id, event_type, wire_version, processed_at)
                 VALUES (?, ?, ?, current_timestamp)
                 ON CONFLICT (event_id) DO NOTHING
                 """, identity.eventId(), identity.eventType(), identity.wireVersion());
         if (inserted == 1) {
-            return ConsumedEventClaim.CLAIMED;
+            return ConsumedEventClaimEnum.CLAIMED;
         }
         String existingType = jdbc.queryForObject(
                 "SELECT event_type FROM consumed_event WHERE event_id = ?",
@@ -33,6 +33,6 @@ public class JdbcConsumedEventStore implements ConsumedEventStore {
             throw new ConsumedEventIdentityCollisionException(
                     identity.eventId(), identity.eventType(), existingType);
         }
-        return ConsumedEventClaim.DUPLICATE;
+        return ConsumedEventClaimEnum.DUPLICATE;
     }
 }

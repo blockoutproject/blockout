@@ -1,9 +1,9 @@
 package com.blockout.notifications.events.persistence;
 
+import com.blockout.shared.model.ConsumedEventClaimEnum;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.blockout.notifications.events.application.ConsumedEventClaim;
 import com.blockout.notifications.events.application.ConsumedEventIdentity;
 import com.blockout.notifications.events.application.ConsumedEventIdentityCollisionException;
 import java.util.UUID;
@@ -17,7 +17,7 @@ class JdbcConsumedEventStoreTest {
         RecordingJdbcTemplate jdbc = new RecordingJdbcTemplate(1, null);
         JdbcConsumedEventStore store = new JdbcConsumedEventStore(jdbc);
 
-        assertThat(store.claim(identity("TEAM_FOLLOWED"))).isEqualTo(ConsumedEventClaim.CLAIMED);
+        assertThat(store.claim(identity("TEAM_FOLLOWED"))).isEqualTo(ConsumedEventClaimEnum.CLAIMED);
         assertThat(jdbc.queries).isZero();
     }
 
@@ -26,7 +26,7 @@ class JdbcConsumedEventStoreTest {
         RecordingJdbcTemplate jdbc = new RecordingJdbcTemplate(0, "TEAM_FOLLOWED");
         JdbcConsumedEventStore store = new JdbcConsumedEventStore(jdbc);
 
-        assertThat(store.claim(identity("TEAM_FOLLOWED"))).isEqualTo(ConsumedEventClaim.DUPLICATE);
+        assertThat(store.claim(identity("TEAM_FOLLOWED"))).isEqualTo(ConsumedEventClaimEnum.DUPLICATE);
         assertThat(jdbc.queries).isEqualTo(1);
     }
 

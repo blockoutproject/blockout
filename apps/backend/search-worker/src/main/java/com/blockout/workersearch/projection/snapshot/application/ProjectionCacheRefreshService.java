@@ -2,8 +2,8 @@ package com.blockout.workersearch.projection.snapshot.application;
 
 import com.blockout.workersearch.club.application.ClubCatalog;
 import com.blockout.workersearch.configuration.division.application.DivisionCatalog;
-import com.blockout.workersearch.models.enums.Format;
-import com.blockout.workersearch.models.enums.Gender;
+import com.blockout.shared.model.FormatEnum;
+import com.blockout.shared.model.GenderEnum;
 import com.blockout.workersearch.team.application.TeamCatalog;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -35,8 +35,8 @@ public class ProjectionCacheRefreshService {
                         team.shortName(),
                         team.clubId(),
                         team.divisionId(),
-                        Format.valueOf(team.format().name()),
-                        Gender.valueOf(team.gender().name()),
+                        FormatEnum.valueOf(team.format().name()),
+                        GenderEnum.valueOf(team.gender().name()),
                         team.season(),
                         team.logoUrl()))
                 .toList();

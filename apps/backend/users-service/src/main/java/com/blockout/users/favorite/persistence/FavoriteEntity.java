@@ -1,7 +1,7 @@
 package com.blockout.users.favorite.persistence;
 
 import com.blockout.users.account.persistence.UserAccountEntity;
-import com.blockout.users.models.enums.EntityType;
+import com.blockout.shared.model.EntityTypeEnum;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -41,7 +41,7 @@ public class FavoriteEntity {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "entity_type", nullable = false)
-    private EntityType entityType;
+    private EntityTypeEnum entityType;
 
     @Column(name = "entity_id", nullable = false)
     private Long entityId;

@@ -133,12 +133,21 @@
             <!-- BEGIN generated schemaMappings -->
             <schemaMappings>
               <schemaMapping>CalendarDate=java.time.LocalDate</schemaMapping>
+              <schemaMapping>ConsumedEventClaimEnum=com.blockout.shared.model.ConsumedEventClaimEnum</schemaMapping>
+              <schemaMapping>ConsumedEventResultEnum=com.blockout.shared.model.ConsumedEventResultEnum</schemaMapping>
               <schemaMapping>DevicePlatformEnum=com.blockout.shared.model.DevicePlatformEnum</schemaMapping>
+              <schemaMapping>EntityEventActionEnum=com.blockout.shared.model.EntityEventActionEnum</schemaMapping>
               <schemaMapping>EntityTypeEnum=com.blockout.shared.model.EntityTypeEnum</schemaMapping>
+              <schemaMapping>FavoriteEventActionEnum=com.blockout.shared.model.FavoriteEventActionEnum</schemaMapping>
+              <schemaMapping>FollowerCountDeltaEnum=com.blockout.shared.model.FollowerCountDeltaEnum</schemaMapping>
+              <schemaMapping>FollowerProjectionActionEnum=com.blockout.shared.model.FollowerProjectionActionEnum</schemaMapping>
+              <schemaMapping>FollowerProjectionMutationEnum=com.blockout.shared.model.FollowerProjectionMutationEnum</schemaMapping>
               <schemaMapping>FormatEnum=com.blockout.shared.model.FormatEnum</schemaMapping>
               <schemaMapping>GenderEnum=com.blockout.shared.model.GenderEnum</schemaMapping>
+              <schemaMapping>ImageChangeModeEnum=com.blockout.shared.model.ImageChangeModeEnum</schemaMapping>
               <schemaMapping>LiveLinkStatusEnum=com.blockout.shared.model.LiveLinkStatusEnum</schemaMapping>
               <schemaMapping>LiveProviderEnum=com.blockout.shared.model.LiveProviderEnum</schemaMapping>
+              <schemaMapping>MatchLiveLinkDecisionEnum=com.blockout.shared.model.MatchLiveLinkDecisionEnum</schemaMapping>
               <schemaMapping>MatchStatusEnum=com.blockout.shared.model.MatchStatusEnum</schemaMapping>
               <schemaMapping>NotificationStatusEnum=com.blockout.shared.model.NotificationStatusEnum</schemaMapping>
               <schemaMapping>NotificationTargetTypeEnum=com.blockout.shared.model.NotificationTargetTypeEnum</schemaMapping>

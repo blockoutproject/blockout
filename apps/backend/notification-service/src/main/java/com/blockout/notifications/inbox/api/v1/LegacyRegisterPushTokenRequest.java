@@ -1,10 +1,10 @@
 package com.blockout.notifications.inbox.api.v1;
 
-import com.blockout.notifications.models.enums.DevicePlatform;
+import com.blockout.shared.model.DevicePlatformEnum;
 
 /** Carries only the retained v1 snake-case push-token request. */
 public record LegacyRegisterPushTokenRequest(
         String expoPushToken,
-        DevicePlatform platform,
+        DevicePlatformEnum platform,
         String deviceId) {
 }

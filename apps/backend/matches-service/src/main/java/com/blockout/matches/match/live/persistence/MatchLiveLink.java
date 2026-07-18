@@ -1,8 +1,8 @@
 package com.blockout.matches.match.live.persistence;
 
 import com.blockout.matches.match.persistence.Match;
-import com.blockout.matches.models.enums.LiveLinkStatus;
-import com.blockout.matches.models.enums.LiveProvider;
+import com.blockout.shared.model.LiveLinkStatusEnum;
+import com.blockout.shared.model.LiveProviderEnum;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -45,14 +45,14 @@ public class MatchLiveLink {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "provider", nullable = false, length = 32)
-    private LiveProvider provider;
+    private LiveProviderEnum provider;
 
     @Column(name = "url", nullable = false, length = 1024)
     private String url;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 32)
-    private LiveLinkStatus status;
+    private LiveLinkStatusEnum status;
 
     @Builder.Default
     @Column(name = "report_count", nullable = false)

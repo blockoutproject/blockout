@@ -3,7 +3,7 @@ package com.blockout.users.favorite.api.v1;
 import com.blockout.users.favorite.application.FavoriteCommand;
 import com.blockout.users.favorite.application.FavoriteService;
 import com.blockout.users.favorite.application.FavoriteView;
-import com.blockout.users.models.enums.EntityType;
+import com.blockout.shared.model.EntityTypeEnum;
 import com.blockout.users.shared.api.v1.LegacyUsersJson;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import java.time.LocalDateTime;
@@ -35,7 +35,7 @@ public class LegacyUserFavoriteController {
     @GetMapping(value = "/{userId}/favorites", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<String> listFavorites(
             @PathVariable Long userId,
-            @RequestParam(required = false, name = "entity_type") EntityType entityType)
+            @RequestParam(required = false, name = "entity_type") EntityTypeEnum entityType)
             throws JsonProcessingException {
         List<LegacyFavoriteResponse> result = favorites.listUnpaged(userId, entityType).stream()
                 .map(this::toResponse)
@@ -51,7 +51,7 @@ public class LegacyUserFavoriteController {
             """)
     public ResponseEntity<Void> follow(
             @AuthenticationPrincipal Jwt jwt,
-            @RequestParam(name = "entity_type") EntityType entityType,
+            @RequestParam(name = "entity_type") EntityTypeEnum entityType,
             @RequestParam(name = "entity_id") Long entityId) {
         favorites.follow(new FavoriteCommand(jwt.getSubject(), entityType, entityId));
         return ResponseEntity.noContent().build();
@@ -65,7 +65,7 @@ public class LegacyUserFavoriteController {
             """)
     public ResponseEntity<Void> unfollow(
             @AuthenticationPrincipal Jwt jwt,
-            @RequestParam(name = "entity_type") EntityType entityType,
+            @RequestParam(name = "entity_type") EntityTypeEnum entityType,
             @RequestParam(name = "entity_id") Long entityId) {
         favorites.unfollow(new FavoriteCommand(jwt.getSubject(), entityType, entityId));
         return ResponseEntity.noContent().build();
@@ -78,6 +78,6 @@ public class LegacyUserFavoriteController {
     }
 
     /** Carries the exact v1 favorite-list wire fields without exposing persistence entities. */
-    record LegacyFavoriteResponse(Long id, EntityType entityType, Long entityId, LocalDateTime createdAt) {
+    record LegacyFavoriteResponse(Long id, EntityTypeEnum entityType, Long entityId, LocalDateTime createdAt) {
     }
 }

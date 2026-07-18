@@ -6,7 +6,7 @@ import com.blockout.users.account.application.NewUserAccount;
 import com.blockout.users.account.application.UserAccountView;
 import com.blockout.users.favorite.persistence.FavoriteEntity;
 import com.blockout.users.favorite.persistence.FavoritePersistenceMapperImpl;
-import com.blockout.users.models.enums.EntityType;
+import com.blockout.shared.model.EntityTypeEnum;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -32,7 +32,7 @@ class UserAccountPersistenceMapperUnitTest {
                 .lastUpdate(timestamp)
                 .favorites(List.of(FavoriteEntity.builder()
                         .id(5L)
-                        .entityType(EntityType.TEAM)
+                        .entityType(EntityTypeEnum.TEAM)
                         .entityId(11L)
                         .createdAt(LocalDateTime.parse("2026-07-01T12:00:00"))
                         .build()))
@@ -44,7 +44,7 @@ class UserAccountPersistenceMapperUnitTest {
         assertThat(view.auth0Id()).isEqualTo("auth0|owner");
         assertThat(view.favorites()).singleElement().satisfies(favorite -> {
             assertThat(favorite.id()).isEqualTo(5L);
-            assertThat(favorite.entityType()).isEqualTo(EntityType.TEAM);
+            assertThat(favorite.entityType()).isEqualTo(EntityTypeEnum.TEAM);
             assertThat(favorite.entityId()).isEqualTo(11L);
         });
     }

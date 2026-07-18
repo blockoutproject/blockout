@@ -5,7 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.blockout.users.exceptions.CustomUserEmailAlreadyUsedException;
 import com.blockout.users.favorite.application.FavoriteView;
-import com.blockout.users.models.enums.EntityType;
+import com.blockout.shared.model.EntityTypeEnum;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -120,7 +120,7 @@ class UserIdentityApplicationServiceUnitTest {
     void deletesIdentityBeforeFavoriteEventsAndLocalAccount() {
         Fixture fixture = new Fixture();
         fixture.local = fixture.account("auth0|owner", "owner@example.com");
-        fixture.local.favorites = List.of(new FavoriteView(5L, EntityType.TEAM, 11L, null));
+        fixture.local.favorites = List.of(new FavoriteView(5L, EntityTypeEnum.TEAM, 11L, null));
 
         fixture.service.deleteCurrent("auth0|owner");
 
@@ -148,7 +148,7 @@ class UserIdentityApplicationServiceUnitTest {
     void keepsProviderFirstFailureWindowWhenOutboxRecordingFails() {
         Fixture fixture = new Fixture();
         fixture.local = fixture.account("auth0|owner", "owner@example.com");
-        fixture.local.favorites = List.of(new FavoriteView(5L, EntityType.TEAM, 11L, null));
+        fixture.local.favorites = List.of(new FavoriteView(5L, EntityTypeEnum.TEAM, 11L, null));
         fixture.failFavoriteEvent = true;
 
         assertThatThrownBy(() -> fixture.service.deleteCurrent("auth0|owner"))
@@ -294,7 +294,7 @@ class UserIdentityApplicationServiceUnitTest {
         private AccountDeletionEventPublisher deletionEvents() {
             return new AccountDeletionEventPublisher() {
                 @Override
-                public void publishFavoriteDeleted(Long userId, EntityType entityType, Long entityId) {
+                public void publishFavoriteDeleted(Long userId, EntityTypeEnum entityType, Long entityId) {
                     calls.add("favoriteDeleted:" + userId + ":" + entityType + ":" + entityId);
                     if (failFavoriteEvent) {
                         throw new IllegalStateException("outbox failure");

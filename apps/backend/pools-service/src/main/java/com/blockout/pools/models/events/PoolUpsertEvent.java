@@ -1,7 +1,7 @@
 package com.blockout.pools.models.events;
 
-import com.blockout.pools.models.enums.Format;
-import com.blockout.pools.models.enums.Gender;
+import com.blockout.shared.model.FormatEnum;
+import com.blockout.shared.model.GenderEnum;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -21,6 +21,6 @@ public class PoolUpsertEvent {
     private String leagueCode;
     private String leagueName;
     private String season;
-    private Format format;
-    private Gender gender;
+    private FormatEnum format;
+    private GenderEnum gender;
 }

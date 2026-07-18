@@ -1,6 +1,6 @@
 package com.blockout.users.favorite.application;
 
-import com.blockout.users.models.enums.EntityType;
+import com.blockout.shared.model.EntityTypeEnum;
 import java.util.List;
 import java.util.Optional;
 
@@ -11,11 +11,11 @@ public interface FavoriteStore {
 
     boolean ownerExists(Long userId);
 
-    List<FavoriteView> findUnpaged(Long userId, EntityType entityType);
+    List<FavoriteView> findUnpaged(Long userId, EntityTypeEnum entityType);
 
-    FavoritePage findPage(Long userId, EntityType entityType, int page, int pageSize);
+    FavoritePage findPage(Long userId, EntityTypeEnum entityType, int page, int pageSize);
 
     FavoriteProjectionSnapshot snapshotForUser(Long userId);
 
-    FollowerCountSnapshot snapshotForTarget(EntityType entityType, Long entityId);
+    FollowerCountSnapshot snapshotForTarget(EntityTypeEnum entityType, Long entityId);
 }

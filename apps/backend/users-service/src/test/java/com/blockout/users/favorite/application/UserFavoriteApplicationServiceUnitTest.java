@@ -1,10 +1,11 @@
 package com.blockout.users.favorite.application;
 
+import com.blockout.shared.model.FavoriteEventActionEnum;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.blockout.users.exceptions.CustomUserNotFoundException;
-import com.blockout.users.models.enums.EntityType;
+import com.blockout.shared.model.EntityTypeEnum;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -23,7 +24,7 @@ class UserFavoriteApplicationServiceUnitTest {
         Fixture fixture = new Fixture();
         fixture.followChanged = false;
 
-        fixture.service.follow(new FavoriteCommand("auth0|owner", EntityType.TEAM, 11L));
+        fixture.service.follow(new FavoriteCommand("auth0|owner", EntityTypeEnum.TEAM, 11L));
 
         assertThat(fixture.calls).containsExactly("favoriteFollow");
     }
@@ -33,7 +34,7 @@ class UserFavoriteApplicationServiceUnitTest {
     void followsInCanonicalTeamNotificationOrder() {
         Fixture fixture = new Fixture();
 
-        fixture.service.follow(new FavoriteCommand("auth0|owner", EntityType.TEAM, 11L));
+        fixture.service.follow(new FavoriteCommand("auth0|owner", EntityTypeEnum.TEAM, 11L));
 
         assertThat(fixture.calls).containsExactly(
                 "favoriteFollow", "teamIncrement", "eventCreated");
@@ -45,7 +46,7 @@ class UserFavoriteApplicationServiceUnitTest {
         Fixture fixture = new Fixture();
         fixture.unfollowChanged = true;
 
-        fixture.service.unfollow(new FavoriteCommand("auth0|owner", EntityType.POOL, 13L));
+        fixture.service.unfollow(new FavoriteCommand("auth0|owner", EntityTypeEnum.POOL, 13L));
 
         assertThat(fixture.calls).containsExactly(
                 "favoriteUnfollow", "poolDecrement", "eventDeleted");
@@ -56,7 +57,7 @@ class UserFavoriteApplicationServiceUnitTest {
     void keepsAbsentUnfollowAsNoOp() {
         Fixture fixture = new Fixture();
 
-        fixture.service.unfollow(new FavoriteCommand("auth0|owner", EntityType.POOL, 13L));
+        fixture.service.unfollow(new FavoriteCommand("auth0|owner", EntityTypeEnum.POOL, 13L));
 
         assertThat(fixture.calls).containsExactly("favoriteUnfollow");
     }
@@ -80,9 +81,9 @@ class UserFavoriteApplicationServiceUnitTest {
         Fixture fixture = new Fixture();
 
         FavoriteProjectionSnapshot userSnapshot = fixture.service.snapshotForUser(7L);
-        FollowerCountSnapshot targetSnapshot = fixture.service.snapshotForTarget(EntityType.TEAM, 11L);
+        FollowerCountSnapshot targetSnapshot = fixture.service.snapshotForTarget(EntityTypeEnum.TEAM, 11L);
 
-        assertThat(userSnapshot.favorites()).containsExactly(new FavoriteTarget(EntityType.TEAM, 11L));
+        assertThat(userSnapshot.favorites()).containsExactly(new FavoriteTarget(EntityTypeEnum.TEAM, 11L));
         assertThat(targetSnapshot.followerCount()).isEqualTo(3);
         assertThat(fixture.calls).containsExactly("ownerExists", "snapshotUser", "snapshotTarget");
     }
@@ -94,7 +95,7 @@ class UserFavoriteApplicationServiceUnitTest {
         fixture.auth0UserPresent = false;
 
         assertThatThrownBy(() -> fixture.service.follow(
-                new FavoriteCommand("auth0|missing", EntityType.TEAM, 11L)))
+                new FavoriteCommand("auth0|missing", EntityTypeEnum.TEAM, 11L)))
                 .isInstanceOf(CustomUserNotFoundException.class);
 
         assertThat(fixture.calls).isEmpty();
@@ -104,7 +105,7 @@ class UserFavoriteApplicationServiceUnitTest {
 
         private final List<String> calls = new ArrayList<>();
         private final FavoriteView view = new FavoriteView(
-                5L, EntityType.TEAM, 11L, LocalDateTime.parse("2026-07-01T09:00:00"));
+                5L, EntityTypeEnum.TEAM, 11L, LocalDateTime.parse("2026-07-01T09:00:00"));
         private boolean auth0UserPresent = true;
         private boolean followChanged = true;
         private boolean unfollowChanged;
@@ -122,13 +123,13 @@ class UserFavoriteApplicationServiceUnitTest {
             }
 
             @Override
-            public List<FavoriteView> findUnpaged(Long userId, EntityType entityType) {
+            public List<FavoriteView> findUnpaged(Long userId, EntityTypeEnum entityType) {
                 calls.add("findUnpaged");
                 return List.of(view);
             }
 
             @Override
-            public FavoritePage findPage(Long userId, EntityType entityType, int page, int pageSize) {
+            public FavoritePage findPage(Long userId, EntityTypeEnum entityType, int page, int pageSize) {
                 calls.add("findPage");
                 return new FavoritePage(List.of(view), page, pageSize, 3, true);
             }
@@ -137,11 +138,11 @@ class UserFavoriteApplicationServiceUnitTest {
             public FavoriteProjectionSnapshot snapshotForUser(Long userId) {
                 calls.add("snapshotUser");
                 return new FavoriteProjectionSnapshot(
-                        userId, Set.of(new FavoriteTarget(EntityType.TEAM, 11L)));
+                        userId, Set.of(new FavoriteTarget(EntityTypeEnum.TEAM, 11L)));
             }
 
             @Override
-            public FollowerCountSnapshot snapshotForTarget(EntityType entityType, Long entityId) {
+            public FollowerCountSnapshot snapshotForTarget(EntityTypeEnum entityType, Long entityId) {
                 calls.add("snapshotTarget");
                 return new FollowerCountSnapshot(new FavoriteTarget(entityType, entityId), 3);
             }
@@ -162,7 +163,7 @@ class UserFavoriteApplicationServiceUnitTest {
                 public Optional<FavoriteChange> follow(FavoriteTarget target) {
                     calls.add("favoriteFollow");
                     return followChanged
-                            ? Optional.of(new FavoriteChange(7L, target, FavoriteEventAction.FOLLOWED, 5L))
+                            ? Optional.of(new FavoriteChange(7L, target, FavoriteEventActionEnum.FOLLOWED, 5L))
                             : Optional.empty();
                 }
 
@@ -170,7 +171,7 @@ class UserFavoriteApplicationServiceUnitTest {
                 public Optional<FavoriteChange> unfollow(FavoriteTarget target) {
                     calls.add("favoriteUnfollow");
                     return unfollowChanged
-                            ? Optional.of(new FavoriteChange(7L, target, FavoriteEventAction.UNFOLLOWED, null))
+                            ? Optional.of(new FavoriteChange(7L, target, FavoriteEventActionEnum.UNFOLLOWED, null))
                             : Optional.empty();
                 }
             };
@@ -207,12 +208,12 @@ class UserFavoriteApplicationServiceUnitTest {
         private FavoriteEventPublisher eventPublisher() {
             return new FavoriteEventPublisher() {
                 @Override
-                public void publishCreated(Long userId, EntityType entityType, Long entityId) {
+                public void publishCreated(Long userId, EntityTypeEnum entityType, Long entityId) {
                     calls.add("eventCreated");
                 }
 
                 @Override
-                public void publishDeleted(Long userId, EntityType entityType, Long entityId) {
+                public void publishDeleted(Long userId, EntityTypeEnum entityType, Long entityId) {
                     calls.add("eventDeleted");
                 }
             };

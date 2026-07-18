@@ -1,0 +1,7 @@
+{
+  "EntityEventActionEnum": {
+    "type": "string",
+    "description": "Legacy entity lifecycle actions retained by compatibility event payloads.",
+    "enum": ["CREATED", "DELETED"]
+  }
+}

@@ -1,5 +1,7 @@
 package com.blockout.notifications.events.application;
 
+import com.blockout.shared.model.ConsumedEventResultEnum;
+import com.blockout.shared.model.ConsumedEventClaimEnum;
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
 import java.util.UUID;
@@ -20,7 +22,7 @@ public class ConsumedEventProcessor implements EventConsumption {
 
     @Transactional
     @Override
-    public ConsumedEventResult processLegacy(
+    public ConsumedEventResultEnum processLegacy(
             String eventIdHeader,
             String eventType,
             ConsumedEventAction sideEffect) {
@@ -29,14 +31,14 @@ public class ConsumedEventProcessor implements EventConsumption {
                     keyValue("action", "legacy_event_without_id"),
                     keyValue("eventType", eventType));
             sideEffect.apply();
-            return ConsumedEventResult.APPLIED;
+            return ConsumedEventResultEnum.APPLIED;
         }
         return process(new ConsumedEventIdentity(UUID.fromString(eventIdHeader), eventType, "v1"), sideEffect);
     }
 
     @Transactional
     @Override
-    public ConsumedEventResult processV2(
+    public ConsumedEventResultEnum processV2(
             UUID bodyEventId,
             String eventIdHeader,
             String eventType,
@@ -54,14 +56,14 @@ public class ConsumedEventProcessor implements EventConsumption {
         return process(new ConsumedEventIdentity(bodyEventId, eventType, "v2"), sideEffect);
     }
 
-    private ConsumedEventResult process(ConsumedEventIdentity identity, ConsumedEventAction sideEffect) {
-        if (store.claim(identity) == ConsumedEventClaim.DUPLICATE) {
+    private ConsumedEventResultEnum process(ConsumedEventIdentity identity, ConsumedEventAction sideEffect) {
+        if (store.claim(identity) == ConsumedEventClaimEnum.DUPLICATE) {
             LOGGER.info("Skipping already consumed event",
                     keyValue("action", "consumed_event_duplicate"),
                     keyValue("eventId", identity.eventId()),
                     keyValue("eventType", identity.eventType()),
                     keyValue("wireVersion", identity.wireVersion()));
-            return ConsumedEventResult.DUPLICATE;
+            return ConsumedEventResultEnum.DUPLICATE;
         }
         sideEffect.apply();
         LOGGER.info("Recorded consumed event",
@@ -69,6 +71,6 @@ public class ConsumedEventProcessor implements EventConsumption {
                 keyValue("eventId", identity.eventId()),
                 keyValue("eventType", identity.eventType()),
                 keyValue("wireVersion", identity.wireVersion()));
-        return ConsumedEventResult.APPLIED;
+        return ConsumedEventResultEnum.APPLIED;
     }
 }

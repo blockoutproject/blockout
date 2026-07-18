@@ -5,7 +5,7 @@ import com.blockout.mobilegateway.models.dto.match.MatchLiveLinkDTO;
 import com.blockout.mobilegateway.models.dto.match.MatchLiveLinkReportRequestDTO;
 import com.blockout.mobilegateway.models.dto.match.MatchLiveLinkRequestDTO;
 import com.blockout.mobilegateway.models.dto.match.MatchLiveLinkResponseDTO;
-import com.blockout.mobilegateway.models.enums.LiveLinkStatus;
+import com.blockout.shared.model.LiveLinkStatusEnum;
 import com.blockout.mobilegateway.services.MatchService;
 import lombok.RequiredArgsConstructor;
 
@@ -67,7 +67,7 @@ public class MatchSecureController {
 
     @GetMapping("/live-moderation")
     public ResponseEntity<List<EnrichedMatchLiveSummaryDTO>> listMatchesForLiveModeration(
-            @RequestParam(value = "status", required = false) LiveLinkStatus statusFilter) {
+            @RequestParam(value = "status", required = false) LiveLinkStatusEnum statusFilter) {
         List<EnrichedMatchLiveSummaryDTO> dtos = matchService.listMatchesForLiveModeration(statusFilter);
         return ResponseEntity.ok(dtos);
     }

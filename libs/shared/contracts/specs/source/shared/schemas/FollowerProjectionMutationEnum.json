@@ -1,0 +1,7 @@
+{
+  "FollowerProjectionMutationEnum": {
+    "type": "string",
+    "description": "Mutation outcomes for an idempotent follower projection command.",
+    "enum": ["APPLIED", "UNCHANGED"]
+  }
+}

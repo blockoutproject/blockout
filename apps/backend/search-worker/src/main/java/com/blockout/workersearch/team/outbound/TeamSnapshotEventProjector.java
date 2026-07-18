@@ -1,7 +1,7 @@
 package com.blockout.workersearch.team.outbound;
 
-import com.blockout.workersearch.models.enums.Format;
-import com.blockout.workersearch.models.enums.Gender;
+import com.blockout.shared.model.FormatEnum;
+import com.blockout.shared.model.GenderEnum;
 import com.blockout.workersearch.models.events.TeamUpsertEvent;
 import com.blockout.workersearch.team.application.TeamSnapshot;
 import org.springframework.stereotype.Component;
@@ -16,8 +16,8 @@ public class TeamSnapshotEventProjector {
                 .shortName(team.shortName())
                 .clubId(team.clubId())
                 .divisionId(team.divisionId())
-                .format(Format.valueOf(team.format().name()))
-                .gender(Gender.valueOf(team.gender().name()))
+                .format(FormatEnum.valueOf(team.format().name()))
+                .gender(GenderEnum.valueOf(team.gender().name()))
                 .season(team.season())
                 .logoUrl(team.logoUrl())
                 .build();

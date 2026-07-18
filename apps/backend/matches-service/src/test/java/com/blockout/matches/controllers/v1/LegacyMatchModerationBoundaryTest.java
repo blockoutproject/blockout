@@ -11,9 +11,9 @@ import com.blockout.matches.match.persistence.Match;
 import com.blockout.matches.match.persistence.MatchRepository;
 import com.blockout.matches.match.live.persistence.MatchLiveLink;
 import com.blockout.matches.match.live.persistence.MatchLiveLinkRepository;
-import com.blockout.matches.models.enums.LiveLinkStatus;
-import com.blockout.matches.models.enums.LiveProvider;
-import com.blockout.matches.models.enums.MatchStatus;
+import com.blockout.shared.model.LiveLinkStatusEnum;
+import com.blockout.shared.model.LiveProviderEnum;
+import com.blockout.shared.model.MatchStatusEnum;
 import com.blockout.matches.shared.api.v1.LegacyMatchesJson;
 import java.lang.reflect.Proxy;
 import java.time.Clock;
@@ -28,10 +28,10 @@ class LegacyMatchModerationBoundaryTest {
     void moderationAdapterKeepsTheUnpagedSnakeCaseArrayAndLegacyOnlyFields() throws Exception {
         Instant now = Instant.parse("2026-07-17T10:00:00Z");
         Match match = Match.builder().id(1L).matchCode("M1").leagueCode("L1").poolId(9L)
-                .teamIdA(10L).teamIdB(11L).matchDate(now).season("2026").status(MatchStatus.FINISHED)
+                .teamIdA(10L).teamIdB(11L).matchDate(now).season("2026").status(MatchStatusEnum.FINISHED)
                 .liveCode(42L).active(true).createdAt(now).lastUpdate(now).build();
         MatchLiveLink link = MatchLiveLink.builder().id(100L).match(match).ownerAuth0Id("auth0|owner")
-                .provider(LiveProvider.YOUTUBE).url("https://youtu.be/a").status(LiveLinkStatus.ACTIVE)
+                .provider(LiveProviderEnum.YOUTUBE).url("https://youtu.be/a").status(LiveLinkStatusEnum.ACTIVE)
                 .createdAt(now).lastUpdate(now).build();
         match.setLiveLinks(List.of(link));
         MatchRepository matches = (MatchRepository) Proxy.newProxyInstance(
@@ -56,7 +56,7 @@ class LegacyMatchModerationBoundaryTest {
                 Clock.fixed(now, ZoneOffset.UTC));
         var controller = new MatchController(null, null, service, new LegacyMatchesJson());
 
-        String body = controller.listMatchesForLiveModeration(LiveLinkStatus.ACTIVE).getBody();
+        String body = controller.listMatchesForLiveModeration(LiveLinkStatusEnum.ACTIVE).getBody();
 
         assertThat(body).startsWith("[").endsWith("]");
         assertThat(body).contains("\"match_code\":\"M1\"", "\"league_code\":\"L1\"",

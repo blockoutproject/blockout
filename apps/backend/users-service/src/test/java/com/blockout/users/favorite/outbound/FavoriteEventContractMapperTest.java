@@ -1,13 +1,13 @@
 package com.blockout.users.favorite.outbound;
 
+import com.blockout.shared.model.FavoriteEventActionEnum;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 
 import com.blockout.events.v2.model.EventType;
-import com.blockout.users.favorite.application.FavoriteEventAction;
 import com.blockout.users.favorite.application.FavoriteEventFact;
 import com.blockout.users.favorite.application.FavoriteEventMetadata;
-import com.blockout.users.models.enums.EntityType;
+import com.blockout.shared.model.EntityTypeEnum;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -22,7 +22,7 @@ class FavoriteEventContractMapperTest {
     @Test
     void mapsTeamFollowToTheGeneratedEnvelope() {
         var event = mapper.toTeamFollowed(
-                new FavoriteEventFact(7L, EntityType.TEAM, 2L, FavoriteEventAction.FOLLOWED),
+                new FavoriteEventFact(7L, EntityTypeEnum.TEAM, 2L, FavoriteEventActionEnum.FOLLOWED),
                 metadata);
 
         assertThat(event.eventId()).isEqualTo(EVENT_ID);
@@ -38,7 +38,7 @@ class FavoriteEventContractMapperTest {
     @Test
     void mapsPoolUnfollowToTheGeneratedEnvelope() {
         var event = mapper.toPoolUnfollowed(
-                new FavoriteEventFact(7L, EntityType.POOL, 4L, FavoriteEventAction.UNFOLLOWED),
+                new FavoriteEventFact(7L, EntityTypeEnum.POOL, 4L, FavoriteEventActionEnum.UNFOLLOWED),
                 metadata);
 
         assertThat(event.eventType()).isEqualTo(EventType.POOL_UNFOLLOWED);
@@ -50,9 +50,9 @@ class FavoriteEventContractMapperTest {
     @Test
     void rejectsNonPositiveIdentifiersAndRouteContradictions() {
         assertThatIllegalArgumentException().isThrownBy(() ->
-                new FavoriteEventFact(0L, EntityType.TEAM, 2L, FavoriteEventAction.FOLLOWED));
+                new FavoriteEventFact(0L, EntityTypeEnum.TEAM, 2L, FavoriteEventActionEnum.FOLLOWED));
         assertThatIllegalArgumentException().isThrownBy(() -> mapper.toPoolFollowed(
-                new FavoriteEventFact(7L, EntityType.TEAM, 2L, FavoriteEventAction.FOLLOWED),
+                new FavoriteEventFact(7L, EntityTypeEnum.TEAM, 2L, FavoriteEventActionEnum.FOLLOWED),
                 metadata));
     }
 }

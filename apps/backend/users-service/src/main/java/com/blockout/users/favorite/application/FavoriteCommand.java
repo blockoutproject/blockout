@@ -1,7 +1,7 @@
 package com.blockout.users.favorite.application;
 
-import com.blockout.users.models.enums.EntityType;
+import com.blockout.shared.model.EntityTypeEnum;
 
 /** Identifies one authenticated request to change canonical favorite state. */
-public record FavoriteCommand(String auth0Id, EntityType entityType, Long entityId) {
+public record FavoriteCommand(String auth0Id, EntityTypeEnum entityType, Long entityId) {
 }

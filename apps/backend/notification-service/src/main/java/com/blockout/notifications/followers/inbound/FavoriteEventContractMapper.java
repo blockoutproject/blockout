@@ -1,13 +1,13 @@
 package com.blockout.notifications.followers.inbound;
 
+import com.blockout.shared.model.FollowerProjectionActionEnum;
 import com.blockout.events.v2.model.EventType;
 import com.blockout.events.v2.model.PoolFollowedV2Event;
 import com.blockout.events.v2.model.PoolUnfollowedV2Event;
 import com.blockout.events.v2.model.TeamFollowedV2Event;
 import com.blockout.events.v2.model.TeamUnfollowedV2Event;
-import com.blockout.notifications.followers.application.FollowerProjectionAction;
 import com.blockout.notifications.followers.application.FollowerProjectionCommand;
-import com.blockout.notifications.models.enums.EntityType;
+import com.blockout.shared.model.EntityTypeEnum;
 import org.springframework.stereotype.Component;
 
 /** Validates generated v2 records and maps them immediately to application projection commands. */
@@ -21,9 +21,9 @@ public class FavoriteEventContractMapper {
         requireEnvelope(event.eventId(), event.occurredAt(), event.producer(), event.schemaVersion());
         var command = new FollowerProjectionCommand(
                 event.payload().userId(),
-                EntityType.TEAM,
+                EntityTypeEnum.TEAM,
                 event.payload().teamId(),
-                requireType(event.eventType(), EventType.TEAM_FOLLOWED, FollowerProjectionAction.FOLLOW));
+                requireType(event.eventType(), EventType.TEAM_FOLLOWED, FollowerProjectionActionEnum.FOLLOW));
         requireOrderingKey(event.orderingKey(), command);
         return command;
     }
@@ -32,9 +32,9 @@ public class FavoriteEventContractMapper {
         requireEnvelope(event.eventId(), event.occurredAt(), event.producer(), event.schemaVersion());
         var command = new FollowerProjectionCommand(
                 event.payload().userId(),
-                EntityType.TEAM,
+                EntityTypeEnum.TEAM,
                 event.payload().teamId(),
-                requireType(event.eventType(), EventType.TEAM_UNFOLLOWED, FollowerProjectionAction.UNFOLLOW));
+                requireType(event.eventType(), EventType.TEAM_UNFOLLOWED, FollowerProjectionActionEnum.UNFOLLOW));
         requireOrderingKey(event.orderingKey(), command);
         return command;
     }
@@ -43,9 +43,9 @@ public class FavoriteEventContractMapper {
         requireEnvelope(event.eventId(), event.occurredAt(), event.producer(), event.schemaVersion());
         var command = new FollowerProjectionCommand(
                 event.payload().userId(),
-                EntityType.POOL,
+                EntityTypeEnum.POOL,
                 event.payload().poolId(),
-                requireType(event.eventType(), EventType.POOL_FOLLOWED, FollowerProjectionAction.FOLLOW));
+                requireType(event.eventType(), EventType.POOL_FOLLOWED, FollowerProjectionActionEnum.FOLLOW));
         requireOrderingKey(event.orderingKey(), command);
         return command;
     }
@@ -54,15 +54,15 @@ public class FavoriteEventContractMapper {
         requireEnvelope(event.eventId(), event.occurredAt(), event.producer(), event.schemaVersion());
         var command = new FollowerProjectionCommand(
                 event.payload().userId(),
-                EntityType.POOL,
+                EntityTypeEnum.POOL,
                 event.payload().poolId(),
-                requireType(event.eventType(), EventType.POOL_UNFOLLOWED, FollowerProjectionAction.UNFOLLOW));
+                requireType(event.eventType(), EventType.POOL_UNFOLLOWED, FollowerProjectionActionEnum.UNFOLLOW));
         requireOrderingKey(event.orderingKey(), command);
         return command;
     }
 
-    private FollowerProjectionAction requireType(
-            EventType actual, EventType expected, FollowerProjectionAction action) {
+    private FollowerProjectionActionEnum requireType(
+            EventType actual, EventType expected, FollowerProjectionActionEnum action) {
         if (actual != expected) {
             throw new IllegalArgumentException("Unexpected favorite eventType: " + actual);
         }

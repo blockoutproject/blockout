@@ -2,8 +2,8 @@ package com.blockout.workersearch.projection.snapshot.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.blockout.workersearch.models.enums.Format;
-import com.blockout.workersearch.models.enums.Gender;
+import com.blockout.shared.model.FormatEnum;
+import com.blockout.shared.model.GenderEnum;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
@@ -55,6 +55,6 @@ class ProjectionCachesTest {
 
     private TeamCacheSnapshot team(Long id, String clubId, String name) {
         return new TeamCacheSnapshot(
-                id, name, name, clubId, 10L, Format.SIX, Gender.M, "2026", null);
+                id, name, name, clubId, 10L, FormatEnum.SIX, GenderEnum.M, "2026", null);
     }
 }

@@ -1665,10 +1665,23 @@ state moves to GitHub and this file becomes a historical migration record.
     topology, runtime behavior, dependencies, deployment, production, and Maaatch are unchanged;
     `docs/migration/mrg-431-generated-output-ownership.md` records ownership, clean-checkout build order,
     superseded clauses, compatibility, and rollback.
-- [ ] MRG-432 Replace every handwritten backend Java `enum` declaration with a generated shared-contract enum,
+- [x] MRG-432 Replace every handwritten backend Java `enum` declaration with a generated shared-contract enum,
       including application intent/result values, while retaining the generated AsyncAPI `EventType` in the shared
       event-contract module. Remove service-local enum copies, keep generated sources out of Git, prove clean-checkout
       generation and full behavioral parity, and add a repository guard preventing handwritten backend enums.
+  - Evidence: nine source-owned shared schemas now generate application intent, result, delta, image-mode, lifecycle,
+    and moderation enums alongside the twelve existing REST-visible enums; all 36 standalone enum files and five
+    nested declarations were removed from matches, mobile-gateway, notification, pools, search-worker, teams, users,
+    and clubs consumers. The generated AsyncAPI `EventType` remains event-contract authority, JPA string values and
+    deployed wire symbols are unchanged, and redundant identity mappers were removed. The zero-allowlist repository
+    guard inspects 1,178 handwritten backend Java files and runs in PR CI, Push CI, and the local gate. The complete
+    local verification passes deterministic ignored REST/event/Expo/Python generation, the 16-module Maven reactor,
+    all backend Dockerfile checks, mobile form tests/typecheck and Android/iOS export, 23 Python boundary tests, both
+    scraper syntax/image builds, Compose, formatting, documentation, and final zero-tracked-generated verification;
+    the full non-context Maven test suite also passes, while the pre-existing Spring context test still requires an
+    `AUTH0_ISSUER` runtime value. Contracts, event topology, database values, behavior, dependencies, deployment,
+    production, and Maaatch are unchanged; `docs/migration/mrg-432-generated-backend-enums.md` records source
+    ownership, inventory, generation, compatibility, enforcement, and rollback.
 - [ ] MRG-433 Integrate both Python scrapers and the shared generated Python contract client into the Nx project graph
       with `@nxlv/python` and `uv`. Define one coherent workspace, environment, lockfile, dependency-graph, generation,
       test, package, Docker, and CI ownership model; retire duplicated `requirements.txt` flows only after proving image

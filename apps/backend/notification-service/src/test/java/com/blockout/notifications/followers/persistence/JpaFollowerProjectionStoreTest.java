@@ -3,7 +3,7 @@ package com.blockout.notifications.followers.persistence;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.blockout.notifications.followers.application.FollowerProjectionTarget;
-import com.blockout.notifications.models.enums.EntityType;
+import com.blockout.shared.model.EntityTypeEnum;
 import java.lang.reflect.Proxy;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -19,8 +19,8 @@ class JpaFollowerProjectionStoreTest {
         FollowerProjectionRepository repository = repository(calls, List.of());
         JpaFollowerProjectionStore store = new JpaFollowerProjectionStore(repository);
 
-        assertThat(store.add(7L, new FollowerProjectionTarget(EntityType.TEAM, 2L))).isTrue();
-        assertThat(store.remove(7L, new FollowerProjectionTarget(EntityType.POOL, 4L))).isFalse();
+        assertThat(store.add(7L, new FollowerProjectionTarget(EntityTypeEnum.TEAM, 2L))).isTrue();
+        assertThat(store.remove(7L, new FollowerProjectionTarget(EntityTypeEnum.POOL, 4L))).isFalse();
 
         assertThat(calls).containsExactly(
                 "insert:7:TEAM:2",
@@ -31,20 +31,20 @@ class JpaFollowerProjectionStoreTest {
     void projectsBoundedRowsIntoApplicationTargets() {
         FollowerProjectionEntity team = FollowerProjectionEntity.builder()
                 .userId(7L)
-                .entityType(EntityType.TEAM)
+                .entityType(EntityTypeEnum.TEAM)
                 .entityId(2L)
                 .build();
         FollowerProjectionEntity pool = FollowerProjectionEntity.builder()
                 .userId(7L)
-                .entityType(EntityType.POOL)
+                .entityType(EntityTypeEnum.POOL)
                 .entityId(4L)
                 .build();
         JpaFollowerProjectionStore store = new JpaFollowerProjectionStore(
                 repository(new ArrayList<>(), List.of(team, pool)));
 
         assertThat(store.findByUserId(7L)).containsExactlyInAnyOrder(
-                new FollowerProjectionTarget(EntityType.TEAM, 2L),
-                new FollowerProjectionTarget(EntityType.POOL, 4L));
+                new FollowerProjectionTarget(EntityTypeEnum.TEAM, 2L),
+                new FollowerProjectionTarget(EntityTypeEnum.POOL, 4L));
     }
 
     @Test

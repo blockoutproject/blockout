@@ -26,7 +26,7 @@ public class UserFavoriteV2Controller implements UserFavoritesApi {
     public ResponseEntity<UserFavoritePageResponse> listUserFavorites(
             Long userId, EntityTypeEnum entityType, Integer page, Integer pageSize) {
         return ResponseEntity.ok(mapper.toResponse(
-                favorites.listPage(userId, mapper.toApplication(entityType), page, pageSize)));
+                favorites.listPage(userId, entityType, page, pageSize)));
     }
 
     /** {@inheritDoc} */
@@ -37,7 +37,7 @@ public class UserFavoriteV2Controller implements UserFavoritesApi {
             """)
     public ResponseEntity<Void> followEntity(EntityTypeEnum entityType, Long entityId) {
         favorites.follow(new FavoriteCommand(
-                authenticatedSubject.get(), mapper.toApplication(entityType), entityId));
+                authenticatedSubject.get(), entityType, entityId));
         return ResponseEntity.noContent().build();
     }
 
@@ -49,7 +49,7 @@ public class UserFavoriteV2Controller implements UserFavoritesApi {
             """)
     public ResponseEntity<Void> unfollowEntity(EntityTypeEnum entityType, Long entityId) {
         favorites.unfollow(new FavoriteCommand(
-                authenticatedSubject.get(), mapper.toApplication(entityType), entityId));
+                authenticatedSubject.get(), entityType, entityId));
         return ResponseEntity.noContent().build();
     }
 }

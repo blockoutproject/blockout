@@ -2,9 +2,9 @@ package com.blockout.mobilegateway.models.dto.match;
 
 import java.time.Instant;
 
-import com.blockout.mobilegateway.models.enums.LiveLinkStatus;
-import com.blockout.mobilegateway.models.enums.LiveProvider;
-import com.blockout.mobilegateway.models.enums.MatchStatus;
+import com.blockout.shared.model.LiveLinkStatusEnum;
+import com.blockout.shared.model.LiveProviderEnum;
+import com.blockout.shared.model.MatchStatusEnum;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -37,15 +37,15 @@ public class MatchLiveSummaryDTO {
 
     private String score;
 
-    private MatchStatus status;
+    private MatchStatusEnum status;
 
     private Long liveCode;
 
     private Long lastLiveLinkId;
 
-    private LiveLinkStatus lastLiveLinkStatus;
+    private LiveLinkStatusEnum lastLiveLinkStatus;
 
-    private LiveProvider lastLiveLinkProvider;
+    private LiveProviderEnum lastLiveLinkProvider;
 
     private String lastLiveLinkUrl;
 

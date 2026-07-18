@@ -7,8 +7,8 @@ import com.blockout.events.v2.model.PoolDeactivationV2Event;
 import com.blockout.events.v2.model.PoolUpsertV2Event;
 import com.blockout.events.v2.model.TeamDeactivationV2Event;
 import com.blockout.events.v2.model.TeamUpsertV2Event;
-import com.blockout.workersearch.models.enums.Format;
-import com.blockout.workersearch.models.enums.Gender;
+import com.blockout.shared.model.FormatEnum;
+import com.blockout.shared.model.GenderEnum;
 import com.blockout.workersearch.models.events.ClubDeactivationEvent;
 import com.blockout.workersearch.models.events.ClubUpsertEvent;
 import com.blockout.workersearch.models.events.PoolDeactivationEvent;
@@ -53,8 +53,8 @@ public class LifecycleV2MessageDecoder {
         var payload = event.payload();
         return decoded(event.eventId(), event.eventType(), TeamUpsertEvent.builder()
                 .id(payload.id()).name(payload.name()).shortName(payload.shortName()).clubId(payload.clubId())
-                .divisionId(payload.divisionId()).format(enumValue(Format.class, payload.format()))
-                .gender(enumValue(Gender.class, payload.gender())).season(payload.season()).logoUrl(payload.logoUrl())
+                .divisionId(payload.divisionId()).format(enumValue(FormatEnum.class, payload.format()))
+                .gender(enumValue(GenderEnum.class, payload.gender())).season(payload.season()).logoUrl(payload.logoUrl())
                 .build());
     }
 
@@ -68,7 +68,7 @@ public class LifecycleV2MessageDecoder {
         return decoded(event.eventId(), event.eventType(), PoolUpsertEvent.builder()
                 .id(payload.id()).name(payload.name()).shortName(payload.shortName()).divisionId(payload.divisionId())
                 .leagueCode(payload.leagueCode()).leagueName(payload.leagueName()).season(payload.season())
-                .format(enumValue(Format.class, payload.format())).gender(enumValue(Gender.class, payload.gender()))
+                .format(enumValue(FormatEnum.class, payload.format())).gender(enumValue(GenderEnum.class, payload.gender()))
                 .build());
     }
 

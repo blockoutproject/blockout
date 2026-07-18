@@ -1,6 +1,6 @@
 package com.blockout.mobilegateway.models.dto.user;
 
-import com.blockout.mobilegateway.models.enums.EntityType;
+import com.blockout.shared.model.EntityTypeEnum;
 
 import lombok.Builder;
 import lombok.Data;
@@ -8,7 +8,7 @@ import lombok.Data;
 @Data
 @Builder
 public class UserFavoriteDTO {
-    private EntityType entityType;
+    private EntityTypeEnum entityType;
 
     private Long entityId;
 }

@@ -4,9 +4,9 @@ import java.time.Instant;
 
 import com.blockout.mobilegateway.models.dto.pool.EnrichedPoolDTO;
 import com.blockout.mobilegateway.models.dto.team.TeamDTO;
-import com.blockout.mobilegateway.models.enums.LiveLinkStatus;
-import com.blockout.mobilegateway.models.enums.LiveProvider;
-import com.blockout.mobilegateway.models.enums.MatchStatus;
+import com.blockout.shared.model.LiveLinkStatusEnum;
+import com.blockout.shared.model.LiveProviderEnum;
+import com.blockout.shared.model.MatchStatusEnum;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 import lombok.AllArgsConstructor;
@@ -29,15 +29,15 @@ public class EnrichedMatchLiveSummaryDTO {
     private String set;
     private String score;
 
-    private MatchStatus status;
+    private MatchStatusEnum status;
 
     private Long liveCode;
 
     private Long lastLiveLinkId;
 
-    private LiveLinkStatus lastLiveLinkStatus;
+    private LiveLinkStatusEnum lastLiveLinkStatus;
 
-    private LiveProvider lastLiveLinkProvider;
+    private LiveProviderEnum lastLiveLinkProvider;
 
     private String lastLiveLinkUrl;
 

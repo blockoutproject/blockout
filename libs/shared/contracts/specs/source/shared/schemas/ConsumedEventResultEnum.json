@@ -1,0 +1,7 @@
+{
+  "ConsumedEventResultEnum": {
+    "type": "string",
+    "description": "Application outcomes for an idempotently consumed event.",
+    "enum": ["APPLIED", "DUPLICATE"]
+  }
+}

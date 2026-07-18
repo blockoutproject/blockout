@@ -1,8 +1,9 @@
 package com.blockout.users.account.application;
 
+import com.blockout.shared.model.ImageChangeModeEnum;
 /** Captures one explicit profile-image storage plan before any external effect occurs. */
 public record ProfileImageMutationPlan(
-        UserProfileImageChange.Mode mode,
+        ImageChangeModeEnum mode,
         String currentUrl,
         UserProfileImageUpload replacement) {
 

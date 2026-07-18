@@ -1,16 +1,16 @@
 package com.blockout.users.favorite.outbound;
 
+import com.blockout.shared.model.FavoriteEventActionEnum;
 import com.blockout.outbox.OutboxEvent;
 import com.blockout.outbox.OutboxMetadata;
 import com.blockout.outbox.OutboxRecorder;
 import com.blockout.users.account.application.AccountDeletionEventPublisher;
 import com.blockout.users.config.RabbitMQConfig;
-import com.blockout.users.favorite.application.FavoriteEventAction;
 import com.blockout.users.favorite.application.FavoriteEventFact;
 import com.blockout.users.favorite.application.FavoriteEventMetadata;
 import com.blockout.users.favorite.application.FavoriteEventPublisher;
-import com.blockout.users.models.enums.EntityType;
-import com.blockout.users.models.enums.EventType;
+import com.blockout.shared.model.EntityTypeEnum;
+import com.blockout.shared.model.EntityEventActionEnum;
 import com.blockout.users.models.events.UserFollowEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -27,26 +27,26 @@ public class FavoriteOutboxEventPublisher implements FavoriteEventPublisher, Acc
     private final FavoriteEventContractMapper contractMapper;
 
     @Override
-    public void publishCreated(Long userId, EntityType entityType, Long entityId) {
-        record(userId, entityType, entityId, EventType.CREATED, FavoriteEventAction.FOLLOWED);
+    public void publishCreated(Long userId, EntityTypeEnum entityType, Long entityId) {
+        record(userId, entityType, entityId, EntityEventActionEnum.CREATED, FavoriteEventActionEnum.FOLLOWED);
     }
 
     @Override
-    public void publishDeleted(Long userId, EntityType entityType, Long entityId) {
-        record(userId, entityType, entityId, EventType.DELETED, FavoriteEventAction.UNFOLLOWED);
+    public void publishDeleted(Long userId, EntityTypeEnum entityType, Long entityId) {
+        record(userId, entityType, entityId, EntityEventActionEnum.DELETED, FavoriteEventActionEnum.UNFOLLOWED);
     }
 
     @Override
-    public void publishFavoriteDeleted(Long userId, EntityType entityType, Long entityId) {
+    public void publishFavoriteDeleted(Long userId, EntityTypeEnum entityType, Long entityId) {
         publishDeleted(userId, entityType, entityId);
     }
 
     private void record(
             Long userId,
-            EntityType entityType,
+            EntityTypeEnum entityType,
             Long entityId,
-            EventType legacyType,
-            FavoriteEventAction action) {
+            EntityEventActionEnum legacyType,
+            FavoriteEventActionEnum action) {
         OutboxMetadata metadata = outbox.newMetadata();
         FavoriteEventFact fact = new FavoriteEventFact(userId, entityType, entityId, action);
         FavoriteEventMetadata contractMetadata = new FavoriteEventMetadata(
@@ -64,22 +64,22 @@ public class FavoriteOutboxEventPublisher implements FavoriteEventPublisher, Acc
 
     private Object canonical(FavoriteEventFact fact, FavoriteEventMetadata metadata) {
         return switch (fact.entityType()) {
-            case TEAM -> fact.action() == FavoriteEventAction.FOLLOWED
+            case TEAM -> fact.action() == FavoriteEventActionEnum.FOLLOWED
                     ? contractMapper.toTeamFollowed(fact, metadata)
                     : contractMapper.toTeamUnfollowed(fact, metadata);
-            case POOL -> fact.action() == FavoriteEventAction.FOLLOWED
+            case POOL -> fact.action() == FavoriteEventActionEnum.FOLLOWED
                     ? contractMapper.toPoolFollowed(fact, metadata)
                     : contractMapper.toPoolUnfollowed(fact, metadata);
         };
     }
 
     private com.blockout.events.v2.model.EventType canonicalEventType(
-            EntityType entityType, FavoriteEventAction action) {
+            EntityTypeEnum entityType, FavoriteEventActionEnum action) {
         return switch (entityType) {
-            case TEAM -> action == FavoriteEventAction.FOLLOWED
+            case TEAM -> action == FavoriteEventActionEnum.FOLLOWED
                     ? com.blockout.events.v2.model.EventType.TEAM_FOLLOWED
                     : com.blockout.events.v2.model.EventType.TEAM_UNFOLLOWED;
-            case POOL -> action == FavoriteEventAction.FOLLOWED
+            case POOL -> action == FavoriteEventActionEnum.FOLLOWED
                     ? com.blockout.events.v2.model.EventType.POOL_FOLLOWED
                     : com.blockout.events.v2.model.EventType.POOL_UNFOLLOWED;
         };

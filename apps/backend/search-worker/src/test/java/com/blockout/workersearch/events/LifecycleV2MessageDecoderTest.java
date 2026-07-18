@@ -16,8 +16,8 @@ import com.blockout.events.v2.model.TeamDeactivationV2Event;
 import com.blockout.events.v2.model.TeamDeactivationV2Payload;
 import com.blockout.events.v2.model.TeamUpsertV2Event;
 import com.blockout.events.v2.model.TeamUpsertV2Payload;
-import com.blockout.workersearch.models.enums.Format;
-import com.blockout.workersearch.models.enums.Gender;
+import com.blockout.shared.model.FormatEnum;
+import com.blockout.shared.model.GenderEnum;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import java.time.OffsetDateTime;
@@ -69,9 +69,9 @@ class LifecycleV2MessageDecoderTest {
                 poolDeleteId, "POOL_DEACTIVATED", "competition-service", "pool:4"));
 
         assertThat(club.projectionEvent().getCity()).isEqualTo("Paris");
-        assertThat(team.projectionEvent().getFormat()).isEqualTo(Format.SIX);
-        assertThat(team.projectionEvent().getGender()).isEqualTo(Gender.F);
-        assertThat(pool.projectionEvent().getFormat()).isEqualTo(Format.FOUR);
+        assertThat(team.projectionEvent().getFormat()).isEqualTo(FormatEnum.SIX);
+        assertThat(team.projectionEvent().getGender()).isEqualTo(GenderEnum.F);
+        assertThat(pool.projectionEvent().getFormat()).isEqualTo(FormatEnum.FOUR);
         assertThat(clubDelete.projectionEvent().getClubId()).isEqualTo("c1");
         assertThat(teamDelete.projectionEvent().getTeamId()).isEqualTo(2L);
         assertThat(poolDelete.projectionEvent().getPoolId()).isEqualTo(4L);

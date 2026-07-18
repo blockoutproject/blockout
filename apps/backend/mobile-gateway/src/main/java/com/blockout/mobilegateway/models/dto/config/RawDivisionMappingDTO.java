@@ -2,8 +2,8 @@ package com.blockout.mobilegateway.models.dto.config;
 
 import java.time.LocalDateTime;
 
-import com.blockout.mobilegateway.models.enums.Format;
-import com.blockout.mobilegateway.models.enums.Gender;
+import com.blockout.shared.model.FormatEnum;
+import com.blockout.shared.model.GenderEnum;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -19,8 +19,8 @@ public class RawDivisionMappingDTO {
 
     private Long divisionId;
 
-    private Format format;
-    private Gender gender;
+    private FormatEnum format;
+    private GenderEnum gender;
 
     private String leagueCode;
 

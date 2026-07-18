@@ -7,7 +7,7 @@ import com.blockout.events.v2.model.TeamFollowedV2Event;
 import com.blockout.outbox.OutboxEvent;
 import com.blockout.outbox.OutboxMetadata;
 import com.blockout.outbox.OutboxRecorder;
-import com.blockout.users.models.enums.EntityType;
+import com.blockout.shared.model.EntityTypeEnum;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -22,8 +22,8 @@ class FavoriteOutboxEventPublisherTest {
         FavoriteOutboxEventPublisher publisher =
                 new FavoriteOutboxEventPublisher(recorder, new FavoriteEventContractMapper());
 
-        publisher.publishCreated(10L, EntityType.TEAM, 20L);
-        publisher.publishFavoriteDeleted(11L, EntityType.POOL, 21L);
+        publisher.publishCreated(10L, EntityTypeEnum.TEAM, 20L);
+        publisher.publishFavoriteDeleted(11L, EntityTypeEnum.POOL, 21L);
 
         assertThat(recorder.events).extracting(OutboxEvent::eventType)
                 .containsExactly("TEAM_FOLLOWED", "POOL_UNFOLLOWED");

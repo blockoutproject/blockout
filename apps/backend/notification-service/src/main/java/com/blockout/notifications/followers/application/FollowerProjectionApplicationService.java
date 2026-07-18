@@ -1,5 +1,7 @@
 package com.blockout.notifications.followers.application;
 
+import com.blockout.shared.model.FollowerProjectionMutationEnum;
+import com.blockout.shared.model.FollowerProjectionActionEnum;
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
 import java.util.LinkedHashSet;
@@ -22,14 +24,14 @@ public class FollowerProjectionApplicationService
 
     @Transactional
     @Override
-    public FollowerProjectionMutation apply(FollowerProjectionCommand command) {
+    public FollowerProjectionMutationEnum apply(FollowerProjectionCommand command) {
         FollowerProjectionTarget target = new FollowerProjectionTarget(command.entityType(), command.entityId());
-        boolean changed = command.action() == FollowerProjectionAction.FOLLOW
+        boolean changed = command.action() == FollowerProjectionActionEnum.FOLLOW
                 ? store.add(command.userId(), target)
                 : store.remove(command.userId(), target);
-        FollowerProjectionMutation result = changed
-                ? FollowerProjectionMutation.APPLIED
-                : FollowerProjectionMutation.UNCHANGED;
+        FollowerProjectionMutationEnum result = changed
+                ? FollowerProjectionMutationEnum.APPLIED
+                : FollowerProjectionMutationEnum.UNCHANGED;
         LOGGER.info("Follower projection command applied",
                 keyValue("action", "follower_projection_command"),
                 keyValue("userId", command.userId()),

@@ -13,12 +13,10 @@ import com.blockout.matches.match.application.MatchSnapshot;
 import com.blockout.matches.match.application.UpdateMatchCommand;
 import com.blockout.matches.match.live.moderation.application.MatchLiveModerationApplicationService;
 import com.blockout.matches.match.live.moderation.application.MatchLiveModerationView;
-import com.blockout.matches.models.enums.LiveLinkStatus;
-import com.blockout.matches.models.enums.LiveProvider;
-import com.blockout.matches.models.enums.MatchStatus;
-import com.blockout.matches.shared.api.v1.LegacyMatchesJson;
 import com.blockout.shared.model.LiveLinkStatusEnum;
+import com.blockout.shared.model.LiveProviderEnum;
 import com.blockout.shared.model.MatchStatusEnum;
+import com.blockout.matches.shared.api.v1.LegacyMatchesJson;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import java.net.URI;
 import java.time.Instant;
@@ -53,7 +51,7 @@ public class MatchController {
     public ResponseEntity<String> listMatches(
             @RequestParam(required = false, name = "pool_id") Long poolId,
             @RequestParam(required = false, name = "team_ids") List<Long> teamIds,
-            @RequestParam(required = false) MatchStatus status,
+            @RequestParam(required = false) MatchStatusEnum status,
             @RequestParam(required = false) Boolean active) throws JsonProcessingException {
         List<LegacyMatchResponse> response = matches.findAll(
                 new MatchQuery(poolId, teamIds, applicationStatus(status), active)).stream()
@@ -68,7 +66,7 @@ public class MatchController {
             @RequestParam(defaultValue = "4") int size,
             @RequestParam(required = false, name = "pool_ids") List<Long> poolIds,
             @RequestParam(required = false, name = "team_ids") List<Long> teamIds,
-            @RequestParam(required = false) MatchStatus status,
+            @RequestParam(required = false) MatchStatusEnum status,
             @RequestParam(required = false) Boolean active) throws JsonProcessingException {
         MatchDayPage result = matchDays.findPage(new com.blockout.matches.match.application.MatchDayQuery(
                 poolIds == null ? Collections.emptyList() : poolIds,
@@ -116,7 +114,7 @@ public class MatchController {
     @GetMapping("/live-moderation")
     @PreAuthorize("hasAuthority('SCOPE_moderate:match_live_link')")
     public ResponseEntity<String> listMatchesForLiveModeration(
-            @RequestParam(value = "status", required = false) LiveLinkStatus statusFilter)
+            @RequestParam(value = "status", required = false) LiveLinkStatusEnum statusFilter)
             throws JsonProcessingException {
         LiveLinkStatusEnum status = statusFilter == null
                 ? null
@@ -129,7 +127,7 @@ public class MatchController {
     private LegacyMatchResponse legacyResponse(MatchSnapshot match) {
         return new LegacyMatchResponse(match.id(), match.matchCode(), match.leagueCode(), match.poolId(),
                 match.liveCode(), match.teamIdA(), match.teamIdB(), match.matchDate(), match.season(), match.set(),
-                match.score(), match.status() == null ? null : MatchStatus.valueOf(match.status().getValue()),
+                match.score(), match.status() == null ? null : MatchStatusEnum.valueOf(match.status().getValue()),
                 match.venue(), match.firstReferee(), match.secondReferee(), match.active(), match.createdAt(),
                 match.lastUpdate());
     }
@@ -137,9 +135,9 @@ public class MatchController {
     private LegacyMatchDetailResponse legacyResponse(MatchDetailView match) {
         return new LegacyMatchDetailResponse(match.id(), match.matchCode(), match.leagueCode(), match.poolId(),
                 match.liveCode(), match.teamIdA(), match.teamIdB(), match.matchDate(), match.season(), match.set(),
-                match.score(), MatchStatus.valueOf(match.status().getValue()), match.venue(), match.firstReferee(),
+                match.score(), MatchStatusEnum.valueOf(match.status().getValue()), match.venue(), match.firstReferee(),
                 match.secondReferee(), match.liveUrl(),
-                match.liveProvider() == null ? null : LiveProvider.valueOf(match.liveProvider().getValue()),
+                match.liveProvider() == null ? null : LiveProviderEnum.valueOf(match.liveProvider().getValue()),
                 match.liveOwnerAuth0Id());
     }
 
@@ -147,14 +145,14 @@ public class MatchController {
         return new LegacyMatchLiveModerationResponse(
                 match.id(), match.matchCode(), match.leagueCode(), match.poolId(), match.teamIdA(), match.teamIdB(),
                 match.matchDate(), match.season(), match.set(), match.score(),
-                match.status() == null ? null : MatchStatus.valueOf(match.status().getValue()), match.liveCode(),
+                match.status() == null ? null : MatchStatusEnum.valueOf(match.status().getValue()), match.liveCode(),
                 match.lastLiveLinkId(),
                 match.lastLiveLinkStatus() == null
                         ? null
-                        : LiveLinkStatus.valueOf(match.lastLiveLinkStatus().getValue()),
+                        : LiveLinkStatusEnum.valueOf(match.lastLiveLinkStatus().getValue()),
                 match.lastLiveLinkProvider() == null
                         ? null
-                        : LiveProvider.valueOf(match.lastLiveLinkProvider().getValue()),
+                        : LiveProviderEnum.valueOf(match.lastLiveLinkProvider().getValue()),
                 match.lastLiveLinkUrl(), match.lastLiveLinkOwnerAuth0Id(), match.lastLiveLinkCreatedAt());
     }
 
@@ -166,7 +164,7 @@ public class MatchController {
         return new LegacyPoolResponse(pool.poolId(), pool.matches().stream().map(this::legacyResponse).toList());
     }
 
-    private MatchStatusEnum applicationStatus(MatchStatus status) {
+    private MatchStatusEnum applicationStatus(MatchStatusEnum status) {
         return status == null ? null : MatchStatusEnum.fromValue(status.name());
     }
 
@@ -194,12 +192,12 @@ public class MatchController {
             String season,
             String set,
             String score,
-            MatchStatus status,
+            MatchStatusEnum status,
             String venue,
             String firstReferee,
             String secondReferee,
             String liveUrl,
-            LiveProvider liveProvider,
+            LiveProviderEnum liveProvider,
             String liveOwnerAuth0Id) {
     }
 
@@ -215,7 +213,7 @@ public class MatchController {
             String season,
             String set,
             String score,
-            MatchStatus status,
+            MatchStatusEnum status,
             String venue,
             String firstReferee,
             String secondReferee,
@@ -235,11 +233,11 @@ public class MatchController {
             String season,
             String set,
             String score,
-            MatchStatus status,
+            MatchStatusEnum status,
             Long liveCode,
             Long lastLiveLinkId,
-            LiveLinkStatus lastLiveLinkStatus,
-            LiveProvider lastLiveLinkProvider,
+            LiveLinkStatusEnum lastLiveLinkStatus,
+            LiveProviderEnum lastLiveLinkProvider,
             String lastLiveLinkUrl,
             String lastLiveLinkOwnerAuth0Id,
             Instant lastLiveLinkCreatedAt) {
@@ -257,7 +255,7 @@ public class MatchController {
             String season,
             String set,
             String score,
-            MatchStatus status,
+            MatchStatusEnum status,
             String venue,
             String firstReferee,
             String secondReferee,

@@ -1,7 +1,7 @@
 package com.blockout.mobilegateway.models.dto.pool;
 
-import com.blockout.mobilegateway.models.enums.Format;
-import com.blockout.mobilegateway.models.enums.Gender;
+import com.blockout.shared.model.FormatEnum;
+import com.blockout.shared.model.GenderEnum;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -34,9 +34,9 @@ public class PoolDTO {
 
     private Long divisionId;
 
-    private Format format;
+    private FormatEnum format;
 
-    private Gender gender;
+    private GenderEnum gender;
 
     private Long followersCount;
 

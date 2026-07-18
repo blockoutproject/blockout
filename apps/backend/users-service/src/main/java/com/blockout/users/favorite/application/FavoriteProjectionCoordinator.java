@@ -1,6 +1,7 @@
 package com.blockout.users.favorite.application;
 
-import com.blockout.users.models.enums.EntityType;
+import com.blockout.shared.model.FavoriteEventActionEnum;
+import com.blockout.shared.model.EntityTypeEnum;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -22,7 +23,7 @@ public class FavoriteProjectionCoordinator {
     }
 
     private void projectTeam(FavoriteChange change) {
-        if (change.action() == FavoriteEventAction.FOLLOWED) {
+        if (change.action() == FavoriteEventActionEnum.FOLLOWED) {
             teamFollowers.increment(change.target().entityId(), change.userId());
         } else {
             teamFollowers.decrement(change.target().entityId(), change.userId());
@@ -30,7 +31,7 @@ public class FavoriteProjectionCoordinator {
     }
 
     private void projectPool(FavoriteChange change) {
-        if (change.action() == FavoriteEventAction.FOLLOWED) {
+        if (change.action() == FavoriteEventActionEnum.FOLLOWED) {
             poolFollowers.increment(change.target().entityId(), change.userId());
         } else {
             poolFollowers.decrement(change.target().entityId(), change.userId());
@@ -38,7 +39,7 @@ public class FavoriteProjectionCoordinator {
     }
 
     private void projectNotification(FavoriteChange change) {
-        if (change.action() == FavoriteEventAction.FOLLOWED) {
+        if (change.action() == FavoriteEventActionEnum.FOLLOWED) {
             notificationFollowers.publishCreated(
                     change.userId(), change.target().entityType(), change.target().entityId());
         } else {

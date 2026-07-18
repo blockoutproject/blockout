@@ -11,7 +11,6 @@ import com.blockout.matches.match.application.MatchSnapshot;
 import com.blockout.matches.match.application.MatchStore;
 import com.blockout.matches.match.application.MatchUpdate;
 import com.blockout.matches.match.application.MatchUpdatePlan;
-import com.blockout.matches.models.enums.MatchStatus;
 import com.blockout.shared.model.MatchStatusEnum;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -103,8 +102,8 @@ public class JpaMatchStore implements MatchStore, MatchDayStore {
                 .stream().map(mapper::toSnapshot).toList();
     }
 
-    private MatchStatus persistenceStatus(MatchStatusEnum status) {
-        return status == null ? null : MatchStatus.valueOf(status.getValue());
+    private MatchStatusEnum persistenceStatus(MatchStatusEnum status) {
+        return status == null ? null : MatchStatusEnum.valueOf(status.getValue());
     }
 
     private final class JpaMatchUpdate implements MatchUpdate {

@@ -22,7 +22,7 @@ import com.blockout.mobilegateway.models.dto.pool.EnrichedPoolDTO;
 import com.blockout.mobilegateway.models.dto.pool.PoolDTO;
 import com.blockout.mobilegateway.models.dto.team.TeamDTO;
 import com.blockout.mobilegateway.models.dto.team.TeamWithStatsDTO;
-import com.blockout.mobilegateway.models.enums.LiveLinkStatus;
+import com.blockout.shared.model.LiveLinkStatusEnum;
 import com.blockout.mobilegateway.services.clients.ClubClientService;
 import com.blockout.mobilegateway.services.clients.CompetitionClientService;
 import com.blockout.mobilegateway.services.clients.ConfigClientService;
@@ -425,7 +425,7 @@ public class MatchService {
         return matchClientService.getLiveLinksHistory(matchId);
     }
 
-    public List<EnrichedMatchLiveSummaryDTO> listMatchesForLiveModeration(LiveLinkStatus statusFilter) {
+    public List<EnrichedMatchLiveSummaryDTO> listMatchesForLiveModeration(LiveLinkStatusEnum statusFilter) {
         logger.info("List live links for moderation",
                 keyValue("action", "list_match_live_links_for_moderation"),
                 keyValue("status_filter", statusFilter));

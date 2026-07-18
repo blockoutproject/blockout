@@ -4,7 +4,7 @@ import com.blockout.matches.match.application.MatchLiveProjection;
 import com.blockout.matches.match.application.MatchLiveProjectionStore;
 import com.blockout.matches.match.live.persistence.MatchLiveLink;
 import com.blockout.matches.match.live.persistence.MatchLiveLinkRepository;
-import com.blockout.matches.models.enums.LiveLinkStatus;
+import com.blockout.shared.model.LiveLinkStatusEnum;
 import com.blockout.shared.model.LiveProviderEnum;
 import java.util.List;
 import java.util.Optional;
@@ -19,13 +19,13 @@ public class JpaMatchLiveProjectionStore implements MatchLiveProjectionStore {
 
     @Override
     public Optional<MatchLiveProjection> findNewestActive(Long matchId) {
-        return repository.findFirstByMatch_IdAndStatusOrderByCreatedAtDesc(matchId, LiveLinkStatus.ACTIVE)
+        return repository.findFirstByMatch_IdAndStatusOrderByCreatedAtDesc(matchId, LiveLinkStatusEnum.ACTIVE)
                 .map(this::toProjection);
     }
 
     @Override
     public List<MatchLiveProjection> findActiveByMatchIds(List<Long> matchIds) {
-        return repository.findByMatchIdInAndStatus(matchIds, LiveLinkStatus.ACTIVE).stream()
+        return repository.findByMatchIdInAndStatus(matchIds, LiveLinkStatusEnum.ACTIVE).stream()
                 .map(this::toProjection)
                 .toList();
     }

@@ -2,7 +2,7 @@ package com.blockout.users.account.api.v1;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.blockout.users.models.enums.EntityType;
+import com.blockout.shared.model.EntityTypeEnum;
 import com.blockout.users.shared.api.v1.LegacyUsersJson;
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -29,7 +29,7 @@ class LegacyUserResponseShapeUnitTest {
                         null,
                         null,
                         List.of(new LegacyUserController.LegacyUserFavoriteEntityResponse(
-                                5L, EntityType.TEAM, 11L, LocalDateTime.parse("2026-07-01T09:00:00"))),
+                                5L, EntityTypeEnum.TEAM, 11L, LocalDateTime.parse("2026-07-01T09:00:00"))),
                         true,
                         Instant.parse("2026-07-01T10:00:00Z"),
                         Instant.parse("2026-07-01T10:00:00Z"));

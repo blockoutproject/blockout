@@ -1,7 +1,7 @@
 package com.blockout.mobilegateway.models.dto.pool;
 
-import com.blockout.mobilegateway.models.enums.Format;
-import com.blockout.mobilegateway.models.enums.Gender;
+import com.blockout.shared.model.FormatEnum;
+import com.blockout.shared.model.GenderEnum;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -30,9 +30,9 @@ public class PoolUpdateDTO {
 
     private Long divisionId;
 
-    private Format format;
+    private FormatEnum format;
 
-    private Gender gender;
+    private GenderEnum gender;
 
     private Boolean active;
 }

@@ -5,8 +5,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import com.blockout.mobilegateway.models.enums.Format;
-import com.blockout.mobilegateway.models.enums.Gender;
+import com.blockout.shared.model.FormatEnum;
+import com.blockout.shared.model.GenderEnum;
 
 @Data
 @Builder
@@ -27,9 +27,9 @@ public class TeamDTO {
 
     private Long divisionId;
 
-    private Format format;
+    private FormatEnum format;
 
-    private Gender gender;
+    private GenderEnum gender;
 
     private String season;
 

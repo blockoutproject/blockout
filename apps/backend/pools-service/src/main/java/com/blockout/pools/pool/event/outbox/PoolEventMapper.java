@@ -4,8 +4,8 @@ import com.blockout.events.v2.model.EventType;
 import com.blockout.events.v2.model.PoolUpsertV2Event;
 import com.blockout.events.v2.model.PoolUpsertV2Payload;
 import com.blockout.outbox.OutboxMetadata;
-import com.blockout.pools.models.enums.Format;
-import com.blockout.pools.models.enums.Gender;
+import com.blockout.shared.model.FormatEnum;
+import com.blockout.shared.model.GenderEnum;
 import com.blockout.pools.models.events.PoolUpsertEvent;
 import com.blockout.pools.pool.application.PoolUpsertFact;
 import org.springframework.stereotype.Component;
@@ -22,8 +22,8 @@ class PoolEventMapper {
                 .leagueCode(pool.leagueCode())
                 .leagueName(pool.leagueName())
                 .season(pool.season())
-                .format(pool.format() == null ? null : Format.valueOf(pool.format().name()))
-                .gender(pool.gender() == null ? null : Gender.valueOf(pool.gender().name()))
+                .format(pool.format() == null ? null : FormatEnum.valueOf(pool.format().name()))
+                .gender(pool.gender() == null ? null : GenderEnum.valueOf(pool.gender().name()))
                 .build();
         var canonical = new PoolUpsertV2Event(
                 null,

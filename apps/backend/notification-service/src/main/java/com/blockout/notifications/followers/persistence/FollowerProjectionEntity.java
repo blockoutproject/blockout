@@ -1,6 +1,6 @@
 package com.blockout.notifications.followers.persistence;
 
-import com.blockout.notifications.models.enums.EntityType;
+import com.blockout.shared.model.EntityTypeEnum;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -42,7 +42,7 @@ public class FollowerProjectionEntity {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "entity_type", nullable = false, length = 16)
-    private EntityType entityType;
+    private EntityTypeEnum entityType;
 
     @Column(name = "entity_id", nullable = false)
     private Long entityId;
