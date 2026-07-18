@@ -1252,9 +1252,17 @@ state moves to GitHub and this file becomes a historical migration record.
     and CI are required before publication. No deployment, production observation, v1 retirement, MRG-9xx, or
     MRG-1000 action; policy, rollback, and exception ownership are recorded in
     `docs/migration/mrg-354-wire-casing-guard.md`.
-- [ ] MRG-355 Add complete contract generation, backend generation, committed Orval operation/model/Zod generation,
+- [x] MRG-355 Add complete contract generation, backend generation, committed Orval operation/model/Zod generation,
       scraper generation when selected, event generation, formatting, compilation, two-run deterministic no-diff and
       generated-file-edit guards, plus v1-adapter isolation checks to local verification.
+  - Evidence: `scripts/verify-ci-pr-local.sh --skip-install` passes the complete REST, Orval operation/model/Zod,
+    selected Python, and event generation matrix twice without Nx cache; pre-generation, second-pass, and final
+    manifests reject stale, manually edited, non-deterministic, or later-mutated committed output. Backend OpenAPI
+    Java sources generate twice identically after the shared-model timestamp is disabled, and the 16-module reactor
+    compiles. Five v1 isolation tests, contract/event/casing/form/type checks, targeted formatting, Expo export,
+    temporary-wheel Python tests, both scraper images, Compose, documentation, and whitespace checks pass. No
+    deployment, MRG-9xx, or MRG-1000 work; scope and rollback ownership are recorded in
+    `docs/migration/mrg-355-local-generation-verification.md`.
 - [ ] MRG-356 Mark each REST and event boundary contract-authoritative only after source, generated artifacts, mappers,
       all canonical consumers, runtime parity, rollback evidence, and canonical-conversion cleanup are complete; the
       separately isolated v1 adapter may remain until the MRG-304 30-day production-retirement gate.

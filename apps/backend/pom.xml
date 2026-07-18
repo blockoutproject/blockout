@@ -114,6 +114,7 @@
                     <version>${openapi-generator-maven-plugin.version}</version>
                     <configuration>
                         <configOptions>
+                            <hideGenerationTimestamp>true</hideGenerationTimestamp>
                             <useTags>true</useTags>
                             <useOneOfInterfaces>true</useOneOfInterfaces>
                             <openApiNullable>false</openApiNullable>

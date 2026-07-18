@@ -65,3 +65,13 @@ Pointer, compatibility reason, owning task, and removal task; malformed, duplica
 Only owner contracts completed in the active roadmap are authoritative here. Generated server and client boundaries,
 runtime route activation, and end-to-end migration remain separate tasks; do not infer their completion from bundle
 presence.
+
+The complete repository-local generation gate is:
+
+```bash
+scripts/verify-ci-pr-local.sh --skip-install
+```
+
+It regenerates every committed REST, Expo, selected Python, and event artifact twice without the Nx cache, rejects
+stale or manually edited generated output, proves backend OpenAPI Java generation is deterministic, compiles the
+generated boundaries, and validates that retained v1 adapters remain isolated from generated and v2 adapter types.
