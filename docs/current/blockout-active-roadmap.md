@@ -1503,8 +1503,26 @@ state moves to GitHub and this file becomes a historical migration record.
     transaction, and outbox redesign remain exclusive to MRG-426;
     `docs/migration/mrg-408-users-account-architecture.md` records ownership, parity, rollback, compatibility, and the
     deferred boundaries.
-- [ ] MRG-425 Restructure `users-service` favorite internals as the canonical source and make team, pool, and
+- [x] MRG-425 Restructure `users-service` favorite internals as the canonical source and make team, pool, and
       notification follower state explicit derived, idempotent, rebuildable projections.
+  - Evidence: the favorite application service now depends only on a role-owned store, one transaction-bound owner,
+    immutable targets/changes/views/pages, an explicit team/pool/notification projection coordinator, and bounded
+    canonical snapshot roles, with no account/favorite JPA, Spring Data, pagination, persistence-mapper, generated
+    model, or client coupling. `FavoriteEntity`, `FavoriteRepository`, `FavoritePersistenceMapper`, and
+    `JpaFavoriteStore` own persistence while preserving the `UserFavorite` JPA name, `user_favorites` table, account
+    relation, constraints, indexes, callbacks, queries, stable page order, counts, identifiers, timestamps, and
+    transaction behavior. Only effective canonical transitions invoke the retained team/pool generated-client adapter
+    and notification outbox; existing follows and absent unfollows remain projection-free no-ops with the exact local,
+    synchronous-counter, and outbox order. One-user target sets and one-target follower counts now expose bounded
+    desired-state inputs for notification and team/pool comparison or reconstruction without adding a route, listener,
+    scheduler, repair command, membership table, or set-count API. Fifty-six focused users-service tests, complete
+    backend packaging, all backend Dockerfile checks, the full local CI gate, documentation, formatting, and
+    whitespace checks pass. Flyway V1-V5, database structure, contracts, generated artifacts, event identity, Rabbit
+    topology, retry/acknowledgement/DLQ behavior, routes, scopes, queues, callers, deployment, production, and Maaatch
+    are unchanged. The synchronous counter path remains active pending live divergence and reconciliation parity;
+    account deletion, storage retention/compensation, transaction redesign, and deletion-related outbox orchestration
+    remain exclusive to MRG-426; `docs/migration/mrg-425-users-favorite-projection-architecture.md` records ownership,
+    parity, rebuild inputs, retained unknowns, compatibility, and rollback.
 - [ ] MRG-426 Restructure `users-service` deletion and storage orchestration with explicit application plans, identity
       and object-storage ports, retention behavior, transaction ownership, and event/outbox adapters.
 - [ ] MRG-409 Restructure `reports-service` Blockout API, application flow, attachment storage, GitHub, and Discord

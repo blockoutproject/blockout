@@ -17,68 +17,69 @@ GitHub Project task planning remains dormant until the final GitFlow activation 
 
 ## Active Documents
 
-| Area                    | File                                                                                                                         | Role                                                        |
-| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
-| Migration roadmap       | [`current/blockout-active-roadmap.md`](current/blockout-active-roadmap.md)                                                   | Temporary task order, dependencies, and completion state    |
-| Product context         | [`current/blockout-product-runtime-context.md`](current/blockout-product-runtime-context.md)                                 | Delivered runtime posture and boundaries that stay closed   |
-| Agent brief             | [`current/blockout-agent-brief.md`](current/blockout-agent-brief.md)                                                         | Minimal migration selection and source routing              |
-| Backend architecture    | [`architecture/blockout-backend-contract-data-architecture.md`](architecture/blockout-backend-contract-data-architecture.md) | Approved contract, data, mapping, and service target        |
-| Repository router       | [Blockout Best Practices](../.agents/skills/blockout-best-practices/SKILL.md)                                                | Universal rules and reference routing                       |
-| Backend audit           | [`migration/backend-contract-data-audit-template.md`](migration/backend-contract-data-audit-template.md)                     | Read-only service and BFF field-lineage audit template      |
-| REST wire inventory     | [`migration/mrg-301-deployed-rest-wire-inventory.md`](migration/mrg-301-deployed-rest-wire-inventory.md)                     | Current 130-operation contract discovery baseline           |
-| Event wire inventory    | [`migration/mrg-302-deployed-rabbitmq-wire-inventory.md`](migration/mrg-302-deployed-rabbitmq-wire-inventory.md)             | Current RabbitMQ topology and payload discovery baseline    |
-| Match event contracts   | [`migration/mrg-370-match-event-contract-migration.md`](migration/mrg-370-match-event-contract-migration.md)                 | Match event v2 contracts, parity, and rollback              |
-| Transactional outboxes  | [`migration/mrg-371-transactional-event-outbox-migration.md`](migration/mrg-371-transactional-event-outbox-migration.md)     | Four producer outboxes, observation, and rollback           |
-| Client/casing audit     | [`migration/mrg-303-handwritten-client-casing-inventory.md`](migration/mrg-303-handwritten-client-casing-inventory.md)       | Current handwritten client and conversion ownership         |
-| Contract coexistence    | [`migration/mrg-304-contract-coexistence-cutover-matrix.md`](migration/mrg-304-contract-coexistence-cutover-matrix.md)       | REST v1/v2 and RabbitMQ coexistence, rollback, and removal  |
-| Legal owner pilot       | [`migration/mrg-331-legal-document-runtime-migration.md`](migration/mrg-331-legal-document-runtime-migration.md)             | First generated v2 owner boundary, v1 parity, and rollback  |
-| Legal BFF pilot         | [`migration/mrg-332-mobile-legal-document-generated-client.md`](migration/mrg-332-mobile-legal-document-generated-client.md) | Generated BFF/client boundary, v1 isolation, and rollback   |
-| Legal Expo pilot        | [`migration/mrg-333-expo-legal-document-client-form.md`](migration/mrg-333-expo-legal-document-client-form.md)               | Generated Expo client and React Hook Form/Zod pilot         |
-| Config Expo slice       | [`migration/mrg-344-expo-configuration-client-migration.md`](migration/mrg-344-expo-configuration-client-migration.md)       | Generated configuration clients, schemas, and projections   |
-| Catalog Expo slice      | [`migration/mrg-345-expo-catalog-client-migration.md`](migration/mrg-345-expo-catalog-client-migration.md)                   | Generated club, team, and pool clients and projections      |
-| Match Expo slice        | [`migration/mrg-346-expo-match-client-migration.md`](migration/mrg-346-expo-match-client-migration.md)                       | Generated match, live-link, and moderation clients          |
-| Relay Expo slice        | [`migration/mrg-347-expo-relay-client-migration.md`](migration/mrg-347-expo-relay-client-migration.md)                       | Generated user, search, notification, and report clients    |
-| OpenAPI normalization   | [`migration/mrg-377-openapi-standard-syntax-normalization.md`](migration/mrg-377-openapi-standard-syntax-normalization.md)   | Standard scalar syntax and generated-output proof           |
-| Config runtime slice    | [`migration/mrg-376-config-runtime-migration.md`](migration/mrg-376-config-runtime-migration.md)                             | Remaining config owner boundaries and worker client         |
-| Clubs runtime slice     | [`migration/mrg-334-clubs-runtime-migration.md`](migration/mrg-334-clubs-runtime-migration.md)                               | Generated club owner boundaries and worker snapshot client  |
-| Teams runtime slice     | [`migration/mrg-335-teams-runtime-migration.md`](migration/mrg-335-teams-runtime-migration.md)                               | Generated team owner boundaries and internal clients        |
-| Pools runtime slice     | [`migration/mrg-336-pools-runtime-migration.md`](migration/mrg-336-pools-runtime-migration.md)                               | Generated pool owner boundaries and internal clients        |
-| Competition slice       | [MRG-337 competition runtime][mrg-337]                                                                                       | Generated association and statistics owner boundaries       |
-| Ranking slice           | [MRG-359 competition ranking][mrg-359]                                                                                       | Canonical ranking projection and ordering policy            |
-| Lifecycle slice         | [MRG-360 competition lifecycle][mrg-360]                                                                                     | Bulk deactivation and cascade owner boundaries              |
-| Matches core slice      | [MRG-338 matches core and day page][mrg-338]                                                                                 | Generated match owner and grouped-day boundaries            |
-| Matches live slice      | [MRG-361 matches live and history][mrg-361]                                                                                  | Live commands, history, policy parity, and users client     |
-| Moderation slice        | [MRG-362 matches moderation and reports][mrg-362]                                                                            | Moderation projection, actions, reports, and parity         |
-| Users account slice     | [MRG-339 users account and profile][mrg-339]                                                                                 | Generated account boundary, image intent, and user client   |
-| Users favorite slice    | [MRG-363 users favorites][mrg-363]                                                                                           | Canonical favorites, generated boundary, and projections    |
-| Users identity slice    | [MRG-364 users identity and storage][mrg-364]                                                                                | Auth0/S3 adapters, deletion order, and generated identity   |
-| Reports runtime slice   | [MRG-340 reports runtime][mrg-340]                                                                                           | Generated report boundary and provider adapter isolation    |
-| Notification inbox      | [MRG-341 notification inbox][mrg-341]                                                                                        | Generated page, stable ordering, and legacy continuation    |
-| Notification mutations  | [MRG-365 notification mutations][mrg-365]                                                                                    | Current-user state changes and token lifecycle boundary     |
-| Notification delivery   | [MRG-366 notification delivery][mrg-366]                                                                                     | Provider-neutral delivery and Expo adapter boundary         |
-| Search runtime slice    | [MRG-342 search runtime][mrg-342]                                                                                            | Generated search boundary and Elasticsearch isolation       |
-| BFF relay runtime       | [MRG-343 mobile-gateway relays][mrg-343]                                                                                     | Generated facade boundaries for five workflow families      |
-| BFF catalog runtime     | [MRG-367 mobile catalog workflows][mrg-367]                                                                                  | Generated club, team, and pool workflow projections         |
-| BFF match runtime       | [MRG-368 mobile match and live workflows][mrg-368]                                                                           | Generated match, live, moderation, and PDF projections      |
-| Expo contracts/forms    | [`decisions/mrg-313-expo-contract-generation.md`](decisions/mrg-313-expo-contract-generation.md)                             | Orval, TanStack, Zod, React Hook Form, and form migration   |
-| Python clients          | [`decisions/mrg-314-python-contract-clients.md`](decisions/mrg-314-python-contract-clients.md)                               | Generated async clients, adapters, wheel, and scraper use   |
-| RabbitMQ contracts      | [`decisions/mrg-315-rabbitmq-event-contracts.md`](decisions/mrg-315-rabbitmq-event-contracts.md)                             | AsyncAPI source, Java records, envelope, and v2 topology    |
-| Local generation gate   | [`migration/mrg-355-local-generation-verification.md`](migration/mrg-355-local-generation-verification.md)                   | Deterministic local generation and edit guards              |
-| Search event cutover    | [`migration/mrg-380-search-lifecycle-v2-consumers.md`](migration/mrg-380-search-lifecycle-v2-consumers.md)                   | Q-01 through Q-06 generated v2 projection adapters          |
-| Owner event cutover     | [`migration/mrg-381-owner-lifecycle-v2-consumers.md`](migration/mrg-381-owner-lifecycle-v2-consumers.md)                     | Q-07 through Q-10 generated v2 cascade adapters             |
-| Contract authority      | [`migration/mrg-356-contract-authority-closure.md`](migration/mrg-356-contract-authority-closure.md)                         | Final REST and event source authority reconciliation        |
-| Backend slice rule      | [`migration/mrg-401-backend-implementation-slice-rule.md`](migration/mrg-401-backend-implementation-slice-rule.md)           | Phase MRG-400 feature, parity, and removal protocol         |
-| Config architecture     | [`migration/mrg-402-config-service-architecture.md`](migration/mrg-402-config-service-architecture.md)                       | Config application ports and persistence adapters           |
-| Clubs architecture      | [`migration/mrg-403-clubs-service-architecture.md`](migration/mrg-403-clubs-service-architecture.md)                         | Club catalog, storage, geocoding, and event adapters        |
-| Teams architecture      | [`migration/mrg-404-teams-service-architecture.md`](migration/mrg-404-teams-service-architecture.md)                         | Team catalog, storage, projection, lifecycle, and events    |
-| Pools architecture      | [`migration/mrg-405-pools-service-architecture.md`](migration/mrg-405-pools-service-architecture.md)                         | Pool catalog, projection, lifecycle, and event adapters     |
-| Competition arch.       | [MRG-406 competition architecture][mrg-406]                                                                                  | Association, statistics, bulk, and persistence boundaries   |
-| Competition internals   | [MRG-422 competition internals][mrg-422]                                                                                     | Ranking, lifecycle, cascade, and outbox boundaries          |
-| Matches architecture    | [MRG-407 matches architecture][mrg-407]                                                                                      | Match catalog, detail, day, and persistence boundaries      |
-| Matches live internals  | [MRG-423 matches live-link architecture][mrg-423]                                                                            | Live decisions, state, history, provider, and event owners  |
-| Moderation internals    | [MRG-424 matches moderation architecture][mrg-424]                                                                           | Moderation and report policies, stores, and projections     |
-| Users account internals | [MRG-408 users account architecture][mrg-408]                                                                                | Account, identity, provider, storage, and persistence roles |
-| Production cutover      | [`migration/monorepo-cutover.md`](migration/monorepo-cutover.md)                                                             | Temporary per-deployable migration and rollback procedure   |
+| Area                     | File                                                                                                                         | Role                                                        |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| Migration roadmap        | [`current/blockout-active-roadmap.md`](current/blockout-active-roadmap.md)                                                   | Temporary task order, dependencies, and completion state    |
+| Product context          | [`current/blockout-product-runtime-context.md`](current/blockout-product-runtime-context.md)                                 | Delivered runtime posture and boundaries that stay closed   |
+| Agent brief              | [`current/blockout-agent-brief.md`](current/blockout-agent-brief.md)                                                         | Minimal migration selection and source routing              |
+| Backend architecture     | [`architecture/blockout-backend-contract-data-architecture.md`](architecture/blockout-backend-contract-data-architecture.md) | Approved contract, data, mapping, and service target        |
+| Repository router        | [Blockout Best Practices](../.agents/skills/blockout-best-practices/SKILL.md)                                                | Universal rules and reference routing                       |
+| Backend audit            | [`migration/backend-contract-data-audit-template.md`](migration/backend-contract-data-audit-template.md)                     | Read-only service and BFF field-lineage audit template      |
+| REST wire inventory      | [`migration/mrg-301-deployed-rest-wire-inventory.md`](migration/mrg-301-deployed-rest-wire-inventory.md)                     | Current 130-operation contract discovery baseline           |
+| Event wire inventory     | [`migration/mrg-302-deployed-rabbitmq-wire-inventory.md`](migration/mrg-302-deployed-rabbitmq-wire-inventory.md)             | Current RabbitMQ topology and payload discovery baseline    |
+| Match event contracts    | [`migration/mrg-370-match-event-contract-migration.md`](migration/mrg-370-match-event-contract-migration.md)                 | Match event v2 contracts, parity, and rollback              |
+| Transactional outboxes   | [`migration/mrg-371-transactional-event-outbox-migration.md`](migration/mrg-371-transactional-event-outbox-migration.md)     | Four producer outboxes, observation, and rollback           |
+| Client/casing audit      | [`migration/mrg-303-handwritten-client-casing-inventory.md`](migration/mrg-303-handwritten-client-casing-inventory.md)       | Current handwritten client and conversion ownership         |
+| Contract coexistence     | [`migration/mrg-304-contract-coexistence-cutover-matrix.md`](migration/mrg-304-contract-coexistence-cutover-matrix.md)       | REST v1/v2 and RabbitMQ coexistence, rollback, and removal  |
+| Legal owner pilot        | [`migration/mrg-331-legal-document-runtime-migration.md`](migration/mrg-331-legal-document-runtime-migration.md)             | First generated v2 owner boundary, v1 parity, and rollback  |
+| Legal BFF pilot          | [`migration/mrg-332-mobile-legal-document-generated-client.md`](migration/mrg-332-mobile-legal-document-generated-client.md) | Generated BFF/client boundary, v1 isolation, and rollback   |
+| Legal Expo pilot         | [`migration/mrg-333-expo-legal-document-client-form.md`](migration/mrg-333-expo-legal-document-client-form.md)               | Generated Expo client and React Hook Form/Zod pilot         |
+| Config Expo slice        | [`migration/mrg-344-expo-configuration-client-migration.md`](migration/mrg-344-expo-configuration-client-migration.md)       | Generated configuration clients, schemas, and projections   |
+| Catalog Expo slice       | [`migration/mrg-345-expo-catalog-client-migration.md`](migration/mrg-345-expo-catalog-client-migration.md)                   | Generated club, team, and pool clients and projections      |
+| Match Expo slice         | [`migration/mrg-346-expo-match-client-migration.md`](migration/mrg-346-expo-match-client-migration.md)                       | Generated match, live-link, and moderation clients          |
+| Relay Expo slice         | [`migration/mrg-347-expo-relay-client-migration.md`](migration/mrg-347-expo-relay-client-migration.md)                       | Generated user, search, notification, and report clients    |
+| OpenAPI normalization    | [`migration/mrg-377-openapi-standard-syntax-normalization.md`](migration/mrg-377-openapi-standard-syntax-normalization.md)   | Standard scalar syntax and generated-output proof           |
+| Config runtime slice     | [`migration/mrg-376-config-runtime-migration.md`](migration/mrg-376-config-runtime-migration.md)                             | Remaining config owner boundaries and worker client         |
+| Clubs runtime slice      | [`migration/mrg-334-clubs-runtime-migration.md`](migration/mrg-334-clubs-runtime-migration.md)                               | Generated club owner boundaries and worker snapshot client  |
+| Teams runtime slice      | [`migration/mrg-335-teams-runtime-migration.md`](migration/mrg-335-teams-runtime-migration.md)                               | Generated team owner boundaries and internal clients        |
+| Pools runtime slice      | [`migration/mrg-336-pools-runtime-migration.md`](migration/mrg-336-pools-runtime-migration.md)                               | Generated pool owner boundaries and internal clients        |
+| Competition slice        | [MRG-337 competition runtime][mrg-337]                                                                                       | Generated association and statistics owner boundaries       |
+| Ranking slice            | [MRG-359 competition ranking][mrg-359]                                                                                       | Canonical ranking projection and ordering policy            |
+| Lifecycle slice          | [MRG-360 competition lifecycle][mrg-360]                                                                                     | Bulk deactivation and cascade owner boundaries              |
+| Matches core slice       | [MRG-338 matches core and day page][mrg-338]                                                                                 | Generated match owner and grouped-day boundaries            |
+| Matches live slice       | [MRG-361 matches live and history][mrg-361]                                                                                  | Live commands, history, policy parity, and users client     |
+| Moderation slice         | [MRG-362 matches moderation and reports][mrg-362]                                                                            | Moderation projection, actions, reports, and parity         |
+| Users account slice      | [MRG-339 users account and profile][mrg-339]                                                                                 | Generated account boundary, image intent, and user client   |
+| Users favorite slice     | [MRG-363 users favorites][mrg-363]                                                                                           | Canonical favorites, generated boundary, and projections    |
+| Users identity slice     | [MRG-364 users identity and storage][mrg-364]                                                                                | Auth0/S3 adapters, deletion order, and generated identity   |
+| Reports runtime slice    | [MRG-340 reports runtime][mrg-340]                                                                                           | Generated report boundary and provider adapter isolation    |
+| Notification inbox       | [MRG-341 notification inbox][mrg-341]                                                                                        | Generated page, stable ordering, and legacy continuation    |
+| Notification mutations   | [MRG-365 notification mutations][mrg-365]                                                                                    | Current-user state changes and token lifecycle boundary     |
+| Notification delivery    | [MRG-366 notification delivery][mrg-366]                                                                                     | Provider-neutral delivery and Expo adapter boundary         |
+| Search runtime slice     | [MRG-342 search runtime][mrg-342]                                                                                            | Generated search boundary and Elasticsearch isolation       |
+| BFF relay runtime        | [MRG-343 mobile-gateway relays][mrg-343]                                                                                     | Generated facade boundaries for five workflow families      |
+| BFF catalog runtime      | [MRG-367 mobile catalog workflows][mrg-367]                                                                                  | Generated club, team, and pool workflow projections         |
+| BFF match runtime        | [MRG-368 mobile match and live workflows][mrg-368]                                                                           | Generated match, live, moderation, and PDF projections      |
+| Expo contracts/forms     | [`decisions/mrg-313-expo-contract-generation.md`](decisions/mrg-313-expo-contract-generation.md)                             | Orval, TanStack, Zod, React Hook Form, and form migration   |
+| Python clients           | [`decisions/mrg-314-python-contract-clients.md`](decisions/mrg-314-python-contract-clients.md)                               | Generated async clients, adapters, wheel, and scraper use   |
+| RabbitMQ contracts       | [`decisions/mrg-315-rabbitmq-event-contracts.md`](decisions/mrg-315-rabbitmq-event-contracts.md)                             | AsyncAPI source, Java records, envelope, and v2 topology    |
+| Local generation gate    | [`migration/mrg-355-local-generation-verification.md`](migration/mrg-355-local-generation-verification.md)                   | Deterministic local generation and edit guards              |
+| Search event cutover     | [`migration/mrg-380-search-lifecycle-v2-consumers.md`](migration/mrg-380-search-lifecycle-v2-consumers.md)                   | Q-01 through Q-06 generated v2 projection adapters          |
+| Owner event cutover      | [`migration/mrg-381-owner-lifecycle-v2-consumers.md`](migration/mrg-381-owner-lifecycle-v2-consumers.md)                     | Q-07 through Q-10 generated v2 cascade adapters             |
+| Contract authority       | [`migration/mrg-356-contract-authority-closure.md`](migration/mrg-356-contract-authority-closure.md)                         | Final REST and event source authority reconciliation        |
+| Backend slice rule       | [`migration/mrg-401-backend-implementation-slice-rule.md`](migration/mrg-401-backend-implementation-slice-rule.md)           | Phase MRG-400 feature, parity, and removal protocol         |
+| Config architecture      | [`migration/mrg-402-config-service-architecture.md`](migration/mrg-402-config-service-architecture.md)                       | Config application ports and persistence adapters           |
+| Clubs architecture       | [`migration/mrg-403-clubs-service-architecture.md`](migration/mrg-403-clubs-service-architecture.md)                         | Club catalog, storage, geocoding, and event adapters        |
+| Teams architecture       | [`migration/mrg-404-teams-service-architecture.md`](migration/mrg-404-teams-service-architecture.md)                         | Team catalog, storage, projection, lifecycle, and events    |
+| Pools architecture       | [`migration/mrg-405-pools-service-architecture.md`](migration/mrg-405-pools-service-architecture.md)                         | Pool catalog, projection, lifecycle, and event adapters     |
+| Competition arch.        | [MRG-406 competition architecture][mrg-406]                                                                                  | Association, statistics, bulk, and persistence boundaries   |
+| Competition internals    | [MRG-422 competition internals][mrg-422]                                                                                     | Ranking, lifecycle, cascade, and outbox boundaries          |
+| Matches architecture     | [MRG-407 matches architecture][mrg-407]                                                                                      | Match catalog, detail, day, and persistence boundaries      |
+| Matches live internals   | [MRG-423 matches live-link architecture][mrg-423]                                                                            | Live decisions, state, history, provider, and event owners  |
+| Moderation internals     | [MRG-424 matches moderation architecture][mrg-424]                                                                           | Moderation and report policies, stores, and projections     |
+| Users account internals  | [MRG-408 users account architecture][mrg-408]                                                                                | Account, identity, provider, storage, and persistence roles |
+| Users favorite internals | [MRG-425 users favorite architecture][mrg-425]                                                                               | Canonical transitions, derived projections, rebuild inputs  |
+| Production cutover       | [`migration/monorepo-cutover.md`](migration/monorepo-cutover.md)                                                             | Temporary per-deployable migration and rollback procedure   |
 
 [mrg-337]: migration/mrg-337-competition-association-statistics-runtime-migration.md
 [mrg-359]: migration/mrg-359-competition-ranking-runtime-migration.md
@@ -103,6 +104,7 @@ GitHub Project task planning remains dormant until the final GitFlow activation 
 [mrg-423]: migration/mrg-423-matches-live-link-architecture.md
 [mrg-424]: migration/mrg-424-matches-moderation-report-architecture.md
 [mrg-408]: migration/mrg-408-users-account-architecture.md
+[mrg-425]: migration/mrg-425-users-favorite-projection-architecture.md
 
 ## Documentation Map
 

@@ -1,6 +1,6 @@
 package com.blockout.users.account.persistence;
 
-import com.blockout.users.models.entities.UserFavorite;
+import com.blockout.users.favorite.persistence.FavoriteEntity;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -60,7 +60,7 @@ public class UserAccountEntity {
     private String phoneNumber;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    private List<UserFavorite> favorites;
+    private List<FavoriteEntity> favorites;
 
     @Builder.Default
     @Column(name = "active", nullable = false)

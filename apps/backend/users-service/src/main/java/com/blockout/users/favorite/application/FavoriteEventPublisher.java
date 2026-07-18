@@ -2,12 +2,12 @@ package com.blockout.users.favorite.application;
 
 import com.blockout.users.models.enums.EntityType;
 
-/** Publishes retained favorite lifecycle events until generated v2 events and outboxes replace them. */
+/** Records notification follower-projection facts through the retained transactional outbox boundary. */
 public interface FavoriteEventPublisher {
 
-    /** Publishes the deployed CREATED event after the follower projection succeeds. */
+    /** Records the retained CREATED and canonical FOLLOWED facts after the synchronous projection succeeds. */
     void publishCreated(Long userId, EntityType entityType, Long entityId);
 
-    /** Publishes the deployed DELETED event after the follower projection succeeds. */
+    /** Records the retained DELETED and canonical UNFOLLOWED facts after the synchronous projection succeeds. */
     void publishDeleted(Long userId, EntityType entityType, Long entityId);
 }

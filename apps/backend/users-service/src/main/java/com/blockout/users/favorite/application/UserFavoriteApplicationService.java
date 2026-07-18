@@ -3,109 +3,72 @@ package com.blockout.users.favorite.application;
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
 import com.blockout.users.exceptions.CustomUserNotFoundException;
-import com.blockout.users.account.persistence.UserAccountEntity;
-import com.blockout.users.account.persistence.UserAccountRepository;
-import com.blockout.users.favorite.persistence.FavoritePersistenceMapper;
-import com.blockout.users.models.entities.UserFavorite;
 import com.blockout.users.models.enums.EntityType;
-import com.blockout.users.repositories.UserFavoriteRepository;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /** Owns canonical favorite state while retaining current counter and event side effects. */
 @Service
 @RequiredArgsConstructor
-public class UserFavoriteApplicationService implements FavoriteService {
+public class UserFavoriteApplicationService implements FavoriteService, FavoriteProjectionSource {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(UserFavoriteApplicationService.class);
-    private static final Sort CANONICAL_ORDER = Sort.by("createdAt").ascending().and(Sort.by("id").ascending());
 
-    private final UserFavoriteRepository favorites;
-    private final UserAccountRepository users;
-    private final FavoritePersistenceMapper mapper;
-    private final TeamFollowerProjection teamFollowers;
-    private final PoolFollowerProjection poolFollowers;
-    private final FavoriteEventPublisher events;
+    private final FavoriteStore favorites;
+    private final FavoriteProjectionCoordinator projections;
 
     /** {@inheritDoc} */
     @Override
     public List<FavoriteView> listUnpaged(Long userId, EntityType entityType) {
         requireUser(userId, entityType);
-        List<UserFavorite> result = entityType == null
-                ? favorites.findByUserId(userId)
-                : favorites.findByUserIdAndEntityType(userId, entityType);
+        List<FavoriteView> result = favorites.findUnpaged(userId, entityType);
         LOGGER.info("Favoris récupérés", keyValue("userId", userId), keyValue("entityType", entityType),
                 keyValue("count", result.size()));
-        return result.stream().map(mapper::toView).toList();
+        return result;
     }
 
     /** {@inheritDoc} */
     @Override
     public FavoritePage listPage(Long userId, EntityType entityType, int page, int pageSize) {
         requireUser(userId, entityType);
-        PageRequest request = PageRequest.of(page, pageSize, CANONICAL_ORDER);
-        Page<UserFavorite> result = entityType == null
-                ? favorites.findByUserId(userId, request)
-                : favorites.findByUserIdAndEntityType(userId, entityType, request);
-        return new FavoritePage(
-                result.getContent().stream().map(mapper::toView).toList(),
-                page,
-                pageSize,
-                result.getTotalElements(),
-                result.hasNext());
+        return favorites.findPage(userId, entityType, page, pageSize);
     }
 
     /** {@inheritDoc} */
     @Override
     @Transactional
     public void follow(FavoriteCommand command) {
-        UserAccountEntity user = requireUser(command);
-        if (favorites.existsByUserAndEntityTypeAndEntityId(user, command.entityType(), command.entityId())) {
-            LOGGER.info("Suivi déjà existant", keyValue("userId", user.getId()),
-                    keyValue("entityType", command.entityType()), keyValue("entityId", command.entityId()));
-            return;
-        }
-
-        UserFavorite saved = favorites.save(UserFavorite.builder()
-                .user(user)
-                .entityType(command.entityType())
-                .entityId(command.entityId())
-                .build());
-        LOGGER.info("Suivi enregistré", keyValue("userId", user.getId()),
-                keyValue("entityType", command.entityType()), keyValue("entityId", command.entityId()),
-                keyValue("favoriteId", saved.getId()));
-
-        incrementProjection(command, user.getId());
-        events.publishCreated(user.getId(), command.entityType(), command.entityId());
+        FavoriteOwner owner = requireUser(command);
+        FavoriteTarget target = new FavoriteTarget(command.entityType(), command.entityId());
+        owner.follow(target).ifPresentOrElse(change -> {
+            LOGGER.info("Suivi enregistré", keyValue("userId", change.userId()),
+                    keyValue("entityType", target.entityType()), keyValue("entityId", target.entityId()),
+                    keyValue("favoriteId", change.favoriteId()));
+            projections.project(change);
+        }, () -> LOGGER.info("Suivi déjà existant", keyValue("userId", owner.userId()),
+                keyValue("entityType", target.entityType()), keyValue("entityId", target.entityId())));
     }
 
     /** {@inheritDoc} */
     @Override
     @Transactional
     public void unfollow(FavoriteCommand command) {
-        UserAccountEntity user = requireUser(command);
-        int deleted = favorites.deleteByUserAndEntityTypeAndEntityId(
-                user, command.entityType(), command.entityId());
-        if (deleted == 0) {
-            return;
-        }
-
-        LOGGER.info("Suivi supprimé", keyValue("userId", user.getId()),
-                keyValue("entityType", command.entityType()), keyValue("entityId", command.entityId()));
-        decrementProjection(command, user.getId());
-        events.publishDeleted(user.getId(), command.entityType(), command.entityId());
+        FavoriteOwner owner = requireUser(command);
+        FavoriteTarget target = new FavoriteTarget(command.entityType(), command.entityId());
+        owner.unfollow(target).ifPresent(change -> {
+            LOGGER.info("Suivi supprimé", keyValue("userId", change.userId()),
+                    keyValue("entityType", target.entityType()), keyValue("entityId", target.entityId()));
+            projections.project(change);
+        });
     }
 
     /** Resolves the compatibility identity before any favorite mutation. */
-    private UserAccountEntity requireUser(FavoriteCommand command) {
-        return users.findByAuth0Id(command.auth0Id()).orElseThrow(() -> {
+    private FavoriteOwner requireUser(FavoriteCommand command) {
+        return favorites.findOwnerByAuth0Id(command.auth0Id()).orElseThrow(() -> {
             LOGGER.error("Utilisateur introuvable pour mutation de favori", keyValue("auth0Id", command.auth0Id()),
                     keyValue("entityType", command.entityType()), keyValue("entityId", command.entityId()));
             return new CustomUserNotFoundException(command.auth0Id());
@@ -114,30 +77,21 @@ public class UserFavoriteApplicationService implements FavoriteService {
 
     /** Preserves the v1 read's explicit local-user existence check. */
     private void requireUser(Long userId, EntityType entityType) {
-        if (!users.existsById(userId)) {
+        if (!favorites.ownerExists(userId)) {
             LOGGER.error("Utilisateur introuvable lors de la récupération des favoris",
                     keyValue("userId", userId), keyValue("entityType", entityType));
             throw new CustomUserNotFoundException(userId.toString());
         }
     }
 
-    /** Preserves the deployed type-specific synchronous counter ordering. */
-    private void incrementProjection(FavoriteCommand command, Long userId) {
-        if (command.entityType() == EntityType.TEAM) {
-            teamFollowers.increment(command.entityId(), userId);
-        }
-        if (command.entityType() == EntityType.POOL) {
-            poolFollowers.increment(command.entityId(), userId);
-        }
+    @Override
+    public FavoriteProjectionSnapshot snapshotForUser(Long userId) {
+        requireUser(userId, null);
+        return favorites.snapshotForUser(userId);
     }
 
-    /** Preserves the deployed type-specific synchronous counter ordering. */
-    private void decrementProjection(FavoriteCommand command, Long userId) {
-        if (command.entityType() == EntityType.TEAM) {
-            teamFollowers.decrement(command.entityId(), userId);
-        }
-        if (command.entityType() == EntityType.POOL) {
-            poolFollowers.decrement(command.entityId(), userId);
-        }
+    @Override
+    public FollowerCountSnapshot snapshotForTarget(EntityType entityType, Long entityId) {
+        return favorites.snapshotForTarget(entityType, entityId);
     }
 }

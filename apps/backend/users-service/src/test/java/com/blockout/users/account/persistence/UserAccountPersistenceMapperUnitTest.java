@@ -4,8 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.blockout.users.account.application.NewUserAccount;
 import com.blockout.users.account.application.UserAccountView;
+import com.blockout.users.favorite.persistence.FavoriteEntity;
 import com.blockout.users.favorite.persistence.FavoritePersistenceMapperImpl;
-import com.blockout.users.models.entities.UserFavorite;
 import com.blockout.users.models.enums.EntityType;
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -30,7 +30,7 @@ class UserAccountPersistenceMapperUnitTest {
                 .active(true)
                 .createdAt(timestamp)
                 .lastUpdate(timestamp)
-                .favorites(List.of(UserFavorite.builder()
+                .favorites(List.of(FavoriteEntity.builder()
                         .id(5L)
                         .entityType(EntityType.TEAM)
                         .entityId(11L)
