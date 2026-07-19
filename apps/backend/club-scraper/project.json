@@ -1,0 +1,31 @@
+{
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "name": "@blockout/club-scraper",
+  "projectType": "application",
+  "sourceRoot": "apps/backend/club-scraper",
+  "targets": {
+    "serve": {
+      "executor": "nx:run-commands",
+      "continuous": true,
+      "options": {
+        "cwd": "apps/backend/club-scraper",
+        "command": "python3.12 main.py"
+      }
+    },
+    "syntax-check": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "apps/backend/club-scraper",
+        "command": "python3.12 -m compileall -q ."
+      }
+    },
+    "docker-build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "apps/backend/club-scraper",
+        "command": "docker build -t blockout/club-scraper:local ."
+      }
+    }
+  },
+  "tags": ["scope:backend", "type:application"]
+}

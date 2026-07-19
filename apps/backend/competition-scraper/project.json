@@ -1,0 +1,31 @@
+{
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "name": "@blockout/competition-scraper",
+  "projectType": "application",
+  "sourceRoot": "apps/backend/competition-scraper",
+  "targets": {
+    "serve": {
+      "executor": "nx:run-commands",
+      "continuous": true,
+      "options": {
+        "cwd": "apps/backend/competition-scraper",
+        "command": "python3.12 main.py"
+      }
+    },
+    "syntax-check": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "apps/backend/competition-scraper",
+        "command": "python3.12 -m compileall -q ."
+      }
+    },
+    "docker-build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "apps/backend/competition-scraper",
+        "command": "docker build -t blockout/competition-scraper:local ."
+      }
+    }
+  },
+  "tags": ["scope:backend", "type:application"]
+}

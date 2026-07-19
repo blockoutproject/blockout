@@ -1,0 +1,10 @@
+aiohttp
+pytest
+beautifulsoup4
+requests
+APScheduler
+aioresponses
+faker
+python-dotenv
+prometheus_client
+auth0-python
