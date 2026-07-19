@@ -1,11 +1,15 @@
 # Blockout Agent Guidance
 
+Repository skills live under `.agents/skills/*/SKILL.md`.
+
+Start every repository task with `.agents/skills/blockout-best-practices/SKILL.md`. It routes to the detailed policies
+needed for the current scope. Load other skills only when their description or the router explicitly triggers them.
+
+Global rules:
+
 - Speak French in chat and write repository files in English.
-- Treat the recorded standalone repository commits as the behavioral baseline.
-- Use Maaatch as a read-only reference for repository structure, naming, and application boundaries. Do not copy Maaatch business code.
-- Preserve business behavior unless the active roadmap task explicitly scopes a change.
-- Blockout-owned HTTP bodies, responses, and query parameters use camelCase natively in every application. Do not add generic case-conversion utilities, Jackson naming annotations, or naming strategies. Do not rename database columns, environment variables, headers, URLs, or provider-owned payloads to enforce that rule.
-- Keep handwritten DTOs until contract-first and code generation are explicitly authorized. When a DTO is refactored, follow the Maaatch naming semantics such as `InternalRequest`, `InternalResponse`, and command-oriented application types.
-- Keep generated output, secrets, local environments, caches, and build artifacts out of Git.
-- Work directly on `main` during the temporary refactor phase.
-- Do not add GitFlow, pull requests, CI pipelines, deployment workflows, or production changes.
+- Treat the imported standalone applications as the behavioral baseline.
+- Use Maaatch as a read-only structural and naming reference; never copy its business code.
+- Preserve runtime behavior unless the active task explicitly authorizes a correction.
+- Keep contract-first/code generation and GitFlow/GitHub Project governance dormant until separate user-authorized tasks.
+- Keep generated output, secrets, local environments, caches, logs, and build artifacts out of Git.

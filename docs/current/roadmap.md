@@ -43,4 +43,18 @@
   - Keep lifecycle events and search documents as explicit purpose-specific projections rather than expanding them into duplicate Club resources.
   - Protect create, update, image, deactivation, camelCase, consumer deserialization, and scraper write behavior with focused tests and a local authenticated smoke.
 
-The tasks are executed in order. The remaining services are restructured in later focused tasks. Contract-first adoption, code generation, full scraper redesign, GitFlow, CI, deployment, and production changes are not bundled into REF-007.
+- [x] **REF-008 — Establish Blockout repository agent skills**
+  - Add the repository-local agent entrypoints and applicable Maaatch-derived engineering policies for the current Nx,
+    Java, Python, Expo, persistence, REST, logging, testing, documentation, and local-runtime stack.
+  - Keep the guidance concise and routed by task signal instead of loading every policy for every change.
+  - Explicitly defer contract-first/code generation and GitFlow/GitHub Project governance to later authorized tasks.
+
+- [ ] **REF-009 — Apply Blockout best practices to the Club slice**
+  - Reload the new `blockout-best-practices` skill and audit only the files introduced or changed by REF-007.
+  - Correct concrete architecture, naming, documentation, REST-error, and test-policy gaps without changing the Club
+    contract or refactoring another service.
+  - Re-run the Club and affected-consumer verification baseline, then leave subsequent roadmap tasks to use the new
+    repository knowledge.
+
+The tasks are executed in order. The remaining services are restructured in later focused tasks. Contract-first adoption,
+code generation, full scraper redesign, GitFlow, CI, deployment, and production changes remain deferred.

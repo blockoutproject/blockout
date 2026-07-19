@@ -1,0 +1,4 @@
+interface:
+  display_name: "Blockout Best Practices"
+  short_description: "Apply Blockout repository engineering policies"
+  default_prompt: "Use $blockout-best-practices to implement this Blockout change within the repository rules."
