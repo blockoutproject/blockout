@@ -6,15 +6,21 @@ import com.blockout.mobilegateway.models.dto.club.ClubDTO;
 import com.blockout.mobilegateway.models.dto.competition.CompetitionAssociationDTO;
 import com.blockout.mobilegateway.models.dto.team.TeamDTO;
 import com.blockout.mobilegateway.models.dto.pool.PoolDTO;
+import com.blockout.mobilegateway.models.dto.user.CustomUserDTO;
+import com.blockout.mobilegateway.models.dto.user.CustomUserUpdateDTO;
+import com.blockout.mobilegateway.models.dto.user.UserFavoriteDTO;
 import com.blockout.mobilegateway.models.dto.config.RawDivisionMappingDTO;
 import com.blockout.mobilegateway.models.enums.Format;
 import com.blockout.mobilegateway.models.enums.Gender;
+import com.blockout.mobilegateway.models.enums.EntityType;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.DisplayName;
 
 import java.time.LocalDateTime;
+import java.time.Instant;
+import java.util.List;
 
 class GatewayJsonContractCharacterizationTest {
 
@@ -133,5 +139,33 @@ class GatewayJsonContractCharacterizationTest {
                 "lossesTwoToThree", "wonSets", "lostSets", "wonPoints", "lostPoints", "pointsPenalty",
                 "coefSets", "coefPoints", "createdAt", "lastUpdate");
         assertThat(json.path("clubId").asText()).isEqualTo("club-1");
+    }
+
+    @Test
+    void mirrorsTheCompleteUserOwnedByUsersService() {
+        Instant now = Instant.parse("2026-07-19T12:00:00Z");
+        CustomUserDTO user = CustomUserDTO.builder()
+                .id(1L).auth0Id("auth0|1").email("user@example.com").pseudo("user")
+                .firstName("First").lastName("Last").pictureUrl("picture").phoneNumber("phone")
+                .active(true).createdAt(now).lastUpdate(now)
+                .favorites(List.of(UserFavoriteDTO.builder().entityType(EntityType.TEAM).entityId(2L).build()))
+                .build();
+
+        JsonNode json = objectMapper.findAndRegisterModules().valueToTree(user);
+
+        assertThat(json.fieldNames()).toIterable().containsExactlyInAnyOrder(
+                "id", "auth0Id", "email", "pseudo", "firstName", "lastName", "pictureUrl", "phoneNumber",
+                "active", "createdAt", "lastUpdate", "favorites");
+        assertThat(json.path("favorites").get(0).fieldNames()).toIterable()
+                .containsExactlyInAnyOrder("entityType", "entityId");
+    }
+
+    @Test
+    void forwardsOnlyTheEditableUserFields() {
+        CustomUserUpdateDTO update = CustomUserUpdateDTO.builder().pseudo("new-pseudo").pictureUrl(null).build();
+
+        JsonNode json = objectMapper.valueToTree(update);
+
+        assertThat(json.fieldNames()).toIterable().containsExactlyInAnyOrder("pseudo", "pictureUrl");
     }
 }

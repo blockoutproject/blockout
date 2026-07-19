@@ -11,7 +11,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 import { useAppTheme } from "@/src/context/ThemeProvider";
 import { CORNERS } from "@/src/theme/globals";
-import { CustomUser } from "@/src/types/User";
+import { CustomUser, UpdateUserRequest } from "@/src/types/User";
 import ApiErrorToast from "@/src/components/common/feedback/ApiErrorToast";
 
 import FormCard from "@/src/components/common/form/FormCard";
@@ -92,7 +92,7 @@ const ProfileForm: React.FC<UserFormProps> = ({ user, onSuccess, onRegisterSubmi
                 setLoading(true);
                 setApiError(null);
 
-                const dto: Partial<CustomUser> = {};
+                const dto: UpdateUserRequest = {};
                 const trimmed = values.pseudo.trim();
                 if (trimmed && trimmed !== user.pseudo) dto.pseudo = trimmed;
 

@@ -76,6 +76,17 @@ REF-013 establishes Competition Association ownership:
 - bulk-deactivation requests, cascade commands, team rankings, and pool-with-ranking responses remain intentionally
   smaller purpose-specific models.
 
+REF-014 establishes User ownership:
+
+- `users-service` owns the complete User representation: `id`, `auth0Id`, `email`, `pseudo`, `firstName`, `lastName`,
+  `pictureUrl`, `phoneNumber`, `active`, `createdAt`, `lastUpdate`, and `favorites`;
+- each nested favorite is the explicit summary `entityType` and `entityId`, while the dedicated favorites endpoint owns
+  the complete `id`, `entityType`, `entityId`, and `createdAt` representation;
+- the gateway, matches service, notification service, and mobile application mirror the complete User representation at
+  their real HTTP boundaries;
+- Auth0 identities, S3 objects, Team/Pool follower counters, and RabbitMQ follow events remain provider or
+  purpose-specific boundaries rather than User resource copies.
+
 The camelCase rule applies to transport names owned by Blockout:
 
 - REST request and response bodies;

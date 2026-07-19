@@ -76,7 +76,7 @@
   - Separate Competition transport, application, persistence, cascade, and messaging boundaries.
   - Align complete Competition mirrors while preserving V1 routes, schema, events, scraper writes, and runtime behavior.
 
-- [ ] **REF-014 — Refactor users-service and establish authoritative User ownership**
+- [x] **REF-014 — Refactor users-service and establish authoritative User ownership**
   - Separate user, follow, provider, persistence, and messaging responsibilities behind explicit boundaries.
   - Align complete user mirrors while preserving V1 routes, schema, Auth0 behavior, events, and runtime behavior.
 

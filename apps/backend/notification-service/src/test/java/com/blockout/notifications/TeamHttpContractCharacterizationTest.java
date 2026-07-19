@@ -2,6 +2,7 @@ package com.blockout.notifications;
 
 import com.blockout.notifications.models.dto.team.TeamDTO;
 import com.blockout.notifications.models.dto.pool.PoolDTO;
+import com.blockout.notifications.models.dto.users.CustomUserDTO;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 
@@ -34,5 +35,19 @@ class TeamHttpContractCharacterizationTest {
                 """, PoolDTO.class);
         assertThat(pool.getRawName()).isEqualTo("RAW");
         assertThat(pool.getCreatedAt()).isEqualTo(pool.getLastUpdate());
+    }
+
+    @Test
+    void readsTheCompleteUserInternalResponse() throws Exception {
+        CustomUserDTO user = new ObjectMapper().findAndRegisterModules().readValue("""
+                {"id":1,"auth0Id":"auth0|1","email":"user@example.com","pseudo":"user",
+                 "firstName":"First","lastName":"Last","pictureUrl":"picture","phoneNumber":"phone",
+                 "active":true,"createdAt":"2026-07-19T12:00:00Z","lastUpdate":"2026-07-19T12:00:00Z",
+                 "favorites":[{"entityType":"TEAM","entityId":2}]}
+                """, CustomUserDTO.class);
+
+        assertThat(user.getAuth0Id()).isEqualTo("auth0|1");
+        assertThat(user.getFavorites()).hasSize(1);
+        assertThat(user.getCreatedAt()).isEqualTo(user.getLastUpdate());
     }
 }

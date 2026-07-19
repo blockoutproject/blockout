@@ -28,6 +28,11 @@ export interface UserFavorite {
     entityId: number;
 }
 
+export type UpdateUserRequest = {
+    pseudo?: string;
+    pictureUrl?: string | null;
+};
+
 export interface UserRegistrationRequest {
     pseudo: string;
 }

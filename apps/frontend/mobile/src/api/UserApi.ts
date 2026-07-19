@@ -1,5 +1,5 @@
 import { CONFIG } from "@/src/config/config";
-import { CustomUser } from "../types/User";
+import { CustomUser, UpdateUserRequest } from "../types/User";
 import { CustomImage } from "../types/Common";
 import { appendJson } from "../utils/utils";
 import { BaseApi } from "./core/BaseApi";
@@ -15,7 +15,7 @@ export class UserApi extends BaseApi {
 
     public updateUser(
         auth0Id: string,
-        data: Partial<CustomUser>,
+        data: UpdateUserRequest,
         image?: CustomImage,
     ): Promise<CustomUser> {
         const formData = new FormData();
