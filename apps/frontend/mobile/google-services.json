@@ -1,0 +1,68 @@
+{
+  "project_info": {
+    "project_number": "582867069127",
+    "project_id": "blockoutproject-39658",
+    "storage_bucket": "blockoutproject-39658.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:582867069127:android:2a1008170c28280489f6e2",
+        "android_client_info": {
+          "package_name": "com.blockoutproject.blockout"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "582867069127-laoqh56jim3vh06rvvoqupcb1arlqg8n.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDM0J_OD-Ae3jiWqXChOE4bnt25yyysDIo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "582867069127-laoqh56jim3vh06rvvoqupcb1arlqg8n.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:582867069127:android:0100168faabc933289f6e2",
+        "android_client_info": {
+          "package_name": "com.blockoutproject.blockout.com"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "582867069127-laoqh56jim3vh06rvvoqupcb1arlqg8n.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDM0J_OD-Ae3jiWqXChOE4bnt25yyysDIo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "582867069127-laoqh56jim3vh06rvvoqupcb1arlqg8n.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

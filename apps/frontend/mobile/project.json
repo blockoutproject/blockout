@@ -1,0 +1,16 @@
+{
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "name": "@blockout/mobile",
+  "projectType": "application",
+  "sourceRoot": "apps/frontend/mobile/src",
+  "targets": {
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "apps/frontend/mobile",
+        "command": "tsc --noEmit --pretty false"
+      }
+    }
+  },
+  "tags": ["scope:frontend", "type:application"]
+}
