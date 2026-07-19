@@ -5,10 +5,13 @@ import axios, {
     AxiosRequestConfig,
     AxiosResponse,
 } from "axios";
-import camelcaseKeys from "camelcase-keys";
-import snakecaseKeys from "snakecase-keys";
 import qs from "qs";
 import { ApiError } from "./ApiError";
+import {
+    deserializeApiJson,
+    serializeApiJson,
+    serializeApiQuery,
+} from "./JsonCase";
 
 export type TokenSupplier = () => Promise<string | null>;
 
@@ -60,10 +63,10 @@ export class HttpClient {
                 const isJson = !contentType || String(contentType).toLowerCase().includes("application/json");
                 if (isJson) {
                     if (config.data && typeof config.data === "object" && !(config.data instanceof FormData)) {
-                        config.data = snakecaseKeys(config.data, { deep: true });
+                        config.data = serializeApiJson(config.data);
                     }
                     if (config.params && typeof config.params === "object") {
-                        config.params = snakecaseKeys(config.params, { deep: true });
+                        config.params = serializeApiQuery(config.params);
                     }
                 }
             }
@@ -91,7 +94,7 @@ export class HttpClient {
                     const ct = res.headers?.["content-type"];
                     const looksJson = ct && ct.toLowerCase().includes("application/json");
                     if (looksJson && res.data && typeof res.data === "object") {
-                        res.data = camelcaseKeys(res.data, { deep: true });
+                        res.data = deserializeApiJson(res.data);
                     }
                 }
                 return res;

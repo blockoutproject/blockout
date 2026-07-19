@@ -19,6 +19,13 @@
         "command": "python3.12 -m compileall -q ."
       }
     },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "apps/backend/club-scraper",
+        "command": "python3.12 -m pytest -q"
+      }
+    },
     "docker-build": {
       "executor": "nx:run-commands",
       "options": {

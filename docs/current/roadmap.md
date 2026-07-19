@@ -10,7 +10,7 @@
   - Classify application-owned REST, internal, message, scraper, and mobile JSON boundaries.
   - Exclude database, configuration, protocol, and provider-owned names.
 
-- [ ] **REF-002 — Characterize the JSON flows before changing them**
+- [x] **REF-002 — Characterize the JSON flows before changing them**
   - Add focused serialization and client-boundary tests for representative backend, gateway, worker, scraper, and mobile flows.
   - Cover the scraper status check and one write payload for each scraper without calling production systems.
   - Preserve current behavior so the camelCase migration has an executable baseline.
