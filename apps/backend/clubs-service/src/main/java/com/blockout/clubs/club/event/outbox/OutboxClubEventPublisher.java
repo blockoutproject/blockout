@@ -1,7 +1,7 @@
 package com.blockout.clubs.club.event.outbox;
 
 import com.blockout.clubs.club.application.ClubEventPublisher;
-import com.blockout.clubs.club.application.ClubUpsertFact;
+import com.blockout.clubs.club.application.ClubEventData;
 import com.blockout.clubs.config.RabbitMQConfig;
 import com.blockout.events.v2.model.EventType;
 import com.blockout.outbox.OutboxEvent;
@@ -22,7 +22,7 @@ public class OutboxClubEventPublisher implements ClubEventPublisher {
     private final ClubEventMapper mapper;
 
     @Override
-    public void publishUpsert(ClubUpsertFact club) {
+    public void publishUpsert(ClubEventData club) {
         OutboxMetadata metadata = outbox.newMetadata();
         ClubEventMessages messages = mapper.map(club, metadata);
         outbox.record(new OutboxEvent(
@@ -37,5 +37,22 @@ public class OutboxClubEventPublisher implements ClubEventPublisher {
                 messages.legacy(),
                 "club.upsert.v2",
                 messages.canonical()));
+    }
+
+    @Override
+    public void publishProjection(ClubEventData club) {
+        OutboxMetadata metadata = outbox.newMetadata();
+        outbox.record(new OutboxEvent(
+                metadata,
+                EventType.CLUB_PROJECTION_CHANGED.getValue(),
+                VERSION,
+                PRODUCER,
+                "club:" + club.id(),
+                club.revision(),
+                RabbitMQConfig.ENTITY_LIFECYCLE_EXCHANGE,
+                null,
+                null,
+                "club.projection-changed.v2",
+                mapper.mapProjection(club, metadata)));
     }
 }

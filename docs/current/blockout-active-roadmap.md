@@ -1770,8 +1770,14 @@ state moves to GitHub and this file becomes a historical migration record.
     response shapes remain revision-free. Contract, config-service, search-worker, complete backend reactor, generated
     ownership, full local verifier, documentation, Prettier, Maaatch comparison, and Git whitespace checks pass; no
     event, outbox, queue, broker, deployment, production, MRG-9xx, or MRG-1000 action occurs.
-- [ ] MRG-440 Add a persisted optimistic revision and transactional owner projection facts to `clubs-service`, using
+- [x] MRG-440 Add a persisted optimistic revision and transactional owner projection facts to `clubs-service`, using
       post-flush versions and treating repeated deactivation as a no-op while preserving every existing event route.
+  - Evidence: `docs/migration/mrg-440-club-revision-event.md` records the simple feature-first implementation, Flyway
+    V6, owner-only JPA `@Version`, post-flush event data, canonical-only outbox support, internal snapshot revision,
+    unchanged mobile shape, and retained coexistence routes. Two clean contract generations are identical; all event,
+    REST contract, outbox, Flyway, optimistic-lock, service, adapter, and complete backend reactor tests pass. The full
+    local verifier, generated-output guard, documentation, Prettier, Maaatch comparison, and Git whitespace checks
+    pass; no consumer, queue, binding, broker, deployment, production, MRG-9xx, or MRG-1000 action occurs.
 - [ ] MRG-441 Add a persisted optimistic revision and transactional owner projection facts to `teams-service`, using
       post-flush versions and treating direct or club-cascade repeated deactivation as a no-op while preserving every
       existing event route.

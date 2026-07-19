@@ -48,12 +48,41 @@ class OutboxWriterTest {
     }
 
     @Test
+    void recordsACanonicalOnlyEventWithoutInventingALegacyPayload() {
+        RecordingStore store = new RecordingStore();
+        OutboxWriter writer = new OutboxWriter(store, new ObjectMapper(), Clock.fixed(NOW, ZoneOffset.UTC));
+        OutboxMetadata metadata = new OutboxMetadata(
+                UUID.fromString("d8c91431-687c-4f30-ab3d-8f1cce8eef83"),
+                OffsetDateTime.ofInstant(NOW, ZoneOffset.UTC),
+                null);
+
+        writer.record(new OutboxEvent(
+                metadata, "CLUB_PROJECTION_CHANGED", "2.0.0", "clubs-service", "club:club-1", 4L,
+                "entity.lifecycle.exchange", null, null, "club.projection-changed.v2",
+                new SamplePayload("Volley Club")));
+
+        assertThat(store.event.v1Enabled()).isFalse();
+        assertThat(store.v1Json).isNull();
+        assertThat(store.v2Json).isEqualTo("{\"displayName\":\"Volley Club\"}");
+    }
+
+    @Test
     void rejectsHalfConfiguredV2AndNegativeAggregateVersions() {
         OutboxMetadata metadata = new OutboxMetadata(UUID.randomUUID(), OffsetDateTime.now(), null);
 
+        assertThatThrownBy(() -> new OutboxEvent(
+                metadata, "CLUB_UPSERT", "2.0.0", "clubs-service", "club:1", null,
+                "entity.lifecycle.exchange", "club.upsert", null, null, null))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("v1 route and payload");
         assertThatThrownBy(() -> event(metadata, new SamplePayload("legacy"), "club.upsert.v2", null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("v2 route and payload");
+        assertThatThrownBy(() -> new OutboxEvent(
+                metadata, "CLUB_UPSERT", "2.0.0", "clubs-service", "club:1", null,
+                "entity.lifecycle.exchange", null, null, null, null))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("at least one wire");
         assertThatThrownBy(() -> new OutboxEvent(
                 metadata, "CLUB_UPSERT", "2.0.0", "clubs-service", "club:1", -1L,
                 "entity.lifecycle.exchange", "club.upsert", new SamplePayload("legacy"), null, null))

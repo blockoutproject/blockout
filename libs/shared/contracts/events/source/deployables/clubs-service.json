@@ -4,6 +4,9 @@
     "ClubDeactivation": {
       "$ref": "../shared/channels/lifecycle.json#/$defs/ClubDeactivation"
     },
+    "ClubProjectionChanged": {
+      "$ref": "../shared/channels/lifecycle.json#/$defs/ClubProjectionChanged"
+    },
     "ClubUpsert": {
       "$ref": "../shared/channels/lifecycle.json#/$defs/ClubUpsert"
     }
@@ -18,6 +21,10 @@
     "publishClubUpsert": {
       "action": "send",
       "channel": { "$ref": "#/channels/ClubUpsert" }
+    },
+    "publishClubProjectionChanged": {
+      "action": "send",
+      "channel": { "$ref": "#/channels/ClubProjectionChanged" }
     }
   },
   "x-blockout-primary-queues": ["club.deactivation.queue.clubs.v2"]

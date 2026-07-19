@@ -40,7 +40,7 @@ public class OutboxPublisherJob {
         int publishedVersions = 0;
         for (OutboxRow row : rows) {
             try {
-                if (row.v1PublishedAt() == null) {
+                if (row.v1Enabled() && row.v1PublishedAt() == null) {
                     publisher.publishV1(row);
                     store.markV1Published(row.eventId(), clock.instant());
                     publishedVersions++;

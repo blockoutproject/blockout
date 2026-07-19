@@ -1,6 +1,8 @@
 package com.blockout.clubs.club.event.outbox;
 
-import com.blockout.clubs.club.application.ClubUpsertFact;
+import com.blockout.clubs.club.application.ClubEventData;
+import com.blockout.events.v2.model.ClubProjectionChangedV2Event;
+import com.blockout.events.v2.model.ClubProjectionChangedV2Payload;
 import com.blockout.events.v2.model.ClubUpsertV2Event;
 import com.blockout.events.v2.model.ClubUpsertV2Payload;
 import com.blockout.events.v2.model.EventType;
@@ -11,7 +13,7 @@ import org.springframework.stereotype.Component;
 @Component
 class ClubEventMapper {
 
-    ClubEventMessages map(ClubUpsertFact club, OutboxMetadata metadata) {
+    ClubEventMessages map(ClubEventData club, OutboxMetadata metadata) {
         var legacy = ClubUpsertEvent.builder()
                 .id(club.id())
                 .name(club.name())
@@ -29,5 +31,21 @@ class ClubEventMapper {
                 OutboxClubEventPublisher.PRODUCER,
                 OutboxClubEventPublisher.VERSION);
         return new ClubEventMessages(legacy, canonical);
+    }
+
+    ClubProjectionChangedV2Event mapProjection(
+            ClubEventData club,
+            OutboxMetadata metadata) {
+        return new ClubProjectionChangedV2Event(
+                club.revision(),
+                metadata.correlationId(),
+                metadata.eventId(),
+                EventType.CLUB_PROJECTION_CHANGED,
+                metadata.occurredAt(),
+                "club:" + club.id(),
+                new ClubProjectionChangedV2Payload(
+                        club.id(), club.name(), club.logoUrl(), club.city(), club.active()),
+                OutboxClubEventPublisher.PRODUCER,
+                OutboxClubEventPublisher.VERSION);
     }
 }

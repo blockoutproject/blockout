@@ -49,7 +49,9 @@ public class ClubService {
         String logoUrl = image == null ? null : logoStorage.upload(image);
         ClubView view = store.create(command, logoUrl);
         LOGGER.info("New club created", keyValue("action", "create_club"), keyValue("clubId", view.id()));
-        eventPublisher.publishUpsert(ClubUpsertFact.from(view));
+        ClubEventData event = ClubEventData.from(view);
+        eventPublisher.publishUpsert(event);
+        eventPublisher.publishProjection(event);
         return view;
     }
 
@@ -74,14 +76,17 @@ public class ClubService {
 
         ClubChange change = update.apply(new ClubUpdatePlan(command, replacementLogoUrl, replaceLogo, true));
         ChangeLog.logChanges(change.before(), change.after(), LOGGER, "update_club", change.after().id());
-        eventPublisher.publishUpsert(ClubUpsertFact.from(change.after()));
+        ClubEventData event = ClubEventData.from(change.after());
+        eventPublisher.publishUpsert(event);
+        eventPublisher.publishProjection(event);
         return change.after();
     }
 
     @Transactional
     public void deactivate(String id) {
-        if (!store.deactivate(id)) {
-            throw notFound(id);
+        ClubChange change = store.deactivate(id).orElseThrow(() -> notFound(id));
+        if (change.changed()) {
+            eventPublisher.publishProjection(ClubEventData.from(change.after()));
         }
         LOGGER.info("Club successfully deactivated", keyValue("action", "deactivate_club"),
                 keyValue("clubId", id));

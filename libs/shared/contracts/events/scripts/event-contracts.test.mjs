@@ -324,6 +324,9 @@ test('reconciles all eleven routes and nineteen primary queues without orphan ac
       readJson(path.join(SOURCE_ROOT, 'deployables', `${name}.json`)),
     ),
   );
+  const rootsByName = new Map(
+    DEPLOYABLE_NAMES.map((name, index) => [name, roots[index]]),
+  );
   const activeAddresses = new Set(
     (
       await Promise.all(
@@ -344,6 +347,7 @@ test('reconciles all eleven routes and nineteen primary queues without orphan ac
   );
   assert.deepEqual([...activeAddresses].sort(), [
     'club.deactivation.v2',
+    'club.projection-changed.v2',
     'club.upsert.v2',
     'match.finished.v2',
     'match.live-link-created.v2',
@@ -360,7 +364,16 @@ test('reconciles all eleven routes and nineteen primary queues without orphan ac
   assert.equal(declaredQueues.length, 14);
   assert.equal(new Set(declaredQueues).size, 14);
   assert.ok(!JSON.stringify(roots).includes('teambypool.deactivation.v2'));
-  assert.ok(!JSON.stringify(roots).includes('projection-changed.v2'));
+  assert.ok(
+    !JSON.stringify(rootsByName.get('teams-service')).includes(
+      'team.projection-changed.v2',
+    ),
+  );
+  assert.ok(
+    !JSON.stringify(rootsByName.get('pools-service')).includes(
+      'pool.projection-changed.v2',
+    ),
+  );
 });
 
 test('generates Java records with no runtime framework leakage', async () => {

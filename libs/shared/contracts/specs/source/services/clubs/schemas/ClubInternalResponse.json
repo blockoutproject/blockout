@@ -15,7 +15,8 @@
       "logoUrl",
       "active",
       "latitude",
-      "longitude"
+      "longitude",
+      "revision"
     ],
     "properties": {
       "id": {
@@ -81,6 +82,12 @@
         "minimum": -180,
         "maximum": 180,
         "nullable": true
+      },
+      "revision": {
+        "type": "integer",
+        "format": "int64",
+        "minimum": 0,
+        "description": "Clubs-service-owned optimistic revision used by projection facts and internal reconciliation."
       }
     },
     "additionalProperties": false

@@ -14,6 +14,7 @@ public record ClubView(
         String website,
         String logoUrl,
         Boolean active,
+        long revision,
         Double latitude,
         Double longitude,
         LocalDateTime createdAt,

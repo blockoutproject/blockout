@@ -15,5 +15,5 @@ public interface ClubStore {
 
     Optional<ClubUpdate> findForUpdate(String id);
 
-    boolean deactivate(String id);
+    Optional<ClubChange> deactivate(String id);
 }

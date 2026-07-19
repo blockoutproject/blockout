@@ -8,7 +8,7 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.UUID;
 
-/** Writes the event and both wire bodies inside the caller's business transaction. */
+/** Writes the event and its enabled wire bodies inside the caller's business transaction. */
 final class OutboxWriter implements OutboxRecorder {
 
     private final OutboxStore store;
@@ -34,7 +34,7 @@ final class OutboxWriter implements OutboxRecorder {
     @Override
     public void record(OutboxEvent event) {
         try {
-            String v1Json = legacyMapper.writeValueAsString(event.v1Payload());
+            String v1Json = event.v1Enabled() ? legacyMapper.writeValueAsString(event.v1Payload()) : null;
             String v2Json = event.v2Enabled() ? canonicalMapper.writeValueAsString(event.v2Payload()) : null;
             store.insert(event, v1Json, v2Json);
         } catch (JsonProcessingException exception) {

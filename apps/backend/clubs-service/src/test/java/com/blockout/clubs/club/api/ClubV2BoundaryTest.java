@@ -29,13 +29,14 @@ class ClubV2BoundaryTest {
     void generatedResponseUsesCanonicalCamelCaseWithTheDefaultMapper() throws Exception {
         ClubApiMapper mapper = Mappers.getMapper(ClubApiMapper.class);
         ClubInternalResponse response = mapper.toResponse(new ClubView(
-                "club-1", "Raw", "Club", null, "Paris", "75001", null, "0102", null, null, true,
+                "club-1", "Raw", "Club", null, "Paris", "75001", null, "0102", null, null, true, 3L,
                 48.8, 2.3, LocalDateTime.now(), LocalDateTime.now()));
         ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
 
         String body = objectMapper.writeValueAsString(response);
 
         assertThat(body).contains("\"rawName\"", "\"postalCode\"", "\"phoneNumber\"");
+        assertThat(body).contains("\"revision\":3");
         assertThat(body).doesNotContain("raw_name", "postal_code", "phone_number", "createdAt", "lastUpdate");
     }
 

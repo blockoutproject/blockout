@@ -46,6 +46,7 @@ def club_response(identifier: str, *, active: bool = True):
         active=active,
         latitude=None,
         longitude=None,
+        revision=0,
     )
 
 

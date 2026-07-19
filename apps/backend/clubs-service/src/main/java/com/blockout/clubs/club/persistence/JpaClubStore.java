@@ -45,7 +45,7 @@ public class JpaClubStore implements ClubStore {
         ClubEntity entity = mapper.toEntity(command);
         entity.setActive(true);
         entity.setLogoUrl(logoUrl);
-        return mapper.toView(repository.save(entity));
+        return mapper.toView(repository.saveAndFlush(entity));
     }
 
     @Override
@@ -54,12 +54,15 @@ public class JpaClubStore implements ClubStore {
     }
 
     @Override
-    public boolean deactivate(String id) {
+    public Optional<ClubChange> deactivate(String id) {
         return repository.findById(id).map(entity -> {
+            ClubView before = mapper.toView(entity);
+            if (Boolean.FALSE.equals(entity.getActive())) {
+                return new ClubChange(before, before);
+            }
             entity.setActive(false);
-            repository.save(entity);
-            return true;
-        }).orElse(false);
+            return new ClubChange(before, mapper.toView(repository.saveAndFlush(entity)));
+        });
     }
 
     private final class JpaClubUpdate implements ClubUpdate {
@@ -83,7 +86,7 @@ public class JpaClubStore implements ClubStore {
                 entity.setLogoUrl(plan.replacementLogoUrl());
             }
             entity.setActive(plan.active());
-            return new ClubChange(before, mapper.toView(repository.save(entity)));
+            return new ClubChange(before, mapper.toView(repository.saveAndFlush(entity)));
         }
     }
 }

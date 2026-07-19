@@ -16,21 +16,26 @@ after a configurable retention period.
 Direct dual-publish from application services is forbidden. Application code depends only on `OutboxRecorder`; the
 shared `outbox-support` module is the sole owner of JDBC persistence, Rabbit publication, retry state, and cleanup.
 
+MRG-440 extends the same row format to canonical-only owner facts. A row may now contain a complete legacy wire pair,
+a complete canonical wire pair, or both, but never a partial pair or neither. Existing dual-wire and v1-only producers
+remain unchanged. This avoids inventing a legacy payload for a new fact that has no legacy contract.
+
 ## Producer And Route Boundary
 
-| Producer            | Fact                 | v1 route                  | v2 route               | Ordering key          |
-| ------------------- | -------------------- | ------------------------- | ---------------------- | --------------------- |
-| clubs-service       | club upsert          | `club.upsert`             | `club.upsert.v2`       | `club:{clubId}`       |
-| teams-service       | team upsert          | `team.upsert`             | `team.upsert.v2`       | `team:{teamId}`       |
-| pools-service       | pool upsert          | `pool.upsert`             | `pool.upsert.v2`       | `pool:{poolId}`       |
-| competition-service | club deactivation    | `club.deactivation`       | `club.deactivation.v2` | `club:{clubId}`       |
-| competition-service | team deactivation    | `team.deactivation`       | `team.deactivation.v2` | `team:{teamId}`       |
-| competition-service | pool deactivation    | `pool.deactivation`       | `pool.deactivation.v2` | `pool:{poolId}`       |
-| competition-service | team removed by pool | `teambypool.deactivation` | none                   | `pool:{id}:team:{id}` |
+| Producer            | Fact                 | v1 route                  | v2 route                     | Ordering key          |
+| ------------------- | -------------------- | ------------------------- | ---------------------------- | --------------------- |
+| clubs-service       | club upsert          | `club.upsert`             | `club.upsert.v2`             | `club:{clubId}`       |
+| clubs-service       | club projection      | none                      | `club.projection-changed.v2` | `club:{clubId}`       |
+| teams-service       | team upsert          | `team.upsert`             | `team.upsert.v2`             | `team:{teamId}`       |
+| pools-service       | pool upsert          | `pool.upsert`             | `pool.upsert.v2`             | `pool:{poolId}`       |
+| competition-service | club deactivation    | `club.deactivation`       | `club.deactivation.v2`       | `club:{clubId}`       |
+| competition-service | team deactivation    | `team.deactivation`       | `team.deactivation.v2`       | `team:{teamId}`       |
+| competition-service | pool deactivation    | `pool.deactivation`       | `pool.deactivation.v2`       | `pool:{poolId}`       |
+| competition-service | team removed by pool | `teambypool.deactivation` | none                         | `pool:{id}:team:{id}` |
 
 The orphan team-by-pool route remains v1-only exactly as MRG-304 and MRG-315 require. No Q-11 through Q-13 successor
-is invented. The audited entities expose no monotonic aggregate revision, so `aggregateVersion` remains absent rather
-than using a timestamp or synthetic counter.
+is invented. The club projection fact uses the clubs-service JPA revision added by MRG-440. Existing facts still omit
+`aggregateVersion` where their audited owners expose no monotonic revision; no timestamp or synthetic counter is used.
 
 ## Atomicity And Publication Semantics
 

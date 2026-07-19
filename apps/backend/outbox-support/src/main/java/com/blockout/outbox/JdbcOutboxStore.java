@@ -28,7 +28,8 @@ final class JdbcOutboxStore implements OutboxStore {
                 event.metadata().eventId(), event.eventType(), event.schemaVersion(), event.producer(),
                 event.orderingKey(), event.aggregateVersion(), event.metadata().correlationId(),
                 Timestamp.from(event.metadata().occurredAt().toInstant()), event.exchange(), event.v1RoutingKey(),
-                v1Json, event.v1Payload().getClass().getName(), event.v2Enabled(), event.v2RoutingKey(), v2Json,
+                v1Json, event.v1Enabled() ? event.v1Payload().getClass().getName() : null,
+                event.v2Enabled(), event.v2RoutingKey(), v2Json,
                 Timestamp.from(event.metadata().occurredAt().toInstant()),
                 Timestamp.from(event.metadata().occurredAt().toInstant()));
     }
@@ -65,7 +66,8 @@ final class JdbcOutboxStore implements OutboxStore {
         jdbc.update("""
                 update event_outbox
                    set v2_published_at = ?, last_error = null,
-                       completed_at = case when v1_published_at is not null then ? else completed_at end
+                       completed_at = case when v1_routing_key is null or v1_published_at is not null
+                                           then ? else completed_at end
                  where event_id = ? and v2_enabled and v2_published_at is null
                 """, timestamp, timestamp, eventId);
     }

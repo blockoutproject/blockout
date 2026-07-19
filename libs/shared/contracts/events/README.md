@@ -31,15 +31,16 @@ zero-tracked-generated-files policy; MRG-802 retains the later complete CI conso
 
 ## Contract-Authoritative Boundary
 
-MRG-356 marks the ten active v2 routes and fourteen active v2 consumer queues as contract-authoritative. The eight
-deployable documents own ten `send` operations and fourteen `receive` operations for lifecycle, favorite, and match
+MRG-356 established the first ten active v2 routes and fourteen active v2 consumer queues as contract-authoritative.
+The eight deployable documents own their `send` and `receive` operations for lifecycle, favorite, match, and owner
 facts. Their fixed envelopes, camelCase payloads, generated Java records, AMQP metadata, producers, consumers, routes,
 and queue dispositions derive only from this source.
 
-MRG-438 adds `club.projection-changed.v2`, `team.projection-changed.v2`, and `pool.projection-changed.v2` as
-component-only owner-fact channels. Their complete payloads and mandatory aggregate versions generate model records,
-but no deployable references the channels and no producer, consumer, queue, binding, or broker resource is active.
-MRG-440 through MRG-442 own future producer operations; MRG-429 owns future search-worker consumer operations.
+MRG-438 adds `club.projection-changed.v2`, `team.projection-changed.v2`, and `pool.projection-changed.v2` as owner-fact
+channels. Their complete payloads and mandatory aggregate versions generate model records. MRG-440 references the
+club channel from the clubs-service deployable and owns its producer operation. Team and pool remain component-only
+until MRG-441 and MRG-442. No owner-fact consumer, queue, binding, or broker resource is active; MRG-429 owns the future
+search-worker consumer operations.
 
 `EV-TPD`, Q-11 through Q-13, and Q-16 through Q-17 retain explicit excluded dispositions and are not canonical event
 boundaries. Generated bundles and Java records remain derivative artifacts. Retained v1 publishers, listeners, queues,

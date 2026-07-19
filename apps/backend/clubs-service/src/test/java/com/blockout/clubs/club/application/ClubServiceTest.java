@@ -37,7 +37,9 @@ class ClubServiceTest {
         assertThat(result.address()).isNull();
         assertThat(result.logoUrl()).isEqualTo("https://uploaded-logo");
         assertThat(result.active()).isTrue();
-        assertThat(eventPublisher.published).containsExactly(ClubUpsertFact.from(result));
+        assertThat(result.revision()).isZero();
+        assertThat(eventPublisher.upserts).containsExactly(ClubEventData.from(result));
+        assertThat(eventPublisher.projections).containsExactly(ClubEventData.from(result));
     }
 
     @Test
@@ -55,8 +57,10 @@ class ClubServiceTest {
         assertThat(result.name()).isEqualTo("Updated");
         assertThat(result.logoUrl()).isEqualTo("old-logo");
         assertThat(result.active()).isTrue();
+        assertThat(result.revision()).isEqualTo(4L);
         assertThat(logoStorage.deleted).isEmpty();
-        assertThat(eventPublisher.published).containsExactly(ClubUpsertFact.from(result));
+        assertThat(eventPublisher.upserts).containsExactly(ClubEventData.from(result));
+        assertThat(eventPublisher.projections).containsExactly(ClubEventData.from(result));
     }
 
     @Test
@@ -87,6 +91,34 @@ class ClubServiceTest {
         assertThat(result.totalItems()).isEqualTo(1);
     }
 
+    @Test
+    void repeatedDeactivationIsASuccessfulNoOpWithoutAnotherWrite() {
+        RepositoryDouble repository = new RepositoryDouble();
+        repository.entity = entity(null, false);
+        EventPublisherDouble eventPublisher = new EventPublisherDouble();
+        ClubService service = service(repository, new LogoStorageDouble(), eventPublisher);
+
+        service.deactivate("club-1");
+
+        assertThat(repository.saveCalls).isZero();
+        assertThat(eventPublisher.projections).isEmpty();
+    }
+
+    @Test
+    void effectiveDeactivationPublishesTheInactivePostFlushRevision() {
+        RepositoryDouble repository = new RepositoryDouble();
+        repository.entity = entity(null, true);
+        EventPublisherDouble eventPublisher = new EventPublisherDouble();
+        ClubService service = service(repository, new LogoStorageDouble(), eventPublisher);
+
+        service.deactivate("club-1");
+
+        assertThat(repository.saveCalls).isOne();
+        assertThat(eventPublisher.upserts).isEmpty();
+        assertThat(eventPublisher.projections).containsExactly(new ClubEventData(
+                "club-1", "Club", null, "Paris", false, 4L));
+    }
+
     private ClubService service(
             RepositoryDouble repository,
             LogoStorageDouble logoStorage,
@@ -107,6 +139,7 @@ class ClubServiceTest {
                 .website("https://club")
                 .logoUrl(logoUrl)
                 .active(active)
+                .revision(3L)
                 .createdAt(LocalDateTime.parse("2026-01-01T00:00:00"))
                 .lastUpdate(LocalDateTime.parse("2026-01-02T00:00:00"))
                 .build();
@@ -117,6 +150,7 @@ class ClubServiceTest {
         private ClubEntity entity;
         private List<ClubEntity> pageItems = List.of();
         private Pageable pageable;
+        private int saveCalls;
 
         ClubRepository proxy() {
             return (ClubRepository) Proxy.newProxyInstance(
@@ -126,8 +160,13 @@ class ClubServiceTest {
         @Override
         public Object invoke(Object proxy, java.lang.reflect.Method method, Object[] arguments) {
             return switch (method.getName()) {
-                case "save" -> {
+                case "save", "saveAndFlush" -> {
+                    saveCalls++;
+                    boolean update = entity != null;
                     entity = (ClubEntity) arguments[0];
+                    if (update) {
+                        entity.setRevision(entity.getRevision() + 1);
+                    }
                     yield entity;
                 }
                 case "findById" -> Optional.ofNullable(entity);
@@ -159,11 +198,17 @@ class ClubServiceTest {
 
     private static final class EventPublisherDouble implements ClubEventPublisher {
 
-        private final List<ClubUpsertFact> published = new ArrayList<>();
+        private final List<ClubEventData> upserts = new ArrayList<>();
+        private final List<ClubEventData> projections = new ArrayList<>();
 
         @Override
-        public void publishUpsert(ClubUpsertFact club) {
-            published.add(club);
+        public void publishUpsert(ClubEventData club) {
+            upserts.add(club);
+        }
+
+        @Override
+        public void publishProjection(ClubEventData club) {
+            projections.add(club);
         }
     }
 }

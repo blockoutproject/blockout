@@ -22,4 +22,8 @@ record OutboxRow(
         String v2Payload,
         Instant v2PublishedAt,
         int attemptCount) {
+
+    boolean v1Enabled() {
+        return v1RoutingKey != null;
+    }
 }

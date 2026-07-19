@@ -469,8 +469,23 @@ test('workspace clubs contract reconciles the six audited operations', async () 
       'phoneNumber',
       'postalCode',
       'rawName',
+      'revision',
       'website',
     ],
+  );
+  assert.deepEqual(
+    clubs.components.schemas.ClubInternalResponse.properties.revision,
+    {
+      type: 'integer',
+      format: 'int64',
+      minimum: 0,
+      description:
+        'Clubs-service-owned optimistic revision used by projection facts and internal reconciliation.',
+    },
+  );
+  assert.equal(
+    clubs.components.schemas.ClubInternalResponse.required.includes('revision'),
+    true,
   );
   assert.deepEqual(
     Object.keys(clubs.components.schemas.ClubInternalPageResponse.properties),
@@ -1974,6 +1989,7 @@ test('workspace mobile gateway contract separates the nine club team and pool wo
     'active',
     'createdAt',
     'lastUpdate',
+    'revision',
   ]) {
     assert.equal(
       gateway.components.schemas.MobileClubDetail.properties[

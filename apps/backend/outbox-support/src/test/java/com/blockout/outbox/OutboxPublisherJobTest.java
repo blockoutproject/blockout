@@ -48,6 +48,22 @@ class OutboxPublisherJobTest {
     }
 
     @Test
+    void publishesACanonicalOnlyRowWithoutAttemptingLegacyDeserialization() {
+        RecordingStore store = new RecordingStore(List.of(new OutboxRow(
+                EVENT_ID, "CLUB_PROJECTION_CHANGED", "2.0.0", "clubs-service", "club:club-1", 4L, null, NOW,
+                "entity.lifecycle.exchange", null, null, null, null,
+                true, "club.projection-changed.v2", "{}", null, 0)));
+        RecordingPublisher publisher = new RecordingPublisher();
+
+        job(store, publisher, properties(true)).publishReady();
+
+        assertThat(publisher.v1Ids).isEmpty();
+        assertThat(store.v1PublishedIds).isEmpty();
+        assertThat(publisher.v2Ids).containsExactly(EVENT_ID);
+        assertThat(store.v2PublishedIds).containsExactly(EVENT_ID);
+    }
+
+    @Test
     void pauseSwitchPreventsClaimsAndCleanupHonorsRetention() {
         RecordingStore store = new RecordingStore(List.of());
         RecordingPublisher publisher = new RecordingPublisher();
