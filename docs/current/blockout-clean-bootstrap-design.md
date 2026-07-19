@@ -14,7 +14,7 @@ The current `blockout` repository is a disposable construction workspace. Its Gi
 
 ## Source authority
 
-The standalone repositories in `/Users/legel/Documents/Projets/BlockOutProject` are the only source authority for application behavior during the bootstrap.
+The standalone repositories recorded in `source-baseline.md` are the only source authority for application behavior during the bootstrap.
 
 Each application must be imported from a recorded clean commit. Existing code in the current monorepo, previous migration documents, MRG implementations, generated contracts, and experimental changes must not be treated as source authority.
 
@@ -141,7 +141,7 @@ Where the standalone repositories have no meaningful automated tests, the bootst
 
 The standalone repositories are never modified, so they are the behavioral and production rollback source throughout the bootstrap.
 
-Before replacing the current monorepo tree, its current committed state and uncommitted experimental work must be archived in a recoverable form. A failed import is corrected in the temporary repository; it never triggers a production change.
+The discarded experimental monorepo tree is not a rollback source. A failed import is corrected in the temporary repository; it never triggers a production change.
 
 If parity cannot be established for an application, `BOOT-001` remains incomplete and that application's standalone repository remains authoritative.
 

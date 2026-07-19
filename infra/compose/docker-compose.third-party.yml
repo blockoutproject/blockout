@@ -7,8 +7,8 @@ services:
       RABBITMQ_DEFAULT_USER: blockout
       RABBITMQ_DEFAULT_PASS: blockout
     ports:
-      - '5672:5672'
-      - '15672:15672'
+      - "5672:5672"
+      - "15672:15672"
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
     networks:
@@ -20,15 +20,15 @@ services:
     restart: always
     environment:
       discovery.type: single-node
-      xpack.security.enabled: 'false'
-      bootstrap.memory_lock: 'true'
+      xpack.security.enabled: "false"
+      bootstrap.memory_lock: "true"
       ES_JAVA_OPTS: -Xms512m -Xmx512m
     ulimits:
       memlock:
         soft: -1
         hard: -1
     ports:
-      - '9200:9200'
+      - "9200:9200"
     volumes:
       - elasticsearch_data:/usr/share/elasticsearch/data
     networks:
@@ -42,7 +42,7 @@ services:
       PGADMIN_DEFAULT_EMAIL: admin@blockout.com
       PGADMIN_DEFAULT_PASSWORD: admin
     ports:
-      - '5050:80'
+      - "5050:80"
     volumes:
       - pgadmin_data:/var/lib/pgadmin
       - ./pgadmin/servers.json:/pgadmin4/servers.json:ro

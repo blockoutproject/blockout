@@ -2,7 +2,9 @@
   "name": "@blockout/source",
   "version": "0.0.0",
   "private": true,
-  "workspaces": ["apps/frontend/*"],
+  "workspaces": [
+    "apps/frontend/*"
+  ],
   "scripts": {
     "graph": "nx graph",
     "show-projects": "nx show projects"

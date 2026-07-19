@@ -8,9 +8,9 @@ services:
       POSTGRES_PASSWORD: pools
       POSTGRES_DB: pools
     ports:
-      - '5432:5432'
+      - "5432:5432"
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U pools -d pools']
+      test: ["CMD-SHELL", "pg_isready -U pools -d pools"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -28,9 +28,9 @@ services:
       POSTGRES_PASSWORD: teams
       POSTGRES_DB: teams
     ports:
-      - '5433:5432'
+      - "5433:5432"
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U teams -d teams']
+      test: ["CMD-SHELL", "pg_isready -U teams -d teams"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -48,9 +48,9 @@ services:
       POSTGRES_PASSWORD: matches
       POSTGRES_DB: matches
     ports:
-      - '5434:5432'
+      - "5434:5432"
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U matches -d matches']
+      test: ["CMD-SHELL", "pg_isready -U matches -d matches"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -68,9 +68,9 @@ services:
       POSTGRES_PASSWORD: competition
       POSTGRES_DB: competition
     ports:
-      - '5435:5432'
+      - "5435:5432"
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U competition -d competition']
+      test: ["CMD-SHELL", "pg_isready -U competition -d competition"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -88,9 +88,9 @@ services:
       POSTGRES_PASSWORD: users
       POSTGRES_DB: users
     ports:
-      - '5436:5432'
+      - "5436:5432"
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U users -d users']
+      test: ["CMD-SHELL", "pg_isready -U users -d users"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -108,9 +108,9 @@ services:
       POSTGRES_PASSWORD: clubs
       POSTGRES_DB: clubs
     ports:
-      - '5437:5432'
+      - "5437:5432"
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U clubs -d clubs']
+      test: ["CMD-SHELL", "pg_isready -U clubs -d clubs"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -128,9 +128,9 @@ services:
       POSTGRES_PASSWORD: config
       POSTGRES_DB: config
     ports:
-      - '5438:5432'
+      - "5438:5432"
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U config -d config']
+      test: ["CMD-SHELL", "pg_isready -U config -d config"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -148,9 +148,9 @@ services:
       POSTGRES_PASSWORD: notification
       POSTGRES_DB: notification
     ports:
-      - '5439:5432'
+      - "5439:5432"
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U notification -d notification']
+      test: ["CMD-SHELL", "pg_isready -U notification -d notification"]
       interval: 10s
       timeout: 5s
       retries: 5
