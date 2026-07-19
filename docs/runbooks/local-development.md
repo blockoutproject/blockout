@@ -123,7 +123,11 @@ cd ../../..
 npm exec nx run @blockout/mobile:export -- --platform android
 ```
 
-The imported source currently has two known TypeScript errors. They are recorded in the source baseline and are not caused by Nx integration.
+Verify the mobile TypeScript sources through Nx:
+
+```bash
+npm exec -- nx run @blockout/mobile:typecheck
+```
 
 ## Python scrapers
 

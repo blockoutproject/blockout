@@ -10,7 +10,7 @@ export function useDeleteNotification(pageSize = 20) {
 
     return useMutation({
         mutationFn: async (id: number) => {
-            await mobile.deleteNotification(id);
+            await mobile.notifications.deleteNotification(id);
         },
         onMutate: async (id: number) => {
             const key = NOTIFS_QK(pageSize);

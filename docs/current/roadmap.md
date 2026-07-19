@@ -32,4 +32,9 @@
   - Remove generic case-conversion utilities and retain only type serialization required for values such as dates and enums.
   - Preserve provider-owned payloads and non-HTTP infrastructure names.
 
+- [x] **REF-006 — Establish a green local verification baseline**
+  - Fix the imported mobile type errors without changing application behavior.
+  - Keep the search worker context test isolated from startup jobs and external systems.
+  - Validate the complete Maven reactor, mobile typecheck, and a gateway-to-service local smoke.
+
 The tasks are executed in order. DTO restructuring, contract-first adoption, code generation, scraper redesign, GitFlow, CI, deployment, and production changes require later roadmap tasks and are not bundled into this migration.
