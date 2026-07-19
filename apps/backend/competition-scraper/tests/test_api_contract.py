@@ -4,6 +4,7 @@ import pytest
 
 from api import config_api, teams_api
 from models.scraper_status import ScraperStatus
+from models.raw_division_mapping import RawDivisionMapping
 from models.team import Team
 from utils.handlers.api_handler import convert_to_dataclass
 
@@ -100,3 +101,33 @@ def test_status_mapping_reads_the_camel_case_timestamp():
 
     assert status.enabled is True
     assert status.lastUpdate.isoformat() == "2026-07-19T12:30:00"
+
+
+def test_reads_and_writes_the_authoritative_raw_division_mapping_contract():
+    mapping = convert_to_dataclass(
+        {
+            "id": 1,
+            "rawDivisionName": "N3",
+            "divisionId": 7,
+            "format": "SIX",
+            "gender": "F",
+            "leagueCode": "LNV",
+            "season": "2026/2027",
+            "createdAt": "2026-07-19T12:30:00",
+            "lastUpdate": "2026-07-19T12:30:00",
+            "mapped": True,
+        },
+        RawDivisionMapping,
+    )
+
+    payload = config_api._create_raw_division_mapping_payload(mapping)
+
+    assert mapping.mapped is True
+    assert payload == {
+        "rawDivisionName": "N3",
+        "divisionId": 7,
+        "format": "SIX",
+        "gender": "F",
+        "leagueCode": "LNV",
+        "season": "2026/2027",
+    }

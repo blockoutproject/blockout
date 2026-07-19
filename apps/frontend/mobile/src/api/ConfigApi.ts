@@ -69,17 +69,17 @@ export class ConfigApi extends BaseApi {
     }
 
     public getRawDivisionMappings(leagueCode?: string, season?: string) {
-        return this.httpAuth.get<any[]>("/config/raw-divisions", {
+        return this.httpAuth.get<RawDivisionMapping[]>("/config/raw-divisions", {
             params: { leagueCode, season },
         });
     }
 
     public getRawDivisionMappingById(id: number) {
-        return this.httpAuth.get<any>(`/config/raw-divisions/${id}`);
+        return this.httpAuth.get<RawDivisionMapping>(`/config/raw-divisions/${id}`);
     }
 
     public createRawDivisionMapping(data: Partial<RawDivisionMapping>) {
-        return this.httpAuth.post<any>("/config/raw-divisions", data);
+        return this.httpAuth.post<RawDivisionMapping>("/config/raw-divisions", data);
     }
 
     public updateRawDivisionMapping(id: number, data: Partial<RawDivisionMapping>) {

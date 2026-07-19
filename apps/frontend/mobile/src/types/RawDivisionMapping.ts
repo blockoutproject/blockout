@@ -11,4 +11,5 @@ export interface RawDivisionMapping {
     season: string;
     createdAt: string;
     lastUpdate: string;
+    mapped: boolean;
 }

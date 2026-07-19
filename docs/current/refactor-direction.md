@@ -32,6 +32,20 @@ REF-007 establishes the first ownership rule:
 - the gateway, search worker, club scraper, and mobile application mirror that complete representation at their Club HTTP boundaries;
 - `ClubUpsertEvent`, `ClubDeactivationEvent`, search documents, and search result DTOs remain intentionally smaller lifecycle or query projections.
 
+REF-010 establishes configuration ownership:
+
+- `config-service` owns the app status response: `maintenance`, `message`, `imageUrl`, `minVersionIos`,
+  `minVersionAndroid`, `storeUrlIos`, `storeUrlAndroid`, `forceUpdateMessage`, and `lastUpdate`;
+- `config-service` owns the complete Division representation: `id`, `name`, `mainColor`, `firstGradientColor`,
+  `secondGradientColor`, `thirdGradientColor`, `logoUrl`, `active`, `createdAt`, and `lastUpdate`;
+- `config-service` owns the complete LegalDocument representation: `id`, `type`, `title`, `version`, `content`,
+  `createdAt`, and `lastUpdate`;
+- `config-service` owns the complete RawDivisionMapping representation: `id`, `rawDivisionName`, `divisionId`,
+  `format`, `gender`, `leagueCode`, `season`, `createdAt`, `lastUpdate`, and the derived `mapped` flag;
+- `config-service` owns the complete ScraperStatus representation: `id`, `name`, `enabled`, and `lastUpdate`;
+- `Format`, `Gender`, and `ScraperName` are handwritten transport enums owned by `config-service` until the later,
+  explicitly authorized contract-first phase replaces stable handwritten boundaries.
+
 The camelCase rule applies to transport names owned by Blockout:
 
 - REST request and response bodies;

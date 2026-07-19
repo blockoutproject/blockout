@@ -56,5 +56,13 @@
   - Re-run the Club and affected-consumer verification baseline, then leave subsequent roadmap tasks to use the new
     repository knowledge.
 
+- [x] **REF-010 — Refactor config-service and establish authoritative configuration ownership**
+  - Separate handwritten configuration HTTP models, API mapping, application commands and views, persistence, and
+    division image storage using the Maaatch naming approach.
+  - Make `config-service` authoritative for app status, divisions, legal documents, raw division mappings, and scraper
+    statuses, and align only their complete gateway, mobile, and scraper mirrors.
+  - Preserve the V1 routes, native camelCase transport, multipart behavior, database schema, scraper behavior, and
+    production behavior with focused service and consumer tests.
+
 The tasks are executed in order. The remaining services are restructured in later focused tasks. Contract-first adoption,
 code generation, full scraper redesign, GitFlow, CI, deployment, and production changes remain deferred.

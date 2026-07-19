@@ -29,4 +29,6 @@ public class RawDivisionMappingDTO {
     private LocalDateTime createdAt;
 
     private LocalDateTime lastUpdate;
+
+    private boolean mapped;
 }

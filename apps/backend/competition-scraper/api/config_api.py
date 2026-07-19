@@ -6,7 +6,6 @@ from models.raw_division_mapping import RawDivisionMapping
 from models.scraper_status import ScraperStatus
 from utils.handlers.api_handler import handle_api_response
 from api.auth0 import _get_headers
-from utils.utils import to_dict
 
 
 @handle_api_response(response_type=List[RawDivisionMapping])
@@ -33,7 +32,7 @@ async def create_raw_division_mapping(
     Envoie une requête POST pour créer un nouveau raw pool mapping.
     """
     headers = _get_headers()
-    mapping_dict = to_dict(mapping)
+    mapping_dict = _create_raw_division_mapping_payload(mapping)
     url = f"{CONFIG_API_URL}/raw-divisions"
     response = await session.post(url, json=mapping_dict, headers=headers)
     log_event(
@@ -43,6 +42,18 @@ async def create_raw_division_mapping(
         rawDivisionName=mapping.rawDivisionName
     )
     return response
+
+
+def _create_raw_division_mapping_payload(mapping: RawDivisionMapping) -> dict:
+    """Build the exact config-service create request from the scraper model."""
+    return {
+        "rawDivisionName": mapping.rawDivisionName,
+        "divisionId": mapping.divisionId,
+        "format": mapping.format,
+        "gender": mapping.gender,
+        "leagueCode": mapping.leagueCode,
+        "season": mapping.season,
+    }
 
 @handle_api_response(response_type=ScraperStatus)
 async def get_scraper_status(

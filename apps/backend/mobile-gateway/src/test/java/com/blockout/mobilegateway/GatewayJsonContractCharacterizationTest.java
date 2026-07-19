@@ -4,9 +4,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.blockout.mobilegateway.models.dto.club.ClubDTO;
 import com.blockout.mobilegateway.models.dto.team.TeamDTO;
+import com.blockout.mobilegateway.models.dto.config.RawDivisionMappingDTO;
+import com.blockout.mobilegateway.models.enums.Format;
+import com.blockout.mobilegateway.models.enums.Gender;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.DisplayName;
 
 import java.time.LocalDateTime;
 
@@ -63,5 +67,21 @@ class GatewayJsonContractCharacterizationTest {
                 "phoneNumber", "website", "logoUrl", "active", "latitude", "longitude",
                 "createdAt", "lastUpdate");
         assertThat(json.path("address").asText()).isEqualTo("1 Club Street");
+    }
+
+    /** Verifies that the gateway mirrors every config-service RawDivisionMapping response field. */
+    @Test
+    @DisplayName("mirrors the complete RawDivisionMapping response owned by config-service")
+    void mirrorsTheCompleteRawDivisionMappingResponseOwnedByConfigService() {
+        LocalDateTime now = LocalDateTime.of(2026, 7, 19, 12, 0);
+        RawDivisionMappingDTO mapping = new RawDivisionMappingDTO(
+                1L, "N3", 7L, Format.SIX, Gender.F, "LNV", "2026/2027", now, now, true);
+
+        JsonNode json = objectMapper.findAndRegisterModules().valueToTree(mapping);
+
+        assertThat(json.fieldNames()).toIterable().containsExactlyInAnyOrder(
+                "id", "rawDivisionName", "divisionId", "format", "gender", "leagueCode", "season",
+                "createdAt", "lastUpdate", "mapped");
+        assertThat(json.path("mapped").asBoolean()).isTrue();
     }
 }

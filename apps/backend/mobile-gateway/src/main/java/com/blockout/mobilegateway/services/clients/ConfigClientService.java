@@ -156,7 +156,7 @@ public class ConfigClientService {
     public List<RawDivisionMappingDTO> listRawDivisionMappings(String leagueCode, String season) {
         String url = UriComponentsBuilder.fromUriString(baseUrl())
                 .pathSegment("raw-divisions")
-                .queryParamIfPresent("league_code", java.util.Optional.ofNullable(leagueCode))
+                .queryParamIfPresent("leagueCode", java.util.Optional.ofNullable(leagueCode))
                 .queryParamIfPresent("season", java.util.Optional.ofNullable(season))
                 .build()
                 .toUriString();
