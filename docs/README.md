@@ -1,8 +1,9 @@
 # Documentation
 
 - [Bootstrap design](current/blockout-clean-bootstrap-design.md)
+- [Refactor direction](current/refactor-direction.md)
 - [Source baseline](current/source-baseline.md)
 - [Roadmap](current/roadmap.md)
 - [Local development](runbooks/local-development.md)
 
-This documentation describes the imported standalone baseline only. Contract generation, refactoring, CI, deployment, and public-repository publication are separate future decisions.
+The bootstrap documents remain the historical baseline. The refactor direction and roadmap describe the current work. Contract generation, CI, deployment, and public-repository publication remain separate future decisions.
