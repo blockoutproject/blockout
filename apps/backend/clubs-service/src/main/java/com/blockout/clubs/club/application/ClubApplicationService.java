@@ -4,11 +4,11 @@ import com.blockout.clubs.club.application.commands.ClubImageCommand;
 import com.blockout.clubs.club.application.commands.CreateClubCommand;
 import com.blockout.clubs.club.application.commands.UpdateClubCommand;
 import com.blockout.clubs.club.application.exceptions.ClubNotFoundException;
+import com.blockout.clubs.club.application.ports.ClubEventPublisher;
+import com.blockout.clubs.club.application.ports.ClubImageStorage;
 import com.blockout.clubs.club.application.views.ClubView;
-import com.blockout.clubs.club.infrastructure.messaging.ClubEventPublisher;
 import com.blockout.clubs.club.infrastructure.persistence.entities.ClubEntity;
 import com.blockout.clubs.club.infrastructure.persistence.repositories.ClubRepository;
-import com.blockout.clubs.club.infrastructure.storage.S3StorageClientService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,8 +32,11 @@ public class ClubApplicationService implements ClubService {
 
     private final ClubRepository clubRepository;
     private final ClubEventPublisher eventPublisher;
-    private final S3StorageClientService storageClient;
+    private final ClubImageStorage imageStorage;
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     @Transactional(readOnly = true)
     public List<ClubView> findClubs(List<String> ids, Boolean active) {
@@ -48,12 +51,18 @@ public class ClubApplicationService implements ClubService {
         return clubs;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     @Transactional(readOnly = true)
     public ClubView getClubById(String id) {
         return toView(loadClub(id));
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     @Transactional
     public ClubView createClub(CreateClubCommand command) {
@@ -73,7 +82,7 @@ public class ClubApplicationService implements ClubService {
 
         if (hasImage(command.image())) {
             validateImage(command.image());
-            club.setLogoUrl(storageClient.uploadClubImage(command.image()));
+            club.setLogoUrl(imageStorage.uploadClubImage(command.image()));
         }
 
         ClubView saved = toView(clubRepository.saveAndFlush(club));
@@ -84,6 +93,9 @@ public class ClubApplicationService implements ClubService {
         return saved;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     @Transactional
     public ClubView updateClub(String id, UpdateClubCommand command) {
@@ -93,7 +105,7 @@ public class ClubApplicationService implements ClubService {
         if (hasImage(command.image())) {
             validateImage(command.image());
             deleteLogo(club.getLogoUrl());
-            club.setLogoUrl(storageClient.uploadClubImage(command.image()));
+            club.setLogoUrl(imageStorage.uploadClubImage(command.image()));
         } else if (command.logoUrl() == null) {
             deleteLogo(club.getLogoUrl());
             club.setLogoUrl(null);
@@ -114,6 +126,9 @@ public class ClubApplicationService implements ClubService {
         return updated;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     @Transactional
     public void deactivateClub(String id) {
@@ -125,6 +140,9 @@ public class ClubApplicationService implements ClubService {
                 keyValue("clubId", id));
     }
 
+    /**
+     * Loads the authoritative Club entity or raises the application-level not-found error.
+     */
     private ClubEntity loadClub(String id) {
         return clubRepository.findById(id).orElseThrow(() -> {
             LOGGER.warn("Club not found",
@@ -134,6 +152,9 @@ public class ClubApplicationService implements ClubService {
         });
     }
 
+    /**
+     * Applies only the mutable fields explicitly supplied by an update command.
+     */
     private void applyUpdates(ClubEntity club, UpdateClubCommand command) {
         if (command.rawName() != null) {
             club.setRawName(command.rawName());
@@ -161,10 +182,16 @@ public class ClubApplicationService implements ClubService {
         }
     }
 
+    /**
+     * Determines whether an image command contains uploadable bytes.
+     */
     private boolean hasImage(ClubImageCommand image) {
         return image != null && !image.isEmpty();
     }
 
+    /**
+     * Enforces the existing Club image media-type and size limits.
+     */
     private void validateImage(ClubImageCommand image) {
         if (!"image/png".equals(image.contentType()) && !"image/jpeg".equals(image.contentType())) {
             throw new IllegalArgumentException("Only PNG and JPEG images are allowed.");
@@ -174,12 +201,18 @@ public class ClubApplicationService implements ClubService {
         }
     }
 
+    /**
+     * Removes an existing managed logo while leaving external URLs untouched.
+     */
     private void deleteLogo(String logoUrl) {
         if (logoUrl != null) {
-            storageClient.deleteObjectByUrl(logoUrl);
+            imageStorage.deleteClubImage(logoUrl);
         }
     }
 
+    /**
+     * Maps the persisted Club state to the application view returned by every use case.
+     */
     private ClubView toView(ClubEntity club) {
         return new ClubView(
                 club.getId(),

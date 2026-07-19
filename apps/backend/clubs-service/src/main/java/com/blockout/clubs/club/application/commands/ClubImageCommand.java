@@ -8,6 +8,9 @@ public record ClubImageCommand(
         String filename,
         String contentType) {
 
+    /**
+     * Reports whether the command carries image bytes.
+     */
     public boolean isEmpty() {
         return content == null || content.length == 0;
     }

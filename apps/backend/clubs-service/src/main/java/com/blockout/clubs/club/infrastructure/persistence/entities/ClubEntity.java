@@ -71,6 +71,9 @@ public class ClubEntity {
     @Column(name = "last_update")
     private LocalDateTime lastUpdate;
 
+    /**
+     * Initializes the imported schema timestamps when a Club is first persisted.
+     */
     @PrePersist
     void onCreate() {
         LocalDateTime now = LocalDateTime.now();
@@ -78,6 +81,9 @@ public class ClubEntity {
         lastUpdate = now;
     }
 
+    /**
+     * Refreshes the imported schema update timestamp before each effective write.
+     */
     @PreUpdate
     void onUpdate() {
         lastUpdate = LocalDateTime.now();

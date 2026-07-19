@@ -43,6 +43,9 @@ public class ClubController {
     private final ClubApiMapper mapper;
     private final ObjectMapper objectMapper;
 
+    /**
+     * Lists clubs using the existing optional identifier and active filters.
+     */
     @Operation(summary = "List clubs", description = "Returns clubs with optional filters.")
     @ApiResponses(@ApiResponse(responseCode = "200", description = "Club list"))
     @PreAuthorize("hasAuthority('SCOPE_read:clubs')")
@@ -50,9 +53,12 @@ public class ClubController {
     public ResponseEntity<List<ClubInternalResponse>> listClubs(
             @RequestParam(required = false) List<String> ids,
             @RequestParam(required = false) Boolean active) {
-        return ResponseEntity.ok(clubService.findClubs(ids, active).stream().map(mapper::toDto).toList());
+        return ResponseEntity.ok(clubService.findClubs(ids, active).stream().map(mapper::toInternalResponse).toList());
     }
 
+    /**
+     * Returns one Club by identifier.
+     */
     @Operation(summary = "Get a club", description = "Returns a club by id.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Club found"),
@@ -61,9 +67,12 @@ public class ClubController {
     @PreAuthorize("hasAuthority('SCOPE_read:clubs')")
     @GetMapping("/{id}")
     public ResponseEntity<ClubInternalResponse> getClubById(@PathVariable String id) {
-        return ResponseEntity.ok(mapper.toDto(clubService.getClubById(id)));
+        return ResponseEntity.ok(mapper.toInternalResponse(clubService.getClubById(id)));
     }
 
+    /**
+     * Creates a Club from multipart JSON and an optional logo.
+     */
     @Operation(summary = "Create a club", description = "Creates a club with an optional logo image.")
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Club created"),
@@ -81,9 +90,12 @@ public class ClubController {
                 .path("/{id}")
                 .buildAndExpand(saved.id())
                 .toUri();
-        return ResponseEntity.created(location).body(mapper.toDto(saved));
+        return ResponseEntity.created(location).body(mapper.toInternalResponse(saved));
     }
 
+    /**
+     * Updates a Club from multipart JSON and an optional replacement logo.
+     */
     @Operation(summary = "Update a club", description = "Updates an existing club.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Club updated"),
@@ -97,9 +109,12 @@ public class ClubController {
             @RequestPart(value = "image", required = false) MultipartFile image)
             throws JsonProcessingException, IOException {
         UpdateClubInternalRequest request = objectMapper.readValue(json, UpdateClubInternalRequest.class);
-        return ResponseEntity.ok(mapper.toDto(clubService.updateClub(id, mapper.toCommand(request, image))));
+        return ResponseEntity.ok(mapper.toInternalResponse(clubService.updateClub(id, mapper.toCommand(request, image))));
     }
 
+    /**
+     * Soft-deletes one Club through the existing V1 route.
+     */
     @Operation(summary = "Deactivate a club", description = "Soft-deletes a club.")
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "Club deactivated"),
@@ -112,6 +127,9 @@ public class ClubController {
         return ResponseEntity.noContent().build();
     }
 
+    /**
+     * Returns the configured Club logo URL or an empty response when absent.
+     */
     @Operation(summary = "Get a club logo", description = "Returns the logo URL for a club.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Logo found"),

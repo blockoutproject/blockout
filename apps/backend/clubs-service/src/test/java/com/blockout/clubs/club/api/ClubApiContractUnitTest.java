@@ -5,13 +5,18 @@ import com.blockout.clubs.club.api.models.CreateClubInternalRequest;
 import com.blockout.clubs.club.api.models.UpdateClubInternalRequest;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class ClubApiContractTest {
+/**
+ * Protects the complete handwritten Club transport shape and native camelCase names.
+ */
+@DisplayName("Club API contract")
+class ClubApiContractUnitTest {
 
     private static final Set<String> COMPLETE_CLUB_FIELDS = Set.of(
             "id",
@@ -32,6 +37,10 @@ class ClubApiContractTest {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
+    /**
+     * Verifies that the owner exposes every complete Club field without naming conversion.
+     */
+    @DisplayName("exposes the complete Club shape in native camelCase")
     @Test
     void exposesTheCompleteAuthoritativeClubShapeInNativeCamelCase() {
         ClubInternalResponse response = new ClubInternalResponse(
@@ -57,6 +66,10 @@ class ClubApiContractTest {
         assertThat(json.has("raw_name")).isFalse();
     }
 
+    /**
+     * Verifies that creation and update remain distinct handwritten transport inputs.
+     */
+    @DisplayName("keeps creation and update requests explicit")
     @Test
     void keepsCreationAndUpdateRequestsExplicit() throws Exception {
         CreateClubInternalRequest create = objectMapper.readValue("""

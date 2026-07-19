@@ -8,9 +8,15 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 
+/**
+ * Persistence access for the authoritative Club aggregate.
+ */
 @Repository
 public interface ClubRepository extends JpaRepository<ClubEntity, String> {
 
+    /**
+     * Applies the existing optional identifier and active-state filters in name order.
+     */
     @Query("""
             SELECT c
             FROM ClubEntity c

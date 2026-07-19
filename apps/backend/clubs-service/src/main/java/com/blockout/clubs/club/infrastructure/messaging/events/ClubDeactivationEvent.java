@@ -7,6 +7,9 @@ import lombok.NoArgsConstructor;
 
 import java.io.Serializable;
 
+/**
+ * Existing cascade command requesting the soft deletion of one Club.
+ */
 @Data
 @Builder
 @NoArgsConstructor

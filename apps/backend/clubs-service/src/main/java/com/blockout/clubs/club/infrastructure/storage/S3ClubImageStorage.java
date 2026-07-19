@@ -1,6 +1,7 @@
 package com.blockout.clubs.club.infrastructure.storage;
 
 import com.blockout.clubs.club.application.commands.ClubImageCommand;
+import com.blockout.clubs.club.application.ports.ClubImageStorage;
 import com.blockout.clubs.config.AwsS3Properties;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
@@ -14,13 +15,19 @@ import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 import java.util.UUID;
 
+/**
+ * S3 adapter for Club logo storage.
+ */
 @Component
 @RequiredArgsConstructor
-public class S3StorageClientService {
+public class S3ClubImageStorage implements ClubImageStorage {
 
     private final AwsS3Properties s3Properties;
     private S3Client s3Client;
 
+    /**
+     * Builds the provider client from validated application properties.
+     */
     @PostConstruct
     void initializeClient() {
         s3Client = S3Client.builder()
@@ -31,6 +38,10 @@ public class S3StorageClientService {
                 .build();
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public String uploadClubImage(ClubImageCommand image) {
         String filename = image.filename() == null || image.filename().isBlank()
                 ? "club-image"
@@ -45,7 +56,11 @@ public class S3StorageClientService {
         return baseUrl() + key;
     }
 
-    public void deleteObjectByUrl(String url) {
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void deleteClubImage(String url) {
         if (!url.startsWith(baseUrl())) {
             return;
         }
@@ -53,6 +68,9 @@ public class S3StorageClientService {
         s3Client.deleteObject(builder -> builder.bucket(s3Properties.getS3().getBucket()).key(key));
     }
 
+    /**
+     * Builds the public URL prefix owned by the configured S3 bucket.
+     */
     private String baseUrl() {
         return "https://" + s3Properties.getS3().getBucket() + ".s3."
                 + s3Properties.getRegion() + ".amazonaws.com/";

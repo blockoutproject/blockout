@@ -19,6 +19,9 @@ import java.nio.charset.StandardCharsets;
 
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
+/**
+ * Provider adapter for the existing Mapbox forward-geocoding workflow.
+ */
 @Component
 @RequiredArgsConstructor
 public class MapboxClient {
@@ -29,6 +32,9 @@ public class MapboxClient {
     private final RestTemplate restTemplate;
     private final MapboxProperties mapboxProperties;
 
+    /**
+     * Resolves an address only when Mapbox returns one unambiguous result.
+     */
     public GeocodingResult geocode(String city, String postalCode, String address) {
         String query = address != null && !address.isBlank()
                 ? address.trim() + ", " + postalCode + " " + city
@@ -80,13 +86,22 @@ public class MapboxClient {
         }
     }
 
+    /**
+     * Coordinates returned by a successful unambiguous provider lookup.
+     */
     public record GeocodingResult(double latitude, double longitude) {
     }
 
+    /**
+     * Minimal provider-owned response shape needed by the adapter.
+     */
     public static class MapboxResponse {
         public MapboxFeature[] features;
     }
 
+    /**
+     * Minimal provider-owned feature shape containing longitude and latitude.
+     */
     public static class MapboxFeature {
         public double[] center;
     }

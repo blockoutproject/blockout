@@ -18,6 +18,9 @@ import java.io.IOException;
 @Component
 public class ClubApiMapper {
 
+    /**
+     * Converts a create request and optional multipart file to an application command.
+     */
     public CreateClubCommand toCommand(CreateClubInternalRequest request, MultipartFile image) throws IOException {
         return new CreateClubCommand(
                 request.id(),
@@ -33,6 +36,9 @@ public class ClubApiMapper {
                 toImageCommand(image));
     }
 
+    /**
+     * Converts an update request and optional multipart file to an application command.
+     */
     public UpdateClubCommand toCommand(UpdateClubInternalRequest request, MultipartFile image) throws IOException {
         return new UpdateClubCommand(
                 request.rawName(),
@@ -47,7 +53,10 @@ public class ClubApiMapper {
                 toImageCommand(image));
     }
 
-    public ClubInternalResponse toDto(ClubView view) {
+    /**
+     * Converts the complete application view to the owned internal response.
+     */
+    public ClubInternalResponse toInternalResponse(ClubView view) {
         return new ClubInternalResponse(
                 view.id(),
                 view.rawName(),
@@ -66,6 +75,9 @@ public class ClubApiMapper {
                 view.lastUpdate());
     }
 
+    /**
+     * Copies multipart data into a framework-independent image command when present.
+     */
     private ClubImageCommand toImageCommand(MultipartFile image) throws IOException {
         if (image == null || image.isEmpty()) {
             return null;

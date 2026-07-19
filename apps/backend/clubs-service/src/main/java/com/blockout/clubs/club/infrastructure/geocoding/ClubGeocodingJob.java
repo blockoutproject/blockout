@@ -13,6 +13,9 @@ import java.util.List;
 
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
+/**
+ * Periodically enriches active Clubs that do not yet have unambiguous coordinates.
+ */
 @Component
 @RequiredArgsConstructor
 public class ClubGeocodingJob {
@@ -22,6 +25,9 @@ public class ClubGeocodingJob {
     private final ClubRepository clubRepository;
     private final MapboxClient mapboxClient;
 
+    /**
+     * Geocodes eligible Clubs while isolating a provider failure to the affected Club.
+     */
     @Scheduled(
             initialDelayString = "${clubs.geocoding.initial-delay:0}",
             fixedDelayString = "${clubs.geocoding.fixed-delay:604800000}")
