@@ -4,7 +4,7 @@ import * as Haptics from "expo-haptics";
 import BottomSheetCustomModal from "@/src/components/common/bottomSheet/BottomSheetCustomModal";
 import BottomSheetFormFooter from "@/src/components/common/form/BottomSheetFormFooter";
 import ReportForm, { ReportFormExternalState } from "@/src/components/report/ReportForm";
-import { ReportType, type GitHubIssueResponse } from "@/src/types/Report";
+import { ReportType, type ReportResult } from "@/src/types/Report";
 
 export type ReportFormSheetProps = {
     context?: {
@@ -12,7 +12,7 @@ export type ReportFormSheetProps = {
         defaultType?: ReportType;
         userId?: string;
     };
-    onSuccess: (created: GitHubIssueResponse) => void;
+    onSuccess: (created: ReportResult) => void;
     snapPoint?: string | number;
     footerLabel?: string;
 };

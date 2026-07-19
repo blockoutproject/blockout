@@ -6,6 +6,7 @@ import com.blockout.mobilegateway.models.dto.club.ClubDTO;
 import com.blockout.mobilegateway.models.dto.competition.CompetitionAssociationDTO;
 import com.blockout.mobilegateway.models.dto.match.MatchDTO;
 import com.blockout.mobilegateway.models.dto.notification.UserNotificationDTO;
+import com.blockout.mobilegateway.models.dto.report.ReportDTO;
 import com.blockout.mobilegateway.models.dto.team.TeamDTO;
 import com.blockout.mobilegateway.models.dto.pool.PoolDTO;
 import com.blockout.mobilegateway.models.dto.user.CustomUserDTO;
@@ -158,6 +159,21 @@ class GatewayJsonContractCharacterizationTest {
                 "id", "userId", "type", "title", "body", "deepLink", "targetType", "targetId",
                 "metadata", "isRead", "isOpened", "createdAt", "readAt", "openedAt");
         assertThat(json.path("metadata").path("divisionId").asLong()).isEqualTo(4L);
+    }
+
+    @Test
+    void mirrorsTheCompleteReportResultOwnedByReportsService() {
+        ReportDTO report = new ReportDTO();
+        report.setId(1L);
+        report.setNumber(2);
+        report.setHtmlUrl("https://github.invalid/issues/2");
+        report.setTitle("Broken score");
+        report.setState("OPEN");
+
+        JsonNode json = objectMapper.valueToTree(report);
+
+        assertThat(json.fieldNames()).toIterable()
+                .containsExactlyInAnyOrder("id", "number", "htmlUrl", "title", "state");
     }
 
     @Test

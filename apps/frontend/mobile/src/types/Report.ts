@@ -18,7 +18,7 @@ export interface Report {
     os?: string;
 }
 
-export interface GitHubIssueResponse {
+export interface ReportResult {
     id: number;
     number: number;
     htmlUrl: string;

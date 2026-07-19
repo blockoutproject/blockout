@@ -1,5 +1,5 @@
 import { CONFIG } from "@/src/config/config";
-import { GitHubIssueResponse } from "../types/Report";
+import { ReportResult } from "../types/Report";
 import { CustomImage } from "../types/Common";
 import { appendJson } from "../utils/utils";
 import { BaseApi } from "./core/BaseApi";
@@ -25,7 +25,7 @@ export class ReportApi extends BaseApi {
             });
         }
 
-        return this.httpPublic.post<GitHubIssueResponse>("/reports", formData, {
+        return this.httpPublic.post<ReportResult>("/reports", formData, {
             headers: { "Content-Type": "multipart/form-data" },
         });
     }

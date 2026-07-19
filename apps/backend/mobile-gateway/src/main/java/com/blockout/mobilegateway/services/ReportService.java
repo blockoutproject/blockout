@@ -1,6 +1,6 @@
 package com.blockout.mobilegateway.services;
 
-import com.blockout.mobilegateway.models.dto.report.GitHubIssueResponseDTO;
+import com.blockout.mobilegateway.models.dto.report.ReportDTO;
 import com.blockout.mobilegateway.models.dto.report.ReportCreateDTO;
 import com.blockout.mobilegateway.services.clients.ReportClientService;
 import lombok.RequiredArgsConstructor;
@@ -20,7 +20,7 @@ public class ReportService {
     private static final Logger logger = LoggerFactory.getLogger(ReportService.class);
     private final ReportClientService reportClientService;
 
-    public GitHubIssueResponseDTO createReport(ReportCreateDTO dto, List<MultipartFile> images) {
+    public ReportDTO createReport(ReportCreateDTO dto, List<MultipartFile> images) {
         long t0 = System.nanoTime();
         int count = images != null ? images.size() : 0;
         logger.info("Create report request",
@@ -30,7 +30,7 @@ public class ReportService {
                 keyValue("images_count", count));
 
         try {
-            GitHubIssueResponseDTO res = reportClientService.createReport(dto, images);
+            ReportDTO res = reportClientService.createReport(dto, images);
             long t1 = System.nanoTime();
             logger.info("Report created",
                     keyValue("action", "create_report_done"),

@@ -10,7 +10,7 @@ import { Image } from "expo-image";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import * as Device from "expo-device";
 import { useAppTheme } from "@/src/context/ThemeProvider";
-import { ReportType, type Report, type GitHubIssueResponse } from "@/src/types/Report";
+import { ReportType, type Report, type ReportResult } from "@/src/types/Report";
 import Filters from "@/src/components/common/Filters";
 import type { Filter } from "@/src/types/Filter";
 import Field from "@/src/components/common/form/Field";
@@ -31,7 +31,7 @@ export type ReportFormProps = {
         defaultType?: ReportType;
         userId?: string;
     };
-    onSuccess: (created: GitHubIssueResponse) => void;
+    onSuccess: (created: ReportResult) => void;
     onRegisterSubmit: (submit: () => void) => void;
     onStateChange?: (state: ReportFormExternalState) => void;
 };

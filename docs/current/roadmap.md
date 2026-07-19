@@ -88,7 +88,7 @@
   - Separate notification transport, application, persistence, event-consumer, Auth0, and Expo boundaries.
   - Align complete notification mirrors while preserving V1 routes, schema, queues, provider behavior, and runtime behavior.
 
-- [ ] **REF-017 — Refactor reports-service and isolate report providers**
+- [x] **REF-017 — Refactor reports-service and isolate report providers**
   - Separate report transport, application assembly, GitHub, and Discord boundaries.
   - Preserve V1 routes, provider payloads, PDF behavior, and runtime behavior with focused tests.
 

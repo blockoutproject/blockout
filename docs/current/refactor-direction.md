@@ -111,6 +111,15 @@ REF-016 establishes Notification ownership:
   behind the Notification application boundary without changing V1 routes, database tables, queues, routing keys, or
   provider behavior.
 
+REF-017 establishes Report ownership:
+
+- `reports-service` owns the report creation input and the complete creation result: `id`, `number`, `htmlUrl`, `title`,
+  and `state`;
+- the gateway and mobile application mirror that result as a Report contract instead of exposing a GitHub-named DTO;
+- multipart decoding, application assembly, image validation, image storage, issue creation, and best-effort notification
+  are separate responsibilities, while GitHub, S3, and Discord models remain confined to their provider adapters;
+- the V1 routes, multipart part names, image limits, result JSON, provider calls, and failure semantics remain unchanged.
+
 The camelCase rule applies to transport names owned by Blockout:
 
 - REST request and response bodies;
