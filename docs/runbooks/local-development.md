@@ -14,6 +14,39 @@ Install the root JavaScript workspace once:
 npm ci
 ```
 
+## Application environments
+
+Every application owns a committed `.env.example`. The examples use the ports, database names, and local credentials declared by the monorepo Compose files. Values containing `replace-me` require a development credential or an environment-specific endpoint before the related integration can work.
+
+Java applications already import `.env.local` from their application directory. For example:
+
+```bash
+cd apps/backend/clubs-service
+cp .env.example .env.local
+```
+
+Expo also loads `.env.local` from the mobile application directory:
+
+```bash
+cd apps/frontend/mobile
+cp .env.example .env.local
+```
+
+The mobile examples use `localhost`. Replace it with the host machine address when running on a physical device.
+
+The Python scrapers load `.env` by default and `.env.local` when started with the `local` argument:
+
+```bash
+cd apps/backend/club-scraper
+cp .env.example .env
+python3.12 main.py
+
+cp .env.example .env.local
+python3.12 main.py local
+```
+
+The templates intentionally omit stale standalone variables that the imported applications no longer read, including `DATASOURCE_NAME`, the old guest issuer settings, and the competition scraper's unused proxy-account variables. External Auth0, AWS, Mapbox, RevenueCat, GitHub, Discord, Expo push, and FFVB proxy integrations still require valid development values where used.
+
 List every project and inspect one project's native targets:
 
 ```bash

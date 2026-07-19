@@ -19,15 +19,15 @@
 - Create: `apps/backend/club-scraper/.env.example`
 - Create: `apps/backend/competition-scraper/.env.example`
 
-- [ ] **Step 1: Add local infrastructure values**
+- [x] **Step 1: Add local infrastructure values**
 
 Use the fixed application ports from `application.yaml`, PostgreSQL names and ports from `infra/compose/docker-compose.app.yml`, RabbitMQ `blockout/blockout`, Elasticsearch `localhost:9200`, and the internal API URLs recorded in `docs/current/source-baseline.md`.
 
-- [ ] **Step 2: Add external integration placeholders**
+- [x] **Step 2: Add external integration placeholders**
 
 Represent Auth0, AWS, Mapbox, GitHub, Discord, Expo push, and external proxy values with `replace-me` values. Use a clearly local-only PDF signing secret. Do not copy standalone credentials.
 
-- [ ] **Step 3: Remove stale standalone keys from the templates**
+- [x] **Step 3: Remove stale standalone keys from the templates**
 
 Do not carry `DATASOURCE_NAME`, unused resource-server `AUTH0_AUDIENCE`, `GUEST_ISSUER`, `GUEST_JWKS_URI`, `NORD_USER`, `NORD_PASS`, or unused generic proxy variables when no current application configuration reads them.
 
@@ -37,11 +37,11 @@ Do not carry `DATASOURCE_NAME`, unused resource-server `AUTH0_AUDIENCE`, `GUEST_
 
 - Create: `apps/frontend/mobile/.env.example`
 
-- [ ] **Step 1: Add local backend URLs**
+- [x] **Step 1: Add local backend URLs**
 
 Point the gateway and declared direct API base URLs to the current local application ports and `/api/v1/*` roots.
 
-- [ ] **Step 2: Add public integration placeholders**
+- [x] **Step 2: Add public integration placeholders**
 
 Include every `EXPO_PUBLIC_*` variable referenced by the mobile source. Use a public MapLibre demo style, safe test advertising identifiers, and replacement values for Auth0 and RevenueCat.
 
@@ -52,11 +52,11 @@ Include every `EXPO_PUBLIC_*` variable referenced by the mobile source. Use a pu
 - Modify: `docs/runbooks/local-development.md`
 - Modify: `docs/current/roadmap.md`
 
-- [ ] **Step 1: Document copy conventions**
+- [x] **Step 1: Document copy conventions**
 
 Explain that Java and Expo load `.env.local`, while the scrapers load `.env` by default and `.env.local` when invoked with `local`.
 
-- [ ] **Step 2: Record the BASE-001 task**
+- [x] **Step 2: Record the BASE-001 task**
 
 Add BASE-001 to the roadmap and check it only after validation succeeds.
 
@@ -66,14 +66,14 @@ Add BASE-001 to the roadmap and check it only after validation succeeds.
 
 - Verify: all fifteen `.env.example` files and the documentation diff.
 
-- [ ] **Step 1: Validate structure and coverage**
+- [x] **Step 1: Validate structure and coverage**
 
 Confirm every application has exactly one tracked `.env.example`, every active source variable is represented, keys are unique within each file, and the examples contain no standalone secret values.
 
-- [ ] **Step 2: Validate repository hygiene**
+- [x] **Step 2: Validate repository hygiene**
 
 Run Prettier on Markdown, `git diff --check`, tracked-secret pattern scans, and confirm no `.env` or `.env.local` file is tracked.
 
-- [ ] **Step 3: Publish BASE-001**
+- [x] **Step 3: Publish BASE-001**
 
 Commit the templates and documentation in English, push directly to `main`, verify the exact remote SHA, mark the goal complete, and stop without starting runtime or refactor work.
