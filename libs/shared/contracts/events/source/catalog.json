@@ -1,9 +1,23 @@
 {
   "asyncapi": "3.0.0",
   "components": {
+    "channels": {
+      "ClubProjectionChanged": {
+        "$ref": "./shared/channels/lifecycle.json#/$defs/ClubProjectionChanged"
+      },
+      "PoolProjectionChanged": {
+        "$ref": "./shared/channels/lifecycle.json#/$defs/PoolProjectionChanged"
+      },
+      "TeamProjectionChanged": {
+        "$ref": "./shared/channels/lifecycle.json#/$defs/TeamProjectionChanged"
+      }
+    },
     "messages": {
       "ClubDeactivationV2Message": {
         "$ref": "./shared/messages/lifecycle.json#/$defs/ClubDeactivationV2Message"
+      },
+      "ClubProjectionChangedV2Message": {
+        "$ref": "./shared/messages/lifecycle.json#/$defs/ClubProjectionChangedV2Message"
       },
       "ClubUpsertV2Message": {
         "$ref": "./shared/messages/lifecycle.json#/$defs/ClubUpsertV2Message"
@@ -23,11 +37,17 @@
       "PoolDeactivationV2Message": {
         "$ref": "./shared/messages/lifecycle.json#/$defs/PoolDeactivationV2Message"
       },
+      "PoolProjectionChangedV2Message": {
+        "$ref": "./shared/messages/lifecycle.json#/$defs/PoolProjectionChangedV2Message"
+      },
       "PoolUpsertV2Message": {
         "$ref": "./shared/messages/lifecycle.json#/$defs/PoolUpsertV2Message"
       },
       "TeamDeactivationV2Message": {
         "$ref": "./shared/messages/lifecycle.json#/$defs/TeamDeactivationV2Message"
+      },
+      "TeamProjectionChangedV2Message": {
+        "$ref": "./shared/messages/lifecycle.json#/$defs/TeamProjectionChangedV2Message"
       },
       "TeamFollowedV2Message": {
         "$ref": "./shared/messages/favorites.json#/$defs/TeamFollowedV2Message"
@@ -45,6 +65,12 @@
       },
       "ClubDeactivationV2Payload": {
         "$ref": "./shared/schemas/lifecycle.json#/$defs/ClubDeactivationV2Payload"
+      },
+      "ClubProjectionChangedV2Event": {
+        "$ref": "./shared/schemas/lifecycle.json#/$defs/ClubProjectionChangedV2Event"
+      },
+      "ClubProjectionChangedV2Payload": {
+        "$ref": "./shared/schemas/lifecycle.json#/$defs/ClubProjectionChangedV2Payload"
       },
       "ClubUpsertV2Event": {
         "$ref": "./shared/schemas/lifecycle.json#/$defs/ClubUpsertV2Event"
@@ -76,6 +102,12 @@
       "PoolDeactivationV2Payload": {
         "$ref": "./shared/schemas/lifecycle.json#/$defs/PoolDeactivationV2Payload"
       },
+      "PoolProjectionChangedV2Event": {
+        "$ref": "./shared/schemas/lifecycle.json#/$defs/PoolProjectionChangedV2Event"
+      },
+      "PoolProjectionChangedV2Payload": {
+        "$ref": "./shared/schemas/lifecycle.json#/$defs/PoolProjectionChangedV2Payload"
+      },
       "PoolFollowedV2Event": {
         "$ref": "./shared/schemas/lifecycle.json#/$defs/PoolFollowedV2Event"
       },
@@ -96,6 +128,12 @@
       },
       "TeamDeactivationV2Payload": {
         "$ref": "./shared/schemas/lifecycle.json#/$defs/TeamDeactivationV2Payload"
+      },
+      "TeamProjectionChangedV2Event": {
+        "$ref": "./shared/schemas/lifecycle.json#/$defs/TeamProjectionChangedV2Event"
+      },
+      "TeamProjectionChangedV2Payload": {
+        "$ref": "./shared/schemas/lifecycle.json#/$defs/TeamProjectionChangedV2Payload"
       },
       "TeamFollowedV2Event": {
         "$ref": "./shared/schemas/lifecycle.json#/$defs/TeamFollowedV2Event"

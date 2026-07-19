@@ -73,6 +73,53 @@
       "required": ["id", "name", "logoUrl", "city"],
       "type": "object"
     },
+    "ClubProjectionChangedV2Event": {
+      "additionalProperties": false,
+      "properties": {
+        "aggregateVersion": {
+          "format": "int64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "correlationId": { "minLength": 1, "type": ["string", "null"] },
+        "eventId": { "format": "uuid", "type": "string" },
+        "eventType": { "$ref": "#/$defs/EventType" },
+        "occurredAt": { "format": "date-time", "type": "string" },
+        "orderingKey": {
+          "minLength": 1,
+          "pattern": "^club:.+$",
+          "type": "string"
+        },
+        "payload": {
+          "$ref": "#/$defs/ClubProjectionChangedV2Payload"
+        },
+        "producer": { "const": "clubs-service", "type": "string" },
+        "schemaVersion": { "const": "2.0.0", "type": "string" }
+      },
+      "required": [
+        "eventId",
+        "eventType",
+        "schemaVersion",
+        "occurredAt",
+        "producer",
+        "orderingKey",
+        "aggregateVersion",
+        "payload"
+      ],
+      "type": "object"
+    },
+    "ClubProjectionChangedV2Payload": {
+      "additionalProperties": false,
+      "properties": {
+        "id": { "minLength": 1, "type": "string" },
+        "name": { "minLength": 1, "type": "string" },
+        "logoUrl": { "format": "uri", "type": ["string", "null"] },
+        "city": { "type": ["string", "null"] },
+        "active": { "type": "boolean" }
+      },
+      "required": ["id", "name", "logoUrl", "city", "active"],
+      "type": "object"
+    },
     "EventEnvelope": {
       "additionalProperties": false,
       "description": "Common field contract copied exactly into each event-specific envelope.",
@@ -115,7 +162,10 @@
         "POOL_FOLLOWED",
         "POOL_UNFOLLOWED",
         "MATCH_FINISHED",
-        "MATCH_LIVE_LINK_CREATED"
+        "MATCH_LIVE_LINK_CREATED",
+        "CLUB_PROJECTION_CHANGED",
+        "TEAM_PROJECTION_CHANGED",
+        "POOL_PROJECTION_CHANGED"
       ],
       "type": "string"
     },
@@ -299,6 +349,69 @@
       "required": ["poolId"],
       "type": "object"
     },
+    "PoolProjectionChangedV2Event": {
+      "additionalProperties": false,
+      "properties": {
+        "aggregateVersion": {
+          "format": "int64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "correlationId": { "minLength": 1, "type": ["string", "null"] },
+        "eventId": { "format": "uuid", "type": "string" },
+        "eventType": { "$ref": "#/$defs/EventType" },
+        "occurredAt": { "format": "date-time", "type": "string" },
+        "orderingKey": {
+          "minLength": 1,
+          "pattern": "^pool:[1-9][0-9]*$",
+          "type": "string"
+        },
+        "payload": {
+          "$ref": "#/$defs/PoolProjectionChangedV2Payload"
+        },
+        "producer": { "const": "pools-service", "type": "string" },
+        "schemaVersion": { "const": "2.0.0", "type": "string" }
+      },
+      "required": [
+        "eventId",
+        "eventType",
+        "schemaVersion",
+        "occurredAt",
+        "producer",
+        "orderingKey",
+        "aggregateVersion",
+        "payload"
+      ],
+      "type": "object"
+    },
+    "PoolProjectionChangedV2Payload": {
+      "additionalProperties": false,
+      "properties": {
+        "id": { "format": "int64", "minimum": 1, "type": "integer" },
+        "name": { "minLength": 1, "type": "string" },
+        "shortName": { "minLength": 1, "type": "string" },
+        "divisionId": { "format": "int64", "minimum": 1, "type": "integer" },
+        "leagueCode": { "minLength": 1, "type": "string" },
+        "leagueName": { "minLength": 1, "type": "string" },
+        "season": { "minLength": 1, "type": "string" },
+        "format": { "type": ["string", "null"] },
+        "gender": { "type": ["string", "null"] },
+        "active": { "type": "boolean" }
+      },
+      "required": [
+        "id",
+        "name",
+        "shortName",
+        "divisionId",
+        "leagueCode",
+        "leagueName",
+        "season",
+        "format",
+        "gender",
+        "active"
+      ],
+      "type": "object"
+    },
     "PoolUpsertV2Event": {
       "additionalProperties": false,
       "properties": {
@@ -451,6 +564,69 @@
         "producer",
         "orderingKey",
         "payload"
+      ],
+      "type": "object"
+    },
+    "TeamProjectionChangedV2Event": {
+      "additionalProperties": false,
+      "properties": {
+        "aggregateVersion": {
+          "format": "int64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "correlationId": { "minLength": 1, "type": ["string", "null"] },
+        "eventId": { "format": "uuid", "type": "string" },
+        "eventType": { "$ref": "#/$defs/EventType" },
+        "occurredAt": { "format": "date-time", "type": "string" },
+        "orderingKey": {
+          "minLength": 1,
+          "pattern": "^team:[1-9][0-9]*$",
+          "type": "string"
+        },
+        "payload": {
+          "$ref": "#/$defs/TeamProjectionChangedV2Payload"
+        },
+        "producer": { "const": "teams-service", "type": "string" },
+        "schemaVersion": { "const": "2.0.0", "type": "string" }
+      },
+      "required": [
+        "eventId",
+        "eventType",
+        "schemaVersion",
+        "occurredAt",
+        "producer",
+        "orderingKey",
+        "aggregateVersion",
+        "payload"
+      ],
+      "type": "object"
+    },
+    "TeamProjectionChangedV2Payload": {
+      "additionalProperties": false,
+      "properties": {
+        "id": { "format": "int64", "minimum": 1, "type": "integer" },
+        "name": { "minLength": 1, "type": "string" },
+        "shortName": { "minLength": 1, "type": "string" },
+        "clubId": { "minLength": 1, "type": "string" },
+        "divisionId": { "format": "int64", "minimum": 1, "type": "integer" },
+        "format": { "minLength": 1, "type": "string" },
+        "gender": { "minLength": 1, "type": "string" },
+        "season": { "minLength": 1, "type": "string" },
+        "logoUrl": { "format": "uri", "type": ["string", "null"] },
+        "active": { "type": "boolean" }
+      },
+      "required": [
+        "id",
+        "name",
+        "shortName",
+        "clubId",
+        "divisionId",
+        "format",
+        "gender",
+        "season",
+        "logoUrl",
+        "active"
       ],
       "type": "object"
     },

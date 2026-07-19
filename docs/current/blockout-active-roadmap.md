@@ -1751,9 +1751,16 @@ state moves to GitHub and this file becomes a historical migration record.
     order. Documentation links and formatting, Maaatch comparison, the complete local shadow-CI verifier, generated
     output ownership, and Git whitespace checks pass; runtime, contracts, schemas, deployment, and production remain
     unchanged.
-- [ ] MRG-438 Add shared authoritative contract sources for complete club, team, and pool projection-change facts
+- [x] MRG-438 Add shared authoritative contract sources for complete club, team, and pool projection-change facts
       produced by their owning services with required monotonic aggregate versions and active state. Keep existing
       competition-service deactivation routes as coexistence commands and keep generated event sources outside Git.
+  - Evidence: `docs/migration/mrg-438-owner-projection-fact-contracts.md` records the three component-only owner-fact
+    channels, exact complete payloads, mandatory non-negative aggregate versions, owner constants, ordering keys,
+    unchanged cascade commands, and deferred producer/consumer ownership. Nine event contract tests pass against
+    three golden facts and 29 generated Java records; two clean generations are identical across all 38 ignored
+    outputs, the isolated event-contracts module and complete 16-module reactor compile, and no generated source is
+    tracked. The full local PR verifier, documentation links, Prettier, Maaatch comparison, and Git whitespace checks
+    pass; no deployable operation, queue ledger, runtime, broker, database, deployment, or production state changes.
 - [ ] MRG-439 Add a persisted optimistic revision to `config-service` divisions and expose it only through internal
       snapshot contracts used by search enrichment, without adding a division event, outbox, public API, or production
       activation.

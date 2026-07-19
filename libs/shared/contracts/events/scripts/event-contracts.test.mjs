@@ -17,8 +17,20 @@ import {
 
 const require = createRequire(import.meta.url);
 const lifecycleFile = path.join(SOURCE_ROOT, 'shared/schemas/lifecycle.json');
+const lifecycleMessagesFile = path.join(
+  SOURCE_ROOT,
+  'shared/messages/lifecycle.json',
+);
+const lifecycleChannelsFile = path.join(
+  SOURCE_ROOT,
+  'shared/channels/lifecycle.json',
+);
 const favoritesFile = lifecycleFile;
 const catalogFile = path.join(SOURCE_ROOT, 'catalog.json');
+const projectionGoldenFile = path.join(
+  SOURCE_ROOT,
+  '../tests/golden/projection-changed.json',
+);
 const generatedPackage = path.join(
   JAVA_OUTPUT_ROOT,
   'com/blockout/events/v2/model',
@@ -56,22 +68,71 @@ test('keeps the catalog component-only and all owned envelopes exact', async () 
   assert.equal(catalog.channels, undefined);
   assert.equal(catalog.operations, undefined);
   assert.equal(catalog.servers, undefined);
-  assert.equal(Object.keys(catalog.components.messages).length, 12);
-  assert.equal(Object.keys(catalog.components.schemas).length, 24);
+  assert.deepEqual(Object.keys(catalog.components.channels).sort(), [
+    'ClubProjectionChanged',
+    'PoolProjectionChanged',
+    'TeamProjectionChanged',
+  ]);
+  assert.equal(Object.keys(catalog.components.messages).length, 15);
+  assert.equal(Object.keys(catalog.components.schemas).length, 30);
+
+  const projectionComponents = {
+    ClubProjectionChanged: {
+      address: 'club.projection-changed.v2',
+      eventType: 'CLUB_PROJECTION_CHANGED',
+    },
+    TeamProjectionChanged: {
+      address: 'team.projection-changed.v2',
+      eventType: 'TEAM_PROJECTION_CHANGED',
+    },
+    PoolProjectionChanged: {
+      address: 'pool.projection-changed.v2',
+      eventType: 'POOL_PROJECTION_CHANGED',
+    },
+  };
+  const channels = (await readJson(lifecycleChannelsFile)).$defs;
+  const messages = (await readJson(lifecycleMessagesFile)).$defs;
+  for (const [name, expected] of Object.entries(projectionComponents)) {
+    const messageName = `${name}V2Message`;
+    assert.equal(channels[name].address, expected.address);
+    assert.deepEqual(Object.keys(channels[name].messages), [messageName]);
+    assert.equal(
+      messages[messageName].bindings.amqp.messageType,
+      expected.eventType,
+    );
+  }
 
   const definitions = (await readJson(lifecycleFile)).$defs;
   const common = definitions.EventEnvelope;
+  const projectionEvents = new Set([
+    'ClubProjectionChangedV2Event',
+    'PoolProjectionChangedV2Event',
+    'TeamProjectionChangedV2Event',
+  ]);
   const eventNames = Object.keys(definitions).filter((name) =>
     /V2Event$/.test(name),
   );
-  assert.equal(eventNames.length, 12);
+  assert.equal(eventNames.length, 15);
   for (const name of eventNames) {
     assert.deepEqual(
       Object.keys(definitions[name].properties).sort(),
       Object.keys(common.properties).sort(),
       name,
     );
-    assert.deepEqual(definitions[name].required, common.required, name);
+    if (projectionEvents.has(name)) {
+      assert.deepEqual(
+        [...definitions[name].required].sort(),
+        [...common.required, 'aggregateVersion'].sort(),
+        name,
+      );
+      assert.deepEqual(definitions[name].properties.aggregateVersion, {
+        format: 'int64',
+        minimum: 0,
+        type: 'integer',
+      });
+    } else {
+      assert.deepEqual(definitions[name].required, common.required, name);
+    }
     assert.equal(definitions[name].properties.schemaVersion.const, '2.0.0');
     assert.equal(definitions[name].additionalProperties, false);
   }
@@ -88,7 +149,66 @@ test('keeps the catalog component-only and all owned envelopes exact', async () 
     'POOL_UNFOLLOWED',
     'MATCH_FINISHED',
     'MATCH_LIVE_LINK_CREATED',
+    'CLUB_PROJECTION_CHANGED',
+    'TEAM_PROJECTION_CHANGED',
+    'POOL_PROJECTION_CHANGED',
   ]);
+
+  const projectionContracts = {
+    ClubProjectionChangedV2Event: {
+      orderingKeyPattern: '^club:.+$',
+      payload: 'ClubProjectionChangedV2Payload',
+      producer: 'clubs-service',
+      required: ['id', 'name', 'logoUrl', 'city', 'active'],
+    },
+    TeamProjectionChangedV2Event: {
+      orderingKeyPattern: '^team:[1-9][0-9]*$',
+      payload: 'TeamProjectionChangedV2Payload',
+      producer: 'teams-service',
+      required: [
+        'id',
+        'name',
+        'shortName',
+        'clubId',
+        'divisionId',
+        'format',
+        'gender',
+        'season',
+        'logoUrl',
+        'active',
+      ],
+    },
+    PoolProjectionChangedV2Event: {
+      orderingKeyPattern: '^pool:[1-9][0-9]*$',
+      payload: 'PoolProjectionChangedV2Payload',
+      producer: 'pools-service',
+      required: [
+        'id',
+        'name',
+        'shortName',
+        'divisionId',
+        'leagueCode',
+        'leagueName',
+        'season',
+        'format',
+        'gender',
+        'active',
+      ],
+    },
+  };
+  for (const [eventName, contract] of Object.entries(projectionContracts)) {
+    const event = definitions[eventName];
+    const payload = definitions[contract.payload];
+    assert.equal(event.properties.producer.const, contract.producer);
+    assert.equal(
+      event.properties.orderingKey.pattern,
+      contract.orderingKeyPattern,
+    );
+    assert.deepEqual(payload.required, contract.required);
+    assert.deepEqual(Object.keys(payload.properties), contract.required);
+    assert.deepEqual(payload.properties.active, { type: 'boolean' });
+    assert.equal(payload.additionalProperties, false);
+  }
 
   for (const name of [
     'MatchFinishedV2Payload',
@@ -240,16 +360,19 @@ test('reconciles all eleven routes and nineteen primary queues without orphan ac
   assert.equal(declaredQueues.length, 14);
   assert.equal(new Set(declaredQueues).size, 14);
   assert.ok(!JSON.stringify(roots).includes('teambypool.deactivation.v2'));
+  assert.ok(!JSON.stringify(roots).includes('projection-changed.v2'));
 });
 
 test('generates Java records with no runtime framework leakage', async () => {
   const files = (await readdir(generatedPackage))
     .filter((name) => name.endsWith('.java'))
     .sort();
-  assert.equal(files.length, 23);
+  assert.equal(files.length, 29);
   assert.deepEqual(files, [
     'ClubDeactivationV2Event.java',
     'ClubDeactivationV2Payload.java',
+    'ClubProjectionChangedV2Event.java',
+    'ClubProjectionChangedV2Payload.java',
     'ClubUpsertV2Event.java',
     'ClubUpsertV2Payload.java',
     'EventType.java',
@@ -261,6 +384,8 @@ test('generates Java records with no runtime framework leakage', async () => {
     'PoolDeactivationV2Payload.java',
     'PoolFollowV2Payload.java',
     'PoolFollowedV2Event.java',
+    'PoolProjectionChangedV2Event.java',
+    'PoolProjectionChangedV2Payload.java',
     'PoolUnfollowedV2Event.java',
     'PoolUpsertV2Event.java',
     'PoolUpsertV2Payload.java',
@@ -268,6 +393,8 @@ test('generates Java records with no runtime framework leakage', async () => {
     'TeamDeactivationV2Payload.java',
     'TeamFollowV2Payload.java',
     'TeamFollowedV2Event.java',
+    'TeamProjectionChangedV2Event.java',
+    'TeamProjectionChangedV2Payload.java',
     'TeamUnfollowedV2Event.java',
     'TeamUpsertV2Event.java',
     'TeamUpsertV2Payload.java',
@@ -294,6 +421,53 @@ test('generates Java records with no runtime framework leakage', async () => {
   );
   assert.match(generator, /collectionType: 'List'/);
   assert.match(generator, /modelType: 'record'/);
+});
+
+test('locks complete owner projection facts and mandatory aggregate metadata', async () => {
+  const fixtures = await readJson(projectionGoldenFile);
+  const definitions = (await readJson(lifecycleFile)).$defs;
+  assert.deepEqual(Object.keys(fixtures), [
+    'ClubProjectionChangedV2Event',
+    'TeamProjectionChangedV2Event',
+    'PoolProjectionChangedV2Event',
+  ]);
+  for (const [name, fixture] of Object.entries(fixtures)) {
+    const schema = definitions[name];
+    const payloadName = name.replace(/V2Event$/, 'V2Payload');
+    assert.deepEqual(
+      Object.keys(fixture.body).sort(),
+      Object.keys(schema.properties).sort(),
+      name,
+    );
+    assert.deepEqual(
+      Object.keys(fixture.body.payload),
+      definitions[payloadName].required,
+      name,
+    );
+    assert.ok(fixture.body.aggregateVersion >= 0);
+    assert.equal(
+      fixture.headers['x-blockout-aggregate-version'],
+      fixture.body.aggregateVersion,
+    );
+    assert.equal(fixture.amqpProperties.messageId, fixture.body.eventId);
+    assert.equal(fixture.amqpProperties.type, fixture.body.eventType);
+    assert.equal(fixture.amqpProperties.timestamp, fixture.body.occurredAt);
+    assert.equal(
+      fixture.amqpProperties.correlationId,
+      fixture.body.correlationId,
+    );
+    assert.equal(
+      fixture.headers['x-blockout-schema-version'],
+      fixture.body.schemaVersion,
+    );
+    assert.equal(fixture.headers['x-blockout-producer'], fixture.body.producer);
+    assert.equal(
+      fixture.headers['x-blockout-ordering-key'],
+      fixture.body.orderingKey,
+    );
+    assert.deepEqual(findUnderscoredKeys(fixture.body), []);
+    assert.ok(!JSON.stringify(fixture).includes('__TypeId__'));
+  }
 });
 
 test('locks golden camelCase bodies, AMQP properties, and stable headers', async () => {

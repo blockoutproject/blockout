@@ -39,6 +39,8 @@ try {
   const expected = new Set([
     'ClubDeactivationV2Event',
     'ClubDeactivationV2Payload',
+    'ClubProjectionChangedV2Event',
+    'ClubProjectionChangedV2Payload',
     'ClubUpsertV2Event',
     'ClubUpsertV2Payload',
     'EventType',
@@ -51,6 +53,8 @@ try {
     'PoolFollowV2Payload',
     'PoolFollowedV2Event',
     'PoolUnfollowedV2Event',
+    'PoolProjectionChangedV2Event',
+    'PoolProjectionChangedV2Payload',
     'PoolUpsertV2Event',
     'PoolUpsertV2Payload',
     'TeamDeactivationV2Event',
@@ -58,6 +62,8 @@ try {
     'TeamFollowV2Payload',
     'TeamFollowedV2Event',
     'TeamUnfollowedV2Event',
+    'TeamProjectionChangedV2Event',
+    'TeamProjectionChangedV2Payload',
     'TeamUpsertV2Event',
     'TeamUpsertV2Payload',
   ]);

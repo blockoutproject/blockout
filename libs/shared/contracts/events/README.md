@@ -36,6 +36,11 @@ deployable documents own ten `send` operations and fourteen `receive` operations
 facts. Their fixed envelopes, camelCase payloads, generated Java records, AMQP metadata, producers, consumers, routes,
 and queue dispositions derive only from this source.
 
+MRG-438 adds `club.projection-changed.v2`, `team.projection-changed.v2`, and `pool.projection-changed.v2` as
+component-only owner-fact channels. Their complete payloads and mandatory aggregate versions generate model records,
+but no deployable references the channels and no producer, consumer, queue, binding, or broker resource is active.
+MRG-440 through MRG-442 own future producer operations; MRG-429 owns future search-worker consumer operations.
+
 `EV-TPD`, Q-11 through Q-13, and Q-16 through Q-17 retain explicit excluded dispositions and are not canonical event
 boundaries. Generated bundles and Java records remain derivative artifacts. Retained v1 publishers, listeners, queues,
 and DTOs are compatibility adapters only; their runtime defaults, traffic cutover, broker operations, observation, and

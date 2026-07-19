@@ -20,6 +20,26 @@
         }
       }
     },
+    "ClubProjectionChanged": {
+      "address": "club.projection-changed.v2",
+      "bindings": {
+        "amqp": {
+          "bindingVersion": "0.3.0",
+          "exchange": {
+            "autoDelete": false,
+            "durable": true,
+            "name": "entity.lifecycle.exchange",
+            "type": "topic"
+          },
+          "is": "routingKey"
+        }
+      },
+      "messages": {
+        "ClubProjectionChangedV2Message": {
+          "$ref": "../messages/lifecycle.json#/$defs/ClubProjectionChangedV2Message"
+        }
+      }
+    },
     "ClubUpsert": {
       "address": "club.upsert.v2",
       "bindings": {
@@ -60,6 +80,26 @@
         }
       }
     },
+    "PoolProjectionChanged": {
+      "address": "pool.projection-changed.v2",
+      "bindings": {
+        "amqp": {
+          "bindingVersion": "0.3.0",
+          "exchange": {
+            "autoDelete": false,
+            "durable": true,
+            "name": "entity.lifecycle.exchange",
+            "type": "topic"
+          },
+          "is": "routingKey"
+        }
+      },
+      "messages": {
+        "PoolProjectionChangedV2Message": {
+          "$ref": "../messages/lifecycle.json#/$defs/PoolProjectionChangedV2Message"
+        }
+      }
+    },
     "PoolUpsert": {
       "address": "pool.upsert.v2",
       "bindings": {
@@ -97,6 +137,26 @@
       "messages": {
         "TeamDeactivationV2Message": {
           "$ref": "../messages/lifecycle.json#/$defs/TeamDeactivationV2Message"
+        }
+      }
+    },
+    "TeamProjectionChanged": {
+      "address": "team.projection-changed.v2",
+      "bindings": {
+        "amqp": {
+          "bindingVersion": "0.3.0",
+          "exchange": {
+            "autoDelete": false,
+            "durable": true,
+            "name": "entity.lifecycle.exchange",
+            "type": "topic"
+          },
+          "is": "routingKey"
+        }
+      },
+      "messages": {
+        "TeamProjectionChangedV2Message": {
+          "$ref": "../messages/lifecycle.json#/$defs/TeamProjectionChangedV2Message"
         }
       }
     },

@@ -22,6 +22,28 @@
         "correlationId"
       ]
     },
+    "ClubProjectionChangedV2Message": {
+      "bindings": {
+        "amqp": {
+          "bindingVersion": "0.3.0",
+          "contentEncoding": "UTF-8",
+          "messageType": "CLUB_PROJECTION_CHANGED"
+        }
+      },
+      "contentType": "application/json",
+      "headers": { "$ref": "../headers/blockout-v2-headers.json" },
+      "name": "ClubProjectionChangedV2Message",
+      "payload": {
+        "$ref": "../schemas/lifecycle.json#/$defs/ClubProjectionChangedV2Event"
+      },
+      "title": "Club projection changed v2",
+      "x-blockout-amqp-properties": [
+        "messageId",
+        "type",
+        "timestamp",
+        "correlationId"
+      ]
+    },
     "ClubUpsertV2Message": {
       "bindings": {
         "amqp": {
@@ -66,6 +88,28 @@
         "correlationId"
       ]
     },
+    "PoolProjectionChangedV2Message": {
+      "bindings": {
+        "amqp": {
+          "bindingVersion": "0.3.0",
+          "contentEncoding": "UTF-8",
+          "messageType": "POOL_PROJECTION_CHANGED"
+        }
+      },
+      "contentType": "application/json",
+      "headers": { "$ref": "../headers/blockout-v2-headers.json" },
+      "name": "PoolProjectionChangedV2Message",
+      "payload": {
+        "$ref": "../schemas/lifecycle.json#/$defs/PoolProjectionChangedV2Event"
+      },
+      "title": "Pool projection changed v2",
+      "x-blockout-amqp-properties": [
+        "messageId",
+        "type",
+        "timestamp",
+        "correlationId"
+      ]
+    },
     "PoolUpsertV2Message": {
       "bindings": {
         "amqp": {
@@ -103,6 +147,28 @@
         "$ref": "../schemas/lifecycle.json#/$defs/TeamDeactivationV2Event"
       },
       "title": "Team deactivation v2",
+      "x-blockout-amqp-properties": [
+        "messageId",
+        "type",
+        "timestamp",
+        "correlationId"
+      ]
+    },
+    "TeamProjectionChangedV2Message": {
+      "bindings": {
+        "amqp": {
+          "bindingVersion": "0.3.0",
+          "contentEncoding": "UTF-8",
+          "messageType": "TEAM_PROJECTION_CHANGED"
+        }
+      },
+      "contentType": "application/json",
+      "headers": { "$ref": "../headers/blockout-v2-headers.json" },
+      "name": "TeamProjectionChangedV2Message",
+      "payload": {
+        "$ref": "../schemas/lifecycle.json#/$defs/TeamProjectionChangedV2Event"
+      },
+      "title": "Team projection changed v2",
       "x-blockout-amqp-properties": [
         "messageId",
         "type",

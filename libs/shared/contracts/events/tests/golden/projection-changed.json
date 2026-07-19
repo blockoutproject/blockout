@@ -1,0 +1,105 @@
+{
+  "ClubProjectionChangedV2Event": {
+    "amqpProperties": {
+      "correlationId": "migration-438",
+      "messageId": "00000000-0000-4000-8000-000000000438",
+      "timestamp": "2026-07-19T12:00:00Z",
+      "type": "CLUB_PROJECTION_CHANGED"
+    },
+    "body": {
+      "aggregateVersion": 0,
+      "correlationId": "migration-438",
+      "eventId": "00000000-0000-4000-8000-000000000438",
+      "eventType": "CLUB_PROJECTION_CHANGED",
+      "occurredAt": "2026-07-19T12:00:00Z",
+      "orderingKey": "club:club-1",
+      "payload": {
+        "id": "club-1",
+        "name": "Club",
+        "logoUrl": "https://cdn.example/club.png",
+        "city": "Paris",
+        "active": false
+      },
+      "producer": "clubs-service",
+      "schemaVersion": "2.0.0"
+    },
+    "headers": {
+      "x-blockout-aggregate-version": 0,
+      "x-blockout-ordering-key": "club:club-1",
+      "x-blockout-producer": "clubs-service",
+      "x-blockout-schema-version": "2.0.0"
+    }
+  },
+  "TeamProjectionChangedV2Event": {
+    "amqpProperties": {
+      "correlationId": "migration-438",
+      "messageId": "00000000-0000-4000-8000-000000000439",
+      "timestamp": "2026-07-19T12:00:01Z",
+      "type": "TEAM_PROJECTION_CHANGED"
+    },
+    "body": {
+      "aggregateVersion": 7,
+      "correlationId": "migration-438",
+      "eventId": "00000000-0000-4000-8000-000000000439",
+      "eventType": "TEAM_PROJECTION_CHANGED",
+      "occurredAt": "2026-07-19T12:00:01Z",
+      "orderingKey": "team:2",
+      "payload": {
+        "id": 2,
+        "name": "Team",
+        "shortName": "TM",
+        "clubId": "club-1",
+        "divisionId": 3,
+        "format": "SIX",
+        "gender": "M",
+        "season": "2026/2027",
+        "logoUrl": "https://cdn.example/team.png",
+        "active": true
+      },
+      "producer": "teams-service",
+      "schemaVersion": "2.0.0"
+    },
+    "headers": {
+      "x-blockout-aggregate-version": 7,
+      "x-blockout-ordering-key": "team:2",
+      "x-blockout-producer": "teams-service",
+      "x-blockout-schema-version": "2.0.0"
+    }
+  },
+  "PoolProjectionChangedV2Event": {
+    "amqpProperties": {
+      "correlationId": "migration-438",
+      "messageId": "00000000-0000-4000-8000-000000000440",
+      "timestamp": "2026-07-19T12:00:02Z",
+      "type": "POOL_PROJECTION_CHANGED"
+    },
+    "body": {
+      "aggregateVersion": 11,
+      "correlationId": "migration-438",
+      "eventId": "00000000-0000-4000-8000-000000000440",
+      "eventType": "POOL_PROJECTION_CHANGED",
+      "occurredAt": "2026-07-19T12:00:02Z",
+      "orderingKey": "pool:4",
+      "payload": {
+        "id": 4,
+        "name": "Pool",
+        "shortName": "P",
+        "divisionId": 3,
+        "leagueCode": "ARA",
+        "leagueName": "League",
+        "season": "2026/2027",
+        "format": null,
+        "gender": null,
+        "active": false
+      },
+      "producer": "pools-service",
+      "schemaVersion": "2.0.0"
+    },
+    "headers": {
+      "x-blockout-aggregate-version": 11,
+      "x-blockout-ordering-key": "pool:4",
+      "x-blockout-producer": "pools-service",
+      "x-blockout-schema-version": "2.0.0"
+    }
+  }
+}
