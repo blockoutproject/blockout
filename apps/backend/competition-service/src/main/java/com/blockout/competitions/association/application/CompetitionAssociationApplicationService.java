@@ -108,7 +108,7 @@ public class CompetitionAssociationApplicationService implements CompetitionAsso
         CompetitionAssociationEntity association = associationRepository.findByPoolIdAndTeamId(poolId, teamId)
                 .orElseThrow(() -> new CompetitionAssociationNotFoundException(teamId, poolId));
         applyStats(association, command);
-        CompetitionAssociationEntity saved = associationRepository.save(association);
+        CompetitionAssociationEntity saved = associationRepository.saveAndFlush(association);
         LOGGER.info("Updated competition association statistics",
                 keyValue("action", "update_association_stats"),
                 keyValue("associationId", saved.getId()));
@@ -141,11 +141,11 @@ public class CompetitionAssociationApplicationService implements CompetitionAsso
                 keyValue("action", "reactivate_association"),
                 keyValue("poolId", poolId),
                 keyValue("teamId", teamId));
-        return associationRepository.save(association);
+        return associationRepository.saveAndFlush(association);
     }
 
     private CompetitionAssociationEntity createAssociation(Long poolId, Long teamId, String clubId) {
-        CompetitionAssociationEntity saved = associationRepository.save(CompetitionAssociationEntity.builder()
+        CompetitionAssociationEntity saved = associationRepository.saveAndFlush(CompetitionAssociationEntity.builder()
                 .poolId(poolId)
                 .teamId(teamId)
                 .clubId(clubId)

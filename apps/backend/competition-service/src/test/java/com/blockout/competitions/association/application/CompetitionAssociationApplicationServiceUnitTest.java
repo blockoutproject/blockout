@@ -41,7 +41,7 @@ class CompetitionAssociationApplicationServiceUnitTest {
     @DisplayName("creates a complete association with the established defaults")
     void createsAssociationWithDefaults() {
         when(repository.findByPoolIdAndTeamId(10L, 20L)).thenReturn(Optional.empty());
-        when(repository.save(org.mockito.ArgumentMatchers.any())).thenAnswer(invocation -> {
+        when(repository.saveAndFlush(org.mockito.ArgumentMatchers.any())).thenAnswer(invocation -> {
             CompetitionAssociationEntity entity = invocation.getArgument(0);
             entity.setId(1L);
             return entity;
@@ -65,7 +65,7 @@ class CompetitionAssociationApplicationServiceUnitTest {
         var result = service.addOrReactivateAssociation(10L, 20L, "different-club");
 
         assertThat(result.clubId()).isEqualTo("club-1");
-        verify(repository, never()).save(existing);
+        verify(repository, never()).saveAndFlush(existing);
     }
 
     @Test
@@ -91,7 +91,7 @@ class CompetitionAssociationApplicationServiceUnitTest {
     void updatesEveryStatistic() {
         CompetitionAssociationEntity association = association(true);
         when(repository.findByPoolIdAndTeamId(10L, 20L)).thenReturn(Optional.of(association));
-        when(repository.save(association)).thenReturn(association);
+        when(repository.saveAndFlush(association)).thenReturn(association);
         UpdateAssociationStatsCommand command = new UpdateAssociationStatsCommand(
                 3, 2, 1, 7, 1, 1, 0, 0, 1, 0, 7, 4, 240, 220, 0, 1.75, 1.09);
 
