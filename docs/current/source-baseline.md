@@ -32,6 +32,8 @@ The mobile root lock preserves every direct dependency version recorded by the s
 
 The current dependency audit also contains inherited advisories in the imported Expo 54 baseline, including Axios and the Markdown renderer chain. Resolving them requires dependency or application changes and is outside the behavioral-freeze scope.
 
+The complete Maven reactor packages successfully. Its inherited application-context test requires the external `AUTH0_ISSUER` environment value and therefore cannot start in an unconfigured checkout. This is a standalone source configuration limitation, not a compilation or monorepo integration failure; changing the test or application configuration is outside the behavioral-freeze scope.
+
 ## Runtime ports
 
 | Application                 | Port |
