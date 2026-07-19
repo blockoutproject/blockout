@@ -6,7 +6,26 @@ from config.logger_config import log_event
 from utils.handlers.api_handler import handle_api_response
 from models.team import Team
 from api.auth0 import _get_headers
-from utils.utils import to_dict
+
+
+TEAM_WRITE_FIELDS = (
+    "clubId",
+    "rawName",
+    "name",
+    "shortName",
+    "leagueCode",
+    "divisionId",
+    "season",
+    "format",
+    "gender",
+    "logoUrl",
+    "active",
+)
+
+
+def _to_team_write_payload(team: Team) -> dict:
+    """Serialize only fields accepted by the handwritten Team write boundary."""
+    return {field: getattr(team, field) for field in TEAM_WRITE_FIELDS}
 
 
 @handle_api_response(response_type=Team)
@@ -15,7 +34,7 @@ async def create_team(session: aiohttp.ClientSession, team: Team) -> Team:
     Envoie une requête POST pour créer une nouvelle équipe.
     """
     headers = _get_headers()
-    team_dict = to_dict(team)
+    team_dict = _to_team_write_payload(team)
     url = f"{TEAM_API_URL}"
     response = await session.post(url, json=team_dict, headers=headers)
     log_event(action="create_team", level="info", rawName=team.rawName, clubId=team.clubId)
@@ -34,7 +53,7 @@ async def update_team(
     headers = _get_headers()
     data = aiohttp.FormData()
 
-    team_dict = to_dict(team)
+    team_dict = _to_team_write_payload(team)
     data.add_field("data", json.dumps(team_dict), content_type="application/json")
 
     url = f"{TEAM_API_URL}/{team.id}"
@@ -51,7 +70,7 @@ async def update_team(
 @handle_api_response(response_type=list[Team])
 async def get_teams(
     session: aiohttp.ClientSession,
-    divisionId: Optional[str] = None,
+    divisionId: Optional[int] = None,
     format: Optional[str] = None,
     gender: Optional[str] = None,
     season: Optional[str] = None,

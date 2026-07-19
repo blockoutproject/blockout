@@ -46,6 +46,15 @@ REF-010 establishes configuration ownership:
 - `Format`, `Gender`, and `ScraperName` are handwritten transport enums owned by `config-service` until the later,
   explicitly authorized contract-first phase replaces stable handwritten boundaries.
 
+REF-011 establishes Team ownership:
+
+- `teams-service` owns the complete Team representation: `id`, `clubId`, `rawName`, `name`, `shortName`, `leagueCode`,
+  `divisionId`, `season`, `format`, `gender`, `followersCount`, `logoUrl`, `active`, `createdAt`, and `lastUpdate`;
+- the gateway, notification service, search worker, competition scraper, and mobile application mirror that complete
+  representation wherever they deserialize the Team HTTP resource;
+- BFF coordinates remain a Club-derived view enrichment, while `TeamUpsertEvent`, deactivation commands, rankings, and
+  search documents remain intentionally smaller purpose-specific models.
+
 The camelCase rule applies to transport names owned by Blockout:
 
 - REST request and response bodies;
@@ -76,22 +85,22 @@ No production deployment, broker operation, dual contract support, generated sou
 
 ## Current boundary inventory
 
-| Application | Blockout-owned JSON to migrate | External JSON to preserve |
-| --- | --- | --- |
-| `club-scraper` | Config status responses and club/competition API writes | Auth0 and FFVB responses |
-| `competition-scraper` | Config, competition, team, pool, and match API payloads | Auth0, FFVB, and LNV inputs |
-| `clubs-service` | REST bodies and club lifecycle events | Mapbox responses |
-| `competition-service` | REST bodies and competition lifecycle events | None identified |
-| `config-service` | REST bodies used by the gateway and scrapers | None identified |
-| `matches-service` | REST bodies, internal user lookups, and match events | None identified |
-| `mobile-gateway` | Mobile-facing REST bodies and internal service payloads | Provider response models remain provider-owned |
-| `notification-service` | REST bodies, consumed Blockout events, and stored notification JSON | Auth0 and Expo payloads |
-| `pools-service` | REST bodies and pool lifecycle events | None identified |
-| `reports-service` | REST report bodies | GitHub and Discord payloads |
-| `search-service` | Search REST bodies | Elasticsearch protocol fields |
-| `search-worker` | Consumed Blockout events, internal service payloads, and owned index documents | Elasticsearch protocol fields |
-| `teams-service` | REST bodies and team lifecycle events | None identified |
-| `users-service` | REST bodies, internal service payloads, and follow events | Auth0 payloads |
-| `mobile` | Gateway request and response bodies | Auth0 and native framework values |
+| Application            | Blockout-owned JSON to migrate                                                 | External JSON to preserve                      |
+| ---------------------- | ------------------------------------------------------------------------------ | ---------------------------------------------- |
+| `club-scraper`         | Config status responses and club/competition API writes                        | Auth0 and FFVB responses                       |
+| `competition-scraper`  | Config, competition, team, pool, and match API payloads                        | Auth0, FFVB, and LNV inputs                    |
+| `clubs-service`        | REST bodies and club lifecycle events                                          | Mapbox responses                               |
+| `competition-service`  | REST bodies and competition lifecycle events                                   | None identified                                |
+| `config-service`       | REST bodies used by the gateway and scrapers                                   | None identified                                |
+| `matches-service`      | REST bodies, internal user lookups, and match events                           | None identified                                |
+| `mobile-gateway`       | Mobile-facing REST bodies and internal service payloads                        | Provider response models remain provider-owned |
+| `notification-service` | REST bodies, consumed Blockout events, and stored notification JSON            | Auth0 and Expo payloads                        |
+| `pools-service`        | REST bodies and pool lifecycle events                                          | None identified                                |
+| `reports-service`      | REST report bodies                                                             | GitHub and Discord payloads                    |
+| `search-service`       | Search REST bodies                                                             | Elasticsearch protocol fields                  |
+| `search-worker`        | Consumed Blockout events, internal service payloads, and owned index documents | Elasticsearch protocol fields                  |
+| `teams-service`        | REST bodies and team lifecycle events                                          | None identified                                |
+| `users-service`        | REST bodies, internal service payloads, and follow events                      | Auth0 payloads                                 |
+| `mobile`               | Gateway request and response bodies                                            | Auth0 and native framework values              |
 
 Before REF-003, twelve Spring applications enabled global `SNAKE_CASE` serialization. Explicit `@JsonProperty` mappings also existed in service and gateway DTOs, both Python scrapers constructed snake_case Blockout payloads, and the mobile HTTP client converted request bodies to snake_case before converting responses back to camelCase. REF-003 migrated JSON, and REF-005 removed the remaining case-conversion layers while aligning Blockout query parameters.

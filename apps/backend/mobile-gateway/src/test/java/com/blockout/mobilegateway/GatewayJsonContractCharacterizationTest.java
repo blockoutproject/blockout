@@ -20,17 +20,30 @@ class GatewayJsonContractCharacterizationTest {
 
     @Test
     void serializesGatewayTeamWithTheCamelCaseContract() throws Exception {
+        LocalDateTime now = LocalDateTime.of(2026, 7, 19, 12, 0);
         TeamDTO team = TeamDTO.builder()
                 .id(10L)
                 .clubId("club-1")
+                .rawName("RAW TEAM")
+                .name("Blockout")
                 .shortName("BO")
+                .leagueCode("LNV")
                 .divisionId(20L)
+                .season("2026/2027")
+                .format(Format.SIX)
+                .gender(Gender.F)
                 .followersCount(30L)
                 .logoUrl("https://example.invalid/team.png")
+                .active(true)
+                .createdAt(now)
+                .lastUpdate(now)
                 .build();
 
-        JsonNode json = objectMapper.readTree(objectMapper.writeValueAsBytes(team));
+        JsonNode json = objectMapper.findAndRegisterModules().valueToTree(team);
 
+        assertThat(json.fieldNames()).toIterable().containsExactlyInAnyOrder(
+                "id", "clubId", "rawName", "name", "shortName", "leagueCode", "divisionId", "season",
+                "format", "gender", "followersCount", "logoUrl", "active", "createdAt", "lastUpdate");
         assertThat(json.path("clubId").asText()).isEqualTo("club-1");
         assertThat(json.path("shortName").asText()).isEqualTo("BO");
         assertThat(json.path("divisionId").asLong()).isEqualTo(20L);

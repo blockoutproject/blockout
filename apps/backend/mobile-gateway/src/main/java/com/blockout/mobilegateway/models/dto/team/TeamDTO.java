@@ -8,6 +8,8 @@ import lombok.NoArgsConstructor;
 import com.blockout.mobilegateway.models.enums.Format;
 import com.blockout.mobilegateway.models.enums.Gender;
 
+import java.time.LocalDateTime;
+
 @Data
 @Builder
 @NoArgsConstructor
@@ -33,17 +35,13 @@ public class TeamDTO {
 
     private String season;
 
-    private Double latitude;
-    
-    private Double longitude;
-
     private Long followersCount;
 
     private String logoUrl;
 
     private Boolean active;
 
-    private String createdAt;
+    private LocalDateTime createdAt;
 
-    private String lastUpdate;
+    private LocalDateTime lastUpdate;
 }

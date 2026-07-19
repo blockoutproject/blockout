@@ -9,12 +9,13 @@ class Team:
     name: str
     shortName: str
     leagueCode: str
-    divisionId: str
+    divisionId: int
     season: str
     gender: Optional[str] = None
     format: Optional[str] = None
     id: Optional[int] = None
     followersCount: Optional[int] = 0
+    logoUrl: Optional[str] = None
     active: bool = True
     createdAt: Optional[datetime] = None
     lastUpdate: Optional[datetime] = None

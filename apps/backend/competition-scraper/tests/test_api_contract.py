@@ -54,7 +54,7 @@ def test_writes_the_camel_case_team_payload(monkeypatch):
             name="Blockout",
             shortName="BO",
             leagueCode="LNV",
-            divisionId="10",
+            divisionId=10,
             season="2026/2027",
         )
 
@@ -66,7 +66,10 @@ def test_writes_the_camel_case_team_payload(monkeypatch):
         assert kwargs["json"]["clubId"] == "club-1"
         assert kwargs["json"]["rawName"] == "RAW TEAM"
         assert kwargs["json"]["shortName"] == "BO"
-        assert kwargs["json"]["divisionId"] == "10"
+        assert kwargs["json"]["divisionId"] == 10
+        assert kwargs["json"]["logoUrl"] is None
+        assert set(kwargs["json"]) == set(teams_api.TEAM_WRITE_FIELDS)
+        assert "createdAt" not in kwargs["json"]
         assert "club_id" not in kwargs["json"]
 
     asyncio.run(scenario())
@@ -78,12 +81,12 @@ def test_sends_native_camel_case_query_parameters(monkeypatch):
         monkeypatch.setattr(teams_api, "_get_headers", lambda: {"Authorization": "Bearer test"})
         session = RecordingSession()
 
-        await teams_api.get_teams.__wrapped__(session, divisionId="10", clubId="club-1")
+        await teams_api.get_teams.__wrapped__(session, divisionId=10, clubId="club-1")
 
         method, url, kwargs = session.calls[0]
         assert method == "GET"
         assert url == "http://teams.local/v1/teams"
-        assert kwargs["params"] == {"divisionId": "10", "clubId": "club-1"}
+        assert kwargs["params"] == {"divisionId": 10, "clubId": "club-1"}
 
     asyncio.run(scenario())
 

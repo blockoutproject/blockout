@@ -64,5 +64,45 @@
   - Preserve the V1 routes, native camelCase transport, multipart behavior, database schema, scraper behavior, and
     production behavior with focused service and consumer tests.
 
+- [x] **REF-011 — Refactor teams-service and establish authoritative Team ownership**
+  - Separate handwritten Team transport, application, persistence, messaging, and image-storage boundaries.
+  - Align complete Team mirrors while preserving V1 routes, schema, events, scraper writes, and runtime behavior.
+
+- [ ] **REF-012 — Refactor pools-service and establish authoritative Pool ownership**
+  - Separate handwritten Pool transport, application, persistence, and messaging boundaries.
+  - Align complete Pool mirrors while preserving V1 routes, schema, events, scraper writes, and runtime behavior.
+
+- [ ] **REF-013 — Refactor competition-service and establish authoritative Competition ownership**
+  - Separate Competition transport, application, persistence, cascade, and messaging boundaries.
+  - Align complete Competition mirrors while preserving V1 routes, schema, events, scraper writes, and runtime behavior.
+
+- [ ] **REF-014 — Refactor users-service and establish authoritative User ownership**
+  - Separate user, follow, provider, persistence, and messaging responsibilities behind explicit boundaries.
+  - Align complete user mirrors while preserving V1 routes, schema, Auth0 behavior, events, and runtime behavior.
+
+- [ ] **REF-015 — Refactor matches-service and establish authoritative Match ownership**
+  - Separate Match transport, application, persistence, moderation, provider, and messaging boundaries.
+  - Align complete Match mirrors while preserving V1 routes, schema, events, scraper writes, and runtime behavior.
+
+- [ ] **REF-016 — Refactor notification-service and establish authoritative Notification ownership**
+  - Separate notification transport, application, persistence, event-consumer, Auth0, and Expo boundaries.
+  - Align complete notification mirrors while preserving V1 routes, schema, queues, provider behavior, and runtime behavior.
+
+- [ ] **REF-017 — Refactor reports-service and isolate report providers**
+  - Separate report transport, application assembly, GitHub, and Discord boundaries.
+  - Preserve V1 routes, provider payloads, PDF behavior, and runtime behavior with focused tests.
+
+- [ ] **REF-018 — Refactor search-service and establish authoritative search API ownership**
+  - Separate search transport, application queries, and Elasticsearch read boundaries.
+  - Preserve V1 routes, index/query semantics, result shapes, and runtime behavior with focused tests.
+
+- [ ] **REF-019 — Refactor search-worker and isolate indexing boundaries**
+  - Separate event consumers, application projections, service clients, caches, jobs, and Elasticsearch writes.
+  - Preserve queues, document/index semantics, startup behavior, and runtime behavior with focused tests.
+
+- [ ] **REF-020 — Refactor mobile-gateway as the final handwritten BFF boundary**
+  - Separate mobile-facing APIs, orchestration, internal clients, provider adapters, security, and transport mirrors.
+  - Align every complete owner mirror while preserving V1 mobile routes, caching, provider behavior, and runtime behavior.
+
 The tasks are executed in order. The remaining services are restructured in later focused tasks. Contract-first adoption,
 code generation, full scraper redesign, GitFlow, CI, deployment, and production changes remain deferred.

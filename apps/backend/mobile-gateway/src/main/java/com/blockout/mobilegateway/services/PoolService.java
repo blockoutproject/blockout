@@ -1,6 +1,7 @@
 package com.blockout.mobilegateway.services;
 
 import com.blockout.mobilegateway.exceptions.InconsistentStateException;
+import com.blockout.mobilegateway.models.dto.club.ClubDTO;
 import com.blockout.mobilegateway.models.dto.competition.CompetitionAssociationDTO;
 import com.blockout.mobilegateway.models.dto.config.DivisionDTO;
 import com.blockout.mobilegateway.models.dto.pool.EnrichedPoolDTO;
@@ -76,7 +77,7 @@ public class PoolService {
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
 
-        enrichTeamsWithClubData(teamsMap.values(), clubClientService);
+        Map<String, ClubDTO> clubById = enrichTeamsWithClubData(teamsMap.values(), clubClientService);
 
         Comparator<TeamWithStatsDTO> rankingComparator = Comparator.comparingInt(TeamWithStatsDTO::getPoints).reversed()
                 .thenComparingInt(TeamWithStatsDTO::getPointsPenalty)
@@ -91,6 +92,7 @@ public class PoolService {
                         throw new InconsistentStateException(
                                 "Missing team with ID " + assoc.getTeamId() + " for pool " + poolId);
                     }
+                    ClubDTO club = clubById.get(team.getClubId());
                     return TeamWithStatsDTO.builder()
                             .id(team.getId())
                             .name(team.getName())
@@ -103,8 +105,8 @@ public class PoolService {
                             .pointsPenalty(assoc.getPointsPenalty())
                             .coefSets(assoc.getCoefSets())
                             .coefPoints(assoc.getCoefPoints())
-                            .latitude(team.getLatitude())
-                            .longitude(team.getLongitude())
+                            .latitude(club == null ? null : club.getLatitude())
+                            .longitude(club == null ? null : club.getLongitude())
                             .build();
                 })
                 .sorted(rankingComparator)

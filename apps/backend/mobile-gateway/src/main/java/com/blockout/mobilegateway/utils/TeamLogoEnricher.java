@@ -12,15 +12,16 @@ public final class TeamLogoEnricher {
 
     private TeamLogoEnricher() {}
 
-    public static void enrichTeamsWithClubData(Collection<TeamDTO> teams, ClubClientService clubClientService) {
-        if (teams == null || teams.isEmpty()) return;
+    public static Map<String, ClubDTO> enrichTeamsWithClubData(
+            Collection<TeamDTO> teams, ClubClientService clubClientService) {
+        if (teams == null || teams.isEmpty()) return Collections.emptyMap();
 
         Set<String> clubIds = teams.stream()
                 .map(TeamDTO::getClubId)
                 .filter(StringUtils::isNotBlank)
                 .collect(Collectors.toSet());
 
-        if (clubIds.isEmpty()) return;
+        if (clubIds.isEmpty()) return Collections.emptyMap();
 
         Map<String, ClubDTO> clubById = new HashMap<>(clubIds.size() * 2);
 
@@ -44,8 +45,8 @@ public final class TeamLogoEnricher {
                 team.setLogoUrl(club.getLogoUrl());
             }
 
-            team.setLatitude(club.getLatitude());
-            team.setLongitude(club.getLongitude());
         }
+
+        return clubById;
     }
 }
