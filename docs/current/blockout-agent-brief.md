@@ -1,6 +1,6 @@
 # Blockout Agent Brief
 
-Last updated: 2026-07-16.
+Last updated: 2026-07-19.
 
 This is the stable handoff for repository agents during the monorepo migration. It explains how to select migration
 work and locate sources; it does not replace product evidence or production authority.
@@ -26,14 +26,15 @@ work and locate sources; it does not replace product evidence or production auth
 
 ## Source Routing
 
-| Question                          | Read first                                                                       |
-| --------------------------------- | -------------------------------------------------------------------------------- |
-| Migration task and phase state    | [`blockout-active-roadmap.md`](blockout-active-roadmap.md)                       |
-| Product/runtime posture           | [`blockout-product-runtime-context.md`](blockout-product-runtime-context.md)     |
-| Repository rules                  | [Blockout Best Practices](../../.agents/skills/blockout-best-practices/SKILL.md) |
-| Production migration and rollback | [`../migration/monorepo-cutover.md`](../migration/monorepo-cutover.md)           |
-| Current contracts and behavior    | Current source, deployed API behavior, and standalone repository                 |
-| Completed migration evidence      | Checked roadmap item, Git commit, CI run, and owning validation output           |
+| Question                          | Read first                                                                                           |
+| --------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| Migration task and phase state    | [`blockout-active-roadmap.md`](blockout-active-roadmap.md)                                           |
+| Product/runtime posture           | [`blockout-product-runtime-context.md`](blockout-product-runtime-context.md)                         |
+| Repository rules                  | [Blockout Best Practices](../../.agents/skills/blockout-best-practices/SKILL.md)                     |
+| Production migration and rollback | [`../migration/monorepo-cutover.md`](../migration/monorepo-cutover.md)                               |
+| Pre-cutover code cleanliness      | [`../migration/mrg-443-pre-cutover-cleanliness.md`](../migration/mrg-443-pre-cutover-cleanliness.md) |
+| Current contracts and behavior    | Current source, deployed API behavior, and standalone repository                                     |
+| Completed migration evidence      | Checked roadmap item, Git commit, CI run, and owning validation output                               |
 
 Current sources must still be inspected when a task audits or changes real behavior. Generated outputs are never
 product authority.
@@ -44,6 +45,8 @@ product authority.
 - Source OpenAPI fragments become authoritative only after the owning contract migration task is complete.
 - Preserve ports, environment variables, database ownership, events, schedules, image behavior, and production
   deployment authority during structural work.
+- Keep generated and version-suffixed transport models in their API, event, or MRG-304 compatibility adapters. The
+  canonical application and domain paths use role-owned names and never mirror transport objects for convenience.
 - Standalone repositories remain the production rollback path until individual cutover.
 - Do not expose migration state, task IDs, service mechanics, raw IDs, or deployment internals in product copy.
 

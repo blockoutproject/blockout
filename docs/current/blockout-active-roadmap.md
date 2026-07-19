@@ -1,6 +1,6 @@
 # Blockout Active Migration Roadmap
 
-Last updated: 2026-07-18.
+Last updated: 2026-07-19.
 
 This roadmap is the temporary source of truth for migrating Blockout to the Maaatch monorepo structure and operating
 model. It replaces GitHub task planning only for this migration. Once the final GitFlow phase is complete, active task
@@ -1778,6 +1778,16 @@ state moves to GitHub and this file becomes a historical migration record.
     REST contract, outbox, Flyway, optimistic-lock, service, adapter, and complete backend reactor tests pass. The full
     local verifier, generated-output guard, documentation, Prettier, Maaatch comparison, and Git whitespace checks
     pass; no consumer, queue, binding, broker, deployment, production, MRG-9xx, or MRG-1000 action occurs.
+- [x] MRG-443 Define the pre-cutover cleanliness boundary, add explicit scraper characterization and refactoring
+      slices, and add a final Phase MRG-800 gate that confines every remaining versioned transport name to generated or
+      MRG-304 compatibility adapters without changing runtime behavior.
+  - Execution mode: PLAN_REQUIRED
+  - Evidence: `docs/migration/mrg-443-pre-cutover-cleanliness.md` defines the clean canonical core and explicit
+    compatibility shell, role-based backend/BFF/mobile ownership, fixture-first two-scraper refactoring order, and the
+    final MRG-807 acceptance gate. Phase MRG-600 now contains separate characterization, club, competition, cleanup,
+    dependency, and image slices. Documentation links and formatting, Maaatch comparison, the complete local verifier,
+    the 16-module backend reactor, mobile export, 24 Python tests, both scraper image builds, Compose validation,
+    generated-output ownership, and Git whitespace checks pass; runtime and production remain unchanged.
 - [ ] MRG-441 Add a persisted optimistic revision and transactional owner projection facts to `teams-service`, using
       post-flush versions and treating direct or club-cascade repeated deactivation as a no-op while preserving every
       existing event route.
@@ -1854,10 +1864,25 @@ state moves to GitHub and this file becomes a historical migration record.
 - [ ] MRG-601 Audit both scrapers after generated-client migration for common adapter reuse, generated-type isolation,
       wheel ownership, configuration, scheduling/concurrency, separate Blockout/provider sessions, proxy/timeouts,
       camelCase wire aliases, Auth0, errors, and all eleven external federation/provider calls.
-- [ ] MRG-602 Keep explicit Nx projects unless an evidenced Python workspace decision replaces them.
-- [ ] MRG-603 Pin and validate Python dependencies and base images in a behavior-preserving change.
-- [ ] MRG-604 Add real behavioral tests and safe fixture-based scraper validation.
-- [ ] MRG-605 Build and smoke both images with production-shaped configuration before cutover.
+- [ ] MRG-602 Align both scraper projects with the existing root uv workspace, single lockfile, narrow Nx integration,
+      `apps` deployable ownership, and `libs/shared` generated-client ownership without adding a generic Python or
+      Docker framework.
+- [ ] MRG-604 Characterize both scrapers with offline fixtures covering provider parsing, normalization, application
+      mapping, Blockout adapter requests, scheduling, retries, missing data, errors, deterministic output, and the
+      concurrency decisions required to preserve current behavior.
+- [ ] MRG-606 Refactor the club scraper into plainly named application, provider, Blockout adapter, configuration, and
+      scheduling boundaries while preserving its entry point, environment contract, calls, ordering, errors, and
+      fixture outputs. Keep generated clients inside the Blockout adapter.
+- [ ] MRG-607 Refactor the competition scraper as a separate slice with the same simple boundaries while preserving its
+      entry point, environment contract, calls, ordering, errors, concurrency, fixture outputs, and local
+      `DataSourcePriority` application policy.
+- [ ] MRG-608 Remove replaced scraper modules, handwritten Blockout transport copies, unused dependencies, and proven
+      duplication after fixture parity. Align both project structures and names, but share only behavior whose provider
+      ownership and lifecycle are demonstrably identical.
+- [ ] MRG-603 Pin and validate the retained Python dependencies and base images after the refactors establish the real
+      runtime import set.
+- [ ] MRG-605 Build and smoke both final images with production-shaped configuration, unchanged commands and schedules,
+      offline startup proof, no generated source in Git, and no build-only tool in the runtime image.
 
 ## Phase MRG-700 — Local Runtime And Developer Workflow
 
@@ -1886,6 +1911,11 @@ state moves to GitHub and this file becomes a historical migration record.
 - [ ] MRG-804 Add actual backend image builds for changed deployables rather than Dockerfile syntax checks only.
 - [ ] MRG-805 Remove the `setup-python@v5` deprecation warning.
 - [ ] MRG-806 Make the local verification script and CI execute the same authoritative commands.
+- [ ] MRG-807 Audit and enforce the final pre-cutover cleanliness boundary from MRG-443: one canonical implementation
+      path per feature; role-based application models; generated and version-suffixed transport types confined to
+      generated or MRG-304 compatibility adapters; no copied DTO, generic client service, obsolete migration helper,
+      dead adapter, or superseded scraper module outside an open compatibility gate. Split discovered fixes into their
+      own atomic tasks before this gate can pass.
 
 ## Phase MRG-900 — Production Cutover
 
