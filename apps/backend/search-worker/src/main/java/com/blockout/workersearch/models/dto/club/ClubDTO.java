@@ -5,6 +5,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
+
 @Data
 @Builder
 @NoArgsConstructor
@@ -15,7 +17,9 @@ public class ClubDTO {
     private String rawName;
 
     private String name;
-    
+
+    private String address;
+
     private String city;
 
     private String postalCode;
@@ -28,7 +32,13 @@ public class ClubDTO {
 
     private String logoUrl;
 
-    private String lastUpdate;
+    private boolean active;
 
-    private Boolean active;
+    private Double latitude;
+
+    private Double longitude;
+
+    private LocalDateTime createdAt;
+
+    private LocalDateTime lastUpdate;
 }

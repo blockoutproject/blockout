@@ -37,4 +37,10 @@
   - Keep the search worker context test isolated from startup jobs and external systems.
   - Validate the complete Maven reactor, mobile typecheck, and a gateway-to-service local smoke.
 
-The tasks are executed in order. DTO restructuring, contract-first adoption, code generation, scraper redesign, GitFlow, CI, deployment, and production changes require later roadmap tasks and are not bundled into this migration.
+- [x] **REF-007 — Refactor clubs-service and establish authoritative Club ownership**
+  - Separate handwritten Club HTTP models, API mapping, application commands and views, persistence, messaging, storage, and geocoding using the Maaatch naming approach.
+  - Make `clubs-service` the owner of the complete Club representation and align its complete mirrors in the gateway, search worker, club scraper, and mobile application.
+  - Keep lifecycle events and search documents as explicit purpose-specific projections rather than expanding them into duplicate Club resources.
+  - Protect create, update, image, deactivation, camelCase, consumer deserialization, and scraper write behavior with focused tests and a local authenticated smoke.
+
+The tasks are executed in order. The remaining services are restructured in later focused tasks. Contract-first adoption, code generation, full scraper redesign, GitFlow, CI, deployment, and production changes are not bundled into REF-007.

@@ -2,18 +2,18 @@ export interface Club {
     id: string;
     rawName: string;
     name: string;
+    address: string | null;
     city: string | null;
     postalCode: string | null;
     email: string | null;
     phoneNumber: string | null;
     website: string | null;
-    address: string | null;
     logoUrl: string | null;
-    longitude: number | null;
-    latitude: number | null;
     active: boolean;
-    createdAt: string;
-    lastUpdate: string;
+    latitude: number | null;
+    longitude: number | null;
+    createdAt: string | null;
+    lastUpdate: string | null;
 }
 
 export interface ClubSearchDocDTO {
@@ -21,4 +21,4 @@ export interface ClubSearchDocDTO {
     name: string;
     logoUrl: string | null;
     city: string;
-}   
+}

@@ -4,8 +4,28 @@ import aiohttp
 from config.env_config import CLUB_API_URL
 from utils.handlers.api_handler import handle_api_response
 from api.auth0 import _get_headers
-from utils.utils import to_dict
 from models.club import Club
+
+
+def _create_payload(club: Club) -> dict:
+    return {
+        "id": club.id,
+        "rawName": club.rawName,
+        "name": club.name,
+        "address": club.address,
+        "city": club.city,
+        "postalCode": club.postalCode,
+        "email": club.email,
+        "phoneNumber": club.phoneNumber,
+        "website": club.website,
+        "logoUrl": club.logoUrl,
+    }
+
+
+def _update_payload(club: Club) -> dict:
+    payload = _create_payload(club)
+    payload.pop("id")
+    return payload
 
 
 @handle_api_response(response_type=List[Club])
@@ -31,7 +51,7 @@ async def create_club(
     data = aiohttp.FormData()
 
     # Ajout du champ "data" contenant le JSON sérialisé
-    club_dict = to_dict(club)
+    club_dict = _create_payload(club)
     data.add_field("data", json.dumps(club_dict), content_type="application/json")
 
     # Ajout du fichier image si présent
@@ -55,7 +75,7 @@ async def update_club(
     url = f"{CLUB_API_URL}/{club.id}"
     data = aiohttp.FormData()
 
-    club_dict = to_dict(club)
+    club_dict = _update_payload(club)
     data.add_field("data", json.dumps(club_dict), content_type="application/json")
     
     headers = _get_headers()

@@ -2,7 +2,7 @@ import asyncio
 
 import pytest
 
-from api import competitions_api, config_api
+from api import clubs_api, competitions_api, config_api
 from models.club import Club
 from models.scraper_status import ScraperStatus
 from utils.handlers.api_handler import convert_to_dataclass
@@ -91,3 +91,25 @@ def test_serializes_native_camel_case_club_fields():
     assert payload["rawName"] == "RAW CLUB"
     assert payload["logoUrl"] == "logo.png"
     assert "raw_name" not in payload
+
+
+def test_uses_explicit_club_write_contracts():
+    club = Club(
+        id="club-1",
+        rawName="RAW CLUB",
+        name="Blockout",
+        address="1 Club Street",
+        latitude=48.0,
+        longitude=2.0,
+        active=False,
+    )
+
+    create_payload = clubs_api._create_payload(club)
+    update_payload = clubs_api._update_payload(club)
+
+    assert create_payload["id"] == "club-1"
+    assert create_payload["address"] == "1 Club Street"
+    assert "id" not in update_payload
+    assert "active" not in update_payload
+    assert "latitude" not in update_payload
+    assert "longitude" not in update_payload

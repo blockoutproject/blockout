@@ -18,6 +18,20 @@ Blockout will first reach a clean handwritten architecture. Internal HTTP models
 
 That cleanup is not part of the camelCase migration. Existing DTOs are renamed or reorganized only in later focused tasks. Contract-first specifications and generated models replace stable handwritten boundaries afterwards, not during this phase.
 
+The cleanup now proceeds one owning service at a time. Each service first establishes a clean handwritten boundary with Maaatch-style `api`, `application`, and `infrastructure` responsibilities. HTTP models use `InternalRequest` and `InternalResponse`; application mutations use commands; application reads return views; persistence entities never cross the API boundary. Contract sources and code generation remain deferred until these handwritten boundaries are stable.
+
+## Model ownership
+
+Each complete business resource has one owning service. That service defines the authoritative field set and semantics while the repository still uses handwritten contracts. Any complete mirror in a gateway, worker, scraper, or frontend must match that authoritative representation. Missing fields, incompatible types, and unrelated extra fields are corrected in the same service slice.
+
+Purpose-specific messages and read models are not forced to become complete resource copies. Their smaller shape must be explicit in their name and usage, and their producer and consumer must still agree exactly.
+
+REF-007 establishes the first ownership rule:
+
+- `clubs-service` owns the complete Club representation: `id`, `rawName`, `name`, `address`, `city`, `postalCode`, `email`, `phoneNumber`, `website`, `logoUrl`, `active`, `latitude`, `longitude`, `createdAt`, and `lastUpdate`;
+- the gateway, search worker, club scraper, and mobile application mirror that complete representation at their Club HTTP boundaries;
+- `ClubUpsertEvent`, `ClubDeactivationEvent`, search documents, and search result DTOs remain intentionally smaller lifecycle or query projections.
+
 The camelCase rule applies to transport names owned by Blockout:
 
 - REST request and response bodies;

@@ -10,12 +10,11 @@ import lombok.Builder;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ClubUpdateDTO {
-
-    private String id;
-
     private String rawName;
 
     private String name;
+
+    private String address;
 
     private String city;
 

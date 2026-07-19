@@ -18,6 +18,8 @@ public class ClubDTO {
 
     private String name;
 
+    private String address;
+
     private String city;
 
     private String postalCode;
@@ -34,7 +36,7 @@ public class ClubDTO {
 
     private Double longitude;
 
-    private Boolean active;
+    private boolean active;
 
     private LocalDateTime createdAt;
 

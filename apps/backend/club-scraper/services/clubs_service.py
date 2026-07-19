@@ -16,8 +16,9 @@ async def add_or_update_club(session: aiohttp.ClientSession, club: Club, existin
     if existing_club:
         changes_list = []
         club.id = existing_club.id  # pour être sûr qu'on garde le même ID
+        club.logoUrl = existing_club.logoUrl
 
-        for field in ['rawName', 'city', 'postalCode', 'email', 'phoneNumber', 'website', 'address']:
+        for field in ['rawName', 'name', 'address', 'city', 'postalCode', 'email', 'phoneNumber', 'website']:
             if getattr(existing_club, field, None) != getattr(club, field, None):
                 changes_list.append(f"{field}: {getattr(existing_club, field)} -> {getattr(club, field)}")
 
