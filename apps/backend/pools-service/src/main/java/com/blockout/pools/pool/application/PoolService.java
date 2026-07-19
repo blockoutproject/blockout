@@ -53,13 +53,17 @@ public class PoolService {
                     keyValue("leagueCode", change.after().leagueCode()), keyValue("name", change.after().name()));
         }
         ChangeLog.logChanges(change.before(), change.after(), LOGGER, "update_pool", change.after().id());
-        eventPublisher.publishUpsert(PoolUpsertFact.from(change.after()));
+        PoolEventData event = PoolEventData.from(change.after());
+        eventPublisher.publishUpsert(event);
+        eventPublisher.publishProjection(event);
         return change.after();
     }
 
     private PoolView publishCreated(PoolView view) {
         LOGGER.info("Pool created successfully", keyValue("action", "create_pool"), keyValue("poolId", view.id()));
-        eventPublisher.publishUpsert(PoolUpsertFact.from(view));
+        PoolEventData event = PoolEventData.from(view);
+        eventPublisher.publishUpsert(event);
+        eventPublisher.publishProjection(event);
         return view;
     }
 

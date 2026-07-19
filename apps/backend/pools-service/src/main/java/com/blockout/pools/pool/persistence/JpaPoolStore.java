@@ -32,12 +32,12 @@ public class JpaPoolStore implements PoolStore, PoolFollowerStore, PoolLifecycle
         PoolEntity entity = mapper.toEntity(command);
         entity.setFollowersCount(0L);
         entity.setActive(true);
-        return mapper.toView(repository.save(entity));
+        return mapper.toView(repository.saveAndFlush(entity));
     }
 
     @Override
     public PoolView createLegacy(LegacyCreatePoolCommand command) {
-        return mapper.toView(repository.save(mapper.toEntity(command)));
+        return mapper.toView(repository.saveAndFlush(mapper.toEntity(command)));
     }
 
     @Override
@@ -77,12 +77,15 @@ public class JpaPoolStore implements PoolStore, PoolFollowerStore, PoolLifecycle
     }
 
     @Override
-    public boolean deactivate(Long id) {
+    public Optional<PoolChange> deactivate(Long id) {
         return repository.findById(id).map(entity -> {
+            PoolView before = mapper.toView(entity);
+            if (Boolean.FALSE.equals(entity.getActive())) {
+                return new PoolChange(before, before);
+            }
             entity.setActive(false);
-            repository.save(entity);
-            return true;
-        }).orElse(false);
+            return new PoolChange(before, mapper.toView(repository.saveAndFlush(entity)));
+        });
     }
 
     private final class JpaPoolUpdate implements PoolUpdate {
@@ -101,7 +104,7 @@ public class JpaPoolStore implements PoolStore, PoolFollowerStore, PoolLifecycle
         public PoolChange apply(PoolUpdatePlan plan) {
             PoolView before = current();
             mapper.apply(plan.command(), entity);
-            return new PoolChange(before, mapper.toView(repository.save(entity)));
+            return new PoolChange(before, mapper.toView(repository.saveAndFlush(entity)));
         }
     }
 }

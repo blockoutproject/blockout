@@ -4,6 +4,9 @@
     "PoolDeactivation": {
       "$ref": "../shared/channels/lifecycle.json#/$defs/PoolDeactivation"
     },
+    "PoolProjectionChanged": {
+      "$ref": "../shared/channels/lifecycle.json#/$defs/PoolProjectionChanged"
+    },
     "PoolUpsert": {
       "$ref": "../shared/channels/lifecycle.json#/$defs/PoolUpsert"
     }
@@ -18,6 +21,10 @@
     "publishPoolUpsert": {
       "action": "send",
       "channel": { "$ref": "#/channels/PoolUpsert" }
+    },
+    "publishPoolProjectionChanged": {
+      "action": "send",
+      "channel": { "$ref": "#/channels/PoolProjectionChanged" }
     }
   },
   "x-blockout-primary-queues": ["pool.deactivation.queue.pools.v2"]

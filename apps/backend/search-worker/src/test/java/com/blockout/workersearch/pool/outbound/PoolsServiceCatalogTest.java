@@ -65,7 +65,8 @@ class PoolsServiceCatalogTest {
                 .andRespond(withSuccess("""
                         {"items":[{"id":1,"poolCode":"P1","leagueCode":"L1","season":"2026",
                         "leagueName":"League","rawName":"Raw","name":"Pool","shortName":"PL",
-                        "divisionId":2,"format":"SIX","gender":"M","followersCount":3,"active":true}],
+                        "divisionId":2,"format":"SIX","gender":"M","followersCount":3,"active":true,
+                        "revision":0}],
                         "pageInfo":{"page":0,"pageSize":100,"totalItems":1,"hasNext":false}}
                         """, MediaType.APPLICATION_JSON));
 
@@ -96,7 +97,7 @@ class PoolsServiceCatalogTest {
     private PoolInternalResponse response(Long id, String name) {
         return new PoolInternalResponse().id(id).poolCode("P1").leagueCode("L1").season("2026")
                 .leagueName("League").rawName("Raw").name(name).shortName("PL").divisionId(2L)
-                .format(FormatEnum.SIX).gender(GenderEnum.M).followersCount(3L).active(true);
+                .format(FormatEnum.SIX).gender(GenderEnum.M).followersCount(3L).active(true).revision(0L);
     }
 
     private PoolSnapshot snapshot(Long id, String name) {

@@ -1,19 +1,21 @@
 package com.blockout.pools.pool.event.outbox;
 
 import com.blockout.events.v2.model.EventType;
+import com.blockout.events.v2.model.PoolProjectionChangedV2Event;
+import com.blockout.events.v2.model.PoolProjectionChangedV2Payload;
 import com.blockout.events.v2.model.PoolUpsertV2Event;
 import com.blockout.events.v2.model.PoolUpsertV2Payload;
 import com.blockout.outbox.OutboxMetadata;
 import com.blockout.shared.model.FormatEnum;
 import com.blockout.shared.model.GenderEnum;
 import com.blockout.pools.models.events.PoolUpsertEvent;
-import com.blockout.pools.pool.application.PoolUpsertFact;
+import com.blockout.pools.pool.application.PoolEventData;
 import org.springframework.stereotype.Component;
 
 @Component
 class PoolEventMapper {
 
-    PoolEventMessages map(PoolUpsertFact pool, OutboxMetadata metadata) {
+    PoolEventMessages map(PoolEventData pool, OutboxMetadata metadata) {
         var legacy = PoolUpsertEvent.builder()
                 .id(pool.id())
                 .name(pool.name())
@@ -38,6 +40,21 @@ class PoolEventMapper {
                 OutboxPoolEventPublisher.PRODUCER,
                 OutboxPoolEventPublisher.VERSION);
         return new PoolEventMessages(legacy, canonical);
+    }
+
+    PoolProjectionChangedV2Event mapProjection(PoolEventData pool, OutboxMetadata metadata) {
+        return new PoolProjectionChangedV2Event(
+                pool.revision(),
+                metadata.correlationId(),
+                metadata.eventId(),
+                EventType.POOL_PROJECTION_CHANGED,
+                metadata.occurredAt(),
+                "pool:" + pool.id(),
+                new PoolProjectionChangedV2Payload(
+                        pool.id(), pool.name(), pool.shortName(), pool.divisionId(), pool.leagueCode(),
+                        pool.leagueName(), pool.season(), value(pool.format()), value(pool.gender()), pool.active()),
+                OutboxPoolEventPublisher.PRODUCER,
+                OutboxPoolEventPublisher.VERSION);
     }
 
     private String value(Object value) {

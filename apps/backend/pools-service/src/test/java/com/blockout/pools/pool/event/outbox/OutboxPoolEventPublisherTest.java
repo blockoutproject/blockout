@@ -2,12 +2,13 @@ package com.blockout.pools.pool.event.outbox;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.blockout.events.v2.model.PoolProjectionChangedV2Event;
 import com.blockout.events.v2.model.PoolUpsertV2Event;
 import com.blockout.outbox.OutboxEvent;
 import com.blockout.outbox.OutboxMetadata;
 import com.blockout.outbox.OutboxRecorder;
 import com.blockout.pools.models.events.PoolUpsertEvent;
-import com.blockout.pools.pool.application.PoolUpsertFact;
+import com.blockout.pools.pool.application.PoolEventData;
 import com.blockout.shared.model.FormatEnum;
 import com.blockout.shared.model.GenderEnum;
 import java.time.OffsetDateTime;
@@ -19,8 +20,8 @@ class OutboxPoolEventPublisherTest {
     @Test
     void recordsOnePoolFactWithSharedV1V2Identity() {
         Recorder recorder = new Recorder();
-        PoolUpsertFact pool = new PoolUpsertFact(
-                42L, "Pool A", "A", 8L, "LNV", "League", "2026", FormatEnum.SIX, GenderEnum.F);
+        PoolEventData pool = new PoolEventData(
+                42L, "Pool A", "A", 8L, "LNV", "League", "2026", FormatEnum.SIX, GenderEnum.F, true, 7L);
 
         new OutboxPoolEventPublisher(recorder, new PoolEventMapper()).publishUpsert(pool);
 
@@ -38,17 +39,23 @@ class OutboxPoolEventPublisherTest {
     }
 
     @Test
-    void preservesNullableLegacyAndCanonicalEnums() {
+    void recordsTheOwnerProjectionFactAsCanonicalOnlyWithItsPostFlushRevision() {
         Recorder recorder = new Recorder();
-        PoolUpsertFact pool = new PoolUpsertFact(
-                42L, "Pool A", "A", 8L, "LNV", "League", "2026", null, null);
+        PoolEventData pool = new PoolEventData(
+                42L, "Pool A", "A", 8L, "LNV", "League", "2026", null, null, false, 7L);
 
-        new OutboxPoolEventPublisher(recorder, new PoolEventMapper()).publishUpsert(pool);
+        new OutboxPoolEventPublisher(recorder, new PoolEventMapper()).publishProjection(pool);
 
-        PoolUpsertEvent v1 = (PoolUpsertEvent) recorder.event.v1Payload();
-        PoolUpsertV2Event v2 = (PoolUpsertV2Event) recorder.event.v2Payload();
-        assertThat(v1.getFormat()).isNull();
-        assertThat(v1.getGender()).isNull();
+        assertThat(recorder.event.eventType()).isEqualTo("POOL_PROJECTION_CHANGED");
+        assertThat(recorder.event.aggregateVersion()).isEqualTo(7L);
+        assertThat(recorder.event.orderingKey()).isEqualTo("pool:42");
+        assertThat(recorder.event.v1Enabled()).isFalse();
+        assertThat(recorder.event.v2RoutingKey()).isEqualTo("pool.projection-changed.v2");
+        PoolProjectionChangedV2Event v2 = (PoolProjectionChangedV2Event) recorder.event.v2Payload();
+        assertThat(v2.aggregateVersion()).isEqualTo(7L);
+        assertThat(v2.eventId()).isEqualTo(recorder.metadata.eventId());
+        assertThat(v2.payload().id()).isEqualTo(42L);
+        assertThat(v2.payload().active()).isFalse();
         assertThat(v2.payload().format()).isNull();
         assertThat(v2.payload().gender()).isNull();
     }

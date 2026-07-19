@@ -1799,8 +1799,15 @@ state moves to GitHub and this file becomes a historical migration record.
     local verifier, both scraper image builds, mobile export, generated-output guard, documentation, Prettier, Maaatch
     comparison, and Git whitespace checks pass; no consumer, queue, binding, broker, deployment, production, MRG-9xx,
     or MRG-1000 action occurs.
-- [ ] MRG-442 Add a persisted optimistic revision and transactional owner projection facts to `pools-service`, using
+- [x] MRG-442 Add a persisted optimistic revision and transactional owner projection facts to `pools-service`, using
       post-flush versions and treating repeated deactivation as a no-op while preserving every existing event route.
+  - Evidence: `docs/migration/mrg-442-pool-revision-event.md` records the feature-first implementation, Flyway V6,
+    owner-only JPA `@Version`, post-flush event data, internal snapshot revision, canonical-only owner event, unchanged
+    mobile shape, and retained coexistence routes. Repeated deactivation is proven to make no write and publish no
+    event. The pools-service and search-worker reactor, REST and event contracts, optimistic locking, Flyway, outbox,
+    services, adapters, and 24 Python contract-client tests pass. The full local verifier, both scraper image builds,
+    mobile export, generated-output guard, documentation, Prettier, Maaatch comparison, and Git whitespace checks pass;
+    no consumer, queue, binding, broker, deployment, production, MRG-9xx, or MRG-1000 action occurs.
 - [ ] MRG-430 Implement active documents and tombstones with non-regressing club, team/club/division, and pool/division
       revision vectors, validation, atomic alias swaps, bounded rollback-index retention, cleanup, and failed-rebuild
       reconciliation behind explicit worker application operations.

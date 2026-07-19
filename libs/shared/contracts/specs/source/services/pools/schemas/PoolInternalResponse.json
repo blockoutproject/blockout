@@ -15,7 +15,8 @@
       "format",
       "gender",
       "followersCount",
-      "active"
+      "active",
+      "revision"
     ],
     "properties": {
       "id": {
@@ -42,7 +43,13 @@
         "format": "int64",
         "minimum": 0
       },
-      "active": { "type": "boolean" }
+      "active": { "type": "boolean" },
+      "revision": {
+        "type": "integer",
+        "format": "int64",
+        "minimum": 0,
+        "description": "Pools-service-owned optimistic revision used by projection facts and internal reconciliation."
+      }
     },
     "additionalProperties": false
   }

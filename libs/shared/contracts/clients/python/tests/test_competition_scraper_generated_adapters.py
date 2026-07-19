@@ -122,6 +122,7 @@ def pool_response(identifier: int = 7):
         gender=GenderEnum.M,
         followers_count=4,
         active=True,
+        revision=0,
     )
 
 

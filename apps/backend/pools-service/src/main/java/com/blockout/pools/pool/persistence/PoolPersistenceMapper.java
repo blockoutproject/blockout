@@ -19,15 +19,18 @@ public interface PoolPersistenceMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "followersCount", ignore = true)
     @Mapping(target = "active", ignore = true)
+    @Mapping(target = "revision", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "lastUpdate", ignore = true)
     PoolEntity toEntity(CreatePoolCommand command);
 
+    @Mapping(target = "revision", ignore = true)
     PoolEntity toEntity(LegacyCreatePoolCommand command);
 
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "followersCount", ignore = true)
+    @Mapping(target = "revision", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "lastUpdate", ignore = true)
     void apply(UpdatePoolCommand command, @MappingTarget PoolEntity entity);

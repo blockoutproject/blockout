@@ -18,6 +18,7 @@ public record PoolView(
         GenderEnum gender,
         Long followersCount,
         Boolean active,
+        long revision,
         LocalDateTime createdAt,
         LocalDateTime lastUpdate) {
 }

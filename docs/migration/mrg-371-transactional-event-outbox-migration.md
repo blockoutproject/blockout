@@ -29,15 +29,16 @@ remain unchanged. This avoids inventing a legacy payload for a new fact that has
 | teams-service       | team upsert          | `team.upsert`             | `team.upsert.v2`             | `team:{teamId}`       |
 | teams-service       | team projection      | none                      | `team.projection-changed.v2` | `team:{teamId}`       |
 | pools-service       | pool upsert          | `pool.upsert`             | `pool.upsert.v2`             | `pool:{poolId}`       |
+| pools-service       | pool projection      | none                      | `pool.projection-changed.v2` | `pool:{poolId}`       |
 | competition-service | club deactivation    | `club.deactivation`       | `club.deactivation.v2`       | `club:{clubId}`       |
 | competition-service | team deactivation    | `team.deactivation`       | `team.deactivation.v2`       | `team:{teamId}`       |
 | competition-service | pool deactivation    | `pool.deactivation`       | `pool.deactivation.v2`       | `pool:{poolId}`       |
 | competition-service | team removed by pool | `teambypool.deactivation` | none                         | `pool:{id}:team:{id}` |
 
 The orphan team-by-pool route remains v1-only exactly as MRG-304 and MRG-315 require. No Q-11 through Q-13 successor
-is invented. The club and team projection facts use the owner JPA revisions added by MRG-440 and MRG-441. Existing
-facts still omit `aggregateVersion` where their audited owners expose no monotonic revision; no timestamp or synthetic
-counter is used.
+is invented. The club, team, and pool projection facts use the owner JPA revisions added by MRG-440 through MRG-442.
+Existing facts still omit `aggregateVersion` where their audited owners expose no monotonic revision; no timestamp or
+synthetic counter is used.
 
 ## Atomicity And Publication Semantics
 

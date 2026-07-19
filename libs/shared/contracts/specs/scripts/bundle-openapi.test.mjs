@@ -801,9 +801,24 @@ test('workspace pools contract reconciles the seven audited operations', async (
       'name',
       'poolCode',
       'rawName',
+      'revision',
       'season',
       'shortName',
     ],
+  );
+  assert.deepEqual(
+    pools.components.schemas.PoolInternalResponse.properties.revision,
+    {
+      type: 'integer',
+      format: 'int64',
+      minimum: 0,
+      description:
+        'Pools-service-owned optimistic revision used by projection facts and internal reconciliation.',
+    },
+  );
+  assert.equal(
+    pools.components.schemas.PoolInternalResponse.required.includes('revision'),
+    true,
   );
 
   const createSchema = pools.components.schemas.CreatePoolInternalRequest;
@@ -2074,6 +2089,10 @@ test('workspace mobile gateway contract separates the nine club team and pool wo
   assert.notDeepEqual(
     gateway.components.schemas.MobileTeamPool,
     gateway.components.schemas.MobilePoolDetail,
+  );
+  assert.equal(
+    gateway.components.schemas.MobilePoolDetail.properties.revision,
+    undefined,
   );
 
   assert.deepEqual(

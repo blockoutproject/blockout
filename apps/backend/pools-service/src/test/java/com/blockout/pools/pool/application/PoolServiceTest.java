@@ -35,14 +35,17 @@ class PoolServiceTest {
         assertThat(result.id()).isEqualTo(1L);
         assertThat(result.followersCount()).isZero();
         assertThat(result.active()).isTrue();
-        assertThat(publisher.published).containsExactly(PoolUpsertFact.from(result));
+        assertThat(result.revision()).isZero();
+        assertThat(publisher.upserts).containsExactly(PoolEventData.from(result));
+        assertThat(publisher.projections).containsExactly(PoolEventData.from(result));
     }
 
     @Test
     void updatePreservesNullFieldsAndExplicitlyReactivates() {
         RepositoryDouble repository = new RepositoryDouble();
         repository.entity = entity(false, 4L);
-        PoolService service = service(repository, new EventPublisherDouble());
+        EventPublisherDouble publisher = new EventPublisherDouble();
+        PoolService service = service(repository, publisher);
 
         PoolView result = service.update(1L, new UpdatePoolCommand(
                 null, null, null, null, null, "Updated", null, null, null, null, true));
@@ -50,6 +53,9 @@ class PoolServiceTest {
         assertThat(result.rawName()).isEqualTo("Raw");
         assertThat(result.name()).isEqualTo("Updated");
         assertThat(result.active()).isTrue();
+        assertThat(result.revision()).isEqualTo(4L);
+        assertThat(publisher.upserts).containsExactly(PoolEventData.from(result));
+        assertThat(publisher.projections).containsExactly(PoolEventData.from(result));
     }
 
     @Test
@@ -63,18 +69,6 @@ class PoolServiceTest {
                 new PoolFollowerCommand(1L, 9L, FollowerCountDeltaEnum.DECREMENT));
 
         assertThat(result.followersCount()).isZero();
-    }
-
-    @Test
-    void directDeactivationRemainsASoftLifecycleWrite() {
-        RepositoryDouble repository = new RepositoryDouble();
-        repository.entity = entity(true, 2L);
-        JpaPoolStore store = store(repository);
-        PoolLifecycleService service = new PoolLifecycleService(store);
-
-        service.deactivate(1L);
-
-        assertThat(repository.entity.getActive()).isFalse();
     }
 
     @Test
@@ -109,6 +103,7 @@ class PoolServiceTest {
         return PoolEntity.builder().id(1L).poolCode("P1").leagueCode("L1").season("2026")
                 .leagueName("League").rawName("Raw").name("Pool").shortName("PL").divisionId(2L)
                 .format(FormatEnum.SIX).gender(GenderEnum.M).followersCount(followers).active(active)
+                .revision(3L)
                 .createdAt(LocalDateTime.parse("2026-01-01T00:00:00"))
                 .lastUpdate(LocalDateTime.parse("2026-01-02T00:00:00")).build();
     }
@@ -126,10 +121,14 @@ class PoolServiceTest {
         @Override
         public Object invoke(Object proxy, java.lang.reflect.Method method, Object[] arguments) {
             return switch (method.getName()) {
-                case "save" -> {
+                case "save", "saveAndFlush" -> {
+                    boolean update = entity != null;
                     entity = (PoolEntity) arguments[0];
                     if (entity.getId() == null) {
                         entity.setId(1L);
+                    }
+                    if (update) {
+                        entity.setRevision(entity.getRevision() + 1);
                     }
                     yield entity;
                 }
@@ -145,11 +144,17 @@ class PoolServiceTest {
     }
 
     private static final class EventPublisherDouble implements PoolEventPublisher {
-        private final List<PoolUpsertFact> published = new ArrayList<>();
+        private final List<PoolEventData> upserts = new ArrayList<>();
+        private final List<PoolEventData> projections = new ArrayList<>();
 
         @Override
-        public void publishUpsert(PoolUpsertFact pool) {
-            published.add(pool);
+        public void publishUpsert(PoolEventData pool) {
+            upserts.add(pool);
+        }
+
+        @Override
+        public void publishProjection(PoolEventData pool) {
+            projections.add(pool);
         }
     }
 }

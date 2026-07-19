@@ -2,5 +2,7 @@ package com.blockout.pools.pool.application;
 
 public interface PoolEventPublisher {
 
-    void publishUpsert(PoolUpsertFact pool);
+    void publishUpsert(PoolEventData pool);
+
+    void publishProjection(PoolEventData pool);
 }

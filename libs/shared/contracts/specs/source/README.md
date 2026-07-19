@@ -174,11 +174,12 @@ MRG-320 makes `services/pools` authoritative for the seven canonical pools-servi
 and allocated by MRG-304. The bundle covers filtered pool reads, clean JSON creation and partial update, soft
 deactivation, and the two follower-projection mutations under `/api/v2/pools/**`.
 
-`PoolInternalResponse` retains the thirteen owner identity, display, classification, follower, and lifecycle fields
-required by proven consumers while omitting persistence timestamps and every BFF-derived division, ranking, match,
-and team projection. The growing collection uses `PoolInternalPageResponse`, shared zero-based page parameters, and
-stable season-descending, name-ascending, identifier-ascending ordering. Compatibility scraper, BFF, notification,
-and worker adapters aggregate all pages before exposing a legacy complete-list result.
+`PoolInternalResponse` retains the owner identity, display, classification, follower, and lifecycle fields required by
+proven consumers and adds the pools-service-owned optimistic revision for internal reconciliation. It omits
+persistence timestamps and every BFF-derived division, ranking, match, and team projection. The growing collection
+uses `PoolInternalPageResponse`, shared zero-based page parameters, and stable season-descending, name-ascending,
+identifier-ascending ordering. Compatibility scraper, BFF, notification, and worker adapters aggregate all pages
+before exposing a legacy complete-list result.
 
 Creation contains only caller-owned pool identity, display, and classification fields; server identity, follower
 count, active state, and timestamps cannot be supplied. Update preserves the current null-skipping eleven-field

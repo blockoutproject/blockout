@@ -1,5 +1,7 @@
 package com.blockout.pools.pool.application;
 
+import java.util.Optional;
+
 public interface PoolLifecycleStore {
-    boolean deactivate(Long id);
+    Optional<PoolChange> deactivate(Long id);
 }

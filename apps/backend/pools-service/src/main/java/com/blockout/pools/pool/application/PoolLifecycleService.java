@@ -13,11 +13,13 @@ import org.springframework.transaction.annotation.Transactional;
 public class PoolLifecycleService {
     private static final Logger LOGGER = LoggerFactory.getLogger(PoolLifecycleService.class);
     private final PoolLifecycleStore store;
+    private final PoolEventPublisher eventPublisher;
 
     @Transactional
     public void deactivate(Long id) {
-        if (!store.deactivate(id)) {
-            throw notFound(id);
+        PoolChange change = store.deactivate(id).orElseThrow(() -> notFound(id));
+        if (change.changed()) {
+            eventPublisher.publishProjection(PoolEventData.from(change.after()));
         }
         LOGGER.info("Pool successfully deactivated", keyValue("action", "deactivate_pool"), keyValue("poolId", id));
     }

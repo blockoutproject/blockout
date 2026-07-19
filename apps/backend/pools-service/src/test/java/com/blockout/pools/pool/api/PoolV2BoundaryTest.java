@@ -29,12 +29,13 @@ class PoolV2BoundaryTest {
         PoolApiMapper mapper = Mappers.getMapper(PoolApiMapper.class);
         PoolInternalResponse response = mapper.toResponse(new PoolView(
                 1L, "P1", "L1", "2026", "League", "Raw", "Pool", "PL", 2L,
-                FormatEnum.SIX, GenderEnum.M, 3L, true, LocalDateTime.now(), LocalDateTime.now()));
+                FormatEnum.SIX, GenderEnum.M, 3L, true, 7L, LocalDateTime.now(), LocalDateTime.now()));
         ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
 
         String body = objectMapper.writeValueAsString(response);
 
-        assertThat(body).contains("\"poolCode\"", "\"leagueCode\"", "\"shortName\"", "\"followersCount\"");
+        assertThat(body).contains(
+                "\"poolCode\"", "\"leagueCode\"", "\"shortName\"", "\"followersCount\"", "\"revision\":7");
         assertThat(body).doesNotContain("pool_code", "league_code", "short_name", "followers_count");
     }
 }
