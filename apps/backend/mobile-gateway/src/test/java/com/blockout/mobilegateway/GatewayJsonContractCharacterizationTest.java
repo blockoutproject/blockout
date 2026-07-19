@@ -2,24 +2,24 @@ package com.blockout.mobilegateway;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.blockout.mobilegateway.models.dto.club.ClubDTO;
-import com.blockout.mobilegateway.models.dto.competition.CompetitionAssociationDTO;
-import com.blockout.mobilegateway.models.dto.match.MatchDTO;
-import com.blockout.mobilegateway.models.dto.notification.UserNotificationDTO;
-import com.blockout.mobilegateway.models.dto.report.ReportDTO;
-import com.blockout.mobilegateway.models.dto.team.TeamDTO;
-import com.blockout.mobilegateway.models.dto.pool.PoolDTO;
-import com.blockout.mobilegateway.models.dto.user.CustomUserDTO;
-import com.blockout.mobilegateway.models.dto.user.CustomUserUpdateDTO;
-import com.blockout.mobilegateway.models.dto.user.UserFavoriteDTO;
-import com.blockout.mobilegateway.models.dto.config.RawDivisionMappingDTO;
-import com.blockout.mobilegateway.models.enums.Format;
-import com.blockout.mobilegateway.models.enums.Gender;
-import com.blockout.mobilegateway.models.enums.EntityType;
-import com.blockout.mobilegateway.models.enums.LiveProvider;
-import com.blockout.mobilegateway.models.enums.MatchStatus;
-import com.blockout.mobilegateway.models.enums.NotificationTargetType;
-import com.blockout.mobilegateway.models.enums.NotificationType;
+import com.blockout.mobilegateway.club.api.models.ClubResponse;
+import com.blockout.mobilegateway.competition.infrastructure.competition.models.CompetitionAssociationInternalResponse;
+import com.blockout.mobilegateway.match.api.models.MatchInternalResponse;
+import com.blockout.mobilegateway.notification.api.models.NotificationInternalResponse;
+import com.blockout.mobilegateway.report.api.models.ReportResponse;
+import com.blockout.mobilegateway.team.api.models.TeamInternalResponse;
+import com.blockout.mobilegateway.pool.api.models.PoolInternalResponse;
+import com.blockout.mobilegateway.user.api.models.UserResponse;
+import com.blockout.mobilegateway.user.api.models.UpdateUserRequest;
+import com.blockout.mobilegateway.user.api.models.UserFavoriteResponse;
+import com.blockout.mobilegateway.config.api.models.RawDivisionMappingResponse;
+import com.blockout.mobilegateway.shared.application.models.Format;
+import com.blockout.mobilegateway.shared.application.models.Gender;
+import com.blockout.mobilegateway.shared.application.models.EntityType;
+import com.blockout.mobilegateway.shared.application.models.LiveProvider;
+import com.blockout.mobilegateway.shared.application.models.MatchStatus;
+import com.blockout.mobilegateway.shared.application.models.NotificationTargetType;
+import com.blockout.mobilegateway.shared.application.models.NotificationType;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
@@ -36,7 +36,7 @@ class GatewayJsonContractCharacterizationTest {
     @Test
     void serializesGatewayTeamWithTheCamelCaseContract() throws Exception {
         LocalDateTime now = LocalDateTime.of(2026, 7, 19, 12, 0);
-        TeamDTO team = TeamDTO.builder()
+        TeamInternalResponse team = TeamInternalResponse.builder()
                 .id(10L)
                 .clubId("club-1")
                 .rawName("RAW TEAM")
@@ -70,7 +70,7 @@ class GatewayJsonContractCharacterizationTest {
     @Test
     void mirrorsTheCompleteClubInternalResponseOwnedByClubsService() {
         LocalDateTime now = LocalDateTime.of(2026, 7, 19, 12, 0);
-        ClubDTO club = ClubDTO.builder()
+        ClubResponse club = ClubResponse.builder()
                 .id("club-1")
                 .rawName("RAW")
                 .name("Club")
@@ -102,7 +102,7 @@ class GatewayJsonContractCharacterizationTest {
     @DisplayName("mirrors the complete RawDivisionMapping response owned by config-service")
     void mirrorsTheCompleteRawDivisionMappingResponseOwnedByConfigService() {
         LocalDateTime now = LocalDateTime.of(2026, 7, 19, 12, 0);
-        RawDivisionMappingDTO mapping = new RawDivisionMappingDTO(
+        RawDivisionMappingResponse mapping = new RawDivisionMappingResponse(
                 1L, "N3", 7L, Format.SIX, Gender.F, "LNV", "2026/2027", now, now, true);
 
         JsonNode json = objectMapper.findAndRegisterModules().valueToTree(mapping);
@@ -116,7 +116,7 @@ class GatewayJsonContractCharacterizationTest {
     @Test
     void mirrorsTheCompletePoolInternalResponseOwnedByPoolsService() {
         LocalDateTime now = LocalDateTime.of(2026, 7, 19, 12, 0);
-        PoolDTO pool = PoolDTO.builder().id(1L).poolCode("A").leagueCode("LNV").season("2026/2027")
+        PoolInternalResponse pool = PoolInternalResponse.builder().id(1L).poolCode("A").leagueCode("LNV").season("2026/2027")
                 .leagueName("League").rawName("RAW").name("Pool").shortName("P").divisionId(2L)
                 .format(Format.SIX).gender(Gender.F).followersCount(3L).active(true)
                 .createdAt(now).lastUpdate(now).build();
@@ -129,7 +129,7 @@ class GatewayJsonContractCharacterizationTest {
     @Test
     void mirrorsTheCompleteMatchInternalResponseOwnedByMatchesService() {
         Instant now = Instant.parse("2026-07-19T12:00:00Z");
-        MatchDTO match = MatchDTO.builder()
+        MatchInternalResponse match = MatchInternalResponse.builder()
                 .id(1L).matchCode("M1").leagueCode("L1").poolId(2L).liveCode(3L)
                 .teamIdA(4L).teamIdB(5L).matchDate(now).season("2026").set("3-0").score("75-60")
                 .status(MatchStatus.FINISHED).venue("Gym").firstReferee("Ref A").secondReferee("Ref B")
@@ -147,7 +147,7 @@ class GatewayJsonContractCharacterizationTest {
     @Test
     void mirrorsTheCompleteNotificationOwnedByNotificationService() {
         Instant now = Instant.parse("2026-07-19T12:00:00Z");
-        UserNotificationDTO notification = UserNotificationDTO.builder()
+        NotificationInternalResponse notification = NotificationInternalResponse.builder()
                 .id(1L).userId(2L).type(NotificationType.MATCH_FINISHED).title("Result").body("Won")
                 .deepLink("/match/3").targetType(NotificationTargetType.MATCH).targetId(3L)
                 .metadata(objectMapper.createObjectNode().put("divisionId", 4L)).isRead(false).isOpened(false)
@@ -163,7 +163,7 @@ class GatewayJsonContractCharacterizationTest {
 
     @Test
     void mirrorsTheCompleteReportResultOwnedByReportsService() {
-        ReportDTO report = new ReportDTO();
+        ReportResponse report = new ReportResponse();
         report.setId(1L);
         report.setNumber(2);
         report.setHtmlUrl("https://github.invalid/issues/2");
@@ -179,7 +179,7 @@ class GatewayJsonContractCharacterizationTest {
     @Test
     void mirrorsTheCompleteCompetitionAssociationOwnedByCompetitionService() {
         LocalDateTime now = LocalDateTime.of(2026, 7, 19, 12, 0);
-        CompetitionAssociationDTO association = CompetitionAssociationDTO.builder()
+        CompetitionAssociationInternalResponse association = CompetitionAssociationInternalResponse.builder()
                 .id(1L).poolId(2L).teamId(3L).clubId("club-1").active(true)
                 .points(9).played(3).wins(3).losses(0)
                 .winsThreeToZero(1).winsThreeToOne(1).winsThreeToTwo(1)
@@ -201,11 +201,11 @@ class GatewayJsonContractCharacterizationTest {
     @Test
     void mirrorsTheCompleteUserOwnedByUsersService() {
         Instant now = Instant.parse("2026-07-19T12:00:00Z");
-        CustomUserDTO user = CustomUserDTO.builder()
+        UserResponse user = UserResponse.builder()
                 .id(1L).auth0Id("auth0|1").email("user@example.com").pseudo("user")
                 .firstName("First").lastName("Last").pictureUrl("picture").phoneNumber("phone")
                 .active(true).createdAt(now).lastUpdate(now)
-                .favorites(List.of(UserFavoriteDTO.builder().entityType(EntityType.TEAM).entityId(2L).build()))
+                .favorites(List.of(UserFavoriteResponse.builder().entityType(EntityType.TEAM).entityId(2L).build()))
                 .build();
 
         JsonNode json = objectMapper.findAndRegisterModules().valueToTree(user);
@@ -219,7 +219,7 @@ class GatewayJsonContractCharacterizationTest {
 
     @Test
     void forwardsOnlyTheEditableUserFields() {
-        CustomUserUpdateDTO update = CustomUserUpdateDTO.builder().pseudo("new-pseudo").pictureUrl(null).build();
+        UpdateUserRequest update = UpdateUserRequest.builder().pseudo("new-pseudo").pictureUrl(null).build();
 
         JsonNode json = objectMapper.valueToTree(update);
 

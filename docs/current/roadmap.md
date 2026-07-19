@@ -100,9 +100,10 @@
   - Separate event consumers, application projections, service clients, caches, jobs, and Elasticsearch writes.
   - Preserve queues, document/index semantics, startup behavior, and runtime behavior with focused tests.
 
-- [ ] **REF-020 — Refactor mobile-gateway as the final handwritten BFF boundary**
+- [x] **REF-020 — Refactor mobile-gateway as the final handwritten BFF boundary**
   - Separate mobile-facing APIs, orchestration, internal clients, provider adapters, security, and transport mirrors.
   - Align every complete owner mirror while preserving V1 mobile routes, caching, provider behavior, and runtime behavior.
 
-The tasks are executed in order. The remaining services are restructured in later focused tasks. Contract-first adoption,
-code generation, full scraper redesign, GitFlow, CI, deployment, and production changes remain deferred.
+The tasks were executed in order. Every imported Java application now has an explicit handwritten boundary.
+Contract-first adoption, code generation, full scraper redesign, GitFlow, CI, deployment, and production changes remain
+deferred.

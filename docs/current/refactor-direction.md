@@ -181,3 +181,20 @@ The HTTP layer exposes dedicated `*SearchInternalResponse` records, the applicat
 `search-worker` owns the projection flow and the `clubs`, `teams`, and `pools` index documents. It does not own the complete Club, Team, Pool, or Division resources: its internal HTTP response records remain complete mirrors of their owning services and are reduced to purpose-specific projection sources at the HTTP adapter boundary.
 
 The application layer depends on three explicit capabilities: authoritative projection sources, the in-memory enrichment cache, and the projection index. RabbitMQ messages, internal HTTP calls, Auth0 service tokens, scheduled refreshes, Spring Data repositories, and Elasticsearch documents remain infrastructure details. Existing queues, routing keys, batch acknowledgement and dead-letter behavior, schedules, cache semantics, index names, mappings, startup recreation, enrichment fallbacks, and camelCase payloads remain unchanged.
+
+## Mobile BFF ownership after REF-020
+
+`mobile-gateway` owns the mobile-facing V1 views and the orchestration required to assemble them. It does not own the
+complete Club, Team, Pool, Match, Notification, Competition Association, User, Config, Report, or Search resources that
+it reads from internal services. Complete handwritten mirrors retain the field sets established by their owning services,
+while enriched mobile responses remain explicit gateway-owned views.
+
+Each mobile feature now groups its controller, application orchestration, transport models, and internal client under a
+named feature boundary. Shared HTTP authentication, multipart assembly, error handling, transport enums, and Auth0
+service tokens are explicit shared concerns. FFVB and LNV PDF access is isolated behind an application source and an HTTP
+provider adapter; the public controller only translates application results to the existing response semantics.
+
+The V1 mobile routes, native camelCase payloads and query parameters, caches, internal endpoint selection, FFVB proxy,
+signed-link behavior, security matchers, and provider request formats remain unchanged. The diagnostic JWT filter and
+obsolete generic `controllers`, `services`, `models`, and `utils` package organization are removed. Contract generation
+remains deferred until these handwritten boundaries are reviewed as stable.

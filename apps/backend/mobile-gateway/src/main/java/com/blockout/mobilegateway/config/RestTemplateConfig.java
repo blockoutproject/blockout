@@ -12,7 +12,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.web.client.RestTemplate;
 
-import com.blockout.mobilegateway.security.Auth0TokenManager;
+import com.blockout.mobilegateway.shared.infrastructure.security.Auth0ServiceTokenProvider;
 
 import java.net.InetSocketAddress;
 import java.net.Proxy;
@@ -23,7 +23,7 @@ import java.time.Duration;
 public class RestTemplateConfig {
 
     private final FfvbProxyProperties proxyProperties;
-    private final Auth0TokenManager tokenManager;
+    private final Auth0ServiceTokenProvider tokenManager;
 
     @Bean
     @Qualifier("internalAuthRestTemplate")
