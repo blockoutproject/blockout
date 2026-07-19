@@ -1761,9 +1761,15 @@ state moves to GitHub and this file becomes a historical migration record.
     outputs, the isolated event-contracts module and complete 16-module reactor compile, and no generated source is
     tracked. The full local PR verifier, documentation links, Prettier, Maaatch comparison, and Git whitespace checks
     pass; no deployable operation, queue ledger, runtime, broker, database, deployment, or production state changes.
-- [ ] MRG-439 Add a persisted optimistic revision to `config-service` divisions and expose it only through internal
+- [x] MRG-439 Add a persisted optimistic revision to `config-service` divisions and expose it only through internal
       snapshot contracts used by search enrichment, without adding a division event, outbox, public API, or production
       activation.
+  - Evidence: `docs/migration/mrg-439-config-division-revision.md` records Flyway V7, the owner-only JPA `@Version`,
+    post-flush create/update/deactivation mapping, stale-write rejection, repeated-deactivation no-op behavior, and
+    propagation through the internal config response and worker snapshot/cache boundary. The mobile and legacy
+    response shapes remain revision-free. Contract, config-service, search-worker, complete backend reactor, generated
+    ownership, full local verifier, documentation, Prettier, Maaatch comparison, and Git whitespace checks pass; no
+    event, outbox, queue, broker, deployment, production, MRG-9xx, or MRG-1000 action occurs.
 - [ ] MRG-440 Add a persisted optimistic revision and transactional owner projection facts to `clubs-service`, using
       post-flush versions and treating repeated deactivation as a no-op while preserving every existing event route.
 - [ ] MRG-441 Add a persisted optimistic revision and transactional owner projection facts to `teams-service`, using

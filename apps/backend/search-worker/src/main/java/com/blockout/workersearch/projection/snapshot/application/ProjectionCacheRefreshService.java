@@ -46,7 +46,8 @@ public class ProjectionCacheRefreshService {
 
     public int refreshDivisions() {
         var divisions = divisionCatalog.findAll().stream()
-                .map(division -> new DivisionCacheSnapshot(division.id(), division.name(), division.logoUrl()))
+                .map(division -> new DivisionCacheSnapshot(
+                        division.id(), division.name(), division.logoUrl(), division.revision()))
                 .toList();
         divisionCache.replaceAll(divisions);
         return divisions.size();

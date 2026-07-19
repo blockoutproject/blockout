@@ -44,22 +44,24 @@ class ConfigV2BoundaryTest {
 
         DivisionApiMapper divisionMapper = Mappers.getMapper(DivisionApiMapper.class);
         var response = divisionMapper.toResponse(new DivisionView(
-                7L, "Elite", "#1", "#2", "#3", "#4", null, true, null, null));
+                7L, "Elite", "#1", "#2", "#3", "#4", null, true, 3L, null, null));
         assertThat(response.getId()).isEqualTo(7L);
         assertThat(response.getName()).isEqualTo("Elite");
         assertThat(response.getLogoUrl()).isNull();
+        assertThat(response.getRevision()).isEqualTo(3L);
     }
 
     @Test
     void canonicalResponsesStayCamelCaseAndRawNullUnmappingRemainsValid() throws Exception {
         DivisionApiMapper divisionMapper = Mappers.getMapper(DivisionApiMapper.class);
         var response = divisionMapper.toResponse(new DivisionView(
-                7L, "Elite", "#1", "#2", "#3", "#4", null, true, null, null));
+                7L, "Elite", "#1", "#2", "#3", "#4", null, true, 3L, null, null));
         var workspaceMapper = JsonMapper.builder().build();
         var json = workspaceMapper.readTree(workspaceMapper.writeValueAsBytes(response));
 
         assertThat(json.has("mainColor")).isTrue();
         assertThat(json.has("main_color")).isFalse();
+        assertThat(json.path("revision").longValue()).isEqualTo(3L);
 
         try (var validatorFactory = Validation.buildDefaultValidatorFactory()) {
             assertThat(validatorFactory.getValidator().validate(new UpdateRawDivisionMappingInternalRequest()))

@@ -21,7 +21,7 @@ class ProjectionCacheRefreshServiceTest {
         TeamSnapshot team = new TeamSnapshot(
                 1L, "Team", "TM", "club-1", 2L, FormatEnum.SIX, GenderEnum.M, "2026", "team-logo");
         DivisionSnapshot division = new DivisionSnapshot(
-                2L, "Division", null, null, null, null, "division-logo", true);
+                2L, "Division", null, null, null, null, "division-logo", true, 6L);
         ClubCatalog clubCatalog = new FixedClubCatalog(club);
         TeamCatalog teamCatalog = new FixedTeamCatalog(team);
         DivisionCatalog divisionCatalog = new FixedDivisionCatalog(division);
@@ -40,7 +40,7 @@ class ProjectionCacheRefreshServiceTest {
         assertThat(teamCache.getByClubId("club-1")).containsExactly(new TeamCacheSnapshot(
                 1L, "Team", "TM", "club-1", 2L, FormatEnum.SIX, GenderEnum.M, "2026", "team-logo"));
         assertThat(divisionCache.getById(2L))
-                .isEqualTo(new DivisionCacheSnapshot(2L, "Division", "division-logo"));
+                .isEqualTo(new DivisionCacheSnapshot(2L, "Division", "division-logo", 6L));
     }
 
     private record FixedClubCatalog(ClubSnapshot club) implements ClubCatalog {

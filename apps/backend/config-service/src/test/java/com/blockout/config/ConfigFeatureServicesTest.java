@@ -33,6 +33,7 @@ import com.blockout.shared.model.GenderEnum;
 import com.blockout.shared.model.ScraperNameEnum;
 import java.lang.reflect.Proxy;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
 import org.mapstruct.factory.Mappers;
@@ -93,12 +94,16 @@ class ConfigFeatureServicesTest {
                 .thirdGradientColor("#444")
                 .logoUrl("https://old")
                 .active(false)
+                .revision(3L)
                 .build();
         DivisionRepository repository = repository(
                 DivisionRepository.class,
                 (method, arguments) -> switch (method) {
                     case "findById" -> Optional.of(entity);
-                    case "save" -> arguments[0];
+                    case "saveAndFlush" -> {
+                        ((DivisionEntity) arguments[0]).setRevision(4L);
+                        yield arguments[0];
+                    }
                     default -> unsupported(method);
                 });
         AtomicReference<String> deleted = new AtomicReference<>();
@@ -125,7 +130,40 @@ class ConfigFeatureServicesTest {
         assertThat(updated.mainColor()).isEqualTo("#999");
         assertThat(updated.active()).isTrue();
         assertThat(updated.logoUrl()).isEqualTo("https://new");
+        assertThat(updated.revision()).isEqualTo(4L);
         assertThat(deleted).hasValue("https://old");
+    }
+
+    @Test
+    void repeatedDivisionDeactivationDoesNotWriteOrAdvanceTheRevision() {
+        DivisionEntity entity = DivisionEntity.builder()
+                .id(7L)
+                .name("Elite")
+                .mainColor("#111")
+                .firstGradientColor("#222")
+                .secondGradientColor("#333")
+                .thirdGradientColor("#444")
+                .active(false)
+                .revision(5L)
+                .build();
+        AtomicInteger writes = new AtomicInteger();
+        DivisionRepository repository = repository(
+                DivisionRepository.class,
+                (method, arguments) -> switch (method) {
+                    case "findById" -> Optional.of(entity);
+                    case "save", "saveAndFlush" -> {
+                        writes.incrementAndGet();
+                        yield arguments[0];
+                    }
+                    default -> unsupported(method);
+                });
+        DivisionService service = new DivisionService(new JpaDivisionStore(
+                repository, Mappers.getMapper(DivisionPersistenceMapper.class)), noDivisionLogoStorage());
+
+        service.deactivate(7L);
+
+        assertThat(writes).hasValue(0);
+        assertThat(entity.getRevision()).isEqualTo(5L);
     }
 
     @Test
@@ -188,6 +226,20 @@ class ConfigFeatureServicesTest {
 
     private Object unsupported(String method) {
         throw new UnsupportedOperationException(method);
+    }
+
+    private DivisionLogoStorage noDivisionLogoStorage() {
+        return new DivisionLogoStorage() {
+            @Override
+            public String upload(DivisionLogoUpload image) {
+                throw new UnsupportedOperationException();
+            }
+
+            @Override
+            public void delete(String url) {
+                throw new UnsupportedOperationException();
+            }
+        };
     }
 
     @FunctionalInterface

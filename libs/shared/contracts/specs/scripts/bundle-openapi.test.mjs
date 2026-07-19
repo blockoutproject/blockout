@@ -336,6 +336,7 @@ test('workspace config contract reconciles the sixteen audited operations', asyn
       'logoUrl',
       'mainColor',
       'name',
+      'revision',
       'secondGradientColor',
       'thirdGradientColor',
     ],
@@ -361,6 +362,23 @@ test('workspace config contract reconciles the sixteen audited operations', asyn
       expectedFields,
     );
   }
+
+  assert.deepEqual(
+    config.components.schemas.DivisionInternalResponse.properties.revision,
+    {
+      type: 'integer',
+      format: 'int64',
+      minimum: 0,
+      description:
+        'Config-service-owned optimistic revision used by internal projection snapshots.',
+    },
+  );
+  assert.equal(
+    config.components.schemas.DivisionInternalResponse.required.includes(
+      'revision',
+    ),
+    true,
+  );
 
   for (const schemaName of [
     'DivisionInternalListResponse',
@@ -1799,6 +1817,13 @@ test('workspace mobile gateway contract owns the thirty relay workflow operation
   assert.deepEqual(
     Object.keys(gateway.components.schemas.MobileReportCreated.properties),
     ['number', 'htmlUrl', 'title'],
+  );
+  assert.equal(
+    Object.hasOwn(
+      gateway.components.schemas.MobileDivision.properties,
+      'revision',
+    ),
+    false,
   );
 
   for (const listSchemaName of [

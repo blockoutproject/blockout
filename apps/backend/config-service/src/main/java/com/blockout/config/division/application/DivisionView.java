@@ -11,6 +11,7 @@ public record DivisionView(
         String thirdGradientColor,
         String logoUrl,
         Boolean active,
+        long revision,
         LocalDateTime createdAt,
         LocalDateTime lastUpdate) {
 }

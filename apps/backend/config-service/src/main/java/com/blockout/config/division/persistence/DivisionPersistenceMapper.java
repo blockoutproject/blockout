@@ -18,6 +18,7 @@ public interface DivisionPersistenceMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "logoUrl", ignore = true)
     @Mapping(target = "active", ignore = true)
+    @Mapping(target = "revision", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "lastUpdate", ignore = true)
     DivisionEntity toEntity(CreateDivisionCommand command);
@@ -26,6 +27,7 @@ public interface DivisionPersistenceMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "logoUrl", ignore = true)
     @Mapping(target = "active", ignore = true)
+    @Mapping(target = "revision", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "lastUpdate", ignore = true)
     void apply(UpdateDivisionCommand command, @MappingTarget DivisionEntity entity);

@@ -34,7 +34,8 @@ class ConfigServiceDivisionCatalogTest {
                         .secondGradientColor("#3")
                         .thirdGradientColor("#4")
                         .logoUrl("https://logo")
-                        .active(true)));
+                        .active(true)
+                        .revision(9L)));
             }
         };
         ConfigServiceDivisionCatalog catalog = new ConfigServiceDivisionCatalog(
@@ -43,7 +44,7 @@ class ConfigServiceDivisionCatalogTest {
         var snapshots = catalog.findAll();
 
         assertThat(snapshots).containsExactly(new com.blockout.workersearch.configuration.division.application.DivisionSnapshot(
-                7L, "Elite", "#1", "#2", "#3", "#4", "https://logo", true));
+                7L, "Elite", "#1", "#2", "#3", "#4", "https://logo", true, 9L));
     }
 
     @Test
@@ -61,10 +62,13 @@ class ConfigServiceDivisionCatalogTest {
                 .andExpect(header("Authorization", "Bearer worker-token"))
                 .andRespond(withSuccess("""
                         {"items":[{"id":7,"name":"Elite","mainColor":"#1","firstGradientColor":"#2",
-                        "secondGradientColor":"#3","thirdGradientColor":"#4","logoUrl":null,"active":true}]}
+                        "secondGradientColor":"#3","thirdGradientColor":"#4","logoUrl":null,"active":true,
+                        "revision":9}]}
                         """, MediaType.APPLICATION_JSON));
 
-        assertThat(client.listDivisions().getItems()).hasSize(1);
+        assertThat(client.listDivisions().getItems()).singleElement()
+                .extracting(DivisionInternalResponse::getRevision)
+                .isEqualTo(9L);
         server.verify();
     }
 

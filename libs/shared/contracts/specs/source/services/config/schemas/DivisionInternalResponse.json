@@ -10,7 +10,8 @@
       "secondGradientColor",
       "thirdGradientColor",
       "logoUrl",
-      "active"
+      "active",
+      "revision"
     ],
     "properties": {
       "id": {
@@ -45,6 +46,12 @@
       },
       "active": {
         "type": "boolean"
+      },
+      "revision": {
+        "type": "integer",
+        "format": "int64",
+        "minimum": 0,
+        "description": "Config-service-owned optimistic revision used by internal projection snapshots."
       }
     },
     "additionalProperties": false

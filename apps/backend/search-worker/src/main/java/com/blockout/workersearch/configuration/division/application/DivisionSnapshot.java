@@ -8,5 +8,6 @@ public record DivisionSnapshot(
         String secondGradientColor,
         String thirdGradientColor,
         String logoUrl,
-        Boolean active) {
+        Boolean active,
+        long revision) {
 }

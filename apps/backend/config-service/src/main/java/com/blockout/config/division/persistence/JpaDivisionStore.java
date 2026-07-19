@@ -38,7 +38,7 @@ public class JpaDivisionStore implements DivisionStore {
         DivisionEntity entity = mapper.toEntity(command);
         entity.setActive(true);
         entity.setLogoUrl(logoUrl);
-        return mapper.toView(repository.save(entity));
+        return mapper.toView(repository.saveAndFlush(entity));
     }
 
     @Override
@@ -49,8 +49,11 @@ public class JpaDivisionStore implements DivisionStore {
     @Override
     public boolean deactivate(Long id) {
         return repository.findById(id).map(entity -> {
+            if (Boolean.FALSE.equals(entity.getActive())) {
+                return true;
+            }
             entity.setActive(false);
-            repository.save(entity);
+            repository.saveAndFlush(entity);
             return true;
         }).orElse(false);
     }
@@ -76,7 +79,7 @@ public class JpaDivisionStore implements DivisionStore {
                 entity.setLogoUrl(plan.replacementLogoUrl());
             }
             entity.setActive(plan.active());
-            DivisionView after = mapper.toView(repository.save(entity));
+            DivisionView after = mapper.toView(repository.saveAndFlush(entity));
             return new DivisionChange(before, after);
         }
     }
