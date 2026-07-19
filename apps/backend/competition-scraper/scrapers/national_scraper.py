@@ -23,8 +23,8 @@ class NationalScraper(Scraper):
             url="http://www.ffvb.org/119-37-1-Championnats-Nationaux",
             priority_validation_enabled=False,
         )
-        self.league_code = "ABCCS"
-        self.league_name = "Nationale"
+        self.leagueCode = "ABCCS"
+        self.leagueName = "Nationale"
 
     async def run_scraping(self):
         try:
@@ -33,7 +33,7 @@ class NationalScraper(Scraper):
                 log_event(
                     action="fetch_html_error",
                     level="error",
-                    league_name=self.league_name,
+                    leagueName=self.leagueName,
                     url=self.url,
                     message="Échec de la récupération du contenu HTML pour les pools nationales.",
                 )
@@ -56,11 +56,11 @@ class NationalScraper(Scraper):
             if not raw_season:
                 raise ValueError("Saison non trouvée.")
 
-            existing_pools = await get_pools_by_league_and_season(self.session, self.league_code, raw_season)
-            existing_pools_dict = {(p.pool_code, p.league_code, p.season): p for p in (existing_pools or [])}
+            existing_pools = await get_pools_by_league_and_season(self.session, self.leagueCode, raw_season)
+            existing_pools_dict = {(p.poolCode, p.leagueCode, p.season): p for p in (existing_pools or [])}
 
-            raw_mappings = await get_raw_division_mappings_by_league_and_season(self.session, self.league_code, raw_season)
-            mapping_dict = {m.raw_division_name: m for m in (raw_mappings or [])}
+            raw_mappings = await get_raw_division_mappings_by_league_and_season(self.session, self.leagueCode, raw_season)
+            mapping_dict = {m.rawDivisionName: m for m in (raw_mappings or [])}
 
             scraped_pool_ids: set[int] = set()
 
@@ -87,7 +87,7 @@ class NationalScraper(Scraper):
                 name = a_tag.get_text(strip=True)
 
                 try:
-                    pool_code = href.split("_")[-1].replace(".htm", "").upper()
+                    poolCode = href.split("_")[-1].replace(".htm", "").upper()
                     mapping = mapping_dict.get(name)
 
                     if not mapping:
@@ -95,7 +95,7 @@ class NationalScraper(Scraper):
                             guarded(
                                 self._create_mapping(
                                     mapping_dict=mapping_dict,
-                                    raw_division_name=name,
+                                    rawDivisionName=name,
                                     raw_season=raw_season,
                                 )
                             )
@@ -106,19 +106,19 @@ class NationalScraper(Scraper):
                         continue
 
                     pool_obj = Pool(
-                        pool_code=pool_code,
-                        league_code=self.league_code,
+                        poolCode=poolCode,
+                        leagueCode=self.leagueCode,
                         season=raw_season,
-                        league_name=self.league_name,
-                        raw_name=name,
+                        leagueName=self.leagueName,
+                        rawName=name,
                         name=name,
-                        short_name=name,
-                        division_id=mapping.division_id,
+                        shortName=name,
+                        divisionId=mapping.divisionId,
                         format=mapping.format,
                         gender=mapping.gender,
                     )
 
-                    existing_pool = existing_pools_dict.get((pool_obj.pool_code, pool_obj.league_code, pool_obj.season))
+                    existing_pool = existing_pools_dict.get((pool_obj.poolCode, pool_obj.leagueCode, pool_obj.season))
 
                     download_tasks.append(
                         handle_csv_download_and_parse(
@@ -159,25 +159,25 @@ class NationalScraper(Scraper):
             log_event(
                 action="critical_error",
                 level="error",
-                league_name=self.league_name,
+                leagueName=self.leagueName,
                 error=repr(e),
                 message="Erreur critique lors du scraping des poules nationales.",
             )
 
-    async def _create_mapping(self, mapping_dict: dict, raw_division_name: str, raw_season: str):
+    async def _create_mapping(self, mapping_dict: dict, rawDivisionName: str, raw_season: str):
         try:
             new_mapping = RawDivisionMapping(
-                raw_division_name=raw_division_name,
-                league_code=self.league_code,
+                rawDivisionName=rawDivisionName,
+                leagueCode=self.leagueCode,
                 season=raw_season,
             )
             created = await create_raw_division_mapping(self.session, new_mapping)
-            mapping_dict[raw_division_name] = created
+            mapping_dict[rawDivisionName] = created
         except Exception as e:
             log_event(
                 action="create_raw_division_mapping_error",
                 level="error",
-                raw_division_name=raw_division_name,
-                league_code=self.league_code,
+                rawDivisionName=rawDivisionName,
+                leagueCode=self.leagueCode,
                 error=repr(e),
             )

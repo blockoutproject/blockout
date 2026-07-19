@@ -60,7 +60,7 @@ public class TeamClientService {
     @Cacheable(value = "teamsByClubId", key = "#clubId")
     public List<TeamDTO> getTeamsByClubId(String clubId) {
         String url = UriComponentsBuilder.fromUriString(baseUrl())
-                .queryParam("club_id", clubId)
+                .queryParam("clubId", clubId)
                 .queryParam("active", true)
                 .build()
                 .toUriString();

@@ -11,14 +11,14 @@ from utils.utils import to_dict
 @handle_api_response(response_type=List[Pool])
 async def get_pools_by_league_and_season(
     session: aiohttp.ClientSession,
-    league_code: str,
+    leagueCode: str,
     season: str
 ) -> List[Pool]:
     """
     Récupère toutes les pools pour un code de ligue et une saison spécifiques.
     """
     headers = _get_headers()
-    params = {"league_code": league_code, "season": season}
+    params = {"leagueCode": leagueCode, "season": season}
     url = f"{POOL_API_URL}"
     return await session.get(url, params=params, headers=headers)
 
@@ -38,8 +38,8 @@ async def create_pool(
     log_event(
         action="create_pool",
         level="info",
-        pool_code=pool.pool_code,
-        division_id=pool.division_id
+        poolCode=pool.poolCode,
+        divisionId=pool.divisionId
     )
     return response
 
@@ -60,8 +60,8 @@ async def update_pool(
     log_event(
         action="update_pool",
         level="info",
-        pool_id=pool.id,
-        pool_code=pool.pool_code,
+        poolId=pool.id,
+        poolCode=pool.poolCode,
         changes_list=changes_list
     )
     return response

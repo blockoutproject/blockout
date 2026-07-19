@@ -48,12 +48,12 @@ def test_writes_the_camel_case_team_payload(monkeypatch):
         monkeypatch.setattr(teams_api, "_get_headers", lambda: {"Authorization": "Bearer test"})
         session = RecordingSession()
         team = Team(
-            club_id="club-1",
-            raw_name="RAW TEAM",
+            clubId="club-1",
+            rawName="RAW TEAM",
             name="Blockout",
-            short_name="BO",
-            league_code="LNV",
-            division_id="10",
+            shortName="BO",
+            leagueCode="LNV",
+            divisionId="10",
             season="2026/2027",
         )
 
@@ -71,6 +71,22 @@ def test_writes_the_camel_case_team_payload(monkeypatch):
     asyncio.run(scenario())
 
 
+def test_sends_native_camel_case_query_parameters(monkeypatch):
+    async def scenario():
+        monkeypatch.setattr(teams_api, "TEAM_API_URL", "http://teams.local/v1/teams")
+        monkeypatch.setattr(teams_api, "_get_headers", lambda: {"Authorization": "Bearer test"})
+        session = RecordingSession()
+
+        await teams_api.get_teams.__wrapped__(session, divisionId="10", clubId="club-1")
+
+        method, url, kwargs = session.calls[0]
+        assert method == "GET"
+        assert url == "http://teams.local/v1/teams"
+        assert kwargs["params"] == {"divisionId": "10", "clubId": "club-1"}
+
+    asyncio.run(scenario())
+
+
 def test_status_mapping_reads_the_camel_case_timestamp():
     status = convert_to_dataclass(
         {
@@ -83,4 +99,4 @@ def test_status_mapping_reads_the_camel_case_timestamp():
     )
 
     assert status.enabled is True
-    assert status.last_update.isoformat() == "2026-07-19T12:30:00"
+    assert status.lastUpdate.isoformat() == "2026-07-19T12:30:00"

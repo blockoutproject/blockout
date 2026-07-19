@@ -4,21 +4,21 @@ from datetime import datetime
 
 @dataclass
 class Match:
-    match_code: str
-    league_code: str
-    pool_id: int
-    team_id_a: int
-    team_id_b: int
-    match_date: datetime
+    matchCode: str
+    leagueCode: str
+    poolId: int
+    teamIdA: int
+    teamIdB: int
+    matchDate: datetime
     season: str
     status: Optional[str] = None
     id: Optional[int] = None
     set: Optional[str] = None
     score: Optional[str] = None
     venue: Optional[str] = None
-    first_referee: Optional[str] = None
-    second_referee: Optional[str] = None
-    live_code: Optional[int] = None
+    firstReferee: Optional[str] = None
+    secondReferee: Optional[str] = None
+    liveCode: Optional[int] = None
     active: bool = True
-    created_at: Optional[datetime] = None
-    last_update: Optional[datetime] = None
+    createdAt: Optional[datetime] = None
+    lastUpdate: Optional[datetime] = None

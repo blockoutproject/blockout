@@ -64,8 +64,8 @@ public class UserClientService {
     public void follow(String auth0Id, String entityType, Long entityId) {
         String url = UriComponentsBuilder.fromUriString(baseUrl())
                 .pathSegment("favorites", "follow")
-                .queryParam("entity_type", entityType)
-                .queryParam("entity_id", entityId)
+                .queryParam("entityType", entityType)
+                .queryParam("entityId", entityId)
                 .build()
                 .toUriString();
 
@@ -79,8 +79,8 @@ public class UserClientService {
     public void unfollow(String auth0Id, String entityType, Long entityId) {
         String url = UriComponentsBuilder.fromUriString(baseUrl())
                 .pathSegment("favorites", "follow")
-                .queryParam("entity_type", entityType)
-                .queryParam("entity_id", entityId)
+                .queryParam("entityType", entityType)
+                .queryParam("entityId", entityId)
                 .build()
                 .toUriString();
 

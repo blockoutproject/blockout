@@ -3,36 +3,26 @@ import axios, {
     AxiosHeaders,
     AxiosInstance,
     AxiosRequestConfig,
-    AxiosResponse,
 } from "axios";
 import qs from "qs";
 import { ApiError } from "./ApiError";
-import {
-    deserializeApiJson,
-    serializeApiJson,
-    serializeApiQuery,
-} from "./JsonCase";
 
 export type TokenSupplier = () => Promise<string | null>;
 
 export type HttpClientOptions = {
     baseURL: string;
     timeout?: number;
-    transformCase?: boolean;
     tokenSupplier?: TokenSupplier; // si défini -> client AUTH
     onUnauthorized?: (err: ApiError) => void | Promise<void>;
 };
-
 export class HttpClient {
     private instance: AxiosInstance;
     private tokenSupplier?: TokenSupplier;
     private onUnauthorized?: (err: ApiError) => void | Promise<void>;
-    private transformCase: boolean;
 
     constructor(opts: HttpClientOptions) {
         this.tokenSupplier = opts.tokenSupplier;
         this.onUnauthorized = opts.onUnauthorized;
-        this.transformCase = opts.transformCase ?? true;
 
         this.instance = axios.create({
             baseURL: opts.baseURL,
@@ -40,7 +30,7 @@ export class HttpClient {
             paramsSerializer: (params) => qs.stringify(params, { arrayFormat: "repeat" }),
         });
 
-        // Request interceptor (auth + transport naming)
+        // Request interceptor (auth + logging)
         this.instance.interceptors.request.use(async (config) => {
             const headers = AxiosHeaders.from(config.headers ?? {});
             config.headers = headers;
@@ -54,20 +44,6 @@ export class HttpClient {
 
                 } catch {
                     headers.delete("Authorization");
-                }
-            }
-
-            // JSON remains camelCase; query parameters keep their existing contract.
-            if (this.transformCase) {
-                const contentType = headers.get("Content-Type");
-                const isJson = !contentType || String(contentType).toLowerCase().includes("application/json");
-                if (isJson) {
-                    if (config.data && typeof config.data === "object" && !(config.data instanceof FormData)) {
-                        config.data = serializeApiJson(config.data);
-                    }
-                    if (config.params && typeof config.params === "object") {
-                        config.params = serializeApiQuery(config.params);
-                    }
                 }
             }
 
@@ -87,18 +63,9 @@ export class HttpClient {
             return config;
         });
 
-        // Response interceptor (camelCase + normalized errors)
+        // Response interceptor (normalized errors)
         this.instance.interceptors.response.use(
-            (res: AxiosResponse) => {
-                if (this.transformCase) {
-                    const ct = res.headers?.["content-type"];
-                    const looksJson = ct && ct.toLowerCase().includes("application/json");
-                    if (looksJson && res.data && typeof res.data === "object") {
-                        res.data = deserializeApiJson(res.data);
-                    }
-                }
-                return res;
-            },
+            (res) => res,
             async (err) => this.normalizeError(err)
         );
     }
@@ -154,8 +121,8 @@ export class HttpClient {
 /**
  * Petit helper pratique : fabrique un couple (public, auth) de clients
  */
-export const createHttpClients = (baseURL: string, opts?: { timeout?: number; transformCase?: boolean }) => {
-    const publicClient = new HttpClient({ baseURL: `${baseURL}/public`, timeout: opts?.timeout, transformCase: opts?.transformCase });
-    const authClient = new HttpClient({ baseURL: `${baseURL}/secure`, timeout: opts?.timeout, transformCase: opts?.transformCase });
+export const createHttpClients = (baseURL: string, opts?: { timeout?: number }) => {
+    const publicClient = new HttpClient({ baseURL: `${baseURL}/public`, timeout: opts?.timeout });
+    const authClient = new HttpClient({ baseURL: `${baseURL}/secure`, timeout: opts?.timeout });
     return { publicClient, authClient };
 };

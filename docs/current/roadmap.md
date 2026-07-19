@@ -27,4 +27,9 @@
   - Verify persisted results, service health, logs, metrics, and the absence of unintended external writes.
   - Record missing credentials or unavailable external fixtures honestly; do not weaken the functional gate.
 
-The four tasks are executed in order. DTO restructuring, contract-first adoption, code generation, scraper redesign, GitFlow, CI, deployment, and production changes require later roadmap tasks and are not bundled into this migration.
+- [x] **REF-005 — Make the Blockout HTTP contract natively camelCase**
+  - Use camelCase directly in Java, Python, and TypeScript transport models and query parameters.
+  - Remove generic case-conversion utilities and retain only type serialization required for values such as dates and enums.
+  - Preserve provider-owned payloads and non-HTTP infrastructure names.
+
+The tasks are executed in order. DTO restructuring, contract-first adoption, code generation, scraper redesign, GitFlow, CI, deployment, and production changes require later roadmap tasks and are not bundled into this migration.

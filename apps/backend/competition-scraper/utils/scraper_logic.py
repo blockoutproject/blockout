@@ -27,8 +27,8 @@ async def handle_csv_download_and_parse(
 ) -> None:
     if scraper.session.closed:
         log_event(
-            "csv_download_session_closed", 
-            "error", 
+            "csv_download_session_closed",
+            "error",
             pool_name=pool.name,
             message="Session fermée avant téléchargement CSV"
         )
@@ -40,25 +40,25 @@ async def handle_csv_download_and_parse(
             if scraped_pool_ids is not None and existing_pool:
                 scraped_pool_ids.add(existing_pool.id) # Pour éviter désactivation si crash avant parsing
             log_event(
-                "download_and_parse_csv_failed", 
-                "error", 
+                "download_and_parse_csv_failed",
+                "error",
                 pool_name=pool.name,
-                season=raw_season, 
+                season=raw_season,
                 message="Échec téléchargement CSV"
             )
             return
 
         valid_rows = [
             row for row in parsed_data
-            if row.get("match_code") and row.get("club_a_id") and row.get("club_b_id")
-            and parse_date(row.get('match_date'), row.get('match_time'))
+            if row.get("matchCode") and row.get("club_a_id") and row.get("club_b_id")
+            and parse_date(row.get('matchDate'), row.get('match_time'))
         ]
         if not valid_rows:
             log_event(
-                "invalid_rows_found_in_csv", 
-                "error", 
+                "invalid_rows_found_in_csv",
+                "error",
                 pool_name=pool.name,
-                season=raw_season, 
+                season=raw_season,
                 message="Échec parsing CSV"
             )
             return
@@ -68,48 +68,48 @@ async def handle_csv_download_and_parse(
         await scraper.init_matches_cache(new_pool.id)
         await scraper.init_associations_cache(new_pool.id)
 
-        existing_teams = await get_teams(scraper.session, new_pool.division_id, new_pool.format, new_pool.gender, new_pool.season) or []
+        existing_teams = await get_teams(scraper.session, new_pool.divisionId, new_pool.format, new_pool.gender, new_pool.season) or []
         active_team_ids = {
             t_id for (p_id, t_id), (original, _) in scraper._associations_cache.items()
             if p_id == new_pool.id and original is not None
         }
 
         existing_teams_dict = {
-            (t.club_id, t.division_id, t.format, t.gender, normalize(t.raw_name)): t
+            (t.clubId, t.divisionId, t.format, t.gender, normalize(t.rawName)): t
             for t in existing_teams
         }
 
         scraped_team_ids = set()
         scraped_match_codes = set()
-        is_nat_or_pro = new_pool.league_code in {"AALNV", "ABCCS"}
-        
+        is_nat_or_pro = new_pool.leagueCode in {"AALNV", "ABCCS"}
+
         # Vérification des matchs anormaux pour savoir si on parse le classement avec un calcul ou avec la page HTML
         has_anomalous_match = True
         # for row in valid_rows:
         #     set_str = row.get("set")
         #     if set_str and is_anomalous_set_format(set_str):
         #         has_anomalous_match = True
-        #         break 
+        #         break
 
         for row in valid_rows:
-            match_datetime = parse_date(row.get('match_date'), row.get('match_time'))
+            match_datetime = parse_date(row.get('matchDate'), row.get('match_time'))
             if not match_datetime:
                 continue
 
             # Team A
             team_a_full = get_full_name(row['team_a_name'], new_pool.gender)
             team_a_short = get_short_name(row['team_a_name'], new_pool.gender)
-            team_a_key = (row['club_a_id'], new_pool.division_id, new_pool.format, new_pool.gender, normalize(team_a_full))
+            team_a_key = (row['club_a_id'], new_pool.divisionId, new_pool.format, new_pool.gender, normalize(team_a_full))
             existing_team_a = existing_teams_dict.get(team_a_key)
-                            
+
             team_a_obj = Team(
-                raw_name=team_a_full,
+                rawName=team_a_full,
                 name=team_a_full,
-                short_name=team_a_short,
-                club_id=row['club_a_id'],
+                shortName=team_a_short,
+                clubId=row['club_a_id'],
                 season= new_pool.season,
-                league_code=new_pool.league_code,
-                division_id=new_pool.division_id,
+                leagueCode=new_pool.leagueCode,
+                divisionId=new_pool.divisionId,
                 format=new_pool.format,
                 gender=new_pool.gender
             )
@@ -121,17 +121,17 @@ async def handle_csv_download_and_parse(
             # Team B
             team_b_full = get_full_name(row['team_b_name'], new_pool.gender)
             team_b_short = get_short_name(row['team_b_name'], new_pool.gender)
-            team_b_key = (row['club_b_id'], new_pool.division_id, new_pool.format, new_pool.gender, normalize(team_b_full))
+            team_b_key = (row['club_b_id'], new_pool.divisionId, new_pool.format, new_pool.gender, normalize(team_b_full))
             existing_team_b = existing_teams_dict.get(team_b_key)
 
             team_b_obj = Team(
-                raw_name=team_b_full,
+                rawName=team_b_full,
                 name=team_b_full,
-                short_name=team_b_short,
-                club_id=row['club_b_id'],
+                shortName=team_b_short,
+                clubId=row['club_b_id'],
                 season= new_pool.season,
-                league_code=new_pool.league_code,
-                division_id=new_pool.division_id,
+                leagueCode=new_pool.leagueCode,
+                divisionId=new_pool.divisionId,
                 format=new_pool.format,
                 gender=new_pool.gender
             )
@@ -141,32 +141,32 @@ async def handle_csv_download_and_parse(
             scraped_team_ids.add(new_team_b.id)
 
             # Match
-            match_code = row.get('match_code')
+            matchCode = row.get('matchCode')
             updated_match = Match(
-                match_code=match_code,
-                league_code=new_pool.league_code,
-                pool_id=new_pool.id,
-                team_id_a=new_team_a.id,
-                team_id_b=new_team_b.id,
-                match_date=match_datetime,
+                matchCode=matchCode,
+                leagueCode=new_pool.leagueCode,
+                poolId=new_pool.id,
+                teamIdA=new_team_a.id,
+                teamIdB=new_team_b.id,
+                matchDate=match_datetime,
                 season=new_pool.season,
                 set=row.get('set').replace('/', '-') if row.get('set') else None,
                 score=row.get('score') or None,
                 venue=capitalize_words(row.get('venue')),
-                first_referee=capitalize_words(row.get('first_referee')),
-                second_referee=capitalize_words(row.get('second_referee'))
+                firstReferee=capitalize_words(row.get('firstReferee')),
+                secondReferee=capitalize_words(row.get('secondReferee'))
             )
-            scraped_match_codes.add(match_code)
+            scraped_match_codes.add(matchCode)
 
             for team_obj in [new_team_a, new_team_b]:
                 if team_obj.id not in active_team_ids:
-                    await add_team_to_pool(scraper.session, new_pool.id, team_obj.id, team_obj.club_id)
+                    await add_team_to_pool(scraper.session, new_pool.id, team_obj.id, team_obj.clubId)
                     log_event(
-                        "add_team_to_pool", 
-                        "info", 
-                        pool_id=new_pool.id, 
-                        team_id=team_obj.id, 
-                        club_id=team_obj.club_id
+                        "add_team_to_pool",
+                        "info",
+                        poolId=new_pool.id,
+                        teamId=team_obj.id,
+                        clubId=team_obj.clubId
                     )
                     active_team_ids.add(team_obj.id)
 
@@ -180,11 +180,11 @@ async def handle_csv_download_and_parse(
             #         scraper.schedule_association_update(new_pool.id, new_team_b.id, team_b_stats)
             #     except Exception as e:
             #         log_event(
-            #             "score_parsing_exception", 
-            #             "error", 
-            #             match_code=match_code, 
+            #             "score_parsing_exception",
+            #             "error",
+            #             matchCode=matchCode,
             #             set=updated_match.set,
-            #             error=str(e), 
+            #             error=str(e),
             #             message="Erreur parsing score pour calcul des stats"
             #         )
 
@@ -194,17 +194,17 @@ async def handle_csv_download_and_parse(
         if has_anomalous_match or is_nat_or_pro:
             stats_list = await extract_club_stats_list(scraper, raw_season, new_pool)
             fallback_teams = await get_teams(scraper.session, ids=list(active_team_ids)) or []
-            team_lookup = {normalize(t.raw_name): t for t in fallback_teams}
+            team_lookup = {normalize(t.rawName): t for t in fallback_teams}
 
             for team_name, stats in stats_list:
                 normalized_name = normalize(get_full_name(team_name, new_pool.gender))
                 matched_team = team_lookup.get(normalized_name)
                 if not matched_team:
                     log_event(
-                        "team_stats_match_fail", 
-                        "warning", 
-                        pool_id=new_pool.id, 
-                        team_name=team_name, 
+                        "team_stats_match_fail",
+                        "warning",
+                        poolId=new_pool.id,
+                        team_name=team_name,
                         message="Aucune équipe existante ne correspond à ce nom"
                     )
                     continue
@@ -227,10 +227,10 @@ async def handle_csv_download_and_parse(
             await bulk_deactivate_teams_by_pool(scraper.session, new_pool.id, missing_teams)
 
         missing_matches = {
-            match_code
-            for (league_code, match_code), (existing_match, *_) in scraper._matches_cache.items()
-            if existing_match and existing_match.pool_id == new_pool.id
-            and match_code not in scraped_match_codes and existing_match.active
+            matchCode
+            for (leagueCode, matchCode), (existing_match, *_) in scraper._matches_cache.items()
+            if existing_match and existing_match.poolId == new_pool.id
+            and matchCode not in scraped_match_codes and existing_match.active
         }
         if missing_matches:
             await bulk_deactivate_matches(scraper.session, new_pool.id, missing_matches)

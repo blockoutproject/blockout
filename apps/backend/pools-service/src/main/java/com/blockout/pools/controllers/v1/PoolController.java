@@ -28,7 +28,7 @@ public class PoolController {
     })
     @GetMapping
     public ResponseEntity<List<Pool>> listPools(
-            @RequestParam(required = false, name = "league_code") String leagueCode,
+            @RequestParam(required = false, name = "leagueCode") String leagueCode,
             @RequestParam(required = false) String season,
             @RequestParam(required = false) Boolean active,
             @RequestParam(required = false) List<Long> ids
@@ -100,7 +100,7 @@ public class PoolController {
     @PostMapping("/{poolId}/followers/increment")
     public ResponseEntity<Pool> incrementFollowers(
             @PathVariable Long poolId,
-            @RequestParam(name = "user_id") Long userId
+            @RequestParam(name = "userId") Long userId
     ) {
         Pool updated = poolService.incrementFollowersCount(poolId, userId);
         return ResponseEntity.ok(updated);
@@ -115,7 +115,7 @@ public class PoolController {
     @PostMapping("/{poolId}/followers/decrement")
     public ResponseEntity<Pool> decrementFollowers(
             @PathVariable Long poolId,
-            @RequestParam(name = "user_id") Long userId
+            @RequestParam(name = "userId") Long userId
     ) {
         Pool updated = poolService.decrementFollowersCount(poolId, userId);
         return ResponseEntity.ok(updated);

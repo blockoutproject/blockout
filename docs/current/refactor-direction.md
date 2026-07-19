@@ -4,7 +4,7 @@
 
 Modernize Blockout incrementally while keeping the imported applications functional. Maaatch is the read-only reference for repository structure, naming, and clear application boundaries. Blockout keeps its own domain and behavior.
 
-The first refactor changes only the JSON naming convention owned by Blockout. Application-owned fields move from snake_case to camelCase across every producer and consumer in this repository.
+The first refactor aligns the Blockout-owned HTTP contract on native camelCase. Bodies, responses, and query parameters use the same names in every producer and consumer in this repository.
 
 ## API evolution
 
@@ -18,23 +18,25 @@ Blockout will first reach a clean handwritten architecture. Internal HTTP models
 
 That cleanup is not part of the camelCase migration. Existing DTOs are renamed or reorganized only in later focused tasks. Contract-first specifications and generated models replace stable handwritten boundaries afterwards, not during this phase.
 
-The camelCase rule applies to JSON owned by Blockout:
+The camelCase rule applies to transport names owned by Blockout:
 
 - REST request and response bodies;
 - service-to-service HTTP payloads;
 - RabbitMQ payloads owned by Blockout;
 - scraper requests and responses exchanged with Blockout APIs;
 - mobile requests and responses exchanged with the gateway;
+- HTTP query parameters exchanged between Blockout applications;
 - JSON documents owned by Blockout workers where field names are part of an application interface.
 
-Java DTO fields use native camelCase with Jackson defaults. Jackson annotations
-or naming strategies must not translate snake_case to camelCase or back.
+Java, Python, and TypeScript transport models use native camelCase. Clients send
+and read those names directly. Generic case-conversion utilities, Jackson naming
+annotations, and Jackson naming strategies are not used.
 
 It does not rename:
 
 - database tables or columns;
 - environment variables or Spring configuration keys;
-- URL paths, query parameters, HTTP headers, queue names, routing keys, or metrics;
+- URL paths, HTTP headers, queue names, routing keys, or metrics;
 - payloads imposed by Auth0, FFVB, LNV, Expo, GitHub, Discord, Mapbox, or another external provider;
 - Python logging metadata or internal implementation dictionaries that are not transport contracts.
 
@@ -64,6 +66,4 @@ No production deployment, broker operation, dual contract support, generated sou
 | `users-service` | REST bodies, internal service payloads, and follow events | Auth0 payloads |
 | `mobile` | Gateway request and response bodies | Auth0 and native framework values |
 
-Before REF-003, twelve Spring applications enabled global `SNAKE_CASE` serialization. Explicit `@JsonProperty` mappings also existed in service and gateway DTOs, both Python scrapers constructed snake_case Blockout payloads, and the mobile HTTP client converted request bodies to snake_case before converting responses back to camelCase. REF-003 migrated this connected contract surface together.
-
-Snake_case query parameters remain unchanged in this task because the rule concerns JSON fields. The same applies to multipart field names until a later endpoint-specific cleanup explicitly changes their contract.
+Before REF-003, twelve Spring applications enabled global `SNAKE_CASE` serialization. Explicit `@JsonProperty` mappings also existed in service and gateway DTOs, both Python scrapers constructed snake_case Blockout payloads, and the mobile HTTP client converted request bodies to snake_case before converting responses back to camelCase. REF-003 migrated JSON, and REF-005 removed the remaining case-conversion layers while aligning Blockout query parameters.

@@ -4,13 +4,6 @@
   "projectType": "application",
   "sourceRoot": "apps/frontend/mobile/src",
   "targets": {
-    "test": {
-      "executor": "nx:run-commands",
-      "options": {
-        "cwd": "apps/frontend/mobile",
-        "command": "node --experimental-strip-types --test src/api/core/JsonCase.test.ts"
-      }
-    },
     "typecheck": {
       "executor": "nx:run-commands",
       "options": {

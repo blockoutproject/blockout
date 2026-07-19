@@ -12,14 +12,14 @@ from utils.utils import to_dict
 @handle_api_response(response_type=List[RawDivisionMapping])
 async def get_raw_division_mappings_by_league_and_season(
     session: aiohttp.ClientSession,
-    league_code: Optional[str],
+    leagueCode: Optional[str],
     season: Optional[str]
 ) -> List[RawDivisionMapping]:
     """
     Récupère tous les raw pool mappings pour un code de ligue et une saison spécifiques.
     """
     headers = _get_headers()
-    params = {"league_code": league_code, "season": season}
+    params = {"leagueCode": leagueCode, "season": season}
     url = f"{CONFIG_API_URL}/raw-divisions"
     return await session.get(url, params=params, headers=headers)
 
@@ -39,8 +39,8 @@ async def create_raw_division_mapping(
     log_event(
         action="create_raw_division_mapping",
         level="info",
-        league_code=mapping.league_code,
-        raw_division_name=mapping.raw_division_name
+        leagueCode=mapping.leagueCode,
+        rawDivisionName=mapping.rawDivisionName
     )
     return response
 

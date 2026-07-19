@@ -11,13 +11,13 @@ from utils.utils import to_dict
 @handle_api_response(response_type=List[Match])
 async def get_matches_by_pool(
     session: aiohttp.ClientSession,
-    pool_id: int
+    poolId: int
 ) -> Optional[List[Match]]:
     """
-    Récupère tous les matchs d'une poule (filtre pool_id).
+    Récupère tous les matchs d'une poule (filtre poolId).
     """
     headers = _get_headers()
-    params = {"pool_id": pool_id}
+    params = {"poolId": poolId}
     url = f"{MATCH_API_URL}"
     response = await session.get(url, params=params, headers=headers)
     return response
@@ -38,8 +38,8 @@ async def create_match(
     log_event(
         action="create_match",
         level="info",
-        match_code=match.match_code,
-        pool_id=match.pool_id,
+        matchCode=match.matchCode,
+        poolId=match.poolId,
         message=f"POST {url} - Création du match."
     )
     return response
@@ -61,7 +61,7 @@ async def update_match(
     log_event(
         action="update_match",
         level="info",
-        match_code=match.match_code,
+        matchCode=match.matchCode,
         changes_list=changes_list,
         message=f"Mise à jour du match."
     )
@@ -71,14 +71,14 @@ async def update_match(
 @handle_api_response(response_type=None)
 async def bulk_deactivate_matches(
     session: aiohttp.ClientSession,
-    pool_id: int,
+    poolId: int,
     missing_match_codes: set[str]
 ) -> None:
     """
     Désactive en masse les matchs correspondant aux codes fournis.
     """
     headers = _get_headers()
-    url = f"{MATCH_API_URL}/pools/{pool_id}/bulk-deactivate"
+    url = f"{MATCH_API_URL}/pools/{poolId}/bulk-deactivate"
     payload = {"missingMatchCodes": list(missing_match_codes)}
     response = await session.put(url, json=payload, headers=headers)
     return response

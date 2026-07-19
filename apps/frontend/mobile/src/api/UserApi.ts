@@ -34,13 +34,13 @@ export class UserApi extends BaseApi {
 
     public follow(entityType: string, entityId: number) {
         return this.httpAuth.post<void>("/favorites/follow", null, {
-            params: { entity_type: entityType, entity_id: entityId },
+            params: { entityType, entityId },
         });
     }
 
     public unfollow(entityType: string, entityId: number) {
         return this.httpAuth.delete<void>("/favorites/follow", {
-            params: { entity_type: entityType, entity_id: entityId },
+            params: { entityType, entityId },
         });
     }
 }

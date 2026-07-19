@@ -34,7 +34,7 @@ public class CompetitionAssociationController {
     public ResponseEntity<CompetitionAssociation> addTeamToPool(
             @PathVariable Long poolId,
             @PathVariable Long teamId,
-            @RequestParam(name = "club_id") String clubId) {
+            @RequestParam(name = "clubId") String clubId) {
 
         CompetitionAssociation assoc = associationService.addOrReactivateAssociation(poolId, teamId, clubId);
         return ResponseEntity.ok(assoc);

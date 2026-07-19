@@ -27,9 +27,9 @@ class ClubScraper(Scraper):
         """
         try:
             tasks = []
-            for club_id in club_id_list:
+            for clubId in club_id_list:
                 url = "https://www.ffvbbeach.org/ffvbapp/adressier/rech_aff_club.php"
-                tasks.append(self.scrape_one_club(url, club_id))
+                tasks.append(self.scrape_one_club(url, clubId))
 
             await asyncio.gather(*tasks)
 
@@ -67,11 +67,11 @@ class ClubScraper(Scraper):
                 message="Erreur critique lors du scraping des clubs."
             )
 
-    async def scrape_one_club(self, url: str, club_id: str):
+    async def scrape_one_club(self, url: str, clubId: str):
         """Scrape et enregistre un club unique."""
         try:
             form_data = {
-                "id_club": club_id,
+                "id_club": clubId,
             }
             html_content = await self.fetch(url, form_data)
 
@@ -86,10 +86,10 @@ class ClubScraper(Scraper):
 
             # À partir d'ici, on considère qu'on a bien contacté l'adressier au moins une fois
             self.scrape_success += 1
-            
+
 
             # On parse le HTML
-            club = self.parse_club_page(html_content, club_id)
+            club = self.parse_club_page(html_content, clubId)
             if club is None:
                 return
 
@@ -98,7 +98,7 @@ class ClubScraper(Scraper):
 
             # Si le club existe déjà en cache (donc cloné via replace), on met à jour le clone
             if existing_obj:
-                for field in ['name', 'city', 'postal_code', 'email', 'phone_number', 'website', 'address']:
+                for field in ['name', 'city', 'postalCode', 'email', 'phoneNumber', 'website', 'address']:
                     setattr(updated_obj, field, getattr(club, field, None))
 
             new_club = await add_or_update_club(self.session, updated_obj, existing_obj)
@@ -113,7 +113,7 @@ class ClubScraper(Scraper):
                 message=f"{url} - Erreur lors du scraping d'un club."
             )
 
-    def parse_club_page(self, html_content: str, club_id: str) -> Optional[Club]:
+    def parse_club_page(self, html_content: str, clubId: str) -> Optional[Club]:
         try:
             soup = BeautifulSoup(html_content, 'html.parser')
 
@@ -124,14 +124,14 @@ class ClubScraper(Scraper):
                 raw_club_name = name_tag.get_text(strip=True).split(maxsplit=1)[-1]
 
             # 2) Téléphone portable
-            phone_number = None
+            phoneNumber = None
             portable_label = soup.find(text=re.compile(r"(Portable|T[ée]l\.?)", re.IGNORECASE))
             if portable_label:
                 parent_td = portable_label.find_parent("td")
                 if parent_td:
                     next_td = parent_td.find_next("td")
                     if next_td:
-                        phone_number = next_td.get_text(strip=True)
+                        phoneNumber = next_td.get_text(strip=True)
 
             # 3) Email
             email = None
@@ -152,7 +152,7 @@ class ClubScraper(Scraper):
                             website = link_tag.get_text(strip=True).rstrip('/')
 
             # 5) Adresse (code postal + ville)
-            postal_code, city = None, None
+            postalCode, city = None, None
 
             address_td = soup.find(
                 "td",
@@ -164,7 +164,7 @@ class ClubScraper(Scraper):
                 address_line = address_td.get_text(strip=True)
                 parts = address_line.split(maxsplit=1)
                 if len(parts) == 2:
-                    postal_code, city = parts
+                    postalCode, city = parts
             else:
                 all_tds = soup.find_all("td", class_="lienquestion")
                 pattern_fallback = re.compile(r"(?P<cp>\d{5})(?:\s+\d{5})?\s*-\s*(?P<ville>.+)", re.IGNORECASE)
@@ -173,7 +173,7 @@ class ClubScraper(Scraper):
                     text = td.get_text(strip=True)
                     match = pattern_fallback.match(text)
                     if match:
-                        postal_code = match.group("cp")
+                        postalCode = match.group("cp")
                         city = match.group("ville").strip()
                         break
 
@@ -207,23 +207,23 @@ class ClubScraper(Scraper):
 
             # 7) Construire l’objet Club
             return Club(
-                id=club_id,
-                raw_name=raw_club_name,
+                id=clubId,
+                rawName=raw_club_name,
                 name=raw_club_name,
                 address=address,
-                phone_number=phone_number,
+                phoneNumber=phoneNumber,
                 email=email,
                 website=website,
                 city=capitalize_words(city),
-                postal_code=postal_code
+                postalCode=postalCode
             )
 
         except Exception as e:
             log_event(
                 action="club_scraper_parse_error",
                 level="error",
-                club_id=club_id,
+                clubId=clubId,
                 error=str(e),
-                message=f"Erreur lors du parsing HTML du club {club_id}."
+                message=f"Erreur lors du parsing HTML du club {clubId}."
             )
             return None

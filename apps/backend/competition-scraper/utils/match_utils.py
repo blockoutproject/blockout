@@ -21,14 +21,14 @@ def validate_set_format(set: str) -> str:
 
 def is_anomalous_set_format(set_str: str) -> bool:
     """
-    Vérifie si le score set contient des lettres, 
+    Vérifie si le score set contient des lettres,
     ce qui indique un match non standard.
     """
     return bool(re.search(r'[A-Za-z]', set_str))
 
 def parse_team_score(score: str) -> int:
     """
-    Parse une chaîne de score qui contient exactement UN élément 
+    Parse une chaîne de score qui contient exactement UN élément
     (un chiffre non nul, ou la lettre 'F' ou 'P').
     """
     if score.isdigit():
@@ -43,7 +43,7 @@ def compute_volleyball_match_stats(
 ) -> Tuple[AssociationStats, AssociationStats]:
     """
     Calcule les stats en tenant compte :
-        - Des champs sets_a et sets_b (ex: "3", "1", "F", "P"), pour déterminer 
+        - Des champs sets_a et sets_b (ex: "3", "1", "F", "P"), pour déterminer
             le gagnant du match, les points de classement, et gérer les lettres F/P (plus d'actualité).
         - D'un score détaillé (score_detail), ex: "20-25,20-25,25-17,23-25"
             qui décrit chaque set et permet de connaître le total de points et de sets réellement gagnés.
@@ -68,25 +68,25 @@ def compute_volleyball_match_stats(
             except ValueError:
                 # format invalide => on ignore ce set ou on log un warning
                 continue
-            
+
             # Incrémente le total de points marqués
-            stats_a.won_points += x
-            stats_b.won_points += y
+            stats_a.wonPoints += x
+            stats_b.wonPoints += y
 
             # Qui gagne ce set ?
             if x > y:
-                stats_a.won_sets += 1
-                stats_b.lost_sets += 1
+                stats_a.wonSets += 1
+                stats_b.lostSets += 1
             elif y > x:
-                stats_b.won_sets += 1
-                stats_a.lost_sets += 1
+                stats_b.wonSets += 1
+                stats_a.lostSets += 1
             else:
                 # Égalité improbable => skip
                 pass
 
-        # Incrémente symétriquement la partie "lost_points"
-        stats_a.lost_points = stats_b.won_points
-        stats_b.lost_points = stats_a.won_points
+        # Incrémente symétriquement la partie "lostPoints"
+        stats_a.lostPoints = stats_b.wonPoints
+        stats_b.lostPoints = stats_a.wonPoints
 
     # ------------------ 3) Parse sets_a / sets_b comme avant -------------------
     num_a = parse_team_score(sets_a)
@@ -104,7 +104,7 @@ def compute_volleyball_match_stats(
             num_a = 0
         if num_b is None:
             num_b = 0
-        
+
         # Empêcher 3-3 ou 1-1 => improbable => on force 0-0 si c'est le cas
         if num_a == num_b and num_a != 0:
             num_a, num_b = 0, 0
@@ -119,35 +119,35 @@ def compute_volleyball_match_stats(
                 if num_b == 0:
                     stats_a.points = 3
                     stats_b.points = 0
-                    stats_a.wins_three_to_zero = 1
-                    stats_b.losses_zero_to_three = 1
+                    stats_a.winsThreeToZero = 1
+                    stats_b.lossesZeroToThree = 1
                 elif num_b == 1:
                     stats_a.points = 2
                     stats_b.points = 1
-                    stats_a.wins_three_to_two = 1
-                    stats_b.losses_two_to_three = 1
+                    stats_a.winsThreeToTwo = 1
+                    stats_b.lossesTwoToThree = 1
             elif num_a == 3:
                 if num_b == 0:
                     stats_a.points = 3
                     stats_b.points = 0
-                    stats_a.wins_three_to_zero = 1
-                    stats_b.losses_zero_to_three = 1
+                    stats_a.winsThreeToZero = 1
+                    stats_b.lossesZeroToThree = 1
                 elif num_b == 1:
                     stats_a.points = 3
                     stats_b.points = 0
-                    stats_a.wins_three_to_one = 1
-                    stats_b.losses_one_to_three = 1
+                    stats_a.winsThreeToOne = 1
+                    stats_b.lossesOneToThree = 1
                 elif num_b == 2:
                     stats_a.points = 2
                     stats_b.points = 1
-                    stats_a.wins_three_to_two = 1
-                    stats_b.losses_two_to_three = 1
+                    stats_a.winsThreeToTwo = 1
+                    stats_b.lossesTwoToThree = 1
             elif num_a == 1:
                 # Rare
                 stats_a.points = 2
                 stats_b.points = 0
-                stats_a.wins_three_to_zero = 1
-                stats_b.losses_zero_to_three = 1
+                stats_a.winsThreeToZero = 1
+                stats_b.lossesZeroToThree = 1
 
         elif num_b > num_a:
             # B GAGNANT
@@ -158,36 +158,36 @@ def compute_volleyball_match_stats(
                 if num_a == 0:
                     stats_b.points = 3
                     stats_a.points = 0
-                    stats_b.wins_three_to_zero = 1
-                    stats_a.losses_zero_to_three = 1
+                    stats_b.winsThreeToZero = 1
+                    stats_a.lossesZeroToThree = 1
                 elif num_a == 1:
                     stats_b.points = 2
                     stats_a.points = 1
-                    stats_b.wins_three_to_two = 1
-                    stats_a.losses_two_to_three = 1
+                    stats_b.winsThreeToTwo = 1
+                    stats_a.lossesTwoToThree = 1
             elif num_b == 3:
                 if num_a == 0:
                     stats_b.points = 3
                     stats_a.points = 0
-                    stats_b.wins_three_to_zero = 1
-                    stats_a.losses_zero_to_three = 1
+                    stats_b.winsThreeToZero = 1
+                    stats_a.lossesZeroToThree = 1
                 elif num_a == 1:
                     stats_b.points = 3
                     stats_a.points = 0
-                    stats_b.wins_three_to_one = 1
-                    stats_a.losses_one_to_three = 1
+                    stats_b.winsThreeToOne = 1
+                    stats_a.lossesOneToThree = 1
                 elif num_a == 2:
                     stats_b.points = 2
                     stats_a.points = 1
-                    stats_b.wins_three_to_two = 1
-                    stats_a.losses_two_to_three = 1
+                    stats_b.winsThreeToTwo = 1
+                    stats_a.lossesTwoToThree = 1
             elif num_b == 1:
                 stats_b.points = 2
                 stats_a.points = 0
-                stats_b.wins_three_to_zero = 1
-                stats_a.losses_zero_to_three = 1
+                stats_b.winsThreeToZero = 1
+                stats_a.lossesZeroToThree = 1
 
     stats_a.played = 1
     stats_b.played = 1
-    
+
     return stats_a, stats_b

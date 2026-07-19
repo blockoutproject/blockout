@@ -1,5 +1,5 @@
 import { ApiError } from "./ApiError";
-import { HttpClient, HttpClientOptions, TokenSupplier } from "./HttpClient";
+import { HttpClient, TokenSupplier } from "./HttpClient";
 import { CONFIG } from "@/src/config/config";
 
 /**
@@ -16,13 +16,11 @@ class ApiRegistry {
         this.httpPublic = new HttpClient({
             baseURL: CONFIG.API_GATEWAY_BASE_URL,
             timeout: 20000,
-            transformCase: true,
         });
 
         this.httpAuth = new HttpClient({
             baseURL: CONFIG.API_GATEWAY_BASE_URL,
             timeout: 20000,
-            transformCase: true,
         });
     }
 
@@ -40,10 +38,10 @@ class ApiRegistry {
     }
 
     public createPublicClient(baseURL: string) {
-        return new HttpClient({ baseURL, timeout: 20000, transformCase: true });
+        return new HttpClient({ baseURL, timeout: 20000 });
     }
     public createAuthClient(baseURL: string) {
-        return new HttpClient({ baseURL, timeout: 20000, transformCase: true });
+        return new HttpClient({ baseURL, timeout: 20000 });
     }
 }
 

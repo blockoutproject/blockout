@@ -4,7 +4,6 @@ from enum import Enum
 import re
 from typing import Optional
 from config.logger_config import log_event
-from utils.json_case import to_camel_case
 
 
 def extract_season_from_url(url: str) -> Optional[str]:
@@ -30,7 +29,7 @@ def extract_season_from_url(url: str) -> Optional[str]:
             error=str(e)
         )
         raise
-    
+
 def capitalize_words(text: str | None) -> str:
     """
     Transforme une chaîne tout en majuscules en capitalisant chaque mot.
@@ -49,7 +48,7 @@ def capitalize_words(text: str | None) -> str:
         p.capitalize() if p not in [' ', '-'] else p
         for p in parts
     )
-    
+
 def parse_date(date_str: str, time_str: str) -> Optional[datetime]:
     """
     Convertit des chaînes de date et d'heure en objet datetime.
@@ -64,16 +63,16 @@ def parse_date(date_str: str, time_str: str) -> Optional[datetime]:
         #     error=str(e)
         # )
         return None
-    
+
 def _to_json_value(value):
     if is_dataclass(value):
         return {
-            to_camel_case(key): _to_json_value(item)
+            key: _to_json_value(item)
             for key, item in asdict(value).items()
         }
     if isinstance(value, dict):
         return {
-            to_camel_case(str(key)): _to_json_value(item)
+            str(key): _to_json_value(item)
             for key, item in value.items()
         }
     if isinstance(value, (list, tuple, set)):

@@ -15,10 +15,10 @@ class Scraper(ABC):
     _gauges = {}
 
     def __init__(
-        self, 
-        session: aiohttp.ClientSession, 
-        name: str, 
-        url: str = None, 
+        self,
+        session: aiohttp.ClientSession,
+        name: str,
+        url: str = None,
         max_concurrency: int = 10
     ):
         self.session = session
@@ -26,8 +26,8 @@ class Scraper(ABC):
         self.url = url
         self._max_concurrency = max_concurrency
         self._sema = asyncio.Semaphore(self._max_concurrency)
-        
-        # Cache local : dict[(club_id), (existing_club, updated_club, changes_list)]
+
+        # Cache local : dict[(clubId), (existing_club, updated_club, changes_list)]
         self._clubs_cache: dict[
             str,
             tuple[Optional[Club], Club]
@@ -50,7 +50,7 @@ class Scraper(ABC):
     async def scrape(self):
         current_scraper.set(self.name)
         start_time = datetime.now(timezone.utc)
-        
+
         try:
             await self.init_clubs_cache()
             club_ids = await get_unique_club_ids(self.session)
@@ -67,7 +67,7 @@ class Scraper(ABC):
             end_time = datetime.now(timezone.utc)
             duration = (end_time - start_time).total_seconds()
             self.scraping_duration_gauge.set(duration)
-            
+
     async def fetch(
         self,
         url: str,
@@ -187,17 +187,17 @@ class Scraper(ABC):
                         message=f"Échec complet après {retries} tentatives pour '{url}'."
                     )
                     raise Exception(f"Échec complet du POST '{url}' après {retries} tentatives.")
-                
+
     async def init_clubs_cache(self):
         """
-        Charge tous les clubs existants en base (DB) pour la poule 'pool_id'
+        Charge tous les clubs existants en base (DB) pour la poule 'poolId'
         et les place dans le cache local (_clubs_cache) avec priority=DB.
         """
         try:
             existing_clubs = await get_all_clubs(self.session) or []
             for c in existing_clubs:
                 club_key = (c.id)
-                
+
                 # (existing_club, cloneMutable)
                 if club_key not in self._clubs_cache:
                     self._clubs_cache[club_key] = (

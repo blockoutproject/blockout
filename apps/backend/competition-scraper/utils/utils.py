@@ -7,7 +7,6 @@ from typing import Optional
 import uuid
 from zoneinfo import ZoneInfo
 from config.logger_config import log_event
-from utils.json_case import to_camel_case
 
 # Charger le fichier JSON avec gestion des erreurs
 try:
@@ -108,16 +107,16 @@ def parse_date(date_str: str, time_str: str) -> Optional[datetime]:
 
     except ValueError:
         return None
-    
+
 def _to_json_value(value):
     if is_dataclass(value):
         return {
-            to_camel_case(key): _to_json_value(item)
+            key: _to_json_value(item)
             for key, item in asdict(value).items()
         }
     if isinstance(value, dict):
         return {
-            to_camel_case(str(key)): _to_json_value(item)
+            str(key): _to_json_value(item)
             for key, item in value.items()
         }
     if isinstance(value, (list, tuple, set)):

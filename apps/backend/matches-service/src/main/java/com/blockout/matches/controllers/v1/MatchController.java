@@ -34,8 +34,8 @@ public class MatchController {
     })
     @GetMapping
     public ResponseEntity<List<Match>> listMatches(
-            @RequestParam(required = false, name = "pool_id") Long poolId,
-            @RequestParam(required = false, name = "team_ids") List<Long> teamIds,
+            @RequestParam(required = false, name = "poolId") Long poolId,
+            @RequestParam(required = false, name = "teamIds") List<Long> teamIds,
             @RequestParam(required = false) MatchStatus status,
             @RequestParam(required = false) Boolean active) {
 
@@ -51,8 +51,8 @@ public class MatchController {
     public ResponseEntity<DayPageDTO> dayGroups(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "4") int size,
-            @RequestParam(required = false, name = "pool_ids") List<Long> poolIds,
-            @RequestParam(required = false, name = "team_ids") List<Long> teamIds,
+            @RequestParam(required = false, name = "poolIds") List<Long> poolIds,
+            @RequestParam(required = false, name = "teamIds") List<Long> teamIds,
             @RequestParam(required = false) MatchStatus status,
             @RequestParam(required = false) Boolean active) {
 

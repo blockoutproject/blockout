@@ -4,7 +4,6 @@ import { ApiError } from "./ApiError";
 export type BaseApiInit = {
     baseURL: string;
     timeout?: number;
-    transformCase?: boolean;
 };
 
 export class BaseApi {
@@ -14,7 +13,6 @@ export class BaseApi {
     constructor(init: BaseApiInit) {
         const { publicClient, authClient } = createHttpClients(init.baseURL, {
             timeout: init.timeout,
-            transformCase: init.transformCase,
         });
         this.httpPublic = publicClient;
         this.httpAuth = authClient;

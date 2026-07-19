@@ -35,11 +35,11 @@ public class TeamController {
     })
     @GetMapping
     public ResponseEntity<List<Team>> listTeams(
-            @RequestParam(required = false, name = "division_id") Long divisionId,
+            @RequestParam(required = false, name = "divisionId") Long divisionId,
             @RequestParam(required = false) Format format,
             @RequestParam(required = false) Gender gender,
             @RequestParam(required = false) String season,
-            @RequestParam(required = false, name = "club_id") String clubId,
+            @RequestParam(required = false, name = "clubId") String clubId,
             @RequestParam(required = false) List<Long> ids,
             @RequestParam(required = false) Boolean active
     ) {
@@ -123,7 +123,7 @@ public class TeamController {
     @PostMapping("/{teamId}/followers/increment")
     public ResponseEntity<Team> incrementFollowers(
             @PathVariable Long teamId,
-            @RequestParam(name = "user_id") Long userId
+            @RequestParam(name = "userId") Long userId
     ) {
         Team updated = teamService.incrementFollowersCount(teamId, userId);
         return ResponseEntity.ok(updated);
@@ -138,7 +138,7 @@ public class TeamController {
     @PostMapping("/{teamId}/followers/decrement")
     public ResponseEntity<Team> decrementFollowers(
             @PathVariable Long teamId,
-            @RequestParam(name = "user_id") Long userId
+            @RequestParam(name = "userId") Long userId
     ) {
         Team updated = teamService.decrementFollowersCount(teamId, userId);
         return ResponseEntity.ok(updated);

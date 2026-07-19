@@ -45,7 +45,7 @@ public class RawDivisionMappingController {
     @PreAuthorize("hasAuthority('SCOPE_read:raw_division_mapping')")
     @GetMapping
     public ResponseEntity<List<RawDivisionMapping>> list(
-            @RequestParam(required = false, name = "league_code") String leagueCode,
+            @RequestParam(required = false, name = "leagueCode") String leagueCode,
             @RequestParam(required = false) String season) {
         List<RawDivisionMapping> mappings = rawDivisionMappingService.findRawDivisionMappingByLeagueCodeAndSeason(leagueCode, season);
         return ResponseEntity.ok(mappings);

@@ -21,7 +21,7 @@ public class TeamClientService {
     public void incrementFollowers(Long teamId, Long userId) {
         String url = UriComponentsBuilder.fromUriString(baseUrl())
                 .pathSegment(String.valueOf(teamId), "followers", "increment")
-                .queryParam("user_id", userId)
+                .queryParam("userId", userId)
                 .build()
                 .toUriString();
 
@@ -31,7 +31,7 @@ public class TeamClientService {
     public void decrementFollowers(Long teamId, Long userId) {
         String url = UriComponentsBuilder.fromUriString(baseUrl())
                 .pathSegment(String.valueOf(teamId), "followers", "decrement")
-                .queryParam("user_id", userId)
+                .queryParam("userId", userId)
                 .build()
                 .toUriString();
 

@@ -82,11 +82,11 @@ def test_status_mapping_reads_the_camel_case_timestamp():
     )
 
     assert status.enabled is True
-    assert status.last_update.isoformat() == "2026-07-19T12:30:00"
+    assert status.lastUpdate.isoformat() == "2026-07-19T12:30:00"
 
 
-def test_serializes_club_dataclass_fields_to_camel_case():
-    payload = to_dict(Club(id="club-1", raw_name="RAW CLUB", name="Blockout", logo_url="logo.png"))
+def test_serializes_native_camel_case_club_fields():
+    payload = to_dict(Club(id="club-1", rawName="RAW CLUB", name="Blockout", logoUrl="logo.png"))
 
     assert payload["rawName"] == "RAW CLUB"
     assert payload["logoUrl"] == "logo.png"

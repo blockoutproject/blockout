@@ -26,8 +26,8 @@ public class MatchPublicController {
     public ResponseEntity<EnrichedDayPageDTO> getMatchList(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "4") int size,
-            @RequestParam(required = false, name = "pool_ids") List<Long> poolIds,
-            @RequestParam(required = false, name = "team_ids") List<Long> teamIds,
+            @RequestParam(required = false, name = "poolIds") List<Long> poolIds,
+            @RequestParam(required = false, name = "teamIds") List<Long> teamIds,
             @RequestParam String status) {
         var matches = matchService.getMatchList(status, page, size, poolIds, teamIds);
         return ResponseEntity.ok(matches);

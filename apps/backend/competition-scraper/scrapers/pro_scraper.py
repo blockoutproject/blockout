@@ -30,39 +30,39 @@ class ProScraper(Scraper):
             priority_validation_enabled=True,
         )
         self.raw_season = "2026/2027"
-        self.league_code = "AALNV"
-        self.league_name = "Pro"
+        self.leagueCode = "AALNV"
+        self.leagueName = "Pro"
         self.pools_json = [
             {
-                "pool_code": "MSL",
+                "poolCode": "MSL",
                 "name": "Marmara SpikeLigue",
                 "lnv_url": "https://lnv-web.dataproject.com/CompetitionMatches.aspx?ID=125",
                 "lnv_xml_matches_url": "https://www.lnv.fr/xml/calendrier-LAM.xml",
                 "lnv_xml_rank_url": "https://www.lnv.fr/xml/classement-LAM.xml",
             },
             {
-                "pool_code": "PAZ",
+                "poolCode": "PAZ",
                 "name": "Marmara SpikeLigue - Playoffs",
                 "lnv_url": "https://lnv-web.dataproject.com/CompetitionMatches.aspx?ID=125",
                 "lnv_xml_matches_url": "https://www.lnv.fr/xml/calendrier-LAM.xml",
                 "lnv_xml_rank_url": "https://www.lnv.fr/xml/classement-LAM.xml",
             },
             {
-                "pool_code": "LBM",
+                "poolCode": "LBM",
                 "name": "Ligue B Masculine",
                 "lnv_url": "https://lnv-web.dataproject.com/CompetitionMatches.aspx?ID=126",
                 "lnv_xml_matches_url": "https://www.lnv.fr/xml/calendrier-LBM.xml",
                 "lnv_xml_rank_url": "https://www.lnv.fr/xml/classement-LBM.xml",
             },
             {
-                "pool_code": "SPS",
+                "poolCode": "SPS",
                 "name": "Saforelle Power 6",
                 "lnv_url": "https://lnv-web.dataproject.com/CompetitionMatches.aspx?ID=124",
                 "lnv_xml_matches_url": "https://www.lnv.fr/xml/calendrier-LAF.xml",
                 "lnv_xml_rank_url": "https://www.lnv.fr/xml/classement-LAF.xml",
             },
             {
-                "pool_code": "FAZ",
+                "poolCode": "FAZ",
                 "name": "Saforelle Power 6 - Playoffs",
                 "lnv_url": "https://lnv-web.dataproject.com/CompetitionMatches.aspx?ID=124",
                 "lnv_xml_matches_url": "https://www.lnv.fr/xml/calendrier-LAF.xml",
@@ -81,30 +81,30 @@ class ProScraper(Scraper):
                 return await task_coro
 
         try:
-            existing_pools = await get_pools_by_league_and_season(self.session, self.league_code, self.raw_season)
+            existing_pools = await get_pools_by_league_and_season(self.session, self.leagueCode, self.raw_season)
             existing_pools = existing_pools or []
             existing_pools_dict = {
-                (pool.pool_code, pool.league_code, pool.season): pool
+                (pool.poolCode, pool.leagueCode, pool.season): pool
                 for pool in existing_pools
             }
 
             raw_mappings = await get_raw_division_mappings_by_league_and_season(
-                self.session, self.league_code, self.raw_season
+                self.session, self.leagueCode, self.raw_season
             )
             raw_mappings = raw_mappings or []
-            mapping_dict = {m.raw_division_name: m for m in raw_mappings}
+            mapping_dict = {m.rawDivisionName: m for m in raw_mappings}
 
             tasks = []
             for pool_json in self.pools_json:
                 try:
                     name = pool_json["name"]
-                    pool_code = pool_json["pool_code"]
+                    poolCode = pool_json["poolCode"]
                     mapping = mapping_dict.get(name)
 
                     if not mapping:
                         new_mapping = RawDivisionMapping(
-                            raw_division_name=name,
-                            league_code=self.league_code,
+                            rawDivisionName=name,
+                            leagueCode=self.leagueCode,
                             season=self.raw_season,
                         )
                         created_mapping = await create_raw_division_mapping(self.session, new_mapping)
@@ -115,19 +115,19 @@ class ProScraper(Scraper):
                         continue
 
                     pool_obj = Pool(
-                        pool_code=pool_code,
-                        league_code=self.league_code,
+                        poolCode=poolCode,
+                        leagueCode=self.leagueCode,
                         season=self.raw_season,
-                        league_name=self.league_name,
-                        raw_name=name,
+                        leagueName=self.leagueName,
+                        rawName=name,
                         name=name,
-                        short_name=name,
-                        division_id=mapping.division_id,
+                        shortName=name,
+                        divisionId=mapping.divisionId,
                         format=mapping.format,
                         gender=mapping.gender,
                     )
 
-                    existing_pool = existing_pools_dict.get((pool_obj.pool_code, pool_obj.league_code, pool_obj.season))
+                    existing_pool = existing_pools_dict.get((pool_obj.poolCode, pool_obj.leagueCode, pool_obj.season))
 
                     tasks.append(
                         guarded(
@@ -181,7 +181,7 @@ class ProScraper(Scraper):
             log_event(
                 action="task_chain_error",
                 level="error",
-                pool_code=pool.pool_code,
+                poolCode=pool.poolCode,
                 error=repr(e),
                 message="Erreur lors de l'exécution de la chaîne de tâches pour une poule.",
             )
@@ -195,7 +195,7 @@ class ProScraper(Scraper):
                 log_event(
                     action="fetch_xml_matches_error",
                     level="error",
-                    pool_id=pool.id,
+                    poolId=pool.id,
                     url=lnv_xml_matches_url,
                     message="Erreur lors de la récupération du flux XML pour les matchs.",
                 )
@@ -205,7 +205,7 @@ class ProScraper(Scraper):
                 log_event(
                     action="fetch_xml_rank_error",
                     level="error",
-                    pool_id=pool.id,
+                    poolId=pool.id,
                     url=lnv_xml_rank_url,
                     message="Erreur lors de la récupération du flux XML pour le classement.",
                 )
@@ -221,18 +221,18 @@ class ProScraper(Scraper):
             log_event(
                 action="parse_and_update_matches_error",
                 level="error",
-                pool_id=pool.id,
+                poolId=pool.id,
                 message=repr(e),
             )
 
-    async def process_xml_matches(self, matches_root: ET.Element, pool_id: int):
+    async def process_xml_matches(self, matches_root: ET.Element, poolId: int):
         try:
             for match_el in matches_root.findall(".//Match"):
-                match_code = (match_el.findtext("CodeMatch") or "").strip()
-                if not match_code:
+                matchCode = (match_el.findtext("CodeMatch") or "").strip()
+                if not matchCode:
                     continue
 
-                match_key = (self.league_code, match_code)
+                match_key = (self.leagueCode, matchCode)
 
                 date_str = (match_el.findtext("Date") or "01-01-1970").strip()
                 heure_str = (match_el.findtext("Heure") or "00:00:00").strip()
@@ -256,7 +256,7 @@ class ProScraper(Scraper):
                     continue
 
                 updated_match = replace(existing_match)
-                updated_match.match_date = match_datetime
+                updated_match.matchDate = match_datetime
 
                 if set_value and set_value != "0-0":
                     updated_match.set = set_value
@@ -273,7 +273,7 @@ class ProScraper(Scraper):
             log_event(
                 action="process_xml_matches_error",
                 level="error",
-                pool_id=pool_id,
+                poolId=poolId,
                 message=repr(e),
             )
 
@@ -309,7 +309,7 @@ class ProScraper(Scraper):
 
                     team = await find_team_by_name_in_division_format_gender_season(
                         self.session,
-                        pool.division_id,
+                        pool.divisionId,
                         pool.format,
                         pool.gender,
                         pool.season,
@@ -320,7 +320,7 @@ class ProScraper(Scraper):
                         log_event(
                             action="team_not_found",
                             level="error",
-                            pool_id=pool.id,
+                            poolId=pool.id,
                             name=full_name,
                             message="Aucune équipe trouvée pour ce nom.",
                         )
@@ -332,25 +332,25 @@ class ProScraper(Scraper):
                         wins=mg,
                         losses=mp,
                         points=points,
-                        wins_three_to_zero=r_3_0,
-                        wins_three_to_one=r_3_1,
-                        wins_three_to_two=r_3_2,
-                        losses_zero_to_three=r_0_3,
-                        losses_one_to_three=r_1_3,
-                        losses_two_to_three=r_2_3,
-                        won_sets=set_pour,
-                        lost_sets=set_contre,
-                        won_points=pts_pour,
-                        lost_points=pts_contre,
-                        points_penalty=0,
+                        winsThreeToZero=r_3_0,
+                        winsThreeToOne=r_3_1,
+                        winsThreeToTwo=r_3_2,
+                        lossesZeroToThree=r_0_3,
+                        lossesOneToThree=r_1_3,
+                        lossesTwoToThree=r_2_3,
+                        wonSets=set_pour,
+                        lostSets=set_contre,
+                        wonPoints=pts_pour,
+                        lostPoints=pts_contre,
+                        pointsPenalty=0,
                     )
 
-                    team_stats.coef_sets = ratio_set
-                    team_stats.coef_points = ratio_pts
+                    team_stats.coefSets = ratio_set
+                    team_stats.coefPoints = ratio_pts
 
                     self.schedule_association_replace(
-                        pool_id=pool.id,
-                        team_id=team.id,
+                        poolId=pool.id,
+                        teamId=team.id,
                         team_stats=team_stats,
                     )
 
@@ -358,7 +358,7 @@ class ProScraper(Scraper):
             log_event(
                 action="process_xml_rank_error",
                 level="error",
-                pool_id=pool.id,
+                poolId=pool.id,
                 message=repr(e),
             )
 
@@ -368,7 +368,7 @@ class ProScraper(Scraper):
             log_event(
                 action="fetch_html_error",
                 level="error",
-                pool_id=pool.id,
+                poolId=pool.id,
                 url=url,
                 message="Erreur lors de la récupération de la page HTML pour les live codes.",
             )
@@ -380,7 +380,7 @@ class ProScraper(Scraper):
             log_event(
                 action="missing_main_id",
                 level="error",
-                pool_id=pool.id,
+                poolId=pool.id,
                 message="Impossible de trouver l'identifiant principal.",
             )
             return
@@ -442,16 +442,16 @@ class ProScraper(Scraper):
             log_event(
                 action="missing_name",
                 level="error",
-                pool_id=pool.id,
-                raw_name=home_name,
+                poolId=pool.id,
+                rawName=home_name,
                 message="Nom d'équipe domicile non trouvé dans les alias.",
             )
         if guest_name and not guest_team_full:
             log_event(
                 action="missing_name",
                 level="error",
-                pool_id=pool.id,
-                raw_name=guest_name,
+                poolId=pool.id,
+                rawName=guest_name,
                 message="Nom d'équipe visiteur non trouvé dans les alias.",
             )
 
@@ -467,7 +467,7 @@ class ProScraper(Scraper):
 
         team_a = await find_team_by_name_in_division_format_gender_season(
             self.session,
-            pool.division_id,
+            pool.divisionId,
             pool.format,
             pool.gender,
             pool.season,
@@ -475,7 +475,7 @@ class ProScraper(Scraper):
         )
         team_b = await find_team_by_name_in_division_format_gender_season(
             self.session,
-            pool.division_id,
+            pool.divisionId,
             pool.format,
             pool.gender,
             pool.season,
@@ -490,7 +490,7 @@ class ProScraper(Scraper):
             return
 
         updated_match = replace(existing_match)
-        updated_match.live_code = int(mID)
+        updated_match.liveCode = int(mID)
 
         self.schedule_match_changes(
             updated_match=updated_match,

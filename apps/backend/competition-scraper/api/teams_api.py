@@ -18,7 +18,7 @@ async def create_team(session: aiohttp.ClientSession, team: Team) -> Team:
     team_dict = to_dict(team)
     url = f"{TEAM_API_URL}"
     response = await session.post(url, json=team_dict, headers=headers)
-    log_event(action="create_team", level="info", raw_name=team.raw_name, club_id=team.club_id)
+    log_event(action="create_team", level="info", rawName=team.rawName, clubId=team.clubId)
     return response
 
 
@@ -42,7 +42,7 @@ async def update_team(
     log_event(
         action="update_team",
         level="info",
-        raw_name=team.raw_name,
+        rawName=team.rawName,
         changes_list=changes_list
     )
     return response
@@ -51,32 +51,32 @@ async def update_team(
 @handle_api_response(response_type=list[Team])
 async def get_teams(
     session: aiohttp.ClientSession,
-    division_id: Optional[str] = None,
+    divisionId: Optional[str] = None,
     format: Optional[str] = None,
     gender: Optional[str] = None,
     season: Optional[str] = None,
-    club_id: Optional[str] = None,
-    raw_name: Optional[str] = None,
+    clubId: Optional[str] = None,
+    rawName: Optional[str] = None,
     ids: Optional[List[int]] = None
 ) -> List[Team]:
     """
-    Récupère les équipes avec des filtres optionnels : division_id, format, gender, club_id, ids.
+    Récupère les équipes avec des filtres optionnels : divisionId, format, gender, clubId, ids.
     """
     headers = _get_headers()
     params = {}
 
-    if raw_name:
-        params["raw_name"] = raw_name
-    if division_id:
-        params["division_id"] = division_id
+    if rawName:
+        params["rawName"] = rawName
+    if divisionId:
+        params["divisionId"] = divisionId
     if format:
         params["format"] = format
     if gender:
         params["gender"] = gender
     if season:
         params["season"] = season
-    if club_id:
-        params["club_id"] = club_id
+    if clubId:
+        params["clubId"] = clubId
     if ids:
         params["ids"] = ",".join(map(str, ids))
 

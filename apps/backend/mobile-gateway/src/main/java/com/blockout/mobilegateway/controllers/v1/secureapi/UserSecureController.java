@@ -48,8 +48,8 @@ public class UserSecureController {
     @PostMapping("/favorites/follow")
     public ResponseEntity<Void> follow(
             @AuthenticationPrincipal Jwt jwt,
-            @RequestParam(name = "entity_type") String entityType,
-            @RequestParam(name = "entity_id") Long entityId) {
+            @RequestParam(name = "entityType") String entityType,
+            @RequestParam(name = "entityId") Long entityId) {
 
         userService.follow(jwt.getSubject(), entityType, entityId);
         return ResponseEntity.noContent().build();
@@ -58,8 +58,8 @@ public class UserSecureController {
     @DeleteMapping("/favorites/follow")
     public ResponseEntity<Void> unfollow(
             @AuthenticationPrincipal Jwt jwt,
-            @RequestParam(name = "entity_type") String entityType,
-            @RequestParam(name = "entity_id") Long entityId) {
+            @RequestParam(name = "entityType") String entityType,
+            @RequestParam(name = "entityId") Long entityId) {
 
         userService.unfollow(jwt.getSubject(), entityType, entityId);
         return ResponseEntity.noContent().build();

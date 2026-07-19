@@ -93,7 +93,7 @@ public class ConfigSecureController {
 
     @GetMapping("/raw-divisions")
     public ResponseEntity<List<RawDivisionMappingDTO>> listRawDivisions(
-            @RequestParam(required = false, name = "league_code") String leagueCode,
+            @RequestParam(required = false, name = "leagueCode") String leagueCode,
             @RequestParam(required = false) String season) {
         List<RawDivisionMappingDTO> list = configService.listRawDivisionMappings(leagueCode, season);
         return ResponseEntity.ok(list);

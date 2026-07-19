@@ -21,7 +21,7 @@ public class PoolClientService {
     public void incrementFollowers(Long poolId, Long userId) {
         String url = UriComponentsBuilder.fromUriString(baseUrl())
                 .pathSegment(String.valueOf(poolId), "followers", "increment")
-                .queryParam("user_id", userId)
+                .queryParam("userId", userId)
                 .build()
                 .toUriString();
 
@@ -31,7 +31,7 @@ public class PoolClientService {
     public void decrementFollowers(Long poolId, Long userId) {
         String url = UriComponentsBuilder.fromUriString(baseUrl())
                 .pathSegment(String.valueOf(poolId), "followers", "decrement")
-                .queryParam("user_id", userId)
+                .queryParam("userId", userId)
                 .build()
                 .toUriString();
 

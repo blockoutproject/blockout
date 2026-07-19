@@ -70,7 +70,7 @@ export class ConfigApi extends BaseApi {
 
     public getRawDivisionMappings(leagueCode?: string, season?: string) {
         return this.httpAuth.get<any[]>("/config/raw-divisions", {
-            params: { league_code: leagueCode, season },
+            params: { leagueCode, season },
         });
     }
 

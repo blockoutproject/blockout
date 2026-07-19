@@ -4,15 +4,15 @@ from typing import Optional
 
 @dataclass
 class RawDivisionMapping:
-    raw_division_name: str
-    league_code: str
+    rawDivisionName: str
+    leagueCode: str
     season: str
     id: Optional[int] = None
-    division_id: Optional[str] = None
+    divisionId: Optional[str] = None
     format: Optional[str] = None
     gender: Optional[str] = None
-    created_at: Optional[datetime] = None
-    last_update: Optional[datetime] = None
+    createdAt: Optional[datetime] = None
+    lastUpdate: Optional[datetime] = None
 
     def is_mapped(self) -> bool:
-        return self.division_id is not None and self.format is not None and self.gender is not None
+        return self.divisionId is not None and self.format is not None and self.gender is not None

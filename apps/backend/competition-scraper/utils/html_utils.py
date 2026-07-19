@@ -33,23 +33,23 @@ def parse_stat_line(cols: list[str]) -> AssociationStats:
         played=parse_int(cols[3].text),
         wins=parse_int(cols[4].text),
         losses=parse_int(cols[5].text),
-        wins_three_to_zero=parse_int(cols[7].text),
-        wins_three_to_one=parse_int(cols[8].text),
-        wins_three_to_two=parse_int(cols[9].text),
-        losses_two_to_three=parse_int(cols[10].text),
-        losses_one_to_three=parse_int(cols[11].text),
-        losses_zero_to_three=parse_int(cols[12].text),
-        won_sets=parse_int(cols[13].text),
-        lost_sets=parse_int(cols[14].text),
-        coef_sets=parse_float(cols[15].text),
-        won_points=parse_int(cols[16].text),
-        lost_points=parse_int(cols[17].text),
-        coef_points=parse_float(cols[18].text),
-        points_penalty=0
+        winsThreeToZero=parse_int(cols[7].text),
+        winsThreeToOne=parse_int(cols[8].text),
+        winsThreeToTwo=parse_int(cols[9].text),
+        lossesTwoToThree=parse_int(cols[10].text),
+        lossesOneToThree=parse_int(cols[11].text),
+        lossesZeroToThree=parse_int(cols[12].text),
+        wonSets=parse_int(cols[13].text),
+        lostSets=parse_int(cols[14].text),
+        coefSets=parse_float(cols[15].text),
+        wonPoints=parse_int(cols[16].text),
+        lostPoints=parse_int(cols[17].text),
+        coefPoints=parse_float(cols[18].text),
+        pointsPenalty=0
     )
 
 async def extract_club_stats_list(scraper: Scraper, raw_season: str, pool: Pool) -> list[tuple[str, AssociationStats]]:
-    url = f"http://www.ffvbbeach.org/ffvbapp/resu/vbspo_calendrier.php?saison={raw_season}&codent={pool.league_code}&poule={pool.pool_code}"
+    url = f"http://www.ffvbbeach.org/ffvbapp/resu/vbspo_calendrier.php?saison={raw_season}&codent={pool.leagueCode}&poule={pool.poolCode}"
 
     html = await scraper.fetch(url)
     soup = BeautifulSoup(html, "html.parser")

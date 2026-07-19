@@ -72,21 +72,21 @@ class DepartmentalScraper(Scraper):
                                 )
                                 continue
 
-                            league_code = league_code_match.group(1)
+                            leagueCode = league_code_match.group(1)
 
-                            if league_code in ("LIGU", "LIMY", "LIMART", "LIRE", "LIGY"):
+                            if leagueCode in ("LIGU", "LIMY", "LIMART", "LIRE", "LIGY"):
                                 continue
 
                             raw_department_name = li.get_text(strip=True)
                             clean_name = strip_department_code(raw_department_name)
-                            league_name = capitalize_words(clean_name)
+                            leagueName = capitalize_words(clean_name)
 
                             league_page_url = href.replace("https://", "http://")
                             tasks.append(
                                 guarded(
                                     self.scrape_pools_from_league(
-                                        league_code=league_code,
-                                        league_name=league_name,
+                                        leagueCode=leagueCode,
+                                        leagueName=leagueName,
                                         league_page_url=league_page_url,
                                     )
                                 )
@@ -125,7 +125,7 @@ class DepartmentalScraper(Scraper):
                 message="Erreur critique lors du scraping des compétitions départementales.",
             )
 
-    async def scrape_pools_from_league(self, league_code: str, league_name: str, league_page_url: str):
+    async def scrape_pools_from_league(self, leagueCode: str, leagueName: str, league_page_url: str):
         try:
             league_page_url = league_page_url.replace("https://", "http://")
             html_content = await self.fetch(league_page_url)
@@ -133,8 +133,8 @@ class DepartmentalScraper(Scraper):
                 log_event(
                     action="fetch_html_error",
                     level="error",
-                    league_name=league_name,
-                    league_code=league_code,
+                    leagueName=leagueName,
+                    leagueCode=leagueCode,
                 )
                 return
 
@@ -152,11 +152,11 @@ class DepartmentalScraper(Scraper):
             if not raw_season:
                 raise ValueError("Saison non trouvée")
 
-            existing_pools = await get_pools_by_league_and_season(self.session, league_code, raw_season)
-            existing_pools_dict = {(p.pool_code, p.league_code, p.season): p for p in existing_pools}
+            existing_pools = await get_pools_by_league_and_season(self.session, leagueCode, raw_season)
+            existing_pools_dict = {(p.poolCode, p.leagueCode, p.season): p for p in existing_pools}
 
-            raw_mappings = await get_raw_division_mappings_by_league_and_season(self.session, league_code, raw_season)
-            mapping_dict = {m.raw_division_name: m for m in raw_mappings}
+            raw_mappings = await get_raw_division_mappings_by_league_and_season(self.session, leagueCode, raw_season)
+            mapping_dict = {m.rawDivisionName: m for m in raw_mappings}
 
             scraped_pool_ids = set()
             tasks = []
@@ -177,40 +177,40 @@ class DepartmentalScraper(Scraper):
                     if not pool_code_match:
                         continue
 
-                    pool_code = pool_code_match.group(1)
+                    poolCode = pool_code_match.group(1)
                     name = a_tag.get_text(strip=True)
                     raw_division_tag = a_tag.find_parent("ul").find_previous_sibling("a")
-                    raw_division_name = raw_division_tag.get_text(strip=True) if raw_division_tag else ""
+                    rawDivisionName = raw_division_tag.get_text(strip=True) if raw_division_tag else ""
 
-                    mapping = mapping_dict.get(raw_division_name)
+                    mapping = mapping_dict.get(rawDivisionName)
 
                     if not mapping:
                         new_mapping = RawDivisionMapping(
-                            raw_division_name=raw_division_name,
-                            league_code=league_code,
+                            rawDivisionName=rawDivisionName,
+                            leagueCode=leagueCode,
                             season=raw_season,
                         )
                         created_mapping = await create_raw_division_mapping(self.session, new_mapping)
-                        mapping_dict[raw_division_name] = created_mapping
+                        mapping_dict[rawDivisionName] = created_mapping
                         continue
 
                     if not mapping.is_mapped():
                         continue
 
                     pool_obj = Pool(
-                        pool_code=pool_code,
-                        league_code=league_code,
+                        poolCode=poolCode,
+                        leagueCode=leagueCode,
                         season=raw_season,
-                        league_name=league_name,
-                        raw_name=name,
+                        leagueName=leagueName,
+                        rawName=name,
                         name=name,
-                        short_name=name,
-                        division_id=mapping.division_id,
+                        shortName=name,
+                        divisionId=mapping.divisionId,
                         format=mapping.format,
                         gender=mapping.gender,
                     )
 
-                    key = (pool_obj.pool_code, pool_obj.league_code, pool_obj.season)
+                    key = (pool_obj.poolCode, pool_obj.leagueCode, pool_obj.season)
                     existing_pool = existing_pools_dict.get(key)
 
                     tasks.append(

@@ -4,14 +4,14 @@ from typing import Optional
 
 @dataclass
 class Team:
-    club_id: str
+    clubId: str
     name: str
-    short_name: str
-    league_code: str
-    division_id: str
+    shortName: str
+    leagueCode: str
+    divisionId: str
     id: Optional[int] = None
     gender: Optional[str] = None
     format: Optional[str] = None
     active: bool = True
-    created_at: Optional[datetime] = None
-    last_update: Optional[datetime] = None
+    createdAt: Optional[datetime] = None
+    lastUpdate: Optional[datetime] = None
