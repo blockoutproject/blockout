@@ -1742,9 +1742,15 @@ state moves to GitHub and this file becomes a historical migration record.
     without networking under placeholder configuration. The complete local verifier passes deterministic generation,
     the 16-module backend reactor, mobile export, Docker builds, Compose, final manifest and ignored-output checks;
     documentation, locked npm installation, Maaatch comparison, Prettier, and Git whitespace checks pass.
-- [ ] MRG-437 Approve the version-authority and command-versus-fact architecture required by MRG-438 through MRG-442,
+- [x] MRG-437 Approve the version-authority and command-versus-fact architecture required by MRG-438 through MRG-442,
       MRG-430, and MRG-429 without changing runtime or contract sources.
   - Execution mode: PLAN_REQUIRED
+  - Evidence: `docs/migration/mrg-437-projection-version-authority.md` fixes the owner-only revision source,
+    command-versus-fact boundary, complete projection payloads, post-flush transactional publication, division
+    snapshot rule, identity-aware non-regressing vectors, missing-dependency marker, and MRG-438-through-MRG-429
+    order. Documentation links and formatting, Maaatch comparison, the complete local shadow-CI verifier, generated
+    output ownership, and Git whitespace checks pass; runtime, contracts, schemas, deployment, and production remain
+    unchanged.
 - [ ] MRG-438 Add shared authoritative contract sources for complete club, team, and pool projection-change facts
       produced by their owning services with required monotonic aggregate versions and active state. Keep existing
       competition-service deactivation routes as coexistence commands and keep generated event sources outside Git.
