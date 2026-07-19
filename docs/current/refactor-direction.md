@@ -55,6 +55,16 @@ REF-011 establishes Team ownership:
 - BFF coordinates remain a Club-derived view enrichment, while `TeamUpsertEvent`, deactivation commands, rankings, and
   search documents remain intentionally smaller purpose-specific models.
 
+REF-012 establishes Pool ownership:
+
+- `pools-service` owns the complete Pool representation: `id`, `poolCode`, `leagueCode`, `season`, `leagueName`,
+  `rawName`, `name`, `shortName`, `divisionId`, `format`, `gender`, `followersCount`, `active`, `createdAt`, and
+  `lastUpdate`;
+- the gateway, notification service, search worker, competition scraper, and mobile application mirror that complete
+  representation wherever they deserialize the Pool HTTP resource;
+- `PoolUpsertEvent`, deactivation commands, rankings, enriched BFF views, and search documents remain intentionally
+  smaller purpose-specific models.
+
 The camelCase rule applies to transport names owned by Blockout:
 
 - REST request and response bodies;

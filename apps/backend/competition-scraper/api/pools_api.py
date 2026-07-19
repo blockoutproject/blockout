@@ -5,7 +5,17 @@ from config.logger_config import log_event
 from utils.handlers.api_handler import handle_api_response
 from models.pool import Pool
 from api.auth0 import _get_headers
-from utils.utils import to_dict
+
+
+POOL_WRITE_FIELDS = (
+    "poolCode", "leagueCode", "season", "leagueName", "rawName", "name", "shortName",
+    "divisionId", "format", "gender", "active",
+)
+
+
+def _to_pool_write_payload(pool: Pool) -> dict:
+    """Serialize only fields accepted by the handwritten Pool write boundary."""
+    return {field: getattr(pool, field) for field in POOL_WRITE_FIELDS}
 
 
 @handle_api_response(response_type=List[Pool])
@@ -32,7 +42,7 @@ async def create_pool(
     Envoie une requête POST pour créer une nouvelle pool.
     """
     headers = _get_headers()
-    pool_dict = to_dict(pool)
+    pool_dict = _to_pool_write_payload(pool)
     url = f"{POOL_API_URL}"
     response = await session.post(url, json=pool_dict, headers=headers)
     log_event(
@@ -54,7 +64,7 @@ async def update_pool(
     Envoie une requête PUT pour mettre à jour une pool existante.
     """
     headers = _get_headers()
-    pool_dict = to_dict(pool)
+    pool_dict = _to_pool_write_payload(pool)
     url = f"{POOL_API_URL}/{pool.id}"
     response = await session.put(url, json=pool_dict, headers=headers)
     log_event(

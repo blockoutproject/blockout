@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.blockout.mobilegateway.models.dto.club.ClubDTO;
 import com.blockout.mobilegateway.models.dto.team.TeamDTO;
+import com.blockout.mobilegateway.models.dto.pool.PoolDTO;
 import com.blockout.mobilegateway.models.dto.config.RawDivisionMappingDTO;
 import com.blockout.mobilegateway.models.enums.Format;
 import com.blockout.mobilegateway.models.enums.Gender;
@@ -96,5 +97,18 @@ class GatewayJsonContractCharacterizationTest {
                 "id", "rawDivisionName", "divisionId", "format", "gender", "leagueCode", "season",
                 "createdAt", "lastUpdate", "mapped");
         assertThat(json.path("mapped").asBoolean()).isTrue();
+    }
+
+    @Test
+    void mirrorsTheCompletePoolInternalResponseOwnedByPoolsService() {
+        LocalDateTime now = LocalDateTime.of(2026, 7, 19, 12, 0);
+        PoolDTO pool = PoolDTO.builder().id(1L).poolCode("A").leagueCode("LNV").season("2026/2027")
+                .leagueName("League").rawName("RAW").name("Pool").shortName("P").divisionId(2L)
+                .format(Format.SIX).gender(Gender.F).followersCount(3L).active(true)
+                .createdAt(now).lastUpdate(now).build();
+        JsonNode json = objectMapper.findAndRegisterModules().valueToTree(pool);
+        assertThat(json.fieldNames()).toIterable().containsExactlyInAnyOrder(
+                "id", "poolCode", "leagueCode", "season", "leagueName", "rawName", "name", "shortName",
+                "divisionId", "format", "gender", "followersCount", "active", "createdAt", "lastUpdate");
     }
 }

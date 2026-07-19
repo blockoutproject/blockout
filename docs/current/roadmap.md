@@ -68,7 +68,7 @@
   - Separate handwritten Team transport, application, persistence, messaging, and image-storage boundaries.
   - Align complete Team mirrors while preserving V1 routes, schema, events, scraper writes, and runtime behavior.
 
-- [ ] **REF-012 — Refactor pools-service and establish authoritative Pool ownership**
+- [x] **REF-012 — Refactor pools-service and establish authoritative Pool ownership**
   - Separate handwritten Pool transport, application, persistence, and messaging boundaries.
   - Align complete Pool mirrors while preserving V1 routes, schema, events, scraper writes, and runtime behavior.
 

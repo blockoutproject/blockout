@@ -7,7 +7,7 @@ class Pool:
     poolCode: str
     leagueCode: str
     season: str
-    divisionId: str
+    divisionId: int
     leagueName: str
     rawName: str
     name: str

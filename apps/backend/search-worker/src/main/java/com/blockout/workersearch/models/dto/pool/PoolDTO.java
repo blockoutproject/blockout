@@ -7,6 +7,8 @@ import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 
+import java.time.LocalDateTime;
+
 @Data
 @Builder
 @NoArgsConstructor
@@ -38,5 +40,7 @@ public class PoolDTO {
 
     private Boolean active;
 
-    private String lastUpdate;
+    private LocalDateTime createdAt;
+
+    private LocalDateTime lastUpdate;
 }

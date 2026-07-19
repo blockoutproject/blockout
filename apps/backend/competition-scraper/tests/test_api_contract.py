@@ -2,10 +2,11 @@ import asyncio
 
 import pytest
 
-from api import config_api, teams_api
+from api import config_api, pools_api, teams_api
 from models.scraper_status import ScraperStatus
 from models.raw_division_mapping import RawDivisionMapping
 from models.team import Team
+from models.pool import Pool
 from utils.handlers.api_handler import convert_to_dataclass
 
 
@@ -71,6 +72,23 @@ def test_writes_the_camel_case_team_payload(monkeypatch):
         assert set(kwargs["json"]) == set(teams_api.TEAM_WRITE_FIELDS)
         assert "createdAt" not in kwargs["json"]
         assert "club_id" not in kwargs["json"]
+
+    asyncio.run(scenario())
+
+
+def test_writes_only_the_pool_creation_boundary(monkeypatch):
+    async def scenario():
+        monkeypatch.setattr(pools_api, "POOL_API_URL", "http://pools.local/v1/pools")
+        monkeypatch.setattr(pools_api, "_get_headers", lambda: {"Authorization": "Bearer test"})
+        session = RecordingSession()
+        pool = Pool("A", "LNV", "2026/2027", 10, "League", "RAW", "Pool", "P", "SIX", "F")
+
+        await pools_api.create_pool.__wrapped__(session, pool)
+
+        payload = session.calls[0][2]["json"]
+        assert set(payload) == set(pools_api.POOL_WRITE_FIELDS)
+        assert payload["divisionId"] == 10
+        assert "createdAt" not in payload
 
     asyncio.run(scenario())
 

@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.blockout.workersearch.models.events.TeamUpsertEvent;
 import com.blockout.workersearch.models.dto.club.ClubDTO;
 import com.blockout.workersearch.models.dto.team.TeamDTO;
+import com.blockout.workersearch.models.dto.pool.PoolDTO;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
@@ -81,5 +82,17 @@ class SearchEventJsonContractCharacterizationTest {
         assertThat(team.getRawName()).isEqualTo("RAW");
         assertThat(team.getLogoUrl()).isEqualTo("logo");
         assertThat(team.getCreatedAt()).isEqualTo(team.getLastUpdate());
+    }
+
+    @Test
+    void readsTheCompletePoolInternalResponseWithoutChangingTheSearchProjection() throws Exception {
+        PoolDTO pool = new ObjectMapper().findAndRegisterModules().readValue("""
+                {"id":1,"poolCode":"A","leagueCode":"LNV","season":"2026/2027","leagueName":"League",
+                 "rawName":"RAW","name":"Pool","shortName":"P","divisionId":2,"format":"SIX","gender":"F",
+                 "followersCount":3,"active":true,"createdAt":"2026-07-19T12:00:00",
+                 "lastUpdate":"2026-07-19T12:00:00"}
+                """, PoolDTO.class);
+        assertThat(pool.getRawName()).isEqualTo("RAW");
+        assertThat(pool.getCreatedAt()).isEqualTo(pool.getLastUpdate());
     }
 }
