@@ -1,0 +1,17 @@
+package com.blockout.clubs.models.events;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class ClubUpsertEvent {
+    private String id;
+    private String name;
+    private String logoUrl;
+    private String city;
+}

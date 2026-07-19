@@ -1,0 +1,36 @@
+package com.blockout.notifications.controllers.v1;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+
+import lombok.RequiredArgsConstructor;
+
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+
+import com.blockout.notifications.models.dto.pushTokens.RegisterPushTokenRequestDTO;
+import com.blockout.notifications.services.PushTokenService;
+
+@RestController
+@RequiredArgsConstructor
+@RequestMapping("/api/v1/notifications")
+public class PushTokenController {
+
+    private final PushTokenService pushTokenService;
+
+    @Operation(summary = "Enregistrer / mettre à jour un push token")
+    @ApiResponses({
+            @ApiResponse(responseCode = "202", description = "Token enregistré/actualisé"),
+            @ApiResponse(responseCode = "404", description = "Utilisateur introuvable")
+    })
+    @PreAuthorize("hasAuthority('SCOPE_update:current_user')")
+    @PostMapping("/users/{userId}/push-tokens")
+    public ResponseEntity<Void> register(
+            @PathVariable Long userId,
+            @RequestBody RegisterPushTokenRequestDTO req) {
+        pushTokenService.register(userId, req);
+        return ResponseEntity.accepted().build();
+    }
+}

@@ -18,6 +18,21 @@
     <name>backend</name>
     <description>Aggregator POM for Blockout backend applications</description>
 
+    <modules>
+        <module>clubs-service</module>
+        <module>competition-service</module>
+        <module>config-service</module>
+        <module>matches-service</module>
+        <module>mobile-gateway</module>
+        <module>notification-service</module>
+        <module>pools-service</module>
+        <module>reports-service</module>
+        <module>search-service</module>
+        <module>search-worker</module>
+        <module>teams-service</module>
+        <module>users-service</module>
+    </modules>
+
     <properties>
         <java.version>21</java.version>
     </properties>
