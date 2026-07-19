@@ -7,6 +7,7 @@ export enum NotificationTargetType {
 
 export enum NotificationType {
     MATCH_FINISHED = "MATCH_FINISHED",
+    MATCH_LIVE_LINK_CREATED = "MATCH_LIVE_LINK_CREATED",
     GENERIC = "GENERIC",
 }
 
@@ -30,13 +31,13 @@ export interface PushToken {
 export type EnrichedUserNotification = {
     id: number;
     userId: number;
-    type: string;
+    type: NotificationType;
     title: string;
     body: string;
     deepLink: string | null;
-    targetType: string | null;
+    targetType: NotificationTargetType | null;
     targetId: number | null;
-    metadata: string | null;
+    metadata: Record<string, unknown> | null;
     isRead: boolean;
     isOpened: boolean;
     createdAt: string;
@@ -52,5 +53,5 @@ export type EnrichedUserNotificationPage = {
 };
 
 export interface UnreadCount {
-    count: number;
+    unread: number;
 }

@@ -84,7 +84,7 @@
   - Separate Match transport, application, persistence, moderation, provider, and messaging boundaries.
   - Align complete Match mirrors while preserving V1 routes, schema, events, scraper writes, and runtime behavior.
 
-- [ ] **REF-016 — Refactor notification-service and establish authoritative Notification ownership**
+- [x] **REF-016 — Refactor notification-service and establish authoritative Notification ownership**
   - Separate notification transport, application, persistence, event-consumer, Auth0, and Expo boundaries.
   - Align complete notification mirrors while preserving V1 routes, schema, queues, provider behavior, and runtime behavior.
 

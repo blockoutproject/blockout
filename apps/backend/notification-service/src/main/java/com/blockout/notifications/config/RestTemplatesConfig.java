@@ -19,6 +19,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.web.client.RestTemplate;
 
+import com.blockout.notifications.notification.infrastructure.http.Auth0ServiceTokenProvider;
+
 @Configuration
 public class RestTemplatesConfig {
 
@@ -68,7 +70,7 @@ public class RestTemplatesConfig {
 
     @Bean
     @Qualifier("serviceRestTemplate")
-    public RestTemplate serviceRestTemplate(Auth0TokenManager tokenManager) {
+    public RestTemplate serviceRestTemplate(Auth0ServiceTokenProvider tokenManager) {
         RestTemplate rt = new RestTemplate(requestFactory());
         ClientHttpRequestInterceptor m2m = (req, body, exec) -> {
             if (M2M_ENABLED) {

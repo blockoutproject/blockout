@@ -99,6 +99,18 @@ REF-015 establishes Match ownership:
 - live-link persistence, user lookup, moderation policy, and RabbitMQ publication are isolated behind the Match
   application boundary without changing V1 routes, database tables, routing keys, or runtime rules.
 
+REF-016 establishes Notification ownership:
+
+- `notification-service` owns the complete User Notification representation: `id`, `userId`, `type`, `title`, `body`,
+  `deepLink`, `targetType`, `targetId`, `metadata`, `isRead`, `isOpened`, `createdAt`, `readAt`, and `openedAt`;
+- the gateway and mobile application mirror that representation at their real HTTP boundaries, including typed
+  notification values, structured metadata, UTC timestamps, and the `unread` count field;
+- push-token registration, follower projections, delivery attempts, Match and Follow messages, Team/Pool/User HTTP
+  mirrors, and Expo payloads remain explicit purpose-specific boundaries rather than duplicate Notification resources;
+- persistence, event listeners, Auth0 service authentication, internal HTTP clients, and the Expo provider are isolated
+  behind the Notification application boundary without changing V1 routes, database tables, queues, routing keys, or
+  provider behavior.
+
 The camelCase rule applies to transport names owned by Blockout:
 
 - REST request and response bodies;

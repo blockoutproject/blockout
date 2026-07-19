@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.blockout.mobilegateway.models.dto.club.ClubDTO;
 import com.blockout.mobilegateway.models.dto.competition.CompetitionAssociationDTO;
 import com.blockout.mobilegateway.models.dto.match.MatchDTO;
+import com.blockout.mobilegateway.models.dto.notification.UserNotificationDTO;
 import com.blockout.mobilegateway.models.dto.team.TeamDTO;
 import com.blockout.mobilegateway.models.dto.pool.PoolDTO;
 import com.blockout.mobilegateway.models.dto.user.CustomUserDTO;
@@ -16,6 +17,8 @@ import com.blockout.mobilegateway.models.enums.Gender;
 import com.blockout.mobilegateway.models.enums.EntityType;
 import com.blockout.mobilegateway.models.enums.LiveProvider;
 import com.blockout.mobilegateway.models.enums.MatchStatus;
+import com.blockout.mobilegateway.models.enums.NotificationTargetType;
+import com.blockout.mobilegateway.models.enums.NotificationType;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
@@ -138,6 +141,23 @@ class GatewayJsonContractCharacterizationTest {
                 "id", "matchCode", "leagueCode", "poolId", "liveCode", "teamIdA", "teamIdB", "matchDate",
                 "season", "set", "score", "status", "venue", "firstReferee", "secondReferee", "active",
                 "createdAt", "lastUpdate", "liveUrl", "liveProvider", "liveOwnerAuth0Id");
+    }
+
+    @Test
+    void mirrorsTheCompleteNotificationOwnedByNotificationService() {
+        Instant now = Instant.parse("2026-07-19T12:00:00Z");
+        UserNotificationDTO notification = UserNotificationDTO.builder()
+                .id(1L).userId(2L).type(NotificationType.MATCH_FINISHED).title("Result").body("Won")
+                .deepLink("/match/3").targetType(NotificationTargetType.MATCH).targetId(3L)
+                .metadata(objectMapper.createObjectNode().put("divisionId", 4L)).isRead(false).isOpened(false)
+                .createdAt(now).readAt(null).openedAt(null).build();
+
+        JsonNode json = objectMapper.findAndRegisterModules().valueToTree(notification);
+
+        assertThat(json.fieldNames()).toIterable().containsExactlyInAnyOrder(
+                "id", "userId", "type", "title", "body", "deepLink", "targetType", "targetId",
+                "metadata", "isRead", "isOpened", "createdAt", "readAt", "openedAt");
+        assertThat(json.path("metadata").path("divisionId").asLong()).isEqualTo(4L);
     }
 
     @Test

@@ -1,5 +1,5 @@
 import { CONFIG } from "@/src/config/config";
-import { EnrichedUserNotificationPage, RegisterPushTokenRequest } from "@/src/types/Notification";
+import { EnrichedUserNotificationPage, RegisterPushTokenRequest, UnreadCount } from "@/src/types/Notification";
 import { BaseApi } from "./core/BaseApi";
 
 export class NotificationApi extends BaseApi {
@@ -15,7 +15,7 @@ export class NotificationApi extends BaseApi {
     }
 
     public getUnreadNotificationsCount() {
-        return this.httpAuth.get<{ count: number }>("/notifications/unread-count");
+        return this.httpAuth.get<UnreadCount>("/notifications/unread-count");
     }
 
     public markNotificationRead(id: number) {

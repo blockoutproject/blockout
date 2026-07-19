@@ -1,6 +1,9 @@
 package com.blockout.mobilegateway.models.dto.notification;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.blockout.mobilegateway.models.enums.NotificationTargetType;
+import com.blockout.mobilegateway.models.enums.NotificationType;
+import java.time.Instant;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -21,13 +24,13 @@ public class EnrichedUserNotificationDTO {
 
     private Long userId;
 
-    private String type;
+    private NotificationType type;
     private String title;
     private String body;
 
     private String deepLink;
 
-    private String targetType;
+    private NotificationTargetType targetType;
 
     private Long targetId;
 
@@ -37,11 +40,11 @@ public class EnrichedUserNotificationDTO {
 
     private Boolean isOpened;
 
-    private String createdAt;
+    private Instant createdAt;
 
-    private String readAt;
+    private Instant readAt;
 
-    private String openedAt;
+    private Instant openedAt;
 
     private String divisionLogoUrl;
 }
