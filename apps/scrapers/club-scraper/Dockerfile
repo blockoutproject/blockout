@@ -1,8 +1,6 @@
-FROM ghcr.io/astral-sh/uv:0.11.29 AS uv
+FROM python:3.12-alpine AS builder
 
-FROM python:3.12-alpine AS workspace-builder
-
-COPY --from=uv /uv /uvx /bin/
+COPY --from=ghcr.io/astral-sh/uv:0.11.29 /uv /bin/uv
 
 WORKDIR /workspace
 
@@ -25,9 +23,7 @@ WORKDIR /app
 ENV TZ=UTC \
     PATH="/workspace/.venv/bin:$PATH"
 
-COPY --from=workspace-builder /workspace/.venv /workspace/.venv
-
-RUN python -c "import blockout_contract_clients.shared, blockout_contract_clients.config_service, blockout_contract_clients.clubs_service, blockout_contract_clients.teams_service, blockout_contract_clients.competition_service"
+COPY --from=builder /workspace/.venv /workspace/.venv
 
 COPY apps/scrapers/club-scraper/ .
 

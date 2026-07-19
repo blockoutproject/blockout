@@ -173,8 +173,11 @@ jobs:
       - name: Test Python contract client boundary
         run: npm exec nx run @blockout/python-contract-clients:test
 
-      - name: Validate generated Python enums
+      - name: Validate Python enum ownership
         run: npm run validate:python-enum-ownership
+
+      - name: Validate scraper container ownership
+        run: npm run validate:scraper-containers
 
       - name: Validate scraper syntax
         run: |

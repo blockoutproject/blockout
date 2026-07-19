@@ -5,6 +5,14 @@ The competition and club scrapers are standalone Python deployables represented 
 - Use the root Python 3.12 uv workspace, uv 0.11.29, its one ignored `.venv`, and its one committed `uv.lock`.
 - Keep each scraper's dependencies in its member `pyproject.toml`; do not restore scraper `requirements.txt` files.
 - Keep Dockerfile, scheduler, Auth0 client-credentials flow, proxy behavior, and Prometheus port owned by the scraper.
+- Keep each scraper image deliberately simple: one Python 3.12 builder, one Python 3.12 runtime, a direct copy of the
+  pinned uv binary into the builder, and exactly one locked package sync. Copy the resulting environment and the owning
+  application into the runtime; keep uv, Nx, generated-client validation, generic Docker helpers, and test tools out of
+  the final image.
+- Preserve the established image workdir, timezone, command, exposed ports, and Nx-owned image tags. Put structural,
+  dependency, import, and smoke verification in Nx, CI, or the local verifier instead of executable Dockerfile checks.
+- Runtime dependencies must be imported by production code. Do not retain `pytest`, `aioresponses`, `faker`, or an
+  empty development group merely to preserve a historical image distribution list.
 - Preserve scheduler frequency and enabled/disabled gating unless an explicit runtime task changes them.
 - Use async HTTP clients consistently and keep bounded timeouts and concurrency.
 - Never log tokens, credentials, proxy passwords, or raw sensitive responses.
@@ -59,4 +67,5 @@ After packaging or generated-client changes, prove Python 3.12 syntax/imports, d
 installation, adapter isolation, both root-context Docker image builds, and the behavior fixtures required by MRG-314.
 Use `@blockout/python-contract-clients:sync`, `:test`, and `:build` plus the scraper Nx targets as the authoritative
 command surface. `@nxlv/python` is pinned to 22.2.2 and may provide graph edges, uv sync, and `.venv` activation only;
-keep `inferDependencies` and experimental sync generators disabled.
+keep `inferDependencies` and experimental sync generators disabled. Run `validate:scraper-containers` after changing
+either Dockerfile or member dependency set.

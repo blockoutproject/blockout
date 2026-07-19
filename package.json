@@ -8,6 +8,7 @@
     "validate:docs": "node tools/scripts/validate-doc-links.mjs",
     "validate:backend-enums-generated": "node --test tools/scripts/validate-backend-enums-generated.test.mjs",
     "validate:python-enum-ownership": "node --test tools/scripts/validate-python-enum-ownership.test.mjs",
+    "validate:scraper-containers": "node --test tools/scripts/validate-scraper-containers.test.mjs",
     "validate:env": "node tools/scripts/validate-env-examples.mjs",
     "validate:generated-untracked": "node tools/scripts/validate-generated-artifacts-untracked.mjs",
     "validate:v1-adapter-isolation": "node --test tools/scripts/validate-v1-adapter-isolation.test.mjs",

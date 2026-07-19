@@ -48,9 +48,15 @@ rejects handwritten contract mirrors without a manual allowlist while permitting
 
 ## Docker And Runtime Parity
 
-Both Dockerfiles use a Python 3.12 builder with uv 0.11.29 and a Python 3.12 final stage. The selected scraper package
-is synced with `--locked --no-dev --no-editable`; the resulting environment is copied to the final image, which has no
-uv binary. `WORKDIR=/app`, `TZ=UTC`, `CMD ["python", "main.py"]`, exposed ports, and existing target tags are preserved.
+MRG-433 originally used a separate uv source stage, a Python builder, and a Python final stage. MRG-436 supersedes that
+container shape with one Python 3.12 builder and one Python 3.12 runtime: the pinned uv binary is copied directly into
+the builder, the selected package is synced once with `--locked --no-dev --no-editable`, and the resulting environment
+is copied to the final image. uv, Nx, test tools, and executable validation remain outside the runtime image.
+
+`WORKDIR=/app`, `TZ=UTC`, `CMD ["python", "main.py"]`, exposed ports, and existing target tags remain preserved. The
+MRG-433 distribution table below is historical completion evidence, not a requirement to retain unused packages.
+MRG-436 requires behavioral runtime parity and explicitly removes unused `pytest`, `aioresponses`, and `faker`
+distributions plus their now-unneeded transitive dependencies.
 
 The before/after image comparison excludes only bootstrap `pip`, `setuptools`, and `wheel` distributions:
 
@@ -74,6 +80,7 @@ and integer enum values. No generated source, wheel, `.venv`, or cache is tracke
 
 If the plugin graph, uv resolver, wheel, Docker runtime, or deterministic generation regresses, revert MRG-433 as one
 unit: remove the plugin and root Python workspace metadata, restore the two scraper `requirements.txt` files and prior
-Docker stages, restore the old CI/local commands, and restore the prior enum ownership. Generated outputs require no Git
-cleanup because they remain ignored. No production rollback or data migration is required because MRG-433 changes no
-deployed behavior or persistent state.
+Docker stages as historical source, restore the old CI/local commands, and restore the prior enum ownership. MRG-435
+and MRG-436 are later independent corrections and must be evaluated before applying that historical rollback literally.
+Generated outputs require no Git cleanup because they remain ignored. No production rollback or data migration is
+required because MRG-433 changes no deployed behavior or persistent state.

@@ -211,6 +211,11 @@ MRG-433 makes both scraper Docker builds consume the committed workspace lock in
 uv 0.11.29. Each builder syncs only its scraper package with `--locked --no-dev --no-editable`; the final image copies
 the resulting environment, contains no uv binary, and then copies only its owning scraper source.
 
+MRG-436 narrows that packaging to the simple two-stage service pattern: one Python builder copies the pinned uv binary
+directly from the official image and performs the one locked sync, then one Python runtime receives the environment and
+application. Nx, import probes, generic helper scripts, and test tools stay outside Docker. Runtime behavioral parity,
+not preservation of unused historical distributions, is the acceptance rule.
+
 The wheel is local and immutable within the image build. It is not published to PyPI or another external package
 registry. Docker cache boundaries must invalidate when the Python client source, wheel metadata, REST bundle, generator
 configuration, or scraper requirements change. Standalone scraper repositories remain untouched.
@@ -225,6 +230,7 @@ configuration, or scraper requirements change. Standalone scraper repositories r
 | MRG-349 | replace the competition scraper's eighteen Blockout operations with thin generated `httpx` client adapters; delete only their legacy request/response conversion paths             |
 | MRG-433 | own the root uv workspace, seventh shared model namespace, Python Nx project/edges, generated-enum guard, locked Docker packaging, and CI command migration                        |
 | MRG-435 | correct enum ownership, restore local `DataSourcePriority`, and replace the blanket enum ban with a contract-derived mirror guard                                                  |
+| MRG-436 | simplify scraper containers to one builder and one runtime, remove unused runtime test tools, and enforce the shape outside Docker                                                 |
 | MRG-601 | audit post-migration boundaries, shared adapter reuse, session ownership, scheduler/proxy behavior, and separation of the eleven provider/federation calls                         |
 | MRG-802 | enforce pinned generation, wheel build, ignored-output determinism, syntax, adapter isolation, and both root-context scraper image builds in CI                                    |
 

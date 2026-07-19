@@ -1728,10 +1728,20 @@ state moves to GitHub and this file becomes a historical migration record.
     manifest stability, and lockfile check; both images retain `/app`, `TZ=UTC`, `python main.py`, the runtime imports,
     and remain alive after an offline placeholder-environment smoke. Documentation, Prettier, Maaatch comparison, and
     Git whitespace checks pass.
-- [ ] MRG-436 Simplify both scraper containers around the `matches-service` builder/runtime shape while retaining the
+- [x] MRG-436 Simplify both scraper containers around the `matches-service` builder/runtime shape while retaining the
       three-member uv workspace and narrow Nx integration: use one locked package sync, keep Nx and validation outside
       Docker, remove unused test tools from runtime dependencies, preserve the image contract, and prove runtime rather
       than historical distribution parity.
+  - Evidence: each Dockerfile now has one Python 3.12 builder, one Python 3.12 runtime, a direct pinned uv 0.11.29
+    binary copy, and exactly one locked package sync; the final images contain neither uv, Nx validation, nor the
+    unused `pytest`, `aioresponses`, and `faker` distributions. The committed lock resolves 41 packages, the competition
+    and club images contain 38 and 36 runtime distributions respectively, and retained direct dependency versions are
+    unchanged. Both Nx graph edges to `@blockout/python-contract-clients`, all 24 Python fixtures, wheel build/import,
+    enum ownership, syntax checks, and the four container-ownership tests pass. Both images preserve Python 3.12.13,
+    `/app`, `TZ=UTC`, `python main.py`, tags, generated-client and adapter imports, and remain alive for five seconds
+    without networking under placeholder configuration. The complete local verifier passes deterministic generation,
+    the 16-module backend reactor, mobile export, Docker builds, Compose, final manifest and ignored-output checks;
+    documentation, locked npm installation, Maaatch comparison, Prettier, and Git whitespace checks pass.
 - [ ] MRG-437 Approve the version-authority and command-versus-fact architecture required by MRG-438 through MRG-442,
       MRG-430, and MRG-429 without changing runtime or contract sources.
   - Execution mode: PLAN_REQUIRED

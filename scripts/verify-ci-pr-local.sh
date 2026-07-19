@@ -187,6 +187,7 @@ npm exec nx run @blockout/mobile:typecheck
 npm exec nx run @blockout/mobile:export --platform=android
 
 echo "== Scrapers =="
+npm run validate:scraper-containers
 npm exec nx run @blockout/python-contract-clients:test
 npm exec nx run @blockout/python-contract-clients:build
 PYTHON_CLIENT_WHEELS=(libs/shared/contracts/clients/python/dist/*.whl)
