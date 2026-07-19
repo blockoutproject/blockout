@@ -3,6 +3,7 @@ package com.blockout.mobilegateway;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.blockout.mobilegateway.models.dto.club.ClubDTO;
+import com.blockout.mobilegateway.models.dto.competition.CompetitionAssociationDTO;
 import com.blockout.mobilegateway.models.dto.team.TeamDTO;
 import com.blockout.mobilegateway.models.dto.pool.PoolDTO;
 import com.blockout.mobilegateway.models.dto.config.RawDivisionMappingDTO;
@@ -110,5 +111,27 @@ class GatewayJsonContractCharacterizationTest {
         assertThat(json.fieldNames()).toIterable().containsExactlyInAnyOrder(
                 "id", "poolCode", "leagueCode", "season", "leagueName", "rawName", "name", "shortName",
                 "divisionId", "format", "gender", "followersCount", "active", "createdAt", "lastUpdate");
+    }
+
+    @Test
+    void mirrorsTheCompleteCompetitionAssociationOwnedByCompetitionService() {
+        LocalDateTime now = LocalDateTime.of(2026, 7, 19, 12, 0);
+        CompetitionAssociationDTO association = CompetitionAssociationDTO.builder()
+                .id(1L).poolId(2L).teamId(3L).clubId("club-1").active(true)
+                .points(9).played(3).wins(3).losses(0)
+                .winsThreeToZero(1).winsThreeToOne(1).winsThreeToTwo(1)
+                .lossesZeroToThree(0).lossesOneToThree(0).lossesTwoToThree(0)
+                .wonSets(9).lostSets(3).wonPoints(250).lostPoints(210).pointsPenalty(0)
+                .coefSets(3.0).coefPoints(1.19).createdAt(now).lastUpdate(now)
+                .build();
+
+        JsonNode json = objectMapper.findAndRegisterModules().valueToTree(association);
+
+        assertThat(json.fieldNames()).toIterable().containsExactlyInAnyOrder(
+                "id", "poolId", "teamId", "clubId", "active", "points", "played", "wins", "losses",
+                "winsThreeToZero", "winsThreeToOne", "winsThreeToTwo", "lossesZeroToThree", "lossesOneToThree",
+                "lossesTwoToThree", "wonSets", "lostSets", "wonPoints", "lostPoints", "pointsPenalty",
+                "coefSets", "coefPoints", "createdAt", "lastUpdate");
+        assertThat(json.path("clubId").asText()).isEqualTo("club-1");
     }
 }

@@ -2,7 +2,9 @@ import asyncio
 
 import pytest
 
-from api import config_api, pools_api, teams_api
+from api import competitions_api, config_api, pools_api, teams_api
+from models.association_stats import AssociationStats
+from models.competition_association import CompetitionAssociation
 from models.scraper_status import ScraperStatus
 from models.raw_division_mapping import RawDivisionMapping
 from models.team import Team
@@ -24,6 +26,10 @@ class RecordingSession:
 
     async def post(self, url, **kwargs):
         self.calls.append(("POST", url, kwargs))
+        return RecordingResponse()
+
+    async def put(self, url, **kwargs):
+        self.calls.append(("PUT", url, kwargs))
         return RecordingResponse()
 
 
@@ -152,3 +158,75 @@ def test_reads_and_writes_the_authoritative_raw_division_mapping_contract():
         "leagueCode": "LNV",
         "season": "2026/2027",
     }
+
+
+def test_reads_the_complete_competition_association_contract():
+    payload = {
+        "id": 1,
+        "poolId": 2,
+        "teamId": 3,
+        "clubId": "club-1",
+        "active": True,
+        "points": 9,
+        "played": 3,
+        "wins": 3,
+        "losses": 0,
+        "winsThreeToZero": 1,
+        "winsThreeToOne": 1,
+        "winsThreeToTwo": 1,
+        "lossesZeroToThree": 0,
+        "lossesOneToThree": 0,
+        "lossesTwoToThree": 0,
+        "wonSets": 9,
+        "lostSets": 3,
+        "wonPoints": 250,
+        "lostPoints": 210,
+        "pointsPenalty": 0,
+        "coefSets": 3.0,
+        "coefPoints": 1.19,
+        "createdAt": "2026-07-19T12:30:00",
+        "lastUpdate": "2026-07-19T12:30:00",
+    }
+
+    association = convert_to_dataclass(payload, CompetitionAssociation)
+
+    assert set(payload) == set(CompetitionAssociation.__dataclass_fields__)
+    assert association.clubId == "club-1"
+    assert association.createdAt.isoformat() == "2026-07-19T12:30:00"
+
+
+def test_writes_only_the_competition_stats_boundary(monkeypatch):
+    async def scenario():
+        monkeypatch.setattr(competitions_api, "COMPETITION_API_URL", "http://competition.local/v1")
+        monkeypatch.setattr(competitions_api, "_get_headers", lambda: {"Authorization": "Bearer test"})
+        session = RecordingSession()
+        stats = AssociationStats(
+            played=3,
+            wins=2,
+            losses=1,
+            points=7,
+            winsThreeToZero=1,
+            winsThreeToOne=1,
+            winsThreeToTwo=0,
+            lossesZeroToThree=0,
+            lossesOneToThree=1,
+            lossesTwoToThree=0,
+            wonSets=7,
+            lostSets=4,
+            wonPoints=240,
+            lostPoints=220,
+            pointsPenalty=0,
+            coefSets=1.75,
+            coefPoints=1.09,
+        )
+
+        await competitions_api.update_team_association_stats.__wrapped__(session, 10, 20, stats)
+
+        method, url, kwargs = session.calls[0]
+        assert method == "PUT"
+        assert url == "http://competition.local/v1/pools/10/teams/20/stats"
+        assert set(kwargs["json"]) == set(competitions_api.ASSOCIATION_STATS_WRITE_FIELDS)
+        assert kwargs["json"]["winsThreeToZero"] == 1
+        assert "wins_three_to_zero" not in kwargs["json"]
+
+    asyncio.run(scenario())

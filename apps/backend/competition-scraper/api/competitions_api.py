@@ -1,12 +1,31 @@
 from typing import Optional, List
 import aiohttp
 from config.env_config import COMPETITION_API_URL
-from config.logger_config import log_event
 from models.association_stats import AssociationStats
 from models.competition_association import CompetitionAssociation
 from utils.handlers.api_handler import handle_api_response
 from api.auth0 import _get_headers
-from utils.utils import to_dict
+
+
+ASSOCIATION_STATS_WRITE_FIELDS = (
+    "played",
+    "wins",
+    "losses",
+    "points",
+    "winsThreeToZero",
+    "winsThreeToOne",
+    "winsThreeToTwo",
+    "lossesZeroToThree",
+    "lossesOneToThree",
+    "lossesTwoToThree",
+    "wonSets",
+    "lostSets",
+    "wonPoints",
+    "lostPoints",
+    "pointsPenalty",
+    "coefSets",
+    "coefPoints",
+)
 
 
 @handle_api_response(response_type=list[CompetitionAssociation])
@@ -83,5 +102,6 @@ async def update_team_association_stats(
     """
     headers = _get_headers()
     url = f"{COMPETITION_API_URL}/pools/{poolId}/teams/{teamId}/stats"
-    response = await session.put(url, json=to_dict(stats), headers=headers)
+    payload = {field: getattr(stats, field) for field in ASSOCIATION_STATS_WRITE_FIELDS}
+    response = await session.put(url, json=payload, headers=headers)
     return response

@@ -72,7 +72,7 @@
   - Separate handwritten Pool transport, application, persistence, and messaging boundaries.
   - Align complete Pool mirrors while preserving V1 routes, schema, events, scraper writes, and runtime behavior.
 
-- [ ] **REF-013 — Refactor competition-service and establish authoritative Competition ownership**
+- [x] **REF-013 — Refactor competition-service and establish authoritative Competition ownership**
   - Separate Competition transport, application, persistence, cascade, and messaging boundaries.
   - Align complete Competition mirrors while preserving V1 routes, schema, events, scraper writes, and runtime behavior.
 

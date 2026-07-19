@@ -65,6 +65,17 @@ REF-012 establishes Pool ownership:
 - `PoolUpsertEvent`, deactivation commands, rankings, enriched BFF views, and search documents remain intentionally
   smaller purpose-specific models.
 
+REF-013 establishes Competition Association ownership:
+
+- `competition-service` owns the complete Competition Association representation: `id`, `poolId`, `teamId`, `clubId`,
+  `active`, `points`, `played`, `wins`, `losses`, `winsThreeToZero`, `winsThreeToOne`, `winsThreeToTwo`,
+  `lossesZeroToThree`, `lossesOneToThree`, `lossesTwoToThree`, `wonSets`, `lostSets`, `wonPoints`, `lostPoints`,
+  `pointsPenalty`, `coefSets`, `coefPoints`, `createdAt`, and `lastUpdate`;
+- the gateway and competition scraper mirror that complete representation wherever they deserialize the association
+  HTTP resource;
+- bulk-deactivation requests, cascade commands, team rankings, and pool-with-ranking responses remain intentionally
+  smaller purpose-specific models.
+
 The camelCase rule applies to transport names owned by Blockout:
 
 - REST request and response bodies;
