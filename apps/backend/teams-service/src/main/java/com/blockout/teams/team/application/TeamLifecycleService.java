@@ -14,26 +14,31 @@ import org.springframework.transaction.annotation.Transactional;
 public class TeamLifecycleService {
     private static final Logger LOGGER = LoggerFactory.getLogger(TeamLifecycleService.class);
     private final TeamLifecycleStore store;
+    private final TeamEventPublisher eventPublisher;
 
     @Transactional
     public void deactivate(Long id) {
-        if (!store.deactivate(id)) {
-            throw notFound(id);
+        TeamChange change = store.deactivate(id).orElseThrow(() -> notFound(id));
+        if (change.changed()) {
+            eventPublisher.publishProjection(TeamEventData.from(change.after()));
         }
         LOGGER.info("Team successfully deactivated", keyValue("action", "deactivate_team"), keyValue("teamId", id));
     }
 
     @Transactional
     public void deactivateByClubId(String clubId) {
-        List<Long> teamIds = store.deactivateByClubId(clubId);
-        if (teamIds.isEmpty()) {
+        List<TeamChange> changes = store.deactivateByClubId(clubId);
+        if (changes.isEmpty()) {
             LOGGER.warn("No active teams found for club", keyValue("action", "deactivate_teams_by_club"),
                     keyValue("clubId", clubId));
             return;
         }
-        teamIds.forEach(teamId -> LOGGER.info("Team deactivated as part of club deactivation",
-                keyValue("action", "deactivate_teams_by_club"), keyValue("teamId", teamId),
-                keyValue("clubId", clubId)));
+        changes.forEach(change -> {
+            eventPublisher.publishProjection(TeamEventData.from(change.after()));
+            LOGGER.info("Team deactivated as part of club deactivation",
+                    keyValue("action", "deactivate_teams_by_club"), keyValue("teamId", change.after().id()),
+                    keyValue("clubId", clubId));
+        });
     }
 
     private TeamNotFoundException notFound(Long id) {

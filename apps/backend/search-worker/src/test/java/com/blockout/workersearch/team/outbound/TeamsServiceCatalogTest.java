@@ -69,7 +69,7 @@ class TeamsServiceCatalogTest {
                         {"items":[{"id":1,"clubId":"club-1","rawName":"Raw","name":"Team",
                         "shortName":"TM","leagueCode":"L1","divisionId":2,"season":"2026",
                         "format":"SIX","gender":"M","followersCount":3,"logoUrl":"https://logo",
-                        "active":true}],"pageInfo":{"page":0,"pageSize":100,"totalItems":1,"hasNext":false}}
+                        "active":true,"revision":0}],"pageInfo":{"page":0,"pageSize":100,"totalItems":1,"hasNext":false}}
                         """, MediaType.APPLICATION_JSON));
 
         assertThat(catalog.findActiveTeams()).containsExactly(snapshot(1L, "Team"));
@@ -89,7 +89,7 @@ class TeamsServiceCatalogTest {
     private TeamInternalResponse response(Long id, String name) {
         return new TeamInternalResponse().id(id).clubId("club-1").rawName("Raw").name(name).shortName("TM")
                 .leagueCode("L1").divisionId(2L).season("2026").format(FormatEnum.SIX).gender(GenderEnum.M)
-                .followersCount(3L).logoUrl("https://logo").active(true);
+                .followersCount(3L).logoUrl("https://logo").active(true).revision(0L);
     }
 
     private TeamSnapshot snapshot(Long id, String name) {

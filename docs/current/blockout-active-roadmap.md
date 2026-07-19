@@ -1788,9 +1788,17 @@ state moves to GitHub and this file becomes a historical migration record.
     dependency, and image slices. Documentation links and formatting, Maaatch comparison, the complete local verifier,
     the 16-module backend reactor, mobile export, 24 Python tests, both scraper image builds, Compose validation,
     generated-output ownership, and Git whitespace checks pass; runtime and production remain unchanged.
-- [ ] MRG-441 Add a persisted optimistic revision and transactional owner projection facts to `teams-service`, using
+- [x] MRG-441 Add a persisted optimistic revision and transactional owner projection facts to `teams-service`, using
       post-flush versions and treating direct or club-cascade repeated deactivation as a no-op while preserving every
       existing event route.
+  - Evidence: `docs/migration/mrg-441-team-revision-event.md` records the feature-first implementation, Flyway V7,
+    owner-only JPA `@Version`, post-flush event data, internal snapshot revision, canonical-only owner event, unchanged
+    mobile shape, and retained coexistence routes. Direct and club-cascade repeated deactivation are proven no-ops.
+    The teams-service and search-worker reactor passes 53 tests; REST and event contracts, optimistic locking, Flyway,
+    outbox, services, adapters, 24 Python contract-client tests, and two clean deterministic generations pass. The full
+    local verifier, both scraper image builds, mobile export, generated-output guard, documentation, Prettier, Maaatch
+    comparison, and Git whitespace checks pass; no consumer, queue, binding, broker, deployment, production, MRG-9xx,
+    or MRG-1000 action occurs.
 - [ ] MRG-442 Add a persisted optimistic revision and transactional owner projection facts to `pools-service`, using
       post-flush versions and treating repeated deactivation as a no-op while preserving every existing event route.
 - [ ] MRG-430 Implement active documents and tombstones with non-regressing club, team/club/division, and pool/division

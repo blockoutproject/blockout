@@ -4,8 +4,8 @@
 - Owner: `teams-service`
 - Feature family: team catalog, logo storage, scraper-facing REST, follower projection, lifecycle cascade, and events
 - REST operations: `TEAM-01` through `TEAM-08`
-- Event routes: `team.upsert`, `team.upsert.v2`, `team.deactivation`, `team.deactivation.v2`, `club.deactivation`, and
-  `club.deactivation.v2`
+- Event routes: `team.upsert`, `team.upsert.v2`, `team.projection-changed.v2`, `team.deactivation`,
+  `team.deactivation.v2`, `club.deactivation`, and `club.deactivation.v2`
 - Production effect: none
 
 ## Purpose
@@ -23,14 +23,14 @@ favorite authority.
 
 ## Ownership
 
-| Concern             | Inbound adapter                                                | Application roles                                                                               | Outbound adapter                                                   |
-| ------------------- | -------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
-| Team catalog        | legacy v1 and generated v2 controllers/mappers                 | create/update commands, views, pages, update plan/change/handle, `TeamStore`, and `TeamService` | `JpaTeamStore`, entity, repository, and strict persistence mapper  |
-| Team logos          | multipart-to-domain conversion in the HTTP adapter             | `TeamLogoChange` and `TeamLogoStorage`                                                          | `S3TeamLogoStorage`                                                |
-| Follower projection | legacy v1 and generated v2 follower controllers                | `TeamFollowerCommand`, `TeamFollowerStore`, and `TeamFollowerProjectionService`                 | `JpaTeamStore` counter update                                      |
-| Lifecycle           | REST delete plus retained v1 and generated v2 Rabbit listeners | `TeamLifecycleStore` and `TeamLifecycleService`                                                 | `JpaTeamStore` direct and club-cascade writes                      |
-| Event production    | team create/update application flow                            | minimal `TeamUpsertFact` and `TeamEventPublisher`                                               | role mapper plus `OutboxTeamEventPublisher` for retained v1 and v2 |
-| Compatibility       | v1 snake-case JSON and v2 generated canonical server           | role-owned commands and views shared only after transport mapping                               | existing compatibility telemetry and MRG-304 rollout properties    |
+| Concern             | Inbound adapter                                                | Application roles                                                                               | Outbound adapter                                                  |
+| ------------------- | -------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| Team catalog        | legacy v1 and generated v2 controllers/mappers                 | create/update commands, views, pages, update plan/change/handle, `TeamStore`, and `TeamService` | `JpaTeamStore`, entity, repository, and strict persistence mapper |
+| Team logos          | multipart-to-domain conversion in the HTTP adapter             | `TeamLogoChange` and `TeamLogoStorage`                                                          | `S3TeamLogoStorage`                                               |
+| Follower projection | legacy v1 and generated v2 follower controllers                | `TeamFollowerCommand`, `TeamFollowerStore`, and `TeamFollowerProjectionService`                 | `JpaTeamStore` counter update                                     |
+| Lifecycle           | REST delete plus retained v1 and generated v2 Rabbit listeners | `TeamLifecycleStore` and `TeamLifecycleService`                                                 | `JpaTeamStore` direct and club-cascade writes                     |
+| Event production    | team catalog and lifecycle application flows                   | one `TeamEventData` record and `TeamEventPublisher`                                             | role mapper plus `OutboxTeamEventPublisher`                       |
+| Compatibility       | v1 snake-case JSON and v2 generated canonical server           | role-owned commands and views shared only after transport mapping                               | existing compatibility telemetry and MRG-304 rollout properties   |
 
 `TeamLogoUpload` is the only domain value because it owns invariants independently of HTTP and S3: defensive byte
 ownership, PNG/JPEG content type, and the five-megabyte limit. Simple catalog, lifecycle, and projection data remains
@@ -51,8 +51,8 @@ The following behavior remains unchanged:
 - legacy ordering remains repository-defined while canonical pages remain stable by raw name then identifier;
 - update preserves null fields and can reactivate a team;
 - logo replacement or removal deletes an existing owned object before optional upload and persistence;
-- create and update record both upsert wire versions in the same application transaction; and
-- direct and cascade deactivation remain soft writes and emit no new outbound event.
+- create and update record both upsert wire versions and the owner projection fact in the same transaction; and
+- effective direct and cascade deactivations remain soft writes and record one post-flush owner fact per changed team.
 
 The S3 adapter keeps the existing `teams/{uuid}-{filename}` key, public URL construction, credentials, region, bucket,
 content type, foreign-URL delete guard, and AWS SDK behavior. No object is copied, renamed, or deleted by this task.
@@ -71,10 +71,10 @@ reconciliation, and rebuildability.
 
 ## Event Boundaries
 
-Create and update publish a minimal `TeamUpsertFact` instead of exposing the complete team view to the event adapter.
-`TeamEventMapper` alone maps that fact and one `OutboxMetadata` identity to the retained v1 message and generated
-`TeamUpsertV2Event`. `OutboxTeamEventPublisher` records both routing keys atomically through the unchanged shared
-outbox.
+Create, update, and effective deactivation pass one `TeamEventData` application record to the event port instead of
+exposing the complete team view or generated transport. `TeamEventMapper` alone maps that data to the retained v1
+upsert, generated `TeamUpsertV2Event`, or generated `TeamProjectionChangedV2Event`. The outbox adapter records retained
+upserts as dual-wire rows and owner facts as canonical-only rows.
 
 Inbound v1 and v2 team/club deactivation messages remain on their existing queues and opposite rollout defaults. The
 generated v2 records are decoded and validated inside the Rabbit adapter, then narrowed to role-owned event ID, type,
@@ -84,8 +84,8 @@ changes.
 
 ## Persistence, Compatibility, And Removal
 
-Flyway history, table/column names, timestamps, indexes, outbox and consumed-event storage, repository queries, and
-MapStruct rules are unchanged. No migration or data rewrite is required.
+Flyway V7 adds the owner revision and permits complete canonical-only outbox rows while retaining all previous table,
+timestamp, index, consumed-event, query, and mapping behavior. No data rewrite is required.
 
 Generic `services`, `listeners`, `utils`, and cross-feature exception locations are removed after their behavior moves
 atomically into application, persistence, storage, event, or shared-application owners. The historical
@@ -95,9 +95,10 @@ lineage and MRG-304 traffic, observation, rollback, and retirement gates permit 
 
 ## Verification And Rollback
 
-Eighteen focused teams-service tests cover catalog defaults and updates, logo intent and invariants, stable paging,
-follower zero floor, legacy JSON, generated v2 boundaries, shared v1/v2 outbox identity and historic payload type,
-generated lifecycle-event narrowing, metadata validation, and retained queue topology.
+Focused teams-service tests cover catalog defaults and updates, logo intent and invariants, stable paging, follower
+zero floor, owner revisions, direct and cascade lifecycle no-ops, optimistic locking, Flyway constraints, legacy JSON,
+generated v2 boundaries, shared v1/v2 outbox identity, canonical-only owner facts, generated lifecycle-event narrowing,
+metadata validation, and retained queue topology.
 
 Validation commands:
 
@@ -107,6 +108,7 @@ mvn -f apps/backend/pom.xml -DskipTests clean package
 NX_DAEMON=false ./scripts/verify-ci-pr-local.sh --skip-install
 ```
 
-Rollback is a code-only teams-service image revert. Both REST versions, both event versions, Flyway history, database
-data, S3 keys, Rabbit topology, and environment values remain compatible with the previous image. Production and
-favorite authority are unchanged.
+Rollback reverts the MRG-441 code and contract sources. If Flyway V7 has run, the additive revision column and relaxed
+legacy outbox nullability remain compatible with the previous image. Both REST versions, retained event routes,
+database data, S3 keys, Rabbit topology, and environment values remain compatible. Production and favorite authority
+are unchanged.

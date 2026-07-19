@@ -144,6 +144,7 @@ def team_response(identifier: int = 11):
         followers_count=2,
         logo_url=None,
         active=True,
+        revision=0,
     )
 
 

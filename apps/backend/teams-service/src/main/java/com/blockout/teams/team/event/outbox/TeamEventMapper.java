@@ -1,19 +1,21 @@
 package com.blockout.teams.team.event.outbox;
 
 import com.blockout.events.v2.model.EventType;
+import com.blockout.events.v2.model.TeamProjectionChangedV2Event;
+import com.blockout.events.v2.model.TeamProjectionChangedV2Payload;
 import com.blockout.events.v2.model.TeamUpsertV2Event;
 import com.blockout.events.v2.model.TeamUpsertV2Payload;
 import com.blockout.outbox.OutboxMetadata;
 import com.blockout.shared.model.FormatEnum;
 import com.blockout.shared.model.GenderEnum;
 import com.blockout.teams.models.events.TeamUpsertEvent;
-import com.blockout.teams.team.application.TeamUpsertFact;
+import com.blockout.teams.team.application.TeamEventData;
 import org.springframework.stereotype.Component;
 
 @Component
 class TeamEventMapper {
 
-    TeamEventMessages map(TeamUpsertFact team, OutboxMetadata metadata) {
+    TeamEventMessages map(TeamEventData team, OutboxMetadata metadata) {
         var legacy = TeamUpsertEvent.builder()
                 .id(team.id())
                 .name(team.name())
@@ -38,5 +40,20 @@ class TeamEventMapper {
                 OutboxTeamEventPublisher.PRODUCER,
                 OutboxTeamEventPublisher.VERSION);
         return new TeamEventMessages(legacy, canonical);
+    }
+
+    TeamProjectionChangedV2Event mapProjection(TeamEventData team, OutboxMetadata metadata) {
+        return new TeamProjectionChangedV2Event(
+                team.revision(),
+                metadata.correlationId(),
+                metadata.eventId(),
+                EventType.TEAM_PROJECTION_CHANGED,
+                metadata.occurredAt(),
+                "team:" + team.id(),
+                new TeamProjectionChangedV2Payload(
+                        team.id(), team.name(), team.shortName(), team.clubId(), team.divisionId(),
+                        team.format().getValue(), team.gender().getValue(), team.season(), team.logoUrl(), team.active()),
+                OutboxTeamEventPublisher.PRODUCER,
+                OutboxTeamEventPublisher.VERSION);
     }
 }

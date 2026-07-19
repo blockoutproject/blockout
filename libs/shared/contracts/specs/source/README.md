@@ -151,9 +151,10 @@ MRG-319 makes `services/teams` authoritative for the eight canonical teams-servi
 and allocated by MRG-304. The bundle covers filtered team reads, clean JSON creation, typed multipart update, soft
 deactivation, club-ID discovery, and the two follower-projection mutations under `/api/v2/teams/**`.
 
-`TeamInternalResponse` retains the thirteen owner, classification, follower, image, and lifecycle fields required by
-proven consumers while omitting persistence timestamps and BFF-derived club coordinates or fallback images. Team and
-club-ID collections use typed page responses and deterministic raw-name/identifier or club-identifier ordering.
+`TeamInternalResponse` retains the owner, classification, follower, image, lifecycle, and owner-revision fields
+required by proven consumers while omitting persistence timestamps and BFF-derived club coordinates or fallback
+images. Team and club-ID collections use typed page responses and deterministic raw-name/identifier or
+club-identifier ordering.
 Compatibility scraper, BFF, and worker adapters aggregate all pages before exposing a legacy complete-list result.
 
 Creation contains only caller-owned team identity and classification fields; server identity, follower count, active

@@ -625,9 +625,24 @@ test('workspace teams contract reconciles the eight audited operations', async (
       'logoUrl',
       'name',
       'rawName',
+      'revision',
       'season',
       'shortName',
     ],
+  );
+  assert.deepEqual(
+    teams.components.schemas.TeamInternalResponse.properties.revision,
+    {
+      type: 'integer',
+      format: 'int64',
+      minimum: 0,
+      description:
+        'Teams-service-owned optimistic revision used by projection facts and internal reconciliation.',
+    },
+  );
+  assert.equal(
+    teams.components.schemas.TeamInternalResponse.required.includes('revision'),
+    true,
   );
 
   const createSchema = teams.components.schemas.CreateTeamInternalRequest;
@@ -2022,6 +2037,10 @@ test('workspace mobile gateway contract separates the nine club team and pool wo
   );
   assert.equal(
     gateway.components.schemas.MobileTeamDetail.properties.club,
+    undefined,
+  );
+  assert.equal(
+    gateway.components.schemas.MobileTeamDetail.properties.revision,
     undefined,
   );
   assert.deepEqual(

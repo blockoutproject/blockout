@@ -13,6 +13,7 @@ import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
+import jakarta.persistence.Version;
 import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -73,6 +74,10 @@ public class TeamEntity {
     @Builder.Default
     @Column(name = "active", nullable = false)
     private Boolean active = true;
+
+    @Version
+    @Column(nullable = false)
+    private long revision;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;

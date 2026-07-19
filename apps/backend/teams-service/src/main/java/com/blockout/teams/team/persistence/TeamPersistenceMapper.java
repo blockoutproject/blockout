@@ -20,16 +20,19 @@ public interface TeamPersistenceMapper {
     @Mapping(target = "followersCount", ignore = true)
     @Mapping(target = "logoUrl", ignore = true)
     @Mapping(target = "active", ignore = true)
+    @Mapping(target = "revision", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "lastUpdate", ignore = true)
     TeamEntity toEntity(CreateTeamCommand command);
 
+    @Mapping(target = "revision", ignore = true)
     TeamEntity toEntity(LegacyCreateTeamCommand command);
 
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "followersCount", ignore = true)
     @Mapping(target = "logoUrl", ignore = true)
+    @Mapping(target = "revision", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "lastUpdate", ignore = true)
     void apply(UpdateTeamCommand command, @MappingTarget TeamEntity entity);

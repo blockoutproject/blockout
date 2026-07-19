@@ -356,6 +356,7 @@ test('reconciles all eleven routes and nineteen primary queues without orphan ac
     'pool.upsert.v2',
     'team.deactivation.v2',
     'team.follow.v2',
+    'team.projection-changed.v2',
     'team.upsert.v2',
   ]);
   const declaredQueues = roots.flatMap(
@@ -364,11 +365,6 @@ test('reconciles all eleven routes and nineteen primary queues without orphan ac
   assert.equal(declaredQueues.length, 14);
   assert.equal(new Set(declaredQueues).size, 14);
   assert.ok(!JSON.stringify(roots).includes('teambypool.deactivation.v2'));
-  assert.ok(
-    !JSON.stringify(rootsByName.get('teams-service')).includes(
-      'team.projection-changed.v2',
-    ),
-  );
   assert.ok(
     !JSON.stringify(rootsByName.get('pools-service')).includes(
       'pool.projection-changed.v2',

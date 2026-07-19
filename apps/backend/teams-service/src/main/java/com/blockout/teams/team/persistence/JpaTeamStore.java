@@ -33,12 +33,12 @@ public class JpaTeamStore implements TeamStore, TeamFollowerStore, TeamLifecycle
         TeamEntity entity = mapper.toEntity(command);
         entity.setFollowersCount(0L);
         entity.setActive(true);
-        return mapper.toView(repository.save(entity));
+        return mapper.toView(repository.saveAndFlush(entity));
     }
 
     @Override
     public TeamView createLegacy(LegacyCreateTeamCommand command) {
-        return mapper.toView(repository.save(mapper.toEntity(command)));
+        return mapper.toView(repository.saveAndFlush(mapper.toEntity(command)));
     }
 
     @Override
@@ -92,19 +92,23 @@ public class JpaTeamStore implements TeamStore, TeamFollowerStore, TeamLifecycle
     }
 
     @Override
-    public boolean deactivate(Long id) {
+    public Optional<TeamChange> deactivate(Long id) {
         return repository.findById(id).map(entity -> {
+            TeamView before = mapper.toView(entity);
+            if (Boolean.FALSE.equals(entity.getActive())) {
+                return new TeamChange(before, before);
+            }
             entity.setActive(false);
-            repository.save(entity);
-            return true;
-        }).orElse(false);
+            return new TeamChange(before, mapper.toView(repository.saveAndFlush(entity)));
+        });
     }
 
     @Override
-    public List<Long> deactivateByClubId(String clubId) {
+    public List<TeamChange> deactivateByClubId(String clubId) {
         return repository.findByClubIdAndActiveTrue(clubId).stream().map(entity -> {
+            TeamView before = mapper.toView(entity);
             entity.setActive(false);
-            return repository.save(entity).getId();
+            return new TeamChange(before, mapper.toView(repository.saveAndFlush(entity)));
         }).toList();
     }
 
@@ -127,7 +131,7 @@ public class JpaTeamStore implements TeamStore, TeamFollowerStore, TeamLifecycle
             if (plan.replaceLogo()) {
                 entity.setLogoUrl(plan.replacementLogoUrl());
             }
-            return new TeamChange(before, mapper.toView(repository.save(entity)));
+            return new TeamChange(before, mapper.toView(repository.saveAndFlush(entity)));
         }
     }
 }

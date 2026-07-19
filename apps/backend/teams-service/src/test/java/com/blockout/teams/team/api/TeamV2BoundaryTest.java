@@ -35,12 +35,13 @@ class TeamV2BoundaryTest {
         TeamApiMapper mapper = Mappers.getMapper(TeamApiMapper.class);
         TeamInternalResponse response = mapper.toResponse(new TeamView(
                 1L, "club-1", "Raw", "Team", "TM", "L1", 2L, "2026", FormatEnum.SIX,
-                GenderEnum.M, 3L, "https://logo", true, LocalDateTime.now(), LocalDateTime.now()));
+                GenderEnum.M, 3L, "https://logo", true, 7L, LocalDateTime.now(), LocalDateTime.now()));
         ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
 
         String body = objectMapper.writeValueAsString(response);
 
-        assertThat(body).contains("\"clubId\"", "\"shortName\"", "\"followersCount\"", "\"logoUrl\"");
+        assertThat(body).contains(
+                "\"clubId\"", "\"shortName\"", "\"followersCount\"", "\"logoUrl\"", "\"revision\":7");
         assertThat(body).doesNotContain("club_id", "short_name", "followers_count", "createdAt", "lastUpdate");
     }
 

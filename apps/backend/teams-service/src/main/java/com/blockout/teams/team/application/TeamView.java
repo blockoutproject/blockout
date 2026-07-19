@@ -18,6 +18,7 @@ public record TeamView(
         Long followersCount,
         String logoUrl,
         Boolean active,
+        long revision,
         LocalDateTime createdAt,
         LocalDateTime lastUpdate) {
 }

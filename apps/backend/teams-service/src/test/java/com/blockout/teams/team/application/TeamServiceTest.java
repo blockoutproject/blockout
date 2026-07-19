@@ -37,7 +37,9 @@ class TeamServiceTest {
         assertThat(result.followersCount()).isZero();
         assertThat(result.active()).isTrue();
         assertThat(result.logoUrl()).isNull();
-        assertThat(publisher.published).containsExactly(TeamUpsertFact.from(result));
+        assertThat(result.revision()).isZero();
+        assertThat(publisher.upserts).containsExactly(TeamEventData.from(result));
+        assertThat(publisher.projections).containsExactly(TeamEventData.from(result));
     }
 
     @Test
@@ -45,7 +47,8 @@ class TeamServiceTest {
         RepositoryDouble repository = new RepositoryDouble();
         repository.entity = entity("https://logo", false, 4L);
         LogoStorageDouble storage = new LogoStorageDouble();
-        TeamService service = service(repository, storage, new EventPublisherDouble());
+        EventPublisherDouble publisher = new EventPublisherDouble();
+        TeamService service = service(repository, storage, publisher);
 
         TeamView result = service.update(1L, new UpdateTeamCommand(
                 null, null, "Updated", null, null, null, null, null, null, true), TeamLogoChange.remove());
@@ -54,7 +57,10 @@ class TeamServiceTest {
         assertThat(result.name()).isEqualTo("Updated");
         assertThat(result.active()).isTrue();
         assertThat(result.logoUrl()).isNull();
+        assertThat(result.revision()).isEqualTo(4L);
         assertThat(storage.deleted).containsExactly("https://logo");
+        assertThat(publisher.upserts).containsExactly(TeamEventData.from(result));
+        assertThat(publisher.projections).containsExactly(TeamEventData.from(result));
     }
 
     @Test
@@ -100,6 +106,7 @@ class TeamServiceTest {
         return TeamEntity.builder().id(1L).clubId("club-1").rawName("Raw").name("Team").shortName("TM")
                 .leagueCode("L1").divisionId(2L).season("2026").format(FormatEnum.SIX)
                 .gender(GenderEnum.M).followersCount(followers).logoUrl(logoUrl).active(active)
+                .revision(3L)
                 .createdAt(LocalDateTime.parse("2026-01-01T00:00:00"))
                 .lastUpdate(LocalDateTime.parse("2026-01-02T00:00:00")).build();
     }
@@ -108,6 +115,7 @@ class TeamServiceTest {
         private TeamEntity entity;
         private List<TeamEntity> pageItems = List.of();
         private Pageable pageable;
+        private int saveCalls;
 
         TeamRepository proxy() {
             return (TeamRepository) Proxy.newProxyInstance(
@@ -117,9 +125,12 @@ class TeamServiceTest {
         @Override
         public Object invoke(Object proxy, java.lang.reflect.Method method, Object[] arguments) {
             return switch (method.getName()) {
-                case "save" -> {
+                case "save", "saveAndFlush" -> {
+                    saveCalls++;
+                    boolean update = entity != null;
                     entity = (TeamEntity) arguments[0];
                     if (entity.getId() == null) entity.setId(1L);
+                    if (update) entity.setRevision(entity.getRevision() + 1);
                     yield entity;
                 }
                 case "findById" -> Optional.ofNullable(entity);
@@ -140,7 +151,9 @@ class TeamServiceTest {
     }
 
     private static final class EventPublisherDouble implements TeamEventPublisher {
-        private final List<TeamUpsertFact> published = new ArrayList<>();
-        @Override public void publishUpsert(TeamUpsertFact team) { published.add(team); }
+        private final List<TeamEventData> upserts = new ArrayList<>();
+        private final List<TeamEventData> projections = new ArrayList<>();
+        @Override public void publishUpsert(TeamEventData team) { upserts.add(team); }
+        @Override public void publishProjection(TeamEventData team) { projections.add(team); }
     }
 }

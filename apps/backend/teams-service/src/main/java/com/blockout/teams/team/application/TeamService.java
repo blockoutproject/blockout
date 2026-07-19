@@ -78,13 +78,17 @@ public class TeamService {
             LOGGER.info("Team reactivated", keyValue("action", "reactivate_team"), keyValue("teamId", id));
         }
         ChangeLog.logChanges(change.before(), change.after(), LOGGER, "update_team", change.after().id());
-        eventPublisher.publishUpsert(TeamUpsertFact.from(change.after()));
+        TeamEventData event = TeamEventData.from(change.after());
+        eventPublisher.publishUpsert(event);
+        eventPublisher.publishProjection(event);
         return change.after();
     }
 
     private TeamView publishCreated(TeamView view) {
         LOGGER.info("Team created successfully", keyValue("action", "create_team"), keyValue("teamId", view.id()));
-        eventPublisher.publishUpsert(TeamUpsertFact.from(view));
+        TeamEventData event = TeamEventData.from(view);
+        eventPublisher.publishUpsert(event);
+        eventPublisher.publishProjection(event);
         return view;
     }
 

@@ -38,9 +38,9 @@ and queue dispositions derive only from this source.
 
 MRG-438 adds `club.projection-changed.v2`, `team.projection-changed.v2`, and `pool.projection-changed.v2` as owner-fact
 channels. Their complete payloads and mandatory aggregate versions generate model records. MRG-440 references the
-club channel from the clubs-service deployable and owns its producer operation. Team and pool remain component-only
-until MRG-441 and MRG-442. No owner-fact consumer, queue, binding, or broker resource is active; MRG-429 owns the future
-search-worker consumer operations.
+club channel from the clubs-service deployable and owns its producer operation. MRG-441 does the same for the team
+channel and teams-service. Pool remains component-only until MRG-442. No owner-fact consumer, queue, binding, or broker
+resource is active; MRG-429 owns the future search-worker consumer operations.
 
 `EV-TPD`, Q-11 through Q-13, and Q-16 through Q-17 retain explicit excluded dispositions and are not canonical event
 boundaries. Generated bundles and Java records remain derivative artifacts. Retained v1 publishers, listeners, queues,

@@ -6,7 +6,7 @@ import com.blockout.outbox.OutboxMetadata;
 import com.blockout.outbox.OutboxRecorder;
 import com.blockout.teams.config.RabbitMQConfig;
 import com.blockout.teams.team.application.TeamEventPublisher;
-import com.blockout.teams.team.application.TeamUpsertFact;
+import com.blockout.teams.team.application.TeamEventData;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -22,7 +22,7 @@ public class OutboxTeamEventPublisher implements TeamEventPublisher {
     private final TeamEventMapper mapper;
 
     @Override
-    public void publishUpsert(TeamUpsertFact team) {
+    public void publishUpsert(TeamEventData team) {
         OutboxMetadata metadata = outbox.newMetadata();
         TeamEventMessages messages = mapper.map(team, metadata);
         outbox.record(new OutboxEvent(
@@ -37,5 +37,22 @@ public class OutboxTeamEventPublisher implements TeamEventPublisher {
                 messages.legacy(),
                 "team.upsert.v2",
                 messages.canonical()));
+    }
+
+    @Override
+    public void publishProjection(TeamEventData team) {
+        OutboxMetadata metadata = outbox.newMetadata();
+        outbox.record(new OutboxEvent(
+                metadata,
+                EventType.TEAM_PROJECTION_CHANGED.getValue(),
+                VERSION,
+                PRODUCER,
+                "team:" + team.id(),
+                team.revision(),
+                RabbitMQConfig.ENTITY_LIFECYCLE_EXCHANGE,
+                null,
+                null,
+                "team.projection-changed.v2",
+                mapper.mapProjection(team, metadata)));
     }
 }
