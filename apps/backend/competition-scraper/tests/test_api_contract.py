@@ -1,14 +1,16 @@
 import asyncio
+from datetime import datetime, timezone
 
 import pytest
 
-from api import competitions_api, config_api, pools_api, teams_api
+from api import competitions_api, config_api, matches_api, pools_api, teams_api
 from models.association_stats import AssociationStats
 from models.competition_association import CompetitionAssociation
 from models.scraper_status import ScraperStatus
 from models.raw_division_mapping import RawDivisionMapping
 from models.team import Team
 from models.pool import Pool
+from models.match import Match
 from utils.handlers.api_handler import convert_to_dataclass
 
 
@@ -97,6 +99,41 @@ def test_writes_only_the_pool_creation_boundary(monkeypatch):
         assert "createdAt" not in payload
 
     asyncio.run(scenario())
+
+
+def test_reads_the_complete_match_contract_and_writes_only_create_fields():
+    payload = {
+        "id": 1,
+        "matchCode": "M1",
+        "leagueCode": "L1",
+        "poolId": 2,
+        "liveCode": 3,
+        "teamIdA": 4,
+        "teamIdB": 5,
+        "matchDate": "2026-07-19T12:30:00+00:00",
+        "season": "2026",
+        "set": "3-0",
+        "score": "75-60",
+        "status": "FINISHED",
+        "venue": "Gym",
+        "firstReferee": "Ref A",
+        "secondReferee": "Ref B",
+        "active": True,
+        "createdAt": "2026-07-19T12:30:00+00:00",
+        "lastUpdate": "2026-07-19T12:30:00+00:00",
+        "liveUrl": "https://youtube.com/live/1",
+        "liveProvider": "YOUTUBE",
+        "liveOwnerAuth0Id": "auth0|1",
+    }
+
+    match = convert_to_dataclass(payload, Match)
+    write_payload = matches_api._to_match_write_payload(match, matches_api.MATCH_CREATE_WRITE_FIELDS)
+
+    assert set(payload) == set(Match.__dataclass_fields__)
+    assert match.matchDate == datetime(2026, 7, 19, 12, 30, tzinfo=timezone.utc)
+    assert set(write_payload) == set(matches_api.MATCH_CREATE_WRITE_FIELDS)
+    assert "id" not in write_payload
+    assert "createdAt" not in write_payload
 
 
 def test_sends_native_camel_case_query_parameters(monkeypatch):

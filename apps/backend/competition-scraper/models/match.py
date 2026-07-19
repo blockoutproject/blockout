@@ -22,3 +22,6 @@ class Match:
     active: bool = True
     createdAt: Optional[datetime] = None
     lastUpdate: Optional[datetime] = None
+    liveUrl: Optional[str] = None
+    liveProvider: Optional[str] = None
+    liveOwnerAuth0Id: Optional[str] = None

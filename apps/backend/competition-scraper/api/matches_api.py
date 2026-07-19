@@ -8,6 +8,31 @@ from utils.handlers.api_handler import handle_api_response
 from utils.utils import to_dict
 
 
+MATCH_CREATE_WRITE_FIELDS = (
+    "matchCode",
+    "leagueCode",
+    "poolId",
+    "liveCode",
+    "teamIdA",
+    "teamIdB",
+    "matchDate",
+    "season",
+    "set",
+    "score",
+    "venue",
+    "firstReferee",
+    "secondReferee",
+    "active",
+)
+
+MATCH_UPDATE_WRITE_FIELDS = MATCH_CREATE_WRITE_FIELDS[:-1]
+
+
+def _to_match_write_payload(match: Match, fields: tuple[str, ...]) -> dict:
+    serialized = to_dict(match)
+    return {field: serialized[field] for field in fields}
+
+
 @handle_api_response(response_type=List[Match])
 async def get_matches_by_pool(
     session: aiohttp.ClientSession,
@@ -32,7 +57,7 @@ async def create_match(
     Crée un nouveau match avec les informations fournies.
     """
     headers = _get_headers()
-    match_dict = to_dict(match)
+    match_dict = _to_match_write_payload(match, MATCH_CREATE_WRITE_FIELDS)
     url = f"{MATCH_API_URL}"
     response = await session.post(url, json=match_dict, headers=headers)
     log_event(
@@ -55,7 +80,7 @@ async def update_match(
     Met à jour un match existant.
     """
     headers = _get_headers()
-    match_dict = to_dict(match)
+    match_dict = _to_match_write_payload(match, MATCH_UPDATE_WRITE_FIELDS)
     url = f"{MATCH_API_URL}/{match.id}"
     response = await session.put(url, json=match_dict, headers=headers)
     log_event(

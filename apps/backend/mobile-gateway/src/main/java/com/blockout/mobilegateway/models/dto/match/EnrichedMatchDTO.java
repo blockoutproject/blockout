@@ -1,8 +1,11 @@
 package com.blockout.mobilegateway.models.dto.match;
 
+import java.time.Instant;
+
 import com.blockout.mobilegateway.models.dto.pool.EnrichedPoolDTO;
 import com.blockout.mobilegateway.models.dto.team.TeamDTO;
 import com.blockout.mobilegateway.models.enums.LiveProvider;
+import com.blockout.mobilegateway.models.enums.MatchStatus;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 import lombok.AllArgsConstructor;
@@ -20,7 +23,7 @@ public class EnrichedMatchDTO {
 
     private Long liveCode;
 
-    private String matchDate;
+    private Instant matchDate;
 
     private String season;
 
@@ -28,7 +31,7 @@ public class EnrichedMatchDTO {
 
     private String score;
 
-    private String status;
+    private MatchStatus status;
 
     private String venue;
 

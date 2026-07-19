@@ -87,6 +87,18 @@ REF-014 establishes User ownership:
 - Auth0 identities, S3 objects, Team/Pool follower counters, and RabbitMQ follow events remain provider or
   purpose-specific boundaries rather than User resource copies.
 
+REF-015 establishes Match ownership:
+
+- `matches-service` owns the complete Match representation: `id`, `matchCode`, `leagueCode`, `poolId`, `liveCode`,
+  `teamIdA`, `teamIdB`, `matchDate`, `season`, `set`, `score`, `status`, `venue`, `firstReferee`, `secondReferee`,
+  `active`, `createdAt`, `lastUpdate`, `liveUrl`, `liveProvider`, and `liveOwnerAuth0Id`;
+- list, detail, day-group, create, and update routes now use that same representation, while write requests, day/pool
+  containers, live-link moderation views, and event payloads remain explicit purpose-specific models;
+- the competition scraper, gateway, and mobile application mirror the complete Match representation at their real
+  HTTP boundaries, and the scraper writes only accepted create or update fields;
+- live-link persistence, user lookup, moderation policy, and RabbitMQ publication are isolated behind the Match
+  application boundary without changing V1 routes, database tables, routing keys, or runtime rules.
+
 The camelCase rule applies to transport names owned by Blockout:
 
 - REST request and response bodies;

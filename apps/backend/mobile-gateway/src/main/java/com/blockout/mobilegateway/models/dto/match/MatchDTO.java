@@ -1,5 +1,7 @@
 package com.blockout.mobilegateway.models.dto.match;
 
+import java.time.Instant;
+
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -7,6 +9,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 
 import com.blockout.mobilegateway.models.enums.LiveProvider;
+import com.blockout.mobilegateway.models.enums.MatchStatus;
 
 @Getter
 @Setter
@@ -28,7 +31,7 @@ public class MatchDTO {
 
     private Long teamIdB;
 
-    private String matchDate;
+    private Instant matchDate;
 
     private String season;
 
@@ -36,13 +39,19 @@ public class MatchDTO {
 
     private String score;
 
-    private String status;
+    private MatchStatus status;
 
     private String venue;
 
     private String firstReferee;
 
     private String secondReferee;
+
+    private Boolean active;
+
+    private Instant createdAt;
+
+    private Instant lastUpdate;
 
     private String liveUrl;
 

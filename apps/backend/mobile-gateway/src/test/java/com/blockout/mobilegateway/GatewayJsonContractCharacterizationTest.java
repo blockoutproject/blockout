@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.blockout.mobilegateway.models.dto.club.ClubDTO;
 import com.blockout.mobilegateway.models.dto.competition.CompetitionAssociationDTO;
+import com.blockout.mobilegateway.models.dto.match.MatchDTO;
 import com.blockout.mobilegateway.models.dto.team.TeamDTO;
 import com.blockout.mobilegateway.models.dto.pool.PoolDTO;
 import com.blockout.mobilegateway.models.dto.user.CustomUserDTO;
@@ -13,6 +14,8 @@ import com.blockout.mobilegateway.models.dto.config.RawDivisionMappingDTO;
 import com.blockout.mobilegateway.models.enums.Format;
 import com.blockout.mobilegateway.models.enums.Gender;
 import com.blockout.mobilegateway.models.enums.EntityType;
+import com.blockout.mobilegateway.models.enums.LiveProvider;
+import com.blockout.mobilegateway.models.enums.MatchStatus;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
@@ -117,6 +120,24 @@ class GatewayJsonContractCharacterizationTest {
         assertThat(json.fieldNames()).toIterable().containsExactlyInAnyOrder(
                 "id", "poolCode", "leagueCode", "season", "leagueName", "rawName", "name", "shortName",
                 "divisionId", "format", "gender", "followersCount", "active", "createdAt", "lastUpdate");
+    }
+
+    @Test
+    void mirrorsTheCompleteMatchInternalResponseOwnedByMatchesService() {
+        Instant now = Instant.parse("2026-07-19T12:00:00Z");
+        MatchDTO match = MatchDTO.builder()
+                .id(1L).matchCode("M1").leagueCode("L1").poolId(2L).liveCode(3L)
+                .teamIdA(4L).teamIdB(5L).matchDate(now).season("2026").set("3-0").score("75-60")
+                .status(MatchStatus.FINISHED).venue("Gym").firstReferee("Ref A").secondReferee("Ref B")
+                .active(true).createdAt(now).lastUpdate(now).liveUrl("https://youtube.com/live/1")
+                .liveProvider(LiveProvider.YOUTUBE).liveOwnerAuth0Id("auth0|1").build();
+
+        JsonNode json = objectMapper.findAndRegisterModules().valueToTree(match);
+
+        assertThat(json.fieldNames()).toIterable().containsExactlyInAnyOrder(
+                "id", "matchCode", "leagueCode", "poolId", "liveCode", "teamIdA", "teamIdB", "matchDate",
+                "season", "set", "score", "status", "venue", "firstReferee", "secondReferee", "active",
+                "createdAt", "lastUpdate", "liveUrl", "liveProvider", "liveOwnerAuth0Id");
     }
 
     @Test

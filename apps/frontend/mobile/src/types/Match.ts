@@ -33,7 +33,11 @@ export interface Match {
     secondReferee: string | null;
     liveCode: number | null;
     liveUrl: string | null;
-    liveProvider: string | null;
+    liveProvider: LiveProvider | null;
+    liveOwnerAuth0Id: string | null;
+    active: boolean;
+    createdAt: string;
+    lastUpdate: string;
 }
 
 export interface PoolMatchesDTO {

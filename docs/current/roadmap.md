@@ -80,7 +80,7 @@
   - Separate user, follow, provider, persistence, and messaging responsibilities behind explicit boundaries.
   - Align complete user mirrors while preserving V1 routes, schema, Auth0 behavior, events, and runtime behavior.
 
-- [ ] **REF-015 — Refactor matches-service and establish authoritative Match ownership**
+- [x] **REF-015 — Refactor matches-service and establish authoritative Match ownership**
   - Separate Match transport, application, persistence, moderation, provider, and messaging boundaries.
   - Align complete Match mirrors while preserving V1 routes, schema, events, scraper writes, and runtime behavior.
 
