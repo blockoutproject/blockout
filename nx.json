@@ -2,28 +2,10 @@
   "$schema": "./node_modules/nx/schemas/nx-schema.json",
   "analytics": false,
   "namedInputs": {
-    "default": ["{projectRoot}/**/*", "sharedGlobals"],
-    "production": ["default"],
-    "sharedGlobals": [
-      "{workspaceRoot}/.github/workflows/ci-push.yml",
-      "{workspaceRoot}/.github/workflows/ci-pr.yml"
-    ]
+    "default": ["{projectRoot}/**/*"],
+    "production": ["default"]
   },
   "plugins": [
-    {
-      "plugin": "@nx/js/typescript",
-      "options": {
-        "typecheck": {
-          "targetName": "typecheck"
-        },
-        "build": {
-          "targetName": "build",
-          "configName": "tsconfig.lib.json",
-          "buildDepsName": "build-deps",
-          "watchDepsName": "watch-deps"
-        }
-      }
-    },
     {
       "plugin": "@nx/expo/plugin",
       "options": {
@@ -42,45 +24,11 @@
     },
     {
       "plugin": "@nx/maven",
+      "include": ["pom.xml", "apps/backend/**/pom.xml"],
       "options": {
         "targetNamePrefix": "mvn-",
         "verbose": false
       }
-    },
-    {
-      "plugin": "@nxlv/python",
-      "options": {
-        "packageManager": "uv",
-        "inferDependencies": false
-      }
     }
-  ],
-  "generators": {
-    "@nx/expo": {
-      "application": {
-        "linter": "none",
-        "unitTestRunner": "none",
-        "e2eTestRunner": "none",
-        "useProjectJson": true
-      },
-      "library": {
-        "linter": "none",
-        "unitTestRunner": "none",
-        "strict": true
-      },
-      "component": {
-        "skipTests": true
-      }
-    },
-    "@nx/react": {
-      "library": {
-        "style": "none",
-        "bundler": "none",
-        "linter": "none",
-        "unitTestRunner": "none",
-        "component": false,
-        "strict": true
-      }
-    }
-  }
+  ]
 }

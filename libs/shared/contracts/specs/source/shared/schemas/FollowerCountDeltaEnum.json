@@ -1,7 +1,0 @@
-{
-  "FollowerCountDeltaEnum": {
-    "type": "string",
-    "description": "Follower-count projection changes applied by owner services.",
-    "enum": ["INCREMENT", "DECREMENT"]
-  }
-}

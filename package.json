@@ -1,58 +1,19 @@
 {
   "name": "@blockout/source",
   "version": "0.0.0",
-  "license": "MIT",
-  "scripts": {
-    "compare:maaatch": "node scripts/compare-maaatch-structure.mjs",
-    "local:logs": "node tools/local-logs/collect-local-logs.mjs",
-    "validate:docs": "node tools/scripts/validate-doc-links.mjs",
-    "validate:backend-enums-generated": "node --test tools/scripts/validate-backend-enums-generated.test.mjs",
-    "validate:python-enum-ownership": "node --test tools/scripts/validate-python-enum-ownership.test.mjs",
-    "validate:scraper-containers": "node --test tools/scripts/validate-scraper-containers.test.mjs",
-    "validate:env": "node tools/scripts/validate-env-examples.mjs",
-    "validate:generated-untracked": "node tools/scripts/validate-generated-artifacts-untracked.mjs",
-    "validate:v1-adapter-isolation": "node --test tools/scripts/validate-v1-adapter-isolation.test.mjs",
-    "validate:wire-casing": "node --test tools/scripts/validate-wire-casing.test.mjs"
-  },
   "private": true,
-  "workspaces": [
-    "packages/*",
-    "apps/frontend/*",
-    "libs/shared/*",
-    "libs/react/*"
-  ],
-  "devDependencies": {
-    "@asyncapi/modelina": "5.10.1",
-    "@asyncapi/parser": "3.6.0",
-    "@nx/expo": "23.0.0",
-    "@nx/js": "23.0.0",
-    "@nx/maven": "23.0.0",
-    "@nx/react": "23.0.0",
-    "@nx/workspace": "23.0.0",
-    "@nxlv/python": "22.2.2",
-    "@openapitools/openapi-generator-cli": "2.39.1",
-    "@swc/helpers": "~0.5.18",
-    "@types/react": "~19.1.10",
-    "babel-preset-expo": "54.0.11",
-    "metro-config": "~0.83.0",
-    "metro-resolver": "~0.83.0",
-    "nx": "23.0.0",
-    "prettier": "~3.6.2",
-    "tslib": "^2.3.0",
-    "typescript": "~5.9.2"
+  "workspaces": ["apps/frontend/*"],
+  "scripts": {
+    "graph": "nx graph",
+    "show-projects": "nx show projects"
   },
-  "dependencies": {
-    "@expo/metro-config": "54.0.16",
-    "@expo/metro-runtime": "~6.1.2",
-    "expo": "~54.0.35",
-    "expo-splash-screen": "~31.0.13",
-    "expo-status-bar": "~3.0.9",
-    "expo-system-ui": "~6.0.9",
-    "react": "19.1.0",
-    "react-dom": "19.1.0",
-    "react-native": "0.81.5",
-    "react-native-svg": "15.12.1",
-    "react-native-svg-transformer": "~1.5.1",
-    "react-native-web": "~0.21.0"
+  "devDependencies": {
+    "@nx/expo": "23.1.0",
+    "@nx/js": "23.1.0",
+    "@nx/maven": "23.1.0",
+    "@nx/react": "23.1.0",
+    "@nx/workspace": "23.1.0",
+    "nx": "23.1.0",
+    "typescript": "~5.9.2"
   }
 }

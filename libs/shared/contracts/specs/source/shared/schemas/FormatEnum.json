@@ -1,7 +1,0 @@
-{
-  "FormatEnum": {
-    "type": "string",
-    "description": "Supported Blockout team formats.",
-    "enum": ["SIX", "FOUR", "TWO"]
-  }
-}

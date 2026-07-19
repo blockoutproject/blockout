@@ -1,7 +1,0 @@
-{
-  "FavoriteEventActionEnum": {
-    "type": "string",
-    "description": "Canonical favorite lifecycle actions.",
-    "enum": ["FOLLOWED", "UNFOLLOWED"]
-  }
-}

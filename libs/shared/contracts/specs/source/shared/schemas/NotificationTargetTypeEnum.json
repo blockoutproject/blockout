@@ -1,7 +1,0 @@
-{
-  "NotificationTargetTypeEnum": {
-    "type": "string",
-    "description": "Target kinds supported by Blockout notifications.",
-    "enum": ["MATCH", "GENERIC"]
-  }
-}

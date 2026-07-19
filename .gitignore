@@ -1,90 +1,29 @@
-# See https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files for more about ignoring files.
-
-# compiled output
-dist
-tmp
-out-tsc
-
-# dependencies
-node_modules
-
-# IDEs and editors
-/.idea
-.project
-.classpath
-.c9/
-*.launch
-.settings/
-*.sublime-workspace
-
-# IDE - VSCode
-.vscode/*
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
-
-# misc
-/.sass-cache
-/connect.lock
-/coverage
-/libpeerconnection.log
-npm-debug.log
-yarn-error.log
-testem.log
-/typings
-
-# System Files
-.DS_Store
-Thumbs.db
-
-.nx/cache
-.nx/workspace-data
-.nx/migrate-runs
-.claude/worktrees
-.claude/settings.local.json
-
-# Local runtime logs
-/logs/
-apps/backend/*/logs/
-apps/frontend/mobile/logs/
-
-# Expo
+# Dependencies and task caches
 node_modules/
-.expo/
-.yarn/
-dist/
-npm-debug.*
-*.jks
-*.p8
-*.p12
-*.key
-*.mobileprovision
-*.orig.*
-web-build/
-cache/
+.nx/
 
-# Local configuration and credentials
+# Build output
+dist/
+target/
+coverage/
+.expo/
+
+# Local environments and secrets
 .env
 .env.*
 !.env.example
-**/google-services.json
-**/*firebase-adminsdk*.json
-**/client_secret_*.json
-
-# Local infrastructure data
-**/postgres-data/
-data-export/
-
-# Generated Python contract client build artifacts
-/.venv/
-**/__pycache__/
+.venv/
+__pycache__/
 *.py[cod]
-libs/shared/contracts/clients/python/build/
-libs/shared/contracts/clients/python/src/*.egg-info/
+.pytest_cache/
 
-# Contract-derived artifacts (generate locally or in CI; never commit)
-/libs/shared/contracts/generated/
-/libs/shared/contracts/clients/python/src/blockout_contract_clients/
-/apps/backend/event-contracts/src/generated/
-/apps/frontend/mobile/src/api/generated/
+# Local runtime data
+logs/
+local/
+
+# Editors and operating systems
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+*.iml

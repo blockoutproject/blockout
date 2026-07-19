@@ -1,7 +1,0 @@
-{
-  "ConsumedEventClaimEnum": {
-    "type": "string",
-    "description": "Transactional ownership outcomes for an idempotently consumed event.",
-    "enum": ["CLAIMED", "DUPLICATE"]
-  }
-}

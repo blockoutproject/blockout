@@ -1,7 +1,0 @@
-{
-  "CalendarDate": {
-    "type": "string",
-    "format": "date",
-    "description": "Calendar date without a time zone."
-  }
-}

@@ -1,7 +1,0 @@
-{
-  "UuidIdentifier": {
-    "type": "string",
-    "format": "uuid",
-    "description": "Canonical UUID identifier wire shape."
-  }
-}

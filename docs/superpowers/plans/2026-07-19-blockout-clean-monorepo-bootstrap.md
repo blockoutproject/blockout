@@ -6,7 +6,7 @@
 
 **Architecture:** Nx orchestrates the native Maven, Expo, Python, and Docker commands. Application code is copied unchanged from recorded standalone commits; only repository location, root orchestration, local Compose, and minimal documentation are added.
 
-**Tech Stack:** Nx 23.0.0, Maven, Java 21, Spring Boot 3.4.5, Expo 54, React Native 0.81.5, Python 3.12, Docker Compose.
+**Tech Stack:** Nx 23.1.0, Maven, Java 21, Spring Boot 3.4.5, Expo 54, React Native 0.81.5, Python 3.12, Docker Compose.
 
 ---
 
@@ -50,7 +50,7 @@
 - [ ] Confirm the sixteen source repositories are clean and still point to the commits in the source map.
 - [ ] Run `git rm -r -- .`, preview ignored removals with `git clean -ndx`, then run `git clean -fdx` inside `blockout`.
 - [ ] Restore the approved design and this plan from local `HEAD`.
-- [ ] Create a private npm workspace named `@blockout/source` with workspaces `apps/frontend/*` and dev dependencies `nx`, `@nx/workspace`, `@nx/js`, `@nx/react`, `@nx/expo`, and `@nx/maven`, all at `23.0.0`, plus TypeScript `~5.9.2`.
+- [ ] Create a private npm workspace named `@blockout/source` with workspaces `apps/frontend/*` and dev dependencies `nx`, `@nx/workspace`, `@nx/js`, `@nx/react`, `@nx/expo`, and `@nx/maven`, all at `23.1.0`, plus TypeScript `~5.9.2`.
 - [ ] Configure only `@nx/expo/plugin` and `@nx/maven` in `nx.json`; prefix Maven targets with `mvn-`. Do not add Nx Cloud or a Python plugin.
 - [ ] Create root Maven aggregator `com.blockout:blockout:0.0.1-SNAPSHOT` with module `apps/backend` and `dev.nx.maven:nx-maven-plugin:0.0.17`.
 - [ ] Create concise ignore files, editor settings, README, and AGENTS guidance. No `.github`, CI, GitFlow, deployment, or contract-first files.

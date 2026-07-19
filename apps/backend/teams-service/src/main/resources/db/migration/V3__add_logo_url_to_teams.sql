@@ -1,2 +1,0 @@
-ALTER TABLE teams
-ADD COLUMN logo_url VARCHAR(255);

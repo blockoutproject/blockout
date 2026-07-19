@@ -1,7 +1,0 @@
-{
-  "MatchLiveLinkDecisionEnum": {
-    "type": "string",
-    "description": "Moderation decisions supported for a match live link.",
-    "enum": ["APPROVE", "REJECT", "REACTIVATE"]
-  }
-}

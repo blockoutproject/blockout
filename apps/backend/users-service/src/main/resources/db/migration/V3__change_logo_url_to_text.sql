@@ -1,2 +1,0 @@
-ALTER TABLE users 
-ALTER COLUMN picture_url TYPE TEXT;

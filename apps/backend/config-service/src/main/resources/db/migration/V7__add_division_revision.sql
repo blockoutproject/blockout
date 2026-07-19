@@ -1,2 +1,0 @@
-ALTER TABLE division
-    ADD COLUMN revision BIGINT NOT NULL DEFAULT 0;

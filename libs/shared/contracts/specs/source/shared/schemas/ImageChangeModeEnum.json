@@ -1,7 +1,0 @@
-{
-  "ImageChangeModeEnum": {
-    "type": "string",
-    "description": "Explicit keep, remove, or replace intent for an owned image.",
-    "enum": ["KEEP", "REMOVE", "REPLACE"]
-  }
-}
