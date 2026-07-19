@@ -27,6 +27,9 @@ The camelCase rule applies to JSON owned by Blockout:
 - mobile requests and responses exchanged with the gateway;
 - JSON documents owned by Blockout workers where field names are part of an application interface.
 
+Java DTO fields use native camelCase with Jackson defaults. Jackson annotations
+or naming strategies must not translate snake_case to camelCase or back.
+
 It does not rename:
 
 - database tables or columns;

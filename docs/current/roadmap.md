@@ -21,7 +21,7 @@
   - Leave external provider payloads and non-JSON infrastructure names unchanged.
   - Remove the global snake_case serialization settings and explicit application-owned snake_case mappings once no longer needed.
 
-- [ ] **REF-004 — Validate both scrapers against the local application stack**
+- [x] **REF-004 — Validate both scrapers against the local application stack**
   - Start the required infrastructure and APIs with local configuration.
   - Exercise each scraper through status retrieval, representative parsing, and application API writes using controlled non-production inputs.
   - Verify persisted results, service health, logs, metrics, and the absence of unintended external writes.

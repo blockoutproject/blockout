@@ -82,7 +82,7 @@ def test_status_mapping_reads_the_camel_case_timestamp():
     )
 
     assert status.enabled is True
-    assert status.lastUpdate.isoformat() == "2026-07-19T12:30:00"
+    assert status.last_update.isoformat() == "2026-07-19T12:30:00"
 
 
 def test_serializes_club_dataclass_fields_to_camel_case():

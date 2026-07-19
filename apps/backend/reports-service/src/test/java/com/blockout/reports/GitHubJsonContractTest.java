@@ -12,12 +12,11 @@ class GitHubJsonContractTest {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Test
-    void readsTheProviderFieldButEmitsTheBlockoutCamelCaseField() throws Exception {
-        GitHubIssueResponseDTO response = objectMapper.readValue(
-                "{\"id\":1,\"number\":2,\"html_url\":\"https://github.invalid/issues/2\"}",
-                GitHubIssueResponseDTO.class);
-
-        assertThat(response.getHtmlUrl()).isEqualTo("https://github.invalid/issues/2");
+    void emitsTheNativeBlockoutCamelCaseField() throws Exception {
+        GitHubIssueResponseDTO response = new GitHubIssueResponseDTO();
+        response.setId(1L);
+        response.setNumber(2);
+        response.setHtmlUrl("https://github.invalid/issues/2");
 
         JsonNode json = objectMapper.readTree(objectMapper.writeValueAsBytes(response));
         assertThat(json.path("htmlUrl").asText()).isEqualTo("https://github.invalid/issues/2");

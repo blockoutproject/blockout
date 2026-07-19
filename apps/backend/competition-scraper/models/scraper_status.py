@@ -6,4 +6,4 @@ class ScraperStatus:
     id: int
     name: str
     enabled: bool
-    lastUpdate: datetime
+    last_update: datetime
