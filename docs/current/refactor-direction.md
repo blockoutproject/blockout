@@ -169,3 +169,9 @@ No production deployment, broker operation, dual contract support, generated sou
 | `mobile`               | Gateway request and response bodies                                            | Auth0 and native framework values              |
 
 Before REF-003, twelve Spring applications enabled global `SNAKE_CASE` serialization. Explicit `@JsonProperty` mappings also existed in service and gateway DTOs, both Python scrapers constructed snake_case Blockout payloads, and the mobile HTTP client converted request bodies to snake_case before converting responses back to camelCase. REF-003 migrated JSON, and REF-005 removed the remaining case-conversion layers while aligning Blockout query parameters.
+
+## Search read ownership after REF-018
+
+`search-service` owns three purpose-specific internal result contracts: club, team, and pool search results. These are read shapes, not copies of the complete resources owned by `clubs-service`, `teams-service`, or `pools-service`.
+
+The HTTP layer exposes dedicated `*SearchInternalResponse` records, the application layer owns the search query and result views, and the Elasticsearch adapter alone owns index documents and query construction. Filter-only index fields such as `divisionId` remain outside response bodies. The V1 routes, camelCase field names, filters, index names, source fields, limits, timeout, and empty-query random selection remain unchanged.

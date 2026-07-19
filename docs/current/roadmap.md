@@ -92,7 +92,7 @@
   - Separate report transport, application assembly, GitHub, and Discord boundaries.
   - Preserve V1 routes, provider payloads, PDF behavior, and runtime behavior with focused tests.
 
-- [ ] **REF-018 — Refactor search-service and establish authoritative search API ownership**
+- [x] **REF-018 — Refactor search-service and establish authoritative search API ownership**
   - Separate search transport, application queries, and Elasticsearch read boundaries.
   - Preserve V1 routes, index/query semantics, result shapes, and runtime behavior with focused tests.
 
