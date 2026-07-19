@@ -4,13 +4,11 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
-import com.blockout.workersearch.config.Auth0TokenManager;
-import com.blockout.workersearch.services.caches.CacheInitializerService;
-import com.blockout.workersearch.services.index.IndexInitializerService;
-import com.blockout.workersearch.services.jobs.ClubCacheJob;
-import com.blockout.workersearch.services.jobs.ConfigCacheJob;
-import com.blockout.workersearch.services.jobs.IndexerJob;
-import com.blockout.workersearch.services.jobs.TeamCacheJob;
+import com.blockout.workersearch.projection.infrastructure.elasticsearch.ElasticsearchIndexInitializer;
+import com.blockout.workersearch.projection.infrastructure.http.auth.Auth0ServiceTokenProvider;
+import com.blockout.workersearch.projection.infrastructure.scheduling.ProjectionCacheInitializer;
+import com.blockout.workersearch.projection.infrastructure.scheduling.ProjectionCacheScheduler;
+import com.blockout.workersearch.projection.infrastructure.scheduling.ProjectionIndexScheduler;
 
 @SpringBootTest(properties = {
         "spring.rabbitmq.dynamic=false",
@@ -20,25 +18,19 @@ import com.blockout.workersearch.services.jobs.TeamCacheJob;
 class WorkerSearchApplicationTests {
 
     @MockitoBean
-    Auth0TokenManager auth0TokenManager;
+    Auth0ServiceTokenProvider auth0ServiceTokenProvider;
 
     @MockitoBean
-    CacheInitializerService cacheInitializerService;
+    ProjectionCacheInitializer projectionCacheInitializer;
 
     @MockitoBean
-    IndexInitializerService indexInitializerService;
+    ElasticsearchIndexInitializer elasticsearchIndexInitializer;
 
     @MockitoBean
-    ClubCacheJob clubCacheJob;
+    ProjectionCacheScheduler projectionCacheScheduler;
 
     @MockitoBean
-    ConfigCacheJob configCacheJob;
-
-    @MockitoBean
-    IndexerJob indexerJob;
-
-    @MockitoBean
-    TeamCacheJob teamCacheJob;
+    ProjectionIndexScheduler projectionIndexScheduler;
 
     @Test
     void contextLoads() {

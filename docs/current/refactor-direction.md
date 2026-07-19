@@ -175,3 +175,9 @@ Before REF-003, twelve Spring applications enabled global `SNAKE_CASE` serializa
 `search-service` owns three purpose-specific internal result contracts: club, team, and pool search results. These are read shapes, not copies of the complete resources owned by `clubs-service`, `teams-service`, or `pools-service`.
 
 The HTTP layer exposes dedicated `*SearchInternalResponse` records, the application layer owns the search query and result views, and the Elasticsearch adapter alone owns index documents and query construction. Filter-only index fields such as `divisionId` remain outside response bodies. The V1 routes, camelCase field names, filters, index names, source fields, limits, timeout, and empty-query random selection remain unchanged.
+
+## Search projection ownership after REF-019
+
+`search-worker` owns the projection flow and the `clubs`, `teams`, and `pools` index documents. It does not own the complete Club, Team, Pool, or Division resources: its internal HTTP response records remain complete mirrors of their owning services and are reduced to purpose-specific projection sources at the HTTP adapter boundary.
+
+The application layer depends on three explicit capabilities: authoritative projection sources, the in-memory enrichment cache, and the projection index. RabbitMQ messages, internal HTTP calls, Auth0 service tokens, scheduled refreshes, Spring Data repositories, and Elasticsearch documents remain infrastructure details. Existing queues, routing keys, batch acknowledgement and dead-letter behavior, schedules, cache semantics, index names, mappings, startup recreation, enrichment fallbacks, and camelCase payloads remain unchanged.

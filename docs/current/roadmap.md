@@ -96,7 +96,7 @@
   - Separate search transport, application queries, and Elasticsearch read boundaries.
   - Preserve V1 routes, index/query semantics, result shapes, and runtime behavior with focused tests.
 
-- [ ] **REF-019 — Refactor search-worker and isolate indexing boundaries**
+- [x] **REF-019 — Refactor search-worker and isolate indexing boundaries**
   - Separate event consumers, application projections, service clients, caches, jobs, and Elasticsearch writes.
   - Preserve queues, document/index semantics, startup behavior, and runtime behavior with focused tests.
 
