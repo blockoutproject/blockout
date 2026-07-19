@@ -1,7 +1,7 @@
 import { CONFIG } from "@/src/config/config";
 import { GitHubIssueResponse } from "../types/Report";
 import { CustomImage } from "../types/Common";
-import { appendJsonSnake } from "../utils/utils";
+import { appendJson } from "../utils/utils";
 import { BaseApi } from "./core/BaseApi";
 
 export class ReportApi extends BaseApi {
@@ -14,7 +14,7 @@ export class ReportApi extends BaseApi {
         images?: CustomImage[],
     ) {
         const formData = new FormData();
-        appendJsonSnake(formData, "data", data);
+        appendJson(formData, "data", data);
         if (images && images.length > 0) {
             images.forEach((img) => {
                 formData.append("images", {

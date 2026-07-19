@@ -9,9 +9,6 @@ spring:
       max-file-size: 5MB
       max-request-size: 5MB
   
-  jackson:
-    property-naming-strategy: SNAKE_CASE
-
   config:
     import: optional:file:.env.local[.properties]
     on-missing-location: fail

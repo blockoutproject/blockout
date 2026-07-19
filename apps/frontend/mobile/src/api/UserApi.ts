@@ -1,7 +1,7 @@
 import { CONFIG } from "@/src/config/config";
 import { CustomUser } from "../types/User";
 import { CustomImage } from "../types/Common";
-import { appendJsonSnake } from "../utils/utils";
+import { appendJson } from "../utils/utils";
 import { BaseApi } from "./core/BaseApi";
 
 export class UserApi extends BaseApi {
@@ -19,7 +19,7 @@ export class UserApi extends BaseApi {
         image?: CustomImage,
     ): Promise<CustomUser> {
         const formData = new FormData();
-        appendJsonSnake(formData, "data", data);
+        appendJson(formData, "data", data);
 
         formData.append("image", image as any);
 

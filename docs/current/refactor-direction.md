@@ -61,6 +61,6 @@ No production deployment, broker operation, dual contract support, generated sou
 | `users-service` | REST bodies, internal service payloads, and follow events | Auth0 payloads |
 | `mobile` | Gateway request and response bodies | Auth0 and native framework values |
 
-Twelve Spring applications currently enable global `SNAKE_CASE` serialization. Explicit `@JsonProperty` mappings also exist in service and gateway DTOs, both Python scrapers construct snake_case Blockout payloads, and the mobile HTTP client converts request bodies to snake_case before converting responses back to camelCase. These are one connected contract surface and must change together.
+Before REF-003, twelve Spring applications enabled global `SNAKE_CASE` serialization. Explicit `@JsonProperty` mappings also existed in service and gateway DTOs, both Python scrapers constructed snake_case Blockout payloads, and the mobile HTTP client converted request bodies to snake_case before converting responses back to camelCase. REF-003 migrated this connected contract surface together.
 
 Snake_case query parameters remain unchanged in this task because the rule concerns JSON fields. The same applies to multipart field names until a later endpoint-specific cleanup explicitly changes their contract.

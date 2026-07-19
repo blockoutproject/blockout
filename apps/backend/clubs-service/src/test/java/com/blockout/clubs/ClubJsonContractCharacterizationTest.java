@@ -12,7 +12,7 @@ class ClubJsonContractCharacterizationTest {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Test
-    void serializesExplicitClubFieldsWithTheCurrentSnakeCaseContract() throws Exception {
+    void serializesClubFieldsWithTheCamelCaseContract() throws Exception {
         ClubUpdateDTO club = ClubUpdateDTO.builder()
                 .id("club-1")
                 .rawName("RAW CLUB")
@@ -23,10 +23,10 @@ class ClubJsonContractCharacterizationTest {
 
         JsonNode json = objectMapper.readTree(objectMapper.writeValueAsBytes(club));
 
-        assertThat(json.path("raw_name").asText()).isEqualTo("RAW CLUB");
-        assertThat(json.path("postal_code").asText()).isEqualTo("75001");
-        assertThat(json.path("logo_url").asText()).isEqualTo("https://example.invalid/logo.png");
-        assertThat(json.path("phone_number").asText()).isEqualTo("0102030405");
-        assertThat(json.has("rawName")).isFalse();
+        assertThat(json.path("rawName").asText()).isEqualTo("RAW CLUB");
+        assertThat(json.path("postalCode").asText()).isEqualTo("75001");
+        assertThat(json.path("logoUrl").asText()).isEqualTo("https://example.invalid/logo.png");
+        assertThat(json.path("phoneNumber").asText()).isEqualTo("0102030405");
+        assertThat(json.has("raw_name")).isFalse();
     }
 }

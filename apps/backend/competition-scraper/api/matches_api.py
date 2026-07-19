@@ -79,6 +79,6 @@ async def bulk_deactivate_matches(
     """
     headers = _get_headers()
     url = f"{MATCH_API_URL}/pools/{pool_id}/bulk-deactivate"
-    payload = {"missing_match_codes": list(missing_match_codes)}
+    payload = {"missingMatchCodes": list(missing_match_codes)}
     response = await session.put(url, json=payload, headers=headers)
     return response

@@ -5,7 +5,6 @@ import tinycolor from 'tinycolor2';
 import { Division } from '../types/Division';
 import { TeamHighlight } from '../types/Team';
 import { AppTheme } from '../types/Theme';
-import snakecaseKeys from "snakecase-keys";
 
 export type GradientVariants = {
     base: readonly [string, string, ...string[]];
@@ -213,7 +212,6 @@ export function computeBalancedRowsByCount(params: {
     };
 }
 
-export const appendJsonSnake = (fd: FormData, name: string, value: unknown) => {
-    const snake = snakecaseKeys(value as any, { deep: true });
-    fd.append(name, JSON.stringify(snake) as any);
+export const appendJson = (fd: FormData, name: string, value: unknown) => {
+    fd.append(name, JSON.stringify(value) as any);
 };

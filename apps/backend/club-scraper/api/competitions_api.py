@@ -15,5 +15,5 @@ async def bulk_deactivate_clubs(
     """
     headers = _get_headers()
     url = f"{COMPETITION_API_URL}/clubs/bulk-deactivate"
-    payload = {"missing_club_ids": list(missing_club_ids)}
+    payload = {"missingClubIds": list(missing_club_ids)}
     await session.put(url, json=payload, headers=headers)

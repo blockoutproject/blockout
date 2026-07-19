@@ -1,4 +1,4 @@
-from dataclasses import asdict
+from dataclasses import asdict, is_dataclass
 from datetime import datetime
 from enum import Enum
 import json
@@ -7,6 +7,7 @@ from typing import Optional
 import uuid
 from zoneinfo import ZoneInfo
 from config.logger_config import log_event
+from utils.json_case import to_camel_case
 
 # Charger le fichier JSON avec gestion des erreurs
 try:
@@ -108,20 +109,32 @@ def parse_date(date_str: str, time_str: str) -> Optional[datetime]:
     except ValueError:
         return None
     
+def _to_json_value(value):
+    if is_dataclass(value):
+        return {
+            to_camel_case(key): _to_json_value(item)
+            for key, item in asdict(value).items()
+        }
+    if isinstance(value, dict):
+        return {
+            to_camel_case(str(key)): _to_json_value(item)
+            for key, item in value.items()
+        }
+    if isinstance(value, (list, tuple, set)):
+        return [_to_json_value(item) for item in value]
+    if isinstance(value, Enum):
+        return value.value
+    if isinstance(value, datetime):
+        return value.isoformat()
+    return value
+
+
 def to_dict(object) -> dict:
     """
     Convertit l'instance actuelle en un dictionnaire compatible JSON.
     Gère les champs Enum et datetime.
     """
-    result = {}
-    for key, value in asdict(object).items():
-        if isinstance(value, Enum):
-            result[key] = value.value  # Convertir Enum en sa valeur
-        elif isinstance(value, datetime):
-            result[key] = value.isoformat()  # Convertir datetime en format ISO 8601
-        else:
-            result[key] = value  # Conserver les autres types
-    return result
+    return _to_json_value(object)
 
 def generate_correlation_id() -> str:
     return f"bulk-{uuid.uuid4()}"

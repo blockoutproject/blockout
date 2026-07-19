@@ -6,19 +6,19 @@ import {
     serializeApiQuery,
 } from "./JsonCase.ts";
 
-test("currently serializes request bodies to snake_case", () => {
+test("keeps camelCase request bodies unchanged", () => {
     assert.deepEqual(
         serializeApiJson({ clubId: "club-1", nestedValue: { shortName: "BO" } }),
         {
-            club_id: "club-1",
-            nested_value: { short_name: "BO" },
+            clubId: "club-1",
+            nestedValue: { shortName: "BO" },
         },
     );
 });
 
-test("currently deserializes response bodies to camelCase", () => {
+test("keeps camelCase response bodies unchanged", () => {
     assert.deepEqual(
-        deserializeApiJson({ club_id: "club-1", nested_value: { short_name: "BO" } }),
+        deserializeApiJson({ clubId: "club-1", nestedValue: { shortName: "BO" } }),
         {
             clubId: "club-1",
             nestedValue: { shortName: "BO" },

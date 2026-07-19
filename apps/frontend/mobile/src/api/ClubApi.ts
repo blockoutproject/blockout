@@ -1,7 +1,7 @@
 import { CONFIG } from "@/src/config/config";
 import { Club } from "../types/Club";
 import { CustomImage } from "../types/Common";
-import { appendJsonSnake } from "../utils/utils";
+import { appendJson } from "../utils/utils";
 import { BaseApi } from "./core/BaseApi";
 
 export class ClubApi extends BaseApi {
@@ -19,7 +19,7 @@ export class ClubApi extends BaseApi {
         image?: CustomImage,
     ) {
         const formData = new FormData();
-        appendJsonSnake(formData, "data", data);
+        appendJson(formData, "data", data);
 
         formData.append("image", image as any);
 

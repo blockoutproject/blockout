@@ -12,7 +12,7 @@ class GatewayJsonContractCharacterizationTest {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Test
-    void serializesGatewayTeamWithTheCurrentSnakeCaseContract() throws Exception {
+    void serializesGatewayTeamWithTheCamelCaseContract() throws Exception {
         TeamDTO team = TeamDTO.builder()
                 .id(10L)
                 .clubId("club-1")
@@ -24,11 +24,11 @@ class GatewayJsonContractCharacterizationTest {
 
         JsonNode json = objectMapper.readTree(objectMapper.writeValueAsBytes(team));
 
-        assertThat(json.path("club_id").asText()).isEqualTo("club-1");
-        assertThat(json.path("short_name").asText()).isEqualTo("BO");
-        assertThat(json.path("division_id").asLong()).isEqualTo(20L);
-        assertThat(json.path("followers_count").asLong()).isEqualTo(30L);
-        assertThat(json.path("logo_url").asText()).isEqualTo("https://example.invalid/team.png");
-        assertThat(json.has("clubId")).isFalse();
+        assertThat(json.path("clubId").asText()).isEqualTo("club-1");
+        assertThat(json.path("shortName").asText()).isEqualTo("BO");
+        assertThat(json.path("divisionId").asLong()).isEqualTo(20L);
+        assertThat(json.path("followersCount").asLong()).isEqualTo(30L);
+        assertThat(json.path("logoUrl").asText()).isEqualTo("https://example.invalid/team.png");
+        assertThat(json.has("club_id")).isFalse();
     }
 }

@@ -15,7 +15,7 @@
   - Cover the scraper status check and one write payload for each scraper without calling production systems.
   - Preserve current behavior so the camelCase migration has an executable baseline.
 
-- [ ] **REF-003 — Migrate Blockout-owned JSON fields to camelCase**
+- [x] **REF-003 — Migrate Blockout-owned JSON fields to camelCase**
   - Change all in-repository producers and consumers together: Java services, gateway, worker, Python scrapers, and Expo mobile.
   - Keep the existing V1 routes and controllers; do not create V2 endpoints, aliases, contract sources, or generated code.
   - Leave external provider payloads and non-JSON infrastructure names unchanged.

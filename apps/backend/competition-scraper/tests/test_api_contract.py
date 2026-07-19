@@ -42,7 +42,7 @@ def test_requests_scraper_status_from_the_config_api(monkeypatch):
     asyncio.run(scenario())
 
 
-def test_writes_the_current_snake_case_team_payload(monkeypatch):
+def test_writes_the_camel_case_team_payload(monkeypatch):
     async def scenario():
         monkeypatch.setattr(teams_api, "TEAM_API_URL", "http://teams.local/v1/teams")
         monkeypatch.setattr(teams_api, "_get_headers", lambda: {"Authorization": "Bearer test"})
@@ -62,25 +62,25 @@ def test_writes_the_current_snake_case_team_payload(monkeypatch):
         method, url, kwargs = session.calls[0]
         assert method == "POST"
         assert url == "http://teams.local/v1/teams"
-        assert kwargs["json"]["club_id"] == "club-1"
-        assert kwargs["json"]["raw_name"] == "RAW TEAM"
-        assert kwargs["json"]["short_name"] == "BO"
-        assert kwargs["json"]["division_id"] == "10"
-        assert "clubId" not in kwargs["json"]
+        assert kwargs["json"]["clubId"] == "club-1"
+        assert kwargs["json"]["rawName"] == "RAW TEAM"
+        assert kwargs["json"]["shortName"] == "BO"
+        assert kwargs["json"]["divisionId"] == "10"
+        assert "club_id" not in kwargs["json"]
 
     asyncio.run(scenario())
 
 
-def test_current_status_mapping_drops_the_snake_case_timestamp():
+def test_status_mapping_reads_the_camel_case_timestamp():
     status = convert_to_dataclass(
         {
             "id": 1,
             "name": "SCRAPER",
             "enabled": True,
-            "last_update": "2026-07-19T12:30:00",
+            "lastUpdate": "2026-07-19T12:30:00",
         },
         ScraperStatus,
     )
 
     assert status.enabled is True
-    assert status.lastUpdate is None
+    assert status.lastUpdate.isoformat() == "2026-07-19T12:30:00"

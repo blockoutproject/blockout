@@ -40,7 +40,7 @@ export class HttpClient {
             paramsSerializer: (params) => qs.stringify(params, { arrayFormat: "repeat" }),
         });
 
-        // Request interceptor (auth + snake_case)
+        // Request interceptor (auth + transport naming)
         this.instance.interceptors.request.use(async (config) => {
             const headers = AxiosHeaders.from(config.headers ?? {});
             config.headers = headers;
@@ -57,7 +57,7 @@ export class HttpClient {
                 }
             }
 
-            // snake_case pour JSON
+            // JSON remains camelCase; query parameters keep their existing contract.
             if (this.transformCase) {
                 const contentType = headers.get("Content-Type");
                 const isJson = !contentType || String(contentType).toLowerCase().includes("application/json");
@@ -87,7 +87,7 @@ export class HttpClient {
             return config;
         });
 
-        // Response interceptor (camelCase + erreurs normalisées)
+        // Response interceptor (camelCase + normalized errors)
         this.instance.interceptors.response.use(
             (res: AxiosResponse) => {
                 if (this.transformCase) {

@@ -5,7 +5,7 @@ import { ScraperStatus } from "../types/ScraperStatus";
 import { LegalDocument } from "../types/LegalDocument";
 import { AppStatusDTO, AppStatusUpdateDTO } from "../types/AppStatus";
 import { CustomImage } from "../types/Common";
-import { appendJsonSnake } from "../utils/utils";
+import { appendJson } from "../utils/utils";
 import { BaseApi } from "./core/BaseApi";
 
 export class ConfigApi extends BaseApi {
@@ -32,7 +32,7 @@ export class ConfigApi extends BaseApi {
         image?: CustomImage,
     ) {
         const formData = new FormData();
-        appendJsonSnake(formData, "data", data);
+        appendJson(formData, "data", data);
         if (image) {
             formData.append("image", {
                 uri: image.uri,
@@ -51,7 +51,7 @@ export class ConfigApi extends BaseApi {
         image?: CustomImage,
     ) {
         const formData = new FormData();
-        appendJsonSnake(formData, "data", data);
+        appendJson(formData, "data", data);
         if (image) {
             formData.append("image", {
                 uri: image.uri,

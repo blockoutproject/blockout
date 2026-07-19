@@ -5,6 +5,7 @@ from enum import Enum
 from dataclasses import fields
 import aiohttp
 from config.logger_config import log_event
+from utils.json_case import to_camel_case
 
 def handle_api_response(response_type: Optional[Type] = None):
     """
@@ -92,7 +93,7 @@ def convert_to_dataclass(data: dict, cls: Type) -> object:
     for field in fields(cls):
         field_name = field.name
         field_type = field.type
-        value = data.get(field_name)
+        value = data.get(to_camel_case(field_name))
         if value is not None:
             try:
                 value = convert_field_value(value, field_type)

@@ -51,7 +51,7 @@ async def bulk_deactivate_teams_by_pool(
     """
     headers = _get_headers()
     url = f"{COMPETITION_API_URL}/pools/{pool_id}/teams/bulk-deactivate"
-    payload = {"missing_team_ids": list(missing_team_ids)}
+    payload = {"missingTeamIds": list(missing_team_ids)}
     response = await session.put(url, json=payload, headers=headers)
     return response
 
@@ -66,7 +66,7 @@ async def bulk_deactivate_pools(
     """
     headers = _get_headers()
     url = f"{COMPETITION_API_URL}/pools/bulk-deactivate"
-    payload = {"missing_pool_ids": list(missing_pool_ids)}
+    payload = {"missingPoolIds": list(missing_pool_ids)}
     response = await session.put(url, json=payload, headers=headers)
     return response
 

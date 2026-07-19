@@ -2,7 +2,6 @@ package com.blockout.mobilegateway.models.dto.config;
 
 import java.time.LocalDateTime;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -18,9 +17,7 @@ public class LegalDocumentDTO {
     private String version;
     private String content;
 
-    @JsonProperty("created_at")
     private LocalDateTime createdAt;
 
-    @JsonProperty("last_update")
     private LocalDateTime lastUpdate;
 }
