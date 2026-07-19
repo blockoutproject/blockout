@@ -1,0 +1,76 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "pools",
+      "Group": "Blockout",
+      "Host": "blockout-postgres-pools",
+      "Port": 5432,
+      "MaintenanceDB": "pools",
+      "Username": "pools",
+      "SSLMode": "prefer"
+    },
+    "2": {
+      "Name": "teams",
+      "Group": "Blockout",
+      "Host": "blockout-postgres-teams",
+      "Port": 5432,
+      "MaintenanceDB": "teams",
+      "Username": "teams",
+      "SSLMode": "prefer"
+    },
+    "3": {
+      "Name": "matches",
+      "Group": "Blockout",
+      "Host": "blockout-postgres-matches",
+      "Port": 5432,
+      "MaintenanceDB": "matches",
+      "Username": "matches",
+      "SSLMode": "prefer"
+    },
+    "4": {
+      "Name": "competition",
+      "Group": "Blockout",
+      "Host": "blockout-postgres-competition",
+      "Port": 5432,
+      "MaintenanceDB": "competition",
+      "Username": "competition",
+      "SSLMode": "prefer"
+    },
+    "5": {
+      "Name": "users",
+      "Group": "Blockout",
+      "Host": "blockout-postgres-users",
+      "Port": 5432,
+      "MaintenanceDB": "users",
+      "Username": "users",
+      "SSLMode": "prefer"
+    },
+    "6": {
+      "Name": "clubs",
+      "Group": "Blockout",
+      "Host": "blockout-postgres-clubs",
+      "Port": 5432,
+      "MaintenanceDB": "clubs",
+      "Username": "clubs",
+      "SSLMode": "prefer"
+    },
+    "7": {
+      "Name": "config",
+      "Group": "Blockout",
+      "Host": "blockout-postgres-config",
+      "Port": 5432,
+      "MaintenanceDB": "config",
+      "Username": "config",
+      "SSLMode": "prefer"
+    },
+    "8": {
+      "Name": "notification",
+      "Group": "Blockout",
+      "Host": "blockout-postgres-notification",
+      "Port": 5432,
+      "MaintenanceDB": "notification",
+      "Username": "notification",
+      "SSLMode": "prefer"
+    }
+  }
+}

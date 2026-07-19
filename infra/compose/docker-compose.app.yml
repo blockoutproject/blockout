@@ -1,0 +1,182 @@
+services:
+  blockout-postgres-pools:
+    container_name: blockout-postgres-pools
+    image: postgres:17
+    restart: always
+    environment:
+      POSTGRES_USER: pools
+      POSTGRES_PASSWORD: pools
+      POSTGRES_DB: pools
+    ports:
+      - '5432:5432'
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U pools -d pools']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - postgres_pools_data:/var/lib/postgresql/data
+    networks:
+      - blockout-network
+
+  blockout-postgres-teams:
+    container_name: blockout-postgres-teams
+    image: postgres:17
+    restart: always
+    environment:
+      POSTGRES_USER: teams
+      POSTGRES_PASSWORD: teams
+      POSTGRES_DB: teams
+    ports:
+      - '5433:5432'
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U teams -d teams']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - postgres_teams_data:/var/lib/postgresql/data
+    networks:
+      - blockout-network
+
+  blockout-postgres-matches:
+    container_name: blockout-postgres-matches
+    image: postgres:17
+    restart: always
+    environment:
+      POSTGRES_USER: matches
+      POSTGRES_PASSWORD: matches
+      POSTGRES_DB: matches
+    ports:
+      - '5434:5432'
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U matches -d matches']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - postgres_matches_data:/var/lib/postgresql/data
+    networks:
+      - blockout-network
+
+  blockout-postgres-competition:
+    container_name: blockout-postgres-competition
+    image: postgres:17
+    restart: always
+    environment:
+      POSTGRES_USER: competition
+      POSTGRES_PASSWORD: competition
+      POSTGRES_DB: competition
+    ports:
+      - '5435:5432'
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U competition -d competition']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - postgres_competition_data:/var/lib/postgresql/data
+    networks:
+      - blockout-network
+
+  blockout-postgres-users:
+    container_name: blockout-postgres-users
+    image: postgres:17
+    restart: always
+    environment:
+      POSTGRES_USER: users
+      POSTGRES_PASSWORD: users
+      POSTGRES_DB: users
+    ports:
+      - '5436:5432'
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U users -d users']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - postgres_users_data:/var/lib/postgresql/data
+    networks:
+      - blockout-network
+
+  blockout-postgres-clubs:
+    container_name: blockout-postgres-clubs
+    image: postgres:17
+    restart: always
+    environment:
+      POSTGRES_USER: clubs
+      POSTGRES_PASSWORD: clubs
+      POSTGRES_DB: clubs
+    ports:
+      - '5437:5432'
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U clubs -d clubs']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - postgres_clubs_data:/var/lib/postgresql/data
+    networks:
+      - blockout-network
+
+  blockout-postgres-config:
+    container_name: blockout-postgres-config
+    image: postgres:17
+    restart: always
+    environment:
+      POSTGRES_USER: config
+      POSTGRES_PASSWORD: config
+      POSTGRES_DB: config
+    ports:
+      - '5438:5432'
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U config -d config']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - postgres_config_data:/var/lib/postgresql/data
+    networks:
+      - blockout-network
+
+  blockout-postgres-notification:
+    container_name: blockout-postgres-notification
+    image: postgres:17
+    restart: always
+    environment:
+      POSTGRES_USER: notification
+      POSTGRES_PASSWORD: notification
+      POSTGRES_DB: notification
+    ports:
+      - '5439:5432'
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U notification -d notification']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - postgres_notification_data:/var/lib/postgresql/data
+    networks:
+      - blockout-network
+
+volumes:
+  postgres_pools_data:
+    name: blockout_postgres_pools_data
+  postgres_teams_data:
+    name: blockout_postgres_teams_data
+  postgres_matches_data:
+    name: blockout_postgres_matches_data
+  postgres_competition_data:
+    name: blockout_postgres_competition_data
+  postgres_users_data:
+    name: blockout_postgres_users_data
+  postgres_clubs_data:
+    name: blockout_postgres_clubs_data
+  postgres_config_data:
+    name: blockout_postgres_config_data
+  postgres_notification_data:
+    name: blockout_postgres_notification_data
+
+networks:
+  blockout-network:
+    name: blockout-network
