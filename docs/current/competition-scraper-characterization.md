@@ -70,8 +70,8 @@ another external system during execution.
 - Pool and Team decisions validate required identity fields, retain owner IDs, compare only their existing legacy field
   lists, reactivate when allowed, and avoid unchanged writes.
 - Match finalization creates new entries, updates only entries with scheduled changes, skips unchanged entries, isolates
-  each owner failure, then clears the cache. Association finalization writes changed entries concurrently, computes
-  coefficients, then clears its cache.
+  each owner failure, then clears the cache. Association finalization writes only entries touched by an observed ranking
+  row, computes their coefficients, and leaves loaded but unobserved owner statistics unchanged.
 - Cleanup routes use `missingPoolIds`, `missingTeamIds`, and `missingMatchCodes`. Professional ingestion does not perform
   the regional/national missing-pool cleanup.
 - Handwritten transport mirrors now use their exact owner-facing `*InternalRequest` and `*InternalResponse` names.
@@ -87,8 +87,9 @@ from shared owner contracts, while the application policy `DataSourcePriority` r
   under `scraper/domain`, and FFVB, LNV, Blockout, and scheduling adapters under `scraper/infrastructure`.
 - Provider HTTP access, match change tracking, association statistics, and pure LNV parsing are explicit seams. The old
   top-level `api`, `models`, `scrapers`, `services`, and `utils` import paths are no longer used.
-- The offline suite contains 69 passing tests. The authentic REF-026 matrix contains five departmental, five regional,
+- The offline suite contains 71 passing tests. The authentic REF-026 matrix contains five departmental, five regional,
   and five national FFVB calendar exports with their matching pool pages and discovery links, plus the three current
-  Data Project competition pages. Fixture provenance and sanitization are recorded beside the corpus.
+  Data Project competition pages. An additional source-derived fixture preserves the FFVB page's nested table layout so
+  calendar rows cannot be mistaken for ranking rows. Fixture provenance and sanitization are recorded beside the corpus.
 - Runtime dependencies contain only packages imported by the application. Pytest and Ruff are development-only; Ruff
   0.15.22 supplies the standard lint and format targets.

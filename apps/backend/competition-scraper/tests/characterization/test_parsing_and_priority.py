@@ -238,13 +238,45 @@ def test_association_finalization_computes_coefficients_and_clears_cache(
         stats = UpdateAssociationStatsInternalRequest(
             wonSets=9, lostSets=3, wonPoints=250, lostPoints=0
         )
-        scraper._associations_cache[(10, 20)] = (None, stats)
+        scraper.schedule_association_update(10, 20, stats)
 
         await scraper.finalize_associations_updates()
 
         assert writes[0][:2] == (10, 20)
         assert writes[0][2].coefSets == 3.0
         assert writes[0][2].coefPoints == 1000.0
+        assert scraper._associations_cache == {}
+
+    asyncio.run(scenario())
+
+
+def test_association_finalization_preserves_untouched_owner_stats(monkeypatch) -> None:
+    """Do not fabricate zero statistics when no ranking row was observed."""
+
+    async def scenario() -> None:
+        writes = []
+
+        async def update(*args):
+            writes.append(args)
+
+        monkeypatch.setattr(
+            association_changes, "update_team_association_stats", update
+        )
+        scraper = DummyScraper(None, "stats")
+        original = UpdateAssociationStatsInternalRequest(
+            played=10,
+            points=20,
+            coefSets=1.5,
+            coefPoints=1.2,
+        )
+        scraper._associations_cache[(10, 20)] = (
+            original,
+            UpdateAssociationStatsInternalRequest(),
+        )
+
+        await scraper.finalize_associations_updates()
+
+        assert writes == []
         assert scraper._associations_cache == {}
 
     asyncio.run(scenario())

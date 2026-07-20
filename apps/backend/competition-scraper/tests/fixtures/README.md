@@ -19,6 +19,10 @@ those pools. The three `competition-124/125/126.html` fixtures retain match
 blocks from the current Saforelle Power 6, Marmara SpikeLigue, and Ligue B
 Masculine Data Project pages.
 
+`nested-layout-ptra69-bm1.html` preserves the malformed outer table and
+nested ranking/calendar tables observed on the complete FFVB page. It protects
+ranking extraction from treating calendar headings or match rows as teams.
+
 The live LNV XML endpoints were temporarily unavailable during REF-026. Their
 URLs, transport, parsing, and fixtures are intentionally unchanged by this task.
 The existing XML fixtures remain reduced excerpts of official responses archived

@@ -69,3 +69,34 @@ empty typed collections from the current local databases. A follow-up check on
 `SCRAPER` path value. `config-service` returned the typed `SCRAPER` status with
 its persisted `lastUpdate`; the current local value was disabled. The stable
 identifier therefore aligns across the Python client, Java enum, and database.
+
+## REF-027 competition persistence certification
+
+On 2026-07-21, the competition scraper wrote six disposable flows through the
+real local owner APIs and then read their persisted state back:
+
+- departmental PTRA69/BM1: 1 pool, 9 teams, 9 associations, and 72 matches;
+- regional LIRA/PFA: 1 pool, 10 teams, 10 associations, and 90 matches;
+- national ABCCS/EFA: 1 pool, 13 teams, 13 associations, and 111 valid matches;
+- professional PAZ, LBM, and FAZ: 3 pools, 31 teams, 31 associations, and 204
+  matches, with respectively 4, 165, and 4 persisted Data Project live codes.
+
+The EFA export contained 22 invalid rows among 132 provider rows. A disposable
+active team pair, association pair, and match seeded before ingestion remained
+active, proving that incomplete input does not authorize destructive cleanup.
+Repeating all six source flows produced an identical owner-state snapshot.
+
+This run also exposed and corrected two provider-boundary defects. FFVB ranking
+parsing now scopes rows and cells to their direct table so the provider's nested
+calendar table cannot become ranking data. Association finalization now writes
+only teams touched by an observed ranking row, preventing absent rankings from
+replacing owner statistics with fabricated zero totals and `1000` coefficients.
+
+The three professional CSV sources currently configured for 2026/2027 contain
+headers but no match rows. The certification therefore used their populated
+2025/2026 exports together with the current public Data Project pages. This was
+a temporary validation override only; production configuration and source code
+remain on 2026/2027. LNV XML remained unavailable, was not called, and its code
+was not changed. The persisted `SCRAPER` status remained disabled before and
+after the run. All disposable database records and their local queue messages
+were removed afterwards.

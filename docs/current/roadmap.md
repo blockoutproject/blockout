@@ -148,6 +148,19 @@
     4/4/165 LNV HTML matches. Nx, Ruff, compileall, image build, imports, and no-network image smoke pass. Local owner API
     reads pass, including the authenticated `SCRAPER` status request used by the competition scraper.
 
-The Java refactor is complete. Scraper work now proceeds through characterization before structural replacement.
+- [x] **REF-027 — Certify competition scraper persistence end to end**
+  - Exercise one authentic departmental, regional, and national FFVB source plus the three professional LNV HTML pages
+    against the local owner APIs and disposable local records.
+  - Verify persisted pools, teams, associations, and matches, then repeat identical input to prove idempotence and use an
+    incomplete observation to prove destructive reconciliation remains disabled.
+  - Keep the unavailable LNV XML path unchanged and uncalled, restore the local scraper status, and remove only the
+    records created by this validation.
+  - Evidence: six real-source flows persisted 6 pools, 63 teams and associations, and 477 matches through the local APIs.
+    The three Data Project pages added 4/165/4 live codes; repeated input produced an identical state; the incomplete EFA
+    export preserved disposable sentinels. Two discovered defects are covered by authentic regression tests: nested
+    FFVB calendar rows cannot become rankings, and absent rankings cannot overwrite association statistics. All 71
+    scraper tests, Ruff, compileall, Nx targets, image build/import, cleanup, and status-preservation checks pass.
+
+The Java and Python scraper refactors and their local persistence certification are complete.
 Contract-first adoption, code generation, Python packaging/toolchain migration, GitFlow, CI, deployment, and production
 changes remain deferred.

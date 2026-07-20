@@ -88,17 +88,22 @@ def parse_rankings(html: str) -> tuple[FfvbRanking, ...]:
     """Find the ranking table by its semantic headers and parse its rows."""
     soup = BeautifulSoup(html, "html.parser")
     for table in soup.find_all("table"):
-        rows = table.find_all("tr")
+        rows = [
+            row for row in table.find_all("tr") if row.find_parent("table") is table
+        ]
         if not rows:
             continue
-        header = tuple(cell.get_text(strip=True) for cell in rows[0].find_all("td"))
+        header = tuple(
+            cell.get_text(strip=True)
+            for cell in rows[0].find_all("td", recursive=False)
+        )
         full = _contains_headers(header, _RANKING_HEADERS)
         compact = _contains_headers(header, _COMPACT_RANKING_HEADERS)
         if not full and not compact:
             continue
         rankings = []
         for row in rows[1:]:
-            columns = row.find_all("td")
+            columns = row.find_all("td", recursive=False)
             if full and len(columns) >= 19:
                 rankings.append(parse_stat_line(columns))
             elif compact and len(columns) >= 13:

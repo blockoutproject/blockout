@@ -25,6 +25,7 @@ class AssociationChangeSet:
     def __init__(self, session: aiohttp.ClientSession) -> None:
         self._session = session
         self.entries: dict[tuple[int, int], AssociationEntry] = {}
+        self._touched: set[tuple[int, int]] = set()
 
     async def load(self, pool_id: int) -> None:
         """Load active owner associations and reset their candidate statistics."""
@@ -91,6 +92,7 @@ class AssociationChangeSet:
                 lostSets=stats.lostSets,
                 pointsPenalty=stats.pointsPenalty,
             )
+            self._touched.add((pool_id, team_id))
         except Exception as error:
             log_event(
                 action="schedule_association_update_error",
@@ -129,11 +131,14 @@ class AssociationChangeSet:
         for field_name in raw_fields:
             setattr(updated, field_name, getattr(stats, field_name))
         updated.pointsPenalty = abs(stats.points - updated.points)
+        self._touched.add((pool_id, team_id))
 
     async def flush(self) -> None:
         """Calculate coefficients, write changed entries, then clear the cache."""
         updates = []
         for (pool_id, team_id), (original, updated) in self.entries.items():
+            if (pool_id, team_id) not in self._touched:
+                continue
             updated.coefSets = (
                 round(updated.wonSets / updated.lostSets, 3)
                 if updated.lostSets > 0
@@ -153,6 +158,7 @@ class AssociationChangeSet:
         if updates:
             await asyncio.gather(*updates)
         self.entries.clear()
+        self._touched.clear()
 
     def _entry(self, pool_id: int, team_id: int) -> AssociationEntry:
         key = (pool_id, team_id)

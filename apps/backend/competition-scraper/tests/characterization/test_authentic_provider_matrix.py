@@ -68,3 +68,15 @@ def test_authentic_compact_departmental_ranking_is_supported() -> None:
         16,
         32,
     )
+
+
+def test_authentic_nested_calendar_rows_are_not_rankings() -> None:
+    """Ignore calendar rows nested by the provider's malformed table layout."""
+    fixture = FFVB_POOL_PAGES / "nested-layout-ptra69-bm1.html"
+
+    rankings = parse_rankings(fixture.read_text(encoding="utf-8"))
+
+    assert [ranking.team_name for ranking in rankings] == [
+        "VILLEFRANCHE G1",
+        "ASUL G1",
+    ]
