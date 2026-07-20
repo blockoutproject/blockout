@@ -1,0 +1,372 @@
+import asyncio
+from datetime import datetime
+from types import SimpleNamespace
+from zoneinfo import ZoneInfo
+
+import api.auth0 as auth0
+import main as competition_main
+import models.scraper as scraper_module
+import pytest
+import scheduler as scheduler_module
+from models.scraper import Scraper
+from scrapers.departmental_scraper import DepartmentalScraper
+from scrapers.national_scraper import NationalScraper
+from scrapers.pro_scraper import ProScraper
+from scrapers.regional_scraper import RegionalScraper
+from scrapers.scraper_factory import ScraperFactory
+
+
+class DummyScraper(Scraper):
+    """Concrete legacy base for provider runtime tests."""
+
+    async def run_scraping(self) -> None:
+        return None
+
+
+class _Content:
+    def __init__(self, body: bytes) -> None:
+        self.body = body
+
+    async def read(self) -> bytes:
+        return self.body
+
+
+class _Response:
+    def __init__(self, body: bytes = b"ok") -> None:
+        self.content = _Content(body)
+
+    def raise_for_status(self) -> None:
+        return None
+
+
+class _Context:
+    def __init__(self, result) -> None:
+        self.result = result
+
+    async def __aenter__(self):
+        if isinstance(self.result, BaseException):
+            raise self.result
+        return self.result
+
+    async def __aexit__(self, *_args) -> None:
+        return None
+
+
+class _ScriptedSession:
+    def __init__(self, results) -> None:
+        self.results = list(results)
+        self.calls: list[tuple] = []
+
+    def get(self, url, **kwargs):
+        self.calls.append((url, kwargs))
+        return _Context(self.results.pop(0))
+
+
+class _Gauge:
+    def __init__(self) -> None:
+        self.values: list[float] = []
+
+    def set(self, value: float) -> None:
+        self.values.append(value)
+
+
+def test_provider_fetch_preserves_encoding_timeout_retry_and_tls(monkeypatch) -> None:
+    """Protect the shared GET adapter's bounded network behavior."""
+
+    async def scenario() -> None:
+        session = _ScriptedSession(
+            [TimeoutError(), TimeoutError(), _Response(b"caf\xe9")]
+        )
+        sleeps: list[int] = []
+
+        async def sleep(delay: int) -> None:
+            sleeps.append(delay)
+
+        monkeypatch.setattr(scraper_module.asyncio, "sleep", sleep)
+        monkeypatch.setattr(scraper_module, "log_event", lambda **_event: None)
+        scraper = DummyScraper(session, "dummy")
+
+        result = await scraper.fetch("http://www.ffvb.org/provider")
+
+        assert result == "café"
+        assert len(session.calls) == 3
+        assert all(call[1]["ssl"] is False for call in session.calls)
+        assert all(call[1]["timeout"].total == 20 for call in session.calls)
+        assert sleeps == [5, 5]
+
+    asyncio.run(scenario())
+
+
+def test_provider_fetch_raises_only_after_three_failures(monkeypatch) -> None:
+    """Protect terminal provider failure and retry count."""
+
+    async def scenario() -> None:
+        session = _ScriptedSession([TimeoutError(), TimeoutError(), TimeoutError()])
+
+        async def sleep(_delay: int) -> None:
+            return None
+
+        monkeypatch.setattr(scraper_module.asyncio, "sleep", sleep)
+        monkeypatch.setattr(scraper_module, "log_event", lambda **_event: None)
+
+        with pytest.raises(Exception, match="3 tentatives"):
+            await DummyScraper(session, "dummy").fetch("https://provider.invalid")
+
+        assert len(session.calls) == 3
+
+    asyncio.run(scenario())
+
+
+def test_top_level_runner_limits_scraper_concurrency_to_two(monkeypatch) -> None:
+    """Protect source ordering and maximum concurrent scraper count."""
+
+    async def scenario() -> None:
+        active = 0
+        maximum = 0
+        started: list[str] = []
+
+        async def run_one(_session, scraper_type):
+            nonlocal active, maximum
+            active += 1
+            maximum = max(maximum, active)
+            started.append(scraper_type)
+            await asyncio.sleep(0.01)
+            active -= 1
+
+        monkeypatch.setattr(competition_main, "_run_one_scraper", run_one)
+
+        await competition_main.run_scrapers_with_max_concurrency(
+            object(),
+            ["regional", "departmental", "national", "pro"],
+        )
+
+        assert maximum == 2
+        assert started == ["regional", "departmental", "national", "pro"]
+
+    asyncio.run(scenario())
+
+
+def test_main_fails_closed_when_scraper_status_is_unavailable(monkeypatch) -> None:
+    """Protect status gating, return value, and duration measurement."""
+
+    async def scenario() -> None:
+        class Session:
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, *_args):
+                return None
+
+        async def fail(_session, _name):
+            raise RuntimeError("config unavailable")
+
+        gauge = _Gauge()
+        events: list[dict] = []
+        monkeypatch.setattr(
+            competition_main.aiohttp, "ClientSession", lambda **_kwargs: Session()
+        )
+        monkeypatch.setattr(competition_main, "get_scraper_status", fail)
+        monkeypatch.setattr(competition_main, "execution_duration_gauge", gauge)
+        monkeypatch.setattr(
+            competition_main, "log_event", lambda **event: events.append(event)
+        )
+
+        assert await competition_main.main() is False
+        assert events[-1]["action"] == "scraper_status_fetch_failed"
+        assert len(gauge.values) == 1
+
+    asyncio.run(scenario())
+
+
+def test_enabled_main_preserves_sessions_connector_and_configured_sources(
+    monkeypatch,
+) -> None:
+    """Protect ten-second sessions, connection limit, proxy trust, and source list."""
+
+    async def scenario() -> None:
+        observed: dict = {"sessions": []}
+
+        class Session:
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, *_args):
+                return None
+
+        def session(**kwargs):
+            observed["sessions"].append(kwargs)
+            return Session()
+
+        def connector(**kwargs):
+            observed["connector"] = kwargs
+            return "connector"
+
+        async def status(_session, _name):
+            return SimpleNamespace(enabled=True)
+
+        async def run(session, scraper_types, max_concurrency=2):
+            observed["run"] = (session, list(scraper_types), max_concurrency)
+
+        monkeypatch.setattr(competition_main.aiohttp, "ClientSession", session)
+        monkeypatch.setattr(competition_main.aiohttp, "TCPConnector", connector)
+        monkeypatch.setattr(competition_main, "get_scraper_status", status)
+        monkeypatch.setattr(competition_main, "run_scrapers_with_max_concurrency", run)
+        monkeypatch.setattr(competition_main, "execution_duration_gauge", _Gauge())
+
+        assert await competition_main.main() is True
+        assert [item["timeout"].total for item in observed["sessions"]] == [10, 10]
+        assert all(item["trust_env"] is True for item in observed["sessions"])
+        assert observed["connector"] == {"limit": 20, "ssl": False}
+        assert observed["run"][1] == ["regional", "departmental", "national", "pro"]
+        assert observed["run"][2] == 2
+
+    asyncio.run(scenario())
+
+
+@pytest.mark.parametrize(
+    ("moment", "seconds"),
+    [
+        (datetime(2026, 7, 19, 13, 0, tzinfo=ZoneInfo("Europe/Paris")), 1800),
+        (datetime(2026, 7, 19, 14, 0, tzinfo=ZoneInfo("Europe/Paris")), 300),
+        (datetime(2026, 7, 18, 16, 0, tzinfo=ZoneInfo("Europe/Paris")), 1800),
+        (datetime(2026, 7, 18, 17, 0, tzinfo=ZoneInfo("Europe/Paris")), 300),
+        (datetime(2026, 7, 20, 12, 0, tzinfo=ZoneInfo("Europe/Paris")), 1800),
+    ],
+)
+def test_scheduler_frequency_policy(moment, seconds) -> None:
+    """Protect weekday and weekend scrape intervals in Europe/Paris."""
+    assert scheduler_module.desired_interval_seconds(moment) == seconds
+
+
+def test_scheduler_advances_last_run_only_after_a_real_run(monkeypatch) -> None:
+    """Protect skip behavior and status-failure retry on the next minute tick."""
+
+    async def scenario() -> None:
+        now = datetime(2026, 7, 20, 12, 0, tzinfo=ZoneInfo("Europe/Paris"))
+        outcomes = iter([False, True])
+        calls = 0
+
+        async def scrape():
+            nonlocal calls
+            calls += 1
+            return next(outcomes)
+
+        monkeypatch.setattr(scheduler_module, "_paris_now", lambda: now)
+        monkeypatch.setattr(scheduler_module, "_last_run", None)
+        monkeypatch.setattr(scheduler_module, "log_event", lambda **_event: None)
+
+        await scheduler_module.maybe_run_scraper(scrape)
+        assert scheduler_module._last_run is None
+        await scheduler_module.maybe_run_scraper(scrape)
+        assert scheduler_module._last_run == now
+        await scheduler_module.maybe_run_scraper(scrape)
+        assert calls == 2
+
+    asyncio.run(scenario())
+
+
+def test_scheduler_polls_every_minute_without_overlap(monkeypatch) -> None:
+    """Protect APScheduler polling, coalescing, and single-instance settings."""
+
+    class Scheduler:
+        def __init__(self) -> None:
+            self.job = None
+            self.started = False
+
+        def add_job(self, *args, **kwargs):
+            self.job = (args, kwargs)
+
+        def start(self):
+            self.started = True
+
+    scheduler = Scheduler()
+    monkeypatch.setattr(scheduler_module, "AsyncIOScheduler", lambda: scheduler)
+    monkeypatch.setattr(scheduler_module, "log_event", lambda **_event: None)
+
+    scheduler_module.schedule_scraper(lambda: None)
+
+    args, kwargs = scheduler.job
+    assert args == (scheduler_module.maybe_run_scraper, "interval")
+    assert kwargs["seconds"] == 60
+    assert kwargs["misfire_grace_time"] == 30
+    assert kwargs["replace_existing"] is True
+    assert kwargs["max_instances"] == 1
+    assert kwargs["coalesce"] is True
+    assert scheduler.started is True
+
+
+def test_auth0_token_cache_refreshes_inside_the_safety_window(monkeypatch) -> None:
+    """Protect M2M cache reuse, five-minute safety, and authorization headers."""
+
+    async def scenario() -> None:
+        fetches: list[int] = []
+
+        async def fetch():
+            fetches.append(1)
+            return "token", 3600
+
+        monkeypatch.setattr(auth0, "M2M_ENABLED", True)
+        monkeypatch.setattr(auth0, "_MIRROR_TOKEN", "cached")
+        monkeypatch.setattr(auth0, "_TOKEN_EXP_EPOCH", 5000.0)
+        monkeypatch.setattr(auth0.time, "time", lambda: 1000.0)
+        monkeypatch.setattr(auth0, "fetch_auth0_token", fetch)
+
+        await auth0.ensure_token()
+        assert fetches == []
+        assert auth0._get_headers() == {"Authorization": "Bearer cached"}
+
+        monkeypatch.setattr(auth0, "_TOKEN_EXP_EPOCH", 1200.0)
+        await auth0.ensure_token()
+        assert fetches == [1]
+        assert auth0._get_headers() == {"Authorization": "Bearer token"}
+
+    asyncio.run(scenario())
+
+
+def test_application_startup_exposes_metrics_and_supervises_background_work(
+    monkeypatch,
+) -> None:
+    """Exercise startup wiring without contacting providers or Blockout APIs."""
+
+    async def scenario() -> None:
+        ports: list[int] = []
+        scheduled: list = []
+        tasks: list = []
+
+        class Event:
+            async def wait(self):
+                return None
+
+        def create_task(coroutine):
+            tasks.append(coroutine)
+            coroutine.close()
+
+        monkeypatch.setattr(competition_main, "start_http_server", ports.append)
+        monkeypatch.setattr(
+            competition_main,
+            "schedule_scraper",
+            lambda scrape_fn: scheduled.append(scrape_fn),
+        )
+        monkeypatch.setattr(competition_main.asyncio, "create_task", create_task)
+        monkeypatch.setattr(competition_main.asyncio, "Event", Event)
+        monkeypatch.setattr(competition_main, "log_event", lambda **_event: None)
+
+        await competition_main.app()
+
+        assert ports == [8000]
+        assert scheduled == [competition_main.main]
+        assert len(tasks) == 1
+
+    asyncio.run(scenario())
+
+
+def test_factory_maps_only_the_four_supported_sources() -> None:
+    """Protect configured source names and concrete adapter selection."""
+    assert isinstance(ScraperFactory.create_scraper("regional", None), RegionalScraper)
+    assert isinstance(
+        ScraperFactory.create_scraper("departmental", None), DepartmentalScraper
+    )
+    assert isinstance(ScraperFactory.create_scraper("national", None), NationalScraper)
+    assert isinstance(ScraperFactory.create_scraper("pro", None), ProScraper)
+    with pytest.raises(ValueError, match="inconnu"):
+        ScraperFactory.create_scraper("unknown", None)

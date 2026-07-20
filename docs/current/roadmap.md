@@ -120,7 +120,7 @@
   - Preserve every characterized runtime behavior and exact Java-owner internal transport mirror; remove legacy paths
     only after offline parity and a controlled local smoke.
 
-- [ ] **REF-024 — Characterize the complete competition scraper**
+- [x] **REF-024 — Characterize the complete competition scraper**
   - Protect departmental, regional, national, and professional provider flows; HTML, XML, and CSV parsing; aliases,
     source priority, statistics, retries, concurrency, scheduling, authentication, internal writes, and failure isolation.
   - Do not restructure production code or activate contract generation in this task.
