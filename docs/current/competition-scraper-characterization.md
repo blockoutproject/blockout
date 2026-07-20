@@ -1,8 +1,9 @@
 # Competition Scraper Characterization
 
-REF-024 records the imported competition scraper as an executable oracle before any structural replacement. All new
-tests use sanitized local HTML, XML, and CSV fragments plus recording adapters. They do not contact FFVB, LNV, Auth0,
-production Blockout APIs, or another external system.
+REF-024 records the imported competition scraper as an executable oracle before any structural replacement. REF-025
+keeps that behavior behind an application-local `scraper` package. The test suite uses real source-derived FFVB/LNV
+HTML, XML, and CSV excerpts plus recording adapters. It does not contact FFVB, LNV, Auth0, production Blockout APIs, or
+another external system during execution.
 
 ## Runtime and scheduling
 
@@ -53,8 +54,9 @@ production Blockout APIs, or another external system.
   finalization recomputes coefficients from won/lost sets and points, using `1000.0` when the denominator is zero.
 - DataProject live matching resolves both aliased teams and finds the cached match by pool, team pair, and calendar date
   before applying the numeric match identifier.
-- A malformed XML document, missing main HTML identifier, unknown team, or pool-chain exception is isolated and logged
-  without aborting another professional pool.
+- XML parser failures, missing main HTML identifiers, unknown teams, and pool-chain exceptions are isolated and logged
+  without aborting another professional pool. Technical failure paths are injected around authentic documents rather
+  than represented by invented provider fixtures.
 
 ## Internal boundaries and writes
 
@@ -68,9 +70,20 @@ production Blockout APIs, or another external system.
   coefficients, then clears its cache.
 - Cleanup routes use `missingPoolIds`, `missingTeamIds`, and `missingMatchCodes`. Professional ingestion does not perform
   the regional/national missing-pool cleanup.
-- Current Python transport classes still use generic names such as `Team` and `Match`. Their future refactor must rename
-  exact mirrors to `*InternalRequest` and `*InternalResponse`; this characterization task intentionally does not change
-  production imports or activate contract generation.
+- Handwritten transport mirrors now use their exact owner-facing `*InternalRequest` and `*InternalResponse` names.
+  Purpose-specific create, update, and bulk request classes prevent response-only fields from leaking into writes. They
+  remain handwritten until the separately authorized contract-first phase.
 
-The unused local `Format`, `Gender`, and `MatchStatus` enum copies remain legacy facts for the future refactor.
-Contract-owned enums must ultimately come from the shared owner contracts, while `DataSourcePriority` remains local.
+The unused local `Format`, `Gender`, and `MatchStatus` copies were removed. Contract-owned enums will ultimately come
+from shared owner contracts, while the application policy `DataSourcePriority` remains local.
+
+## REF-025 structure and evidence
+
+- `main.py` delegates to `scraper.bootstrap`; orchestration lives under `scraper/application`, provider-independent rules
+  under `scraper/domain`, and FFVB, LNV, Blockout, and scheduling adapters under `scraper/infrastructure`.
+- Provider HTTP access, match change tracking, association statistics, and pure LNV parsing are explicit seams. The old
+  top-level `api`, `models`, `scrapers`, `services`, and `utils` import paths are no longer used.
+- The offline suite contains 55 passing tests. Fixture provenance is recorded beside the fixtures, including archived
+  official LNV XML because the live XML endpoints returned HTTP 403 during the refactor.
+- Runtime dependencies contain only packages imported by the application. Pytest and Ruff are development-only; Ruff
+  0.15.22 supplies the standard lint and format targets.

@@ -2,17 +2,43 @@ import asyncio
 from dataclasses import fields, replace
 from datetime import UTC, datetime
 
-import models.scraper as scraper_module
-from api import competitions_api, matches_api
-from models.competition_association import CompetitionAssociation
-from models.enums.datasource_priority import DataSourcePriority
-from models.match import Match
-from models.pool import Pool
-from models.raw_division_mapping import RawDivisionMapping
-from models.scraper import Scraper
-from models.team import Team
-from services import pools_service, teams_service
-from utils.handlers.api_handler import process_response
+import scraper.application.match_changes as match_changes
+from scraper.application import pool_writer as pools_service
+from scraper.application import team_writer as teams_service
+from scraper.application.source import Scraper
+from scraper.domain.data_source_priority import DataSourcePriority
+from scraper.infrastructure.blockout import competitions as competitions_api
+from scraper.infrastructure.blockout import matches as matches_api
+from scraper.infrastructure.blockout.association_stats import (
+    UpdateAssociationStatsInternalRequest,
+)
+from scraper.infrastructure.blockout.competition_association import (
+    BulkDeactivatePoolsInternalRequest,
+    BulkDeactivateTeamsInternalRequest,
+    CompetitionAssociationInternalResponse,
+)
+from scraper.infrastructure.blockout.match import (
+    BulkMatchesDeactivateInternalRequest,
+    CreateMatchInternalRequest,
+    MatchInternalResponse,
+    UpdateMatchInternalRequest,
+)
+from scraper.infrastructure.blockout.pool import (
+    CreatePoolInternalRequest,
+    PoolInternalResponse,
+    UpdatePoolInternalRequest,
+)
+from scraper.infrastructure.blockout.raw_division_mapping import (
+    CreateRawDivisionMappingInternalRequest,
+    RawDivisionMappingInternalResponse,
+)
+from scraper.infrastructure.blockout.response import process_response
+from scraper.infrastructure.blockout.scraper_status import ScraperStatusInternalResponse
+from scraper.infrastructure.blockout.team import (
+    CreateTeamInternalRequest,
+    TeamInternalResponse,
+    UpdateTeamInternalRequest,
+)
 
 
 class RecordingResponse:
@@ -44,7 +70,7 @@ class DummyScraper(Scraper):
         return None
 
 
-def _pool(**overrides) -> Pool:
+def _pool(**overrides) -> PoolInternalResponse:
     values = {
         "id": 10,
         "poolCode": "R1M",
@@ -59,10 +85,10 @@ def _pool(**overrides) -> Pool:
         "gender": "M",
     }
     values.update(overrides)
-    return Pool(**values)
+    return PoolInternalResponse(**values)
 
 
-def _team(**overrides) -> Team:
+def _team(**overrides) -> TeamInternalResponse:
     values = {
         "id": 20,
         "clubId": "club-1",
@@ -76,10 +102,10 @@ def _team(**overrides) -> Team:
         "gender": "M",
     }
     values.update(overrides)
-    return Team(**values)
+    return TeamInternalResponse(**values)
 
 
-def _match(**overrides) -> Match:
+def _match(**overrides) -> MatchInternalResponse:
     values = {
         "id": 30,
         "matchCode": "M001",
@@ -91,12 +117,12 @@ def _match(**overrides) -> Match:
         "season": "2026/2027",
     }
     values.update(overrides)
-    return Match(**values)
+    return MatchInternalResponse(**values)
 
 
 def test_complete_transport_mirrors_match_java_owner_field_sets() -> None:
     """Protect every complete owner mirror before later contract generation."""
-    assert [item.name for item in fields(Team)] == [
+    assert [item.name for item in fields(TeamInternalResponse)] == [
         "clubId",
         "rawName",
         "name",
@@ -113,7 +139,7 @@ def test_complete_transport_mirrors_match_java_owner_field_sets() -> None:
         "createdAt",
         "lastUpdate",
     ]
-    assert set(item.name for item in fields(Pool)) == {
+    assert set(item.name for item in fields(PoolInternalResponse)) == {
         "id",
         "poolCode",
         "leagueCode",
@@ -130,7 +156,7 @@ def test_complete_transport_mirrors_match_java_owner_field_sets() -> None:
         "createdAt",
         "lastUpdate",
     }
-    assert set(item.name for item in fields(Match)) == {
+    assert set(item.name for item in fields(MatchInternalResponse)) == {
         "id",
         "matchCode",
         "leagueCode",
@@ -153,7 +179,9 @@ def test_complete_transport_mirrors_match_java_owner_field_sets() -> None:
         "liveProvider",
         "liveOwnerAuth0Id",
     }
-    assert set(item.name for item in fields(CompetitionAssociation)) == {
+    assert set(
+        item.name for item in fields(CompetitionAssociationInternalResponse)
+    ) == {
         "id",
         "poolId",
         "teamId",
@@ -179,7 +207,7 @@ def test_complete_transport_mirrors_match_java_owner_field_sets() -> None:
         "createdAt",
         "lastUpdate",
     }
-    assert set(item.name for item in fields(RawDivisionMapping)) == {
+    assert set(item.name for item in fields(RawDivisionMappingInternalResponse)) == {
         "id",
         "rawDivisionName",
         "divisionId",
@@ -190,6 +218,128 @@ def test_complete_transport_mirrors_match_java_owner_field_sets() -> None:
         "createdAt",
         "lastUpdate",
         "mapped",
+    }
+    assert [item.name for item in fields(ScraperStatusInternalResponse)] == [
+        "id",
+        "name",
+        "enabled",
+        "lastUpdate",
+    ]
+
+
+def test_write_contracts_mirror_java_owner_field_sets() -> None:
+    """Protect every handwritten request until shared generation replaces it."""
+    assert [item.name for item in fields(CreateTeamInternalRequest)] == [
+        "clubId",
+        "rawName",
+        "name",
+        "shortName",
+        "leagueCode",
+        "divisionId",
+        "season",
+        "format",
+        "gender",
+        "followersCount",
+        "logoUrl",
+        "active",
+    ]
+    assert [item.name for item in fields(UpdateTeamInternalRequest)] == [
+        "clubId",
+        "rawName",
+        "name",
+        "shortName",
+        "leagueCode",
+        "divisionId",
+        "logoUrl",
+        "season",
+        "format",
+        "gender",
+        "active",
+    ]
+    assert [item.name for item in fields(CreatePoolInternalRequest)] == [
+        "poolCode",
+        "leagueCode",
+        "season",
+        "leagueName",
+        "rawName",
+        "name",
+        "shortName",
+        "divisionId",
+        "format",
+        "gender",
+        "followersCount",
+        "active",
+    ]
+    assert [item.name for item in fields(UpdatePoolInternalRequest)] == [
+        "poolCode",
+        "leagueCode",
+        "season",
+        "leagueName",
+        "rawName",
+        "name",
+        "shortName",
+        "divisionId",
+        "format",
+        "gender",
+        "active",
+    ]
+    match_write_fields = [
+        "matchCode",
+        "leagueCode",
+        "poolId",
+        "liveCode",
+        "teamIdA",
+        "teamIdB",
+        "matchDate",
+        "season",
+        "set",
+        "score",
+        "venue",
+        "firstReferee",
+        "secondReferee",
+    ]
+    assert [item.name for item in fields(CreateMatchInternalRequest)] == [
+        *match_write_fields,
+        "active",
+    ]
+    assert [item.name for item in fields(UpdateMatchInternalRequest)] == (
+        match_write_fields
+    )
+    assert [item.name for item in fields(CreateRawDivisionMappingInternalRequest)] == [
+        "rawDivisionName",
+        "divisionId",
+        "format",
+        "gender",
+        "leagueCode",
+        "season",
+    ]
+    assert [item.name for item in fields(BulkDeactivateTeamsInternalRequest)] == [
+        "missingTeamIds"
+    ]
+    assert [item.name for item in fields(BulkDeactivatePoolsInternalRequest)] == [
+        "missingPoolIds"
+    ]
+    assert [item.name for item in fields(BulkMatchesDeactivateInternalRequest)] == [
+        "missingMatchCodes"
+    ]
+    assert {item.name for item in fields(UpdateAssociationStatsInternalRequest)} == {
+        "played",
+        "wins",
+        "losses",
+        "points",
+        "winsThreeToZero",
+        "winsThreeToOne",
+        "winsThreeToTwo",
+        "lossesZeroToThree",
+        "lossesOneToThree",
+        "lossesTwoToThree",
+        "wonSets",
+        "lostSets",
+        "wonPoints",
+        "lostPoints",
+        "pointsPenalty",
+        "coefSets",
+        "coefPoints",
     }
 
 
@@ -312,9 +462,9 @@ def test_match_finalization_creates_updates_skips_and_isolates_failures(
         async def update(_session, match, _changes):
             updates.append(match.matchCode)
 
-        monkeypatch.setattr(scraper_module, "create_match", create)
-        monkeypatch.setattr(scraper_module, "update_match", update)
-        monkeypatch.setattr(scraper_module, "log_event", lambda **_event: None)
+        monkeypatch.setattr(match_changes, "create_match", create)
+        monkeypatch.setattr(match_changes, "update_match", update)
+        monkeypatch.setattr(match_changes, "log_event", lambda **_event: None)
         scraper = DummyScraper(None, "finalize")
         existing = _match(matchCode="UPDATE")
         unchanged = _match(matchCode="NOOP")
@@ -357,6 +507,8 @@ def test_match_finalization_creates_updates_skips_and_isolates_failures(
 def test_response_handler_preserves_no_content_list_semantics() -> None:
     """Protect empty-list decoding used by owner collection clients."""
     result = asyncio.run(
-        process_response(RecordingResponse(), list[Team], "get_teams", (), {})
+        process_response(
+            RecordingResponse(), list[TeamInternalResponse], "get_teams", (), {}
+        )
     )
     assert result == []

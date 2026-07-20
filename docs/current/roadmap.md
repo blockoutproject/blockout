@@ -125,6 +125,15 @@
     source priority, statistics, retries, concurrency, scheduling, authentication, internal writes, and failure isolation.
   - Do not restructure production code or activate contract generation in this task.
 
+- [x] **REF-025 — Refactor the competition scraper with differential parity**
+  - Replace the characterized legacy path one seam at a time with a single application-local `scraper` package and
+    explicit application, provider, Blockout, configuration, scheduling, and observability boundaries.
+  - Preserve REF-024 behavior and exact handwritten Java-owner internal mirrors; use only authentic source-derived
+    provider fixtures and remove the legacy path only after complete offline parity and controlled startup evidence.
+  - Evidence: all 55 offline characterization and contract tests pass; Ruff, compileall, Nx targets, the production image
+    build, runtime imports, and an isolated no-network startup smoke pass. The legacy paths and unused local contract enum
+    copies are removed, and the authentic fixture provenance is recorded beside the test corpus.
+
 The Java refactor is complete. Scraper work now proceeds through characterization before structural replacement.
 Contract-first adoption, code generation, Python packaging/toolchain migration, GitFlow, CI, deployment, and production
 changes remain deferred.

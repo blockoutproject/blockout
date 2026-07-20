@@ -1,7 +1,11 @@
-<Classement><Competition><Equipe NomClub="TOURS VB">
-  <Points>9</Points><MatchsJoues>3</MatchsJoues><MatchsGagnes>3</MatchsGagnes><MatchsPerdus>0</MatchsPerdus>
-  <Resultat_3_0>1</Resultat_3_0><Resultat_3_1>1</Resultat_3_1><Resultat_3_2>1</Resultat_3_2>
-  <Resultat_2_3>0</Resultat_2_3><Resultat_1_3>0</Resultat_1_3><Resultat_0_3>0</Resultat_0_3>
-  <SetPour>9</SetPour><SetContre>3</SetContre><RatioSet>3.0</RatioSet>
-  <PointsPour>250</PointsPour><PointsContre>210</PointsContre><RatioPoints>1.19</RatioPoints>
-</Equipe></Competition></Classement>
+<!-- Source-derived excerpt: https://lnv.fr/xml/classement-LAM.xml, archived 2023-01-30. -->
+<Classements><Competition CodeCompetition="LAM">
+  <Equipe NumClub="504" NomClub="Tours">
+    <Rang>1</Rang><Points>44</Points>
+    <MatchsJoues>18</MatchsJoues><MatchsGagnes>15</MatchsGagnes><MatchsPerdus>3</MatchsPerdus>
+    <Resultat_3_0>8</Resultat_3_0><Resultat_3_1>5</Resultat_3_1><Resultat_3_2>2</Resultat_3_2>
+    <Resultat_2_3>1</Resultat_2_3><Resultat_1_3>1</Resultat_1_3><Resultat_0_3>1</Resultat_0_3>
+    <SetPour>48</SetPour><SetContre>18</SetContre><RatioSet>2.6666666666667</RatioSet>
+    <PointsPour>1584</PointsPour><PointsContre>1453</PointsContre><RatioPoints>1.0901582931865</RatioPoints>
+  </Equipe>
+</Competition></Classements>

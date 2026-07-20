@@ -2,14 +2,16 @@ import asyncio
 from pathlib import Path
 
 import pytest
-from models.pool import Pool
-from models.raw_division_mapping import RawDivisionMapping
-from scrapers import departmental_scraper as departmental_module
-from scrapers import national_scraper as national_module
-from scrapers import regional_scraper as regional_module
-from scrapers.departmental_scraper import DepartmentalScraper
-from scrapers.national_scraper import NationalScraper
-from scrapers.regional_scraper import RegionalScraper
+from scraper.infrastructure.blockout.pool import PoolInternalResponse
+from scraper.infrastructure.blockout.raw_division_mapping import (
+    RawDivisionMappingInternalResponse,
+)
+from scraper.infrastructure.ffvb import departmental as departmental_module
+from scraper.infrastructure.ffvb import national as national_module
+from scraper.infrastructure.ffvb import regional as regional_module
+from scraper.infrastructure.ffvb.departmental import DepartmentalScraper
+from scraper.infrastructure.ffvb.national import NationalScraper
+from scraper.infrastructure.ffvb.regional import RegionalScraper
 
 FIXTURES = Path(__file__).parents[1] / "fixtures" / "ffvb"
 
@@ -50,7 +52,11 @@ def test_regional_index_discovers_supported_leagues_with_eight_way_guard(
         await scraper.run_scraping()
 
         assert calls == [
-            ("LNAQ", "Nouvelle Aquitaine", "http://www.ffvb.org/league?codent=LNAQ")
+            (
+                "LIAQ",
+                "Nouvelle Aquitaine",
+                "http://www.ffvbbeach.org/ffvbapp/resu/vbspo_home.php?codent=LIAQ",
+            )
         ]
         assert finalizations == ["matches", "associations"]
         assert scraper._max_concurrency == 10
@@ -86,7 +92,16 @@ def test_departmental_index_strips_codes_and_excludes_legacy_regions(
         await scraper.run_scraping()
 
         assert calls == [
-            ("CD75", "Paris", "http://www.ffvb.org/department?codent=CD75")
+            (
+                "PTRA01",
+                "Ain",
+                "http://www.ffvbbeach.org/ffvbapp/resu/vbspo_home.php?codent=PTRA01",
+            ),
+            (
+                "PTRA26",
+                "Drôme-Ardèche",
+                "http://www.ffvbbeach.org/ffvbapp/resu/vbspo_home.php?codent=PTRA26",
+            ),
         ]
 
     asyncio.run(scenario())
@@ -106,26 +121,26 @@ def test_local_league_pages_require_an_authoritative_mapped_division(
     async def scenario() -> None:
         scraper = scraper_class(object())
         dispatched: list[tuple] = []
-        existing = Pool(
-            "R1F",
-            "LNAQ",
-            "2026/2027",
-            7,
-            "League",
-            "Poule A",
-            "Poule A",
-            "Poule A",
-            "SIX",
-            "F",
+        existing = PoolInternalResponse(
+            poolCode="3MA",
+            leagueCode="ABCCS",
+            season="2026/2027",
+            divisionId=7,
+            leagueName="Nationale",
+            rawName="3MA NATIONALE 3 MASCULINE POULE A",
+            name="3MA NATIONALE 3 MASCULINE POULE A",
+            shortName="3MA NATIONALE 3 MASCULINE POULE A",
+            format="SIX",
+            gender="M",
             id=99,
         )
-        mapping = RawDivisionMapping(
-            rawDivisionName="REGIONALE FEMININE",
-            leagueCode="LNAQ",
+        mapping = RawDivisionMappingInternalResponse(
+            rawDivisionName="NATIONALE 3 MASCULINE",
+            leagueCode="ABCCS",
             season="2026/2027",
             divisionId=7,
             format="SIX",
-            gender="F",
+            gender="M",
         )
 
         async def fetch(_url):
@@ -155,7 +170,7 @@ def test_local_league_pages_require_an_authoritative_mapped_division(
         monkeypatch.setattr(module, "bulk_deactivate_pools", unexpected)
 
         await scraper.scrape_pools_from_league(
-            "LNAQ", "League", "https://league.invalid"
+            "ABCCS", "Nationale", "https://league.invalid"
         )
 
         pool, season, current = dispatched[0]
@@ -166,11 +181,11 @@ def test_local_league_pages_require_an_authoritative_mapped_division(
             pool.format,
             pool.gender,
         ) == (
-            "R1F",
-            "Poule A",
+            "3MA",
+            "3MA NATIONALE 3 MASCULINE POULE A",
             7,
             "SIX",
-            "F",
+            "M",
         )
         assert season == "2026/2027"
         assert current is existing
@@ -183,7 +198,7 @@ def test_missing_local_mapping_is_created_and_defers_ingestion(monkeypatch) -> N
 
     async def scenario() -> None:
         scraper = RegionalScraper(object())
-        created: list[RawDivisionMapping] = []
+        created: list[RawDivisionMappingInternalResponse] = []
 
         async def fetch(_url):
             return _fixture("league_pools.html")
@@ -209,12 +224,12 @@ def test_missing_local_mapping_is_created_and_defers_ingestion(monkeypatch) -> N
         )
 
         await scraper.scrape_pools_from_league(
-            "LNAQ", "League", "http://league.invalid"
+            "ABCCS", "Nationale", "http://league.invalid"
         )
 
         assert [
             (item.rawDivisionName, item.leagueCode, item.season) for item in created
-        ] == [("REGIONALE FEMININE", "LNAQ", "2026/2027")]
+        ] == [("NATIONALE 3 MASCULINE", "ABCCS", "2026/2027")]
 
     asyncio.run(scenario())
 
@@ -227,8 +242,8 @@ def test_national_index_derives_season_pool_code_and_authoritative_mapping(
     async def scenario() -> None:
         scraper = NationalScraper(object())
         dispatched: list[tuple] = []
-        mapping = RawDivisionMapping(
-            rawDivisionName="N3 Masc.",
+        mapping = RawDivisionMappingInternalResponse(
+            rawDivisionName="N3 Masc. Poule A",
             leagueCode="ABCCS",
             season="2026/2027",
             divisionId=8,
@@ -264,7 +279,7 @@ def test_national_index_derives_season_pool_code_and_authoritative_mapping(
 
         pool, season = dispatched[0]
         assert (pool.poolCode, pool.leagueCode, pool.leagueName) == (
-            "N3A",
+            "3MA",
             "ABCCS",
             "Nationale",
         )

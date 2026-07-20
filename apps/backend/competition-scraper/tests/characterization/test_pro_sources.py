@@ -4,18 +4,18 @@ from dataclasses import replace
 from datetime import UTC, datetime
 from pathlib import Path
 
-from models.enums.datasource_priority import DataSourcePriority
-from models.match import Match
-from models.pool import Pool
-from models.team import Team
-from scrapers import pro_scraper as pro_module
-from scrapers.pro_scraper import ProScraper
+from scraper.domain.data_source_priority import DataSourcePriority
+from scraper.infrastructure.blockout.match import MatchInternalResponse
+from scraper.infrastructure.blockout.pool import PoolInternalResponse
+from scraper.infrastructure.blockout.team import TeamInternalResponse
+from scraper.infrastructure.lnv import professional as pro_module
+from scraper.infrastructure.lnv.professional import ProScraper
 
 FIXTURES = Path(__file__).parents[1] / "fixtures" / "lnv"
 
 
-def _pool() -> Pool:
-    return Pool(
+def _pool() -> PoolInternalResponse:
+    return PoolInternalResponse(
         poolCode="MSL",
         leagueCode="AALNV",
         season="2026/2027",
@@ -30,7 +30,7 @@ def _pool() -> Pool:
     )
 
 
-def _match(**overrides) -> Match:
+def _match(**overrides) -> MatchInternalResponse:
     values = {
         "id": 5,
         "matchCode": "M001",
@@ -43,11 +43,11 @@ def _match(**overrides) -> Match:
         "venue": "Arena",
     }
     values.update(overrides)
-    return Match(**values)
+    return MatchInternalResponse(**values)
 
 
-def _team(identifier: int, name: str) -> Team:
-    return Team(
+def _team(identifier: int, name: str) -> TeamInternalResponse:
+    return TeamInternalResponse(
         id=identifier,
         clubId=f"club-{identifier}",
         rawName=name,
@@ -125,9 +125,12 @@ def test_lnv_match_xml_updates_date_set_and_score_in_utc() -> None:
     async def scenario() -> None:
         scraper = ProScraper(None)
         existing = _match(
-            matchDate=datetime(2020, 1, 1, tzinfo=UTC), set=None, score=None
+            matchCode="LAM001",
+            matchDate=datetime(2020, 1, 1, tzinfo=UTC),
+            set=None,
+            score=None,
         )
-        scraper._matches_cache[("AALNV", "M001")] = (
+        scraper._matches_cache[("AALNV", "LAM001")] = (
             existing,
             replace(existing),
             [],
@@ -137,10 +140,10 @@ def test_lnv_match_xml_updates_date_set_and_score_in_utc() -> None:
 
         await scraper.process_xml_matches(root, 1)
 
-        _, updated, changes, priority = scraper._matches_cache[("AALNV", "M001")]
-        assert updated.matchDate == datetime(2026, 10, 4, 16, 30, tzinfo=UTC)
-        assert updated.set == "3-1"
-        assert updated.score == "25-20,25-22,20-25,25-18"
+        _, updated, changes, priority = scraper._matches_cache[("AALNV", "LAM001")]
+        assert updated.matchDate == datetime(2022, 9, 30, 18, 0, tzinfo=UTC)
+        assert updated.set == "1-3"
+        assert updated.score == "17-25,25-22,22-25,19-25"
         assert updated.venue == "Arena"
         assert any("[LNV-XML] matchDate" in change for change in changes)
         assert priority == DataSourcePriority.LNV_XML
@@ -170,9 +173,9 @@ def test_lnv_rank_xml_replaces_complete_association_stats(monkeypatch) -> None:
 
         original, stats = scraper._associations_cache[(1, 101)]
         assert original is None
-        assert (stats.played, stats.wins, stats.losses, stats.points) == (3, 3, 0, 9)
-        assert (stats.wonSets, stats.lostSets) == (9, 3)
-        assert (stats.wonPoints, stats.lostPoints) == (250, 210)
+        assert (stats.played, stats.wins, stats.losses, stats.points) == (18, 15, 3, 44)
+        assert (stats.wonSets, stats.lostSets) == (48, 18)
+        assert (stats.wonPoints, stats.lostPoints) == (1584, 1453)
         # The cache replacement copies raw counters; finalization recomputes coefficients.
         assert (stats.coefSets, stats.coefPoints) == (0.0, 0.0)
 
@@ -184,7 +187,10 @@ def test_lnv_live_html_resolves_teams_and_adds_only_the_live_code(monkeypatch) -
 
     async def scenario() -> None:
         scraper = ProScraper(object())
-        existing = _match(liveCode=None)
+        existing = _match(
+            liveCode=None,
+            matchDate=datetime(2026, 3, 25, 18, 0, tzinfo=UTC),
+        )
         scraper._matches_cache[("AALNV", "M001")] = (
             existing,
             replace(existing),
@@ -196,7 +202,7 @@ def test_lnv_live_html_resolves_teams_and_adds_only_the_live_code(monkeypatch) -
             return (FIXTURES / "live.html").read_text(encoding="utf-8")
 
         async def find_team(_session, _division, _format, _gender, _season, name):
-            return _team(101, name) if name == "TOURS VB" else _team(102, name)
+            return _team(101, name) if name == "Cannes" else _team(102, name)
 
         monkeypatch.setattr(scraper, "fetch", fetch)
         monkeypatch.setattr(pro_module, "get_full_name", lambda name, _gender: name)
@@ -207,7 +213,7 @@ def test_lnv_live_html_resolves_teams_and_adds_only_the_live_code(monkeypatch) -
         await scraper.add_match_live_code("https://live.invalid", _pool())
 
         _, updated, changes, priority = scraper._matches_cache[("AALNV", "M001")]
-        assert updated.liveCode == 98765
+        assert updated.liveCode == 9572
         assert updated.matchDate == existing.matchDate
         assert updated.venue == "Arena"
         assert any("[LNV-Live] liveCode" in change for change in changes)
@@ -216,17 +222,26 @@ def test_lnv_live_html_resolves_teams_and_adds_only_the_live_code(monkeypatch) -
     asyncio.run(scenario())
 
 
-def test_malformed_or_missing_professional_inputs_are_isolated(monkeypatch) -> None:
-    """Protect pool-local failure isolation for malformed XML and missing HTML identifiers."""
+def test_professional_parser_and_identifier_failures_are_isolated(monkeypatch) -> None:
+    """Protect pool-local isolation with injected technical failures."""
 
     async def scenario() -> None:
         scraper = ProScraper(object())
         events: list[dict] = []
 
         async def fetch(url):
-            return "<broken" if "xml" in url else "<html></html>"
+            fixture = "matches.xml" if "xml" in url else "live.html"
+            return (FIXTURES / fixture).read_text(encoding="utf-8")
+
+        def raise_parse_error(_content):
+            raise ET.ParseError("injected parser failure")
+
+        async def missing_main_id(_html):
+            return None
 
         monkeypatch.setattr(scraper, "fetch", fetch)
+        monkeypatch.setattr(pro_module.ET, "fromstring", raise_parse_error)
+        monkeypatch.setattr(scraper, "extract_main_id", missing_main_id)
         monkeypatch.setattr(
             pro_module, "log_event", lambda **event: events.append(event)
         )

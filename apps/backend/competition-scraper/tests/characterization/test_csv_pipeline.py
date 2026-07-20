@@ -2,12 +2,14 @@ import asyncio
 from datetime import UTC, datetime
 from pathlib import Path
 
-from models.association_stats import AssociationStats
-from models.pool import Pool
-from models.team import Team
-from utils import file_utils
-from utils import scraper_logic as pipeline
-from utils.file_utils import download_and_parse_csv
+from scraper.application import calendar_ingestion as pipeline
+from scraper.infrastructure.blockout.association_stats import (
+    UpdateAssociationStatsInternalRequest,
+)
+from scraper.infrastructure.blockout.pool import PoolInternalResponse
+from scraper.infrastructure.blockout.team import TeamInternalResponse
+from scraper.infrastructure.ffvb import calendar as file_utils
+from scraper.infrastructure.ffvb.calendar import download_and_parse_csv
 
 FIXTURE = Path(__file__).parents[1] / "fixtures" / "ffvb" / "calendar.csv"
 
@@ -50,8 +52,8 @@ class _Session:
         return _Context(self.results.pop(0))
 
 
-def _pool() -> Pool:
-    return Pool(
+def _pool() -> PoolInternalResponse:
+    return PoolInternalResponse(
         poolCode="R1M",
         leagueCode="LNAQ",
         season="2026/2027",
@@ -84,7 +86,7 @@ def test_csv_download_preserves_post_shape_encoding_timeout_and_retries(
 
         rows = list(await download_and_parse_csv(scraper, _pool(), "2026/2027"))
 
-        assert rows[0]["matchCode"] == "M001"
+        assert rows[0]["matchCode"] == "3MA001"
         assert len(session.calls) == 3
         url, kwargs = session.calls[-1]
         assert url.endswith("vbspo_calendrier_export.php")
@@ -149,7 +151,7 @@ def test_csv_pipeline_preserves_owner_write_order_and_cleanup_inputs(
                 "secondReferee": "ARBITRE B",
             }
         ]
-        teams: list[Team] = []
+        teams: list[TeamInternalResponse] = []
         associations: list[tuple] = []
         deactivations: list[tuple] = []
 
@@ -174,7 +176,7 @@ def test_csv_pipeline_preserves_owner_write_order_and_cleanup_inputs(
             associations.append((pool_id, team_id, club_id))
 
         async def stats(*_args):
-            return [("TOURS VB", AssociationStats(points=9))]
+            return [("TOURS VB", UpdateAssociationStatsInternalRequest(points=9))]
 
         async def deactivate_teams(_session, pool_id, identifiers):
             deactivations.append(("teams", pool_id, identifiers))

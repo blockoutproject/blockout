@@ -3,17 +3,17 @@ from datetime import datetime
 from types import SimpleNamespace
 from zoneinfo import ZoneInfo
 
-import api.auth0 as auth0
-import main as competition_main
-import models.scraper as scraper_module
 import pytest
-import scheduler as scheduler_module
-from models.scraper import Scraper
-from scrapers.departmental_scraper import DepartmentalScraper
-from scrapers.national_scraper import NationalScraper
-from scrapers.pro_scraper import ProScraper
-from scrapers.regional_scraper import RegionalScraper
-from scrapers.scraper_factory import ScraperFactory
+import scraper.bootstrap as competition_main
+import scraper.infrastructure.blockout.auth as auth0
+import scraper.infrastructure.provider_http as provider_http
+import scraper.infrastructure.scheduling.scheduler as scheduler_module
+from scraper.application.factory import ScraperFactory
+from scraper.application.source import Scraper
+from scraper.infrastructure.ffvb.departmental import DepartmentalScraper
+from scraper.infrastructure.ffvb.national import NationalScraper
+from scraper.infrastructure.ffvb.regional import RegionalScraper
+from scraper.infrastructure.lnv.professional import ProScraper
 
 
 class DummyScraper(Scraper):
@@ -82,8 +82,8 @@ def test_provider_fetch_preserves_encoding_timeout_retry_and_tls(monkeypatch) ->
         async def sleep(delay: int) -> None:
             sleeps.append(delay)
 
-        monkeypatch.setattr(scraper_module.asyncio, "sleep", sleep)
-        monkeypatch.setattr(scraper_module, "log_event", lambda **_event: None)
+        monkeypatch.setattr(provider_http.asyncio, "sleep", sleep)
+        monkeypatch.setattr(provider_http, "log_event", lambda **_event: None)
         scraper = DummyScraper(session, "dummy")
 
         result = await scraper.fetch("http://www.ffvb.org/provider")
@@ -106,8 +106,8 @@ def test_provider_fetch_raises_only_after_three_failures(monkeypatch) -> None:
         async def sleep(_delay: int) -> None:
             return None
 
-        monkeypatch.setattr(scraper_module.asyncio, "sleep", sleep)
-        monkeypatch.setattr(scraper_module, "log_event", lambda **_event: None)
+        monkeypatch.setattr(provider_http.asyncio, "sleep", sleep)
+        monkeypatch.setattr(provider_http, "log_event", lambda **_event: None)
 
         with pytest.raises(Exception, match="3 tentatives"):
             await DummyScraper(session, "dummy").fetch("https://provider.invalid")

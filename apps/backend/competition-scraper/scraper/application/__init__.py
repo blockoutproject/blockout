@@ -1,0 +1,1 @@
+"""Competition ingestion use cases."""

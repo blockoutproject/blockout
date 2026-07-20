@@ -3,22 +3,27 @@ from dataclasses import replace
 from datetime import UTC, datetime
 from pathlib import Path
 
-import models.scraper as scraper_module
+import scraper.application.association_changes as association_changes
 from bs4 import BeautifulSoup
-from models.association_stats import AssociationStats
-from models.enums.datasource_priority import DataSourcePriority
-from models.match import Match
-from models.scraper import Scraper
-from utils.file_utils import parse_csv_from_content, validate_columns
-from utils.html_utils import parse_float, parse_stat_line
-from utils.match_utils import (
+from scraper.application.source import Scraper
+from scraper.domain.data_source_priority import DataSourcePriority
+from scraper.domain.match import (
     compute_volleyball_match_stats,
     is_anomalous_set_format,
     validate_set_format,
     validate_set_score_format,
 )
-from utils.team_utils import get_full_name, get_short_name, normalize
-from utils.utils import parse_date, strip_department_code
+from scraper.domain.normalization import parse_date, strip_department_code
+from scraper.domain.team import get_full_name, get_short_name, normalize
+from scraper.infrastructure.blockout.association_stats import (
+    UpdateAssociationStatsInternalRequest,
+)
+from scraper.infrastructure.blockout.match import MatchInternalResponse
+from scraper.infrastructure.ffvb.calendar import (
+    parse_csv_from_content,
+    validate_columns,
+)
+from scraper.infrastructure.ffvb.ranking import parse_float, parse_stat_line
 
 FIXTURES = Path(__file__).parents[1] / "fixtures"
 
@@ -30,7 +35,7 @@ class DummyScraper(Scraper):
         return None
 
 
-def _match(**overrides) -> Match:
+def _match(**overrides) -> MatchInternalResponse:
     values = {
         "id": 1,
         "matchCode": "M001",
@@ -48,7 +53,7 @@ def _match(**overrides) -> Match:
         "liveCode": None,
     }
     values.update(overrides)
-    return Match(**values)
+    return MatchInternalResponse(**values)
 
 
 def test_csv_parser_protects_headers_and_normalized_rows() -> None:
@@ -59,19 +64,19 @@ def test_csv_parser_protects_headers_and_normalized_rows() -> None:
 
     assert rows == [
         {
-            "leagueCode": "LNAQ",
-            "matchCode": "M001",
-            "club_a_id": "club-a",
-            "club_b_id": "club-b",
-            "team_a_name": "TOURS VB",
-            "team_b_name": "PARIS",
-            "matchDate": "2026-10-04",
-            "match_time": "18:30",
-            "set": "3/1",
-            "score": "25-20,25-22,20-25,25-18",
-            "venue": "GYMNASE CENTRAL",
-            "firstReferee": "ARBITRE A",
-            "secondReferee": "ARBITRE B",
+            "leagueCode": "ABCCS",
+            "matchCode": "3MA001",
+            "club_a_id": "0837251",
+            "club_b_id": "0060007",
+            "team_a_name": "VOLLEY BALL OLLIOULAIS",
+            "team_b_name": "AS CANNES VOLLEY-BALL 3",
+            "matchDate": "2026-09-26",
+            "match_time": "20:30",
+            "set": None,
+            "score": None,
+            "venue": "PIEMONTESI",
+            "firstReferee": None,
+            "secondReferee": None,
         }
     ]
 
@@ -93,12 +98,12 @@ def test_html_rank_parser_preserves_ratios_and_stat_columns() -> None:
 
     stats = parse_stat_line(cells)
 
-    assert stats.points == 9
-    assert stats.played == 3
-    assert stats.winsThreeToZero == 1
-    assert stats.wonSets == 9
-    assert stats.coefSets == 3.0
-    assert stats.coefPoints == 1000.0
+    assert stats.points == 58
+    assert stats.played == 22
+    assert stats.winsThreeToZero == 11
+    assert stats.wonSets == 64
+    assert stats.coefSets == 3.368
+    assert stats.coefPoints == 1.169
     assert parse_float("bad") == 0.0
 
 
@@ -224,9 +229,13 @@ def test_association_finalization_computes_coefficients_and_clears_cache(
         async def update(_session, pool_id, team_id, stats):
             writes.append((pool_id, team_id, stats))
 
-        monkeypatch.setattr(scraper_module, "update_team_association_stats", update)
+        monkeypatch.setattr(
+            association_changes, "update_team_association_stats", update
+        )
         scraper = DummyScraper(None, "stats")
-        stats = AssociationStats(wonSets=9, lostSets=3, wonPoints=250, lostPoints=0)
+        stats = UpdateAssociationStatsInternalRequest(
+            wonSets=9, lostSets=3, wonPoints=250, lostPoints=0
+        )
         scraper._associations_cache[(10, 20)] = (None, stats)
 
         await scraper.finalize_associations_updates()
