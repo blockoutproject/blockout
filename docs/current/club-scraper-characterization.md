@@ -40,3 +40,27 @@ Blockout services, or another external system.
 
 These observations are compatibility requirements for REF-023. Surprising behavior is not an endorsement: changing it
 requires a separately authorized correction with explicit tests.
+
+## REF-023 replacement evidence
+
+The production path now has one importable `blockout_club_scraper` package:
+
+- `application` owns ingestion and create/update/no-op decisions;
+- `infrastructure/blockout` owns Auth0, internal clients, and exact handwritten Java-owner transport mirrors;
+- `infrastructure/ffvb` owns address-book HTTP, parsing, and the provider-local `FfvbClubRecord`;
+- `infrastructure/scheduling`, `config`, and `observability` own process concerns;
+- `main.py` delegates only to the composition root.
+
+Before the legacy path was deleted, both parsers ran against the same three sanitized fixtures. Every semantic provider
+field was identical for the complete page, duplicated-postal fallback, and missing-field page. After the switch, the
+same fixtures and write traces protect create, update, reactivation, no-op, outage-safe deactivation, retries, internal
+routes, native camelCase payloads, scheduler settings, metrics port, and Auth0 cadence.
+
+`ClubInternalResponse`, `CreateClubInternalRequest`, `UpdateClubInternalRequest`,
+`ScraperStatusInternalResponse`, `ScraperName`, and `BulkDeactivateClubsInternalRequest` are exact handwritten mirrors
+of their Java owners. Provider fields use a separate `FfvbClubRecord` value and are mapped explicitly at the Blockout
+boundary. Contract generation remains deferred.
+
+Ruff 0.15.22 is pinned as the development formatter, import sorter, and baseline linter. Its Python 3.12 configuration
+lives in the repository `pyproject.toml`; Nx only delegates `lint`, `format`, and `format-check` to Python. Production
+dependencies and the image remain unchanged.

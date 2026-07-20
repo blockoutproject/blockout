@@ -1,0 +1,1 @@
+"""Periodic execution adapter."""

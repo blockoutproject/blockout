@@ -1,0 +1,1 @@
+"""FFVB address-book adapter."""

@@ -1,26 +1,18 @@
 import asyncio
-from dataclasses import replace
 
 import pytest
-
-import api.auth0 as auth0
-import main as club_main
-import models.scraper as scraper_module
-from models.club import Club
-from models.scraper import Scraper
-from models.scraper_status import ScraperStatus
-
-
-class DummyScraper(Scraper):
-    """Minimal legacy scraper used to characterize the shared runtime base."""
-
-    def __init__(self, session) -> None:
-        super().__init__(session=session, name="dummy", max_concurrency=2)
-        self.received_ids: list[str] | None = None
-
-    async def run_scraping(self, club_ids) -> None:
-        """Record the identifiers forwarded by the shared scrape lifecycle."""
-        self.received_ids = club_ids
+from blockout_club_scraper import bootstrap
+from blockout_club_scraper.bootstrap import ClubScraperRuntime
+from blockout_club_scraper.config.settings import Settings
+from blockout_club_scraper.infrastructure.blockout.auth import (
+    Auth0TokenRefresher,
+    TokenStore,
+)
+from blockout_club_scraper.infrastructure.ffvb import client as ffvb_module
+from blockout_club_scraper.infrastructure.ffvb.client import FfvbClubClient
+from blockout_club_scraper.infrastructure.scheduling import (
+    scheduler as scheduler_module,
+)
 
 
 class _Content:
@@ -28,16 +20,27 @@ class _Content:
         self.body = body
 
     async def read(self) -> bytes:
-        """Return the configured provider bytes."""
         return self.body
 
 
 class _Response:
-    def __init__(self, body: bytes) -> None:
+    def __init__(
+        self,
+        body: bytes = b"",
+        *,
+        status: int = 200,
+        payload=None,
+    ) -> None:
         self.content = _Content(body)
+        self.status = status
+        self.payload = payload
+        self.content_type = "application/json"
 
     def raise_for_status(self) -> None:
-        """Represent a successful provider response."""
+        return None
+
+    async def json(self):
+        return self.payload
 
 
 class _Context:
@@ -59,7 +62,6 @@ class _ScriptedSession:
         self.calls: list[dict] = []
 
     def post(self, url, **kwargs):
-        """Record a provider POST and return its scripted async context."""
         self.calls.append({"url": url, **kwargs})
         return _Context(self.results.pop(0))
 
@@ -69,59 +71,33 @@ class _Gauge:
         self.values: list[float] = []
 
     def set(self, value: float) -> None:
-        """Record an observed Prometheus gauge value."""
         self.values.append(value)
 
 
-def _club(identifier: str) -> Club:
-    """Build an existing owner response for cache characterization."""
-    return Club(id=identifier, rawName=f"RAW {identifier}", name=identifier)
-
-
-def test_shared_scrape_loads_owner_cache_before_provider_ids(monkeypatch) -> None:
-    """Protect the ordering and clone semantics of the shared scrape lifecycle."""
-    async def scenario() -> None:
-        order: list[str] = []
-
-        async def get_clubs(_session):
-            order.append("clubs")
-            return [_club("club-1")]
-
-        async def get_ids(_session):
-            order.append("ids")
-            return ["club-1"]
-
-        scraper = DummyScraper(session=object())
-        scraper.scraping_duration_gauge = _Gauge()
-        original_run = scraper.run_scraping
-
-        async def run(ids):
-            order.append("provider")
-            await original_run(ids)
-
-        monkeypatch.setattr(scraper_module, "get_all_clubs", get_clubs)
-        monkeypatch.setattr(scraper_module, "get_unique_club_ids", get_ids)
-        monkeypatch.setattr(scraper, "run_scraping", run)
-
-        await scraper.scrape()
-
-        existing, candidate = scraper._clubs_cache["club-1"]
-        assert order == ["clubs", "ids", "provider"]
-        assert existing == candidate
-        assert existing is not candidate
-        assert scraper.received_ids == ["club-1"]
-        assert len(scraper.scraping_duration_gauge.values) == 1
-
-    asyncio.run(scenario())
+def _settings() -> Settings:
+    return Settings(
+        team_api_url="http://teams.local/api/v1/teams",
+        competition_api_url="http://competition.local/api/v1/competitions",
+        club_api_url="http://clubs.local/api/v1/clubs",
+        config_api_url="http://config.local/api/v1/config",
+        log_level="INFO",
+        auth0_domain="tenant.invalid",
+        auth0_client_id="client",
+        auth0_client_secret="secret",
+        auth0_audience="audience",
+    )
 
 
 def test_fetch_decodes_ffvb_as_windows_1252() -> None:
-    """Protect the provider-specific encoding used by the address book."""
+    """Protect the provider-specific encoding and request constraints."""
+
     async def scenario() -> None:
         session = _ScriptedSession([_Response(b"caf\xe9")])
-        scraper = DummyScraper(session)
 
-        result = await scraper.fetch("https://www.ffvbbeach.org/address", {"id": "1"})
+        result = await FfvbClubClient(session).fetch(
+            "https://www.ffvbbeach.org/address",
+            {"id": "1"},
+        )
 
         assert result == "café"
         assert session.calls[0]["ssl"] is False
@@ -132,18 +108,18 @@ def test_fetch_decodes_ffvb_as_windows_1252() -> None:
 
 def test_fetch_retries_three_times_with_the_configured_delay(monkeypatch) -> None:
     """Protect retry count, delay, and eventual success."""
+
     async def scenario() -> None:
-        session = _ScriptedSession([asyncio.TimeoutError(), asyncio.TimeoutError(), _Response(b"ok")])
-        scraper = DummyScraper(session)
+        session = _ScriptedSession([TimeoutError(), TimeoutError(), _Response(b"ok")])
         sleeps: list[int] = []
 
         async def sleep(delay: int) -> None:
             sleeps.append(delay)
 
-        monkeypatch.setattr(scraper_module.asyncio, "sleep", sleep)
-        monkeypatch.setattr(scraper_module, "log_event", lambda **_event: None)
+        monkeypatch.setattr(ffvb_module.asyncio, "sleep", sleep)
+        monkeypatch.setattr(ffvb_module, "log_event", lambda **_event: None)
 
-        result = await scraper.fetch("https://provider.invalid", {}, retries=3, delay=2)
+        result = await FfvbClubClient(session).fetch("https://provider.invalid", {})
 
         assert result == "ok"
         assert len(session.calls) == 3
@@ -153,19 +129,19 @@ def test_fetch_retries_three_times_with_the_configured_delay(monkeypatch) -> Non
 
 
 def test_fetch_raises_after_the_final_failed_attempt(monkeypatch) -> None:
-    """Protect terminal failure after all provider retries are exhausted."""
+    """Protect terminal failure after all retries are exhausted."""
+
     async def scenario() -> None:
-        session = _ScriptedSession([asyncio.TimeoutError(), asyncio.TimeoutError(), asyncio.TimeoutError()])
-        scraper = DummyScraper(session)
+        session = _ScriptedSession([TimeoutError(), TimeoutError(), TimeoutError()])
 
         async def sleep(_delay: int) -> None:
             return None
 
-        monkeypatch.setattr(scraper_module.asyncio, "sleep", sleep)
-        monkeypatch.setattr(scraper_module, "log_event", lambda **_event: None)
+        monkeypatch.setattr(ffvb_module.asyncio, "sleep", sleep)
+        monkeypatch.setattr(ffvb_module, "log_event", lambda **_event: None)
 
-        with pytest.raises(Exception, match="3 tentatives"):
-            await scraper.fetch("https://provider.invalid", {}, retries=3)
+        with pytest.raises(RuntimeError, match="3 tentatives"):
+            await FfvbClubClient(session).fetch("https://provider.invalid", {})
 
         assert len(session.calls) == 3
 
@@ -173,8 +149,16 @@ def test_fetch_raises_after_the_final_failed_attempt(monkeypatch) -> None:
 
 
 def test_scraper_enabled_fails_closed_when_config_is_unavailable(monkeypatch) -> None:
-    """Protect the current safety behavior that skips ingestion on status failure."""
+    """Protect disabled ingestion when the status client fails."""
+
     async def scenario() -> None:
+        class FailingClient:
+            def __init__(self, *_args):
+                return None
+
+            async def get_scraper_status(self, _name):
+                raise RuntimeError("config unavailable")
+
         class Session:
             async def __aenter__(self):
                 return self
@@ -182,23 +166,29 @@ def test_scraper_enabled_fails_closed_when_config_is_unavailable(monkeypatch) ->
             async def __aexit__(self, *_args):
                 return None
 
-        async def fail(_session, _name):
-            raise RuntimeError("config unavailable")
-
         events: list[dict] = []
-        monkeypatch.setattr(club_main.aiohttp, "ClientSession", lambda **_kwargs: Session())
-        monkeypatch.setattr(club_main, "get_scraper_status", fail)
-        monkeypatch.setattr(club_main, "log_event", lambda **event: events.append(event))
+        monkeypatch.setattr(
+            bootstrap.aiohttp, "ClientSession", lambda **_kwargs: Session()
+        )
+        monkeypatch.setattr(bootstrap, "BlockoutClients", FailingClient)
+        monkeypatch.setattr(
+            bootstrap, "log_event", lambda **event: events.append(event)
+        )
 
-        assert await club_main.scraper_enabled() is False
+        assert (
+            await ClubScraperRuntime(_settings(), TokenStore()).scraper_enabled()
+            is False
+        )
         assert events[-1]["action"] == "scraper_status_fetch_failed"
 
     asyncio.run(scenario())
 
 
-def test_main_measures_skipped_runs_without_starting_the_scraper(monkeypatch) -> None:
-    """Protect duration observation for the disabled status path."""
+def test_execute_measures_disabled_runs_without_starting_ingestion(monkeypatch) -> None:
+    """Protect duration observation for the disabled path."""
+
     async def scenario() -> None:
+        runtime = ClubScraperRuntime(_settings(), TokenStore())
         gauge = _Gauge()
 
         async def disabled() -> bool:
@@ -207,11 +197,11 @@ def test_main_measures_skipped_runs_without_starting_the_scraper(monkeypatch) ->
         async def unexpected() -> None:
             raise AssertionError("Disabled scraper must not run")
 
-        monkeypatch.setattr(club_main, "scraper_enabled", disabled)
-        monkeypatch.setattr(club_main, "run_scraper", unexpected)
-        monkeypatch.setattr(club_main, "execution_duration_gauge", gauge)
+        monkeypatch.setattr(runtime, "scraper_enabled", disabled)
+        monkeypatch.setattr(runtime, "run_scraper", unexpected)
+        monkeypatch.setattr(bootstrap, "execution_duration", gauge)
 
-        await club_main.main()
+        await runtime.execute()
 
         assert len(gauge.values) == 1
         assert gauge.values[0] >= 0
@@ -219,8 +209,54 @@ def test_main_measures_skipped_runs_without_starting_the_scraper(monkeypatch) ->
     asyncio.run(scenario())
 
 
+def test_run_scraper_keeps_the_characterized_session_limits(monkeypatch) -> None:
+    """Protect process locking, connection limits, timeout, and adapter wiring."""
+
+    async def scenario() -> None:
+        observed: dict = {}
+
+        class Session:
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, *_args):
+                return None
+
+        class Ingestion:
+            def __init__(self, blockout, ffvb, gauge) -> None:
+                observed["adapters"] = (blockout, ffvb, gauge)
+
+            async def run(self) -> None:
+                observed["ran"] = True
+
+        def connector(**kwargs):
+            observed["connector"] = kwargs
+            return object()
+
+        def session(**kwargs):
+            observed["session"] = kwargs
+            return Session()
+
+        monkeypatch.setattr(bootstrap.aiohttp, "TCPConnector", connector)
+        monkeypatch.setattr(bootstrap.aiohttp, "ClientSession", session)
+        monkeypatch.setattr(bootstrap, "BlockoutClients", lambda *_args: "blockout")
+        monkeypatch.setattr(bootstrap, "FfvbClubClient", lambda *_args: "ffvb")
+        monkeypatch.setattr(bootstrap, "ClubIngestion", Ingestion)
+
+        await ClubScraperRuntime(_settings(), TokenStore()).run_scraper()
+
+        assert observed["connector"] == {"limit": 20, "ssl": False}
+        assert observed["session"]["timeout"].total == 60
+        assert observed["session"]["trust_env"] is True
+        assert observed["adapters"][:2] == ("blockout", "ffvb")
+        assert observed["ran"] is True
+
+    asyncio.run(scenario())
+
+
 def test_scheduler_registers_the_existing_hourly_job(monkeypatch) -> None:
-    """Protect interval, eager first run, misfire grace, and replacement semantics."""
+    """Protect interval, eager first run, misfire grace, and replacement."""
+
     class Loop:
         def run_forever(self) -> None:
             return None
@@ -237,16 +273,23 @@ def test_scheduler_registers_the_existing_hourly_job(monkeypatch) -> None:
         def start(self) -> None:
             self.started = True
 
+    async def job() -> None:
+        return None
+
     loop = Loop()
     scheduler = Scheduler(loop)
-    monkeypatch.setattr(club_main.asyncio, "get_event_loop", lambda: loop)
-    monkeypatch.setattr(club_main, "AsyncIOScheduler", lambda event_loop: scheduler)
-    monkeypatch.setattr(club_main, "log_event", lambda **_event: None)
+    monkeypatch.setattr(scheduler_module.asyncio, "get_event_loop", lambda: loop)
+    monkeypatch.setattr(
+        scheduler_module,
+        "AsyncIOScheduler",
+        lambda event_loop: scheduler,
+    )
+    monkeypatch.setattr(scheduler_module, "log_event", lambda **_event: None)
 
-    club_main.schedule_scraper()
+    scheduler_module.run_hourly(job)
 
     args, kwargs = scheduler.job
-    assert args == (club_main.main, "interval")
+    assert args == (job, "interval")
     assert kwargs["minutes"] == 60
     assert kwargs["misfire_grace_time"] == 30
     assert kwargs["replace_existing"] is True
@@ -255,8 +298,11 @@ def test_scheduler_registers_the_existing_hourly_job(monkeypatch) -> None:
 
 
 def test_auth0_refresh_keeps_the_token_for_172800_seconds(monkeypatch) -> None:
-    """Protect the current successful refresh cadence and global token visibility."""
+    """Protect successful refresh cadence and shared token visibility."""
+
     async def scenario() -> None:
+        token_store = TokenStore()
+        refresher = Auth0TokenRefresher(_settings(), token_store)
         sleeps: list[int] = []
 
         async def fetch() -> str:
@@ -266,14 +312,52 @@ def test_auth0_refresh_keeps_the_token_for_172800_seconds(monkeypatch) -> None:
             sleeps.append(delay)
             raise asyncio.CancelledError
 
-        monkeypatch.setattr(auth0, "fetch_auth0_token", fetch)
-        monkeypatch.setattr(auth0.asyncio, "sleep", sleep)
-        monkeypatch.setattr(auth0, "log_event", lambda **_event: None)
+        monkeypatch.setattr(refresher, "fetch", fetch)
+        monkeypatch.setattr(
+            "blockout_club_scraper.infrastructure.blockout.auth.asyncio.sleep",
+            sleep,
+        )
 
         with pytest.raises(asyncio.CancelledError):
-            await auth0.refresh_token_task()
+            await refresher.run()
 
-        assert auth0.get_token() == "service-token"
+        assert token_store.get() == "service-token"
         assert sleeps == [172800]
 
     asyncio.run(scenario())
+
+
+def test_startup_smoke_wires_metrics_refresh_and_scheduler_without_network(
+    monkeypatch,
+) -> None:
+    """Exercise the production entry composition without external I/O."""
+
+    class Loop:
+        def __init__(self) -> None:
+            self.tasks = 0
+            self.drains = 0
+
+        def create_task(self, coroutine) -> None:
+            self.tasks += 1
+            coroutine.close()
+
+        def run_until_complete(self, coroutine) -> None:
+            self.drains += 1
+            coroutine.close()
+
+    loop = Loop()
+    ports: list[int] = []
+    jobs: list = []
+    monkeypatch.setattr(bootstrap, "load_settings", _settings)
+    monkeypatch.setattr(bootstrap, "configure_logging", lambda _level: None)
+    monkeypatch.setattr(bootstrap, "start_http_server", ports.append)
+    monkeypatch.setattr(bootstrap.asyncio, "get_event_loop", lambda: loop)
+    monkeypatch.setattr(bootstrap, "run_hourly", jobs.append)
+    monkeypatch.setattr(bootstrap, "log_event", lambda **_event: None)
+
+    bootstrap.start()
+
+    assert ports == [8001]
+    assert loop.tasks == 1
+    assert loop.drains == 1
+    assert len(jobs) == 1

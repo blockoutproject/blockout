@@ -1,0 +1,1 @@
+"""Club ingestion use cases."""

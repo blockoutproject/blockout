@@ -114,7 +114,7 @@
   - Protect provider parsing, normalization, retries, authentication, status gating, concurrency, scheduling, metrics,
     internal requests, idempotent writes, and supported failure outcomes without changing production code.
 
-- [ ] **REF-023 — Refactor the club scraper with differential parity**
+- [x] **REF-023 — Refactor the club scraper with differential parity**
   - Replace characterized seams one at a time with a typed Python package and explicit application, domain, Blockout,
     FFVB, scheduling, configuration, and observability boundaries.
   - Preserve every characterized runtime behavior and exact Java-owner internal transport mirror; remove legacy paths

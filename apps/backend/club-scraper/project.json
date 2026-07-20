@@ -26,6 +26,27 @@
         "command": "python3.12 -m pytest -q"
       }
     },
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "apps/backend/club-scraper",
+        "command": "python3.12 -m ruff check ."
+      }
+    },
+    "format": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "apps/backend/club-scraper",
+        "command": "python3.12 -m ruff check --fix . && python3.12 -m ruff format ."
+      }
+    },
+    "format-check": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "apps/backend/club-scraper",
+        "command": "python3.12 -m ruff check . && python3.12 -m ruff format --check ."
+      }
+    },
     "docker-build": {
       "executor": "nx:run-commands",
       "options": {

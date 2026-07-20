@@ -132,8 +132,13 @@ Contract-owned enums such as Format, Gender, and MatchStatus follow the owner se
 
 - Preserve the current application-specific dependency mechanism until a dedicated task authorizes packaging changes.
 - Nx remains a thin command orchestrator. Python owns execution, tests, syntax checks, and dependency resolution.
-- Do not combine source refactoring with uv workspace adoption, an Nx Python plugin, Docker redesign, dependency upgrades,
-  lint/type-check tool adoption, or generated clients.
+- Use the repository-pinned Ruff release as the only Python formatter, import sorter, and baseline linter. Let
+  `ruff check --fix` and `ruff format` apply their stable Python 3.12 rules; do not hand-maintain an overlapping style,
+  Black, isort, or Flake8 configuration.
+- Keep Ruff in development dependencies and expose `lint`, `format`, and `format-check` through thin Nx targets. Never
+  install it in a production image solely to verify source style.
+- Do not combine source refactoring with uv workspace adoption, an Nx Python plugin, Docker redesign, unrelated
+  dependency upgrades, type-check tool adoption, or generated clients.
 - Never commit virtual environments, caches, credentials, generated files, captured private payloads, or runtime logs.
 
 ## Refactor Discipline

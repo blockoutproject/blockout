@@ -1,16 +1,19 @@
 import asyncio
 from dataclasses import replace
+from pathlib import Path
 
 import pytest
+from blockout_club_scraper.application.club_ingestion import ClubIngestion
+from blockout_club_scraper.application.club_writer import ClubWriter
+from blockout_club_scraper.infrastructure.blockout.contracts import (
+    ClubInternalResponse,
+)
 
-from models.club import Club
-from scrapers import club_scraper
-from scrapers.club_scraper import ClubScraper
-from services import clubs_service
+FIXTURES = Path(__file__).parents[1] / "fixtures" / "ffvb"
 
 
-def _club(**overrides) -> Club:
-    """Build a complete-enough owner mirror for decision tests."""
+def _club(**overrides) -> ClubInternalResponse:
+    """Build a complete-enough owner response for decision tests."""
     values = {
         "id": "club-1",
         "rawName": "RAW CLUB",
@@ -25,69 +28,107 @@ def _club(**overrides) -> Club:
         "active": True,
     }
     values.update(overrides)
-    return Club(**values)
+    return ClubInternalResponse(**values)
 
 
-def test_creates_a_club_when_no_owner_resource_exists(monkeypatch) -> None:
-    """Protect the create decision and returned owner response."""
+class RecordingBlockout:
+    """Record owner reads and writes without external calls."""
+
+    def __init__(self, clubs=None, identifiers=None) -> None:
+        self.clubs = [] if clubs is None else clubs
+        self.identifiers = [] if identifiers is None else identifiers
+        self.creates: list[ClubInternalResponse] = []
+        self.updates: list[ClubInternalResponse] = []
+        self.deactivations: list[set[str]] = []
+
+    async def get_all_clubs(self):
+        return self.clubs
+
+    async def get_unique_club_ids(self):
+        return self.identifiers
+
+    async def create_club(self, club):
+        self.creates.append(replace(club))
+        return club
+
+    async def update_club(self, club):
+        self.updates.append(replace(club))
+        return club
+
+    async def bulk_deactivate_clubs(self, identifiers):
+        self.deactivations.append(set(identifiers))
+
+
+class ScriptedFfvb:
+    """Return sanitized HTML by club identifier."""
+
+    def __init__(self, pages) -> None:
+        self.pages = pages
+
+    async def fetch_club_page(self, identifier):
+        return self.pages[identifier]
+
+
+class Gauge:
+    def __init__(self) -> None:
+        self.values: list[float] = []
+
+    def set(self, value: float) -> None:
+        self.values.append(value)
+
+
+def _fixture(name: str) -> str:
+    return (FIXTURES / name).read_text(encoding="utf-8")
+
+
+def test_creates_a_club_when_no_owner_resource_exists() -> None:
+    """Protect the create decision and exact typed request."""
+
     async def scenario() -> None:
-        created = _club()
-        calls: list[Club] = []
+        blockout = RecordingBlockout()
+        candidate = _club()
 
-        async def create(_session, club: Club) -> Club:
-            calls.append(club)
-            return created
-
-        monkeypatch.setattr(clubs_service, "create_club", create)
-        monkeypatch.setattr(clubs_service, "log_event", lambda **_event: None)
-
-        result = await clubs_service.add_or_update_club(None, _club(), None)
-
-        assert result is created
-        assert calls == [created]
-
-    asyncio.run(scenario())
-
-
-def test_skips_the_owner_write_when_the_club_is_unchanged(monkeypatch) -> None:
-    """Protect the no-op behavior that makes repeated provider input idempotent."""
-    async def scenario() -> None:
-        existing = _club()
-
-        async def unexpected(*_args, **_kwargs):
-            raise AssertionError("No owner write is expected")
-
-        monkeypatch.setattr(clubs_service, "create_club", unexpected)
-        monkeypatch.setattr(clubs_service, "update_club", unexpected)
-
-        result = await clubs_service.add_or_update_club(None, replace(existing), existing)
-
-        assert result is existing
-
-    asyncio.run(scenario())
-
-
-def test_updates_changed_fields_and_reactivates_an_inactive_club(monkeypatch) -> None:
-    """Protect update comparison, owner identity, logo preservation, and reactivation."""
-    async def scenario() -> None:
-        existing = _club(name="Old", logoUrl="owner-logo.png", active=False)
-        candidate = _club(id="provider-id", name="New", logoUrl="provider-logo.png", active=False)
-        calls: list[Club] = []
-
-        async def update(_session, club: Club) -> Club:
-            calls.append(club)
-            return club
-
-        monkeypatch.setattr(clubs_service, "update_club", update)
-        monkeypatch.setattr(clubs_service, "log_event", lambda **_event: None)
-
-        result = await clubs_service.add_or_update_club(None, candidate, existing)
+        result = await ClubWriter(blockout).save(candidate, None)
 
         assert result.id == "club-1"
-        assert result.name == "New"
-        assert result.logoUrl == "owner-logo.png"
-        assert result.active is True
-        assert calls == [result]
+        assert blockout.creates == [candidate]
+
+    asyncio.run(scenario())
+
+
+def test_skips_the_owner_write_when_the_club_is_unchanged() -> None:
+    """Protect the no-op behavior for repeated provider input."""
+
+    async def scenario() -> None:
+        blockout = RecordingBlockout()
+        existing = _club()
+
+        result = await ClubWriter(blockout).save(replace(existing), existing)
+
+        assert result is existing
+        assert blockout.creates == []
+        assert blockout.updates == []
+
+    asyncio.run(scenario())
+
+
+def test_updates_changed_fields_and_reactivates_an_inactive_club() -> None:
+    """Protect identity, logo ownership, field comparison, and reactivation."""
+
+    async def scenario() -> None:
+        blockout = RecordingBlockout()
+        existing = _club(name="Old", logoUrl="owner-logo.png", active=False)
+        candidate = _club(
+            id="provider-id", name="New", logoUrl="provider-logo.png", active=False
+        )
+
+        await ClubWriter(blockout).save(candidate, existing)
+
+        updated = blockout.updates[0]
+        assert updated.id == "club-1"
+        assert updated.name == "New"
+        assert updated.logoUrl == "owner-logo.png"
+        assert candidate.active is True
 
     asyncio.run(scenario())
 
@@ -95,93 +136,63 @@ def test_updates_changed_fields_and_reactivates_an_inactive_club(monkeypatch) ->
 def test_rejects_a_club_without_owner_required_fields() -> None:
     """Protect validation before any Blockout write."""
     with pytest.raises(ValueError, match="rawName"):
-        asyncio.run(clubs_service.add_or_update_club(None, _club(rawName=""), None))
+        asyncio.run(ClubWriter(RecordingBlockout()).save(_club(rawName=""), None))
 
 
-def test_deactivates_only_cached_clubs_missing_after_a_successful_contact(monkeypatch) -> None:
-    """Protect the safety gate that prevents mass deactivation during a provider outage."""
+def test_deactivates_only_missing_clubs_after_a_successful_contact() -> None:
+    """Protect deactivation after at least one non-empty provider response."""
+
     async def scenario() -> None:
-        scraper = ClubScraper(session=object())
-        scraper._clubs_cache = {
-            "club-1": (_club(id="club-1"), _club(id="club-1")),
-            "club-2": (_club(id="club-2"), _club(id="club-2")),
-        }
-        deactivations: list[set[str]] = []
+        clubs = [_club(id="club-1"), _club(id="club-2")]
+        blockout = RecordingBlockout(clubs, ["club-1", "club-2"])
+        ffvb = ScriptedFfvb(
+            {
+                "club-1": _fixture("club_complete.html"),
+                "club-2": "",
+            }
+        )
 
-        async def scrape_one(_url: str, club_id: str) -> None:
-            if club_id == "club-1":
-                scraper.scrape_success += 1
-                scraper.scraped_club_ids.add(club_id)
+        await ClubIngestion(blockout, ffvb, Gauge()).run()
 
-        async def deactivate(_session, missing_ids: set[str]) -> None:
-            deactivations.append(missing_ids)
-
-        monkeypatch.setattr(scraper, "scrape_one_club", scrape_one)
-        monkeypatch.setattr(club_scraper, "bulk_deactivate_clubs", deactivate)
-        monkeypatch.setattr(club_scraper, "log_event", lambda **_event: None)
-
-        await scraper.run_scraping(["club-1", "club-2"])
-
-        assert deactivations == [{"club-2"}]
+        assert blockout.deactivations == [{"club-2"}]
 
     asyncio.run(scenario())
 
 
-def test_skips_bulk_deactivation_when_no_provider_page_was_retrieved(monkeypatch) -> None:
-    """Protect the outage safeguard when every FFVB fetch is empty or fails."""
+def test_skips_deactivation_when_no_provider_page_was_retrieved() -> None:
+    """Protect the mass-deactivation outage safeguard."""
+
     async def scenario() -> None:
-        scraper = ClubScraper(session=object())
-        scraper._clubs_cache = {"club-1": (_club(), _club())}
-        events: list[dict] = []
+        blockout = RecordingBlockout([_club()], ["club-1"])
 
-        async def scrape_one(_url: str, _club_id: str) -> None:
-            return None
+        await ClubIngestion(blockout, ScriptedFfvb({"club-1": ""}), Gauge()).run()
 
-        async def unexpected(*_args, **_kwargs) -> None:
-            raise AssertionError("Bulk deactivation must be skipped")
-
-        monkeypatch.setattr(scraper, "scrape_one_club", scrape_one)
-        monkeypatch.setattr(club_scraper, "bulk_deactivate_clubs", unexpected)
-        monkeypatch.setattr(club_scraper, "log_event", lambda **event: events.append(event))
-
-        await scraper.run_scraping(["club-1"])
-
-        assert events[-1]["action"] == "skip_bulk_deactivate_no_contact"
+        assert blockout.deactivations == []
 
     asyncio.run(scenario())
 
 
-def test_scrape_one_club_updates_only_the_current_provider_fields(monkeypatch) -> None:
-    """Protect the legacy field merge before the write decision service is called."""
+def test_provider_merge_preserves_owner_only_fields() -> None:
+    """Protect logo and coordinate ownership during the FFVB merge."""
+
     async def scenario() -> None:
-        scraper = ClubScraper(session=object())
-        existing = _club(name="Old", logoUrl="keep-logo.png", latitude=48.0, longitude=2.0)
-        updated = replace(existing)
-        scraper._clubs_cache = {existing.id: (existing, updated)}
-        provider = _club(name="New", city="Lyon", logoUrl="provider-logo.png", latitude=0.0, longitude=0.0)
-        received: list[tuple[Club, Club | None]] = []
+        existing = _club(
+            name="Old",
+            logoUrl="owner-logo.png",
+            latitude=48.0,
+            longitude=2.0,
+        )
+        blockout = RecordingBlockout([existing], ["club-1"])
+        ffvb = ScriptedFfvb({"club-1": _fixture("club_complete.html")})
 
-        async def fetch(_url, _form_data):
-            return "provider html"
+        await ClubIngestion(blockout, ffvb, Gauge()).run()
 
-        async def write(_session, club: Club, current: Club | None) -> Club:
-            received.append((club, current))
-            return club
-
-        monkeypatch.setattr(scraper, "fetch", fetch)
-        monkeypatch.setattr(scraper, "parse_club_page", lambda _html, _id: provider)
-        monkeypatch.setattr(club_scraper, "add_or_update_club", write)
-
-        await scraper.scrape_one_club("https://provider.invalid", "club-1")
-
-        candidate, current = received[0]
-        assert current is existing
-        assert candidate.name == "New"
-        assert candidate.city == "Lyon"
-        assert candidate.logoUrl == "keep-logo.png"
-        assert candidate.latitude == 48.0
-        assert candidate.longitude == 2.0
-        assert scraper.scraped_club_ids == {"club-1"}
-        assert scraper.scrape_success == 1
+        updated = blockout.updates[0]
+        assert updated.id == "club-1"
+        assert updated.name == "BLOCKOUT PARIS"
+        assert updated.city == "Paris"
+        assert updated.logoUrl == "owner-logo.png"
+        assert existing.latitude == 48.0
+        assert existing.longitude == 2.0
 
     asyncio.run(scenario())
