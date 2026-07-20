@@ -5,10 +5,10 @@ from datetime import datetime
 from typing import get_type_hints
 
 import pytest
-from blockout_club_scraper.config.settings import Settings
-from blockout_club_scraper.infrastructure.blockout.auth import TokenStore
-from blockout_club_scraper.infrastructure.blockout.clients import BlockoutClients
-from blockout_club_scraper.infrastructure.blockout.contracts import (
+from club_scraper.config.settings import Settings
+from club_scraper.infrastructure.blockout.auth import TokenStore
+from club_scraper.infrastructure.blockout.clients import BlockoutClients
+from club_scraper.infrastructure.blockout.contracts import (
     BulkDeactivateClubsInternalRequest,
     ClubInternalResponse,
     CreateClubInternalRequest,
@@ -16,7 +16,7 @@ from blockout_club_scraper.infrastructure.blockout.contracts import (
     ScraperStatusInternalResponse,
     UpdateClubInternalRequest,
 )
-from blockout_club_scraper.infrastructure.blockout.response import read_json
+from club_scraper.infrastructure.blockout.response import read_json
 
 
 class RecordingResponse:

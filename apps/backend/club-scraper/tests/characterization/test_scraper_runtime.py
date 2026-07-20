@@ -1,16 +1,16 @@
 import asyncio
 
 import pytest
-from blockout_club_scraper import bootstrap
-from blockout_club_scraper.bootstrap import ClubScraperRuntime
-from blockout_club_scraper.config.settings import Settings
-from blockout_club_scraper.infrastructure.blockout.auth import (
+from club_scraper import bootstrap
+from club_scraper.bootstrap import ClubScraperRuntime
+from club_scraper.config.settings import Settings
+from club_scraper.infrastructure.blockout.auth import (
     Auth0TokenRefresher,
     TokenStore,
 )
-from blockout_club_scraper.infrastructure.ffvb import client as ffvb_module
-from blockout_club_scraper.infrastructure.ffvb.client import FfvbClubClient
-from blockout_club_scraper.infrastructure.scheduling import (
+from club_scraper.infrastructure.ffvb import client as ffvb_module
+from club_scraper.infrastructure.ffvb.client import FfvbClubClient
+from club_scraper.infrastructure.scheduling import (
     scheduler as scheduler_module,
 )
 
@@ -314,7 +314,7 @@ def test_auth0_refresh_keeps_the_token_for_172800_seconds(monkeypatch) -> None:
 
         monkeypatch.setattr(refresher, "fetch", fetch)
         monkeypatch.setattr(
-            "blockout_club_scraper.infrastructure.blockout.auth.asyncio.sleep",
+            "club_scraper.infrastructure.blockout.auth.asyncio.sleep",
             sleep,
         )
 

@@ -6,18 +6,18 @@ from datetime import UTC, datetime
 import aiohttp
 from prometheus_client import start_http_server
 
-from blockout_club_scraper.application.club_ingestion import ClubIngestion
-from blockout_club_scraper.config.settings import Settings, load_settings
-from blockout_club_scraper.infrastructure.blockout.auth import (
+from club_scraper.application.club_ingestion import ClubIngestion
+from club_scraper.config.settings import Settings, load_settings
+from club_scraper.infrastructure.blockout.auth import (
     Auth0TokenRefresher,
     TokenStore,
     token_store,
 )
-from blockout_club_scraper.infrastructure.blockout.clients import BlockoutClients
-from blockout_club_scraper.infrastructure.ffvb.client import FfvbClubClient
-from blockout_club_scraper.infrastructure.scheduling.scheduler import run_hourly
-from blockout_club_scraper.observability.logging import configure_logging, log_event
-from blockout_club_scraper.observability.metrics import (
+from club_scraper.infrastructure.blockout.clients import BlockoutClients
+from club_scraper.infrastructure.ffvb.client import FfvbClubClient
+from club_scraper.infrastructure.scheduling.scheduler import run_hourly
+from club_scraper.observability.logging import configure_logging, log_event
+from club_scraper.observability.metrics import (
     club_scraping_duration,
     execution_duration,
 )

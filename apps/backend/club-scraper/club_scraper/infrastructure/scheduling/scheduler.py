@@ -6,7 +6,7 @@ from datetime import UTC, datetime
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
-from blockout_club_scraper.observability.logging import log_event
+from club_scraper.observability.logging import log_event
 
 
 def run_hourly(job: Callable[[], Awaitable[None]]) -> None:

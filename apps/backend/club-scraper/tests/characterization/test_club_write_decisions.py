@@ -3,9 +3,9 @@ from dataclasses import replace
 from pathlib import Path
 
 import pytest
-from blockout_club_scraper.application.club_ingestion import ClubIngestion
-from blockout_club_scraper.application.club_writer import ClubWriter
-from blockout_club_scraper.infrastructure.blockout.contracts import (
+from club_scraper.application.club_ingestion import ClubIngestion
+from club_scraper.application.club_writer import ClubWriter
+from club_scraper.infrastructure.blockout.contracts import (
     ClubInternalResponse,
 )
 
@@ -147,7 +147,7 @@ def test_deactivates_only_missing_clubs_after_a_successful_contact() -> None:
         blockout = RecordingBlockout(clubs, ["club-1", "club-2"])
         ffvb = ScriptedFfvb(
             {
-                "club-1": _fixture("club_complete.html"),
+                "club-1": _fixture("portable_two_lines_with_website.html"),
                 "club-2": "",
             }
         )
@@ -183,14 +183,16 @@ def test_provider_merge_preserves_owner_only_fields() -> None:
             longitude=2.0,
         )
         blockout = RecordingBlockout([existing], ["club-1"])
-        ffvb = ScriptedFfvb({"club-1": _fixture("club_complete.html")})
+        ffvb = ScriptedFfvb(
+            {"club-1": _fixture("portable_two_lines_with_website.html")}
+        )
 
         await ClubIngestion(blockout, ffvb, Gauge()).run()
 
         updated = blockout.updates[0]
         assert updated.id == "club-1"
-        assert updated.name == "BLOCKOUT PARIS"
-        assert updated.city == "Paris"
+        assert updated.name == "L'ENVOLLEY 01"
+        assert updated.city == "St Etienne Du Bois"
         assert updated.logoUrl == "owner-logo.png"
         assert existing.latitude == 48.0
         assert existing.longitude == 2.0

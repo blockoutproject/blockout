@@ -1,4 +1,4 @@
-from blockout_club_scraper.bootstrap import start
+from club_scraper.bootstrap import start
 
 if __name__ == "__main__":
     start()

@@ -22,11 +22,14 @@ Do not replace a narrow test with an end-to-end test. Each layer proves a differ
 
 ## Fixture Rules
 
-- Store small, sanitized, deterministic fixtures under the owning scraper's `tests/fixtures` directory.
-- Include only the provider fragments required to prove the behavior. Do not archive entire public websites by default.
+- Store sanitized, deterministic fixtures derived from real provider responses under the owning scraper's
+  `tests/fixtures` directory.
+- Parser tests must not invent provider HTML, XML, CSV, or JSON. Preserve the smallest source-derived response that keeps
+  the real structure under test; retain a complete page when malformed or cross-table markup affects parsing.
 - Remove tokens, cookies, personal data, private URLs, request identifiers, and unrelated content.
 - Record the provider family, encoding, and scenario in the filename or adjacent test documentation.
-- Keep malformed and missing-field samples when the scraper has a supported fallback or rejection rule.
+- Keep malformed and missing-field samples only when they were observed in a real provider response. Test technical
+  exception handling by injecting the failure while reusing a real fixture, rather than constructing fake provider HTML.
 - Never refresh fixtures automatically from the network. A fixture update is a reviewed behavior change.
 
 ## Differential Parity

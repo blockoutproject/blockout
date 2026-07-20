@@ -5,16 +5,16 @@ from collections.abc import Iterable
 
 import aiohttp
 
-from blockout_club_scraper.config.settings import Settings
-from blockout_club_scraper.infrastructure.blockout.auth import TokenStore
-from blockout_club_scraper.infrastructure.blockout.contracts import (
+from club_scraper.config.settings import Settings
+from club_scraper.infrastructure.blockout.auth import TokenStore
+from club_scraper.infrastructure.blockout.contracts import (
     BulkDeactivateClubsInternalRequest,
     ClubInternalResponse,
     CreateClubInternalRequest,
     ScraperStatusInternalResponse,
     UpdateClubInternalRequest,
 )
-from blockout_club_scraper.infrastructure.blockout.response import read_json
+from club_scraper.infrastructure.blockout.response import read_json
 
 
 class BlockoutClients:

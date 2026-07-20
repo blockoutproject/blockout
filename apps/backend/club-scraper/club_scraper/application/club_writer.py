@@ -1,6 +1,6 @@
-from blockout_club_scraper.application.ports import BlockoutPort
-from blockout_club_scraper.infrastructure.blockout.contracts import ClubInternalResponse
-from blockout_club_scraper.observability.logging import log_event
+from club_scraper.application.ports import BlockoutPort
+from club_scraper.infrastructure.blockout.contracts import ClubInternalResponse
+from club_scraper.observability.logging import log_event
 
 
 class ClubWriter:

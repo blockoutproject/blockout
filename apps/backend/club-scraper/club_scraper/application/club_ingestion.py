@@ -6,12 +6,12 @@ from datetime import UTC, datetime
 
 from prometheus_client import Gauge
 
-from blockout_club_scraper.application.club_writer import ClubWriter
-from blockout_club_scraper.application.ports import BlockoutPort, FfvbPort
-from blockout_club_scraper.infrastructure.blockout.contracts import ClubInternalResponse
-from blockout_club_scraper.infrastructure.ffvb.models import FfvbClubRecord
-from blockout_club_scraper.infrastructure.ffvb.parser import parse_club_page
-from blockout_club_scraper.observability.logging import current_scraper, log_event
+from club_scraper.application.club_writer import ClubWriter
+from club_scraper.application.ports import BlockoutPort, FfvbPort
+from club_scraper.infrastructure.blockout.contracts import ClubInternalResponse
+from club_scraper.infrastructure.ffvb.models import FfvbClubRecord
+from club_scraper.infrastructure.ffvb.parser import parse_club_page
+from club_scraper.observability.logging import current_scraper, log_event
 
 
 class ClubIngestion:

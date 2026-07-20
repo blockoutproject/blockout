@@ -1,8 +1,9 @@
 # Club Scraper Characterization
 
-REF-022 records the supported behavior of the imported club scraper before structural replacement. The tests use small,
-sanitized FFVB address-book fragments and recording internal clients. They do not contact FFVB, Auth0, production
-Blockout services, or another external system.
+REF-022 records the supported behavior of the imported club scraper before structural replacement. The tests use
+sanitized FFVB address-book fixtures and recording internal clients. They do not contact FFVB, Auth0, production Blockout
+services, or another external system. Every HTML fixture is derived from a real FFVB response; technical failure tests
+inject the failure while reusing one of those pages.
 
 ## Provider behavior
 
@@ -11,9 +12,10 @@ Blockout services, or another external system.
 - FFVB response bytes are decoded as Windows-1252 with replacement for invalid bytes.
 - A provider request has three attempts by default, a two-second delay, a twenty-second per-request timeout, disabled TLS
   verification, and concurrency bounded by the shared scraper semaphore.
-- Club parsing preserves the imported label matching, duplicated-postal-code fallback, title capitalization, website
-  trailing-slash removal, and the rule that an address with at least three comma-separated parts keeps the final two.
-- Missing recognized markup currently returns a partial club. A parser exception is logged and returns no club.
+- Club parsing preserves the imported label matching, title capitalization, website trailing-slash removal, and the rule
+  that an address with at least three comma-separated parts keeps the final two.
+- The imported duplicated-postal-code fallback remains in production code, but no matching response was observed in the
+  fifty-page sample, so no invented HTML fixture asserts it. A parser exception is logged and returns no club.
 
 ## Write behavior
 
@@ -43,7 +45,8 @@ requires a separately authorized correction with explicit tests.
 
 ## REF-023 replacement evidence
 
-The production path now has one importable `blockout_club_scraper` package:
+The production path now has one importable `club_scraper` package. The package omits the redundant repository prefix but
+retains the application role so it cannot be confused with `competition_scraper`:
 
 - `application` owns ingestion and create/update/no-op decisions;
 - `infrastructure/blockout` owns Auth0, internal clients, and exact handwritten Java-owner transport mirrors;
@@ -51,10 +54,10 @@ The production path now has one importable `blockout_club_scraper` package:
 - `infrastructure/scheduling`, `config`, and `observability` own process concerns;
 - `main.py` delegates only to the composition root.
 
-Before the legacy path was deleted, both parsers ran against the same three sanitized fixtures. Every semantic provider
-field was identical for the complete page, duplicated-postal fallback, and missing-field page. After the switch, the
-same fixtures and write traces protect create, update, reactivation, no-op, outage-safe deactivation, retries, internal
-routes, native camelCase payloads, scheduler settings, metrics port, and Auth0 cadence.
+Before the legacy path was deleted, both parsers ran against the same controlled inputs. Those earlier constructed HTML
+fragments are now superseded and removed. The current source-derived fixtures and write traces protect parsing, create,
+update, reactivation, no-op, outage-safe deactivation, retries, internal routes, native camelCase payloads, scheduler
+settings, metrics port, and Auth0 cadence.
 
 `ClubInternalResponse`, `CreateClubInternalRequest`, `UpdateClubInternalRequest`,
 `ScraperStatusInternalResponse`, `ScraperName`, and `BulkDeactivateClubsInternalRequest` are exact handwritten mirrors
@@ -64,3 +67,29 @@ boundary. Contract generation remains deferred.
 Ruff 0.15.22 is pinned as the development formatter, import sorter, and baseline linter. Its Python 3.12 configuration
 lives in the repository `pyproject.toml`; Nx only delegates `lint`, `format`, and `format-check` to Python. Production
 dependencies and the image remain unchanged.
+
+## Live-provider fixture evidence
+
+On July 20, 2026, the FFVB address-book form was exercised with eight department values: `01`, `13`, `29`, `33`, `59`,
+`75`, `971`, and `974`. Fifty club detail pages were sampled evenly across the returned lists. The temporary raw captures
+were used only for structural analysis and are not committed.
+
+The sample contained 25 exact DOM signatures, but most differences belonged to unrelated league, committee, or contact
+tables. Fourteen layouts were distinct for the fields read by the club parser and are preserved directly under
+`tests/fixtures/ffvb` as complete source-derived pages. They cover:
+
+- two, three, and four address lines before the postal row;
+- mobile-only, landline-only, and landline-then-mobile contact rows;
+- club website rows that contain a value and pages where the row is absent;
+- metropolitan, accented, hyphenated, and overseas city values;
+- one live malformed postal row containing two postal codes and no city.
+
+Across the fifty pages, 22 had two address lines, 21 had three, and 7 had four. Thirty-five exposed only a mobile label,
+3 only a landline label, and 12 exposed landline followed by mobile. Twenty-six had a club website and 24 did not. Every
+sampled page had a club title, an email link, a phone value, and a social-address table. Forty-nine yielded a postal code
+and city; the malformed `97460 97490` row intentionally remains a partial result rather than inventing a locality.
+
+Each committed fixture retains the provider's full table structure and records its source club identifier in an HTML
+comment. Personal email, phone, correspondent, and street values are replaced with deterministic test values. This keeps
+the parser evidence suitable for a public repository without weakening the structural coverage. No constructed provider
+HTML remains: the parser-exception test reuses a source-derived page and injects the BeautifulSoup failure directly.
