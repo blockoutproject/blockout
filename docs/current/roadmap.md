@@ -110,7 +110,7 @@
   - Require offline characterization, differential parity, internal contract tests, and controlled local smokes before
     replacing any scraper behavior.
 
-- [ ] **REF-022 — Characterize the complete club scraper**
+- [x] **REF-022 — Characterize the complete club scraper**
   - Protect provider parsing, normalization, retries, authentication, status gating, concurrency, scheduling, metrics,
     internal requests, idempotent writes, and supported failure outcomes without changing production code.
 
