@@ -1,15 +1,23 @@
+"""Characterization of typed FFVB discovery and league ingestion."""
+
 import asyncio
 from pathlib import Path
 
-import pytest
+from scraper.application import ffvb_league_ingestion as ingestion
+from scraper.application.calendar_ingestion import CalendarIngestionResult
 from scraper.infrastructure.blockout.pool import PoolInternalResponse
 from scraper.infrastructure.blockout.raw_division_mapping import (
     RawDivisionMappingInternalResponse,
 )
-from scraper.infrastructure.ffvb import departmental as departmental_module
 from scraper.infrastructure.ffvb import national as national_module
-from scraper.infrastructure.ffvb import regional as regional_module
 from scraper.infrastructure.ffvb.departmental import DepartmentalScraper
+from scraper.infrastructure.ffvb.discovery import (
+    parse_departmental_leagues,
+    parse_league_pools,
+    parse_national_pools,
+    parse_regional_leagues,
+)
+from scraper.infrastructure.ffvb.models import FfvbPoolSource
 from scraper.infrastructure.ffvb.national import NationalScraper
 from scraper.infrastructure.ffvb.regional import RegionalScraper
 
@@ -20,23 +28,57 @@ def _fixture(name: str) -> str:
     return (FIXTURES / name).read_text(encoding="utf-8")
 
 
-def test_regional_index_discovers_supported_leagues_with_eight_way_guard(
-    monkeypatch,
-) -> None:
-    """Protect regional league extraction, exclusions, URL downgrade, and finalization."""
+def _source() -> FfvbPoolSource:
+    return FfvbPoolSource(
+        code="3MA",
+        name="3MA NATIONALE 3 MASCULINE POULE A",
+        raw_division_name="NATIONALE 3 MASCULINE",
+        season="2026/2027",
+        url="https://www.ffvbbeach.org/pool",
+    )
 
-    async def scenario() -> None:
-        scraper = RegionalScraper(object())
+
+def test_index_parsers_return_typed_https_sources() -> None:
+    """Protect regional and departmental names, exclusions, and secure URLs."""
+    regional = parse_regional_leagues(_fixture("regional_index.html"))
+    departmental = parse_departmental_leagues(_fixture("departmental_index.html"))
+
+    assert [(item.code, item.name) for item in regional] == [
+        ("LIAQ", "Nouvelle Aquitaine")
+    ]
+    assert [(item.code, item.name) for item in departmental] == [
+        ("PTRA01", "Ain"),
+        ("PTRA26", "Drôme-Ardèche"),
+    ]
+    assert all(item.url.startswith("https://") for item in regional + departmental)
+
+
+def test_authentic_ffvb_access_pages_cover_five_pools_per_family() -> None:
+    """Protect the requested five-pool discovery matrix with real provider links."""
+    regional = parse_league_pools(_fixture("regional_pool_access.html"))
+    departmental = parse_league_pools(_fixture("departmental_pool_access.html"))
+    national = parse_national_pools(_fixture("national_pool_access.html"))
+
+    assert [item.code for item in regional] == ["PFA", "PNF", "PFA", "1FA", "8F1"]
+    assert [item.code for item in departmental] == ["JFA", "BM1", "SMA", "JF1", "QFA"]
+    assert [item.code for item in national] == ["3MA", "3FA", "2MA", "2FA", "EFA"]
+    assert all(
+        item.url.startswith("https://") for item in regional + departmental + national
+    )
+
+
+def test_sources_finalize_after_bounded_typed_discovery(monkeypatch) -> None:
+    """Protect source finalization after typed regional and departmental discovery."""
+
+    async def scenario(scraper, fixture_name: str) -> list[tuple]:
         calls: list[tuple] = []
         finalizations: list[str] = []
 
         async def fetch(_url):
-            return _fixture("regional_index.html")
+            return _fixture(fixture_name)
 
         async def scrape_league(**kwargs):
-            calls.append(
-                (kwargs["leagueCode"], kwargs["leagueName"], kwargs["league_page_url"])
-            )
+            calls.append(tuple(kwargs.values()))
 
         async def matches():
             finalizations.append("matches")
@@ -48,88 +90,33 @@ def test_regional_index_discovers_supported_leagues_with_eight_way_guard(
         monkeypatch.setattr(scraper, "scrape_pools_from_league", scrape_league)
         monkeypatch.setattr(scraper, "finalize_matches_updates", matches)
         monkeypatch.setattr(scraper, "finalize_associations_updates", associations)
-
         await scraper.run_scraping()
-
-        assert calls == [
-            (
-                "LIAQ",
-                "Nouvelle Aquitaine",
-                "http://www.ffvbbeach.org/ffvbapp/resu/vbspo_home.php?codent=LIAQ",
-            )
-        ]
         assert finalizations == ["matches", "associations"]
-        assert scraper._max_concurrency == 10
+        return calls
 
-    asyncio.run(scenario())
+    regional = asyncio.run(scenario(RegionalScraper(object()), "regional_index.html"))
+    departmental = asyncio.run(
+        scenario(DepartmentalScraper(object()), "departmental_index.html")
+    )
+    assert regional[0][0:2] == ("LIAQ", "Nouvelle Aquitaine")
+    assert [call[0] for call in departmental] == ["PTRA01", "PTRA26"]
 
 
-def test_departmental_index_strips_codes_and_excludes_legacy_regions(
+def test_complete_league_observation_dispatches_without_deactivation(
     monkeypatch,
 ) -> None:
-    """Protect departmental name cleanup, exclusions, and URL downgrade."""
+    """Protect mapped pool assembly and complete-snapshot reconciliation."""
 
     async def scenario() -> None:
-        scraper = DepartmentalScraper(object())
-        calls: list[tuple] = []
-
-        async def fetch(_url):
-            return _fixture("departmental_index.html")
-
-        async def scrape_league(**kwargs):
-            calls.append(
-                (kwargs["leagueCode"], kwargs["leagueName"], kwargs["league_page_url"])
-            )
-
-        async def no_op():
-            return None
-
-        monkeypatch.setattr(scraper, "fetch", fetch)
-        monkeypatch.setattr(scraper, "scrape_pools_from_league", scrape_league)
-        monkeypatch.setattr(scraper, "finalize_matches_updates", no_op)
-        monkeypatch.setattr(scraper, "finalize_associations_updates", no_op)
-
-        await scraper.run_scraping()
-
-        assert calls == [
-            (
-                "PTRA01",
-                "Ain",
-                "http://www.ffvbbeach.org/ffvbapp/resu/vbspo_home.php?codent=PTRA01",
-            ),
-            (
-                "PTRA26",
-                "Drôme-Ardèche",
-                "http://www.ffvbbeach.org/ffvbapp/resu/vbspo_home.php?codent=PTRA26",
-            ),
-        ]
-
-    asyncio.run(scenario())
-
-
-@pytest.mark.parametrize(
-    ("scraper_class", "module"),
-    [(RegionalScraper, regional_module), (DepartmentalScraper, departmental_module)],
-)
-def test_local_league_pages_require_an_authoritative_mapped_division(
-    monkeypatch,
-    scraper_class,
-    module,
-) -> None:
-    """Protect season/pool extraction and mapping-gated CSV dispatch."""
-
-    async def scenario() -> None:
-        scraper = scraper_class(object())
-        dispatched: list[tuple] = []
         existing = PoolInternalResponse(
             poolCode="3MA",
             leagueCode="ABCCS",
             season="2026/2027",
             divisionId=7,
             leagueName="Nationale",
-            rawName="3MA NATIONALE 3 MASCULINE POULE A",
-            name="3MA NATIONALE 3 MASCULINE POULE A",
-            shortName="3MA NATIONALE 3 MASCULINE POULE A",
+            rawName="old",
+            name="old",
+            shortName="old",
             format="SIX",
             gender="M",
             id=99,
@@ -142,147 +129,164 @@ def test_local_league_pages_require_an_authoritative_mapped_division(
             format="SIX",
             gender="M",
         )
-
-        async def fetch(_url):
-            return _fixture("league_pools.html")
-
-        async def get_pools(*_args):
-            return [existing]
-
-        async def get_mappings(*_args):
-            return [mapping]
-
-        async def handle(_scraper, pool, season, existing_pool, scraped_pool_ids):
-            dispatched.append((pool, season, existing_pool))
-            scraped_pool_ids.add(existing_pool.id)
-
-        async def unexpected(*_args):
-            raise AssertionError(
-                "A successfully dispatched pool must not be deactivated"
-            )
-
-        monkeypatch.setattr(scraper, "fetch", fetch)
-        monkeypatch.setattr(module, "get_pools_by_league_and_season", get_pools)
-        monkeypatch.setattr(
-            module, "get_raw_division_mappings_by_league_and_season", get_mappings
-        )
-        monkeypatch.setattr(module, "handle_csv_download_and_parse", handle)
-        monkeypatch.setattr(module, "bulk_deactivate_pools", unexpected)
-
-        await scraper.scrape_pools_from_league(
-            "ABCCS", "Nationale", "https://league.invalid"
-        )
-
-        pool, season, current = dispatched[0]
-        assert (
-            pool.poolCode,
-            pool.rawName,
-            pool.divisionId,
-            pool.format,
-            pool.gender,
-        ) == (
-            "3MA",
-            "3MA NATIONALE 3 MASCULINE POULE A",
-            7,
-            "SIX",
-            "M",
-        )
-        assert season == "2026/2027"
-        assert current is existing
-
-    asyncio.run(scenario())
-
-
-def test_missing_local_mapping_is_created_and_defers_ingestion(monkeypatch) -> None:
-    """Protect the two-run workflow for newly discovered raw divisions."""
-
-    async def scenario() -> None:
-        scraper = RegionalScraper(object())
-        created: list[RawDivisionMappingInternalResponse] = []
-
-        async def fetch(_url):
-            return _fixture("league_pools.html")
-
-        async def empty(*_args):
-            return []
-
-        async def create(_session, mapping):
-            created.append(mapping)
-            return mapping
-
-        async def unexpected(*_args, **_kwargs):
-            raise AssertionError("Unmapped divisions must not dispatch CSV ingestion")
-
-        monkeypatch.setattr(scraper, "fetch", fetch)
-        monkeypatch.setattr(regional_module, "get_pools_by_league_and_season", empty)
-        monkeypatch.setattr(
-            regional_module, "get_raw_division_mappings_by_league_and_season", empty
-        )
-        monkeypatch.setattr(regional_module, "create_raw_division_mapping", create)
-        monkeypatch.setattr(
-            regional_module, "handle_csv_download_and_parse", unexpected
-        )
-
-        await scraper.scrape_pools_from_league(
-            "ABCCS", "Nationale", "http://league.invalid"
-        )
-
-        assert [
-            (item.rawDivisionName, item.leagueCode, item.season) for item in created
-        ] == [("NATIONALE 3 MASCULINE", "ABCCS", "2026/2027")]
-
-    asyncio.run(scenario())
-
-
-def test_national_index_derives_season_pool_code_and_authoritative_mapping(
-    monkeypatch,
-) -> None:
-    """Protect national source constants and mapped CSV dispatch."""
-
-    async def scenario() -> None:
-        scraper = NationalScraper(object())
-        dispatched: list[tuple] = []
-        mapping = RawDivisionMappingInternalResponse(
-            rawDivisionName="N3 Masc. Poule A",
-            leagueCode="ABCCS",
-            season="2026/2027",
-            divisionId=8,
-            format="SIX",
-            gender="M",
-        )
-
-        async def fetch(_url):
-            return _fixture("national_index.html")
+        dispatched: list[PoolInternalResponse] = []
 
         async def pools(*_args):
-            return []
+            return [existing]
 
         async def mappings(*_args):
             return [mapping]
 
-        async def handle(_scraper, pool, season, **_kwargs):
-            dispatched.append((pool, season))
+        async def handle(_scraper, pool, _season, **_kwargs):
+            dispatched.append(pool)
+            return CalendarIngestionResult(pool_id=99, complete=True)
 
-        async def no_op(*_args):
+        async def unexpected(*_args):
+            raise AssertionError("A complete observed pool must remain active")
+
+        monkeypatch.setattr(ingestion, "get_pools_by_league_and_season", pools)
+        monkeypatch.setattr(
+            ingestion, "get_raw_division_mappings_by_league_and_season", mappings
+        )
+        monkeypatch.setattr(ingestion, "handle_csv_download_and_parse", handle)
+        monkeypatch.setattr(ingestion, "bulk_deactivate_pools", unexpected)
+        scraper = type("Scraper", (), {"session": object()})()
+
+        await ingestion.ingest_league_pools(scraper, "ABCCS", "Nationale", (_source(),))
+
+        assert (
+            dispatched[0].divisionId,
+            dispatched[0].format,
+            dispatched[0].gender,
+        ) == (
+            7,
+            "SIX",
+            "M",
+        )
+
+    asyncio.run(scenario())
+
+
+def test_unmapped_or_incomplete_observation_never_deactivates_pools(
+    monkeypatch,
+) -> None:
+    """Protect destructive cleanup from configuration gaps and partial reads."""
+
+    async def scenario() -> None:
+        existing = PoolInternalResponse(
+            poolCode="OLD",
+            leagueCode="ABCCS",
+            season="2026/2027",
+            divisionId=7,
+            leagueName="Nationale",
+            rawName="old",
+            name="old",
+            shortName="old",
+            format="SIX",
+            gender="M",
+            id=98,
+        )
+
+        async def pools(*_args):
+            return [existing]
+
+        async def mappings(*_args):
+            return []
+
+        async def create(_session, mapping):
+            return mapping
+
+        async def unexpected(*_args):
+            raise AssertionError("Incomplete observations must not deactivate pools")
+
+        monkeypatch.setattr(ingestion, "get_pools_by_league_and_season", pools)
+        monkeypatch.setattr(
+            ingestion, "get_raw_division_mappings_by_league_and_season", mappings
+        )
+        monkeypatch.setattr(ingestion, "create_raw_division_mapping", create)
+        monkeypatch.setattr(ingestion, "bulk_deactivate_pools", unexpected)
+        scraper = type("Scraper", (), {"session": object()})()
+
+        await ingestion.ingest_league_pools(scraper, "ABCCS", "Nationale", (_source(),))
+
+    asyncio.run(scenario())
+
+
+def test_national_source_dispatches_typed_pools(monkeypatch) -> None:
+    """Protect the national source constants and typed ingestion boundary."""
+
+    async def scenario() -> None:
+        scraper = NationalScraper(object())
+        observed: list[tuple] = []
+
+        async def fetch(_url):
+            return _fixture("national_pool_access.html")
+
+        async def ingest(_scraper, code, name, sources):
+            observed.append((code, name, sources))
+
+        async def no_op():
             return None
 
         monkeypatch.setattr(scraper, "fetch", fetch)
+        monkeypatch.setattr(national_module, "ingest_league_pools", ingest)
         monkeypatch.setattr(scraper, "finalize_matches_updates", no_op)
         monkeypatch.setattr(scraper, "finalize_associations_updates", no_op)
-        monkeypatch.setattr(national_module, "get_pools_by_league_and_season", pools)
-        monkeypatch.setattr(
-            national_module, "get_raw_division_mappings_by_league_and_season", mappings
-        )
-        monkeypatch.setattr(national_module, "handle_csv_download_and_parse", handle)
 
         await scraper.run_scraping()
 
-        pool, season = dispatched[0]
-        assert (pool.poolCode, pool.leagueCode, pool.leagueName) == (
-            "3MA",
-            "ABCCS",
-            "Nationale",
+        assert observed[0][0:2] == ("ABCCS", "Nationale")
+        assert len(observed[0][2]) == 5
+
+    asyncio.run(scenario())
+
+
+def test_incomplete_calendar_result_suppresses_league_cleanup(monkeypatch) -> None:
+    """Protect existing pools when one mapped calendar observation is incomplete."""
+
+    async def scenario() -> None:
+        existing = PoolInternalResponse(
+            poolCode="OLD",
+            leagueCode="ABCCS",
+            season="2026/2027",
+            divisionId=7,
+            leagueName="Nationale",
+            rawName="old",
+            name="old",
+            shortName="old",
+            format="SIX",
+            gender="M",
+            id=98,
         )
-        assert season == "2026/2027"
+        mapping = RawDivisionMappingInternalResponse(
+            rawDivisionName="NATIONALE 3 MASCULINE",
+            leagueCode="ABCCS",
+            season="2026/2027",
+            divisionId=7,
+            format="SIX",
+            gender="M",
+        )
+
+        async def pools(*_args):
+            return [existing]
+
+        async def mappings(*_args):
+            return [mapping]
+
+        async def handle(*_args, **_kwargs):
+            return CalendarIngestionResult(pool_id=99, complete=False)
+
+        async def unexpected(*_args):
+            raise AssertionError("Partial provider data must not deactivate pools")
+
+        monkeypatch.setattr(ingestion, "get_pools_by_league_and_season", pools)
+        monkeypatch.setattr(
+            ingestion, "get_raw_division_mappings_by_league_and_season", mappings
+        )
+        monkeypatch.setattr(ingestion, "handle_csv_download_and_parse", handle)
+        monkeypatch.setattr(ingestion, "bulk_deactivate_pools", unexpected)
+        scraper = type("Scraper", (), {"session": object()})()
+
+        await ingestion.ingest_league_pools(scraper, "ABCCS", "Nationale", (_source(),))
 
     asyncio.run(scenario())

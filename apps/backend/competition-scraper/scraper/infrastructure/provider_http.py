@@ -1,6 +1,7 @@
 """Bounded HTTP access shared by FFVB and LNV sources."""
 
 import asyncio
+import re
 
 import aiohttp
 
@@ -8,7 +9,7 @@ from scraper.observability.logging import log_event
 
 
 class ProviderHttpClient:
-    """Fetch provider documents with the legacy retry and decoding rules."""
+    """Fetch provider documents with bounded retries and declared encodings."""
 
     def __init__(
         self, session: aiohttp.ClientSession, max_concurrency: int = 10
@@ -25,12 +26,13 @@ class ProviderHttpClient:
                 try:
                     async with self._session.get(
                         url,
-                        ssl=False,
                         timeout=aiohttp.ClientTimeout(total=timeout),
                     ) as response:
                         response.raise_for_status()
                         raw_content = await response.content.read()
-                        content = self._decode(url, raw_content)
+                        content = self._decode(
+                            url, raw_content, getattr(response, "charset", None)
+                        )
                         if attempt > 1:
                             log_event(
                                 action="http_request_retry_success",
@@ -95,12 +97,24 @@ class ProviderHttpClient:
         raise RuntimeError(f"No provider request was attempted for '{url}'.")
 
     @staticmethod
-    def _decode(url: str, content: bytes) -> str:
-        ffvb_prefixes = (
-            "http://www.ffvb.org/",
-            "http://www.ffvbbeach.org/",
+    def _decode(url: str, content: bytes, declared_encoding: str | None = None) -> str:
+        """Decode with HTTP/meta declarations before the provider fallback."""
+        if declared_encoding:
+            try:
+                return content.decode(declared_encoding, errors="replace")
+            except LookupError:
+                pass
+        if content.startswith(b"\xef\xbb\xbf"):
+            return content.decode("utf-8-sig", errors="replace")
+        match = re.search(
+            rb"charset\s*=\s*[\"']?([A-Za-z0-9._-]+)", content[:4096], re.I
         )
-        encoding = "windows-1252" if url.startswith(ffvb_prefixes) else "utf-8"
+        if match:
+            try:
+                return content.decode(match.group(1).decode("ascii"), errors="replace")
+            except LookupError:
+                pass
+        encoding = "windows-1252" if "ffvbbeach.org" in url else "utf-8"
         return content.decode(encoding, errors="replace")
 
     @staticmethod

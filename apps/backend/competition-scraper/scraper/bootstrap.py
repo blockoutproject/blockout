@@ -81,7 +81,7 @@ async def main() -> bool:
 
         if not skipped:
             async with lock:
-                connector = aiohttp.TCPConnector(limit=20, ssl=False)
+                connector = aiohttp.TCPConnector(limit=20)
                 timeout = aiohttp.ClientTimeout(total=10)
 
                 async with aiohttp.ClientSession(

@@ -86,11 +86,11 @@ def test_provider_fetch_preserves_encoding_timeout_retry_and_tls(monkeypatch) ->
         monkeypatch.setattr(provider_http, "log_event", lambda **_event: None)
         scraper = DummyScraper(session, "dummy")
 
-        result = await scraper.fetch("http://www.ffvb.org/provider")
+        result = await scraper.fetch("https://www.ffvbbeach.org/provider")
 
         assert result == "café"
         assert len(session.calls) == 3
-        assert all(call[1]["ssl"] is False for call in session.calls)
+        assert all("ssl" not in call[1] for call in session.calls)
         assert all(call[1]["timeout"].total == 20 for call in session.calls)
         assert sleeps == [5, 5]
 
@@ -115,6 +115,15 @@ def test_provider_fetch_raises_only_after_three_failures(monkeypatch) -> None:
         assert len(session.calls) == 3
 
     asyncio.run(scenario())
+
+
+def test_provider_decode_honors_utf8_html_declaration() -> None:
+    """Protect UTF-8 FFVolley pages from the FFVB Beach fallback encoding."""
+    content = '<meta charset="utf-8"><p>Nouvelle-Aquitaine — compétition</p>'.encode()
+
+    assert provider_http.ProviderHttpClient._decode(
+        "https://www.ffvb.org/provider", content
+    ).endswith("Nouvelle-Aquitaine — compétition</p>")
 
 
 def test_top_level_runner_limits_scraper_concurrency_to_two(monkeypatch) -> None:
@@ -216,7 +225,7 @@ def test_enabled_main_preserves_sessions_connector_and_configured_sources(
         assert await competition_main.main() is True
         assert [item["timeout"].total for item in observed["sessions"]] == [10, 10]
         assert all(item["trust_env"] is True for item in observed["sessions"])
-        assert observed["connector"] == {"limit": 20, "ssl": False}
+        assert observed["connector"] == {"limit": 20}
         assert observed["run"][1] == ["regional", "departmental", "national", "pro"]
         assert observed["run"][2] == 2
 

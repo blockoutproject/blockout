@@ -51,3 +51,22 @@ The read routes used by `pools-service`, `matches-service`, and
 This validation proves the local Blockout parsing and application-write paths.
 It intentionally does not certify the availability or current HTML/XML shape of
 external providers; those require a separate provider integration test.
+
+## REF-026 provider and local read smoke
+
+On 2026-07-20, the hardened competition provider boundaries were exercised in
+read-only mode against the current public pages. Verified HTTPS and decoding
+returned 13 supported regional leagues, 67 departmental committees, 29 national
+pools, 132 complete ABCCS/3MA calendar rows, and 4, 4, and 165 Data Project live
+match blocks for competitions 124, 125, and 126. No LNV XML request or external
+write was performed.
+
+The five required local Java APIs started successfully against the existing
+PostgreSQL and RabbitMQ containers. Authenticated read clients for raw division
+mappings, pools, teams, matches, and competition associations returned valid
+empty typed collections from the current local databases. The scraper status
+read remains blocked before scraper startup: `config-service` returns HTTP 500
+because the lowercase path value `competition_scraper` is converted directly to
+the uppercase Java `ScraperName` enum. This pre-existing Java boundary mismatch
+is outside REF-026 and requires its own focused correction before a complete
+scheduled local run can be certified.

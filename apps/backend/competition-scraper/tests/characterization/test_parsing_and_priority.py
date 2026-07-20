@@ -60,25 +60,26 @@ def test_csv_parser_protects_headers_and_normalized_rows() -> None:
     """Protect the FFVB semicolon schema and provider-owned row names."""
     content = (FIXTURES / "ffvb" / "calendar.csv").read_text(encoding="utf-8")
 
-    rows = list(parse_csv_from_content(content))
+    snapshot = parse_csv_from_content(content)
 
-    assert rows == [
-        {
-            "leagueCode": "ABCCS",
-            "matchCode": "3MA001",
-            "club_a_id": "0837251",
-            "club_b_id": "0060007",
-            "team_a_name": "VOLLEY BALL OLLIOULAIS",
-            "team_b_name": "AS CANNES VOLLEY-BALL 3",
-            "matchDate": "2026-09-26",
-            "match_time": "20:30",
-            "set": None,
-            "score": None,
-            "venue": "PIEMONTESI",
-            "firstReferee": None,
-            "secondReferee": None,
-        }
-    ]
+    assert snapshot.complete is True
+    assert len(snapshot.matches) == 1
+    match = snapshot.matches[0]
+    assert (
+        match.league_code,
+        match.match_code,
+        match.home_club_id,
+        match.away_club_id,
+    ) == ("ABCCS", "3MA001", "0837251", "0060007")
+    assert (match.home_team_name, match.away_team_name) == (
+        "VOLLEY BALL OLLIOULAIS",
+        "AS CANNES VOLLEY-BALL 3",
+    )
+    assert (match.match_date, match.match_time, match.set_score) == (
+        "2026-09-26",
+        "20:30",
+        None,
+    )
 
 
 def test_csv_parser_rejects_a_missing_required_column() -> None:
@@ -100,10 +101,11 @@ def test_html_rank_parser_preserves_ratios_and_stat_columns() -> None:
 
     assert stats.points == 58
     assert stats.played == 22
-    assert stats.winsThreeToZero == 11
-    assert stats.wonSets == 64
-    assert stats.coefSets == 3.368
-    assert stats.coefPoints == 1.169
+    assert stats.team_name == "PARIS VOLLEY CLUB"
+    assert stats.wins_three_to_zero == 11
+    assert stats.won_sets == 64
+    assert stats.coefficient_sets == 3.368
+    assert stats.coefficient_points == 1.169
     assert parse_float("bad") == 0.0
 
 

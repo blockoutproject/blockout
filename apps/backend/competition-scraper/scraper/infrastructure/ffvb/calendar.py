@@ -1,83 +1,89 @@
+"""Download and parse FFVB calendar exports."""
+
 import asyncio
 import csv
 import io
-from collections.abc import Iterator
 
 import aiohttp
 
 from scraper.application.source import Scraper
 from scraper.infrastructure.blockout.pool import PoolInternalResponse
+from scraper.infrastructure.ffvb.models import (
+    FfvbCalendarMatch,
+    FfvbCalendarSnapshot,
+)
 from scraper.observability.logging import log_event
 
 _CSV_DOWNLOAD_SEMAPHORE = asyncio.Semaphore(20)
+_EXPECTED_COLUMNS = {
+    "Match",
+    "EQA_no",
+    "EQB_no",
+    "EQA_nom",
+    "EQB_nom",
+    "Date",
+    "Heure",
+    "Set",
+    "Score",
+    "Salle",
+    "Arb1",
+    "Arb2",
+}
 
 
-def validate_columns(actual_columns: set, expected_columns: set) -> None:
+def validate_columns(actual_columns: set[str], expected_columns: set[str]) -> None:
+    """Reject a provider export whose required schema is incomplete."""
     missing_columns = expected_columns - actual_columns
-    if missing_columns:
-        log_event(
-            action="validate_columns",
-            level="error",
-            missing_columns=list(missing_columns),
-            message=f"Colonnes manquantes dans le CSV: {', '.join(missing_columns)}",
-        )
-        raise ValueError(
-            f"Colonnes manquantes dans le CSV : {', '.join(missing_columns)}"
-        )
+    if not missing_columns:
+        return
+    ordered = sorted(missing_columns)
+    log_event(
+        action="validate_columns",
+        level="error",
+        missing_columns=ordered,
+        message=f"Colonnes manquantes dans le CSV: {', '.join(ordered)}",
+    )
+    raise ValueError(f"Colonnes manquantes dans le CSV : {', '.join(ordered)}")
 
 
-def parse_csv_from_content(content: str) -> Iterator[dict]:
-    expected_columns = {
-        "Match",
-        "EQA_no",
-        "EQB_no",
-        "EQA_nom",
-        "EQB_nom",
-        "Date",
-        "Heure",
-        "Set",
-        "Score",
-        "Salle",
-        "Arb1",
-        "Arb2",
-    }
-    csv_stream = io.StringIO(content)
-    reader = csv.DictReader(csv_stream, delimiter=";")
-    validate_columns(set(reader.fieldnames or []), expected_columns)
+def parse_csv_from_content(content: str) -> FfvbCalendarSnapshot:
+    """Parse one complete FFVB export into typed rows."""
+    reader = csv.DictReader(io.StringIO(content), delimiter=";")
+    fieldnames = reader.fieldnames or []
+    validate_columns(set(fieldnames), _EXPECTED_COLUMNS)
+    league_column = fieldnames[0]
+    matches: list[FfvbCalendarMatch] = []
+    complete = True
 
-    for line_num, row in enumerate(reader, start=1):
+    for line_number, row in enumerate(reader, start=2):
         try:
-            yield {
-                "leagueCode": row[(reader.fieldnames or [""])[0]].strip(),
-                "matchCode": row["Match"].strip(),
-                "club_a_id": row["EQA_no"].strip(),
-                "club_b_id": row["EQB_no"].strip(),
-                "team_a_name": row["EQA_nom"].strip(),
-                "team_b_name": row["EQB_nom"].strip(),
-                "matchDate": row["Date"].strip(),
-                "match_time": row["Heure"].strip(),
-                "set": row["Set"].strip() or None,
-                "score": row["Score"].strip() or None,
-                "venue": row["Salle"].strip() or None,
-                "firstReferee": row["Arb1"].strip() or None,
-                "secondReferee": row["Arb2"].strip() or None,
-            }
-        except KeyError as e:
-            log_event(
-                action="parse_csv",
-                level="error",
-                line_num=line_num,
-                error=str(e),
-                message=f"Ligne {line_num}: Colonne manquante : {e}",
+            match = FfvbCalendarMatch(
+                league_code=row[league_column].strip(),
+                match_code=row["Match"].strip(),
+                home_club_id=row["EQA_no"].strip(),
+                away_club_id=row["EQB_no"].strip(),
+                home_team_name=row["EQA_nom"].strip(),
+                away_team_name=row["EQB_nom"].strip(),
+                match_date=row["Date"].strip(),
+                match_time=row["Heure"].strip(),
+                set_score=row["Set"].strip() or None,
+                points_score=row["Score"].strip() or None,
+                venue=row["Salle"].strip() or None,
+                first_referee=row["Arb1"].strip() or None,
+                second_referee=row["Arb2"].strip() or None,
             )
-        except Exception as e:
+        except (AttributeError, KeyError, TypeError) as error:
+            complete = False
             log_event(
-                action="parse_csv",
+                action="parse_csv_row",
                 level="error",
-                line_num=line_num,
-                error=repr(e),
-                message=f"Ligne {line_num}: Erreur inattendue : {e}",
+                line_number=line_number,
+                error=repr(error),
+                message="Ligne FFVB inutilisable.",
             )
+            continue
+        matches.append(match)
+    return FfvbCalendarSnapshot(matches=tuple(matches), complete=complete)
 
 
 async def download_and_parse_csv(
@@ -87,7 +93,8 @@ async def download_and_parse_csv(
     retries: int = 3,
     delay: int = 5,
     timeout: int = 20,
-) -> Iterator[dict] | None:
+) -> FfvbCalendarSnapshot | None:
+    """Download one export, returning ``None`` only when it is unavailable."""
     download_url = "https://www.ffvbbeach.org/ffvbapp/resu/vbspo_calendrier_export.php"
     data = {
         "cal_saison": raw_season,
@@ -103,15 +110,12 @@ async def download_and_parse_csv(
                     download_url,
                     data=data,
                     timeout=aiohttp.ClientTimeout(total=timeout),
-                    ssl=False,
                 ) as response:
                     response.raise_for_status()
-
                     raw_content = await response.content.read()
-                    content_decoded = raw_content.decode(
-                        "windows-1252", errors="replace"
+                    snapshot = parse_csv_from_content(
+                        raw_content.decode("windows-1252", errors="replace")
                     )
-
                     log_event(
                         action="download_success",
                         level="info",
@@ -123,91 +127,55 @@ async def download_and_parse_csv(
                         content_type=response.headers.get("Content-Type"),
                         message=f"CSV téléchargé pour {name}.",
                     )
-
-                    if attempt > 1:
-                        log_event(
-                            action="download_retry_success",
-                            level="debug",
-                            attempt=attempt,
-                            leagueCode=pool.leagueCode,
-                            poolCode=pool.poolCode,
-                            message=f"Succès après retry {attempt}/{retries}: CSV téléchargé pour {name}.",
-                        )
-
-                    return parse_csv_from_content(content_decoded)
-
-            except aiohttp.ClientResponseError as e:
-                log_event(
-                    action="download_http_error",
-                    level="debug",
-                    attempt=attempt,
-                    leagueCode=pool.leagueCode,
-                    poolCode=pool.poolCode,
-                    status=e.status,
-                    error=repr(e),
-                    message=f"Erreur HTTP {e.status} lors du téléchargement pour {name}.",
+                    return snapshot
+            except aiohttp.ClientResponseError as error:
+                _log_download_failure("download_http_error", pool, attempt, error)
+            except aiohttp.ClientConnectorDNSError as error:
+                _log_download_failure("download_dns_error", pool, attempt, error)
+            except aiohttp.ClientConnectorError as error:
+                _log_download_failure(
+                    "download_client_connector_error", pool, attempt, error
                 )
-            except aiohttp.ClientConnectorDNSError as e:
+            except TimeoutError as error:
+                _log_download_failure("download_timeout", pool, attempt, error)
+            except ValueError as error:
                 log_event(
-                    action="download_dns_error",
+                    action="download_invalid_response",
                     level="error",
-                    attempt=attempt,
                     leagueCode=pool.leagueCode,
                     poolCode=pool.poolCode,
-                    error=repr(e),
-                    message=f"Erreur DNS lors de la résolution du domaine pour {name}.",
+                    error=repr(error),
+                    message=f"CSV invalide pour {name}.",
                 )
-            except aiohttp.ClientConnectorError as e:
-                log_event(
-                    action="download_client_connector_error",
-                    level="error",
-                    attempt=attempt,
-                    leagueCode=pool.leagueCode,
-                    poolCode=pool.poolCode,
-                    error=repr(e),
-                    message=f"Erreur réseau/DNS générale lors du téléchargement pour {name}.",
-                )
-            except TimeoutError as e:
-                log_event(
-                    action="download_timeout",
-                    level="debug",
-                    attempt=attempt,
-                    leagueCode=pool.leagueCode,
-                    poolCode=pool.poolCode,
-                    error=repr(e),
-                    message=f"Timeout lors du téléchargement pour {name}.",
-                )
-            except Exception as e:
-                log_event(
-                    action="download_unexpected_error",
-                    level="error",
-                    attempt=attempt,
-                    leagueCode=pool.leagueCode,
-                    poolCode=pool.poolCode,
-                    error_type=type(e).__name__,
-                    error=repr(e),
-                    message=f"Erreur inattendue lors du téléchargement pour {name}.",
-                )
+                return None
+            except Exception as error:
+                _log_download_failure("download_unexpected_error", pool, attempt, error)
 
             if attempt < retries:
-                log_event(
-                    action="download_retry",
-                    level="debug",
-                    delay=delay,
-                    attempt=attempt,
-                    leagueCode=pool.leagueCode,
-                    poolCode=pool.poolCode,
-                    message=f"Nouvelle tentative de téléchargement pour '{name}' après un délai de {delay} secondes.",
-                )
                 await asyncio.sleep(delay)
-            else:
-                log_event(
-                    action="download_failed",
-                    level="error",
-                    attempts=retries,
-                    leagueCode=pool.leagueCode,
-                    poolCode=pool.poolCode,
-                    message=f"Échec complet pour {name} après {retries} tentatives.",
-                )
 
+    log_event(
+        action="download_failed",
+        level="error",
+        attempts=retries,
+        leagueCode=pool.leagueCode,
+        poolCode=pool.poolCode,
+        message=f"Échec complet pour {name} après {retries} tentatives.",
+    )
     return None
+
+
+def _log_download_failure(
+    action: str,
+    pool: PoolInternalResponse,
+    attempt: int,
+    error: Exception,
+) -> None:
+    log_event(
+        action=action,
+        level="error",
+        attempt=attempt,
+        leagueCode=pool.leagueCode,
+        poolCode=pool.poolCode,
+        error=repr(error),
+    )

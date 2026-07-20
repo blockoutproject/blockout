@@ -1,18 +1,47 @@
-import asyncio
+"""Parse FFVB ranking pages into provider-owned records."""
 
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Tag
 
 from scraper.application.source import Scraper
-from scraper.infrastructure.blockout.association_stats import (
-    UpdateAssociationStatsInternalRequest,
-)
 from scraper.infrastructure.blockout.pool import PoolInternalResponse
-from scraper.observability.logging import log_event
+from scraper.infrastructure.ffvb.models import FfvbRanking
 
-sem = asyncio.Semaphore(5)
+_RANKING_HEADERS = (
+    "Points",
+    "Jou.",
+    "Gag.",
+    "Per.",
+    "F.",
+    "3-0",
+    "3-1",
+    "3-2",
+    "2-3",
+    "1-3",
+    "0-3",
+    "Set.P",
+    "Set.C",
+    "Coeff.S",
+    "Pts.P",
+    "Pts.C",
+    "Coeff.P",
+)
+_COMPACT_RANKING_HEADERS = (
+    "Points",
+    "Jou.",
+    "Gag.",
+    "Per.",
+    "F.",
+    "Set.P",
+    "Set.C",
+    "Coeff.S",
+    "Pts.P",
+    "Pts.C",
+    "Coeff.P",
+)
 
 
 def parse_int(text: str) -> int:
+    """Parse an FFVB integer cell, falling back to zero."""
     try:
         return int(text.strip()) if text else 0
     except ValueError:
@@ -20,79 +49,99 @@ def parse_int(text: str) -> int:
 
 
 def parse_float(text: str) -> float:
+    """Parse an FFVB decimal cell and its MAX sentinel."""
     if not text:
         return 0.0
-
-    text = text.strip()
-    if text == "MAX":
+    value = text.strip()
+    if value == "MAX":
         return 1000.0
-
     try:
-        return float(text.replace(",", "."))
+        return float(value.replace(",", "."))
     except ValueError:
         return 0.0
 
 
-def parse_stat_line(cols: list[str]) -> UpdateAssociationStatsInternalRequest:
-    return UpdateAssociationStatsInternalRequest(
-        points=parse_int(cols[2].text),
-        played=parse_int(cols[3].text),
-        wins=parse_int(cols[4].text),
-        losses=parse_int(cols[5].text),
-        winsThreeToZero=parse_int(cols[7].text),
-        winsThreeToOne=parse_int(cols[8].text),
-        winsThreeToTwo=parse_int(cols[9].text),
-        lossesTwoToThree=parse_int(cols[10].text),
-        lossesOneToThree=parse_int(cols[11].text),
-        lossesZeroToThree=parse_int(cols[12].text),
-        wonSets=parse_int(cols[13].text),
-        lostSets=parse_int(cols[14].text),
-        coefSets=parse_float(cols[15].text),
-        wonPoints=parse_int(cols[16].text),
-        lostPoints=parse_int(cols[17].text),
-        coefPoints=parse_float(cols[18].text),
-        pointsPenalty=0,
+def parse_stat_line(columns: list[Tag]) -> FfvbRanking:
+    """Parse one nineteen-column ranking row."""
+    return FfvbRanking(
+        team_name=columns[1].get_text(strip=True),
+        points=parse_int(columns[2].get_text(strip=True)),
+        played=parse_int(columns[3].get_text(strip=True)),
+        wins=parse_int(columns[4].get_text(strip=True)),
+        losses=parse_int(columns[5].get_text(strip=True)),
+        wins_three_to_zero=parse_int(columns[7].get_text(strip=True)),
+        wins_three_to_one=parse_int(columns[8].get_text(strip=True)),
+        wins_three_to_two=parse_int(columns[9].get_text(strip=True)),
+        losses_two_to_three=parse_int(columns[10].get_text(strip=True)),
+        losses_one_to_three=parse_int(columns[11].get_text(strip=True)),
+        losses_zero_to_three=parse_int(columns[12].get_text(strip=True)),
+        won_sets=parse_int(columns[13].get_text(strip=True)),
+        lost_sets=parse_int(columns[14].get_text(strip=True)),
+        coefficient_sets=parse_float(columns[15].get_text(strip=True)),
+        won_points=parse_int(columns[16].get_text(strip=True)),
+        lost_points=parse_int(columns[17].get_text(strip=True)),
+        coefficient_points=parse_float(columns[18].get_text(strip=True)),
     )
+
+
+def parse_rankings(html: str) -> tuple[FfvbRanking, ...]:
+    """Find the ranking table by its semantic headers and parse its rows."""
+    soup = BeautifulSoup(html, "html.parser")
+    for table in soup.find_all("table"):
+        rows = table.find_all("tr")
+        if not rows:
+            continue
+        header = tuple(cell.get_text(strip=True) for cell in rows[0].find_all("td"))
+        full = _contains_headers(header, _RANKING_HEADERS)
+        compact = _contains_headers(header, _COMPACT_RANKING_HEADERS)
+        if not full and not compact:
+            continue
+        rankings = []
+        for row in rows[1:]:
+            columns = row.find_all("td")
+            if full and len(columns) >= 19:
+                rankings.append(parse_stat_line(columns))
+            elif compact and len(columns) >= 13:
+                rankings.append(_parse_compact_stat_line(columns))
+        return tuple(rankings)
+    return ()
 
 
 async def extract_club_stats_list(
     scraper: Scraper, raw_season: str, pool: PoolInternalResponse
-) -> list[tuple[str, UpdateAssociationStatsInternalRequest]]:
-    url = f"http://www.ffvbbeach.org/ffvbapp/resu/vbspo_calendrier.php?saison={raw_season}&codent={pool.leagueCode}&poule={pool.poolCode}"
+) -> tuple[FfvbRanking, ...]:
+    """Download and parse the authoritative ranking for one pool."""
+    url = (
+        "https://www.ffvbbeach.org/ffvbapp/resu/vbspo_calendrier.php"
+        f"?saison={raw_season}&codent={pool.leagueCode}&poule={pool.poolCode}"
+    )
+    return parse_rankings(await scraper.fetch(url))
 
-    html = await scraper.fetch(url)
-    soup = BeautifulSoup(html, "html.parser")
-    tables = soup.find_all(
-        "table", attrs={"cellspacing": "1", "cellpadding": "2", "border": "0"}
+
+def _contains_headers(header: tuple[str, ...], expected: tuple[str, ...]) -> bool:
+    return any(
+        header[index : index + len(expected)] == expected
+        for index in range(len(header) - len(expected) + 1)
     )
 
-    if not tables:
-        raise ValueError("Tableau de stats non trouvé.")
 
-    target_table = tables[0]
-    rows = target_table.find_all("tr")[1:]  # skip header
-
-    teams_stats = []
-
-    for row in rows:
-        cols = row.find_all("td")
-        if len(cols) < 19:
-            continue
-
-        try:
-            name = cols[1].get_text(strip=True)
-            stats = parse_stat_line(cols)
-
-            if not name or not stats:
-                continue
-            teams_stats.append((name, stats))
-        except Exception as e:
-            log_event(
-                action="extract_club_stats_list",
-                level="error",
-                message=f"Erreur lors de l'extraction des stats pour la ligne: {row}",
-                error=str(e),
-            )
-            continue
-
-    return teams_stats
+def _parse_compact_stat_line(columns: list[Tag]) -> FfvbRanking:
+    return FfvbRanking(
+        team_name=columns[1].get_text(strip=True),
+        points=parse_int(columns[2].get_text(strip=True)),
+        played=parse_int(columns[3].get_text(strip=True)),
+        wins=parse_int(columns[4].get_text(strip=True)),
+        losses=parse_int(columns[5].get_text(strip=True)),
+        wins_three_to_zero=0,
+        wins_three_to_one=0,
+        wins_three_to_two=0,
+        losses_two_to_three=0,
+        losses_one_to_three=0,
+        losses_zero_to_three=0,
+        won_sets=parse_int(columns[7].get_text(strip=True)),
+        lost_sets=parse_int(columns[8].get_text(strip=True)),
+        coefficient_sets=parse_float(columns[9].get_text(strip=True)),
+        won_points=parse_int(columns[10].get_text(strip=True)),
+        lost_points=parse_int(columns[11].get_text(strip=True)),
+        coefficient_points=parse_float(columns[12].get_text(strip=True)),
+    )

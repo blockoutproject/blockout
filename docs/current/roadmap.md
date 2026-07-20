@@ -134,6 +134,21 @@
     build, runtime imports, and an isolated no-network startup smoke pass. The legacy paths and unused local contract enum
     copies are removed, and the authentic fixture provenance is recorded beside the test corpus.
 
+- [x] **REF-026 — Harden competition provider parsing and ingestion**
+  - Replace ASP.NET index traversal with one-pass typed LNV parsing and pool-local owner indexes, while preserving source
+    priority and write semantics.
+  - Introduce typed FFVB discovery, calendar, and ranking records; share league ingestion without hiding provider-specific
+    discovery rules.
+  - Honor provider encodings and HTTPS, distinguish complete snapshots from unavailable or invalid responses, and allow
+    destructive cleanup only after a complete source observation.
+  - Prove parity against authentic FFVB/LNV fixtures and the current public page structures without writing to external
+    systems. Keep the temporarily unavailable LNV XML path unchanged.
+  - Evidence: 69 offline tests pass over five departmental, five regional, five national, and three professional real
+    source-derived cases. Current read-only provider smoke returns 13/67/29 FFVB discoveries, 132 complete 3MA rows, and
+    4/4/165 LNV HTML matches. Nx, Ruff, compileall, image build, imports, and no-network image smoke pass. Local owner API
+    reads pass except the pre-existing lowercase scraper-name to Java-enum conversion in `config-service`, documented in
+    the functional validation note.
+
 The Java refactor is complete. Scraper work now proceeds through characterization before structural replacement.
 Contract-first adoption, code generation, Python packaging/toolchain migration, GitFlow, CI, deployment, and production
 changes remain deferred.

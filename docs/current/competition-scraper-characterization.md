@@ -9,13 +9,14 @@ another external system during execution.
 
 - The default source order is `regional`, `departmental`, `national`, then `pro`. At most two top-level scrapers run at
   once. Provider HTTP concurrency is ten per scraper, regional/departmental/national league work is bounded to eight,
-  professional pool work is bounded to eight, and pool-level CSV/live work is bounded to twenty.
+  professional pool work is bounded to eight, and FFVB calendar work is bounded to twenty.
 - The status route is checked through a temporary ten-second session before each run. A disabled status or status error
   fails closed and returns `False`; the scheduler therefore retries on its next minute tick.
-- The ingestion session trusts proxy environment variables, uses a ten-second total timeout, a twenty-connection
-  connector, and disabled connector TLS verification. Provider GET and CSV POST calls use three attempts, five-second
-  retry delays, twenty-second timeouts, their own semaphores, and disabled request TLS verification.
-- FFVB GET and CSV bytes use Windows-1252. Other GET providers use UTF-8.
+- The ingestion session trusts proxy environment variables, uses a ten-second total timeout and a twenty-connection
+  connector. Provider GET and CSV POST calls use verified TLS, three attempts, five-second retry delays, twenty-second
+  timeouts, and their own semaphores.
+- Provider GET decoding honors the HTTP charset, UTF-8 BOM, and HTML charset declaration before using UTF-8 by default
+  or Windows-1252 for legacy `ffvbbeach.org` pages. FFVB CSV exports remain Windows-1252.
 - APScheduler polls every sixty seconds with one coalesced instance, a thirty-second misfire grace period, and immediate
   first polling. Effective Europe/Paris cadence is thirty minutes on weekdays, five minutes after 17:00 Saturday, and
   five minutes after 14:00 Sunday.
@@ -28,16 +29,18 @@ another external system during execution.
 
 - Regional pages derive league name and `codent` from colored tables. Departmental pages derive each department from
   list entries and strip prefixes such as `75` or `07/26`. Both skip `LIGU`, `LIMY`, `LIMART`, `LIRE`, and `LIGY`, and
-  downgrade discovered FFVB links to HTTP.
+  normalize discovered FFVB links to HTTPS.
 - Regional and departmental league pages derive the season and pool code from `saison` and `poule`. National discovery
   uses league `ABCCS`, derives `YYYY/YYYY` from `.htm` links, and derives the pool code from the filename suffix.
 - A raw division must already exist and be fully mapped before its pool is ingested. A missing mapping is created without
   processing that pool in the same run; an incomplete mapping is skipped.
-- FFVB calendar exports are semicolon-delimited and require the twelve named columns protected by fixtures. Rows require
-  match code, both club identifiers, and a valid date/time before any owner mutation.
+- FFVB discovery, calendar exports, and ranking rows become immutable provider records before reaching application
+  orchestration. Calendar exports are semicolon-delimited and require the twelve protected columns. Rows require a match
+  code, both club identifiers, and a valid date/time before any owner mutation.
 - The write sequence is pool, teams, pool-team associations, cached match decisions, HTML ranking statistics, then
-  missing team/match cleanup. An unavailable CSV keeps an existing pool in the observed set to avoid false pool
-  deactivation. Invalid rows stop before owner writes.
+  missing team/match cleanup. Missing pools, teams, or matches are deactivated only when every selected source returned
+  a complete, structurally valid observation. An unavailable or partially invalid source can still preserve valid
+  additive work but never drives destructive reconciliation.
 - Ranking HTML currently remains the active statistics path because `has_anomalous_match` is always `True`; the direct
   per-match calculation is dormant. This is a characterized fact, not a recommended design.
 
@@ -52,11 +55,12 @@ another external system during execution.
   details are omitted.
 - Rank XML replaces the raw association counters after team alias and owner lookup. Cached XML ratios are not copied;
   finalization recomputes coefficients from won/lost sets and points, using `1000.0` when the denominator is zero.
-- DataProject live matching resolves both aliased teams and finds the cached match by pool, team pair, and calendar date
-  before applying the numeric match identifier.
-- XML parser failures, missing main HTML identifiers, unknown teams, and pool-chain exceptions are isolated and logged
-  without aborting another professional pool. Technical failure paths are injected around authentic documents rather
-  than represented by invented provider fixtures.
+- DataProject HTML is parsed in one semantic pass over match blocks rather than by ASP.NET control indexes. Each pool
+  loads owner teams once, indexes pending matches by pool/team pair/date, and applies only the numeric live identifier.
+  Pools sharing one Data Project URL also share one fetched document per run.
+- XML parser failures, malformed live HTML, unknown teams, and pool-chain exceptions are isolated and logged without
+  aborting another professional pool. The LNV XML code, URLs, parsing, and archived fixtures were intentionally left
+  unchanged because the official XML service is temporarily unavailable.
 
 ## Internal boundaries and writes
 
@@ -83,7 +87,8 @@ from shared owner contracts, while the application policy `DataSourcePriority` r
   under `scraper/domain`, and FFVB, LNV, Blockout, and scheduling adapters under `scraper/infrastructure`.
 - Provider HTTP access, match change tracking, association statistics, and pure LNV parsing are explicit seams. The old
   top-level `api`, `models`, `scrapers`, `services`, and `utils` import paths are no longer used.
-- The offline suite contains 55 passing tests. Fixture provenance is recorded beside the fixtures, including archived
-  official LNV XML because the live XML endpoints returned HTTP 403 during the refactor.
+- The offline suite contains 69 passing tests. The authentic REF-026 matrix contains five departmental, five regional,
+  and five national FFVB calendar exports with their matching pool pages and discovery links, plus the three current
+  Data Project competition pages. Fixture provenance and sanitization are recorded beside the corpus.
 - Runtime dependencies contain only packages imported by the application. Pytest and Ruff are development-only; Ruff
   0.15.22 supplies the standard lint and format targets.

@@ -1,11 +1,11 @@
 import asyncio
 import xml.etree.ElementTree as ET
 from dataclasses import replace
+from datetime import date
 
-from bs4 import BeautifulSoup
+import aiohttp
 
 from scraper.application.calendar_ingestion import handle_csv_download_and_parse
-from scraper.application.match_lookup import find_match_in_cache
 from scraper.application.source import Scraper
 from scraper.application.team_writer import (
     find_team_by_name_in_division_format_gender_season,
@@ -16,14 +16,17 @@ from scraper.infrastructure.blockout.configuration import (
     create_raw_division_mapping,
     get_raw_division_mappings_by_league_and_season,
 )
+from scraper.infrastructure.blockout.match import MatchInternalResponse
 from scraper.infrastructure.blockout.pool import PoolInternalResponse
 from scraper.infrastructure.blockout.pools import get_pools_by_league_and_season
 from scraper.infrastructure.blockout.raw_division_mapping import (
     RawDivisionMappingInternalResponse,
 )
+from scraper.infrastructure.blockout.team import TeamInternalResponse
+from scraper.infrastructure.blockout.teams import get_teams
 from scraper.infrastructure.lnv.parsers import (
-    extract_main_id,
-    parse_live_match,
+    LnvLiveMatch,
+    parse_live_matches,
     parse_matches,
     parse_rankings,
 )
@@ -31,7 +34,7 @@ from scraper.observability.logging import log_event
 
 
 class ProScraper(Scraper):
-    def __init__(self, session):
+    def __init__(self, session: aiohttp.ClientSession) -> None:
         super().__init__(
             session,
             name="pro_scraper",
@@ -79,10 +82,13 @@ class ProScraper(Scraper):
         ]
 
         self.pool_sema = asyncio.Semaphore(8)
+        self._live_documents: dict[str, str] = {}
+        self._live_document_locks: dict[str, asyncio.Lock] = {}
 
     async def run_scraping(self):
         if self.session is None:
             raise ValueError("La session aiohttp est non initialisée ou fermée.")
+        self._live_documents.clear()
 
         async def guarded(task_coro):
             async with self.pool_sema:
@@ -315,8 +321,9 @@ class ProScraper(Scraper):
                 message=repr(e),
             )
 
-    async def add_match_live_code(self, url: str, pool: PoolInternalResponse):
-        html_content = await self.fetch(url)
+    async def add_match_live_code(self, url: str, pool: PoolInternalResponse) -> None:
+        """Enrich one pool from a single parsed Data Project page."""
+        html_content = await self._fetch_live_page(url)
         if not html_content:
             log_event(
                 action="fetch_html_error",
@@ -327,71 +334,59 @@ class ProScraper(Scraper):
             )
             return
 
-        soup = BeautifulSoup(html_content, "html.parser")
-        main_id = await self.extract_main_id(soup)
-        if not main_id:
+        try:
+            provider_matches = parse_live_matches(html_content)
+        except (TypeError, ValueError) as error:
             log_event(
-                action="missing_main_id",
+                action="parse_live_html_error",
                 level="error",
                 poolId=pool.id,
-                message="Impossible de trouver l'identifiant principal.",
+                error=repr(error),
             )
             return
-
-        await self.process_all_days(soup, main_id, pool)
-
-    async def extract_main_id(self, soup: BeautifulSoup) -> str | None:
-        return extract_main_id(soup)
-
-    async def process_all_days(
-        self, soup: BeautifulSoup, main_id: str, pool: PoolInternalResponse
-    ):
-        total_days = 0
-        while True:
-            day_block = soup.find(
-                id=f"ctl00_Content_Main_{main_id}_userControl_RADLIST_Legs_ctrl{total_days}_RPL_Leg"
+        teams = (
+            await get_teams(
+                self.session,
+                pool.divisionId,
+                pool.format,
+                pool.gender,
+                pool.season,
             )
-            if not day_block:
-                break
-            await self.process_matches_in_day(soup, main_id, total_days, pool)
-            total_days += 2
+            or []
+        )
+        teams_by_name = {team.rawName.strip().casefold(): team for team in teams}
+        matches_by_identity = {
+            (
+                candidate.poolId,
+                candidate.teamIdA,
+                candidate.teamIdB,
+                candidate.matchDate.date(),
+            ): candidate
+            for _, candidate, _, _ in self._matches_cache.values()
+            if candidate.matchDate
+        }
+        for provider_match in provider_matches:
+            self._apply_live_match(
+                provider_match, pool, teams_by_name, matches_by_identity
+            )
 
-    async def process_matches_in_day(
+    async def _fetch_live_page(self, url: str) -> str:
+        """Fetch each shared Data Project document at most once per scraper run."""
+        lock = self._live_document_locks.setdefault(url, asyncio.Lock())
+        async with lock:
+            if url not in self._live_documents:
+                self._live_documents[url] = await self.fetch(url)
+            return self._live_documents[url]
+
+    def _apply_live_match(
         self,
-        soup: BeautifulSoup,
-        main_id: str,
-        total_days: int,
+        provider_match: LnvLiveMatch,
         pool: PoolInternalResponse,
-    ):
-        async def run_limited(coros, limit=20):
-            sem = asyncio.Semaphore(limit)
-
-            async def wrap(c):
-                async with sem:
-                    return await c
-
-            return await asyncio.gather(*(wrap(c) for c in coros))
-
-        match_count = 0
-        coros = []
-
-        while True:
-            match_block = soup.find(
-                id=f"ctl00_Content_Main_{main_id}_userControl_RADLIST_Legs_ctrl{total_days}_RADLIST_Matches_ctrl{match_count}_RPL_Match"
-            )
-            if not match_block:
-                break
-
-            coros.append(self.process_match_block(match_block, pool))
-            match_count += 2
-
-        if coros:
-            await run_limited(coros, limit=20)
-
-    async def process_match_block(self, match_block, pool: PoolInternalResponse):
-        provider_match = parse_live_match(match_block)
-        if not provider_match:
-            return
+        teams_by_name: dict[str, TeamInternalResponse],
+        matches_by_identity: dict[
+            tuple[int | None, int, int, date], MatchInternalResponse
+        ],
+    ) -> None:
         home_team_full = get_full_name(provider_match.home_name, pool.gender)
         guest_team_full = get_full_name(provider_match.guest_name, pool.gender)
 
@@ -415,28 +410,14 @@ class ProScraper(Scraper):
         if not (home_team_full and guest_team_full):
             return
 
-        team_a = await find_team_by_name_in_division_format_gender_season(
-            self.session,
-            pool.divisionId,
-            pool.format,
-            pool.gender,
-            pool.season,
-            home_team_full,
-        )
-        team_b = await find_team_by_name_in_division_format_gender_season(
-            self.session,
-            pool.divisionId,
-            pool.format,
-            pool.gender,
-            pool.season,
-            guest_team_full,
-        )
+        team_a = teams_by_name.get(home_team_full.strip().casefold())
+        team_b = teams_by_name.get(guest_team_full.strip().casefold())
 
         if not (team_a and team_b):
             return
 
-        existing_match = find_match_in_cache(
-            self, pool.id, team_a.id, team_b.id, provider_match.match_date
+        existing_match = matches_by_identity.get(
+            (pool.id, team_a.id, team_b.id, provider_match.match_date)
         )
         if not existing_match:
             return

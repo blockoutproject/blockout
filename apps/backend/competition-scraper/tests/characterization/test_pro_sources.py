@@ -201,14 +201,16 @@ def test_lnv_live_html_resolves_teams_and_adds_only_the_live_code(monkeypatch) -
         async def fetch(_url):
             return (FIXTURES / "live.html").read_text(encoding="utf-8")
 
-        async def find_team(_session, _division, _format, _gender, _season, name):
-            return _team(101, name) if name == "Cannes" else _team(102, name)
+        team_reads = 0
+
+        async def get_teams(*_args):
+            nonlocal team_reads
+            team_reads += 1
+            return [_team(101, "Cannes"), _team(102, "Nice")]
 
         monkeypatch.setattr(scraper, "fetch", fetch)
         monkeypatch.setattr(pro_module, "get_full_name", lambda name, _gender: name)
-        monkeypatch.setattr(
-            pro_module, "find_team_by_name_in_division_format_gender_season", find_team
-        )
+        monkeypatch.setattr(pro_module, "get_teams", get_teams)
 
         await scraper.add_match_live_code("https://live.invalid", _pool())
 
@@ -218,6 +220,7 @@ def test_lnv_live_html_resolves_teams_and_adds_only_the_live_code(monkeypatch) -
         assert updated.venue == "Arena"
         assert any("[LNV-Live] liveCode" in change for change in changes)
         assert priority == DataSourcePriority.LNV_HTML
+        assert team_reads == 1
 
     asyncio.run(scenario())
 
@@ -236,12 +239,12 @@ def test_professional_parser_and_identifier_failures_are_isolated(monkeypatch) -
         def raise_parse_error(_content):
             raise ET.ParseError("injected parser failure")
 
-        async def missing_main_id(_html):
-            return None
+        def fail_live_parse(_html):
+            raise ValueError("injected live parser failure")
 
         monkeypatch.setattr(scraper, "fetch", fetch)
         monkeypatch.setattr(pro_module.ET, "fromstring", raise_parse_error)
-        monkeypatch.setattr(scraper, "extract_main_id", missing_main_id)
+        monkeypatch.setattr(pro_module, "parse_live_matches", fail_live_parse)
         monkeypatch.setattr(
             pro_module, "log_event", lambda **event: events.append(event)
         )
@@ -251,7 +254,64 @@ def test_professional_parser_and_identifier_failures_are_isolated(monkeypatch) -
 
         assert [event["action"] for event in events] == [
             "parse_and_update_matches_error",
-            "missing_main_id",
+            "parse_live_html_error",
         ]
+
+    asyncio.run(scenario())
+
+
+def test_shared_professional_live_page_is_fetched_once(monkeypatch) -> None:
+    """Protect the per-run cache used by pools sharing one Data Project page."""
+
+    async def scenario() -> None:
+        scraper = ProScraper(object())
+        fetches = 0
+
+        async def fetch(_url):
+            nonlocal fetches
+            fetches += 1
+            return (FIXTURES / "live.html").read_text(encoding="utf-8")
+
+        async def get_teams(*_args):
+            return []
+
+        monkeypatch.setattr(scraper, "fetch", fetch)
+        monkeypatch.setattr(pro_module, "get_teams", get_teams)
+
+        await asyncio.gather(
+            scraper.add_match_live_code("https://live.invalid", _pool()),
+            scraper.add_match_live_code("https://live.invalid", _pool()),
+        )
+
+        assert fetches == 1
+
+    asyncio.run(scenario())
+
+
+def test_professional_live_page_cache_is_reset_between_runs(monkeypatch) -> None:
+    """Protect fresh provider observations across separate scheduled runs."""
+
+    async def scenario() -> None:
+        scraper = ProScraper(object())
+        scraper._live_documents["https://live.invalid"] = "stale"
+
+        async def empty_read(*_args):
+            return []
+
+        async def finalize() -> None:
+            return None
+
+        monkeypatch.setattr(pro_module, "get_pools_by_league_and_season", empty_read)
+        monkeypatch.setattr(
+            pro_module,
+            "get_raw_division_mappings_by_league_and_season",
+            empty_read,
+        )
+        monkeypatch.setattr(scraper, "finalize_matches_updates", finalize)
+        monkeypatch.setattr(scraper, "finalize_associations_updates", finalize)
+
+        await scraper.run_scraping()
+
+        assert scraper._live_documents == {}
 
     asyncio.run(scenario())

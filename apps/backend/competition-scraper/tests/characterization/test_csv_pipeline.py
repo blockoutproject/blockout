@@ -3,13 +3,15 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from scraper.application import calendar_ingestion as pipeline
-from scraper.infrastructure.blockout.association_stats import (
-    UpdateAssociationStatsInternalRequest,
-)
 from scraper.infrastructure.blockout.pool import PoolInternalResponse
 from scraper.infrastructure.blockout.team import TeamInternalResponse
 from scraper.infrastructure.ffvb import calendar as file_utils
 from scraper.infrastructure.ffvb.calendar import download_and_parse_csv
+from scraper.infrastructure.ffvb.models import (
+    FfvbCalendarMatch,
+    FfvbCalendarSnapshot,
+    FfvbRanking,
+)
 
 FIXTURE = Path(__file__).parents[1] / "fixtures" / "ffvb" / "calendar.csv"
 
@@ -84,9 +86,9 @@ def test_csv_download_preserves_post_shape_encoding_timeout_and_retries(
         monkeypatch.setattr(file_utils.asyncio, "sleep", sleep)
         monkeypatch.setattr(file_utils, "log_event", lambda **_event: None)
 
-        rows = list(await download_and_parse_csv(scraper, _pool(), "2026/2027"))
+        snapshot = await download_and_parse_csv(scraper, _pool(), "2026/2027")
 
-        assert rows[0]["matchCode"] == "3MA001"
+        assert snapshot.matches[0].match_code == "3MA001"
         assert len(session.calls) == 3
         url, kwargs = session.calls[-1]
         assert url.endswith("vbspo_calendrier_export.php")
@@ -96,7 +98,7 @@ def test_csv_download_preserves_post_shape_encoding_timeout_and_retries(
             "cal_codpoule": "R1M",
         }
         assert kwargs["timeout"].total == 20
-        assert kwargs["ssl"] is False
+        assert "ssl" not in kwargs
         assert sleeps == [5, 5]
 
     asyncio.run(scenario())
@@ -135,28 +137,29 @@ def test_csv_pipeline_preserves_owner_write_order_and_cleanup_inputs(
         pool = _pool()
         pool.id = None
         scraped_pool_ids: set[int] = set()
-        rows = [
-            {
-                "matchCode": "M001",
-                "club_a_id": "club-a",
-                "club_b_id": "club-b",
-                "team_a_name": "TOURS VB",
-                "team_b_name": "PARIS",
-                "matchDate": "2026-10-04",
-                "match_time": "18:30",
-                "set": "3/1",
-                "score": "25-20,25-22,20-25,25-18",
-                "venue": "GYMNASE CENTRAL",
-                "firstReferee": "ARBITRE A",
-                "secondReferee": "ARBITRE B",
-            }
-        ]
+        rows = (
+            FfvbCalendarMatch(
+                league_code="LNAQ",
+                match_code="M001",
+                home_club_id="club-a",
+                away_club_id="club-b",
+                home_team_name="TOURS VB",
+                away_team_name="PARIS",
+                match_date="2026-10-04",
+                match_time="18:30",
+                set_score="3/1",
+                points_score="25-20,25-22,20-25,25-18",
+                venue="GYMNASE CENTRAL",
+                first_referee="ARBITRE A",
+                second_referee="ARBITRE B",
+            ),
+        )
         teams: list[TeamInternalResponse] = []
         associations: list[tuple] = []
         deactivations: list[tuple] = []
 
         async def download(*_args):
-            return rows
+            return FfvbCalendarSnapshot(matches=rows, complete=True)
 
         async def save_pool(_session, candidate, _existing, _allow):
             candidate.id = 10
@@ -176,7 +179,27 @@ def test_csv_pipeline_preserves_owner_write_order_and_cleanup_inputs(
             associations.append((pool_id, team_id, club_id))
 
         async def stats(*_args):
-            return [("TOURS VB", UpdateAssociationStatsInternalRequest(points=9))]
+            return (
+                FfvbRanking(
+                    team_name="TOURS VB",
+                    points=9,
+                    played=0,
+                    wins=0,
+                    losses=0,
+                    wins_three_to_zero=0,
+                    wins_three_to_one=0,
+                    wins_three_to_two=0,
+                    losses_two_to_three=0,
+                    losses_one_to_three=0,
+                    losses_zero_to_three=0,
+                    won_sets=0,
+                    lost_sets=0,
+                    coefficient_sets=0,
+                    won_points=0,
+                    lost_points=0,
+                    coefficient_points=0,
+                ),
+            )
 
         async def deactivate_teams(_session, pool_id, identifiers):
             deactivations.append(("teams", pool_id, identifiers))
@@ -251,7 +274,26 @@ def test_invalid_csv_rows_stop_before_any_owner_write(monkeypatch) -> None:
         scraper = RecordingScraper()
 
         async def invalid(*_args):
-            return [{"matchCode": "", "club_a_id": "", "club_b_id": ""}]
+            return FfvbCalendarSnapshot(
+                matches=(
+                    FfvbCalendarMatch(
+                        league_code="LNAQ",
+                        match_code="",
+                        home_club_id="",
+                        away_club_id="",
+                        home_team_name="",
+                        away_team_name="",
+                        match_date="",
+                        match_time="",
+                        set_score=None,
+                        points_score=None,
+                        venue=None,
+                        first_referee=None,
+                        second_referee=None,
+                    ),
+                ),
+                complete=False,
+            )
 
         async def unexpected(*_args):
             raise AssertionError("Invalid rows must not reach an owner API")

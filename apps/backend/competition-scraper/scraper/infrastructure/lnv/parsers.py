@@ -105,16 +105,20 @@ def parse_rankings(root: ET.Element) -> list[LnvRanking]:
     return rankings
 
 
-def extract_main_id(soup: BeautifulSoup) -> str | None:
-    """Extract the dynamic Data Project control identifier."""
-    span = soup.find("span", id=re.compile(r"Content_Main_(\d+)_userControl_lbl_title"))
-    if not isinstance(span, Tag):
-        return None
-    match = re.search(r"Content_Main_(\d+)_userControl_lbl_title", span.get("id", ""))
-    return match.group(1) if match else None
+def parse_live_matches(html: str) -> tuple[LnvLiveMatch, ...]:
+    """Parse every semantic Data Project match block in one document pass."""
+    soup = BeautifulSoup(html, "html.parser")
+    matches: list[LnvLiveMatch] = []
+    for block in soup.find_all(id=lambda value: value and value.endswith("_RPL_Match")):
+        if not isinstance(block, Tag):
+            continue
+        match = _parse_live_match(block)
+        if match:
+            matches.append(match)
+    return tuple(matches)
 
 
-def parse_live_match(block: Tag) -> LnvLiveMatch | None:
+def _parse_live_match(block: Tag) -> LnvLiveMatch | None:
     """Parse one usable Data Project match block."""
     clickable = block.find("div", onclick=True)
     identifier = (
@@ -122,9 +126,9 @@ def parse_live_match(block: Tag) -> LnvLiveMatch | None:
         if isinstance(clickable, Tag)
         else None
     )
-    home = block.find("span", id=re.compile("Label2|Label6"))
-    guest = block.find("span", id=re.compile("Label4|Label7"))
-    date_element = block.find("span", id=re.compile("LB_DataOra"))
+    home = block.find("span", id=re.compile(r"(?:Label2|Label6|LBL_HomeTeamName)$"))
+    guest = block.find("span", id=re.compile(r"(?:Label4|Label7|LBL_GuestTeamName)$"))
+    date_element = block.find("span", id=re.compile(r"LB_DataOra$"))
     if not (
         identifier
         and isinstance(home, Tag)

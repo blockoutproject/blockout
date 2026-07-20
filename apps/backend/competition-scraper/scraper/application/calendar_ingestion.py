@@ -1,9 +1,16 @@
+"""Ingest one typed FFVB calendar snapshot into Blockout owner services."""
+
+from dataclasses import dataclass
+
 from scraper.application.pool_writer import add_or_update_pool
 from scraper.application.source import Scraper
 from scraper.application.team_writer import add_or_update_team
 from scraper.domain.data_source_priority import DataSourcePriority
 from scraper.domain.normalization import capitalize_words, parse_date
 from scraper.domain.team import get_full_name, get_short_name, normalize
+from scraper.infrastructure.blockout.association_stats import (
+    UpdateAssociationStatsInternalRequest,
+)
 from scraper.infrastructure.blockout.competitions import (
     add_team_to_pool,
     bulk_deactivate_teams_by_pool,
@@ -15,17 +22,27 @@ from scraper.infrastructure.blockout.pools import update_pool
 from scraper.infrastructure.blockout.team import TeamInternalResponse
 from scraper.infrastructure.blockout.teams import get_teams
 from scraper.infrastructure.ffvb.calendar import download_and_parse_csv
+from scraper.infrastructure.ffvb.models import FfvbRanking
 from scraper.infrastructure.ffvb.ranking import extract_club_stats_list
 from scraper.observability.logging import log_event
+
+
+@dataclass(frozen=True)
+class CalendarIngestionResult:
+    """Report whether one observed pool is safe for destructive reconciliation."""
+
+    pool_id: int | None
+    complete: bool
 
 
 async def handle_csv_download_and_parse(
     scraper: Scraper,
     pool: PoolInternalResponse,
     raw_season: str,
-    existing_pool: PoolInternalResponse = None,
+    existing_pool: PoolInternalResponse | None = None,
     scraped_pool_ids: set[int] | None = None,
-) -> None:
+) -> CalendarIngestionResult:
+    """Apply one calendar snapshot and gate cleanup on complete provider input."""
     if scraper.session.closed:
         log_event(
             "csv_download_session_closed",
@@ -33,11 +50,14 @@ async def handle_csv_download_and_parse(
             pool_name=pool.name,
             message="Session fermée avant téléchargement CSV",
         )
-        return
+        return CalendarIngestionResult(
+            pool_id=existing_pool.id if existing_pool else None,
+            complete=False,
+        )
 
     try:
-        parsed_data = await download_and_parse_csv(scraper, pool, raw_season)
-        if not parsed_data:
+        snapshot = await download_and_parse_csv(scraper, pool, raw_season)
+        if snapshot is None:
             if scraped_pool_ids is not None and existing_pool:
                 # A failed provider read must not deactivate an already known pool.
                 scraped_pool_ids.add(existing_pool.id)
@@ -48,17 +68,25 @@ async def handle_csv_download_and_parse(
                 season=raw_season,
                 message="Échec téléchargement CSV",
             )
-            return
+            return CalendarIngestionResult(
+                pool_id=existing_pool.id if existing_pool else None,
+                complete=False,
+            )
 
         valid_rows = [
             row
-            for row in parsed_data
-            if row.get("matchCode")
-            and row.get("club_a_id")
-            and row.get("club_b_id")
-            and parse_date(row.get("matchDate"), row.get("match_time"))
+            for row in snapshot.matches
+            if row.match_code
+            and row.home_club_id
+            and row.away_club_id
+            and parse_date(row.match_date, row.match_time)
         ]
+        observation_complete = snapshot.complete and len(valid_rows) == len(
+            snapshot.matches
+        )
         if not valid_rows:
+            if scraped_pool_ids is not None and existing_pool:
+                scraped_pool_ids.add(existing_pool.id)
             log_event(
                 "invalid_rows_found_in_csv",
                 "error",
@@ -66,7 +94,10 @@ async def handle_csv_download_and_parse(
                 season=raw_season,
                 message="Échec parsing CSV",
             )
-            return
+            return CalendarIngestionResult(
+                pool_id=existing_pool.id if existing_pool else None,
+                complete=observation_complete,
+            )
 
         new_pool = await add_or_update_pool(scraper.session, pool, existing_pool, False)
         # Professional enrichment reuses the owner identifier assigned here.
@@ -103,14 +134,14 @@ async def handle_csv_download_and_parse(
         has_anomalous_match = True
 
         for row in valid_rows:
-            match_datetime = parse_date(row.get("matchDate"), row.get("match_time"))
+            match_datetime = parse_date(row.match_date, row.match_time)
             if not match_datetime:
                 continue
 
-            team_a_full = get_full_name(row["team_a_name"], new_pool.gender)
-            team_a_short = get_short_name(row["team_a_name"], new_pool.gender)
+            team_a_full = get_full_name(row.home_team_name, new_pool.gender)
+            team_a_short = get_short_name(row.home_team_name, new_pool.gender)
             team_a_key = (
-                row["club_a_id"],
+                row.home_club_id,
                 new_pool.divisionId,
                 new_pool.format,
                 new_pool.gender,
@@ -122,7 +153,7 @@ async def handle_csv_download_and_parse(
                 rawName=team_a_full,
                 name=team_a_full,
                 shortName=team_a_short,
-                clubId=row["club_a_id"],
+                clubId=row.home_club_id,
                 season=new_pool.season,
                 leagueCode=new_pool.leagueCode,
                 divisionId=new_pool.divisionId,
@@ -136,10 +167,10 @@ async def handle_csv_download_and_parse(
             existing_teams_dict[team_a_key] = new_team_a
             scraped_team_ids.add(new_team_a.id)
 
-            team_b_full = get_full_name(row["team_b_name"], new_pool.gender)
-            team_b_short = get_short_name(row["team_b_name"], new_pool.gender)
+            team_b_full = get_full_name(row.away_team_name, new_pool.gender)
+            team_b_short = get_short_name(row.away_team_name, new_pool.gender)
             team_b_key = (
-                row["club_b_id"],
+                row.away_club_id,
                 new_pool.divisionId,
                 new_pool.format,
                 new_pool.gender,
@@ -151,7 +182,7 @@ async def handle_csv_download_and_parse(
                 rawName=team_b_full,
                 name=team_b_full,
                 shortName=team_b_short,
-                clubId=row["club_b_id"],
+                clubId=row.away_club_id,
                 season=new_pool.season,
                 leagueCode=new_pool.leagueCode,
                 divisionId=new_pool.divisionId,
@@ -165,7 +196,7 @@ async def handle_csv_download_and_parse(
             existing_teams_dict[team_b_key] = new_team_b
             scraped_team_ids.add(new_team_b.id)
 
-            match_code = row.get("matchCode")
+            match_code = row.match_code
             updated_match = MatchInternalResponse(
                 matchCode=match_code,
                 leagueCode=new_pool.leagueCode,
@@ -174,11 +205,11 @@ async def handle_csv_download_and_parse(
                 teamIdB=new_team_b.id,
                 matchDate=match_datetime,
                 season=new_pool.season,
-                set=row.get("set").replace("/", "-") if row.get("set") else None,
-                score=row.get("score") or None,
-                venue=capitalize_words(row.get("venue")),
-                firstReferee=capitalize_words(row.get("firstReferee")),
-                secondReferee=capitalize_words(row.get("secondReferee")),
+                set=row.set_score.replace("/", "-") if row.set_score else None,
+                score=row.points_score,
+                venue=capitalize_words(row.venue),
+                firstReferee=capitalize_words(row.first_referee),
+                secondReferee=capitalize_words(row.second_referee),
             )
             scraped_match_codes.add(match_code)
 
@@ -209,23 +240,32 @@ async def handle_csv_download_and_parse(
             )
             team_lookup = {normalize(t.rawName): t for t in fallback_teams}
 
-            for team_name, stats in stats_list:
-                normalized_name = normalize(get_full_name(team_name, new_pool.gender))
+            for ranking in stats_list:
+                normalized_name = normalize(
+                    get_full_name(ranking.team_name, new_pool.gender)
+                )
                 matched_team = team_lookup.get(normalized_name)
                 if not matched_team:
                     log_event(
                         "team_stats_match_fail",
                         "warning",
                         poolId=new_pool.id,
-                        team_name=team_name,
+                        team_name=ranking.team_name,
                         message="Aucune équipe existante ne correspond à ce nom",
                     )
                     continue
 
-                scraper.schedule_association_update(new_pool.id, matched_team.id, stats)
+                scraper.schedule_association_update(
+                    new_pool.id,
+                    matched_team.id,
+                    _ranking_stats(ranking),
+                )
 
         if not scraped_match_codes:
-            return
+            return CalendarIngestionResult(
+                pool_id=new_pool.id,
+                complete=snapshot.complete,
+            )
 
         if not new_pool.active:
             new_pool.active = True
@@ -239,7 +279,7 @@ async def handle_csv_download_and_parse(
             scraped_pool_ids.add(new_pool.id)
 
         missing_teams = list(active_team_ids - scraped_team_ids)
-        if missing_teams:
+        if observation_complete and missing_teams:
             await bulk_deactivate_teams_by_pool(
                 scraper.session, new_pool.id, missing_teams
             )
@@ -255,8 +295,13 @@ async def handle_csv_download_and_parse(
             and match_code not in scraped_match_codes
             and existing_match.active
         }
-        if missing_matches:
+        if observation_complete and missing_matches:
             await bulk_deactivate_matches(scraper.session, new_pool.id, missing_matches)
+
+        return CalendarIngestionResult(
+            pool_id=new_pool.id,
+            complete=observation_complete,
+        )
 
     except Exception as e:
         log_event(
@@ -266,3 +311,25 @@ async def handle_csv_download_and_parse(
             message="Erreur lors du parsing CSV",
         )
         raise
+
+
+def _ranking_stats(ranking: FfvbRanking) -> UpdateAssociationStatsInternalRequest:
+    return UpdateAssociationStatsInternalRequest(
+        points=ranking.points,
+        played=ranking.played,
+        wins=ranking.wins,
+        losses=ranking.losses,
+        winsThreeToZero=ranking.wins_three_to_zero,
+        winsThreeToOne=ranking.wins_three_to_one,
+        winsThreeToTwo=ranking.wins_three_to_two,
+        lossesTwoToThree=ranking.losses_two_to_three,
+        lossesOneToThree=ranking.losses_one_to_three,
+        lossesZeroToThree=ranking.losses_zero_to_three,
+        wonSets=ranking.won_sets,
+        lostSets=ranking.lost_sets,
+        coefSets=ranking.coefficient_sets,
+        wonPoints=ranking.won_points,
+        lostPoints=ranking.lost_points,
+        coefPoints=ranking.coefficient_points,
+        pointsPenalty=0,
+    )
