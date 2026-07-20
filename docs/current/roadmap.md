@@ -146,8 +146,7 @@
   - Evidence: 69 offline tests pass over five departmental, five regional, five national, and three professional real
     source-derived cases. Current read-only provider smoke returns 13/67/29 FFVB discoveries, 132 complete 3MA rows, and
     4/4/165 LNV HTML matches. Nx, Ruff, compileall, image build, imports, and no-network image smoke pass. Local owner API
-    reads pass except the pre-existing lowercase scraper-name to Java-enum conversion in `config-service`, documented in
-    the functional validation note.
+    reads pass, including the authenticated `SCRAPER` status request used by the competition scraper.
 
 The Java refactor is complete. Scraper work now proceeds through characterization before structural replacement.
 Contract-first adoption, code generation, Python packaging/toolchain migration, GitFlow, CI, deployment, and production

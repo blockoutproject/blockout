@@ -64,9 +64,8 @@ write was performed.
 The five required local Java APIs started successfully against the existing
 PostgreSQL and RabbitMQ containers. Authenticated read clients for raw division
 mappings, pools, teams, matches, and competition associations returned valid
-empty typed collections from the current local databases. The scraper status
-read remains blocked before scraper startup: `config-service` returns HTTP 500
-because the lowercase path value `competition_scraper` is converted directly to
-the uppercase Java `ScraperName` enum. This pre-existing Java boundary mismatch
-is outside REF-026 and requires its own focused correction before a complete
-scheduled local run can be certified.
+empty typed collections from the current local databases. A follow-up check on
+2026-07-21 used the competition scraper's real authenticated client and stable
+`SCRAPER` path value. `config-service` returned the typed `SCRAPER` status with
+its persisted `lastUpdate`; the current local value was disabled. The stable
+identifier therefore aligns across the Python client, Java enum, and database.
