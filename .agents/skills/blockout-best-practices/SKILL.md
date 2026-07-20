@@ -22,19 +22,19 @@ the current task. Detailed rules live in the references rather than in this entr
 
 ## Source Router
 
-| Task signal | Read |
-| --- | --- |
-| Java package structure, Spring service, Maven module, or application boundary | `references/backend-java-policy.md` |
-| Javadoc, source comments, or a handwritten public/local contract | `references/code-documentation-policy.md` |
-| Backend Java tests | `references/java-testing-policy.md` |
-| JPA entity, repository, migration, or PostgreSQL schema | `references/persistence-policy.md` |
-| Request, response, controller, mapping, error, collection, or pagination | `references/rest-api-policy.md` |
-| Java, Python, or mobile logging | `references/logging-policy.md` |
-| Python scraper code, model, dependency, or fixture | `references/python-scraper-policy.md` |
-| Expo, React Native, Formik, Yup, or mobile HTTP boundary | `references/mobile-expo-policy.md` |
-| Docker Compose, `.env.example`, local services, or runtime smoke | `references/local-runtime-policy.md` |
-| Nx projects, targets, tags, graph, or cache | the `nx-workspace-patterns` skill |
-| Business model ownership or current refactor scope | `docs/current/refactor-direction.md` and the owning application sources |
+| Task signal                                                                   | Read                                                                                    |
+| ----------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| Java package structure, Spring service, Maven module, or application boundary | `references/backend-java-policy.md`                                                     |
+| Javadoc, source comments, or a handwritten public/local contract              | `references/code-documentation-policy.md`                                               |
+| Backend Java tests                                                            | `references/java-testing-policy.md`                                                     |
+| JPA entity, repository, migration, or PostgreSQL schema                       | `references/persistence-policy.md`                                                      |
+| Request, response, controller, mapping, error, collection, or pagination      | `references/rest-api-policy.md`                                                         |
+| Java, Python, or mobile logging                                               | `references/logging-policy.md`                                                          |
+| Python scraper code, model, dependency, or fixture                            | `references/python-scraper-policy.md` and `references/python-scraper-testing-policy.md` |
+| Expo, React Native, Formik, Yup, or mobile HTTP boundary                      | `references/mobile-expo-policy.md`                                                      |
+| Docker Compose, `.env.example`, local services, or runtime smoke              | `references/local-runtime-policy.md`                                                    |
+| Nx projects, targets, tags, graph, or cache                                   | the `nx-workspace-patterns` skill                                                       |
+| Business model ownership or current refactor scope                            | `docs/current/refactor-direction.md` and the owning application sources                 |
 
 When current sources do not justify a proposed behavior, stop the runtime change and request a product or architecture
 decision. Historical code and deferred plans do not activate work by continuity.
@@ -86,7 +86,9 @@ These are explicit temporary rules. Only a later user-authorized roadmap task ma
 npm exec nx show projects
 npm exec nx run @blockout/mobile:typecheck
 npm exec nx run @blockout/club-scraper:syntax-check
+npm exec nx run @blockout/club-scraper:test
 npm exec nx run @blockout/competition-scraper:syntax-check
+npm exec nx run @blockout/competition-scraper:test
 mvn -f apps/backend/pom.xml test
 git diff --check
 ```

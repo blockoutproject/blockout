@@ -104,6 +104,27 @@
   - Separate mobile-facing APIs, orchestration, internal clients, provider adapters, security, and transport mirrors.
   - Align every complete owner mirror while preserving V1 mobile routes, caching, provider behavior, and runtime behavior.
 
-The tasks were executed in order. Every imported Java application now has an explicit handwritten boundary.
-Contract-first adoption, code generation, full scraper redesign, GitFlow, CI, deployment, and production changes remain
-deferred.
+- [x] **REF-021 — Establish Python scraper architecture and testing policies**
+  - Define a simple typed application/domain/infrastructure structure, async ownership, error discipline, provider
+    isolation, concise Python documentation, and exact internal model ownership.
+  - Require offline characterization, differential parity, internal contract tests, and controlled local smokes before
+    replacing any scraper behavior.
+
+- [ ] **REF-022 — Characterize the complete club scraper**
+  - Protect provider parsing, normalization, retries, authentication, status gating, concurrency, scheduling, metrics,
+    internal requests, idempotent writes, and supported failure outcomes without changing production code.
+
+- [ ] **REF-023 — Refactor the club scraper with differential parity**
+  - Replace characterized seams one at a time with a typed Python package and explicit application, domain, Blockout,
+    FFVB, scheduling, configuration, and observability boundaries.
+  - Preserve every characterized runtime behavior and exact Java-owner internal transport mirror; remove legacy paths
+    only after offline parity and a controlled local smoke.
+
+- [ ] **REF-024 — Characterize the complete competition scraper**
+  - Protect departmental, regional, national, and professional provider flows; HTML, XML, and CSV parsing; aliases,
+    source priority, statistics, retries, concurrency, scheduling, authentication, internal writes, and failure isolation.
+  - Do not restructure production code or activate contract generation in this task.
+
+The Java refactor is complete. Scraper work now proceeds through characterization before structural replacement.
+Contract-first adoption, code generation, Python packaging/toolchain migration, GitFlow, CI, deployment, and production
+changes remain deferred.
