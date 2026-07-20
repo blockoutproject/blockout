@@ -1,7 +1,7 @@
 from pathlib import Path
 
 import pytest
-from club_scraper.infrastructure.ffvb.parser import parse_club_page
+from scraper.infrastructure.ffvb.parser import parse_club_page
 
 FIXTURES = Path(__file__).parents[1] / "fixtures" / "ffvb"
 
@@ -206,7 +206,7 @@ def test_source_derived_ffvb_pages_are_complete_and_sanitized() -> None:
 
 def test_returns_none_when_beautiful_soup_cannot_parse(monkeypatch) -> None:
     """Record the current parser failure boundary and its swallowed exception."""
-    from club_scraper.infrastructure.ffvb import parser
+    from scraper.infrastructure.ffvb import parser
 
     events: list[dict] = []
     monkeypatch.setattr(

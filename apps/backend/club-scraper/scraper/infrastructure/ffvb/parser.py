@@ -4,8 +4,8 @@ import re
 
 from bs4 import BeautifulSoup
 
-from club_scraper.infrastructure.ffvb.models import FfvbClubRecord
-from club_scraper.observability.logging import log_event
+from scraper.infrastructure.ffvb.models import FfvbClubRecord
+from scraper.observability.logging import log_event
 
 
 def parse_club_page(html_content: str, identifier: str) -> FfvbClubRecord | None:

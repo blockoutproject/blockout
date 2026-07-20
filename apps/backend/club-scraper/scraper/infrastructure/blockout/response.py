@@ -4,7 +4,7 @@ from typing import Any
 
 import aiohttp
 
-from club_scraper.observability.logging import log_event
+from scraper.observability.logging import log_event
 
 
 async def read_json(response: aiohttp.ClientResponse) -> Any | None:

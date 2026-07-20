@@ -4,8 +4,8 @@ import asyncio
 
 from auth0.authentication import GetToken
 
-from club_scraper.config.settings import Settings
-from club_scraper.observability.logging import log_event
+from scraper.config.settings import Settings
+from scraper.observability.logging import log_event
 
 
 class TokenStore:

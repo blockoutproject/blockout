@@ -6,7 +6,7 @@ from typing import Any
 
 import aiohttp
 
-from club_scraper.observability.logging import log_event
+from scraper.observability.logging import log_event
 
 ADDRESS_BOOK_URL = "https://www.ffvbbeach.org/ffvbapp/adressier/rech_aff_club.php"
 

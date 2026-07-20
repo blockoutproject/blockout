@@ -1,7 +1,7 @@
 from collections.abc import Iterable
 from typing import Protocol
 
-from club_scraper.infrastructure.blockout.contracts import ClubInternalResponse
+from scraper.infrastructure.blockout.contracts import ClubInternalResponse
 
 
 class BlockoutPort(Protocol):

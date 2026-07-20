@@ -45,8 +45,9 @@ requires a separately authorized correction with explicit tests.
 
 ## REF-023 replacement evidence
 
-The production path now has one importable `club_scraper` package. The package omits the redundant repository prefix but
-retains the application role so it cannot be confused with `competition_scraper`:
+The production path now has one importable `scraper` package next to `tests`. The enclosing `club-scraper` application
+directory already supplies the role, so the local package does not repeat either `Blockout` or `club`. The future
+`competition-scraper` follows the same application-local `scraper` convention:
 
 - `application` owns ingestion and create/update/no-op decisions;
 - `infrastructure/blockout` owns Auth0, internal clients, and exact handwritten Java-owner transport mirrors;

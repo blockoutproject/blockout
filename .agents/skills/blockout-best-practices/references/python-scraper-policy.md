@@ -12,7 +12,7 @@ package and a small root entrypoint:
 ```text
 scraper-root/
 ├── main.py
-├── <name>_scraper/
+├── scraper/
 │   ├── application/
 │   ├── domain/
 │   ├── infrastructure/
@@ -33,9 +33,10 @@ Create only directories that own real code. The club scraper may omit LNV and ot
 generic `utils`, `helpers`, `common`, `manager`, `processor`, or `services` packages. Name reusable behavior by its role:
 parser, normalizer, policy, client, source, writer, scheduler, or use case.
 
-The importable package mirrors the application name without repeating the repository name: use `club_scraper` for
-`club-scraper` and `competition_scraper` for `competition-scraper`. Do not use a generic top-level `scraper` package,
-because both applications coexist in the same backend workspace.
+Each application uses the succinct local package name `scraper`. The owning application directory already supplies the
+necessary context: both `club-scraper` and `competition-scraper` therefore contain their own sibling `scraper` and
+`tests` directories. Run and test each application from its own root; do not combine both local `scraper` packages on one
+Python import path.
 
 ## Roles
 
