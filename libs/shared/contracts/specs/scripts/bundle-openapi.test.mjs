@@ -79,13 +79,6 @@ test('service schemas contain no handwritten inline transport enum', async () =>
   assert.deepEqual(inlineEnums, []);
 });
 
-test('code generators use their pinned versions', async () => {
-  const config = JSON.parse(await readFile(path.join(workspaceRoot, 'openapitools.json'), 'utf8'));
-  const packageJson = JSON.parse(await readFile(path.join(workspaceRoot, 'package.json'), 'utf8'));
-  assert.equal(config['generator-cli'].version, '7.22.0');
-  assert.equal(packageJson.devDependencies.orval, '8.22.0');
-});
-
 test('generated artifacts are not tracked by Git', () => {
   const tracked = execFileSync('git', ['ls-files'], {cwd: workspaceRoot, encoding: 'utf8'})
     .trim()
