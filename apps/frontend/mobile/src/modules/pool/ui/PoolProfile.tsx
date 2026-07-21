@@ -16,12 +16,12 @@ import { EnumGender, GenderLabels } from "@/src/types/enums/Gender";
 import { LOGO_SIZE } from "@/src/shared/theme/tokens";
 import MaskedImage from "@/src/shared/ui/images/MaskedImage";
 import { computeBalancedRowsByCount, withAlpha } from "@/src/utils/utils";
-import { useSessionState } from "@/src/shared/providers/SessionProvider";
+import { useSessionState } from "@/src/modules/session/providers/SessionContext";
 import { useAppTheme } from "@/src/shared/providers/ThemeProvider";
 import InfoPillGradient from "@/src/shared/ui/chips/InfoPillGradient";
 import GuestPromptSheet, {
   GuestPromptSheetRef,
-} from "@/src/components/user/GuestPromptSheet.tsx";
+} from "@/src/modules/session/ui/GuestPromptSheet";
 
 export type PoolProfileProps = {
   enrichedPool: PoolResponse;

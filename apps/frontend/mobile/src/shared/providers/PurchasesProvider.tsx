@@ -2,7 +2,7 @@ import React, { createContext, useContext, useEffect, useMemo, useState } from "
 import { Platform } from "react-native";
 import Purchases, { CustomerInfo } from "react-native-purchases";
 import { CONFIG } from "@/src/shared/config/config";
-import { useSessionState } from "@/src/shared/providers/SessionProvider";
+import { useSessionState } from "@/src/modules/session/providers/SessionContext";
 import {usePurchasesCacheStore} from "@/src/utils/purchasesStore";
 
 type PurchasesContextValue = {

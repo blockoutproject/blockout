@@ -23,9 +23,9 @@ import {getTeamsRankingColor, isLNV, splitIsoDateFormatted} from "@/src/utils/ut
 import {BOTTOM_TABBAR_HEIGHT, HEADER_HEIGHT, SECTION_SEPARATOR_HEIGHT,} from "@/src/shared/theme/tokens";
 import ReportFormSheet from "@/src/modules/report/ui/ReportFormSheet";
 import MatchLiveLinkCard from "@/src/modules/match/ui/MatchLiveLinkCard";
-import useHasScopes from "@/src/hooks/user/useHasScopes";
-import GuestPromptSheet, {GuestPromptSheetRef} from "@/src/components/user/GuestPromptSheet.tsx";
-import {useSessionState} from "@/src/shared/providers/SessionProvider";
+import useHasScopes from "@/src/modules/user/hooks/useHasScopes";
+import GuestPromptSheet, {GuestPromptSheetRef} from "@/src/modules/session/ui/GuestPromptSheet";
+import {useSessionState} from "@/src/modules/session/providers/SessionContext";
 
 const AnimatedScrollView = Animated.createAnimatedComponent(ScrollView);
 

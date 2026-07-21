@@ -2,7 +2,10 @@ import {CONFIG} from "@/src/shared/config/config";
 import {Division} from "../types/Division";
 import {RawDivisionMapping} from "../types/RawDivisionMapping";
 import {ScraperStatus} from "../types/ScraperStatus";
-import {LegalDocument} from "../types/LegalDocument";
+import {
+  LegalDocumentResponse,
+  UpdateLegalDocumentRequest,
+} from "@/src/modules/legal/model/LegalDocument";
 import {AppStatusDTO, AppStatusUpdateDTO} from "../types/AppStatus";
 import {CustomImage} from "../types/Common";
 import {appendJson} from "../utils/utils";
@@ -14,13 +17,13 @@ export class ConfigApi extends BaseApi {
   }
 
   public getLegalDocument(type: string) {
-    return this.httpPublic.get<LegalDocument>(
+    return this.httpPublic.get<LegalDocumentResponse>(
       `/config/legal/${type}`,
     );
   }
 
-  public updateLegalDocument(type: string, data: Partial<LegalDocument>) {
-    return this.httpAuth.put<Partial<LegalDocument>>(`/config/legal/${type}`, data);
+  public updateLegalDocument(type: string, data: UpdateLegalDocumentRequest) {
+    return this.httpAuth.put<LegalDocumentResponse>(`/config/legal/${type}`, data);
   }
 
   public getDivisions() {

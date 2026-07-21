@@ -1,9 +1,9 @@
 import React from "react";
-import {useOnboardingStore} from "@/src/utils/onboardingStore";
-import {FancyOnboarding} from "@/src/components/onboarding/Onboarding";
-import {ONBOARDING_STEPS} from "@/src/components/onboarding/steps";
+import {useOnboardingStore} from "@/src/modules/onboarding/model/onboardingStore";
+import {FancyOnboarding} from "@/src/modules/onboarding/ui/Onboarding";
+import {ONBOARDING_STEPS} from "@/src/modules/onboarding/model/steps";
 import {registerForPushNotificationsAsync} from "@/src/modules/notifications/push";
-import {useSessionState} from "@/src/shared/providers/SessionProvider";
+import {useSessionState} from "@/src/modules/session/providers/SessionContext";
 import {useRegisterPushToken} from "@/src/modules/notifications/hooks/useRegisterPushToken";
 
 const OnboardingScreen: React.FC = () => {

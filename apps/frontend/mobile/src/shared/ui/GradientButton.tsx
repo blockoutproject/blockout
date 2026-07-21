@@ -17,6 +17,8 @@ export type GradientButtonProps = {
   textColor?: string;
   fullWidth?: boolean;
   gradient?: [string, string, string];
+  accessibilityLabel?: string;
+  testID?: string;
 };
 
 export const GOLD_GRADIENT: [string, string, string] = ["#fedc84", "#CFAE70", "#9E844C"];
@@ -35,6 +37,8 @@ export const GradientButton: React.FC<GradientButtonProps> = ({
                                                                 textColor = "#000000",
                                                                 fullWidth,
                                                                 gradient = CTA_GRADIENT,
+                                                                accessibilityLabel,
+                                                                testID,
                                                               }) => {
   const scale = useSharedValue(1);
 
@@ -59,12 +63,8 @@ export const GradientButton: React.FC<GradientButtonProps> = ({
   );
 
   const handlePress = useCallback(async () => {
-    try {
-      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      await onPress();
-    } catch {
-      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-    }
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => undefined);
+    await onPress();
   }, [onPress]);
 
   return (
@@ -75,8 +75,9 @@ export const GradientButton: React.FC<GradientButtonProps> = ({
       style={[styles.pressable, fullWidth ? styles.fullWidth : null, animatedStyle, style]}
       disabled={isDisabled}
       accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel ?? label}
       accessibilityState={{disabled: isDisabled, busy: !!loading}}
-      testID="gradient-button"
+      testID={testID}
     >
       <LinearGradient
         colors={gradient}

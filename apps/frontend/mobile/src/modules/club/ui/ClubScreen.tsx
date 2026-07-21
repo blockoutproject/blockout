@@ -13,7 +13,7 @@ import { useLocalSearchParams } from "expo-router";
 import { useAppTheme } from "@/src/shared/providers/ThemeProvider";
 import { useClubById } from "@/src/modules/club/hooks/useClubById";
 import { useTeamListByClubId } from "@/src/modules/team/hooks/useTeamListByClubId";
-import useHasScopes from "@/src/hooks/user/useHasScopes";
+import useHasScopes from "@/src/modules/user/hooks/useHasScopes";
 
 import ErrorState from "@/src/shared/ui/feedback/ErrorState";
 import ClubSkeleton from "@/src/modules/club/ui/ClubSkeleton";

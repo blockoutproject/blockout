@@ -6,7 +6,7 @@ import {MaterialCommunityIcons} from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 
 import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
-import {useSessionActions, useSessionState} from "@/src/shared/providers/SessionProvider";
+import {useSessionActions, useSessionState} from "@/src/modules/session/providers/SessionContext";
 import AppStatusLayout from "@/src/components/appStatus/AppStatusLayout";
 import {CURRENT_APP_VERSION} from "@/src/utils/appVersion";
 import {CORNERS} from "@/src/shared/theme/tokens";

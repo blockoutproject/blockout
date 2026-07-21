@@ -9,7 +9,7 @@ import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
 import * as Haptics from "expo-haptics";
 import {APP_TITLE, LOGO_HEIGHT, TABBAR_HEIGHT} from "@/src/shared/theme/tokens";
 import {withAlpha} from "@/src/utils/utils";
-import {useSessionState} from "@/src/shared/providers/SessionProvider";
+import {useSessionState} from "@/src/modules/session/providers/SessionContext";
 import {CONFIG} from "@/src/shared/config/config";
 import RevenueCatUI from "react-native-purchases-ui";
 import InfoPillGradient from "@/src/shared/ui/chips/InfoPillGradient";

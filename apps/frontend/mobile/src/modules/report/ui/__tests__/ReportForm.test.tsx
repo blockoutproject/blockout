@@ -22,7 +22,7 @@ jest.mock("@/src/shared/providers/ApiProvider", () => ({
   }),
 }));
 
-jest.mock("@/src/shared/providers/SessionProvider", () => ({
+jest.mock("@/src/modules/session/providers/SessionContext", () => ({
   useSessionState: () => ({ customUser: { id: 7, pseudo: "Blockout" } }),
 }));
 

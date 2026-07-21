@@ -13,7 +13,7 @@ import EntityScreenSkeleton from "@/src/shared/ui/entity/EntityScreenSkeleton";
 import { ReportType } from "@/src/modules/report/model/Report";
 import ReportFormSheet from "@/src/modules/report/ui/ReportFormSheet";
 import TeamFormSheet from "@/src/modules/team/ui/TeamFormSheet";
-import useHasScopes from "@/src/hooks/user/useHasScopes";
+import useHasScopes from "@/src/modules/user/hooks/useHasScopes";
 
 const TeamScreen: React.FC = () => {
   const theme = useAppTheme();

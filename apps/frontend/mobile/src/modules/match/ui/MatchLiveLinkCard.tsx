@@ -11,8 +11,8 @@ import {MatchResponse, LiveProvider, MatchStatus, PROVIDER_LABELS,} from "@/src/
 import MatchLiveLinkReportFormSheet from "@/src/modules/match/ui/form/MatchLiveLinkReportFormSheet";
 import MatchLiveLinkFormSheet from "./form/MatchLiveLinkFormSheet";
 import MatchLiveLinkDeleteFormSheet from "./form/MatchLiveLinkDeleteFormSheet";
-import {useSessionState} from "@/src/shared/providers/SessionProvider";
-import useHasScopes from "@/src/hooks/user/useHasScopes";
+import {useSessionState} from "@/src/modules/session/providers/SessionContext";
+import useHasScopes from "@/src/modules/user/hooks/useHasScopes";
 import {useWebLinkInterstitial} from "@/src/hooks/ads/useWebLinkInterstitial";
 
 type Props = {

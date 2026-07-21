@@ -18,10 +18,10 @@ import { FormatLabels } from "@/src/types/enums/Format";
 import { LOGO_SIZE } from "@/src/shared/theme/tokens";
 import MaskedImage from "@/src/shared/ui/images/MaskedImage";
 import InfoPillGradient from "@/src/shared/ui/chips/InfoPillGradient";
-import { useSessionState } from "@/src/shared/providers/SessionProvider";
+import { useSessionState } from "@/src/modules/session/providers/SessionContext";
 import GuestPromptSheet, {
   GuestPromptSheetRef,
-} from "@/src/components/user/GuestPromptSheet.tsx";
+} from "@/src/modules/session/ui/GuestPromptSheet";
 import { useAppTheme } from "@/src/shared/providers/ThemeProvider";
 import { computeBalancedRowsByCount, withAlpha } from "@/src/utils/utils";
 import { useNavigationInterstitial } from "@/src/hooks/ads/useNavigationInterstitial";

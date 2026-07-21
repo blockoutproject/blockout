@@ -6,23 +6,59 @@ import {Ionicons, MaterialCommunityIcons} from "@expo/vector-icons";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
 
 import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
-import {useSessionActions, useSessionState} from "@/src/shared/providers/SessionProvider";
-import useHasScopes from "@/src/hooks/user/useHasScopes";
+import {useSessionActions, useSessionState} from "@/src/modules/session/providers/SessionContext";
+import useHasScopes from "@/src/modules/user/hooks/useHasScopes";
 import {ReportType} from "@/src/modules/report/model/Report";
 import {withAlpha} from "@/src/utils/utils";
 import BottomSheetCustomPage from "@/src/shared/ui/bottomSheet/BottomSheetCustomPage";
-import LegalDocumentScreen from "@/src/components/user/LegalDocumentScreen";
-import ProfileHero from "@/src/components/user/ProfileHero";
-import ProfileHeader from "@/src/components/user/ProfileHeader";
-import ProfileFormSheet from "@/src/components/user/ProfileFormSheet";
+import LegalDocumentScreen from "@/src/modules/legal/ui/LegalDocumentScreen";
+import ProfileHero from "@/src/modules/user/ui/ProfileHero";
+import ProfileHeader from "@/src/modules/user/ui/ProfileHeader";
+import ProfileFormSheet from "@/src/modules/user/ui/ProfileFormSheet";
 import ReportFormSheet from "@/src/modules/report/ui/ReportFormSheet";
 import {BOTTOM_TABBAR_HEIGHT, SECTION_SEPARATOR_HEIGHT} from "@/src/shared/theme/tokens";
 import {useApis} from "@/src/shared/providers/ApiProvider";
-import GuestUpsellCard from "@/src/components/user/GuestUpsellCard";
-import {useOnboardingStore} from "@/src/utils/onboardingStore";
+import GuestUpsellCard from "@/src/modules/session/ui/GuestUpsellCard";
+import {useOnboardingStore} from "@/src/modules/onboarding/model/onboardingStore";
 import {CURRENT_APP_VERSION} from "@/src/utils/appVersion";
 
 const SPINNER_BOX = 18;
+
+type LegalItemRowProps = {
+  icon: React.ComponentProps<typeof MaterialCommunityIcons>["name"];
+  label: string;
+  onPress: () => void;
+  testID: string;
+};
+
+const LegalItemRow: React.FC<LegalItemRowProps> = ({icon, label, onPress, testID}) => {
+  const theme = useAppTheme();
+
+  return (
+    <Pressable
+      onPress={onPress}
+      android_ripple={{color: withAlpha(theme.text, 0.06)}}
+      style={({pressed}) => [
+        styles.itemRow,
+        {
+          backgroundColor: pressed ? withAlpha(theme.surface, 0.9) : theme.surface,
+          borderColor: withAlpha(theme.text, 0.1),
+        },
+      ]}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      testID={testID}
+    >
+      <View style={styles.itemLeft}>
+        <MaterialCommunityIcons name={icon} size={18} color={withAlpha(theme.text, 0.8)}/>
+        <Text style={[styles.itemText, {color: theme.text}]} numberOfLines={1}>
+          {label}
+        </Text>
+      </View>
+      <Ionicons name="chevron-forward-outline" size={20} color={withAlpha(theme.text, 0.5)}/>
+    </Pressable>
+  );
+};
 
 const ProfileScreen: React.FC = () => {
   const {mobile} = useApis();
@@ -93,34 +129,6 @@ const ProfileScreen: React.FC = () => {
     );
   };
 
-  const LegalItemRow: React.FC<{
-    icon: React.ComponentProps<typeof MaterialCommunityIcons>["name"];
-    label: string;
-    onPress: () => void;
-  }> = ({icon, label, onPress}) => (
-    <Pressable
-      onPress={onPress}
-      android_ripple={{color: withAlpha(theme.text, 0.06)}}
-      style={({pressed}) => [
-        styles.itemRow,
-        {
-          backgroundColor: pressed ? withAlpha(theme.surface, 0.9) : theme.surface,
-          borderColor: withAlpha(theme.text, 0.1),
-        },
-      ]}
-      testID={`legal-item-${label}`}
-    >
-      <View style={styles.itemLeft}>
-        <MaterialCommunityIcons name={icon} size={18} color={withAlpha(theme.text, 0.8)}/>
-        <Text style={[styles.itemText, {color: theme.text}]} numberOfLines={1}>
-          {label}
-        </Text>
-      </View>
-      <Ionicons name="chevron-forward-outline" size={20} color={withAlpha(theme.text, 0.5)}/>
-    </Pressable>
-  );
-
-  // === GUEST MODE: pas de Hero, pas d’actions compte — on garde Légal + Upsell ===
   if (isGuest) {
     return (
       <View style={styles.container} testID="profile-screen">
@@ -128,6 +136,7 @@ const ProfileScreen: React.FC = () => {
 
         <ScrollView
           showsVerticalScrollIndicator={false}
+          testID="profile-scroll"
           contentContainerStyle={[
             styles.scrollContent,
             {
@@ -136,27 +145,23 @@ const ProfileScreen: React.FC = () => {
             },
           ]}
         >
-          {/* Upsell card */}
           <GuestUpsellCard/>
 
-          {/* Section Légal conservée */}
           <View style={styles.section}>
             <Text style={[styles.sectionTitle, {color: withAlpha(theme.text, 0.7)}]}>Légal</Text>
             <View style={styles.cardList}>
-              <LegalItemRow icon="file-document-outline" label="Mentions légales" onPress={openLocal(imprintRef)}/>
-              <LegalItemRow icon="script-text-outline" label="Conditions d'utilisation" onPress={openLocal(termsRef)}/>
+              <LegalItemRow icon="file-document-outline" label="Mentions légales" onPress={openLocal(imprintRef)} testID="profile-imprint-action"/>
+              <LegalItemRow icon="script-text-outline" label="Conditions d'utilisation" onPress={openLocal(termsRef)} testID="profile-terms-action"/>
               <LegalItemRow icon="shield-lock-outline" label="Politique de confidentialité"
-                            onPress={openLocal(privacyRef)}/>
+                            onPress={openLocal(privacyRef)} testID="profile-privacy-action"/>
             </View>
           </View>
 
-          {/* Version app */}
           <View style={{alignItems: "center", marginTop: 10}}>
             <Text style={[styles.versionText, {color: theme.textInactive}]}>Version {CURRENT_APP_VERSION}</Text>
           </View>
         </ScrollView>
 
-        {/* Bottom sheets légales */}
         <BottomSheetCustomPage ref={imprintRef}>
           <LegalDocumentScreen type="imprint" title="Mentions Légales" onCloseSheet={dismissLocal(imprintRef)}/>
         </BottomSheetCustomPage>
@@ -169,7 +174,6 @@ const ProfileScreen: React.FC = () => {
                                onCloseSheet={dismissLocal(privacyRef)}/>
         </BottomSheetCustomPage>
 
-        {/* Report */}
         <ReportFormSheet
           ref={reportSheetRef}
           context={{screen: "Profile", defaultType: ReportType.DISPLAY_BUG}}
@@ -186,7 +190,7 @@ const ProfileScreen: React.FC = () => {
   const renderBody = () => {
     if (!customUser) {
       return (
-        <View style={[styles.center, {backgroundColor: theme.background}]}>
+        <View style={[styles.center, {backgroundColor: theme.background}]} testID="profile-loading">
           <ActivityIndicator size="large" color={theme.text}/>
         </View>
       );
@@ -203,17 +207,17 @@ const ProfileScreen: React.FC = () => {
               paddingBottom: insets.bottom + BOTTOM_TABBAR_HEIGHT + SECTION_SEPARATOR_HEIGHT + 4
             },
           ]}
-          testID="club-scroll"
+          testID="profile-scroll"
         >
           <ProfileHero user={customUser} onEdit={canEdit ? openForm : undefined}/>
 
           <View style={styles.section}>
             <Text style={[styles.sectionTitle, {color: withAlpha(theme.text, 0.7)}]}>Légal</Text>
             <View style={styles.cardList}>
-              <LegalItemRow icon="file-document-outline" label="Mentions légales" onPress={openLocal(imprintRef)}/>
-              <LegalItemRow icon="script-text-outline" label="Conditions d'utilisation" onPress={openLocal(termsRef)}/>
+              <LegalItemRow icon="file-document-outline" label="Mentions légales" onPress={openLocal(imprintRef)} testID="profile-imprint-action"/>
+              <LegalItemRow icon="script-text-outline" label="Conditions d'utilisation" onPress={openLocal(termsRef)} testID="profile-terms-action"/>
               <LegalItemRow icon="shield-lock-outline" label="Politique de confidentialité"
-                            onPress={openLocal(privacyRef)}/>
+                            onPress={openLocal(privacyRef)} testID="profile-privacy-action"/>
             </View>
           </View>
 
@@ -232,7 +236,10 @@ const ProfileScreen: React.FC = () => {
                     opacity: busy ? 0.75 : 1,
                   },
                 ]}
-                testID="logout-btn"
+                accessibilityRole="button"
+                accessibilityLabel="Se déconnecter"
+                accessibilityState={{disabled: busy, busy: isLoggingOut}}
+                testID="profile-sign-out-action"
               >
                 <View style={styles.btnInner}>
                   <View style={styles.spinnerBox}>{isLoggingOut ?
@@ -254,7 +261,10 @@ const ProfileScreen: React.FC = () => {
                     opacity: busy ? 0.75 : 1,
                   },
                 ]}
-                testID="delete-account-btn"
+                accessibilityRole="button"
+                accessibilityLabel="Supprimer mon compte"
+                accessibilityState={{disabled: busy, busy: isDeleting}}
+                testID="profile-delete-account-action"
               >
                 <View style={styles.btnInner}>
                   <View style={styles.spinnerBox}>{isDeleting ?

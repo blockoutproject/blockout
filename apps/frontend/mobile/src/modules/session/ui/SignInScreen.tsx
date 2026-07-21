@@ -1,11 +1,11 @@
 import React, {useEffect, useState} from "react";
-import {ActivityIndicator, StyleSheet, Text, TouchableOpacity, View} from "react-native";
+import {ActivityIndicator, Pressable, StyleSheet, Text, View} from "react-native";
 import * as Haptics from "expo-haptics";
 import {MaterialCommunityIcons} from "@expo/vector-icons";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
 
 import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
-import {useSessionActions, useSessionState} from "@/src/shared/providers/SessionProvider";
+import {useSessionActions, useSessionState} from "@/src/modules/session/providers/SessionContext";
 import {withAlpha} from "@/src/utils/utils";
 import MaskedImage from "@/src/shared/ui/images/MaskedImage";
 import InfoPillGradient from "@/src/shared/ui/chips/InfoPillGradient";
@@ -14,7 +14,7 @@ import {GradientButton} from "@/src/shared/ui/GradientButton";
 import {ApiError} from "@/src/shared/api/ApiError";
 import {APP_TITLE} from "@/src/shared/theme/tokens";
 
-export const getLiveLinkErrorMessage = (err: unknown): string => {
+export const getSignInErrorMessage = (err: unknown): string => {
   if (err instanceof ApiError) {
     if (err.status === 0 || err.status >= 500) {
       return "Le serveur rencontre un problème, réessaie dans quelques instants.";
@@ -27,7 +27,7 @@ export const getLiveLinkErrorMessage = (err: unknown): string => {
   return "Connection impossible, réessaie.";
 };
 
-const LoginScreen: React.FC = () => {
+const SignInScreen: React.FC = () => {
   const theme = useAppTheme();
   const insets = useSafeAreaInsets();
   const {signIn, continueAsGuest} = useSessionActions();
@@ -39,7 +39,7 @@ const LoginScreen: React.FC = () => {
 
   useEffect(() => {
     if (!isSigningIn && error && !(["NO_CREDENTIALS", "USER_CANCELLED"].includes(error?.name))) {
-      const msg = getLiveLinkErrorMessage(error);
+      const msg = getSignInErrorMessage(error);
       setApiError(msg);
     }
   }, [error, isSigningIn]);
@@ -63,8 +63,7 @@ const LoginScreen: React.FC = () => {
       setApiError(null);
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       continueAsGuest();
-    } catch (err) {
-      console.error(err);
+    } catch {
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       setApiError("Impossible de continuer en invité.");
     } finally {
@@ -138,13 +137,17 @@ const LoginScreen: React.FC = () => {
           leftIcon={<MaterialCommunityIcons name="account" size={18} color={"#000"}/>}
           style={styles.ctaButton}
           textColor="#000"
+          testID="session-sign-in-action"
         />
 
-        <TouchableOpacity
+        <Pressable
           onPress={onPressGuest}
           style={styles.guestButton}
           disabled={isGuesting || disabled}
-          activeOpacity={0.8}
+          accessibilityRole="button"
+          accessibilityLabel="Continuer en tant qu’invité"
+          accessibilityState={{disabled: isGuesting || disabled, busy: isGuesting}}
+          testID="session-guest-action"
         >
           {isGuesting ? (
             <ActivityIndicator/>
@@ -153,7 +156,7 @@ const LoginScreen: React.FC = () => {
               Continuer en tant qu’invité
             </Text>
           )}
-        </TouchableOpacity>
+        </Pressable>
       </View>
 
       <Text style={[styles.legal, {color: withAlpha(theme.text, 0.6)}]}>
@@ -169,7 +172,7 @@ const LoginScreen: React.FC = () => {
   );
 };
 
-export default LoginScreen;
+export default SignInScreen;
 
 const styles = StyleSheet.create({
   content: {

@@ -8,7 +8,7 @@ import * as Haptics from "expo-haptics";
 
 import {TabBarItem} from "./TabBarItem";
 import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
-import {useSessionState} from "@/src/shared/providers/SessionProvider";
+import {useSessionState} from "@/src/modules/session/providers/SessionContext";
 import {usePurchases} from "@/src/shared/providers/PurchasesProvider";
 import {BOTTOM_TABBAR_HEIGHT, CORNERS} from "@/src/shared/theme/tokens";
 import {withAlpha} from "@/src/utils/utils";

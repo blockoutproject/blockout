@@ -120,6 +120,26 @@ easier to read and its public interface is simpler than the duplicated implement
 - All 44 tests pass across 22 suites, typecheck passes, lint completes with 18 inherited warnings and no errors, and
   the 3,148-module Web export passes.
 
+### User, session, onboarding, and legal documents
+
+- User now owns its exact handwritten gateway response/update models, API client, Query hooks, profile form, profile
+  presentation, and profile screen under `modules/user`. Session owns Auth0 adapters, the guest store, contexts,
+  provider orchestration, sign-in UI, guest prompts, and splash coordination; onboarding and legal-document flows own
+  their model, state, UI, and tests in dedicated modules.
+- UI consumers import the light session action/state contexts, while the application layout alone mounts the complete
+  provider orchestration. A focused screen test can therefore exercise authentication and guest commands without
+  loading Auth0 native implementation code or introducing dependency injection, a test-only prop, or a provider
+  bypass.
+- Shared `GradientButton` forwards a concrete feature-owned ID and exposes its label and busy/disabled state through
+  accessibility. It no longer assigns the same global selector to every action or hides callback failures from the
+  owning feature. Sign-in, onboarding, guest, profile, legal, and administration entry actions use semantic names and
+  literal stable IDs only where a real test or future end-to-end boundary needs them.
+- Form commands remain explicit props on feature components, native and HTTP work stays behind the existing adapters,
+  and tests assert visible behavior and invoked session commands through React Native Testing Library. No selector
+  factory, mock registry, test-only production branch, generic form framework, or service container was added.
+- All 48 tests pass across 23 suites, typecheck passes, lint completes with 13 inherited warnings and no errors, and the
+  3,148-module Web export passes.
+
 ## Final audit
 
 REF-036 is complete only when this table reflects the implemented owners, all active consumers use the chosen shared

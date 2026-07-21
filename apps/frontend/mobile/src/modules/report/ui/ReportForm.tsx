@@ -25,7 +25,7 @@ import {
   ReportType,
 } from "@/src/modules/report/model/Report";
 import { useApis } from "@/src/shared/providers/ApiProvider";
-import { useSessionState } from "@/src/shared/providers/SessionProvider";
+import { useSessionState } from "@/src/modules/session/providers/SessionContext";
 import { useAppTheme } from "@/src/shared/providers/ThemeProvider";
 import Filters from "@/src/shared/ui/Filters";
 import ApiErrorToast from "@/src/shared/ui/feedback/ApiErrorToast";

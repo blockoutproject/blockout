@@ -2,14 +2,14 @@ import React from "react";
 import { act, renderHook, waitFor } from "@testing-library/react-native";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
-import { CURRENT_USER_QUERY_KEY } from "@/src/hooks/user/useEnsureUser";
+import { CURRENT_USER_QUERY_KEY } from "@/src/modules/user/hooks/useEnsureUser";
 import { useFollowState } from "@/src/shared/hooks/useFollowState";
 import {
   SessionActions,
   SessionContextProvider,
   SessionState,
-} from "@/src/shared/providers/SessionContext";
-import { CustomUser, EntityType } from "@/src/types/User";
+} from "@/src/modules/session/providers/SessionContext";
+import { UserResponse, EntityType } from "@/src/modules/user/model/User";
 
 const mockFollow = jest.fn();
 const mockUnfollow = jest.fn();
@@ -25,7 +25,7 @@ jest.mock("@/src/shared/providers/ApiProvider", () => ({
   }),
 }));
 
-const user: CustomUser = {
+const user: UserResponse = {
   id: 1,
   auth0Id: "auth0|test",
   email: "test@example.com",
@@ -127,7 +127,7 @@ describe("follow state", () => {
       expect(mockFollow).toHaveBeenCalledWith(EntityType.POOL, pool.id),
     );
     expect(
-      queryClient.getQueryData<CustomUser>(CURRENT_USER_QUERY_KEY)?.favorites,
+      queryClient.getQueryData<UserResponse>(CURRENT_USER_QUERY_KEY)?.favorites,
     ).toEqual([{ entityType: EntityType.POOL, entityId: pool.id }]);
     expect(queryClient.getQueryData<typeof pool>(poolKey)?.followersCount).toBe(
       8,
@@ -159,7 +159,7 @@ describe("follow state", () => {
 
     await waitFor(() => expect(result.current.isProcessing).toBe(false));
     expect(
-      queryClient.getQueryData<CustomUser>(CURRENT_USER_QUERY_KEY),
+      queryClient.getQueryData<UserResponse>(CURRENT_USER_QUERY_KEY),
     ).toEqual(user);
     expect(queryClient.getQueryData(teamKey)).toEqual(team);
     expect(refetch).not.toHaveBeenCalled();

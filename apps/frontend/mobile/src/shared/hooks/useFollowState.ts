@@ -1,14 +1,14 @@
 import { useCallback, useMemo } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
-import { CURRENT_USER_QUERY_KEY } from "@/src/hooks/user/useEnsureUser";
+import { CURRENT_USER_QUERY_KEY } from "@/src/modules/user/hooks/useEnsureUser";
 import { useApis } from "@/src/shared/providers/ApiProvider";
 import {
   useSessionActions,
   useSessionState,
-} from "@/src/shared/providers/SessionContext";
-import type { CustomUser } from "@/src/types/User";
-import { EntityType } from "@/src/types/User";
+} from "@/src/modules/session/providers/SessionContext";
+import type { UserResponse } from "@/src/modules/user/model/User";
+import { EntityType } from "@/src/modules/user/model/User";
 
 type FollowableEntity = {
   id: number;
@@ -17,15 +17,15 @@ type FollowableEntity = {
 
 type FollowMutationContext<T extends FollowableEntity> = {
   previousEntity: T;
-  previousUser: CustomUser;
+  previousUser: UserResponse;
 };
 
 const updateFavorite = (
-  user: CustomUser,
+  user: UserResponse,
   entityType: EntityType,
   entityId: number,
   isFollowing: boolean,
-): CustomUser => {
+): UserResponse => {
   const favorites = user.favorites ?? [];
   const withoutEntity = favorites.filter(
     (favorite) =>
@@ -82,14 +82,14 @@ export function useFollowState<T extends FollowableEntity>(
       ]);
 
       const previousUser =
-        queryClient.getQueryData<CustomUser>(CURRENT_USER_QUERY_KEY) ??
+        queryClient.getQueryData<UserResponse>(CURRENT_USER_QUERY_KEY) ??
         customUser;
       const previousEntity =
         queryClient.getQueryData<T>(entityQueryKey) ?? entity;
 
       if (!previousUser) return undefined;
 
-      queryClient.setQueryData<CustomUser>(
+      queryClient.setQueryData<UserResponse>(
         CURRENT_USER_QUERY_KEY,
         updateFavorite(previousUser, entityType, entity.id, nextIsFollowing),
       );

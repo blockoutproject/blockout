@@ -12,7 +12,7 @@ import EntityScreenHeader from "@/src/shared/ui/entity/EntityScreenHeader";
 import EntityScreenSkeleton from "@/src/shared/ui/entity/EntityScreenSkeleton";
 import { ReportType } from "@/src/modules/report/model/Report";
 import ReportFormSheet from "@/src/modules/report/ui/ReportFormSheet";
-import useHasScopes from "@/src/hooks/user/useHasScopes";
+import useHasScopes from "@/src/modules/user/hooks/useHasScopes";
 import PoolFormSheet from "@/src/modules/pool/ui/PoolFormSheet";
 
 const PoolScreen: React.FC = () => {
