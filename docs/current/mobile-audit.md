@@ -165,8 +165,9 @@ Unavailable credentials or hardware remain explicit evidence gaps; tests must no
 5. **REF-036 — Complete feature-owned mobile slices (complete).** Move one coherent feature at a time, unify theme
    ownership, improve accessibility and measured list/image behavior, and simplify component APIs only where consumers
    justify it.
-6. **REF-037 — Certify the cleaned mobile application.** Run the complete static, test, Web phone-size, simulator, and
-   available physical-device/provider matrix, then record remaining external evidence gaps without weakening gates.
+6. **REF-037 — Certify the cleaned mobile application (complete).** Run the complete static, test, Web phone-size,
+   simulator, and available physical-device/provider matrix, then record remaining external evidence gaps without
+   weakening gates.
 
 These tasks are deliberately sequential. REF-036 was published as feature-sized commits without adding a speculative
 architecture layer.
@@ -220,6 +221,48 @@ REF-035 added the following completion evidence on 2026-07-21:
   remain ignored and untracked;
 - `npm audit --omit=dev` reports 19 moderate, 0 high, and 0 critical production findings; the published fixes require
   incompatible forced dependency changes.
+
+REF-036 added the following completion evidence on 2026-07-21:
+
+- the handwritten mobile source has one physical ownership model: thin Expo Router routes under `app`, feature code
+  under `modules`, and cross-feature infrastructure under `shared`;
+- repeated feedback, form, sheet, action, entity, search, list, image, and theme behavior is consolidated only where
+  consumers share the same semantics; feature-specific composition remains local;
+- accessibility roles and names are the primary test surface, with stable test IDs limited to useful feature and
+  domain boundaries; production components contain no test-only behavior;
+- the final unsafe-type and legacy-root scans are empty, and lint accepts zero warnings;
+- Nx mobile typecheck and lint pass; all 52 focused Jest and React Native Testing Library tests pass across 26 suites
+  without snapshots; the Web export and repository integrity checks pass.
+
+REF-037 added the following final certification evidence on 2026-07-21:
+
+- clean `npm ci`, `expo install --check`, and all 19 Expo Doctor checks pass;
+- Nx mobile typecheck and zero-warning lint pass; all 52 tests pass across 26 suites; the Web export passes with 3,149
+  modules;
+- Chrome renders the development bundle at an exact 390 by 844 phone viewport. The public landing screen, guest
+  transition, onboarding skip, and guest search screen render without page overflow or a JavaScript crash;
+- that browser check exposed Zustand's ESM `import.meta.env` syntax in the Expo 55 development bundle. The mobile
+  Babel configuration now enables Expo's documented `unstable_transformImportMeta` preset option; no Metro alias,
+  dependency patch, or application workaround was added;
+- clean native prebuild and CocoaPods resolution pass. The Android debug build passes with 733 executed tasks, and an
+  unsigned iOS Debug build passes when targeted to the active architecture of the booted iPhone 17 Pro simulator;
+- the development client installs and remains live on that simulator, loads the Metro bundle, and displays the real
+  Google Mobile Ads consent surface. RevenueCat initializes and refreshes offerings from its provider;
+- generated `ios` and `android` projects and DerivedData were removed after certification and remain ignored and
+  untracked;
+- `npm audit --omit=dev` reports 19 moderate, 0 high, and 0 critical production findings. Available fixes require a
+  React Native CLI version outside the Expo-aligned range or a breaking MapLibre 11 upgrade, so no forced audit change
+  was applied.
+
+The remaining evidence gaps are external rather than hidden by test code:
+
+- no Android device or emulator was connected, and the only listed physical iPhone was offline;
+- a signed physical-device pass is still required for SecureStore entitlements, the native Auth0 callback, push
+  registration and delivery, ATT, ad impressions, RevenueCat purchase and restore, and final map and media gestures;
+- the local APIs were not running during the Chrome pass, so the guest search screen proved its expected recoverable
+  error state rather than a successful result flow;
+- the unsigned simulator build cannot prove Keychain entitlements and reports the expected SecureStore entitlement
+  error. No authentication, provider, storage, or network bypass was introduced to conceal any of these gaps.
 
 The audit itself changed no application source, native project, route, configuration value, or runtime behavior. The
 completion evidence above records the separately scoped implementation tasks that followed it.

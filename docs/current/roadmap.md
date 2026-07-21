@@ -331,9 +331,18 @@
     suites without snapshots or test-only production paths. The final Web export and repository integrity checks pass;
     the Maaatch comparison confirms the same simple route/module/shared ownership without copying its Web code.
 
-- [ ] **REF-037 — Certify the cleaned mobile application**
+- [x] **REF-037 — Certify the cleaned mobile application**
   - Run the complete static, test, Web phone-size, simulator, and available physical-device/provider verification matrix.
   - Record external evidence gaps explicitly; never add an authentication or provider bypass to close them.
+  - Evidence: clean npm installation, Expo dependency validation, Expo Doctor 19/19, Nx typecheck, zero-warning lint,
+    all 52 tests across 26 suites, and the 3,149-module Web export pass. Chrome proves the landing, guest, onboarding,
+    and guest search paths at 390 by 844; the Expo-documented import-meta transform fixes the Zustand development-bundle
+    failure without a Metro alias or dependency patch. Clean prebuild, CocoaPods resolution, the 733-task Android debug
+    build, and the targeted unsigned iOS Simulator build pass. The iOS development client installs, stays live, loads
+    Metro, and reaches the real Google Mobile Ads consent and RevenueCat provider paths. No Android device was connected,
+    the physical iPhone was offline, the local APIs were stopped, and signed-device Auth0, push, ATT, SecureStore,
+    purchase, map, and media evidence remains explicitly outstanding without any bypass. Generated native projects
+    remain ignored and untracked; the production audit remains at 19 moderate, 0 high, and 0 critical findings.
 
 The Java and Python scraper refactors and their local persistence certification are complete.
 The mobile behavior baseline is complete and its clean handwritten architecture is the current work.
