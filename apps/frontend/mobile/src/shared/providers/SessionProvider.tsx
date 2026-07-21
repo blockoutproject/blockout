@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
+import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth0, User } from "@/src/shared/providers/AuthProvider";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEnsureUser } from "@/src/hooks/user/useEnsureUser";
@@ -15,6 +15,7 @@ import useHasScopes from "@/src/hooks/user/useHasScopes";
 import type { AppStatusDTO } from "@/src/types/AppStatus";
 import { computeIsUpdateRequired, getStoreUrl } from "@/src/utils/appVersion";
 import {ApiError} from "@/src/shared/api/ApiError";
+import {AUTH0_CONFIG} from "@/src/shared/config/config";
 
 export type SessionActions = {
     signIn: () => Promise<void>;
@@ -104,6 +105,7 @@ export const SessionProvider: React.FC<React.PropsWithChildren> = ({ children })
     const [maintenanceBypass, setMaintenanceBypass] = useState(false);
     const [updateBypass, setUpdateBypass] = useState(false);
     const [isBootstrapped, setIsBootstrapped] = useState(false);
+    const bootstrapPromiseRef = useRef<Promise<void> | null>(null);
 
     const isMaintenance = appStatus?.maintenance === true;
     const isUpdateRequired = useMemo(() => computeIsUpdateRequired(appStatus), [appStatus]);
@@ -135,6 +137,8 @@ export const SessionProvider: React.FC<React.PropsWithChildren> = ({ children })
     }, [isAuthenticated, hasCompletedOnboarding, customUser?.id]);
 
     useEffect(() => {
+        if (isAuth0UserLoading) return;
+
         let cancelled = false;
 
         const bootstrapAuth = async () => {
@@ -149,16 +153,21 @@ export const SessionProvider: React.FC<React.PropsWithChildren> = ({ children })
                 }
             } catch {
                 setAuthOnApis(apis, undefined, undefined);
-            } finally {
-                if (!cancelled) setIsBootstrapped(true);
             }
         };
 
-        bootstrapAuth();
+        bootstrapPromiseRef.current ??= bootstrapAuth();
+        const currentBootstrap = bootstrapPromiseRef.current;
+        currentBootstrap.finally(() => {
+            if (bootstrapPromiseRef.current === currentBootstrap) {
+                bootstrapPromiseRef.current = null;
+            }
+            if (!cancelled) setIsBootstrapped(true);
+        });
         return () => {
             cancelled = true;
         };
-    }, []);
+    }, [auth0User?.sub, isAuth0UserLoading]);
 
     const clearRQCache = async () => {
         await queryClient.cancelQueries();
@@ -183,7 +192,7 @@ export const SessionProvider: React.FC<React.PropsWithChildren> = ({ children })
 
     const signIn = async () => {
         await authorize({
-            audience: "https://api.blockoutproject.com/",
+            audience: AUTH0_CONFIG.audience,
             scope: "openid profile email offline_access",
         });
 

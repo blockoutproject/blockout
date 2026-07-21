@@ -42,6 +42,8 @@ shape.
   screen-specific state.
 - Platform differences use Expo and React Native file resolution such as `.web.tsx`; runtime platform conditionals are
   kept only when file-level adapters cannot express the boundary clearly.
+- Native and local Web authentication use separate public Auth0 clients against the same issuer and API audience. The
+  Web adapter delegates to the official SPA SDK, keeps tokens in memory, and never introduces an application bypass.
 - UI, route names, gateway calls, persistence keys, authentication, notifications, purchases, ads, maps, and media
   behavior remain unchanged during structural moves.
 

@@ -26,7 +26,7 @@ export class HttpClient {
       paramsSerializer: (params) => qs.stringify(params, {arrayFormat: "repeat"}),
     });
 
-    // Request interceptor (auth + logging)
+    // Request interceptor (auth)
     this.instance.interceptors.request.use(async (config) => {
       const headers = AxiosHeaders.from(config.headers ?? {});
       config.headers = headers;
@@ -42,19 +42,6 @@ export class HttpClient {
           headers.delete("Authorization");
         }
       }
-
-      console.log(
-        "%c[HTTP REQUEST]",
-        "color: #4CAF50; font-weight: bold;",
-        {
-          method: config.method?.toUpperCase(),
-          url: `${config.baseURL}${config.url}`,
-          headers: headers,
-          params: config.params,
-          data: config.data instanceof FormData ? "FormData(...)" : config.data,
-          hasToken: headers.has("Authorization"),
-        }
-      );
 
       return config;
     });

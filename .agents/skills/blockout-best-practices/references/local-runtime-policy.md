@@ -14,6 +14,8 @@ checks.
 - Each deployable application owns a committed `.env.example` containing safe names and usable local defaults.
   `.env.local` remains ignored and may contain local secrets or machine-specific overrides.
 - Never commit real credentials, production endpoints, tokens, private keys, or copied production data.
+- Local authenticated tests must use provider-supported OAuth flows and least-privilege test identities. Never add an
+  authentication bypass, wildcard browser origin, embedded credential, or production-data fixture for convenience.
 
 ## Containers
 

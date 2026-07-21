@@ -1,6 +1,10 @@
+import {Platform} from "react-native";
+
 export const CONFIG = {
   AUTH0_DOMAIN: process.env.EXPO_PUBLIC_AUTH0_DOMAIN || '',
   AUTH0_CLIENT_ID: process.env.EXPO_PUBLIC_AUTH0_CLIENT_ID || '',
+  AUTH0_WEB_CLIENT_ID: process.env.EXPO_PUBLIC_AUTH0_WEB_CLIENT_ID || '',
+  AUTH0_AUDIENCE: process.env.EXPO_PUBLIC_AUTH0_AUDIENCE || '',
   API_MATCHES_BASE_URL: process.env.EXPO_PUBLIC_API_MATCHES_BASE_URL || '',
   API_POOLS_BASE_URL: process.env.EXPO_PUBLIC_API_POOLS_BASE_URL || '',
   API_TEAMS_BASE_URL: process.env.EXPO_PUBLIC_API_TEAMS_BASE_URL || '',
@@ -21,5 +25,9 @@ export const CONFIG = {
 
 export const AUTH0_CONFIG = {
   domain: CONFIG.AUTH0_DOMAIN,
-  clientId: CONFIG.AUTH0_CLIENT_ID,
+  clientId:
+    Platform.OS === "web" && CONFIG.AUTH0_WEB_CLIENT_ID
+      ? CONFIG.AUTH0_WEB_CLIENT_ID
+      : CONFIG.AUTH0_CLIENT_ID,
+  audience: CONFIG.AUTH0_AUDIENCE,
 };

@@ -20,6 +20,7 @@
     }
   },
   "dependencies": {
+    "@auth0/auth0-react": "2.6.0",
     "@expo/metro-runtime": "~6.1.2",
     "@expo/vector-icons": "15.0.3",
     "@gorhom/bottom-sheet": "5.2.6",

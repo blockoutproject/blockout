@@ -215,6 +215,23 @@
     Jest characterization tests, and the Web, iOS, and Android Expo exports pass. Chrome at 390 x 844 preserves the
     sign-in, guest onboarding, and search flow, including the already documented browser-only CORS failure.
 
+- [x] **REF-030 — Enable secure authenticated local mobile testing**
+  - Create a dedicated same-tenant Auth0 SPA for the local React Native Web verification surface while preserving the
+    existing native client and supported Android/iOS behavior.
+  - Use the official Auth0 SPA SDK with Authorization Code and PKCE, a configurable shared API audience, in-memory token
+    storage, exact localhost callback/origin allowlists, and no authentication bypass.
+  - Validate issuer and audience at the mobile gateway, expose CORS only to explicitly configured local origins, and
+    remove request or authentication logs that could disclose tokens, headers, payloads, or identity details.
+  - Keep all secrets and test-user credentials outside Git, document the same-tenant risk and public-repository rules,
+    and verify local credential clearing through a focused adapter test, plus sign-in, an authenticated gateway flow,
+    and SSO logout in a phone-sized browser session.
+  - Evidence (2026-07-21): reproducible npm installation, 14 mobile tests, mobile typecheck, Web export, and all 27 mobile
+    gateway tests pass. Chrome at 390 x 844 completes Universal Login, one authenticated current-user request, profile
+    loading, and SSO logout. Runtime checks return `401` without a token, allow only the configured localhost CORS
+    origin, and reject an unrelated origin. The production dependency audit retains four pre-existing high-severity
+    findings outside the added Auth0 client path; no credential, token, ignored environment file, or test database is
+    retained.
+
 The Java and Python scraper refactors and their local persistence certification are complete.
 The mobile behavior baseline is complete and its clean handwritten architecture is the current work.
 Contract-first adoption, code generation, Python packaging/toolchain migration, GitFlow, CI, deployment, and

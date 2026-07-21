@@ -13,7 +13,10 @@ import {BottomSheetModal} from '@gorhom/bottom-sheet';
 import {ReportType} from '@/src/types/Report';
 import FollowedScreen from '@/src/components/followed/FollowedScreen';
 import {openNotificationUrlIfAny} from '@/src/utils/notifications';
-import * as Notifications from 'expo-notifications';
+import {
+  isDefaultNotificationAction,
+  useLastNotificationResponse,
+} from '@/src/shared/hooks/useLastNotificationResponse';
 
 const FeedScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
@@ -132,13 +135,10 @@ const FeedScreen: React.FC = () => {
     [scrollYs]
   );
 
-  const lastNotificationResponse = Notifications.useLastNotificationResponse();
+  const lastNotificationResponse = useLastNotificationResponse();
 
   useEffect(() => {
-    if (
-      lastNotificationResponse &&
-      lastNotificationResponse.actionIdentifier === Notifications.DEFAULT_ACTION_IDENTIFIER
-    ) {
+    if (lastNotificationResponse && isDefaultNotificationAction(lastNotificationResponse)) {
       const data = lastNotificationResponse.notification.request.content.data;
       openNotificationUrlIfAny(data as Record<string, unknown>);
     }

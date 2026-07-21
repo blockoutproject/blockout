@@ -37,7 +37,6 @@ const LoginScreen: React.FC = () => {
   const [apiError, setApiError] = useState<string | null>(null);
 
   useEffect(() => {
-    console.log(error);
     if (!isSigningIn && error && !(["NO_CREDENTIALS", "USER_CANCELLED"].includes(error?.name))) {
       const msg = getLiveLinkErrorMessage(error);
       setApiError(msg);
@@ -50,8 +49,8 @@ const LoginScreen: React.FC = () => {
       setApiError(null);
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       await signIn();
-    } catch (err) {
-      console.error(err);
+    } catch {
+      setApiError("Connexion impossible, réessaie.");
     } finally {
       setIsSigningIn(false);
     }

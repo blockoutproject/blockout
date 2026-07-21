@@ -4,7 +4,8 @@
 
 REF-028 records the current behavior of the Expo application before any product or contract refactor. Android and iOS
 remain the supported product surfaces. React Native Web is used only as a local, phone-sized characterization surface;
-desktop layout, browser authentication, browser CORS, web deployment, and web product support are out of scope.
+desktop layout, web deployment, and web product support are out of scope. REF-030 later enabled browser authentication
+and tightly scoped local CORS solely as verification infrastructure.
 
 The characterization preserves handwritten transport models and the current mobile gateway. It does not introduce
 contract generation, new routes, new product behavior, GitFlow, CI, deployment, or production configuration.
@@ -24,7 +25,7 @@ to the guest session, onboarding completion, and the cached purchase entitlement
 
 Native boundaries include Auth0, RevenueCat, Google Mobile Ads consent and interstitials, Expo notifications, secure
 storage, haptics, image selection and manipulation, PDF/web views, deep links, and MapLibre/native maps. The local Web
-adapter keeps these boundaries explicit: authentication remains guest-only, ads are no-ops, native maps are replaced by
+adapter keeps these boundaries explicit: Auth0 uses a dedicated SPA client, ads are no-ops, native maps are replaced by
 an unavailable-on-Web placeholder, and browser-safe persistence uses `localStorage`.
 
 ## Verification evidence
@@ -39,9 +40,9 @@ The following checks passed on 2026-07-21:
 - Android debug build, installation, JavaScript bundle load, and launch on a Pixel 7 emulator;
 - direct local mobile-gateway search response over HTTP using the existing camel-case payload.
 
-The Web search request reaches the expected local flow but is rejected by the browser because the mobile gateway does
-not advertise CORS headers. This is recorded as a Web-only limitation; no Java API policy was changed for a surface that
-is not currently supported.
+The original REF-028 Web search request reached the expected local flow but was rejected because the mobile gateway did
+not advertise CORS headers. REF-030 replaces that limitation with an explicit localhost allowlist; it does not enable a
+deployed Web origin.
 
 The native runs exposed and corrected three local integration defects without changing product behavior: missing safe
 area ownership at the application root, duplicate native React modules caused by stale lockfile entries, and an
@@ -53,7 +54,7 @@ The simulator and emulator prove native compilation, installation, launch, routi
 not certify external accounts or physical-device behavior. A future product validation still needs development
 credentials and, where relevant, physical devices for:
 
-- a complete Auth0 login and logout cycle;
+- a complete Auth0 login and logout cycle on native devices;
 - RevenueCat purchase, restore, and entitlement transitions;
 - ads and consent acceptance rather than consent-screen presentation only;
 - push registration and notification delivery;

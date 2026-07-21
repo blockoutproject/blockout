@@ -28,6 +28,10 @@ mobile transport models.
 - Keep Formik/Yup validation aligned with the submitted request without duplicating unrelated backend rules.
 - Preserve platform behavior, navigation, accessibility labels, loading states, and error handling when refactoring.
 - Never commit Expo caches, native build output, `.env.local`, tokens, or device-specific files.
+- Keep native and browser OAuth clients separate. Use the official provider SDK, Authorization Code with PKCE, exact
+  callback/origin allowlists, issuer and audience validation, and no authentication bypass.
+- Treat the repository as public: OAuth client IDs and audiences may be documented, but secrets, tokens, passwords,
+  exported sessions, and personal test data must never be committed or logged.
 
 Run the mobile typecheck and the focused tests or build justified by the change. Exercise changed API serialization and
 screen behavior, then run `git diff --check`.
