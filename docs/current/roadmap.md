@@ -314,7 +314,7 @@
   - Execute and publish the following behavior-preserving slices in order:
     - [x] establish the single theme owner, provisional semantic tokens, and the consolidation register;
     - [x] move notifications into a complete feature boundary and apply proven list, image, and accessibility fixes;
-    - [ ] move reporting and establish shared form and bottom-sheet foundations from existing consumers;
+    - [x] move reporting and establish shared form and bottom-sheet foundations from existing consumers;
     - [ ] move teams and pools together, sharing their equivalent entity presentation while keeping feature behavior
           explicit;
     - [ ] move clubs, search, followed entities, and team lists into coherent discovery boundaries;

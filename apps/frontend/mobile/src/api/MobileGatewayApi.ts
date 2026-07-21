@@ -6,7 +6,7 @@ import {UserApi} from "./UserApi";
 import {SearchApi} from "./SearchApi";
 import {NotificationApi} from "@/src/modules/notifications/api/NotificationApi";
 import {ConfigApi} from "./ConfigApi";
-import {ReportApi} from "./ReportApi";
+import {ReportApi} from "@/src/modules/report/api/ReportApi";
 import {TokenSupplier} from "@/src/shared/api/HttpClient";
 import {ApiError} from "@/src/shared/api/ApiError";
 

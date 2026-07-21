@@ -15,8 +15,8 @@ import ClubSkeleton from "@/src/components/club/ClubSkeleton";
 import ClubHeader from "@/src/components/club/ClubHeader";
 import ClubFormSheet from "@/src/components/club/ClubFormSheet";
 
-import ReportFormSheet from "@/src/components/report/ReportFormSheet";
-import {ReportType} from "@/src/types/Report";
+import ReportFormSheet from "@/src/modules/report/ui/ReportFormSheet";
+import {ReportType} from "@/src/modules/report/model/Report";
 
 import ClubProfile from "@/src/components/club/ClubProfile";
 import ClubTabs from "@/src/components/club/ClubTabs";

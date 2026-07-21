@@ -25,18 +25,18 @@ easier to read and its public interface is simpler than the duplicated implement
 
 ## Live register
 
-| Pattern                                 | Current evidence                                                             | Target owner                                        | Decision                                                                                                                                         | Status      |
-| --------------------------------------- | ---------------------------------------------------------------------------- | --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ----------- |
-| Theme and visual values                 | Separate application and navigation providers with overlapping color sources | `shared/providers/ThemeProvider` and `shared/theme` | One provider owns both contexts; one dark theme and concrete semantic tokens replace the unused light and duplicate color systems                | Complete    |
-| Primary and secondary actions           | Repeated button shells and close/submit actions                              | `shared/ui`                                         | Share action primitives; keep feature labels and commands local                                                                                  | Planned     |
-| Loading, empty, error, and API feedback | Repeated cards, alerts, toasts, and error extraction                         | `shared/ui` and `shared/api`                        | Share presentation and transport-neutral error handling; keep feature recovery decisions local                                                   | Planned     |
-| Form and bottom-sheet structure         | Repeated sheet headers, fields, validation layout, and footers               | `shared/ui`                                         | Share scaffold and field/action layout; keep schemas, values, and submit commands in modules                                                     | Planned     |
-| Team and pool presentation              | Near-identical headers, skeletons, profile layout, and form sheets           | `shared/ui` plus feature modules                    | Share stable entity frames; retain team/pool content, types, and behavior in their modules                                                       | Planned     |
-| Followed entity lists                   | Near-identical pool and team lists                                           | `shared/ui` plus discovery modules                  | Share list presentation and stable interaction contract; retain queries and navigation per feature                                               | Planned     |
-| Entity search                           | Near-identical team and pool filters with a simpler club variant             | `shared/ui` plus search module                      | Share proven controls and result framing; retain feature filters and requests                                                                    | Planned     |
-| High-volume lists and images            | Match, ranking, feed, and notification lists repeat item patterns            | Feature modules plus `shared/ui` primitives         | Notifications now has memoized items, stable callbacks, and Expo Image recycling; other list slices remain                                       | In progress |
-| Application-state cards                 | Maintenance and required-update screens share layout but not actions         | `shared/ui` plus app-status module                  | Share the state frame; express maintenance and update as explicit feature compositions                                                           | Planned     |
-| Test selectors and component behavior   | Existing tests mix semantic queries with incidental or incorrectly named IDs | Owning feature tests and native host components     | The mobile testing policy is active; Notifications uses semantic queries and stable feature IDs, with remaining features handled in their slices | In progress |
+| Pattern                                 | Current evidence                                                             | Target owner                                        | Decision                                                                                                                          | Status      |
+| --------------------------------------- | ---------------------------------------------------------------------------- | --------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- | ----------- |
+| Theme and visual values                 | Separate application and navigation providers with overlapping color sources | `shared/providers/ThemeProvider` and `shared/theme` | One provider owns both contexts; one dark theme and concrete semantic tokens replace the unused light and duplicate color systems | Complete    |
+| Primary and secondary actions           | Repeated button shells and close/submit actions                              | `shared/ui`                                         | Share action primitives; keep feature labels and commands local                                                                   | Planned     |
+| Loading, empty, error, and API feedback | Repeated cards, alerts, toasts, and error extraction                         | `shared/ui` and `shared/api`                        | Share presentation and transport-neutral error handling; keep feature recovery decisions local                                    | Planned     |
+| Form and bottom-sheet structure         | Repeated sheet headers, fields, validation layout, and footers               | `shared/ui`                                         | Shared cards, inputs, modal/page frames, and accessible footers own layout; schemas, values, and submit commands stay in modules  | Complete    |
+| Team and pool presentation              | Near-identical headers, skeletons, profile layout, and form sheets           | `shared/ui` plus feature modules                    | Share stable entity frames; retain team/pool content, types, and behavior in their modules                                        | Planned     |
+| Followed entity lists                   | Near-identical pool and team lists                                           | `shared/ui` plus discovery modules                  | Share list presentation and stable interaction contract; retain queries and navigation per feature                                | Planned     |
+| Entity search                           | Near-identical team and pool filters with a simpler club variant             | `shared/ui` plus search module                      | Share proven controls and result framing; retain feature filters and requests                                                     | Planned     |
+| High-volume lists and images            | Match, ranking, feed, and notification lists repeat item patterns            | Feature modules plus `shared/ui` primitives         | Notifications now has memoized items, stable callbacks, and Expo Image recycling; other list slices remain                        | In progress |
+| Application-state cards                 | Maintenance and required-update screens share layout but not actions         | `shared/ui` plus app-status module                  | Share the state frame; express maintenance and update as explicit feature compositions                                            | Planned     |
+| Test selectors and component behavior   | Existing tests mix semantic queries with incidental or incorrectly named IDs | Owning feature tests and native host components     | Notifications and Reporting use semantic queries and stable feature IDs; remaining features are handled in their slices           | In progress |
 
 ## Completed slices
 
@@ -58,6 +58,19 @@ easier to read and its public interface is simpler than the duplicated implement
   Library guidance; it explicitly forbids test-only production branches and speculative testing infrastructure.
 - Query loading and optimistic rollback, visible relative time, opening, and accessible deletion have focused tests.
   Typecheck, all 30 tests, lint with 55 inherited warnings, and the 3,152-module Web export pass.
+
+### Reporting and form foundations
+
+- Reporting now owns its API, handwritten request/response model, form, sheet composition, and focused tests under
+  `modules/report`; all current report entry points consume that boundary.
+- The report form uses the existing shared field, card, sheet input, modal frame, and footer primitives. Its schema,
+  device context, image handling, payload construction, and submit command remain feature-owned.
+- Shared modal and page sheets use React 19 ref props and stable backdrop renderers. The shared form footer uses an
+  accessible `Pressable`, exposes loading/disabled state, and accepts a concrete feature-owned action ID.
+- No generic form hook, schema factory, test selector registry, or configuration-driven sheet abstraction was added.
+- Focused tests cover the validated report request and the shared footer interaction/loading contract. Query-hook tests
+  use non-expiring test caches, so all 33 tests now finish without an open timer. Typecheck and lint pass with 52
+  inherited warnings; Web export evidence is recorded with the slice commit.
 
 ## Final audit
 

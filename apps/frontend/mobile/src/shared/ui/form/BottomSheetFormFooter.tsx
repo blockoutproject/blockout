@@ -1,32 +1,48 @@
-import React, {memo} from "react";
-import {ActivityIndicator, StyleSheet, Text, TouchableOpacity, View} from "react-native";
-import {useSafeAreaInsets} from "react-native-safe-area-context";
-import {MaterialCommunityIcons} from "@expo/vector-icons";
-import {BottomSheetFooter, BottomSheetFooterProps} from "@gorhom/bottom-sheet";
-import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
-import {CORNERS} from "@/src/shared/theme/tokens";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import {
+  BottomSheetFooter,
+  BottomSheetFooterProps,
+} from "@gorhom/bottom-sheet";
+import React, { memo } from "react";
+import {
+  ActivityIndicator,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-export type BottomSheetFormFooterProps = Omit<BottomSheetFooterProps, "children"> & {
+import { useAppTheme } from "@/src/shared/providers/ThemeProvider";
+import { CORNERS } from "@/src/shared/theme/tokens";
+
+export type BottomSheetFormFooterProps = Omit<
+  BottomSheetFooterProps,
+  "children"
+> & {
   label: string;
   loading?: boolean;
   disabled?: boolean;
   onPress: () => void;
   backgroundColor?: string;
   icon?: React.ComponentProps<typeof MaterialCommunityIcons>["name"];
+  actionTestID?: string;
 };
 
-const BottomSheetFormFooter: React.FC<BottomSheetFormFooterProps> = ({
-                                                                       label,
-                                                                       loading,
-                                                                       disabled,
-                                                                       onPress,
-                                                                       backgroundColor,
-                                                                       icon = "content-save-outline",
-                                                                       ...footerProps
-                                                                     }) => {
+const BottomSheetFormFooter = ({
+  label,
+  loading = false,
+  disabled = false,
+  onPress,
+  backgroundColor,
+  icon = "content-save-outline",
+  actionTestID = "bottom-sheet-form-footer-submit",
+  ...footerProps
+}: BottomSheetFormFooterProps) => {
   const theme = useAppTheme();
   const insets = useSafeAreaInsets();
-  const bg = backgroundColor ?? theme.primary;
+  const background = backgroundColor ?? theme.primary;
+  const isDisabled = loading || disabled;
 
   return (
     <BottomSheetFooter {...footerProps} bottomInset={insets.bottom}>
@@ -39,33 +55,38 @@ const BottomSheetFormFooter: React.FC<BottomSheetFormFooterProps> = ({
           },
         ]}
       >
-        <TouchableOpacity
-          style={[
-            styles.submitBtn,
-            {backgroundColor: bg, opacity: loading || disabled ? 0.7 : 1},
-          ]}
-          disabled={loading || disabled}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={label}
+          accessibilityState={{ busy: loading, disabled: isDisabled }}
+          disabled={isDisabled}
           onPress={onPress}
-          activeOpacity={0.85}
-          testID="bottom-sheet-form-footer-submit"
+          style={({ pressed }) => [
+            styles.submitAction,
+            {
+              backgroundColor: background,
+              opacity: isDisabled || pressed ? 0.7 : 1,
+            },
+          ]}
+          testID={actionTestID}
         >
           {loading ? (
-            <ActivityIndicator color={theme.text}/>
+            <ActivityIndicator color={theme.text} />
           ) : (
             <>
-              {!!icon && (
+              {icon ? (
                 <MaterialCommunityIcons
-                  name={icon as any}
+                  name={icon}
                   size={18}
                   color={theme.text}
                 />
-              )}
-              <Text style={[styles.submitText, {color: theme.text}]}>
+              ) : null}
+              <Text style={[styles.submitLabel, { color: theme.text }]}>
                 {label}
               </Text>
             </>
           )}
-        </TouchableOpacity>
+        </Pressable>
       </View>
     </BottomSheetFooter>
   );
@@ -79,7 +100,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     justifyContent: "center",
   },
-  submitBtn: {
+  submitAction: {
     borderRadius: CORNERS,
     paddingVertical: 14,
     alignItems: "center",
@@ -87,7 +108,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 8,
   },
-  submitText: {
+  submitLabel: {
     fontWeight: "800",
     fontSize: 16,
   },

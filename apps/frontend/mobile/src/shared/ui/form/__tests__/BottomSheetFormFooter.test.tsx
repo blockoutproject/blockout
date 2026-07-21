@@ -1,0 +1,68 @@
+import { render, userEvent } from "@testing-library/react-native";
+import React from "react";
+
+import { ThemeProvider } from "@/src/shared/providers/ThemeProvider";
+import BottomSheetFormFooter from "@/src/shared/ui/form/BottomSheetFormFooter";
+
+jest.mock("@gorhom/bottom-sheet", () => {
+  const React = require("react");
+  const { View } = require("react-native");
+  return {
+    BottomSheetFooter: ({ children }: { children: unknown }) =>
+      React.createElement(View, null, children),
+  };
+});
+
+jest.mock("react-native-safe-area-context", () => ({
+  useSafeAreaInsets: () => ({ top: 0, right: 0, bottom: 0, left: 0 }),
+}));
+
+describe("BottomSheetFormFooter", () => {
+  it("exposes and performs the feature-owned submit action", async () => {
+    const onPress = jest.fn();
+    const user = userEvent.setup();
+    const screen = await render(
+      <ThemeProvider>
+        <BottomSheetFormFooter
+          animatedFooterPosition={{} as never}
+          label="Envoyer"
+          onPress={onPress}
+          actionTestID="report-submit-action"
+        />
+      </ThemeProvider>,
+    );
+
+    const action = screen.getByRole("button", { name: "Envoyer" });
+    expect(action).toBe(screen.getByTestId("report-submit-action"));
+
+    await user.press(action);
+
+    expect(onPress).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps a loading action disabled and exposes its state", async () => {
+    const onPress = jest.fn();
+    const user = userEvent.setup();
+    const screen = await render(
+      <ThemeProvider>
+        <BottomSheetFormFooter
+          animatedFooterPosition={{} as never}
+          label="Envoyer"
+          loading
+          onPress={onPress}
+          actionTestID="report-submit-action"
+        />
+      </ThemeProvider>,
+    );
+
+    const action = screen.getByTestId("report-submit-action");
+    expect(action.props.accessibilityState).toEqual({
+      busy: true,
+      disabled: true,
+    });
+
+    await user.press(action);
+
+    expect(onPress).not.toHaveBeenCalled();
+  });
+});

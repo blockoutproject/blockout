@@ -63,15 +63,21 @@ const createWrapper = (queryClient: QueryClient) =>
     );
   };
 
+const createQueryClient = () =>
+  new QueryClient({
+    defaultOptions: {
+      queries: { retry: false, gcTime: Infinity },
+      mutations: { retry: false, gcTime: Infinity },
+    },
+  });
+
 describe("notification hooks", () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
   it("loads and exposes the notifications returned by the gateway", async () => {
-    const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false } },
-    });
+    const queryClient = createQueryClient();
     mockGetNotifications.mockResolvedValue(page);
 
     const { result, unmount } = await renderHook(() => useNotifications(20), {
@@ -86,9 +92,7 @@ describe("notification hooks", () => {
   });
 
   it("restores the cached page when deletion fails", async () => {
-    const queryClient = new QueryClient({
-      defaultOptions: { mutations: { retry: false } },
-    });
+    const queryClient = createQueryClient();
     const queryKey = notificationListQueryKey(20);
     const cached: InfiniteData<EnrichedUserNotificationPage> = {
       pages: [page],

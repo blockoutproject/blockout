@@ -83,6 +83,11 @@ The following rules guide each feature slice:
 - a module creates only the `api`, `hooks`, `model`, and `ui` folders it needs. Empty architectural placeholders are not
   permitted.
 
+Shared form primitives own only repeatable presentation and interaction mechanics: field layout, cards, sheet-aware
+inputs, modal/page frames, and submit footers. Each feature module continues to own its form values, validation schema,
+request construction, native capabilities, and submit command. Similar form sheets do not justify a generic form hook
+or schema-driven renderer.
+
 The live decisions and consumers are recorded in the
 [mobile consolidation register](mobile-consolidation.md). Every REF-036 slice updates that register so final cleanup can
 prove what was shared, intentionally kept local, or removed.

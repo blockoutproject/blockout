@@ -10,8 +10,8 @@ import PoolTabs from "@/src/components/pool/PoolTabs";
 import ErrorState from "@/src/shared/ui/feedback/ErrorState";
 import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
 import PoolHeader from "@/src/components/pool/PoolHeader";
-import {ReportType} from "@/src/types/Report";
-import ReportFormSheet from "@/src/components/report/ReportFormSheet";
+import {ReportType} from "@/src/modules/report/model/Report";
+import ReportFormSheet from "@/src/modules/report/ui/ReportFormSheet";
 import useHasScopes from "@/src/hooks/user/useHasScopes";
 import PoolFormSheet from "@/src/components/pool/PoolFormSheet";
 

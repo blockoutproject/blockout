@@ -7,9 +7,9 @@ import SearchTeamScreen from "@/src/components/search/SearchTeamScreen";
 import SearchClubScreen from "@/src/components/search/SearchClubScreen";
 import SearchPoolScreen from "@/src/components/search/SearchPoolScreen";
 import SearchHeader from "@/src/components/search/SearchHeader";
-import {ReportType} from "@/src/types/Report";
+import {ReportType} from "@/src/modules/report/model/Report";
 import {Filter} from "@/src/types/Filter";
-import ReportFormSheet from "@/src/components/report/ReportFormSheet";
+import ReportFormSheet from "@/src/modules/report/ui/ReportFormSheet";
 
 const SearchScreen: React.FC = () => {
   const [filters, setFilters] = useState<Filter[]>([

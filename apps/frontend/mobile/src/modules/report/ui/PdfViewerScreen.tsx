@@ -4,8 +4,8 @@ import {useLocalSearchParams} from "expo-router";
 import {WebView} from "react-native-webview";
 import PdfViewerHeader from "@/src/components/pdfViewer/PdfViewerHeader";
 import {BottomSheetModal} from "@gorhom/bottom-sheet";
-import ReportFormSheet from "@/src/components/report/ReportFormSheet";
-import {ReportType} from "@/src/types/Report";
+import ReportFormSheet from "@/src/modules/report/ui/ReportFormSheet";
+import {ReportType} from "@/src/modules/report/model/Report";
 
 export default function PdfViewer() {
   const params = useLocalSearchParams<{ url: string; title?: string }>();

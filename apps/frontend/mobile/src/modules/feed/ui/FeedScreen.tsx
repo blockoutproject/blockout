@@ -8,9 +8,9 @@ import AnimatedFeedHeader from '@/src/components/home/AnimatedFeedHeader';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {LOGO_HEIGHT, TABBAR_HEIGHT} from '@/src/shared/theme/tokens';
 import {useSessionState} from '@/src/shared/providers/SessionProvider';
-import ReportFormSheet from '@/src/components/report/ReportFormSheet';
+import ReportFormSheet from '@/src/modules/report/ui/ReportFormSheet';
 import {BottomSheetModal} from '@gorhom/bottom-sheet';
-import {ReportType} from '@/src/types/Report';
+import {ReportType} from '@/src/modules/report/model/Report';
 import FollowedScreen from '@/src/components/followed/FollowedScreen';
 import {openNotificationUrlIfAny} from '@/src/modules/notifications/push';
 import {

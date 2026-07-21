@@ -1,12 +1,12 @@
 export enum ReportType {
-  DISPLAY_BUG = 'DISPLAY_BUG',
-  DATA_ERROR = 'DATA_ERROR',
-  LOGO = 'LOGO',
-  LIVE = 'LIVE',
-  OTHER = 'OTHER',
+  DISPLAY_BUG = "DISPLAY_BUG",
+  DATA_ERROR = "DATA_ERROR",
+  LOGO = "LOGO",
+  LIVE = "LIVE",
+  OTHER = "OTHER",
 }
 
-export interface Report {
+export type CreateReportRequest = {
   type: ReportType;
   title: string;
   description?: string;
@@ -16,12 +16,12 @@ export interface Report {
   screen: string;
   deviceModel?: string;
   os?: string;
-}
+};
 
-export interface ReportResult {
+export type ReportResponse = {
   id: number;
   number: number;
   htmlUrl: string;
   title: string;
   state: string;
-}
+};

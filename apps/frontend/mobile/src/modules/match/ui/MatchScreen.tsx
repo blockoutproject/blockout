@@ -18,10 +18,10 @@ import MatchHeader from "@/src/components/match/MatchHeader";
 import ErrorState from "@/src/shared/ui/feedback/ErrorState";
 import FadeIn from "@/src/shared/ui/animations/FadeIn";
 
-import {ReportType} from "@/src/types/Report";
+import {ReportType} from "@/src/modules/report/model/Report";
 import {getTeamsRankingColor, isLNV, splitIsoDateFormatted} from "@/src/utils/utils";
 import {BOTTOM_TABBAR_HEIGHT, HEADER_HEIGHT, SECTION_SEPARATOR_HEIGHT,} from "@/src/shared/theme/tokens";
-import ReportFormSheet from "@/src/components/report/ReportFormSheet";
+import ReportFormSheet from "@/src/modules/report/ui/ReportFormSheet";
 import MatchLiveLinkCard from "@/src/components/match/MatchLiveLinkCard";
 import useHasScopes from "@/src/hooks/user/useHasScopes";
 import GuestPromptSheet, {GuestPromptSheetRef} from "@/src/components/user/GuestPromptSheet.tsx";

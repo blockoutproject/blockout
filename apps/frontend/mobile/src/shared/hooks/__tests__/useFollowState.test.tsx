@@ -92,15 +92,21 @@ const createWrapper = (queryClient: QueryClient, refetch: jest.Mock) =>
     );
   };
 
+const createQueryClient = () =>
+  new QueryClient({
+    defaultOptions: {
+      queries: { retry: false, gcTime: Infinity },
+      mutations: { retry: false, gcTime: Infinity },
+    },
+  });
+
 describe("follow state", () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
   it("optimistically stores server facts in the Query cache", async () => {
-    const queryClient = new QueryClient({
-      defaultOptions: { mutations: { retry: 0 } },
-    });
+    const queryClient = createQueryClient();
     const refetch = jest.fn().mockResolvedValue(undefined);
     const pool = { id: 42, followersCount: 7 };
     const poolKey = ["enrichedPools", pool.id] as const;
@@ -134,9 +140,7 @@ describe("follow state", () => {
   });
 
   it("restores both cached facts when the mutation fails", async () => {
-    const queryClient = new QueryClient({
-      defaultOptions: { mutations: { retry: 0 } },
-    });
+    const queryClient = createQueryClient();
     const refetch = jest.fn().mockResolvedValue(undefined);
     const team = { id: 7, followersCount: 3 };
     const teamKey = ["enrichedTeams", team.id] as const;
