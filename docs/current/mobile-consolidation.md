@@ -35,7 +35,7 @@ easier to read and its public interface is simpler than the duplicated implement
 | Followed entity lists                   | Near-identical pool and team lists                                           | Entity modules plus `modules/followed`              | Share entity cards and list skeletons; keep typed queries, copy, filtering, and navigation explicit                                | Complete    |
 | Entity search                           | Near-identical team and pool filters with a simpler club variant             | `modules/search`                                    | One small results frame accepts composed filters; entity filters, requests, cards, and navigation remain explicit                 | Complete    |
 | High-volume lists and images            | Match, ranking, feed, and notification lists repeat item patterns            | Feature modules plus `shared/ui` primitives         | Keep feature-specific list composition; use stable callbacks, domain keys, accessible actions, FlashList, and Expo Image where proven | Complete    |
-| Application-state cards                 | Maintenance and required-update screens share layout but not actions         | `shared/ui` plus app-status module                  | Share the state frame; express maintenance and update as explicit feature compositions                                            | Planned     |
+| Application-state cards                 | Maintenance and required-update screens share layout but not actions         | `modules/app-status`                                | Share the state frame; express maintenance and update as explicit feature compositions                                            | Complete    |
 | Test selectors and component behavior   | Existing tests mix semantic queries with incidental or incorrectly named IDs | Owning feature tests and native host components     | Completed slices use semantic queries, observable commands, stable boundaries, and domain-item IDs                                | In progress |
 
 ## Completed slices
@@ -139,6 +139,25 @@ easier to read and its public interface is simpler than the duplicated implement
   factory, mock registry, test-only production branch, generic form framework, or service container was added.
 - All 48 tests pass across 23 suites, typecheck passes, lint completes with 13 inherited warnings and no errors, and the
   3,148-module Web export passes.
+
+### Application status, configuration, and internal administration
+
+- Application status owns its exact handwritten gateway response/update models, Query hook, shared status frame,
+  maintenance screen, and required-update screen under `modules/app-status`. Maintenance and update keep their distinct
+  messages and commands; only their proven application-state frame is shared.
+- Division and raw-division-mapping each own their response/request models, Query hook, form, sheet, list item, and
+  screen. Internal scraper controls own their status model, query, and administration UI under `modules/administration`.
+  The existing config endpoint family remains one concrete client under `modules/config`; it was not split into a
+  factory or duplicated transport wrappers.
+- Handwritten model names now mirror the Java mobile-gateway boundary (`*Response`, `UpsertDivisionRequest`,
+  `UpdateRawDivisionMappingRequest`, and `UpdateAppStatusRequest`). Division submission sends only the five fields
+  accepted by the gateway, and unused raw-division create/read client methods were removed.
+- Maintenance, update, administration, Division, and raw-mapping boundaries expose accessible commands and stable
+  feature/domain IDs. Nested Division touch targets were separated into explicit edit and deactivate actions. Focused
+  tests protect the exact Division request and observable retry, store-opening, and authorized-bypass behavior without
+  provider bypasses or test-only production paths.
+- All 51 tests pass across 25 suites, typecheck passes, lint completes with nine inherited warnings and no errors, and
+  the 3,148-module Web export passes.
 
 ## Final audit
 

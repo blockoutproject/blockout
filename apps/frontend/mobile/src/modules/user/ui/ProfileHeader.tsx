@@ -8,9 +8,9 @@ import {BottomSheetModal} from "@gorhom/bottom-sheet";
 import BottomSheetCustomPage from "@/src/shared/ui/bottomSheet/BottomSheetCustomPage";
 import useHasScopes from "@/src/modules/user/hooks/useHasScopes";
 import MatchLiveModerationScreen from "@/src/modules/match/ui/moderation/MatchLiveModerationScreen";
-import RawDivisionMappingScreen from "@/src/components/rawDivisionMapping/RawDivisionMappingScreen";
-import DivisionScreen from "@/src/components/division/DivisionScreen";
-import AdminScreen from "@/src/components/appStatus/AdminScreen";
+import RawDivisionMappingScreen from "@/src/modules/raw-division-mapping/ui/RawDivisionMappingScreen";
+import DivisionScreen from "@/src/modules/division/ui/DivisionScreen";
+import AdminScreen from "@/src/modules/administration/ui/AdminScreen";
 import {useSessionState} from "@/src/modules/session/providers/SessionContext";
 
 export type UserHeaderProps = {

@@ -1,7 +1,7 @@
 import React from "react";
 import {StyleSheet, Text, View} from "react-native";
 import {MatchResponse, MatchStatus} from "@/src/modules/match/model/Match";
-import {Division} from "@/src/types/Division";
+import {DivisionResponse} from "@/src/modules/division/model/Division";
 import {withAlpha} from "@/src/utils/utils";
 import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
 import MaskedImage from "@/src/shared/ui/images/MaskedImage";
@@ -10,7 +10,7 @@ import InfoPillGradient from "@/src/shared/ui/chips/InfoPillGradient";
 
 export type MatchRowProps = {
   match: MatchResponse;
-  division: Division;
+  division: DivisionResponse;
 };
 
 const MatchRow: React.FC<MatchRowProps> = ({match, division}) => {

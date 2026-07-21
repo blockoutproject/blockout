@@ -18,7 +18,7 @@ import {
   SessionContextProvider,
   SessionState,
 } from "@/src/modules/session/providers/SessionContext";
-import { useAppStatus } from "@/src/hooks/config/app/useAppStatus";
+import { useAppStatus } from "@/src/modules/app-status/hooks/useAppStatus";
 import { useRegisterPushToken } from "@/src/modules/notifications/hooks/useRegisterPushToken";
 import { useEnsureUser } from "@/src/modules/user/hooks/useEnsureUser";
 import useHasScopes from "@/src/modules/user/hooks/useHasScopes";

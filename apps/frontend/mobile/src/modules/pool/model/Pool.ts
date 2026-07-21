@@ -1,4 +1,4 @@
-import type { Division } from "@/src/types/Division";
+import type { DivisionResponse } from "@/src/modules/division/model/Division";
 import type { EnumFormat } from "@/src/types/enums/Format";
 import type { EnumGender } from "@/src/types/enums/Gender";
 import type { TeamWithStatsResponse } from "@/src/modules/team/model/Team";
@@ -48,7 +48,7 @@ export type PoolResponse = {
   gender: EnumGender;
   followersCount: number;
   ranking: TeamWithStatsResponse[];
-  division: Division;
+  division: DivisionResponse;
 };
 
 export type PoolSummaryResponse = {
@@ -58,7 +58,7 @@ export type PoolSummaryResponse = {
   season: string;
   gender: EnumGender;
   format: EnumFormat;
-  division: Division;
+  division: DivisionResponse;
   leagueCode: string;
   leagueName: string;
 };

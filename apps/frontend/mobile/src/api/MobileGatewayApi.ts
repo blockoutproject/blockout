@@ -5,7 +5,7 @@ import { TeamApi } from "@/src/modules/team/api/TeamApi";
 import { UserApi } from "@/src/modules/user/api/UserApi";
 import { SearchApi } from "@/src/modules/search/api/SearchApi";
 import { NotificationApi } from "@/src/modules/notifications/api/NotificationApi";
-import { ConfigApi } from "./ConfigApi";
+import { ConfigApi } from "@/src/modules/config/api/ConfigApi";
 import { ReportApi } from "@/src/modules/report/api/ReportApi";
 import { TokenSupplier } from "@/src/shared/api/HttpClient";
 import { ApiError } from "@/src/shared/api/ApiError";
@@ -33,7 +33,6 @@ export class MobileGatewayApi {
     this.reports = new ReportApi();
   }
 
-  // Pour que setAuthOnApis continue à fonctionner comme avant
   public setAuthContext(
     tokenSupplier?: TokenSupplier,
     onUnauthorized?: (e: ApiError) => void | Promise<void>,

@@ -1,5 +1,3 @@
-// FILE: app/update-required.tsx
-
 import React, {useCallback, useMemo} from "react";
 import {ActivityIndicator, Linking, StyleSheet, Text, TouchableOpacity, View,} from "react-native";
 import {MaterialCommunityIcons} from "@expo/vector-icons";
@@ -7,7 +5,7 @@ import * as Haptics from "expo-haptics";
 
 import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
 import {useSessionActions, useSessionState} from "@/src/modules/session/providers/SessionContext";
-import AppStatusLayout from "@/src/components/appStatus/AppStatusLayout";
+import AppStatusLayout from "@/src/modules/app-status/ui/AppStatusLayout";
 import {CURRENT_APP_VERSION} from "@/src/utils/appVersion";
 import {CORNERS} from "@/src/shared/theme/tokens";
 import {Image} from "expo-image";
@@ -19,7 +17,7 @@ const UpdateRequiredScreen: React.FC = () => {
     appUpdateUrl,
     canBypassUpdate,
   } = useSessionState();
-  const {refetchAppStatus, bypassUpdate} = useSessionActions();
+  const {bypassUpdate} = useSessionActions();
 
   const theme = useAppTheme();
 
@@ -43,14 +41,6 @@ const UpdateRequiredScreen: React.FC = () => {
     }
   }, [appUpdateUrl]);
 
-  const handleRetry = useCallback(async () => {
-    await Haptics.impactAsync(
-      Haptics.ImpactFeedbackStyle.Medium,
-    ).catch(() => {
-    });
-    refetchAppStatus();
-  }, [refetchAppStatus]);
-
   const handleBypass = useCallback(async () => {
     if (!canBypassUpdate) return;
     await Haptics.selectionAsync().catch(() => {
@@ -59,7 +49,7 @@ const UpdateRequiredScreen: React.FC = () => {
   }, [bypassUpdate, canBypassUpdate]);
 
   return (
-    <AppStatusLayout footer="Merci de garder Blockout à jour !">
+    <AppStatusLayout footer="Merci de garder Blockout à jour !" testID="update-required-screen">
       <View style={styles.cardWrapper}>
         <View
           style={[
@@ -146,6 +136,10 @@ const UpdateRequiredScreen: React.FC = () => {
                       opacity: appUpdateUrl ? 1 : 0.6,
                     },
                   ]}
+                  accessibilityRole="button"
+                  accessibilityLabel="Mettre à jour l’application"
+                  accessibilityState={{disabled: !appUpdateUrl}}
+                  testID="update-required-store-action"
                 >
                   <MaterialCommunityIcons
                     name="open-in-new"
@@ -173,6 +167,9 @@ const UpdateRequiredScreen: React.FC = () => {
                         theme.borderSecondary,
                       },
                     ]}
+                    accessibilityRole="button"
+                    accessibilityLabel="Accéder à l’application"
+                    testID="update-required-bypass-action"
                   >
                     <Text
                       style={[

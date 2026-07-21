@@ -1,13 +1,13 @@
 import {Platform} from "react-native";
 
-import type {AppStatusDTO} from "@/src/types/AppStatus";
+import type {AppStatusResponse} from "@/src/modules/app-status/model/AppStatus";
 import {compareSemver, computeIsUpdateRequired, getStoreUrl,} from "@/src/utils/appVersion";
 
 jest.mock("expo-application", () => ({
   nativeApplicationVersion: "1.3.5",
 }));
 
-const appStatus: AppStatusDTO = {
+const appStatus: AppStatusResponse = {
   maintenance: false,
   message: null,
   imageUrl: null,
@@ -16,6 +16,7 @@ const appStatus: AppStatusDTO = {
   minVersionAndroid: "1.3.5",
   storeUrlIos: "https://apps.apple.com/app/blockout",
   storeUrlAndroid: "https://play.google.com/store/apps/details?id=blockout",
+  forceUpdateMessage: null,
 };
 
 describe("app version policy", () => {

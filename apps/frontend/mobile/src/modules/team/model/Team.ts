@@ -1,5 +1,5 @@
 import type { ClubResponse } from "@/src/modules/club/model/Club";
-import type { Division } from "@/src/types/Division";
+import type { DivisionResponse } from "@/src/modules/division/model/Division";
 import type { EnumFormat } from "@/src/types/enums/Format";
 import type { EnumGender } from "@/src/types/enums/Gender";
 import type { PoolResponse } from "@/src/modules/pool/model/Pool";
@@ -48,7 +48,7 @@ export type TeamResponse = {
   followersCount: number;
   logoUrl: string | null;
   club: ClubResponse | null;
-  division: Division;
+  division: DivisionResponse;
   pools: PoolResponse[];
 };
 
@@ -59,7 +59,7 @@ export type TeamSummaryResponse = {
   gender: EnumGender;
   format: EnumFormat;
   logoUrl: string | null;
-  division: Division;
+  division: DivisionResponse;
   club: ClubResponse;
   shortName: string;
 };

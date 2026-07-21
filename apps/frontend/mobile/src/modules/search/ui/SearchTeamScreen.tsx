@@ -10,7 +10,7 @@ import DivisionSelect from "@/src/shared/ui/form/DivisionSelect";
 import FormatSelect from "@/src/shared/ui/form/FormatSelect";
 import GenderSelect from "@/src/shared/ui/form/GenderSelect";
 import SeasonSelect from "@/src/shared/ui/form/SeasonSelect";
-import { useDivisions } from "@/src/hooks/config/division/useDivisions";
+import { useDivisions } from "@/src/modules/division/hooks/useDivisions";
 import { EnumFormat } from "@/src/types/enums/Format";
 import { EnumGender } from "@/src/types/enums/Gender";
 import { useNavigationInterstitial } from "@/src/hooks/ads/useNavigationInterstitial";

@@ -319,7 +319,7 @@
           explicit;
     - [x] move clubs, search, followed entities, and team lists into coherent discovery boundaries;
     - [x] move matches, rankings, and the feed, optimizing lists only where measurements or stable semantics justify it;
-    - [ ] move user, session, onboarding, application status, configuration, and internal administration flows;
+    - [x] move user, session, onboarding, application status, configuration, and internal administration flows;
     - [ ] remove empty legacy roots, correct naming and remaining unsafe types, complete accessibility checks, and
           publish the final consolidation register.
 

@@ -2,7 +2,7 @@ import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
 import type { PoolResponse } from "@/src/modules/pool/model/Pool";
 import tinycolor from "tinycolor2";
-import { Division } from "../types/Division";
+import { DivisionResponse } from "@/src/modules/division/model/Division";
 import type { TeamHighlight } from "@/src/modules/team/model/Team";
 import { AppTheme } from "../shared/theme/themes";
 
@@ -104,7 +104,7 @@ export function splitIsoDateFormatted(isoString: string) {
   return { date, time };
 }
 
-export const getLeagueLabel = (division: Division, pool: PoolResponse) =>
+export const getLeagueLabel = (division: DivisionResponse, pool: PoolResponse) =>
   `${division.name} - ${pool.gender}`;
 
 export function getTeamsRankingColor(
@@ -233,5 +233,5 @@ export function computeBalancedRowsByCount(params: {
 }
 
 export const appendJson = (fd: FormData, name: string, value: unknown) => {
-  fd.append(name, JSON.stringify(value) as any);
+  fd.append(name, JSON.stringify(value));
 };

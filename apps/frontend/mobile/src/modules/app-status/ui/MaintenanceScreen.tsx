@@ -6,7 +6,7 @@ import * as Haptics from "expo-haptics";
 import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
 import {useSessionActions, useSessionState} from "@/src/modules/session/providers/SessionContext";
 import MaskedImage from "@/src/shared/ui/images/MaskedImage";
-import AppStatusLayout from "@/src/components/appStatus/AppStatusLayout";
+import AppStatusLayout from "@/src/modules/app-status/ui/AppStatusLayout";
 import {CORNERS} from "@/src/shared/theme/tokens";
 
 const MaintenancePage: React.FC = () => {
@@ -46,7 +46,7 @@ const MaintenancePage: React.FC = () => {
   }, [bypassMaintenance, canBypassMaintenance]);
 
   return (
-    <AppStatusLayout footer="Merci pour ta patience !">
+    <AppStatusLayout footer="Merci pour ta patience !" testID="maintenance-screen">
       <View style={styles.cardWrapper}>
         <View
           style={[
@@ -121,6 +121,9 @@ const MaintenancePage: React.FC = () => {
                       theme.backgroundSecondary,
                     },
                   ]}
+                  accessibilityRole="button"
+                  accessibilityLabel="Réessayer"
+                  testID="maintenance-retry-action"
                 >
                   <MaterialCommunityIcons
                     name="reload"
@@ -148,6 +151,9 @@ const MaintenancePage: React.FC = () => {
                         theme.borderSecondary,
                       },
                     ]}
+                    accessibilityRole="button"
+                    accessibilityLabel="Accéder à l’application"
+                    testID="maintenance-bypass-action"
                   >
                     <Text
                       style={[

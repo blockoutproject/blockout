@@ -1,7 +1,7 @@
 import React, { createContext, useContext } from "react";
 
 import type { User } from "@/src/modules/session/auth/AuthProvider";
-import type { AppStatusDTO } from "@/src/types/AppStatus";
+import type { AppStatusResponse } from "@/src/modules/app-status/model/AppStatus";
 import type { UserResponse } from "@/src/modules/user/model/User";
 
 export type SessionActions = {
@@ -29,7 +29,7 @@ export type SessionState = {
   error: Error | null;
   customUserError: Error | null;
   auth0UserError: Error | null;
-  appStatus: AppStatusDTO | undefined;
+  appStatus: AppStatusResponse | undefined;
   isAppStatusLoading: boolean;
   isAppStatusError: boolean;
   isMaintenance: boolean;
