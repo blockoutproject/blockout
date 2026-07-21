@@ -1,6 +1,6 @@
 ---
 name: blockout-best-practices
-description: Use when working in the Blockout monorepo on Nx workspace structure, Spring Boot or Maven backend code, JPA or Flyway persistence, REST APIs and handwritten transport models, RabbitMQ messaging, Python scrapers, Expo mobile code, logging, tests, local runtime, documentation, or repository architecture.
+description: Use when working in the Blockout monorepo on Nx workspace structure, contracts, OpenAPI/code generation, Spring Boot or Maven backend code, JPA or Flyway persistence, REST APIs, RabbitMQ messaging, Python scrapers, Expo mobile code, logging, tests, local runtime, documentation, or repository architecture.
 ---
 
 # Blockout Best Practices
@@ -29,7 +29,7 @@ the current task. Detailed rules live in the references rather than in this entr
 | Backend Java tests                                                            | `references/java-testing-policy.md`                                                     |
 | JPA entity, repository, migration, or PostgreSQL schema                       | `references/persistence-policy.md`                                                      |
 | Request, response, controller, mapping, error, collection, or pagination      | `references/rest-api-policy.md`                                                         |
-| OpenAPI source, generated DTO/client, transport enum, or code generation      | `references/contract-first-policy.md`                                                   |
+| OpenAPI contract, DTO, endpoint, generated client/server, or transport enum   | `references/contract-first.md`, then `references/rest-api-policy.md` when relevant      |
 | Java, Python, or mobile logging                                               | `references/logging-policy.md`                                                          |
 | Python scraper code, model, dependency, or fixture                            | `references/python-scraper-policy.md` and `references/python-scraper-testing-policy.md` |
 | Expo, React Native, Formik, Yup, or mobile HTTP boundary                      | `references/mobile-expo-policy.md`, `references/mobile-testing-policy.md`, and `vercel-react-native-skills` |
@@ -66,7 +66,7 @@ install their Next.js, deployment, web-design, or writing skills for Blockout mo
 ## Staged Contract Adoption
 
 REF-041 activates the OpenAPI generation foundation. Contract ownership now follows
-`references/contract-first-policy.md`, but each vertical remains handwritten until its ordered roadmap task proves DTO
+`references/contract-first.md`, but each vertical remains handwritten until its ordered roadmap task proves DTO
 readiness and adopts the generated boundary. Do not generate or migrate a later vertical by continuity.
 
 Blockout does not use GitFlow or a GitHub Project roadmap yet:

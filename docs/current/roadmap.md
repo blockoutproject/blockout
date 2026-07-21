@@ -435,6 +435,11 @@ handwritten types; it must not hide a simultaneous transport or business refacto
   - `npm ci`, the high-severity audit gate, uv lock/sync checks, two identical clean generations, the Java shared-model
     build, the minimal Python wheel build and isolated import, all 111 scraper tests, mobile lint/typecheck, and all 52
     mobile tests pass. The Nx contract target names remain aligned with Maaatch and Git tracks no generated artifact.
+  - Follow-up evidence: the Blockout router now uses Maaatch's `references/contract-first.md` structure and its complete
+    boundary rules, adapted only for Blockout's mobile, Python, Java 21, V1 camelCase, and local-enum ownership. The
+    obsolete router `agents` metadata and Ruff's redundant `.venv` exclusion are removed. A post-adoption comparison
+    confirms that the contract targets, native Maven generation, declarative Python generation, ignored outputs, and
+    future Orval boundary already conform, so no additional codegen abstraction or script is introduced.
 
 - [ ] **REF-043 — Migrate the Club contract as the first generated vertical**
   - Define the single authoritative Club schemas and internal operations from the behavior already established by the
